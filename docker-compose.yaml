@@ -17,7 +17,7 @@ services:
     build: ./backend
     container_name: ticket_backend
     ports:
-      - "8080:8080"
+      - "8081:8080" #port çakışmasını engellemek için değiştirdim
     depends_on:
       - db
     environment:
@@ -35,6 +35,33 @@ services:
       - backend
     volumes:
       - ./frontend/src:/app/src
+  #OpenLDAP
+  openldap:
+    image: osixia/openldap:latest
+    container_name: ticket-ldap
+    environment:
+      LDAP_ORGANISATION: "TicketSystem"
+      LDAP_DOMAIN: "ticketsystem.com"
+      LDAP_ADMIN_PASSWORD: "321654"
+    ports:
+      - "389:389"
 
+  #Keycloak:
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: ticket-keycloak
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: 321654
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/ticket_system_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: 321654
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - openldap
 volumes:
   postgres_data:
