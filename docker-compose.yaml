@@ -1,0 +1,125 @@
+networks:
+  it-service-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  ldap_data:
+  ldap_config:
+
+services:
+  # 1. PostgreSQL Veritabanı
+  it-service-db:
+    image: postgres:15-alpine
+    container_name: it-service-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ticketadmin
+      POSTGRES_PASSWORD: 321654
+      POSTGRES_DB: ticketdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - it-service-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketadmin -d ticketdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+# 2. OpenLDAP Sunucusu (Kullanıcı Dizinimiz)
+  openldap-server:
+    build:
+      context: .
+      dockerfile: Dockerfile-ldap # Az önce oluşturduğumuz dosya
+    container_name: openldap-server
+    ports:
+      - "389:389"
+    environment:
+      LDAP_ORGANISATION: "Ticket System"
+      LDAP_DOMAIN: "ticketsystem.com"
+      LDAP_ADMIN_PASSWORD: "321654"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+      # DIŞARIDAN BAĞLADIĞIMIZ O SORUNLU SATIRI SİLDİK!
+    networks:
+      - it-service-net
+
+  # 3. phpLDAPadmin
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: phpldapadmin
+    ports:
+      - "8085:80"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap-server"
+      PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - openldap-server
+    networks:
+      - it-service-net
+
+  # 4. Keycloak Sunucusu
+  keycloak-iam:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak-iam
+    # KEYCLOAK INIT KOMUTU (--import-realm eklendi):
+    command: start-dev --import-realm
+    ports:
+      - "8080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://it-service-db:5432/keycloakdb
+      KC_DB_USERNAME: ticketadmin
+      KC_DB_PASSWORD: 321654
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: 321654
+    volumes:
+      # KEYCLOAK INIT DOSYASI BURADAN OKUNACAK:
+      - ./keycloak-init:/opt/keycloak/data/import
+    depends_on:
+      it-service-db:
+        condition: service_healthy
+    networks:
+      - it-service-net
+
+# 5. Spring Boot Backend Servisi
+  it-service-backend:
+    build:
+      context: ./it-service-backend
+      dockerfile: Dockerfile
+    container_name: it-service-backend
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: "8081"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://it-service-db:5432/ticketdb
+      SPRING_DATASOURCE_USERNAME: ticketadmin
+      SPRING_DATASOURCE_PASSWORD: 321654
+      # Postman'den gelen token'daki "localhost" issuer'ı kabul et:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/TicketSystemRealm
+      # Doğrulama anahtarlarını Docker ağı üzerinden çek:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-iam:8080/realms/TicketSystemRealm/protocol/openid-connect/certs
+    depends_on:
+      it-service-db:
+        condition: service_healthy
+      keycloak-iam:
+        condition: service_started
+    networks:
+      - it-service-net
+
+      # 6. React/Vite Frontend Servisi
+  it-service-frontend:
+    build:
+      context: ./it-service-frontend # Dockerfile'ın bulunduğu klasör
+      dockerfile: Dockerfile
+    container_name: it-service-frontend
+    ports:
+      - "3000:80" # Tarayıcıdan 3000 ile gireceğiz, içeride Nginx 80'i dinleyecek
+    depends_on:
+      - it-service-backend # Backend ayağa kalkmadan Frontend tam başlamasın
+    networks:
+      - it-service-net

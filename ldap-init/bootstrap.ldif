@@ -1,0 +1,31 @@
+# 1. Kullanıcılar için Organizasyon Birimi (OU) oluşturuyoruz
+dn: ou=users,dc=ticketsystem,dc=com
+objectClass: organizationalUnit
+ou: users
+
+# 2. Test Müşterisi (Customer) ekliyoruz
+dn: uid=ctest,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: ctest
+cn: customer
+sn: test
+mail: ctest@ticketsystem.com
+userPassword: 321654
+
+# 3. Test Destek Uzmanı (Agent) ekliyoruz
+dn: uid=atest,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: atest
+cn: agent
+sn: test
+mail: atest@ticketsystem.com
+userPassword: 321654
+
+# 4. Test Yönetici (Manager) ekliyoruz
+dn: uid=mtest,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: mtest
+cn: manager
+sn: test
+mail: mtest@ticketsystem.com
+userPassword: 321654
