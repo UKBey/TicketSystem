@@ -7,6 +7,7 @@ volumes:
   ldap_data:
   ldap_config:
 
+
 services:
   # 1. PostgreSQL Veritabanı
   it-service-db:
@@ -24,12 +25,12 @@ services:
     networks:
       - it-service-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ticketadmin -d ticketdb"]
+      test: [ "CMD-SHELL", "pg_isready -U ticketadmin -d ticketdb" ]
       interval: 5s
       timeout: 5s
       retries: 10
 
-# 2. OpenLDAP Sunucusu (Kullanıcı Dizinimiz)
+  # 2. OpenLDAP Sunucusu (Kullanıcı Dizinimiz)
   openldap-server:
     build:
       context: .
@@ -86,7 +87,7 @@ services:
     networks:
       - it-service-net
 
-# 5. Spring Boot Backend Servisi
+  # 5. Spring Boot Backend Servisi
   it-service-backend:
     build:
       context: ./it-service-backend
@@ -111,7 +112,7 @@ services:
     networks:
       - it-service-net
 
-      # 6. React/Vite Frontend Servisi
+  # 6. React/Vite Frontend Servisi
   it-service-frontend:
     build:
       context: ./it-service-frontend # Dockerfile'ın bulunduğu klasör

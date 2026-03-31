@@ -1,17 +1,11 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ticketdb
-    username: ticketadmin
+    url: jdbc:tc:postgresql://localhost:5432/ticketdb
+    username: ticketdb
     password: 321654
   jpa:
     hibernate:
-      ddl-auto: validate # Tabloları ORM değil, Flyway yönetecek
-    show-sql: true
+      ddl-auto: validate
   flyway:
     enabled: true
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8080/realms/TicketSystemRealm
+    locations: classpath:db/migration
