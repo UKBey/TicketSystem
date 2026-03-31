@@ -129,6 +129,36 @@ public class TicketService {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti görüntüleme yetkiniz yok.");
     }
 
+    /**
+     * Yorum veya Dosya ekleme/silme gibi kritik işlemler için 'Sıkı' yetkilendirme kontrolü.
+     */
+    @Transactional(readOnly = true)
+    public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
+        Ticket ticket = getTicketById(id);
+
+        // 1. MANAGER her zaman yetkilidir
+        if (roles.contains("MANAGER")) {
+            return ticket;
+        }
+
+        // 2. Eğer kullanıcı AJAN ise, SADECE kendisinin üzerinde (assignee) olan biletlerde işlem yapabilir
+        if (roles.contains("AGENT")) {
+            if (userId.equals(ticket.getAssigneeId())) {
+                return ticket;
+            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sadece üzerinize atanan biletlerde işlem yapabilirsiniz.");
+        }
+
+        // 3. Eğer kullanıcı CUSTOMER ise, SADECE kendi oluşturduğu biletlerde işlem yapabilir
+        if (roles.contains("CUSTOMER")) {
+            if (userId.equals(ticket.getCustomerId())) {
+                return ticket;
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu işlem için yetkiniz bulunmuyor.");
+    }
+
     @Transactional
     public Ticket claimTicket(Long id, String agentId) {
         Ticket ticket = getTicketById(id);

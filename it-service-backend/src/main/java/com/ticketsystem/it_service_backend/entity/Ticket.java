@@ -3,6 +3,8 @@ package com.ticketsystem.it_service_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "tickets")
@@ -53,6 +55,10 @@ public class Ticket {
 
     @Column(name = "closed_at")
     private ZonedDateTime closedAt;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore // Sonsuz döngüyü önlemek için listeyi JSON'da gizleyelim (veya DTO kullanın)
+    private List<Attachment> attachments;
 
     @PrePersist
     protected void onCreate() {
