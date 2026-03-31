@@ -17,8 +17,11 @@ WORKDIR /app
 # Build aşamasında oluşan jar dosyasını kopyalar
 COPY --from=builder /app/target/*.jar app.jar
 
+# OpenTelemetry Java Agent'ı indirir
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar opentelemetry-javaagent.jar
+
 # Uygulamanın çalışacağı port
 EXPOSE 8081
 
-# Spring Boot'u ayağa kaldıran komut
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# DÜZELTME BURADA: Agent dosyasına giden yolun doğru olduğundan emin olalım
+ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]

@@ -6,7 +6,8 @@ volumes:
   postgres_data:
   ldap_data:
   ldap_config:
-
+  opensearch_data:
+    # OpenSearch verilerinin kalıcı olması için eklendi
 
 services:
   # 1. PostgreSQL Veritabanı
@@ -34,7 +35,7 @@ services:
   openldap-server:
     build:
       context: .
-      dockerfile: Dockerfile-ldap # Az önce oluşturduğumuz dosya
+      dockerfile: Dockerfile-ldap
     container_name: openldap-server
     ports:
       - "389:389"
@@ -45,7 +46,6 @@ services:
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
-      # DIŞARIDAN BAĞLADIĞIMIZ O SORUNLU SATIRI SİLDİK!
     networks:
       - it-service-net
 
@@ -67,7 +67,6 @@ services:
   keycloak-iam:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak-iam
-    # KEYCLOAK INIT KOMUTU (--import-realm eklendi):
     command: start-dev --import-realm
     ports:
       - "8080:8080"
@@ -79,7 +78,6 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: 321654
     volumes:
-      # KEYCLOAK INIT DOSYASI BURADAN OKUNACAK:
       - ./keycloak-init:/opt/keycloak/data/import
     depends_on:
       it-service-db:
@@ -87,7 +85,56 @@ services:
     networks:
       - it-service-net
 
-  # 5. Spring Boot Backend Servisi
+  # ---------------- YENİ EKLENEN OBSERVABILITY KATMANI ----------------
+
+  # 5. OpenSearch (Veri Deposu)
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - it-service-net
+
+  # 6. OpenSearch Dashboards (Arayüz)
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      - opensearch
+    networks:
+      - it-service-net
+
+  # 7. OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - opensearch
+    networks:
+      - it-service-net
+
+  # -------------------------------------------------------------------
+
+  # 8. Spring Boot Backend Servisi
   it-service-backend:
     build:
       context: ./it-service-backend
@@ -100,27 +147,35 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://it-service-db:5432/ticketdb
       SPRING_DATASOURCE_USERNAME: ticketadmin
       SPRING_DATASOURCE_PASSWORD: 321654
-      # Postman'den gelen token'daki "localhost" issuer'ı kabul et:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/TicketSystemRealm
-      # Doğrulama anahtarlarını Docker ağı üzerinden çek:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-iam:8080/realms/TicketSystemRealm/protocol/openid-connect/certs
+
+      # OTel Ortam Değişkenleri Eklendi:
+      OTEL_SERVICE_NAME: "it-service-backend"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_METRICS_EXPORTER: "otlp"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_TRACES_EXPORTER: "otlp"
     depends_on:
       it-service-db:
         condition: service_healthy
       keycloak-iam:
         condition: service_started
+      otel-collector:
+        # Backend başlamadan Collector hazır olsun
+        condition: service_started
     networks:
       - it-service-net
 
-  # 6. React/Vite Frontend Servisi
+  # 9. React/Vite Frontend Servisi
   it-service-frontend:
     build:
-      context: ./it-service-frontend # Dockerfile'ın bulunduğu klasör
+      context: ./it-service-frontend
       dockerfile: Dockerfile
     container_name: it-service-frontend
     ports:
-      - "3000:80" # Tarayıcıdan 3000 ile gireceğiz, içeride Nginx 80'i dinleyecek
+      - "3000:80"
     depends_on:
-      - it-service-backend # Backend ayağa kalkmadan Frontend tam başlamasın
+      - it-service-backend
     networks:
       - it-service-net
