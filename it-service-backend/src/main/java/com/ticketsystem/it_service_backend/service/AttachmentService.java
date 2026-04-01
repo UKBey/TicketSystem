@@ -13,6 +13,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
+import lombok.extern.log4j.Log4j2;
+
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class AttachmentService {
@@ -27,16 +30,20 @@ public class AttachmentService {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         String extension = getFileExtension(fileName);
 
+        log.info("Dosya yükleme işlemi başlatıldı. Bilet ID: {}, Dosya: {}, Yükleyen: {}", ticketId, fileName, uploaderId);
+
         // 1. Sıkı Yetki Kontrolü (Agent=Assignee, Customer=Owner)
         Ticket ticket = ticketService.validateMutationAccess(ticketId, uploaderId, roles);
 
         // 2. Boyut Kotrolü
         if (file.getSize() > MAX_FILE_SIZE) {
+            log.warn("Yükleme reddedildi: Dosya boyutu sınırda ({} bytes)", file.getSize());
             throw new IllegalArgumentException("Dosya boyutu 5MB sınırını aşamaz.");
         }
 
         // 3. Tip Kontrolü
         if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
+            log.warn("Yükleme reddedildi: Desteklenmeyen dosya uzantısı ({})", extension);
             throw new IllegalArgumentException("Desteklenmeyen dosya tipi: " + extension);
         }
 
@@ -44,8 +51,10 @@ public class AttachmentService {
 
         // 4. İçerik Kontrolü (.txt için)
         if ("txt".equalsIgnoreCase(extension)) {
+            log.debug(".txt dosyası içerik kontrolü yapılıyor...");
             String textContent = new String(content, StandardCharsets.UTF_8);
             if (!textContent.contains("ERROR") && !textContent.contains("WARNING")) {
+                log.warn("Yükleme reddedildi: .txt dosyası gerekli anahtar kelimeleri içermiyor (ERROR/WARNING)");
                 throw new IllegalArgumentException(".txt dosyaları 'ERROR' veya 'WARNING' anahtar kelimelerini içermelidir.");
             }
         }
@@ -58,10 +67,13 @@ public class AttachmentService {
                 .content(content)
                 .build();
 
-        return attachmentRepository.save(attachment);
+        Attachment savedAttachment = attachmentRepository.save(attachment);
+        log.info("Dosya başarıyla veritabanına kaydedildi. ID: {}", savedAttachment.getId());
+        return savedAttachment;
     }
 
     public List<Attachment> getTicketAttachments(Long ticketId) {
+        log.debug("Bilet ID: {} için ekli dosyalar çekiliyor.", ticketId);
         return attachmentRepository.findByTicketId(ticketId);
     }
 
@@ -73,18 +85,23 @@ public class AttachmentService {
     public void deleteAttachment(Long id, String userId, List<String> roles) {
         Attachment attachment = getAttachment(id);
         
+        log.info("Dosya silme işlemi. ID: {}, Siler: {}, Roller: {}", id, userId, roles);
+
         // 1. MANAGER her şeyi silebilir
         if (roles.contains("MANAGER")) {
+            log.info("Yönetici yetkisiyle dosya siliniyor. Dosya ID: {}", id);
             attachmentRepository.delete(attachment);
             return;
         }
 
         // 2. Sadece yükleyen kişi silebilir
         if (!userId.equals(attachment.getUploaderId())) {
+            log.warn("Silme reddedildi: Kullanıcı ({}) dosyanın sahibi değil (Sahibi: {})", userId, attachment.getUploaderId());
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Sadece kendi yüklediğiniz dosyaları silebilirsiniz.");
         }
 
         attachmentRepository.delete(attachment);
+        log.info("Dosya başarıyla silindi. ID: {}", id);
     }
 
     private String getFileExtension(String fileName) {

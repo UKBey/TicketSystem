@@ -16,6 +16,9 @@ import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 
+import lombok.extern.log4j.Log4j2;
+
+@Log4j2
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
@@ -27,8 +30,11 @@ public class TicketController {
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<TicketResponseDTO> createTicket(@RequestBody TicketRequestDTO ticketRequest, @AuthenticationPrincipal Jwt jwt) {
-        String customerId = jwt.getSubject(); // Keycloak Token'ından ID'yi alır
+        String customerId = jwt.getSubject(); 
         
+        log.info("Yeni bilet oluşturma isteği. Müşteri ID: {}, Başlık: {}", customerId, ticketRequest.getTitle());
+        log.debug("Bilet Detayları: {}", ticketRequest);
+
         Ticket ticket = Ticket.builder()
                 .title(ticketRequest.getTitle())
                 .description(ticketRequest.getDescription())
@@ -37,6 +43,9 @@ public class TicketController {
                 .build();
 
         Ticket savedTicket = ticketService.createTicket(ticket, customerId);
+        
+        log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
+
         return ResponseEntity.ok(TicketResponseDTO.fromEntity(savedTicket));
     }
 
@@ -44,18 +53,19 @@ public class TicketController {
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<List<TicketResponseDTO>> getTickets(@AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject(); // Keycloak Kullanıcı ID'si
-
-        // 1. Keycloak Token'ı içindeki roller
+        String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
+        log.info("Biletleri listeleme isteği. Kullanıcı ID: {}, Roller: {}", userId, roles);
+
         List<Ticket> tickets;
-        // 2. Kullanıcının rolüne göre hangi verinin döneceğine karar veriyoruz
         if (roles.contains("MANAGER") || roles.contains("AGENT")) {
             tickets = ticketService.getAllTickets(userId, roles);
         } else {
             tickets = ticketService.getCustomerTickets(userId);
         }
+
+        log.info("Kullanıcı (ID: {}) için {} adet bilet listelendi.", userId, tickets.size());
 
         return ResponseEntity.ok(tickets.stream()
                 .map(TicketResponseDTO::fromEntity)
@@ -68,7 +78,14 @@ public class TicketController {
     public ResponseEntity<List<TicketResponseDTO>> getPoolTickets(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        return ResponseEntity.ok(ticketService.getPoolTickets(userId, roles).stream()
+
+        log.info("Bilet havuzunu listeleme isteği. Kullanıcı ID: {}", userId);
+
+        List<Ticket> poolTickets = ticketService.getPoolTickets(userId, roles);
+        
+        log.info("Havuzda {} adet uygun bilet listelendi.", poolTickets.size());
+
+        return ResponseEntity.ok(poolTickets.stream()
                 .map(TicketResponseDTO::fromEntity)
                 .collect(Collectors.toList()));
     }
@@ -77,7 +94,14 @@ public class TicketController {
     @GetMapping("/my-assigned")
     public ResponseEntity<List<TicketResponseDTO>> getMyAssignedTickets(@AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
-        return ResponseEntity.ok(ticketService.getAgentAssignedTickets(agentId).stream()
+        
+        log.info("Ajan üzerindeki biletleri listeleme isteği. Ajan ID: {}", agentId);
+
+        List<Ticket> tickets = ticketService.getAgentAssignedTickets(agentId);
+        
+        log.info("Ajan (ID: {}) üzerinde {} adet bilet bulundu.", agentId, tickets.size());
+
+        return ResponseEntity.ok(tickets.stream()
                 .map(TicketResponseDTO::fromEntity)
                 .collect(Collectors.toList()));
     }
@@ -87,7 +111,14 @@ public class TicketController {
     public ResponseEntity<TicketResponseDTO> getTicket(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticketService.getTicketWithAuth(id, userId, roles)));
+
+        log.info("Bilet detayı isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
+
+        Ticket ticket = ticketService.getTicketWithAuth(id, userId, roles);
+        
+        log.info("Bilet detayı başarıyla çekildi. Bilet ID: {}", id);
+
+        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket));
     }
 
     // 6. Havuzdan Bilet Üzerine Alma (Claim)
@@ -95,7 +126,14 @@ public class TicketController {
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<TicketResponseDTO> claimTicket(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticketService.claimTicket(id, agentId)));
+
+        log.info("Bileti sahiplenme (claim) isteği. Bilet ID: {}, Ajan ID: {}", id, agentId);
+
+        Ticket ticket = ticketService.claimTicket(id, agentId);
+        
+        log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Ajan ID: {}", id, agentId);
+
+        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket));
     }
 
     // 7. Statü Güncelleme
@@ -105,14 +143,26 @@ public class TicketController {
         String newStatus = body.get("status");
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticketService.updateTicketStatus(id, newStatus, userId, roles)));
+
+        log.info("Bilet statü güncelleme isteği. Bilet ID: {}, Yeni Statü: {}, Güncelleyen Kullanıcı: {}", id, newStatus, userId);
+
+        Ticket ticket = ticketService.updateTicketStatus(id, newStatus, userId, roles);
+        
+        log.info("Bilet statüsü başarıyla güncellendi. Bilet ID: {}, Yeni Statü: {}", id, ticket.getStatus());
+
+        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket));
     }
 
     // 8. Bilet Silme
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+        log.info("Bilet silme isteği. Bilet ID: {}", id);
+
         ticketService.deleteTicket(id);
+        
+        log.info("Bilet başarıyla silindi. Bilet ID: {}", id);
+
         return ResponseEntity.noContent().build();
     }
 }

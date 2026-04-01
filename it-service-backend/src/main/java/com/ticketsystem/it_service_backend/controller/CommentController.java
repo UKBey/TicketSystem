@@ -5,6 +5,7 @@ import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.service.CommentService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Log4j2
 @RestController
 @RequestMapping("/api/tickets/{ticketId}/comments")
 @RequiredArgsConstructor
@@ -27,13 +29,23 @@ public class CommentController {
             @PathVariable Long ticketId,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         String message = body.get("message");
-        String type = body.get("type"); // INTERNAL veya EXTERNAL
+        String type = body.get("type");
 
+        // INFO: Ana iş akışı başladı
+        log.info("Bilet ID: {} için yeni yorum ekleme isteği alındı. İstek atan Kullanıcı ID: {}, Yorum Tipi: {}",
+                ticketId, userId, type);
+        log.debug("Yorum ekleyen kullanıcının rolleri: {}, Mesaj içeriği: {}", roles, message);
+
+        // HATA YÖNETİMİ YOK! Servis patlarsa GlobalExceptionHandler havada yakalayacak.
         Comment comment = commentService.addComment(ticketId, message, type, userId, roles);
+
+        // INFO: İşlem başarıyla bitti
+        log.info("Yorum başarıyla eklendi. Bilet ID: {}, Yeni Yorum ID: {}", ticketId, comment.getId());
+
         return ResponseEntity.ok(CommentDTO.fromEntity(comment));
     }
 
@@ -42,12 +54,27 @@ public class CommentController {
     public ResponseEntity<List<CommentDTO>> getComments(
             @PathVariable Long ticketId,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
-        return ResponseEntity.ok(commentService.getCommentsByTicketId(ticketId, userId, roles).stream()
+        // INFO: Listeleme isteği geldi
+        log.info("Bilet ID: {} için yorumları listeleme isteği alındı. Kullanıcı ID: {}", ticketId, userId);
+
+        // HATA YÖNETİMİ YOK! Yetkisiz biriyse AccessDeniedException fırlayacak ve
+        // handler halledecek.
+        List<Comment> comments = commentService.getCommentsByTicketId(ticketId, userId, roles);
+
+        log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi. Kontrol edilen roller: {}", ticketId,
+                comments.size(), roles);
+
+        List<CommentDTO> commentDTOs = comments.stream()
                 .map(CommentDTO::fromEntity)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+
+        // INFO: Listeleme başarıyla bitti
+        log.info("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
+
+        return ResponseEntity.ok(commentDTOs);
     }
 }

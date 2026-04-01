@@ -17,6 +17,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.extern.log4j.Log4j2;
+
+@Log4j2
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -34,14 +37,29 @@ public class AttachmentController {
         
         String uploaderId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        return ResponseEntity.ok(AttachmentDTO.fromEntity(attachmentService.uploadAttachment(ticketId, uploaderId, roles, file)));
+
+        log.info("Bilet ID: {} için dosya yükleme isteği. Dosya: {}, Boyut: {} byte, Yükleyen: {}", 
+                ticketId, file.getOriginalFilename(), file.getSize(), uploaderId);
+        log.debug("Yükleyicinin rolleri: {}", roles);
+
+        Attachment attachment = attachmentService.uploadAttachment(ticketId, uploaderId, roles, file);
+        
+        log.info("Dosya başarıyla yüklendi. Bilet ID: {}, Dosya ID: {}", ticketId, attachment.getId());
+
+        return ResponseEntity.ok(AttachmentDTO.fromEntity(attachment));
     }
 
     // 2. Biletin Dosyalarını Listele
     @GetMapping("/tickets/{ticketId}/attachments")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<List<AttachmentDTO>> getAttachments(@PathVariable Long ticketId) {
-        return ResponseEntity.ok(attachmentService.getTicketAttachments(ticketId).stream()
+        log.info("Bilet ID: {} için ekli dosyaları listeleme isteği.", ticketId);
+        
+        List<Attachment> attachments = attachmentService.getTicketAttachments(ticketId);
+        
+        log.info("Bilet ID: {} için {} dosya listelendi.", ticketId, attachments.size());
+
+        return ResponseEntity.ok(attachments.stream()
                 .map(AttachmentDTO::fromEntity)
                 .collect(Collectors.toList()));
     }
@@ -50,8 +68,12 @@ public class AttachmentController {
     @GetMapping("/attachments/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<byte[]> downloadAttachment(@PathVariable Long id) {
+        log.info("Dosya ID: {} için indirme isteği.", id);
+
         Attachment attachment = attachmentService.getAttachment(id);
         
+        log.info("Dosya başarıyla çekildi: {}, Tip: {}", attachment.getFileName(), attachment.getFileType());
+
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(attachment.getFileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getFileName() + "\"")
@@ -67,7 +89,14 @@ public class AttachmentController {
         
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
+
+        log.info("Dosya ID: {} için silme isteği. Siler: {}", id, userId);
+        log.debug("Kullanıcının rolleri: {}", roles);
+
         attachmentService.deleteAttachment(id, userId, roles);
+
+        log.info("Dosya başarıyla silindi. Dosya ID: {}", id);
+
         return ResponseEntity.noContent().build();
     }
 }

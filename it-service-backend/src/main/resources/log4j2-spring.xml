@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Kafka name="KafkaLogger" topic="ticket-logs">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+            <Property name="bootstrap.servers">kafka:9092</Property>
+        </Kafka>
+
+        <Console name="ConsoleJSON" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.ticketsystem.itservicebackend" level="debug" additivity="false">
+            <AppenderRef ref="KafkaLogger" />
+            <AppenderRef ref="ConsoleJSON" />
+        </Logger>
+        
+        <Root level="info">
+            <AppenderRef ref="KafkaLogger" />
+            <AppenderRef ref="ConsoleJSON" />
+        </Root>
+    </Loggers>
+</Configuration>
