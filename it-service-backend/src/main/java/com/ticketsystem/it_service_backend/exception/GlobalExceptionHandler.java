@@ -7,6 +7,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Log4j2 // Log4j2 aktif! Buradaki loglar Kafka üzerinden OpenSearch'e akacak.
 @RestControllerAdvice
@@ -55,7 +56,20 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
-    // 4. Genel Beklenmedik Hatalar
+    // 4. NoResourceFoundException (Spring 6 — eşleşen handler bulunamadı → 404)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
+        log.warn("Kaynak bulunamadı (404 NOT_FOUND): {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("İstenen kaynak bulunamadı: " + ex.getResourcePath())
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    // 5. Genel Beklenmedik Hatalar
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         // DİKKAT: Burada log.error kullanıyoruz ve 'ex' objesini veriyoruz ki hatanın
