@@ -166,6 +166,9 @@ services:
         condition: service_started
     networks:
       - it-service-net
+    extra_hosts:
+      - "localhost:host-gateway"
+
 
   # 9. React/Vite Frontend Servisi
   it-service-frontend:

@@ -17,9 +17,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
+@Tag(name = "Dosya Yönetimi", description = "Biletlere eklenen dosyaların (Attachment) yüklenmesi ve indirilmesi")
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class AttachmentController {
     private final AttachmentService attachmentService;
 
     // 1. Dosya Yükle
+    @Operation(summary = "Dosya yükle", description = "Belirli bir bilete yeni bir dosya eki ekler.")
     @PostMapping("/tickets/{ticketId}/attachments")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<AttachmentDTO> uploadAttachment(
@@ -50,6 +54,7 @@ public class AttachmentController {
     }
 
     // 2. Biletin Dosyalarını Listele
+    @Operation(summary = "Biletin dosyalarını listele", description = "Bilet ID'sine göre yüklenmiş tüm dosyaların listesini getirir.")
     @GetMapping("/tickets/{ticketId}/attachments")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<List<AttachmentDTO>> getAttachments(@PathVariable Long ticketId) {
@@ -65,6 +70,7 @@ public class AttachmentController {
     }
 
     // 3. Dosyayı İndir
+    @Operation(summary = "Dosya indir", description = "Dosya ID'si ile dosya içeriğini indirir.")
     @GetMapping("/attachments/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<byte[]> downloadAttachment(@PathVariable Long id) {
@@ -81,6 +87,7 @@ public class AttachmentController {
     }
 
     // 4. Dosyayı Sil
+    @Operation(summary = "Dosya sil", description = "Sisteme yüklenmiş bir dosyayı siler.")
     @DeleteMapping("/attachments/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<Void> deleteAttachment(

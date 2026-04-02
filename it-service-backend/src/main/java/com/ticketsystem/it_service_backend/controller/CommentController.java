@@ -11,11 +11,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Log4j2
+@Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan yorumların (Comment) yönetimi")
 @RestController
 @RequestMapping("/api/tickets/{ticketId}/comments")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class CommentController {
     private final CommentService commentService;
 
     // 1. Bilete Yorum Ekle
+    @Operation(summary = "Bilete yorum ekle", description = "Belirli bir bilete (Ticket) yeni bir yorum ekler. Yetki kontrolü yapılır.")
     @PostMapping
     public ResponseEntity<CommentDTO> addComment(
             @PathVariable Long ticketId,
@@ -50,6 +54,7 @@ public class CommentController {
     }
 
     // 2. Biletin Yorumlarını Listele
+    @Operation(summary = "Biletin yorumlarını listele", description = "Bilet ID'sine göre tüm yorumları getirir. Yetki kontrolü yapılır.")
     @GetMapping
     public ResponseEntity<List<CommentDTO>> getComments(
             @PathVariable Long ticketId,

@@ -25,8 +25,9 @@ public class TicketResponseDTO {
     private ZonedDateTime createdAt;
     private ZonedDateTime resolvedAt;
     private ZonedDateTime closedAt;
+    private Boolean hasCsat;
 
-    public static TicketResponseDTO fromEntity(Ticket ticket) {
+    public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())
                 .title(ticket.getTitle())
@@ -41,6 +42,11 @@ public class TicketResponseDTO {
                 .createdAt(ticket.getCreatedAt())
                 .resolvedAt(ticket.getResolvedAt())
                 .closedAt(ticket.getClosedAt())
+                .hasCsat(hasCsat)
                 .build();
+    }
+
+    public static TicketResponseDTO fromEntity(Ticket ticket) {
+        return fromEntity(ticket, false);
     }
 }
