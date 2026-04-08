@@ -5,29 +5,26 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "ticket_worklogs")
+@Table(name = "ticket_resolution_notes")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TicketWorklog {
+public class ResolutionNote {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "ticket_id", nullable = false)
+    @Column(name = "ticket_id", nullable = false, unique = true) // One-to-one
     private Long ticketId;
 
     @Column(name = "agent_id", nullable = false, length = 36)
     private String agentId;
 
-    @Column(nullable = false)
-    private Integer minutes;
-
-    @Column(length = 500)
-    private String description;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String note;
 
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

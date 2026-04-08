@@ -104,6 +104,63 @@ public class WorklogService {
     }
 
     /**
+     * Worklog günceller.
+     * Kural: Yalnızca worklogu oluşturan agent (worklog.agentId == agentId) güncelleyebilir.
+     *        Bağlı bilet CLOSED olmamalı.
+     */
+    public TicketWorklog updateWorklog(Long ticketId, Long worklogId, WorklogRequestDTO dto, String agentId) {
+        log.info("Worklog güncelleme isteği. Worklog ID: {}, Agent: {}", worklogId, agentId);
+
+        // 1. Dakika doğrulaması (verilmişse)
+        if (dto.getMinutes() != null && dto.getMinutes() <= 0) {
+            log.warn("Worklog güncelleme reddedildi: Geçersiz dakika değeri ({})", dto.getMinutes());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dakika değeri 0'dan büyük olmalıdır.");
+        }
+
+        // 2. Worklog'u bul
+        TicketWorklog worklog = worklogRepository.findById(worklogId)
+                .orElseThrow(() -> {
+                    log.warn("Güncellenecek worklog bulunamadı. ID: {}", worklogId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Worklog bulunamadı: " + worklogId);
+                });
+
+        // 3. Worklog belirtilen bilete ait mi?
+        if (!worklog.getTicketId().equals(ticketId)) {
+            log.warn("Worklog güncelleme reddedildi: Worklog (ID: {}) bu bilete (ID: {}) ait değil.", worklogId, ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bu worklog belirtilen bilete ait değil.");
+        }
+
+        // 4. Yetki: Yalnızca worklogu oluşturan agent güncelleyebilir
+        if (!agentId.equals(worklog.getAgentId())) {
+            log.warn("Worklog güncelleme reddedildi: Agent (ID: {}) bu worklogun sahibi değil (Owner: {}).",
+                    agentId, worklog.getAgentId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Sadece kendi oluşturduğunuz worklogları güncelleyebilirsiniz.");
+        }
+
+        // 5. Bağlı bilet kapalı mı?
+        Ticket ticket = ticketService.getTicketById(ticketId);
+        if ("CLOSED".equals(ticket.getStatus())) {
+            log.warn("Worklog güncelleme reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Kapalı (CLOSED) biletlerin worklogları güncellenemez.");
+        }
+
+        // 6. Güncelle (yalnızca gönderilen alanlar)
+        if (dto.getMinutes() != null) {
+            worklog.setMinutes(dto.getMinutes());
+        }
+        if (dto.getDescription() != null) {
+            worklog.setDescription(dto.getDescription());
+        }
+
+        TicketWorklog saved = worklogRepository.save(worklog);
+        log.info("Worklog başarıyla güncellendi. ID: {}, Bilet: {}", saved.getId(), ticketId);
+        return saved;
+    }
+
+    /**
      * Worklog siler.
      * Kural: Agent yalnızca kendi oluşturduğu worklogu silbilir (worklog.agentId == agentId).
      *        Manager herhangi bir worklogu silebilir.

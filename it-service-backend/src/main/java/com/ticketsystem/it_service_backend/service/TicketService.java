@@ -238,6 +238,13 @@ public class TicketService {
         log.info("Statü güncelleme işlemi. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
         Ticket ticket = getTicketById(id);
 
+        // CLOSED biletlerin statüsü hiç kimse tarafından değiştirilemez
+        if ("CLOSED".equals(ticket.getStatus())) {
+            log.warn("Statü güncelleme reddedildi: Bilet zaten CLOSED statüsünde. Bilet ID: {}", id);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Kapalı (CLOSED) biletlerin statüsü değiştirilemez.");
+        }
+
         if (!roles.contains("MANAGER")) {
             boolean isOwner = userId.equals(ticket.getCustomerId());
             boolean isClosing = "CLOSED".equals(newStatus);

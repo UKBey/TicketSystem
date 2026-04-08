@@ -22,6 +22,8 @@ public class WorklogResponseDTO {
 
     private ZonedDateTime createdAt;
 
+    private ZonedDateTime updatedAt;
+
     public static WorklogResponseDTO fromEntity(TicketWorklog worklog) {
         return WorklogResponseDTO.builder()
                 .id(worklog.getId())
@@ -30,6 +32,7 @@ public class WorklogResponseDTO {
                 .minutes(worklog.getMinutes())
                 .description(worklog.getDescription())
                 .createdAt(worklog.getCreatedAt())
+                .updatedAt(worklog.getUpdatedAt())
                 .build();
     }
 }

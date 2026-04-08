@@ -1,14 +1,18 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.CsatDTO;
+import com.ticketsystem.it_service_backend.dto.ResolutionNoteRequestDTO;
+import com.ticketsystem.it_service_backend.dto.ResolutionNoteResponseDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.Csat;
+import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.service.CsatService;
+import com.ticketsystem.it_service_backend.service.ResolutionNoteService;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import com.ticketsystem.it_service_backend.service.WorklogService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
@@ -37,6 +41,7 @@ public class TicketController {
     private final TicketService ticketService;
     private final CsatService csatService;
     private final WorklogService worklogService;
+    private final ResolutionNoteService resolutionNoteService;
 
     // ── BİLET İŞLEMLERİ ──────────────────────────────────────────────────────────
 
@@ -280,7 +285,26 @@ public class TicketController {
                 .collect(Collectors.toList()));
     }
 
-    // 15. Worklog Sil (Agent kendi worklogu / Manager hepsi)
+    // 15. Worklog Güncelle (Agent yalnızca kendi worklogu)
+    @Operation(summary = "Worklog güncelle", description = "Bir iş kaydını günceller. Yalnızca worklogu oluşturan agent güncelleyebilir.")
+    @PutMapping("/{id}/worklogs/{worklogId}")
+    @PreAuthorize("hasRole('AGENT')")
+    public ResponseEntity<WorklogResponseDTO> updateWorklog(
+            @PathVariable Long id,
+            @PathVariable Long worklogId,
+            @RequestBody WorklogRequestDTO dto,
+            @AuthenticationPrincipal Jwt jwt) {
+        String agentId = jwt.getSubject();
+
+        log.info("Worklog güncelleme isteği. Bilet ID: {}, Worklog ID: {}, Agent: {}", id, worklogId, agentId);
+
+        TicketWorklog updated = worklogService.updateWorklog(id, worklogId, dto, agentId);
+
+        log.info("Worklog başarıyla güncellendi. Worklog ID: {}", worklogId);
+        return ResponseEntity.ok(WorklogResponseDTO.fromEntity(updated));
+    }
+
+    // 16. Worklog Sil (Agent kendi worklogu / Manager hepsi)
     @Operation(summary = "Worklog sil", description = "Bir iş kaydını siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Manager hepsini silebilir.")
     @DeleteMapping("/{id}/worklogs/{worklogId}")
     @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
@@ -297,5 +321,79 @@ public class TicketController {
 
         log.info("Worklog başarıyla silindi. Worklog ID: {}", worklogId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── ÇÖZÜM NOTU ───────────────────────────────────────────────────────────────
+
+    // 16. Çözüm Notu Oluştur (Sadece claim'li Agent — ilk kez)
+    @Operation(summary = "Çözüm notu oluştur",
+            description = "Bilete ilk çözüm notunu ekler. Yalnızca bileti üzerine almış (claim'li) agent işlem yapabilir. Bilete daha önce not eklenmiş olmamalı.")
+    @PostMapping("/{id}/resolution-note")
+    @PreAuthorize("hasRole('AGENT')")
+    public ResponseEntity<ResolutionNoteResponseDTO> createResolutionNote(
+            @PathVariable Long id,
+            @RequestBody ResolutionNoteRequestDTO dto,
+            @AuthenticationPrincipal Jwt jwt) {
+        String agentId = jwt.getSubject();
+        log.info("Çözüm notu oluşturma isteği. Bilet ID: {}, Agent: {}", id, agentId);
+
+        ResolutionNote saved = resolutionNoteService.createResolutionNote(id, dto, agentId);
+
+        log.info("Çözüm notu başarıyla oluşturuldu. Not ID: {}", saved.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResolutionNoteResponseDTO.fromEntity(saved));
+    }
+
+    // 17. Çözüm Notunu Güncelle (Sadece claim'li Agent — mevcut not zorunlu)
+    @Operation(summary = "Çözüm notunu güncelle",
+            description = "Bilete ait mevcut çözüm notunu günceller. Yalnızca bileti üzerine almış (claim'li) agent işlem yapabilir.")
+    @PutMapping("/{id}/resolution-note")
+    @PreAuthorize("hasRole('AGENT')")
+    public ResponseEntity<ResolutionNoteResponseDTO> updateResolutionNote(
+            @PathVariable Long id,
+            @RequestBody ResolutionNoteRequestDTO dto,
+            @AuthenticationPrincipal Jwt jwt) {
+        String agentId = jwt.getSubject();
+        log.info("Çözüm notu güncelleme isteği. Bilet ID: {}, Agent: {}", id, agentId);
+
+        ResolutionNote saved = resolutionNoteService.updateResolutionNote(id, dto, agentId);
+
+        log.info("Çözüm notu başarıyla güncellendi. Not ID: {}", saved.getId());
+        return ResponseEntity.ok(ResolutionNoteResponseDTO.fromEntity(saved));
+    }
+
+
+    // 17. Biletin Çözüm Notunu Getir (Claim'li Agent kendi bileti / Manager hepsi)
+    @Operation(summary = "Çözüm notunu getir",
+            description = "Bir biletin çözüm notunu getirir. Agent yalnızca kendi üzerindeki biletin notunu görebilir.")
+    @GetMapping("/{id}/resolution-note")
+    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    public ResponseEntity<ResolutionNoteResponseDTO> getResolutionNote(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+
+        log.info("Çözüm notu görüntüleme isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
+
+        ResolutionNote note = resolutionNoteService.getResolutionNoteByTicket(id, userId, roles);
+
+        return ResponseEntity.ok(ResolutionNoteResponseDTO.fromEntity(note));
+    }
+
+    // 18. Tüm Çözüm Notlarını Listele (Sadece Manager)
+    @Operation(summary = "Tüm çözüm notlarını listele",
+            description = "Sistemdeki tüm biletlere ait çözüm notlarını getirir. Yalnızca Manager erişebilir.")
+    @GetMapping("/all-resolution-notes")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<List<ResolutionNoteResponseDTO>> getAllResolutionNotes() {
+        log.info("Tüm çözüm notlarını listeleme isteği (Manager).");
+
+        List<ResolutionNote> notes = resolutionNoteService.getAllResolutionNotes();
+
+        log.info("Toplam {} çözüm notu listelendi.", notes.size());
+
+        return ResponseEntity.ok(notes.stream()
+                .map(ResolutionNoteResponseDTO::fromEntity)
+                .collect(Collectors.toList()));
     }
 }
