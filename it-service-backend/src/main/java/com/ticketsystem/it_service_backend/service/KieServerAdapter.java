@@ -145,6 +145,35 @@ public class KieServerAdapter {
         }
     }
 
+    // ==================== SİNYAL OPERASYONLARI ====================
+
+    /**
+     * Çalışan bir süreç örneğine sinyal gönderir.
+     * SLA duraklatma/devam ettirme ve bilet kapatma işlemleri için kullanılır.
+     *
+     * @param processInstanceId Hedef süreç örneği ID
+     * @param signalName        Sinyal adı (ör: "pause_sla", "resume_sla", "ticket_closed")
+     * @param data              Sinyale eklenecek veri (null olabilir)
+     */
+    public void signalProcessInstance(Long processInstanceId, String signalName, Object data) {
+        log.info("jBPM sürece sinyal gönderiliyor: processInstanceId={}, signal={}, data={}",
+                processInstanceId, signalName, data);
+
+        Runnable decoratedCall = CircuitBreaker.decorateRunnable(circuitBreaker, () ->
+                processClient.signalProcessInstance(containerId, processInstanceId, signalName, data));
+
+        try {
+            decoratedCall.run();
+            log.info("jBPM sinyal başarıyla gönderildi: processInstanceId={}, signal={}", processInstanceId, signalName);
+        } catch (CallNotPermittedException e) {
+            log.warn("⚡ Circuit Breaker açık — sinyal gönderilemedi: processInstanceId={}, signal={}",
+                    processInstanceId, signalName);
+        } catch (Exception e) {
+            log.error("jBPM sinyal gönderilemedi: processInstanceId={}, signal={}, hata={}",
+                    processInstanceId, signalName, e.getMessage(), e);
+        }
+    }
+
     // ==================== HUMAN TASK OPERASYONLARI ====================
 
     /**

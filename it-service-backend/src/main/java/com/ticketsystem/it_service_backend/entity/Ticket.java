@@ -47,6 +47,15 @@ public class Ticket {
     @Builder.Default
     private Boolean slaBreached = false;
 
+    // SLA kronometresinin aktif olarak geçirdiği toplam süre (milisaniye)
+    @Column(name = "sla_elapsed_ms")
+    @Builder.Default
+    private Long slaElapsedMs = 0L;
+
+    // SLA kronometresinin en son duraklatıldığı an (WAITING_FOR_CUSTOMER veya RESOLVED geçişi)
+    @Column(name = "sla_paused_at")
+    private ZonedDateTime slaPausedAt;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
@@ -28,6 +30,37 @@ public class TicketService {
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
     private final ApplicationEventPublisher eventPublisher;
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Şekil 2 — Ticket State Flow: Geçerli durum geçişleri matrisi
+    // ────────────────────────────────────────────────────────────────────────────
+    //
+    // NEW                  → IN_PROGRESS (Agent Claim)
+    // NEW                  → DELETED (Uygunsuz bilet — Agent siler, loglanır)
+    // IN_PROGRESS          → NEW (Agent bileti bırakır — Unclaim, loglanır)
+    // IN_PROGRESS          → WAITING_FOR_CUSTOMER (Agent bilgi/dosya ister)
+    // IN_PROGRESS          → RESOLVED (Agent sorunu çözdüğünü bildirir)
+    // IN_PROGRESS          → CLOSED (Agent, customer cevap vermediği için kapatır, loglanır)
+    // WAITING_FOR_CUSTOMER → IN_PROGRESS (Customer yanıt verir)
+    // RESOLVED             → IN_PROGRESS (Customer sorunun çözülmediğini iletir)
+    // RESOLVED             → CLOSED (Customer onaylar veya Agent kapatma kararı verir)
+    //
+    // CLOSED               → (Hiçbir yere geçemez — terminal durum)
+    // ────────────────────────────────────────────────────────────────────────────
+
+    private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
+            "NEW", Set.of("IN_PROGRESS"),
+            "IN_PROGRESS", Set.of("NEW", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"),
+            "WAITING_FOR_CUSTOMER", Set.of("IN_PROGRESS"),
+            "RESOLVED", Set.of("IN_PROGRESS", "CLOSED"),
+            "CLOSED", Set.of() // Terminal durum — geçiş yok
+    );
+
+    // SLA duraklatılması gereken durumlar
+    private static final Set<String> SLA_PAUSED_STATES = Set.of("WAITING_FOR_CUSTOMER", "RESOLVED");
+
+    // SLA aktif olması gereken durumlar
+    private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", "IN_PROGRESS");
 
     @Transactional
     public Ticket createTicket(Ticket ticket, String customerId) {
@@ -235,6 +268,7 @@ public class TicketService {
                     "Bu ürüne ait biletleri üzerinize alma yetkiniz yok.");
         }
 
+        String oldStatus = ticket.getStatus();
         ticket.setAssigneeId(agentId);
         ticket.setStatus("IN_PROGRESS");
         Ticket savedTicket = ticketRepository.save(ticket);
@@ -250,38 +284,28 @@ public class TicketService {
         return savedTicket;
     }
 
+    /**
+     * Katı State Machine mantığıyla statü güncelleme.
+     * Şekil 2 Ticket State Flow diyagramındaki oklara uyar.
+     * Her geçişte SLA kronometresini uygun şekilde durdurur veya devam ettirir.
+     */
     @Transactional
     public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
         log.info("Statü güncelleme işlemi. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
         Ticket ticket = getTicketById(id);
 
-        // CLOSED biletlerin statüsü hiç kimse tarafından değiştirilemez
-        if ("CLOSED".equals(ticket.getStatus())) {
-            log.warn("Statü güncelleme reddedildi: Bilet zaten CLOSED statüsünde. Bilet ID: {}", id);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Kapalı (CLOSED) biletlerin statüsü değiştirilemez.");
-        }
+        String oldStatus = ticket.getStatus();
 
-        if (!roles.contains("MANAGER")) {
-            boolean isOwner = userId.equals(ticket.getCustomerId());
-            boolean isClosing = "CLOSED".equals(newStatus);
+        // ── 1. DURUM GEÇİŞ VALİDASYONU ───────────────────────────────────────────
+        validateStateTransition(oldStatus, newStatus);
 
-            // Eğer kapatan müşteriyse ve kendi biletini kapatıyorsa izin ver
-            if (isOwner && isClosing) {
-                log.debug("Müşteri kendi biletini kapatıyor. Erişim sağlandı.");
-            } else {
-                // Diğer durumlarda ajan yetkisi kontrolü (Ürün bazlı)
-                User user = userRepository.findById(userId).orElseThrow();
-                boolean isAuthorized = user.getAuthorizedProducts().stream()
-                        .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-                if (!isAuthorized) {
-                    log.warn("Statü güncelleme reddedildi: Kullanıcı yetkili değil.");
-                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti güncelleme yetkiniz yok.");
-                }
-            }
-        }
+        // ── 2. YETKİ KONTROLÜ ─────────────────────────────────────────────────────
+        validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
 
-        log.debug("Bilet statüsü güncelleniyor: {} -> {}", ticket.getStatus(), newStatus);
+        // ── 3. DURUMA ÖZEL İŞ KURALLARI ───────────────────────────────────────────
+        applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
+
+        log.debug("Bilet statüsü güncelleniyor: {} → {}", oldStatus, newStatus);
         ticket.setStatus(newStatus);
 
         // Statüye göre tarihleri güncelle
@@ -292,16 +316,134 @@ public class TicketService {
         }
 
         Ticket savedTicket = ticketRepository.save(ticket);
-        log.info("Statü başarıyla güncellendi. Bilet ID: {}, Statü: {}", id, savedTicket.getStatus());
+        log.info("Statü başarıyla güncellendi. Bilet ID: {}, Statü: {} → {}", id, oldStatus, savedTicket.getStatus());
 
-        // jBPM sürecine statü değişikliğini senkronize et
-        try {
-            workflowService.syncTicketStatus(savedTicket);
-        } catch (Exception e) {
-            log.error("Workflow statü sync başarısız. TicketId={}, Hata={}", id, e.getMessage());
-        }
+        // ── 4. jBPM SLA SİNYALLERİ ───────────────────────────────────────────────
+        handleWorkflowSignals(savedTicket, oldStatus, newStatus);
 
         return savedTicket;
+    }
+
+    /**
+     * Şekil 2'deki oklara göre geçişin geçerli olup olmadığını denetler.
+     */
+    private void validateStateTransition(String currentStatus, String newStatus) {
+        Set<String> allowedTargets = VALID_TRANSITIONS.get(currentStatus);
+
+        if (allowedTargets == null) {
+            log.error("Bilinmeyen mevcut statü: {}", currentStatus);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bilinmeyen mevcut durum: " + currentStatus);
+        }
+
+        if (!allowedTargets.contains(newStatus)) {
+            log.warn("Geçersiz durum geçişi: {} → {} (İzin verilen hedefler: {})",
+                    currentStatus, newStatus, allowedTargets);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Geçersiz durum geçişi: %s → %s. İzin verilen geçişler: %s",
+                            currentStatus, newStatus, allowedTargets));
+        }
+    }
+
+    /**
+     * Durum geçişi için yetki kontrolü.
+     */
+    private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
+                                                 String userId, List<String> roles) {
+        // MANAGER her şeyi yapabilir
+        if (roles.contains("MANAGER")) {
+            return;
+        }
+
+        // CUSTOMER yetkileri
+        if (roles.contains("CUSTOMER")) {
+            boolean isOwner = userId.equals(ticket.getCustomerId());
+            if (!isOwner) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Sadece kendi biletlerinizin statüsünü değiştirebilirsiniz.");
+            }
+
+            // Customer sadece şunları yapabilir:
+            // WAITING_FOR_CUSTOMER → IN_PROGRESS (Yanıt vererek)
+            // RESOLVED → IN_PROGRESS (Sorun çözülmediğini bildirerek)
+            // RESOLVED → CLOSED (Onaylayarak)
+            boolean customerAllowed =
+                    ("WAITING_FOR_CUSTOMER".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
+                    ("RESOLVED".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
+                    ("RESOLVED".equals(oldStatus) && "CLOSED".equals(newStatus));
+
+            if (!customerAllowed) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Müşteri olarak bu durum geçişini yapamazsınız: " + oldStatus + " → " + newStatus);
+            }
+            return;
+        }
+
+        // AGENT yetkileri — ürün bazlı kontrol
+        if (roles.contains("AGENT")) {
+            User agent = userRepository.findById(userId).orElseThrow();
+            boolean isAuthorizedForProduct = agent.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+
+            if (!isAuthorizedForProduct) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti güncelleme yetkiniz yok.");
+            }
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu işlem için yetkiniz bulunmuyor.");
+    }
+
+    /**
+     * Duruma özel iş kuralları.
+     * Unclaim, audit logları ve özel geçiş mantıkları burada uygulanır.
+     */
+    private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
+
+        // ── UNCLAIM: IN_PROGRESS → NEW (Agent bileti bırakıyor) ───────────────
+        if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {
+            log.warn("AUDIT LOG: Agent (ID: {}) bileti (ID: {}) bıraktı (Unclaim). Sebep loglanmalı.",
+                    userId, ticket.getId());
+            ticket.setAssigneeId(null); // Atama kaldırıldı, havuza geri düşürülecek
+        }
+
+        // ── AGENT CUSTOMER CEVAP VERMEDİ İÇİN KAPATIYOR ──────────────────────
+        if ("IN_PROGRESS".equals(oldStatus) && "CLOSED".equals(newStatus)) {
+            log.warn("AUDIT LOG: Agent (ID: {}) müşteri cevap vermediği için bileti (ID: {}) kapatıyor.",
+                    userId, ticket.getId());
+        }
+    }
+
+    /**
+     * jBPM workflow sinyallerini durum geçişlerine göre gönderir.
+     * SLA kronometresini duraklat / devam ettir / kapat.
+     */
+    private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
+        try {
+            // Statüyü jBPM'e senkronize et
+            workflowService.syncTicketStatus(ticket);
+
+            // ── SLA DURAKLAT (Aktif → Donuk geçişlerde) ───────────────────────
+            if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
+                workflowService.pauseSla(ticket);
+                ticketRepository.save(ticket); // slaPausedAt ve slaElapsedMs güncellendi
+            }
+
+            // ── SLA DEVAM ETTİR (Donuk → Aktif geçişlerde) ───────────────────
+            if (SLA_PAUSED_STATES.contains(oldStatus) && SLA_ACTIVE_STATES.contains(newStatus)) {
+                workflowService.resumeSla(ticket);
+                ticketRepository.save(ticket); // slaPausedAt temizlendi
+            }
+
+            // ── SÜREÇ TAMAMEN KAPAT (CLOSED durumuna geçişte) ─────────────────
+            if ("CLOSED".equals(newStatus)) {
+                workflowService.closeTicketWorkflow(ticket);
+            }
+
+        } catch (Exception e) {
+            log.error("Workflow sinyal gönderimi başarısız. TicketId={}, Geçiş={} → {}, Hata={}",
+                    ticket.getId(), oldStatus, newStatus, e.getMessage());
+        }
     }
 
     public void deleteTicket(Long id) {
@@ -310,6 +452,7 @@ public class TicketService {
         // Silmeden önce workflow sürecini iptal et
         try {
             Ticket ticket = getTicketById(id);
+            log.warn("AUDIT LOG: Bilet (ID: {}) siliniyor. Bu eylem loglanmıştır.", id);
             workflowService.abortTicketWorkflow(ticket);
         } catch (Exception e) {
             log.error("Workflow iptal başarısız (ticket silinecek). TicketId={}, Hata={}", id, e.getMessage());
