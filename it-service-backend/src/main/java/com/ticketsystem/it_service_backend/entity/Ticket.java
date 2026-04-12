@@ -56,6 +56,10 @@ public class Ticket {
     @Column(name = "closed_at")
     private ZonedDateTime closedAt;
 
+    // jBPM Workflow süreç örneği bağlantısı
+    @Column(name = "process_instance_id")
+    private Long processInstanceId;
+
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore // Sonsuz döngüyü önlemek için listeyi JSON'da gizleyelim (veya DTO kullanın)
     private List<Attachment> attachments;

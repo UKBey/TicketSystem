@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -24,6 +26,8 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final WorkflowService workflowService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Ticket createTicket(Ticket ticket, String customerId) {
@@ -49,6 +53,11 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
+
+        // Transaction commit'lendikten SONRA workflow başlatılacak (Fix 6: Transaction boundary)
+        // WorkflowEventListener.onTicketCreated() metodu tetiklenecek
+        eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
+
         return savedTicket;
     }
 
@@ -230,6 +239,14 @@ public class TicketService {
         ticket.setStatus("IN_PROGRESS");
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Yeni Statü: {}", id, savedTicket.getStatus());
+
+        // jBPM sürecine atama bilgisini senkronize et
+        try {
+            workflowService.syncTicketAssignment(savedTicket);
+        } catch (Exception e) {
+            log.error("Workflow atama sync başarısız. TicketId={}, Hata={}", id, e.getMessage());
+        }
+
         return savedTicket;
     }
 
@@ -276,11 +293,28 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Statü başarıyla güncellendi. Bilet ID: {}, Statü: {}", id, savedTicket.getStatus());
+
+        // jBPM sürecine statü değişikliğini senkronize et
+        try {
+            workflowService.syncTicketStatus(savedTicket);
+        } catch (Exception e) {
+            log.error("Workflow statü sync başarısız. TicketId={}, Hata={}", id, e.getMessage());
+        }
+
         return savedTicket;
     }
 
     public void deleteTicket(Long id) {
         log.info("Bilet silme işlemi. Bilet ID: {}", id);
+
+        // Silmeden önce workflow sürecini iptal et
+        try {
+            Ticket ticket = getTicketById(id);
+            workflowService.abortTicketWorkflow(ticket);
+        } catch (Exception e) {
+            log.error("Workflow iptal başarısız (ticket silinecek). TicketId={}, Hata={}", id, e.getMessage());
+        }
+
         ticketRepository.deleteById(id);
         log.info("Bilet başarıyla silindi. Bilet ID: {}", id);
     }

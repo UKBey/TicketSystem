@@ -25,7 +25,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // REST API olduğu için CSRF korumasına gerek yok
                 .authorizeHttpRequests(auth -> auth
-                        // URL bazlı genel yetki (Token varsa her api'ye girebilir, detaylı kısıtlamaları metodlarda yapacağız)
+                        // jBPM KIE Server'dan gelecek callback işlemleri için yetkilendirme bypass (özel token ile korunacak)
+                        .requestMatchers("/api/internal/**").permitAll()
+                        // Kullanıcı API'leri Keycloak JWT zorunludur
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 // Hafızada oturum tutmayı yasaklar (Stateless)

@@ -1,0 +1,8 @@
+{
+  "container-id": "ticket-workflow",
+  "release-id": {
+    "group-id": "com.ticketsystem",
+    "artifact-id": "ticket-workflow-kjar",
+    "version": "1.0.1"
+  }
+}

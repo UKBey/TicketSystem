@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                   xmlns:drools="http://www.jboss.org/drools"
+                   xmlns:tns="http://www.jboss.org/drools"
+                   id="_Definitions" targetNamespace="http://www.jboss.org/drools"
+                   expressionLanguage="http://www.mvel.org/2.0"
+                   typeLanguage="http://www.java.com/javaTypes">
+
+  <!-- Süreç değişkenleri tanımları -->
+  <bpmn2:itemDefinition id="_ticketIdItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_priorityItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_customerIdItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_assigneeIdItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_statusItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_callbackUrlItem" structureRef="String"/>
+
+  <bpmn2:process id="com.ticketsystem.workflow.ticket-lifecycle"
+                 name="Ticket Lifecycle Process"
+                 isExecutable="true"
+                 tns:packageName="com.ticketsystem.workflow">
+
+    <!-- Süreç değişkenleri -->
+    <bpmn2:property id="ticketId" itemSubjectRef="_ticketIdItem"/>
+    <bpmn2:property id="priority" itemSubjectRef="_priorityItem"/>
+    <bpmn2:property id="customerId" itemSubjectRef="_customerIdItem"/>
+    <bpmn2:property id="assigneeId" itemSubjectRef="_assigneeIdItem"/>
+    <bpmn2:property id="status" itemSubjectRef="_statusItem"/>
+    <bpmn2:property id="callbackUrl" itemSubjectRef="_callbackUrlItem"/>
+
+    <!-- 1. START -->
+    <bpmn2:startEvent id="StartEvent_1" name="Ticket Created">
+      <bpmn2:outgoing>SequenceFlow_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+
+    <!-- 2. SCRIPT: Başlangıç logu -->
+    <bpmn2:scriptTask id="ScriptTask_Init" name="Log Ticket Init" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>SequenceFlow_1</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_2</bpmn2:outgoing>
+      <bpmn2:script>
+        System.out.println("[TICKET-WORKFLOW] Süreç başlatıldı - TicketId: " + ticketId + ", Priority: " + priority + ", Status: " + status);
+      </bpmn2:script>
+    </bpmn2:scriptTask>
+
+    <!-- 3. USER TASK: Ajan incelemesi -->
+    <bpmn2:userTask id="UserTask_Review" name="Ticket Review">
+      <bpmn2:incoming>SequenceFlow_2</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_ToEnd</bpmn2:outgoing>
+      <bpmn2:ioSpecification>
+        <bpmn2:dataInput id="UserTask_Review_TaskNameInput" name="TaskName"/>
+        <bpmn2:dataInput id="UserTask_Review_GroupIdInput" name="GroupId"/>
+        <bpmn2:inputSet>
+          <bpmn2:dataInputRefs>UserTask_Review_TaskNameInput</bpmn2:dataInputRefs>
+          <bpmn2:dataInputRefs>UserTask_Review_GroupIdInput</bpmn2:dataInputRefs>
+        </bpmn2:inputSet>
+        <bpmn2:outputSet/>
+      </bpmn2:ioSpecification>
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>UserTask_Review_TaskNameInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[TicketReview]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[UserTask_Review_TaskNameInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>UserTask_Review_GroupIdInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[agent]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[UserTask_Review_GroupIdInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+    </bpmn2:userTask>
+
+    <!-- 4. BOUNDARY TIMER: SLA Zamanlayıcı (UserTask üzerinde)
+         cancelActivity=false: Zamanlayıcı tetiklendiğinde UserTask iptal EDİLMEZ.
+         PT2M = 2 dakika (test için kısa tutuldu; üretimde PT4H/PT8H/PT24H olur) -->
+    <bpmn2:boundaryEvent id="BoundaryTimer_SLA" name="SLA Timer"
+                         attachedToRef="UserTask_Review" cancelActivity="false">
+      <bpmn2:outgoing>SequenceFlow_ToSlaLog</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition>
+        <bpmn2:timeDuration xsi:type="bpmn2:tFormalExpression">PT2M</bpmn2:timeDuration>
+      </bpmn2:timerEventDefinition>
+    </bpmn2:boundaryEvent>
+
+    <!-- 5. SCRIPT: SLA ihlal logu -->
+    <bpmn2:scriptTask id="ScriptTask_SlaLog" name="Log SLA Breach" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>SequenceFlow_ToSlaLog</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_ToRestCall</bpmn2:outgoing>
+      <bpmn2:script>
+        System.out.println("[TICKET-WORKFLOW] SLA AŞIMI! TicketId: " + ticketId + " - Süre doldu, callback gönderilecek.");
+      </bpmn2:script>
+    </bpmn2:scriptTask>
+
+    <!-- 6. REST SERVICE TASK: Spring Boot'a SLA Breach bildirimi
+         drools:taskName="Rest" → jBPM'in yerleşik RESTWorkItemHandler'ını tetikler.
+         Bu handler KIE Server Showcase imajında önceden kayıtlıdır. -->
+    <bpmn2:task id="RestTask_SlaCallback" name="SLA Breach Callback" drools:taskName="Rest">
+      <bpmn2:incoming>SequenceFlow_ToRestCall</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_ToSlaEnd</bpmn2:outgoing>
+      <bpmn2:ioSpecification>
+        <bpmn2:dataInput id="RestTask_urlInput" drools:dtype="String" name="Url"/>
+        <bpmn2:dataInput id="RestTask_methodInput" drools:dtype="String" name="Method"/>
+        <bpmn2:dataInput id="RestTask_contentTypeInput" drools:dtype="String" name="ContentType"/>
+        <bpmn2:dataInput id="RestTask_contentInput" drools:dtype="String" name="Content"/>
+        <bpmn2:dataInput id="RestTask_TaskNameInput" drools:dtype="String" name="TaskName"/>
+        <bpmn2:inputSet>
+          <bpmn2:dataInputRefs>RestTask_urlInput</bpmn2:dataInputRefs>
+          <bpmn2:dataInputRefs>RestTask_methodInput</bpmn2:dataInputRefs>
+          <bpmn2:dataInputRefs>RestTask_contentTypeInput</bpmn2:dataInputRefs>
+          <bpmn2:dataInputRefs>RestTask_contentInput</bpmn2:dataInputRefs>
+          <bpmn2:dataInputRefs>RestTask_TaskNameInput</bpmn2:dataInputRefs>
+        </bpmn2:inputSet>
+        <bpmn2:outputSet/>
+      </bpmn2:ioSpecification>
+      <!-- TaskName -->
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>RestTask_TaskNameInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[Rest]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[RestTask_TaskNameInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+      <!-- URL -->
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>RestTask_urlInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[#{callbackUrl}]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[RestTask_urlInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+      <!-- Method -->
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>RestTask_methodInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[POST]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[RestTask_methodInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+      <!-- Content-Type -->
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>RestTask_contentTypeInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[application/json]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[RestTask_contentTypeInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+      <!-- JSON Body -->
+      <bpmn2:dataInputAssociation>
+        <bpmn2:targetRef>RestTask_contentInput</bpmn2:targetRef>
+        <bpmn2:assignment>
+          <bpmn2:from xsi:type="bpmn2:tFormalExpression"><![CDATA[{"ticketId": #{ticketId}, "eventType": "SLA_BREACHED", "processInstanceId": #{processInstanceId}, "additionalData": "Priority: #{priority}"}]]></bpmn2:from>
+          <bpmn2:to xsi:type="bpmn2:tFormalExpression"><![CDATA[RestTask_contentInput]]></bpmn2:to>
+        </bpmn2:assignment>
+      </bpmn2:dataInputAssociation>
+    </bpmn2:task>
+
+    <!-- 7. END EVENTS -->
+    <bpmn2:endEvent id="EndEvent_Main" name="Ticket Resolved">
+      <bpmn2:incoming>SequenceFlow_ToEnd</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:endEvent id="EndEvent_Sla" name="SLA Notified">
+      <bpmn2:incoming>SequenceFlow_ToSlaEnd</bpmn2:incoming>
+    </bpmn2:endEvent>
+
+    <!-- SEQUENCE FLOWS -->
+    <bpmn2:sequenceFlow id="SequenceFlow_1" sourceRef="StartEvent_1" targetRef="ScriptTask_Init"/>
+    <bpmn2:sequenceFlow id="SequenceFlow_2" sourceRef="ScriptTask_Init" targetRef="UserTask_Review"/>
+    <bpmn2:sequenceFlow id="SequenceFlow_ToEnd" sourceRef="UserTask_Review" targetRef="EndEvent_Main"/>
+    <bpmn2:sequenceFlow id="SequenceFlow_ToSlaLog" sourceRef="BoundaryTimer_SLA" targetRef="ScriptTask_SlaLog"/>
+    <bpmn2:sequenceFlow id="SequenceFlow_ToRestCall" sourceRef="ScriptTask_SlaLog" targetRef="RestTask_SlaCallback"/>
+    <bpmn2:sequenceFlow id="SequenceFlow_ToSlaEnd" sourceRef="RestTask_SlaCallback" targetRef="EndEvent_Sla"/>
+
+  </bpmn2:process>
+
+  <!-- DIAGRAM -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="com.ticketsystem.workflow.ticket-lifecycle">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_1">
+        <dc:Bounds x="100.0" y="200.0" width="36.0" height="36.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ScriptInit" bpmnElement="ScriptTask_Init">
+        <dc:Bounds x="200.0" y="178.0" width="140.0" height="80.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_UserTask" bpmnElement="UserTask_Review">
+        <dc:Bounds x="410.0" y="178.0" width="140.0" height="80.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_BoundaryTimer" bpmnElement="BoundaryTimer_SLA">
+        <dc:Bounds x="462.0" y="240.0" width="36.0" height="36.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SlaLog" bpmnElement="ScriptTask_SlaLog">
+        <dc:Bounds x="410.0" y="340.0" width="140.0" height="80.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_RestCall" bpmnElement="RestTask_SlaCallback">
+        <dc:Bounds x="620.0" y="340.0" width="140.0" height="80.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndMain" bpmnElement="EndEvent_Main">
+        <dc:Bounds x="620.0" y="200.0" width="36.0" height="36.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndSla" bpmnElement="EndEvent_Sla">
+        <dc:Bounds x="830.0" y="362.0" width="36.0" height="36.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_1" bpmnElement="SequenceFlow_1">
+        <di:waypoint x="136.0" y="218.0"/>
+        <di:waypoint x="200.0" y="218.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_2" bpmnElement="SequenceFlow_2">
+        <di:waypoint x="340.0" y="218.0"/>
+        <di:waypoint x="410.0" y="218.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToEnd" bpmnElement="SequenceFlow_ToEnd">
+        <di:waypoint x="550.0" y="218.0"/>
+        <di:waypoint x="620.0" y="218.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToSlaLog" bpmnElement="SequenceFlow_ToSlaLog">
+        <di:waypoint x="480.0" y="276.0"/>
+        <di:waypoint x="480.0" y="340.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToRestCall" bpmnElement="SequenceFlow_ToRestCall">
+        <di:waypoint x="550.0" y="380.0"/>
+        <di:waypoint x="620.0" y="380.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_ToSlaEnd" bpmnElement="SequenceFlow_ToSlaEnd">
+        <di:waypoint x="760.0" y="380.0"/>
+        <di:waypoint x="830.0" y="380.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

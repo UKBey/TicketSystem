@@ -8,6 +8,8 @@ volumes:
   ldap_config:
   opensearch_data:
     # OpenSearch verilerinin kalıcı olması için eklendi
+  jbpm_postgres_data:
+    # jBPM KIE Server veritabanı verilerinin kalıcı olması için eklendi
 
 services:
   # 1. PostgreSQL Veritabanı
@@ -150,6 +152,16 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/TicketSystemRealm
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-iam:8080/realms/TicketSystemRealm/protocol/openid-connect/certs
 
+      # jBPM / KIE Server Ayarları
+      JBPM_KIE_SERVER_URL: http://kie-server:8080/kie-server/services/rest/server
+      JBPM_KIE_SERVER_USERNAME: kieserver
+      JBPM_KIE_SERVER_PASSWORD: kieserver1!
+      JBPM_KIE_SERVER_CONTAINER_ID: ticket-workflow
+      JBPM_KIE_SERVER_PROCESS_ID: com.ticketsystem.workflow.ticket-lifecycle
+      JBPM_KIE_SERVER_TIMEOUT: "30000"
+      JBPM_KIE_SERVER_CALLBACK_TOKEN: "ticket-system-internal-secret-token-12345"
+      JBPM_KIE_SERVER_CALLBACK_BASE_URL: "http://it-service-backend:8081/api/internal/workflow/callback"
+
       # OTel Ortam Değişkenleri Eklendi:
       OTEL_SERVICE_NAME: "it-service-backend"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
@@ -160,6 +172,8 @@ services:
       it-service-db:
         condition: service_healthy
       keycloak-iam:
+        condition: service_started
+      kie-server:
         condition: service_started
       otel-collector:
         # Backend başlamadan Collector hazır olsun
@@ -209,3 +223,58 @@ services:
       - opensearch
     networks:
       - it-service-net
+
+  # --------------- jBPM / KIE SERVER KATMANI ---------------
+
+  # 12. jBPM Veritabanı (KIE Server süreç kalıcılığı için)
+  jbpm-db:
+    image: postgres:15-alpine
+    container_name: jbpm-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: jbpmadmin
+      POSTGRES_PASSWORD: jbpm321654
+      POSTGRES_DB: jbpmdb
+    volumes:
+      - jbpm_postgres_data:/var/lib/postgresql/data
+    networks:
+      - it-service-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jbpmadmin -d jbpmdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 13. Standalone jBPM KIE Server (Unmanaged Mode)
+  #     Varsayılan kullanıcı: kieserver / kieserver1!
+  #     Swagger UI: http://localhost:8180/kie-server/docs
+  kie-server:
+    image: jboss/kie-server-showcase:latest
+    container_name: kie-server
+    ports:
+      - "8180:8080"
+    environment:
+      KIE_SERVER_ID: "ticket-kie-server"
+      KIE_SERVER_LOCATION: "http://kie-server:8080/kie-server/services/rest/server"
+      # Unmanaged mod: Controller (Business Central) tanımlanmıyor
+      # H2 in-memory kullanılır (dev). Production'da PostgreSQL'e geçiş için:
+      #   -Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS
+      #   -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect
+      JAVA_OPTS: >-
+        -Xms512m -Xmx1024m
+        -Djava.net.preferIPv4Stack=true
+        -Dorg.kie.server.id=ticket-kie-server
+        -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
+        -Dorg.kie.server.persistence.ds=java:jboss/datasources/ExampleDS
+        -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.H2Dialect
+    depends_on:
+      jbpm-db:
+        condition: service_healthy
+    networks:
+      - it-service-net
+    volumes:
+      - ~/.m2/repository:/opt/jboss/.m2/repository
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  # ---------------------------------------------------------
