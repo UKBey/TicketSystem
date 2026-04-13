@@ -35,7 +35,7 @@ export default function Workspace() {
             </div>
           </div>
         ) : (
-          <TicketTable tickets={tickets} />
+          <TicketTable tickets={tickets} showSla />
         )}
       </div>
     </>

@@ -17,7 +17,12 @@ export function AuthProvider({ children }) {
     initCalled.current = true;
 
     keycloak
-      .init({ onLoad: 'check-sso', checkLoginIframe: false })
+      .init({
+        onLoad: 'check-sso',
+        checkLoginIframe: false,
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        silentCheckSsoFallback: false,
+      })
       .then((auth) => {
         setAuthenticated(auth);
         setInitialized(true);
@@ -67,8 +72,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = useCallback(() => keycloak.login(), []);
-  const logout = useCallback(() => keycloak.logout({ redirectUri: window.location.origin }), []);
+  const login = useCallback(() => {
+    keycloak.login({ redirectUri: window.location.origin + '/' });
+  }, []);
+
+  const logout = useCallback(() => {
+    keycloak.logout({ redirectUri: window.location.origin + '/' });
+  }, []);
 
   const hasRole = useCallback(
     (role) => roles.includes(role),

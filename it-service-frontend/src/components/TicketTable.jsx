@@ -1,8 +1,9 @@
-import { useEffect, useNavigate, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 
-export default function TicketTable({ tickets, showClaimButton, onClaim, showSla = true }) {
+export default function TicketTable({ tickets, showClaimButton, onClaim, showSla = false }) {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(Date.now());
 

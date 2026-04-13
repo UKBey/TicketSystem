@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -13,11 +14,17 @@ import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
 import TicketDetail from './pages/TicketDetail';
+import ProfilePage from './pages/ProfilePage';
 
 function AppLayout({ children }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <div className="app-layout">
-      <Sidebar />
+    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((prev) => !prev)}
+      />
       <main className="main-content">{children}</main>
     </div>
   );
@@ -119,6 +126,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'MANAGER']}>
               <AppLayout><TicketDetail /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Profile (All authenticated users) */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'MANAGER']}>
+              <AppLayout><ProfilePage /></AppLayout>
             </ProtectedRoute>
           }
         />

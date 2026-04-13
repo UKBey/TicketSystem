@@ -47,7 +47,7 @@ export default function Pool() {
             </div>
           </div>
         ) : (
-          <TicketTable tickets={tickets} showClaimButton onClaim={handleClaim} />
+          <TicketTable tickets={tickets} showClaimButton onClaim={handleClaim} showSla />
         )}
       </div>
     </>

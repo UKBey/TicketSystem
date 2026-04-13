@@ -93,6 +93,9 @@ export default function TicketDetail() {
       });
       setComments((prev) => [...prev, res.data]);
       setMessage('');
+      // Keep the right-side detail panel in sync with backend status transitions.
+      const ticketRes = await api.get(`/tickets/${id}`);
+      setTicket(ticketRes.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Yorum gönderilemedi.');
     } finally {

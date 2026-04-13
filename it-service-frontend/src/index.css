@@ -60,6 +60,7 @@
 
   /* ── Layout ── */
   --sidebar-width: 240px;
+  --sidebar-collapsed-width: 76px;
   --border-radius: 8px;
   --border-radius-sm: 6px;
   --border-radius-lg: 12px;
@@ -137,6 +138,11 @@ a:hover {
   margin-left: var(--sidebar-width);
   padding: var(--space-8);
   min-height: 100vh;
+  transition: margin-left var(--transition-normal);
+}
+
+.app-layout.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 /* ── Sidebar ── */
@@ -151,7 +157,11 @@ a:hover {
   display: flex;
   flex-direction: column;
   z-index: 100;
-  transition: transform var(--transition-normal);
+  transition: width var(--transition-normal), transform var(--transition-normal);
+}
+
+.app-layout.sidebar-collapsed .sidebar {
+  width: var(--sidebar-collapsed-width);
 }
 
 .sidebar-brand {
@@ -165,6 +175,28 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sidebar-toggle {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-inverse);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .sidebar-brand-icon {
@@ -189,6 +221,22 @@ a:hover {
   color: var(--color-text-inverse);
   font-weight: 600;
   font-size: var(--font-size-sm);
+}
+
+.sidebar-profile-link {
+  display: block;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+}
+
+.sidebar-profile-link:hover {
+  background: var(--color-sidebar-hover);
+  text-decoration: none;
+}
+
+.sidebar-profile-link.active {
+  background: var(--color-sidebar-active);
 }
 
 .sidebar-nav {
@@ -227,9 +275,77 @@ a:hover {
   font-size: var(--font-size-base);
 }
 
+.sidebar-label {
+  white-space: nowrap;
+}
+
+.app-layout.sidebar-collapsed .sidebar-label,
+.app-layout.sidebar-collapsed .sidebar-user {
+  display: none;
+}
+
+.app-layout.sidebar-collapsed .sidebar-brand {
+  justify-content: center;
+}
+
+.app-layout.sidebar-collapsed .sidebar-nav a {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.app-layout.sidebar-collapsed .sidebar-brand-icon {
+  margin-right: 0;
+}
+
+.app-layout.sidebar-collapsed .sidebar-footer {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.app-layout.sidebar-collapsed .sidebar-profile-link {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
 .sidebar-footer {
   padding: var(--space-4) var(--space-5);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.sidebar-profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: #fff;
+}
+
+.sidebar-profile-name {
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.sidebar-profile-role {
+  color: var(--color-text-light);
+  font-size: var(--font-size-xs);
+}
+
+.app-layout.sidebar-collapsed .sidebar-profile {
+  justify-content: center;
 }
 
 .sidebar-logout {
@@ -245,6 +361,10 @@ a:hover {
   padding: var(--space-2) 0;
   width: 100%;
   transition: color var(--transition-fast);
+}
+
+.app-layout.sidebar-collapsed .sidebar-logout {
+  justify-content: center;
 }
 
 .sidebar-logout:hover {

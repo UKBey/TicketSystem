@@ -34,7 +34,7 @@ export default function History() {
             </div>
           </div>
         ) : (
-          <TicketTable tickets={tickets} />
+          <TicketTable tickets={tickets} showSla />
         )}
       </div>
     </>
