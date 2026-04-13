@@ -1,4 +1,13 @@
 FROM osixia/openldap:1.5.0
 
-# Senin hazırladığın ldif dosyasını, imajın içindeki o özel klasöre kopyalar
-COPY ./ldap-init/bootstrap.ldif /container/service/slapd/assets/config/bootstrap/ldif/custom/
+USER root
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends gettext-base \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Template dosyasi container acilisinda envsubst ile bootstrap.ldif'e donusturulur.
+COPY ./ldap-init/bootstrap.ldif.template /container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif.template
+COPY ./ldap-init/10-render-bootstrap.sh /container/service/slapd/startup/10-render-bootstrap.sh
+
+RUN chmod +x /container/service/slapd/startup/10-render-bootstrap.sh

@@ -5,7 +5,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ticketdb}
     username: ${SPRING_DATASOURCE_USERNAME:ticketadmin}
-    password: ${SPRING_DATASOURCE_PASSWORD:321654}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -35,9 +35,9 @@ jbpm:
   kie-server:
     url: ${JBPM_KIE_SERVER_URL:http://localhost:8180/kie-server/services/rest/server}
     username: ${JBPM_KIE_SERVER_USERNAME:kieserver}
-    password: ${JBPM_KIE_SERVER_PASSWORD:kieserver1!}
+    password: ${JBPM_KIE_SERVER_PASSWORD}
     container-id: ${JBPM_KIE_SERVER_CONTAINER_ID:ticket-workflow}
     process-id: ${JBPM_KIE_SERVER_PROCESS_ID:com.ticketsystem.workflow.ticket-lifecycle}
     timeout: ${JBPM_KIE_SERVER_TIMEOUT:30000}
-    callback-token: ${JBPM_KIE_SERVER_CALLBACK_TOKEN:ticket-system-internal-secret-token-12345}
+    callback-token: ${JBPM_KIE_SERVER_CALLBACK_TOKEN}
     callback-base-url: ${JBPM_KIE_SERVER_CALLBACK_BASE_URL:http://host.docker.internal:8081/api/internal/workflow/callback}

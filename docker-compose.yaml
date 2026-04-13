@@ -19,16 +19,16 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ticketadmin
-      POSTGRES_PASSWORD: 321654
-      POSTGRES_DB: ticketdb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
       - it-service-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ticketadmin -d ticketdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -42,9 +42,12 @@ services:
     ports:
       - "389:389"
     environment:
-      LDAP_ORGANISATION: "Ticket System"
-      LDAP_DOMAIN: "ticketsystem.com"
-      LDAP_ADMIN_PASSWORD: "321654"
+      LDAP_ORGANISATION: "${LDAP_ORGANISATION}"
+      LDAP_DOMAIN: "${LDAP_DOMAIN}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
+      LDAP_CUSTOMER_PASSWORD: "${LDAP_CUSTOMER_PASSWORD}"
+      LDAP_AGENT_PASSWORD: "${LDAP_AGENT_PASSWORD}"
+      LDAP_MANAGER_PASSWORD: "${LDAP_MANAGER_PASSWORD}"
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
@@ -75,10 +78,10 @@ services:
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://it-service-db:5432/keycloakdb
-      KC_DB_USERNAME: ticketadmin
-      KC_DB_PASSWORD: 321654
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: 321654
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - ./keycloak-init:/opt/keycloak/data/import
     depends_on:
@@ -146,21 +149,21 @@ services:
       - "8081:8081"
     environment:
       SERVER_PORT: "8081"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://it-service-db:5432/ticketdb
-      SPRING_DATASOURCE_USERNAME: ticketadmin
-      SPRING_DATASOURCE_PASSWORD: 321654
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/TicketSystemRealm
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-iam:8080/realms/TicketSystemRealm/protocol/openid-connect/certs
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
 
       # jBPM / KIE Server Ayarları
-      JBPM_KIE_SERVER_URL: http://kie-server:8080/kie-server/services/rest/server
-      JBPM_KIE_SERVER_USERNAME: kieserver
-      JBPM_KIE_SERVER_PASSWORD: kieserver1!
-      JBPM_KIE_SERVER_CONTAINER_ID: ticket-workflow
-      JBPM_KIE_SERVER_PROCESS_ID: com.ticketsystem.workflow.ticket-lifecycle
-      JBPM_KIE_SERVER_TIMEOUT: "30000"
-      JBPM_KIE_SERVER_CALLBACK_TOKEN: "ticket-system-internal-secret-token-12345"
-      JBPM_KIE_SERVER_CALLBACK_BASE_URL: "http://it-service-backend:8081/api/internal/workflow/callback"
+      JBPM_KIE_SERVER_URL: ${JBPM_KIE_SERVER_URL}
+      JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME}
+      JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD}
+      JBPM_KIE_SERVER_CONTAINER_ID: ${JBPM_KIE_SERVER_CONTAINER_ID}
+      JBPM_KIE_SERVER_PROCESS_ID: ${JBPM_KIE_SERVER_PROCESS_ID}
+      JBPM_KIE_SERVER_TIMEOUT: "${JBPM_KIE_SERVER_TIMEOUT}"
+      JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
+      JBPM_KIE_SERVER_CALLBACK_BASE_URL: "${JBPM_KIE_SERVER_CALLBACK_BASE_URL}"
 
       # OTel Ortam Değişkenleri Eklendi:
       OTEL_SERVICE_NAME: "it-service-backend"
@@ -233,15 +236,15 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: jbpmadmin
-      POSTGRES_PASSWORD: jbpm321654
-      POSTGRES_DB: jbpmdb
+      POSTGRES_USER: ${JBPM_DB_USER}
+      POSTGRES_PASSWORD: ${JBPM_DB_PASSWORD}
+      POSTGRES_DB: ${JBPM_DB_NAME}
     volumes:
       - jbpm_postgres_data:/var/lib/postgresql/data
     networks:
       - it-service-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jbpmadmin -d jbpmdb"]
+      test: ["CMD-SHELL", "pg_isready -U ${JBPM_DB_USER} -d ${JBPM_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10

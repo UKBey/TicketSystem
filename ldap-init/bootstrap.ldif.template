@@ -10,7 +10,7 @@ uid: ctest
 cn: customer
 sn: test
 mail: ctest@ticketsystem.com
-userPassword: 321654
+userPassword: ${LDAP_CUSTOMER_PASSWORD}
 
 # 3. Test Destek Uzmanı (Agent) ekliyoruz
 dn: uid=atest,ou=users,dc=ticketsystem,dc=com
@@ -19,7 +19,7 @@ uid: atest
 cn: agent
 sn: test
 mail: atest@ticketsystem.com
-userPassword: 321654
+userPassword: ${LDAP_AGENT_PASSWORD}
 
 # 4. Test Yönetici (Manager) ekliyoruz
 dn: uid=mtest,ou=users,dc=ticketsystem,dc=com
@@ -28,4 +28,4 @@ uid: mtest
 cn: manager
 sn: test
 mail: mtest@ticketsystem.com
-userPassword: 321654
+userPassword: ${LDAP_MANAGER_PASSWORD}
