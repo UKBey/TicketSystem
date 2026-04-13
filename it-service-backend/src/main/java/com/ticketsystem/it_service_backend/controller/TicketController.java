@@ -11,6 +11,10 @@ import com.ticketsystem.it_service_backend.entity.Csat;
 import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
+import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.service.CsatService;
 import com.ticketsystem.it_service_backend.service.ResolutionNoteService;
 import com.ticketsystem.it_service_backend.service.TicketService;
@@ -42,6 +46,8 @@ public class TicketController {
     private final CsatService csatService;
     private final WorklogService worklogService;
     private final ResolutionNoteService resolutionNoteService;
+    private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
     // ── BİLET İŞLEMLERİ ──────────────────────────────────────────────────────────
 
@@ -67,7 +73,7 @@ public class TicketController {
 
         log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
 
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(savedTicket));
+        return ResponseEntity.ok(convertToDto(savedTicket));
     }
 
     // 2. Biletleri Listele (Rol bazlı)
@@ -90,7 +96,7 @@ public class TicketController {
         log.info("Kullanıcı (ID: {}) için {} adet bilet listelendi.", userId, tickets.size());
 
         return ResponseEntity.ok(tickets.stream()
-                .map(TicketResponseDTO::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList()));
     }
 
@@ -109,7 +115,7 @@ public class TicketController {
         log.info("Havuzda {} adet uygun bilet listelendi.", poolTickets.size());
 
         return ResponseEntity.ok(poolTickets.stream()
-                .map(TicketResponseDTO::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList()));
     }
 
@@ -126,7 +132,7 @@ public class TicketController {
         log.info("Ajan (ID: {}) üzerinde {} adet bilet bulundu.", agentId, tickets.size());
 
         return ResponseEntity.ok(tickets.stream()
-                .map(TicketResponseDTO::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList()));
     }
 
@@ -144,7 +150,7 @@ public class TicketController {
 
         log.info("Bilet detayı başarıyla çekildi. Bilet ID: {}, CSAT Mevcut: {}", id, hasCsat);
 
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket, hasCsat));
+        return ResponseEntity.ok(convertToDto(ticket, hasCsat));
     }
 
     // 6. Havuzdan Bilet Üzerine Alma (Claim)
@@ -160,7 +166,7 @@ public class TicketController {
 
         log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Ajan ID: {}", id, agentId);
 
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket));
+        return ResponseEntity.ok(convertToDto(ticket));
     }
 
     // 7. Statü Güncelleme
@@ -180,7 +186,7 @@ public class TicketController {
 
         log.info("Bilet statüsü başarıyla güncellendi. Bilet ID: {}, Yeni Statü: {}", id, ticket.getStatus());
 
-        return ResponseEntity.ok(TicketResponseDTO.fromEntity(ticket, hasCsat));
+        return ResponseEntity.ok(convertToDto(ticket, hasCsat));
     }
 
     // 8. Bileti Sil (Sadece Yönetici)
@@ -208,7 +214,8 @@ public class TicketController {
             @RequestBody CsatDTO csatDTO,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(csatService.submitCsat(id, csatDTO, userId));
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        return ResponseEntity.ok(csatService.submitCsat(id, csatDTO, userId, roles));
     }
 
     // 10. CSAT Detayını Getir
@@ -395,5 +402,22 @@ public class TicketController {
         return ResponseEntity.ok(notes.stream()
                 .map(ResolutionNoteResponseDTO::fromEntity)
                 .collect(Collectors.toList()));
+    }
+
+    private TicketResponseDTO convertToDto(Ticket ticket) {
+        return convertToDto(ticket, false);
+    }
+
+    private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat) {
+        String customerName = ticket.getCustomerId() != null 
+            ? userRepository.findById(ticket.getCustomerId()).map(User::getFullName).orElse("Unknown") 
+            : "Unknown";
+        String assigneeName = ticket.getAssigneeId() != null 
+            ? userRepository.findById(ticket.getAssigneeId()).map(User::getFullName).orElse(null) 
+            : null;
+        String productName = ticket.getProductId() != null 
+            ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse("Unknown") 
+            : "Unknown";
+        return TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, assigneeName);
     }
 }

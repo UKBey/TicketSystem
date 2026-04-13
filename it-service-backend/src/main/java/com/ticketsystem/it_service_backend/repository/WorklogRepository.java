@@ -9,4 +9,4 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
     List<TicketWorklog> findByTicketId(Long ticketId);
 
     List<TicketWorklog> findByAgentId(String agentId);
-}
+    void deleteByTicketId(Long ticketId);}

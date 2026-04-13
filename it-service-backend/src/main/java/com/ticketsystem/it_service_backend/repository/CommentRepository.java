@@ -9,4 +9,4 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByTicketIdOrderByCreatedAtAsc(Long ticketId);
-}
+    void deleteByTicketId(Long ticketId);}

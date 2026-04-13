@@ -6,4 +6,4 @@ import java.util.List;
 
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findByTicketId(Long ticketId);
-}
+    void deleteByTicketId(Long ticketId);}

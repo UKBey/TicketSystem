@@ -20,7 +20,7 @@ public class CsatService {
     private final CsatRepository csatRepository;
     private final TicketService ticketService;
 
-    public Csat submitCsat(Long ticketId, CsatDTO dto, String userId) {
+    public Csat submitCsat(Long ticketId, CsatDTO dto, String userId, List<String> roles) {
         log.info("CSAT anketi gönderimi başlatıldı. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
         // 1. Puan kontrolü
@@ -40,10 +40,10 @@ public class CsatService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sadece kendi biletlerinize anket yapabilirsiniz.");
         }
 
-        // 3. Statü kontrolü (Sadece CLOSED)
-        if (!"CLOSED".equals(ticket.getStatus())) {
-            log.warn("CSAT reddedildi: Bilet statüsü CLOSED değil (Statü: {})", ticket.getStatus());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sadece kapalı (CLOSED) biletler için anket yapılabilir.");
+        // 3. Statü kontrolü (Sadece CLOSED veya RESOLVED)
+        if (!"CLOSED".equals(ticket.getStatus()) && !"RESOLVED".equals(ticket.getStatus())) {
+            log.warn("CSAT reddedildi: Bilet statüsü uygun değil (Statü: {})", ticket.getStatus());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sadece kapalı veya çözülmüş biletler için anket yapılabilir.");
         }
 
         // 4. Mükerrer kayıt kontrolü
@@ -60,6 +60,12 @@ public class CsatService {
 
         Csat savedCsat = csatRepository.save(csat);
         log.info("CSAT anketi başarıyla kaydedildi. Bilet ID: {}, CSAT ID: {}", ticketId, savedCsat.getId());
+
+        // Update ticket status to CLOSED if it was RESOLVED
+        if ("RESOLVED".equals(ticket.getStatus())) {
+            ticketService.updateTicketStatus(ticketId, "CLOSED", userId, roles);
+        }
+
         return savedCsat;
     }
 

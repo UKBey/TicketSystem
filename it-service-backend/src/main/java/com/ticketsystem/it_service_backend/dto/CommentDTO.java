@@ -14,14 +14,16 @@ import java.time.ZonedDateTime;
 public class CommentDTO {
     private Long id;
     private String authorId;
+    private String authorName;
     private String message;
     private String type;
     private ZonedDateTime createdAt;
 
-    public static CommentDTO fromEntity(Comment comment) {
+    public static CommentDTO fromEntity(Comment comment, String authorName) {
         return CommentDTO.builder()
                 .id(comment.getId())
                 .authorId(comment.getAuthorId())
+                .authorName(authorName)
                 .message(comment.getMessage())
                 .type(comment.getType())
                 .createdAt(comment.getCreatedAt())

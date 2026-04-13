@@ -1,8 +1,14 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
+import com.ticketsystem.it_service_backend.repository.CommentRepository;
+import com.ticketsystem.it_service_backend.repository.CsatRepository;
+import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.repository.WorklogRepository;
+import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -27,9 +33,14 @@ import lombok.extern.log4j.Log4j2;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
+    private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CsatRepository csatRepository;
+    private final ResolutionNoteRepository resolutionNoteRepository;
+    private final WorklogRepository worklogRepository;
+    private final AttachmentRepository attachmentRepository;
 
     // ────────────────────────────────────────────────────────────────────────────
     // Şekil 2 — Ticket State Flow: Geçerli durum geçişleri matrisi
@@ -86,6 +97,15 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
+
+        // İlk açıklamayı (description) yorum olarak kaydet
+        Comment firstComment = Comment.builder()
+                .ticket(savedTicket)
+                .authorId(customerId)
+                .message(savedTicket.getDescription())
+                .type("EXTERNAL")
+                .build();
+        commentRepository.save(firstComment);
 
         // Transaction commit'lendikten SONRA workflow başlatılacak (Fix 6: Transaction boundary)
         // WorkflowEventListener.onTicketCreated() metodu tetiklenecek
@@ -446,6 +466,7 @@ public class TicketService {
         }
     }
 
+    @Transactional
     public void deleteTicket(Long id) {
         log.info("Bilet silme işlemi. Bilet ID: {}", id);
 
@@ -457,6 +478,13 @@ public class TicketService {
         } catch (Exception e) {
             log.error("Workflow iptal başarısız (ticket silinecek). TicketId={}, Hata={}", id, e.getMessage());
         }
+
+        // Cascade manually
+        commentRepository.deleteByTicketId(id);
+        csatRepository.deleteByTicketId(id);
+        resolutionNoteRepository.deleteByTicketId(id);
+        worklogRepository.deleteByTicketId(id);
+        attachmentRepository.deleteByTicketId(id);
 
         ticketRepository.deleteById(id);
         log.info("Bilet başarıyla silindi. Bilet ID: {}", id);

@@ -9,4 +9,4 @@ public interface CsatRepository extends JpaRepository<Csat, Long> {
     boolean existsByTicketId(Long ticketId);
     
     Optional<Csat> findByTicketId(Long ticketId);
-}
+    void deleteByTicketId(Long ticketId);}

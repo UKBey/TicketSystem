@@ -45,6 +45,13 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         log.info("Yorum başarıyla kaydedildi. Bilet ID: {}, Yorum ID: {}", ticketId, savedComment.getId());
+
+        // Otomatik Statü Güncellemesi: Müşteri yanıt verdiğinde, bilet "WAITING_FOR_CUSTOMER" ise "IN_PROGRESS" yap.
+        if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
+            log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
+            ticketService.updateTicketStatus(ticketId, "IN_PROGRESS", userId, roles);
+        }
+
         return savedComment;
     }
 

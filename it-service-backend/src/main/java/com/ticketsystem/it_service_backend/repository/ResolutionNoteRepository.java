@@ -13,4 +13,4 @@ public interface ResolutionNoteRepository extends JpaRepository<ResolutionNote, 
     boolean existsByTicketId(Long ticketId);
 
     List<ResolutionNote> findAllByAgentId(String agentId);
-}
+    void deleteByTicketId(Long ticketId);}

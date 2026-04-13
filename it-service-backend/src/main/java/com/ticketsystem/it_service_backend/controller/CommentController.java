@@ -2,6 +2,8 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.CommentService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class CommentController {
 
     private final CommentService commentService;
+    private final UserRepository userRepository;
 
     // 1. Bilete Yorum Ekle
     @Operation(summary = "Bilete yorum ekle", description = "Belirli bir bilete (Ticket) yeni bir yorum ekler. Yetki kontrolü yapılır.")
@@ -50,7 +53,7 @@ public class CommentController {
         // INFO: İşlem başarıyla bitti
         log.info("Yorum başarıyla eklendi. Bilet ID: {}, Yeni Yorum ID: {}", ticketId, comment.getId());
 
-        return ResponseEntity.ok(CommentDTO.fromEntity(comment));
+        return ResponseEntity.ok(convertToDto(comment));
     }
 
     // 2. Biletin Yorumlarını Listele
@@ -74,12 +77,19 @@ public class CommentController {
                 comments.size(), roles);
 
         List<CommentDTO> commentDTOs = comments.stream()
-                .map(CommentDTO::fromEntity)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
 
         // INFO: Listeleme başarıyla bitti
         log.info("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
 
         return ResponseEntity.ok(commentDTOs);
+    }
+
+    private CommentDTO convertToDto(Comment comment) {
+        String authorName = comment.getAuthorId() != null
+            ? userRepository.findById(comment.getAuthorId()).map(User::getFullName).orElse("Unknown")
+            : "Unknown";
+        return CommentDTO.fromEntity(comment, authorName);
     }
 }

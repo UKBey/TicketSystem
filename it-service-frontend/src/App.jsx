@@ -1,121 +1,131 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import Sidebar from './components/Sidebar';
+import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Pages
+import LoginPage from './pages/LoginPage';
+import MyTickets from './pages/customer/MyTickets';
+import Pool from './pages/agent/Pool';
+import Workspace from './pages/agent/Workspace';
+import History from './pages/agent/History';
+import Dashboard from './pages/manager/Dashboard';
+import AdminPanel from './pages/manager/AdminPanel';
+import ProductPanel from './pages/manager/ProductPanel';
+import TicketDetail from './pages/TicketDetail';
 
+function AppLayout({ children }) {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <div className="app-layout">
+      <Sidebar />
+      <main className="main-content">{children}</main>
+    </div>
+  );
 }
 
-export default App
+function HomeRedirect() {
+  const { getPrimaryRole } = useAuth();
+  const role = getPrimaryRole();
+
+  switch (role) {
+    case 'MANAGER':
+      return <Navigate to="/workspace" replace />;
+    case 'AGENT':
+      return <Navigate to="/workspace" replace />;
+    case 'CUSTOMER':
+      return <Navigate to="/my-tickets" replace />;
+    default:
+      return <Navigate to="/" replace />;
+  }
+}
+
+export default function App() {
+  const { authenticated } = useAuth();
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public */}
+        <Route
+          path="/"
+          element={authenticated ? <HomeRedirect /> : <LoginPage />}
+        />
+
+        {/* Customer */}
+        <Route
+          path="/my-tickets"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER']}>
+              <AppLayout><MyTickets /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Agent + Manager */}
+        <Route
+          path="/workspace"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+              <AppLayout><Workspace /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pool"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+              <AppLayout><Pool /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+              <AppLayout><History /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Manager Only */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['MANAGER']}>
+              <AppLayout><Dashboard /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={['MANAGER']}>
+              <AppLayout><AdminPanel /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute allowedRoles={['MANAGER']}>
+              <AppLayout><ProductPanel /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Ticket Detail (All authenticated users) */}
+        <Route
+          path="/tickets/:id"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'MANAGER']}>
+              <AppLayout><TicketDetail /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

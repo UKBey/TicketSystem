@@ -18,16 +18,21 @@ public class TicketResponseDTO {
     private String status;
     private String priority;
     private Long productId;
+    private String productName;
     private String customerId;
+    private String customerName;
     private String assigneeId;
+    private String assigneeName;
     private ZonedDateTime slaDeadline;
     private Boolean slaBreached;
+    private Long slaElapsedMs;
+    private ZonedDateTime slaPausedAt;
     private ZonedDateTime createdAt;
     private ZonedDateTime resolvedAt;
     private ZonedDateTime closedAt;
     private Boolean hasCsat;
 
-    public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat) {
+    public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat, String productName, String customerName, String assigneeName) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())
                 .title(ticket.getTitle())
@@ -35,10 +40,15 @@ public class TicketResponseDTO {
                 .status(ticket.getStatus())
                 .priority(ticket.getPriority())
                 .productId(ticket.getProductId())
+                .productName(productName)
                 .customerId(ticket.getCustomerId())
+                .customerName(customerName)
                 .assigneeId(ticket.getAssigneeId())
+                .assigneeName(assigneeName)
                 .slaDeadline(ticket.getSlaDeadline())
                 .slaBreached(ticket.getSlaBreached())
+                .slaElapsedMs(ticket.getSlaElapsedMs())
+                .slaPausedAt(ticket.getSlaPausedAt())
                 .createdAt(ticket.getCreatedAt())
                 .resolvedAt(ticket.getResolvedAt())
                 .closedAt(ticket.getClosedAt())
@@ -46,7 +56,7 @@ public class TicketResponseDTO {
                 .build();
     }
 
-    public static TicketResponseDTO fromEntity(Ticket ticket) {
-        return fromEntity(ticket, false);
+    public static TicketResponseDTO fromEntity(Ticket ticket, String productName, String customerName, String assigneeName) {
+        return fromEntity(ticket, false, productName, customerName, assigneeName);
     }
 }

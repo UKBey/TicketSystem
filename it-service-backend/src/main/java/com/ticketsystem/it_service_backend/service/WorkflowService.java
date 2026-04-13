@@ -36,8 +36,17 @@ public class WorkflowService {
     @Value("${jbpm.kie-server.callback-token}")
     private String callbackToken;
 
-    /** Varsayılan SLA süresi — test için 2 dakika (üretimde PT4H/PT8H/PT24H olur) */
-    private static final long DEFAULT_SLA_DURATION_MS = 2 * 60 * 1000; // 2 dakika
+    private long getSlaDurationMs(String priority) {
+        if (priority == null) return 10 * 60 * 1000L;
+        return switch (priority.toUpperCase()) {
+            case "LOW" -> 20 * 60 * 1000L;
+            case "MEDIUM" -> 10 * 60 * 1000L;
+            case "HIGH" -> 5 * 60 * 1000L;
+            case "CRITICAL" -> 1 * 60 * 1000L;
+            default -> 10 * 60 * 1000L;
+        };
+    }
+
 
     /**
      * Yeni bir ticket için workflow sürecini başlatır.
@@ -57,7 +66,7 @@ public class WorkflowService {
         processVariables.put("status", ticket.getStatus());
 
         // SLA süresini ISO 8601 Duration formatında gönder (jBPM Timer için)
-        processVariables.put("slaDuration", "PT2M");
+        processVariables.put("slaDuration", msToIsoDuration(getSlaDurationMs(ticket.getPriority())));
 
         // Fix 3: Callback URL'i süreç değişkeni olarak gönder (BPMN'de hardcoded olmaz)
         String fullCallbackUrl = callbackBaseUrl + "?token=" + callbackToken;
@@ -138,7 +147,7 @@ public class WorkflowService {
         ticket.setSlaPausedAt(ZonedDateTime.now());
 
         log.info("SLA duraklatılıyor. TicketId={}, ToplamGeçenSüre={}ms, KalanSLA={}ms",
-                ticket.getId(), totalElapsed, DEFAULT_SLA_DURATION_MS - totalElapsed);
+                ticket.getId(), totalElapsed, getSlaDurationMs(ticket.getPriority()) - totalElapsed);
 
         // jBPM'ye sinyal gönder — süreç "SLA aktif" dalından "Bekleme" dalına geçer
         try {
@@ -163,7 +172,7 @@ public class WorkflowService {
             return;
         }
 
-        long remainingMs = DEFAULT_SLA_DURATION_MS - ticket.getSlaElapsedMs();
+        long remainingMs = getSlaDurationMs(ticket.getPriority()) - ticket.getSlaElapsedMs();
         if (remainingMs <= 0) {
             log.warn("SLA süresi zaten dolmuş! TicketId={}, ElapsedMs={}", ticket.getId(), ticket.getSlaElapsedMs());
             remainingMs = 1000; // Minimum 1 saniye
@@ -249,3 +258,4 @@ public class WorkflowService {
         }
     }
 }
+
