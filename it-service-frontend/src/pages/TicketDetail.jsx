@@ -21,9 +21,12 @@ export default function TicketDetail() {
   const [csatModalOpen, setCsatModalOpen] = useState(false);
   const [csatRating, setCsatRating] = useState(5);
   const [csatComment, setCsatComment] = useState('');
+  
   const [submittingCsat, setSubmittingCsat] = useState(false);
+  const [slaInfo, setSlaInfo] = useState(null);
+  const [currentDate, setCurrentDate] = useState(Date.now());
 
-  // Durum geçis seçenekleri (rol ve mevcut duruma göre filtrelenir)
+  // Durum geçiş seçenekleri
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
     IN_PROGRESS: ['NEW', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'],
@@ -40,6 +43,25 @@ export default function TicketDetail() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
+
+  useEffect(() => {
+    if (ticket && (hasRole('AGENT') || hasRole('MANAGER'))) {
+      const fetchSla = async () => {
+         try {
+           const res = await api.get(`/tickets/${id}/sla-timer`);
+           const data = res.data;
+           data.fetchTime = Date.now(); // Record the exact local time we received the remainingMs
+           setSlaInfo(data);
+         } catch (e) { console.error('SLA fetch error', e); }
+      };
+      fetchSla();
+    }
+  }, [ticket?.status, id, hasRole, ticket]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchTicket = async () => {
     try {
@@ -158,7 +180,7 @@ export default function TicketDetail() {
   }
 
   if (!ticket) {
-    return <div className="empty-state"><h3>Bilet bulunamadi</h3></div>;
+    return <div className="empty-state"><h3>Bilet bulunamadı</h3></div>;
   }
 
   const ticketCode = `TCK-${String(ticket.id).padStart(3, '0')}`;
@@ -168,10 +190,10 @@ export default function TicketDetail() {
 
   return (
     <div className="ticket-detail">
-      {/* ------ SOL: Ana Içerik ------ */}
+      {/* ------ SOL: Ana İçerik ------ */}
       <div className="ticket-detail-main">
         {/* Back Link */}
-        <a className="back-link" onClick={() => navigate(-1)}>
+        <a className="back-link" onClick={() => navigate(-1)} style={{cursor: 'pointer'}}>
           ← Back
         </a>
 
@@ -263,25 +285,33 @@ export default function TicketDetail() {
         </div>
       </div>
 
-      {/* ------ SAG: Detay Paneli ------ */}
+      {/* ------ SAĞ: Detay Paneli ------ */}
       <div className="ticket-detail-aside">
         {/* Status Actions (Agent/Manager Only) */}
         {isAgent && allowedStatuses.length > 0 && (
           <div className="card">
             <div className="card-header">Status Actions</div>
             <div className="card-body">
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                {allowedStatuses.includes('WAITING_FOR_CUSTOMER') && (
-                  <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => handleStatusChange('WAITING_FOR_CUSTOMER')}>
-                    Waiting
-                  </button>
-                )}
-                {allowedStatuses.includes('RESOLVED') && (
-                  <button className="btn btn-success" style={{ flex: 1 }} onClick={() => handleStatusChange('RESOLVED')}>
-                    Resolved
-                  </button>
-                )}
-              </div>
+                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
+                    <button 
+                      className={`btn ${ticket.status === 'WAITING_FOR_CUSTOMER' ? 'btn-primary' : 'btn-outline'}`} 
+                      style={{ flex: 1 }} 
+                      onClick={() => handleStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
+                    >
+                      {ticket.status === 'WAITING_FOR_CUSTOMER' ? 'Resume (In Progress)' : 'Waiting'}
+                    </button>
+                  )}
+                  {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
+                    <button 
+                      className={`btn ${ticket.status === 'RESOLVED' ? 'btn-danger' : 'btn-success'}`} 
+                      style={{ flex: 1 }} 
+                      onClick={() => handleStatusChange(ticket.status === 'RESOLVED' ? 'IN_PROGRESS' : 'RESOLVED')}
+                    >
+                      {ticket.status === 'RESOLVED' ? 'Reopen (In Progress)' : 'Resolved'}
+                    </button>
+                  )}
+                </div>
               <button className="btn btn-outline" style={{ width: '100%', borderColor: 'var(--color-border)' }} onClick={() => setExtraActionsOpen(true)}>
                 Extra Actions ⚙️
               </button>
@@ -311,6 +341,43 @@ export default function TicketDetail() {
               <div className="detail-info-label">Priority</div>
               <div className="detail-info-value"><PriorityBadge priority={ticket.priority} /></div>
             </div>
+
+            {/* Dinamik SLA Gösterimi */}
+            {!isCustomer && slaInfo && (
+              <div className="detail-info-item">
+                <div className="detail-info-label">SLA Kalan Süre</div>
+                <div className="detail-info-value">
+                  {(() => {
+                      if (slaInfo.deadlineTimestamp === -1) {
+                         if (slaInfo.remainingMs <= 0 && ticket.slaBreached) return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+                         if (slaInfo.remainingMs > 0) {
+                             const diff = slaInfo.remainingMs;
+                             const mins = Math.floor(diff / 60000);
+                             const secs = Math.floor((diff % 60000) / 1000);
+                             return <span className="badge" style={{backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)'}}>{mins}dk {secs}sn (Duraklatıldı)</span>;
+                         }
+                         return <span className="badge badge-neutral">Tamamlandı</span>;
+                      }
+
+                      // Calculate remaining using relative time rather than absolute, bypassing clock desync issues
+                      let diff = slaInfo.remainingMs;
+                      if (slaInfo.deadlineTimestamp !== -1) {
+                          const elapsedSinceFetch = currentDate - slaInfo.fetchTime;
+                          diff = slaInfo.remainingMs - elapsedSinceFetch;
+                      }
+                      
+                      if (diff <= 0) return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+                      const mins = Math.floor(diff / 60000);
+                      const secs = Math.floor((diff % 60000) / 1000);
+                      let badgeClass = 'badge-success';
+                      if (mins < 1) badgeClass = 'badge-danger';
+                      else if (mins < 2) badgeClass = 'badge-warning';
+                      return <span className={`badge ${badgeClass}`}>{mins}dk {secs}sn</span>;
+                  })()}
+                </div>
+              </div>
+            )}
+
             {ticket.resolvedAt && (
               <div className="detail-info-item">
                 <div className="detail-info-label">Resolved At</div>

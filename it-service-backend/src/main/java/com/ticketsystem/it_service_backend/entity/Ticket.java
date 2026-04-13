@@ -56,6 +56,9 @@ public class Ticket {
     @Column(name = "sla_paused_at")
     private ZonedDateTime slaPausedAt;
 
+    @Column(name = "sla_resumed_at")
+    private ZonedDateTime slaResumedAt;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

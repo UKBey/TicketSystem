@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge, PriorityBadge } from './Badges';
+import SlaTimerBadge from './SlaTimerBadge';
 
-export default function TicketTable({ tickets, showClaimButton, onClaim }) {
+export default function TicketTable({ tickets, showClaimButton, onClaim, showSla = true }) {
   const navigate = useNavigate();
 
   const formatDate = (dateStr) => {
@@ -34,6 +35,7 @@ export default function TicketTable({ tickets, showClaimButton, onClaim }) {
           <th>Başlık</th>
           <th>Durum</th>
           <th>Öncelik</th>
+          {showSla && <th>SLA Durumu</th>}
           <th>Oluşturma Tarihi</th>
           {showClaimButton && <th>İşlem</th>}
         </tr>
@@ -52,6 +54,7 @@ export default function TicketTable({ tickets, showClaimButton, onClaim }) {
             </td>
             <td><StatusBadge status={ticket.status} /></td>
             <td><PriorityBadge priority={ticket.priority} /></td>
+            {showSla && <td><SlaTimerBadge ticket={ticket} /></td>}
             <td>{formatDate(ticket.createdAt)}</td>
             {showClaimButton && (
               <td>

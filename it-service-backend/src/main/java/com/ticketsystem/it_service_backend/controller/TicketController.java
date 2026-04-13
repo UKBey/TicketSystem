@@ -418,6 +418,16 @@ public class TicketController {
         String productName = ticket.getProductId() != null 
             ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse("Unknown") 
             : "Unknown";
-        return TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, assigneeName);
+        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, assigneeName);
+        dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
+        return dto;
     }
+
+    @GetMapping("/{id}/sla-timer")
+    @Operation(summary = "Get SLA timer information from jBPM", description = "Returns the precise Unix timestamp (ms) for the SLA deadline, or remaining milliseconds if paused.")
+    public ResponseEntity<Map<String, Long>> getSlaTimer(@PathVariable Long id) {
+        Map<String, Long> response = ticketService.getSlaTimerInfo(id);
+        return ResponseEntity.ok(response);
+    }
+
 }

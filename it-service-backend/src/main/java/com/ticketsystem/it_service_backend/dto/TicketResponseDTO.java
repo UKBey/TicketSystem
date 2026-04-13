@@ -31,6 +31,7 @@ public class TicketResponseDTO {
     private ZonedDateTime resolvedAt;
     private ZonedDateTime closedAt;
     private Boolean hasCsat;
+    private java.util.Map<String, Long> slaInfo;
 
     public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat, String productName, String customerName, String assigneeName) {
         return TicketResponseDTO.builder()

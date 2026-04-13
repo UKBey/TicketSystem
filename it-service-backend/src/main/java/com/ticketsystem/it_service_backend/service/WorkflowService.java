@@ -124,29 +124,31 @@ public class WorkflowService {
      * jBPM'ye "pause_sla" sinyali göndererek SLA Timer'ı olan daldan çıkarır.
      * </p>
      */
-    public void pauseSla(Ticket ticket) {
-        if (ticket.getProcessInstanceId() == null) {
-            log.debug("processInstanceId yok, SLA pause atlanıyor. TicketId={}", ticket.getId());
+        public void pauseSla(Ticket ticket) {
+        // Toplam geçen süreyi hesapla
+        if (ticket.getSlaPausedAt() != null) {
+            log.debug("SLA zaten duraklatýlmý durumda gibi görünüyor. TicketId={}", ticket.getId());
             return;
         }
 
-        // Toplam geçen süreyi hesapla
-        ZonedDateTime slaStartPoint = ticket.getSlaPausedAt() != null
-                ? ticket.getSlaPausedAt() // En son resume'dan beri
-                : ticket.getCreatedAt();  // İlk kez duraklatılıyor
-
-        // Eğer zaten duraklatılmış bir bilet tekrar duraklatılmaya çalışılırsa
-        if (ticket.getSlaPausedAt() != null && ticket.getSlaElapsedMs() > 0) {
-            log.debug("SLA zaten duraklatılmış durumda gibi görünüyor. TicketId={}", ticket.getId());
+        ZonedDateTime slaStartPoint = ticket.getSlaResumedAt() != null ? ticket.getSlaResumedAt() : ticket.getCreatedAt();
+        if (slaStartPoint == null) {
+            slaStartPoint = ZonedDateTime.now();
         }
-
+        
+        long previousElapsed = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
         long currentSegmentElapsed = Duration.between(slaStartPoint, ZonedDateTime.now()).toMillis();
-        long totalElapsed = ticket.getSlaElapsedMs() + currentSegmentElapsed;
+        long totalElapsed = previousElapsed + currentSegmentElapsed;
 
         ticket.setSlaElapsedMs(totalElapsed);
         ticket.setSlaPausedAt(ZonedDateTime.now());
 
-        log.info("SLA duraklatılıyor. TicketId={}, ToplamGeçenSüre={}ms, KalanSLA={}ms",
+        if (ticket.getProcessInstanceId() == null) {
+            log.debug("processInstanceId yok, sadece veritabaný tarafýnda SLA duraklatýldý. TicketId={}", ticket.getId());
+            return;
+        }
+
+        log.info("SLA duraklatýlýyor. TicketId={}, ToplamGeçenSüre={}ms, KalanSLA={}ms",
                 ticket.getId(), totalElapsed, getSlaDurationMs(ticket.getPriority()) - totalElapsed);
 
         // jBPM'ye sinyal gönder — süreç "SLA aktif" dalından "Bekleme" dalına geçer
@@ -166,23 +168,18 @@ public class WorkflowService {
      * jBPM yeni bir Timer ile bu kalan süreyi saymaya başlar.
      * </p>
      */
-    public void resumeSla(Ticket ticket) {
+            public void resumeSla(Ticket ticket) {
+        ticket.setSlaPausedAt(null);
+        ticket.setSlaResumedAt(java.time.ZonedDateTime.now());
+
         if (ticket.getProcessInstanceId() == null) {
-            log.debug("processInstanceId yok, SLA resume atlanıyor. TicketId={}", ticket.getId());
+            log.debug("processInstanceId yok, sadece veritabaný tarafýnda SLA resume edildi. TicketId={}", ticket.getId());
             return;
         }
 
-        long remainingMs = getSlaDurationMs(ticket.getPriority()) - ticket.getSlaElapsedMs();
-        if (remainingMs <= 0) {
-            log.warn("SLA süresi zaten dolmuş! TicketId={}, ElapsedMs={}", ticket.getId(), ticket.getSlaElapsedMs());
-            remainingMs = 1000; // Minimum 1 saniye
-        }
-
-        // ISO 8601 Duration formatına çevir (Örn: PT1M30S)
+        long currentSlaDurationMs = getSlaDurationMs(ticket.getPriority());
+        long remainingMs = Math.max(0, currentSlaDurationMs - (ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0));
         String remainingDuration = msToIsoDuration(remainingMs);
-
-        // slaPausedAt'i temizle (artık aktif)
-        ticket.setSlaPausedAt(null);
 
         log.info("SLA devam ettiriliyor. TicketId={}, KalanSüre={} ({}ms)",
                 ticket.getId(), remainingDuration, remainingMs);
@@ -257,5 +254,40 @@ public class WorkflowService {
             return String.format("PT%dS", Math.max(seconds, 1));
         }
     }
-}
 
+
+    /**
+     * Gets SLA Timer information by asking KIE Server.
+     */
+    public java.util.Map<String, Long> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
+        java.util.Map<String, Long> result = new java.util.HashMap<>();
+        
+        if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
+            result.put("deadlineTimestamp", -1L);
+            result.put("remainingMs", 0L);
+            return result;
+        }
+
+        long elapsedMs = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0;
+        long durationMs = getSlaDurationMs(ticket.getPriority());
+
+        if (ticket.getSlaPausedAt() != null || "CLOSED".equals(ticket.getStatus()) || "RESOLVED".equals(ticket.getStatus()) || "WAITING_FOR_CUSTOMER".equals(ticket.getStatus())) {
+            long remaining = durationMs - elapsedMs;
+            result.put("deadlineTimestamp", -1L);
+            result.put("remainingMs", Math.max(0, remaining));
+            return result;
+        }
+
+        // Active ticket - dynamically calculate mathematically with resumedAt!
+        long resumedMs = ticket.getSlaResumedAt() != null ? ticket.getSlaResumedAt().toInstant().toEpochMilli() : 
+                         (ticket.getCreatedAt() != null ? ticket.getCreatedAt().toInstant().toEpochMilli() : System.currentTimeMillis());
+        
+        long remaining = durationMs - elapsedMs;
+        long deadline = resumedMs + remaining;
+
+        result.put("deadlineTimestamp", deadline);
+        result.put("remainingMs", Math.max(0, deadline - System.currentTimeMillis()));
+        return result;
+    }
+
+}

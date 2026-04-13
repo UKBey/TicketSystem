@@ -1,0 +1,1 @@
+﻿ALTER TABLE tickets ADD COLUMN sla_resumed_at TIMESTAMP WITH TIME ZONE;

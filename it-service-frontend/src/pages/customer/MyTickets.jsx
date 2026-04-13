@@ -44,7 +44,7 @@ export default function MyTickets() {
             </div>
           </div>
         ) : (
-          <TicketTable tickets={tickets} />
+          <TicketTable tickets={tickets} showSla={false} />
         )}
       </div>
 

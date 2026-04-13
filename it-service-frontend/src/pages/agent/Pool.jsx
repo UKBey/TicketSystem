@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import TicketTable from '../../components/TicketTable';
 
 export default function Pool() {
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +27,7 @@ export default function Pool() {
     try {
       await api.put(`/tickets/${ticketId}/claim`);
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      navigate(`/tickets/${ticketId}`);
     } catch (err) {
       alert(err.response?.data?.message || 'Bilet sahiplenilemedi.');
     }

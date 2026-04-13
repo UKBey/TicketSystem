@@ -8,6 +8,9 @@ import org.kie.server.client.KieServicesClient;
 import org.kie.server.client.ProcessServicesClient;
 import org.kie.server.client.QueryServicesClient;
 import org.kie.server.client.UserTaskServicesClient;
+import org.kie.server.api.model.admin.TimerInstance;
+import org.kie.server.client.admin.ProcessAdminServicesClient;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +38,7 @@ public class KieServerAdapter {
     private final ProcessServicesClient processClient;
     private final QueryServicesClient queryClient;
     private final UserTaskServicesClient taskClient;
+    private final ProcessAdminServicesClient adminClient;
     private final CircuitBreaker circuitBreaker;
 
     @Value("${jbpm.kie-server.container-id}")
@@ -44,6 +48,7 @@ public class KieServerAdapter {
         this.processClient = kieServicesClient.getServicesClient(ProcessServicesClient.class);
         this.queryClient = kieServicesClient.getServicesClient(QueryServicesClient.class);
         this.taskClient = kieServicesClient.getServicesClient(UserTaskServicesClient.class);
+        this.adminClient = kieServicesClient.getServicesClient(ProcessAdminServicesClient.class);
         this.circuitBreaker = kieServerCircuitBreaker;
     }
 
@@ -222,4 +227,27 @@ public class KieServerAdapter {
             throw new RuntimeException("Task tamamlanamadı: " + e.getMessage(), e);
         }
     }
+
+
+    /**
+     * Finds active timers for the given process instance and returns the deadline timestamp (ms).
+     * Returns null if no active timer is found.
+     */
+    public Long getActiveTimerDeadline(Long processInstanceId) {
+        Supplier<Long> decoratedCall = CircuitBreaker.decorateSupplier(circuitBreaker, () -> {
+            List<TimerInstance> timers = adminClient.getTimerInstances(containerId, processInstanceId);
+            if (timers != null && !timers.isEmpty()) {
+                // Return the date of the first timer (Assuming only 1 SLA timer is active)
+                return timers.get(0).getNextFireTime().getTime();
+            }
+            return null;
+        });
+        try {
+            return decoratedCall.get();
+        } catch (Exception e) {
+            log.warn("Active timer sorgulanamadı: processInstanceId={}, hata={}", processInstanceId, e.getMessage());
+            return null;
+        }
+    }
+
 }

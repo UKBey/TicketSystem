@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
+import jakarta.persistence.EntityNotFoundException;
 
 @Log4j2
 @Service
@@ -488,5 +489,19 @@ public class TicketService {
 
         ticketRepository.deleteById(id);
         log.info("Bilet başarıyla silindi. Bilet ID: {}", id);
+    }
+
+
+    /**
+     * Gets SLA Timer information from WorkflowService & jBPM
+     */
+    public java.util.Map<String, Long> getSlaTimerInfo(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Bilet bulunamadı: " + id));
+        return workflowService.getSlaTimerInfo(ticket);
+    }
+
+    public java.util.Map<String, Long> getSlaTimerInfo(Ticket ticket) {
+        return workflowService.getSlaTimerInfo(ticket);
     }
 }
