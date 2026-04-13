@@ -31,12 +31,10 @@ public class WorkflowCallbackController {
     @PostMapping("/callback")
     public ResponseEntity<String> handleWorkflowCallback(
             @RequestHeader(value = "X-Internal-Token", required = false) String headerToken,
-            @RequestParam(value = "token", required = false) String queryToken,
             @Valid @RequestBody WorkflowCallbackDTO callback) {
 
-        // 1. Güvenlik Kontrolü (Header VEYA Query Parameter üzerinden)
-        String token = headerToken != null ? headerToken : queryToken;
-        if (token == null || !token.equals(expectedToken)) {
+        // 1. Güvenlik Kontrolü (Sadece Header)
+        if (headerToken == null || !headerToken.equals(expectedToken)) {
             log.warn("Yetkisiz Callback İsteği! Token eşleşmedi veya gönderilmedi.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized internal API call");
         }

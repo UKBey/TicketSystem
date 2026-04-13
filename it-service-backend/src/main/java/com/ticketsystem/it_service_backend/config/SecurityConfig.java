@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -9,37 +10,54 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.util.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Metod seviyesi yetkilendirme (@PreAuthorize) için eklendi
+@EnableMethodSecurity
 public class SecurityConfig {
+
+    @Value("${jbpm.kie-server.callback-token}")
+    private String internalApiToken;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // REST API olduğu için CSRF korumasına gerek yok
+        .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // jBPM KIE Server'dan gelecek callback işlemleri için yetkilendirme bypass (özel token ile korunacak)
-                        .requestMatchers("/api/internal/**").permitAll()
-                        // Kullanıcı API'leri Keycloak JWT zorunludur
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll())
-                // Hafızada oturum tutmayı yasaklar (Stateless)
+            // Public docs / health / auth endpoints only
+            .requestMatchers(
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/actuator/health",
+                "/actuator/health/**",
+                "/api/auth/login",
+                "/api/auth/register")
+            .permitAll()
+
+            // Internal API must pass dedicated internal header token.
+            // This keeps /api/internal/** out of permitAll while allowing machine-to-machine calls.
+            .requestMatchers("/api/internal/**")
+            .access((authentication, context) ->
+                new AuthorizationDecision(hasValidInternalToken(context.getRequest().getHeader("X-Internal-Token"))))
+
+            // Default deny for all other endpoints: JWT authentication is required.
+            .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Gelen isteği OAuth2 Kaynak Sunucusu olarak doğrular ve Keycloak rollerini mapleme işlemini ayarlar
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> 
                         jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         return http.build();
     }
 
-    // Keycloak token'ı içindeki "realm_access" altındaki rolleri Spring Security formatına dönüştürür (ROLE_ prefixi ile)
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -51,10 +69,16 @@ public class SecurityConfig {
             @SuppressWarnings("unchecked")
             Collection<String> roles = (Collection<String>) realmAccess.get("roles");
             return roles.stream()
-                    .map(roleName -> "ROLE_" + roleName.toUpperCase()) // Rol yetkilendirmeleri için "ROLE_CUSTOMER" vb. çevirir
+                    .map(roleName -> "ROLE_" + roleName.toUpperCase())
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         });
         return converter;
+    }
+
+    private boolean hasValidInternalToken(String headerToken) {
+        return StringUtils.hasText(headerToken)
+                && StringUtils.hasText(internalApiToken)
+                && Objects.equals(headerToken, internalApiToken);
     }
 }
