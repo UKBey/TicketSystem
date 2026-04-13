@@ -58,6 +58,7 @@ public class TicketController {
     public ResponseEntity<TicketResponseDTO> createTicket(@RequestBody TicketRequestDTO ticketRequest,
             @AuthenticationPrincipal Jwt jwt) {
         String customerId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
 
         log.info("Yeni bilet oluşturma isteği. Müşteri ID: {}, Başlık: {}", customerId, ticketRequest.getTitle());
         log.debug("Bilet Detayları: {}", ticketRequest);
@@ -73,7 +74,7 @@ public class TicketController {
 
         log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
 
-        return ResponseEntity.ok(convertToDto(savedTicket));
+        return ResponseEntity.ok(convertToDto(savedTicket, false, roles));
     }
 
     // 2. Biletleri Listele (Rol bazlı)
@@ -96,7 +97,7 @@ public class TicketController {
         log.info("Kullanıcı (ID: {}) için {} adet bilet listelendi.", userId, tickets.size());
 
         return ResponseEntity.ok(tickets.stream()
-                .map(this::convertToDto)
+            .map(ticket -> convertToDto(ticket, false, roles))
                 .collect(Collectors.toList()));
     }
 
@@ -115,7 +116,7 @@ public class TicketController {
         log.info("Havuzda {} adet uygun bilet listelendi.", poolTickets.size());
 
         return ResponseEntity.ok(poolTickets.stream()
-                .map(this::convertToDto)
+            .map(ticket -> convertToDto(ticket, false, roles))
                 .collect(Collectors.toList()));
     }
 
@@ -124,6 +125,7 @@ public class TicketController {
     @GetMapping("/my-assigned")
     public ResponseEntity<List<TicketResponseDTO>> getMyAssignedTickets(@AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
 
         log.info("Ajan üzerindeki biletleri listeleme isteği. Ajan ID: {}", agentId);
 
@@ -132,7 +134,7 @@ public class TicketController {
         log.info("Ajan (ID: {}) üzerinde {} adet bilet bulundu.", agentId, tickets.size());
 
         return ResponseEntity.ok(tickets.stream()
-                .map(this::convertToDto)
+            .map(ticket -> convertToDto(ticket, false, roles))
                 .collect(Collectors.toList()));
     }
 
@@ -150,7 +152,7 @@ public class TicketController {
 
         log.info("Bilet detayı başarıyla çekildi. Bilet ID: {}, CSAT Mevcut: {}", id, hasCsat);
 
-        return ResponseEntity.ok(convertToDto(ticket, hasCsat));
+        return ResponseEntity.ok(convertToDto(ticket, hasCsat, roles));
     }
 
     // 6. Havuzdan Bilet Üzerine Alma (Claim)
@@ -166,7 +168,7 @@ public class TicketController {
 
         log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Ajan ID: {}", id, agentId);
 
-        return ResponseEntity.ok(convertToDto(ticket));
+        return ResponseEntity.ok(convertToDto(ticket, false, List.of("AGENT")));
     }
 
     // 7. Statü Güncelleme
@@ -186,7 +188,7 @@ public class TicketController {
 
         log.info("Bilet statüsü başarıyla güncellendi. Bilet ID: {}, Yeni Statü: {}", id, ticket.getStatus());
 
-        return ResponseEntity.ok(convertToDto(ticket, hasCsat));
+        return ResponseEntity.ok(convertToDto(ticket, hasCsat, roles));
     }
 
     // 8. Bileti Sil (Sadece Yönetici)
@@ -405,10 +407,10 @@ public class TicketController {
     }
 
     private TicketResponseDTO convertToDto(Ticket ticket) {
-        return convertToDto(ticket, false);
+        return convertToDto(ticket, false, List.of());
     }
 
-    private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat) {
+    private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat, List<String> roles) {
         String customerName = ticket.getCustomerId() != null 
             ? userRepository.findById(ticket.getCustomerId()).map(User::getFullName).orElse("Unknown") 
             : "Unknown";
@@ -419,14 +421,20 @@ public class TicketController {
             ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse("Unknown") 
             : "Unknown";
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, assigneeName);
-        dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
+        if (roles.contains("AGENT") || roles.contains("MANAGER")) {
+            dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
+        }
         return dto;
     }
 
     @GetMapping("/{id}/sla-timer")
     @Operation(summary = "Get SLA timer information from jBPM", description = "Returns the precise Unix timestamp (ms) for the SLA deadline, or remaining milliseconds if paused.")
-    public ResponseEntity<Map<String, Long>> getSlaTimer(@PathVariable Long id) {
-        Map<String, Long> response = ticketService.getSlaTimerInfo(id);
+    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    public ResponseEntity<Map<String, Long>> getSlaTimer(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        Ticket ticket = ticketService.getTicketWithAuth(id, userId, roles);
+        Map<String, Long> response = ticketService.getSlaTimerInfo(ticket);
         return ResponseEntity.ok(response);
     }
 

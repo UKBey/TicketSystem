@@ -1,9 +1,17 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useNavigate, useState } from 'react';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 
 export default function TicketTable({ tickets, showClaimButton, onClaim, showSla = true }) {
   const navigate = useNavigate();
+  const [currentDate, setCurrentDate] = useState(Date.now());
+
+  useEffect(() => {
+    if (!showSla) return undefined;
+
+    const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [showSla]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -54,7 +62,7 @@ export default function TicketTable({ tickets, showClaimButton, onClaim, showSla
             </td>
             <td><StatusBadge status={ticket.status} /></td>
             <td><PriorityBadge priority={ticket.priority} /></td>
-            {showSla && <td><SlaTimerBadge ticket={ticket} /></td>}
+            {showSla && <td><SlaTimerBadge ticket={ticket} now={currentDate} /></td>}
             <td>{formatDate(ticket.createdAt)}</td>
             {showClaimButton && (
               <td>

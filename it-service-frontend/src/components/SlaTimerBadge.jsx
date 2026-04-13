@@ -1,16 +1,9 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useRef } from 'react';
 
-export default function SlaTimerBadge({ ticket }) {
-  const [currentDate, setCurrentDate] = useState(Date.now());
-  const [fetchTime] = useState(Date.now()); // Approximation of receipt time
+export default function SlaTimerBadge({ ticket, now }) {
+  const fetchTimeRef = useRef(Date.now());
 
   const slaInfo = ticket.slaInfo;
-
-  useEffect(() => {
-    if (!slaInfo || slaInfo.deadlineTimestamp === -1) return;
-    const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [slaInfo]);
 
   if (!slaInfo) return <span className="badge" style={{backgroundColor: 'transparent', color: 'var(--color-text-secondary)'}}>—</span>;
 
@@ -33,7 +26,7 @@ export default function SlaTimerBadge({ ticket }) {
   }
 
   // Active
-  const elapsedSinceFetch = currentDate - fetchTime;
+  const elapsedSinceFetch = now - fetchTimeRef.current;
   const diff = slaInfo.remainingMs - elapsedSinceFetch;
 
   if (diff <= 0) {
