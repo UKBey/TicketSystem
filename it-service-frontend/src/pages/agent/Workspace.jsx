@@ -10,7 +10,7 @@ export default function Workspace() {
     const fetchAssigned = async () => {
       try {
         const res = await api.get('/tickets/my-assigned');
-        // Aktif biletler: CLOSED olmayan
+        // Workspace listesinde kapanmis biletler gizlenir.
         setTickets(res.data.filter((t) => t.status !== 'CLOSED'));
       } catch (err) {
         console.error('Atanan biletler yüklenemedi:', err);

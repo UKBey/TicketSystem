@@ -8,7 +8,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: Bearer token otomatik ekleme
+// Her istekte varsa guncel Keycloak token'ini Authorization header'ina ekler.
 api.interceptors.request.use(
   (config) => {
     if (keycloak.token) {
@@ -19,7 +19,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: 401 → Keycloak login'e yönlendirme
+// Oturum suresi doldugunda 401 yakalanir ve kullanici tekrar girise yonlendirilir.
 api.interceptors.response.use(
   (response) => response,
   (error) => {

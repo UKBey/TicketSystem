@@ -43,35 +43,20 @@ public class TicketService {
     private final WorklogRepository worklogRepository;
     private final AttachmentRepository attachmentRepository;
 
-    // ────────────────────────────────────────────────────────────────────────────
-    // Şekil 2 — Ticket State Flow: Geçerli durum geçişleri matrisi
-    // ────────────────────────────────────────────────────────────────────────────
-    //
-    // NEW                  → IN_PROGRESS (Agent Claim)
-    // NEW                  → DELETED (Uygunsuz bilet — Agent siler, loglanır)
-    // IN_PROGRESS          → NEW (Agent bileti bırakır — Unclaim, loglanır)
-    // IN_PROGRESS          → WAITING_FOR_CUSTOMER (Agent bilgi/dosya ister)
-    // IN_PROGRESS          → RESOLVED (Agent sorunu çözdüğünü bildirir)
-    // IN_PROGRESS          → CLOSED (Agent, customer cevap vermediği için kapatır, loglanır)
-    // WAITING_FOR_CUSTOMER → IN_PROGRESS (Customer yanıt verir)
-    // RESOLVED             → IN_PROGRESS (Customer sorunun çözülmediğini iletir)
-    // RESOLVED             → CLOSED (Customer onaylar veya Agent kapatma kararı verir)
-    //
-    // CLOSED               → (Hiçbir yere geçemez — terminal durum)
-    // ────────────────────────────────────────────────────────────────────────────
+    // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
 
     private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
             "NEW", Set.of("IN_PROGRESS"),
             "IN_PROGRESS", Set.of("NEW", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"),
             "WAITING_FOR_CUSTOMER", Set.of("IN_PROGRESS"),
             "RESOLVED", Set.of("IN_PROGRESS", "CLOSED"),
-            "CLOSED", Set.of() // Terminal durum — geçiş yok
+            "CLOSED", Set.of() // CLOSED son durumdur, buradan cikis yoktur.
     );
 
-    // SLA duraklatılması gereken durumlar
+    // Bu durumlarda SLA sayaci aktif olarak islemez.
     private static final Set<String> SLA_PAUSED_STATES = Set.of("WAITING_FOR_CUSTOMER", "RESOLVED");
 
-    // SLA aktif olması gereken durumlar
+    // Bu durumlarda SLA suresi aktif olarak ilerler.
     private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", "IN_PROGRESS");
 
     @Transactional
@@ -99,7 +84,7 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
 
-        // İlk açıklamayı (description) yorum olarak kaydet
+        // Bilet acilis metnini ilk yorum olarak saklayip gecmisi tek yerde topluyoruz.
         Comment firstComment = Comment.builder()
                 .ticket(savedTicket)
                 .authorId(customerId)
@@ -108,8 +93,7 @@ public class TicketService {
                 .build();
         commentRepository.save(firstComment);
 
-        // Transaction commit'lendikten SONRA workflow başlatılacak (Fix 6: Transaction boundary)
-        // WorkflowEventListener.onTicketCreated() metodu tetiklenecek
+        // Event, commit sonrasinda tetiklenir; boylece workflow tarafi kaydedilmis bileti gorur.
         eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
 
         return savedTicket;
@@ -196,20 +180,19 @@ public class TicketService {
         log.info("Bilet detayı (yetkili) çekme işlemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // 1. MANAGER ise her şeyi görür
+        // Yonetici rolunde urun veya sahiplik siniri olmadan erisim verilir.
         if (roles.contains("MANAGER")) {
             log.debug("Yönetici yetkisiyle erişim sağlandı.");
             return ticket;
         }
 
-        // 2. Biletin sahibi (CUSTOMER) ise her zaman görür (Ajan olsa dahi kendi
-        // biletini görebilmeli)
+        // Bilet sahibi her zaman kendi kaydini gorur.
         if (userId.equals(ticket.getCustomerId())) {
             log.debug("Bilet sahibine (CUSTOMER) erişim sağlandı.");
             return ticket;
         }
 
-        // 3. Eğer AJAN ise, sadece yetkili olduğu ürün grubundaki biletleri görebilir
+        // Agent yalnizca yetkili oldugu urun grubuna ait biletleri gorebilir.
         if (roles.contains("AGENT")) {
             User agent = userRepository.findById(userId).orElseThrow();
             boolean isAuthorized = agent.getAuthorizedProducts().stream()
@@ -226,22 +209,21 @@ public class TicketService {
     }
 
     /**
-     * Yorum veya Dosya ekleme/silme gibi kritik işlemler için 'Sıkı' yetkilendirme
-     * kontrolü.
+     * Yorum ekleme, dosya yukleme/silme gibi veriyi degistiren islemler icin
+     * goruntulemeden daha siki yetki denetimi uygular.
      */
     @Transactional(readOnly = true)
     public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
         log.info("Kritik işlem yetki kontrolü (Mutation). Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // 1. MANAGER her zaman yetkilidir
+        // Yonetici degisiklik yapan tum islemlerde dogrudan yetkilidir.
         if (roles.contains("MANAGER")) {
             log.debug("Yönetici için işlem izni verildi.");
             return ticket;
         }
 
-        // 2. Eğer kullanıcı AJAN ise, SADECE kendisinin üzerinde (assignee) olan
-        // biletlerde işlem yapabilir
+        // Agent sadece uzerine atanmis kayitta mutasyon yapabilir.
         if (roles.contains("AGENT")) {
             if (userId.equals(ticket.getAssigneeId())) {
                 log.debug("Atanan ajan için işlem izni verildi.");
@@ -252,8 +234,7 @@ public class TicketService {
                     "Sadece üzerinize atanan biletlerde işlem yapabilirsiniz.");
         }
 
-        // 3. Eğer kullanıcı CUSTOMER ise, SADECE kendi oluşturduğu biletlerde işlem
-        // yapabilir
+        // Musteri sadece kendi olusturdugu kayitta islem yapabilir.
         if (roles.contains("CUSTOMER")) {
             if (userId.equals(ticket.getCustomerId())) {
                 log.debug("Bilet sahibi müşteri için işlem izni verildi.");
@@ -295,7 +276,7 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Yeni Statü: {}", id, savedTicket.getStatus());
 
-        // jBPM sürecine atama bilgisini senkronize et
+        // Claim sonrasi atama bilgisini workflow degiskenlerine de yansitir.
         try {
             workflowService.syncTicketAssignment(savedTicket);
         } catch (Exception e) {
@@ -306,9 +287,8 @@ public class TicketService {
     }
 
     /**
-     * Katı State Machine mantığıyla statü güncelleme.
-     * Şekil 2 Ticket State Flow diyagramındaki oklara uyar.
-     * Her geçişte SLA kronometresini uygun şekilde durdurur veya devam ettirir.
+     * Durum degisimini tek akista yonetir: gecis dogrulama, yetki denetimi,
+     * duruma ozel kurallar ve workflow/SLA senkronizasyonu burada calisir.
      */
     @Transactional
     public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
@@ -317,19 +297,19 @@ public class TicketService {
 
         String oldStatus = ticket.getStatus();
 
-        // ── 1. DURUM GEÇİŞ VALİDASYONU ───────────────────────────────────────────
+        // Hedef statuye gecis kurallara uygun mu kontrol edilir.
         validateStateTransition(oldStatus, newStatus);
 
-        // ── 2. YETKİ KONTROLÜ ─────────────────────────────────────────────────────
+        // Bu gecisi yapan kullanicinin rol ve sahiplik yetkisi denetlenir.
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
 
-        // ── 3. DURUMA ÖZEL İŞ KURALLARI ───────────────────────────────────────────
+        // Unclaim gibi gecise ozel ek etkiler uygulanir.
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
         log.debug("Bilet statüsü güncelleniyor: {} → {}", oldStatus, newStatus);
         ticket.setStatus(newStatus);
 
-        // Statüye göre tarihleri güncelle
+        // Is kapanis cizelgesi icin ilgili zaman damgalari burada set edilir.
         if ("RESOLVED".equals(newStatus)) {
             ticket.setResolvedAt(ZonedDateTime.now());
         } else if ("CLOSED".equals(newStatus)) {
@@ -339,14 +319,14 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
         log.info("Statü başarıyla güncellendi. Bilet ID: {}, Statü: {} → {}", id, oldStatus, savedTicket.getStatus());
 
-        // ── 4. jBPM SLA SİNYALLERİ ───────────────────────────────────────────────
+        // Durum degisiminden sonra workflow ve SLA tarafi senkronize edilir.
         handleWorkflowSignals(savedTicket, oldStatus, newStatus);
 
         return savedTicket;
     }
 
     /**
-     * Şekil 2'deki oklara göre geçişin geçerli olup olmadığını denetler.
+     * Mevcut durumdan hedef duruma gecisin izinli olup olmadigini denetler.
      */
     private void validateStateTransition(String currentStatus, String newStatus) {
         Set<String> allowedTargets = VALID_TRANSITIONS.get(currentStatus);
@@ -367,16 +347,16 @@ public class TicketService {
     }
 
     /**
-     * Durum geçişi için yetki kontrolü.
+     * Durum degisimini yapan kullanicinin rolu ve kayit iliskisine gore yetkisini kontrol eder.
      */
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
                                                  String userId, List<String> roles) {
-        // MANAGER her şeyi yapabilir
+        // Yonetici, durum gecislerinde kisitsiz yetkiye sahiptir.
         if (roles.contains("MANAGER")) {
             return;
         }
 
-        // CUSTOMER yetkileri
+        // Musteri sadece kendi kaydinda belirli geri donus/onay gecislerini yapabilir.
         if (roles.contains("CUSTOMER")) {
             boolean isOwner = userId.equals(ticket.getCustomerId());
             if (!isOwner) {
@@ -384,10 +364,7 @@ public class TicketService {
                         "Sadece kendi biletlerinizin statüsünü değiştirebilirsiniz.");
             }
 
-            // Customer sadece şunları yapabilir:
-            // WAITING_FOR_CUSTOMER → IN_PROGRESS (Yanıt vererek)
-            // RESOLVED → IN_PROGRESS (Sorun çözülmediğini bildirerek)
-            // RESOLVED → CLOSED (Onaylayarak)
+            // Musteri gecisleri yalnizca yanit verme, yeniden acma ve onayla kapatma ile sinirlidir.
             boolean customerAllowed =
                     ("WAITING_FOR_CUSTOMER".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
                     ("RESOLVED".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
@@ -400,7 +377,7 @@ public class TicketService {
             return;
         }
 
-        // AGENT yetkileri — ürün bazlı kontrol
+        // Agent tarafinda urun bazli yetki dogrulanir.
         if (roles.contains("AGENT")) {
             User agent = userRepository.findById(userId).orElseThrow();
             boolean isAuthorizedForProduct = agent.getAuthorizedProducts().stream()
@@ -416,19 +393,18 @@ public class TicketService {
     }
 
     /**
-     * Duruma özel iş kuralları.
-     * Unclaim, audit logları ve özel geçiş mantıkları burada uygulanır.
+     * Bazi gecislerde alan guncellemesi ve denetim kaydi gibi ek kurallari uygular.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
 
-        // ── UNCLAIM: IN_PROGRESS → NEW (Agent bileti bırakıyor) ───────────────
+        // Agent bileti biraktiginda atama temizlenir ve kayit tekrar havuza doner.
         if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {
             log.warn("AUDIT LOG: Agent (ID: {}) bileti (ID: {}) bıraktı (Unclaim). Sebep loglanmalı.",
                     userId, ticket.getId());
-            ticket.setAssigneeId(null); // Atama kaldırıldı, havuza geri düşürülecek
+            ticket.setAssigneeId(null); // Atamayi sifirlayarak havuza geri yollar.
         }
 
-        // ── AGENT CUSTOMER CEVAP VERMEDİ İÇİN KAPATIYOR ──────────────────────
+        // Agent tarafindan kapatma gecisinde denetim izi birakilir.
         if ("IN_PROGRESS".equals(oldStatus) && "CLOSED".equals(newStatus)) {
             log.warn("AUDIT LOG: Agent (ID: {}) müşteri cevap vermediği için bileti (ID: {}) kapatıyor.",
                     userId, ticket.getId());
@@ -436,27 +412,26 @@ public class TicketService {
     }
 
     /**
-     * jBPM workflow sinyallerini durum geçişlerine göre gönderir.
-     * SLA kronometresini duraklat / devam ettir / kapat.
+     * Durum degisimine gore workflow sinyali gonderir ve SLA sayaç davranisini ayarlar.
      */
     private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
         try {
-            // Statüyü jBPM'e senkronize et
+            // Uygulamadaki son statuyu workflow degiskenine yazar.
             workflowService.syncTicketStatus(ticket);
 
-            // ── SLA DURAKLAT (Aktif → Donuk geçişlerde) ───────────────────────
+            // Aktiften bekleme/resolve durumuna gecince sayac durdurulur.
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
                 workflowService.pauseSla(ticket);
-                ticketRepository.save(ticket); // slaPausedAt ve slaElapsedMs güncellendi
+                ticketRepository.save(ticket); // pause islemi ile guncellenen alanlari kalici hale getirir.
             }
 
-            // ── SLA DEVAM ETTİR (Donuk → Aktif geçişlerde) ───────────────────
+            // Beklemeden tekrar aktif duruma gecince sayac kaldigi yerden devam eder.
             if (SLA_PAUSED_STATES.contains(oldStatus) && SLA_ACTIVE_STATES.contains(newStatus)) {
                 workflowService.resumeSla(ticket);
-                ticketRepository.save(ticket); // slaPausedAt temizlendi
+                ticketRepository.save(ticket); // resume sonrasi guncel SLA alanlarini kaydeder.
             }
 
-            // ── SÜREÇ TAMAMEN KAPAT (CLOSED durumuna geçişte) ─────────────────
+            // Bilet kapaninca ilgili workflow ornegi de sonlandirilir.
             if ("CLOSED".equals(newStatus)) {
                 workflowService.closeTicketWorkflow(ticket);
             }
@@ -471,7 +446,7 @@ public class TicketService {
     public void deleteTicket(Long id) {
         log.info("Bilet silme işlemi. Bilet ID: {}", id);
 
-        // Silmeden önce workflow sürecini iptal et
+        // Fiziksel silmeden once workflow tarafindaki sureci sonlandirmaya calisir.
         try {
             Ticket ticket = getTicketById(id);
             log.warn("AUDIT LOG: Bilet (ID: {}) siliniyor. Bu eylem loglanmıştır.", id);
@@ -480,7 +455,7 @@ public class TicketService {
             log.error("Workflow iptal başarısız (ticket silinecek). TicketId={}, Hata={}", id, e.getMessage());
         }
 
-        // Cascade manually
+        // Bagli kayitlar elle temizlenir; veritabani butunlugu korunur.
         commentRepository.deleteByTicketId(id);
         csatRepository.deleteByTicketId(id);
         resolutionNoteRepository.deleteByTicketId(id);
@@ -493,7 +468,7 @@ public class TicketService {
 
 
     /**
-     * Gets SLA Timer information from WorkflowService & jBPM
+     * Bilet icin SLA geri sayim bilgisini workflow katmanindan alir.
      */
     public java.util.Map<String, Long> getSlaTimerInfo(Long id) {
         Ticket ticket = ticketRepository.findById(id)

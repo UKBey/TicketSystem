@@ -7,12 +7,12 @@ volumes:
   ldap_data:
   ldap_config:
   opensearch_data:
-    # OpenSearch verilerinin kalıcı olması için eklendi
+    # OpenSearch indekslerinin konteyner yeniden baslasa da korunmasini saglar.
   jbpm_postgres_data:
-    # jBPM KIE Server veritabanı verilerinin kalıcı olması için eklendi
+    # jBPM surec verilerinin kalici depoda tutulmasini saglar.
 
 services:
-  # 1. PostgreSQL Veritabanı
+  # Uygulama veritabani servisi.
   it-service-db:
     image: postgres:15-alpine
     container_name: it-service-db
@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # 2. OpenLDAP Sunucusu (Kullanıcı Dizinimiz)
+  # Kimlik dizini (LDAP) servisi.
   openldap-server:
     build:
       context: .
@@ -54,7 +54,7 @@ services:
     networks:
       - it-service-net
 
-  # 3. phpLDAPadmin
+  # LDAP yonetim arayuzu.
   phpldapadmin:
     image: osixia/phpldapadmin:0.9.0
     container_name: phpldapadmin
@@ -68,7 +68,7 @@ services:
     networks:
       - it-service-net
 
-  # 4. Keycloak Sunucusu
+  # Kimlik ve yetkilendirme sunucusu.
   keycloak-iam:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak-iam
@@ -90,9 +90,9 @@ services:
     networks:
       - it-service-net
 
-  # ---------------- YENİ EKLENEN OBSERVABILITY KATMANI ----------------
+  # Gozlemlenebilirlik katmani servisleri.
 
-  # 5. OpenSearch (Veri Deposu)
+  # Log ve telemetry verisi icin arama/veri deposu.
   opensearch:
     image: opensearchproject/opensearch:latest
     container_name: opensearch
@@ -108,7 +108,7 @@ services:
     networks:
       - it-service-net
 
-  # 6. OpenSearch Dashboards (Arayüz)
+  # OpenSearch verisini gorsellestirme arayuzu.
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:latest
     container_name: opensearch-dashboards
@@ -122,7 +122,7 @@ services:
     networks:
       - it-service-net
 
-  # 7. OpenTelemetry Collector
+  # Telemetry verisini toplayip hedefe aktaran collector.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
@@ -137,9 +137,9 @@ services:
     networks:
       - it-service-net
 
-  # -------------------------------------------------------------------
+  # Gozlemlenebilirlik katmani sonu.
 
-  # 8. Spring Boot Backend Servisi
+  # Backend API servisi.
   it-service-backend:
     build:
       context: ./it-service-backend
@@ -155,7 +155,7 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
 
-      # jBPM / KIE Server Ayarları
+      # Workflow baglanti ayarlari.
       JBPM_KIE_SERVER_URL: ${JBPM_KIE_SERVER_URL}
       JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME}
       JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD}
@@ -165,7 +165,7 @@ services:
       JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
       JBPM_KIE_SERVER_CALLBACK_BASE_URL: "${JBPM_KIE_SERVER_CALLBACK_BASE_URL}"
 
-      # OTel Ortam Değişkenleri Eklendi:
+      # OpenTelemetry ayarlari.
       OTEL_SERVICE_NAME: "it-service-backend"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_METRICS_EXPORTER: "otlp"
@@ -179,7 +179,7 @@ services:
       kie-server:
         condition: service_started
       otel-collector:
-        # Backend başlamadan Collector hazır olsun
+        # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
         condition: service_started
     networks:
       - it-service-net
@@ -187,7 +187,7 @@ services:
       - "localhost:host-gateway"
 
 
-  # 9. React/Vite Frontend Servisi
+  # Frontend web uygulamasi.
   it-service-frontend:
     build:
       context: ./it-service-frontend
@@ -199,7 +199,7 @@ services:
       - it-service-backend
     networks:
       - it-service-net
-  # 10. KAFKA (Log Tamponu / Apache Resmi İmajı) 
+  # Log akisinda tampon gorevi yapan Kafka broker.
   kafka:
     image: apache/kafka:3.7.0
     container_name: kafka-broker
@@ -215,7 +215,7 @@ services:
       CLUSTER_ID: "TicketSystemKafkaCluster"
     networks:
       - it-service-net
-  # 11. LOGSTASH (Log Tüketici Servisi) 
+  # Kafka'dan log okuyup OpenSearch'e yazan Logstash servisi.
   logstash:
     image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
     container_name: logstash-consumer
@@ -227,9 +227,9 @@ services:
     networks:
       - it-service-net
 
-  # --------------- jBPM / KIE SERVER KATMANI ---------------
+  # jBPM/KIE Server katmani.
 
-  # 12. jBPM Veritabanı (KIE Server süreç kalıcılığı için)
+  # KIE Server surec kaliciligi icin ayri veritabani.
   jbpm-db:
     image: postgres:15-alpine
     container_name: jbpm-db
@@ -249,9 +249,9 @@ services:
       timeout: 5s
       retries: 10
 
-  # 13. Standalone jBPM KIE Server (Unmanaged Mode)
-  #     Varsayılan kullanıcı: kieserver / kieserver1!
-  #     Swagger UI: http://localhost:8180/kie-server/docs
+  # Standalone KIE Server servisi (unmanaged mod).
+  # Varsayilan kullanici: kieserver / kieserver1!
+  # Swagger UI: http://localhost:8180/kie-server/docs
   kie-server:
     image: jboss/kie-server-showcase:latest
     container_name: kie-server
@@ -260,10 +260,10 @@ services:
     environment:
       KIE_SERVER_ID: "ticket-kie-server"
       KIE_SERVER_LOCATION: "http://kie-server:8080/kie-server/services/rest/server"
-      # Unmanaged mod: Controller (Business Central) tanımlanmıyor
-      # H2 in-memory kullanılır (dev). Production'da PostgreSQL'e geçiş için:
-      #   -Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS
-      #   -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect
+      # Bu kurulumda Business Central controller baglantisi kullanilmiyor.
+      # Gelistirme icin H2 bellekte calisir; uretimde PostgreSQL'e gecilmelidir:
+      # -Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS
+      # -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect
       JAVA_OPTS: >-
         -Xms512m -Xmx1024m
         -Djava.net.preferIPv4Stack=true
@@ -280,4 +280,4 @@ services:
       - ~/.m2/repository:/opt/jboss/.m2/repository
     extra_hosts:
       - "host.docker.internal:host-gateway"
-  # ---------------------------------------------------------
+  # jBPM/KIE Server katmani sonu.

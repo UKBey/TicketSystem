@@ -13,12 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * İş mantığı facade katmanı.
- * <p>
- * Ticket yaşam döngüsüyle ilgili workflow operasyonlarını yönetir.
- * KieServerAdapter'ı kullanarak jBPM ile haberleşir, ancak
- * TicketService'e jBPM detaylarını sızdırmaz.
- * </p>
+ * Ticket tarafindaki workflow adimlarini tek servis uzerinde toplar.
+ * TicketService bu katmanla jBPM ayrintilarindan ayristirilir.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,11 +45,7 @@ public class WorkflowService {
 
 
     /**
-     * Yeni bir ticket için workflow sürecini başlatır.
-     * Ticket oluşturulduktan sonra çağrılır ve processInstanceId'yi döner.
-     *
-     * @param ticket Veritabanına kaydedilmiş ticket
-     * @return jBPM ProcessInstance ID
+     * Yeni olusturulan bilet icin surec baslatir ve instance kimligini dondurur.
      */
     public Long startTicketWorkflow(Ticket ticket) {
         log.info("Ticket için workflow başlatılıyor. TicketId={}, Priority={}, CustomerId={}",
@@ -65,14 +57,14 @@ public class WorkflowService {
         processVariables.put("customerId", ticket.getCustomerId());
         processVariables.put("status", ticket.getStatus());
 
-        // SLA süresini ISO 8601 Duration formatında gönder (jBPM Timer için)
+        // SLA suresi, jBPM timer'inin bekledigi ISO-8601 formatinda gonderilir.
         processVariables.put("slaDuration", msToIsoDuration(getSlaDurationMs(ticket.getPriority())));
 
-        // Fix 3: Callback URL'i süreç değişkeni olarak gönder (BPMN'de hardcoded olmaz)
+        // Callback adresi ortam bazli oldugu icin surece degisken olarak verilir.
         String fullCallbackUrl = callbackBaseUrl + "?token=" + callbackToken;
         processVariables.put("callbackUrl", fullCallbackUrl);
 
-        // Eğer atanmış ajan varsa onu da gönder
+        // Bilet onceden atanmissa assignee bilgisi de surece eklenir.
         if (ticket.getAssigneeId() != null) {
             processVariables.put("assigneeId", ticket.getAssigneeId());
         }
@@ -85,7 +77,7 @@ public class WorkflowService {
     }
 
     /**
-     * Ticket statüsü değiştiğinde jBPM sürecindeki status değişkenini günceller.
+     * Bilet durumunu workflow degiskeni ile senkron tutar.
      */
     public void syncTicketStatus(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -100,7 +92,7 @@ public class WorkflowService {
     }
 
     /**
-     * Ticket atanma bilgisini jBPM sürecine yansıtır.
+     * Atama bilgisini workflow tarafina aktarir.
      */
     public void syncTicketAssignment(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -116,16 +108,10 @@ public class WorkflowService {
     }
 
     /**
-     * SLA kronometresini duraklatır.
-     * WAITING_FOR_CUSTOMER veya RESOLVED durumuna geçildiğinde çağrılır.
-     * <p>
-     * Mantık: Ticket.createdAt'ten veya son resume anından bu yana geçen süreyi
-     * slaElapsedMs'ye ekler ve slaPausedAt'i ayarlar.
-     * jBPM'ye "pause_sla" sinyali göndererek SLA Timer'ı olan daldan çıkarır.
-     * </p>
+     * SLA sayaç ilerleyisini durdurur ve o ana kadar gecen sureyi birikimli alana yazar.
      */
         public void pauseSla(Ticket ticket) {
-        // Toplam geçen süreyi hesapla
+        // Son baslangic noktasindan itibaren gecen sureyi toplama ekler.
         if (ticket.getSlaPausedAt() != null) {
             log.debug("SLA zaten duraklatýlmý durumda gibi görünüyor. TicketId={}", ticket.getId());
             return;
@@ -151,7 +137,7 @@ public class WorkflowService {
         log.info("SLA duraklatýlýyor. TicketId={}, ToplamGeçenSüre={}ms, KalanSLA={}ms",
                 ticket.getId(), totalElapsed, getSlaDurationMs(ticket.getPriority()) - totalElapsed);
 
-        // jBPM'ye sinyal gönder — süreç "SLA aktif" dalından "Bekleme" dalına geçer
+        // Workflow'a pause sinyali gondererek aktif SLA akisini bekleme koluna alir.
         try {
             kieServerAdapter.signalProcessInstance(ticket.getProcessInstanceId(), "pause_sla", null);
         } catch (Exception e) {
@@ -160,13 +146,7 @@ public class WorkflowService {
     }
 
     /**
-     * SLA kronometresini kaldığı yerden devam ettirir.
-     * WAITING_FOR_CUSTOMER → IN_PROGRESS veya RESOLVED → IN_PROGRESS geçişinde çağrılır.
-     * <p>
-     * Mantık: Toplam geçen süreyi DEFAULT_SLA_DURATION'dan çıkararak kalan süreyi
-     * ISO 8601 Duration formatına çevirir ve jBPM'ye "resume_sla" sinyali ile gönderir.
-     * jBPM yeni bir Timer ile bu kalan süreyi saymaya başlar.
-     * </p>
+     * SLA sayacini kalan sure uzerinden kaldigi yerden devam ettirir.
      */
             public void resumeSla(Ticket ticket) {
         ticket.setSlaPausedAt(null);
@@ -184,10 +164,10 @@ public class WorkflowService {
         log.info("SLA devam ettiriliyor. TicketId={}, KalanSüre={} ({}ms)",
                 ticket.getId(), remainingDuration, remainingMs);
 
-        // Önce jBPM'deki slaDuration değişkenini güncelle
+        // Kalan sure workflow degiskenine yazilir.
         kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "slaDuration", remainingDuration);
 
-        // Sonra resume sinyalini gönder — süreç "Bekleme" dalından tekrar "SLA aktif" dalına geçer
+        // Sonrasinda resume sinyali ile aktif SLA akisi yeniden baslatilir.
         try {
             kieServerAdapter.signalProcessInstance(ticket.getProcessInstanceId(), "resume_sla", remainingDuration);
         } catch (Exception e) {
@@ -196,8 +176,7 @@ public class WorkflowService {
     }
 
     /**
-     * Ticket kapatıldığında veya silindiğinde ilgili süreci tamamen sonlandırır.
-     * CLOSED durumuna geçişte çağrılır.
+     * Bilet kapanisinda sureci sinyal gondererek sonlandirir.
      */
     public void closeTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -212,7 +191,7 @@ public class WorkflowService {
             kieServerAdapter.signalProcessInstance(ticket.getProcessInstanceId(), "ticket_closed", null);
         } catch (Exception e) {
             log.error("ticket_closed sinyali gönderilemedi. TicketId={}, Hata={}", ticket.getId(), e.getMessage());
-            // Fallback: Süreci doğrudan abort et
+            // Sinyal calismazsa sureci dogrudan abort ederek acik instance birakmaz.
             try {
                 kieServerAdapter.abortProcess(ticket.getProcessInstanceId());
             } catch (Exception ex) {
@@ -223,7 +202,7 @@ public class WorkflowService {
     }
 
     /**
-     * Ticket silindiğinde veya iptal edildiğinde ilgili süreci sonlandırır.
+     * Silinen veya iptal edilen biletin surecini abort ederek kapatir.
      */
     public void abortTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -238,8 +217,7 @@ public class WorkflowService {
     }
 
     /**
-     * Milisaniyeyi ISO 8601 Duration formatına çevirir.
-     * Örn: 90000ms → "PT1M30S"
+     * Milisaniye degerini ISO-8601 duration metnine cevirir.
      */
     private String msToIsoDuration(long ms) {
         long totalSeconds = ms / 1000;
@@ -257,7 +235,7 @@ public class WorkflowService {
 
 
     /**
-     * Gets SLA Timer information by asking KIE Server.
+     * Biletin anlik SLA bilgisini istemci tarafi icin hesaplar.
      */
     public java.util.Map<String, Long> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
         java.util.Map<String, Long> result = new java.util.HashMap<>();
@@ -278,7 +256,7 @@ public class WorkflowService {
             return result;
         }
 
-        // Active ticket - dynamically calculate mathematically with resumedAt!
+        // Aktif durumda kalan sure, resume noktasi ve birikmis sureye gore hesaplanir.
         long resumedMs = ticket.getSlaResumedAt() != null ? ticket.getSlaResumedAt().toInstant().toEpochMilli() : 
                          (ticket.getCreatedAt() != null ? ticket.getCreatedAt().toInstant().toEpochMilli() : System.currentTimeMillis());
         

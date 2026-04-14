@@ -17,7 +17,7 @@ public class JwtUtils {
             rawRoles = (List<String>) realmAccess.get("roles");
         }
 
-        // Rolleri büyük harfe çevir ve "ROLE_" öneki olsa dahi temizle (Sadece AGENT, MANAGER kalsın)
+        // Rol isimlerini normalize eder; ROLE_ onekini temizleyip tek formatta dondurur.
         return rawRoles.stream()
                 .map(String::toUpperCase)
                 .map(role -> role.startsWith("ROLE_") ? role.replace("ROLE_", "") : role)

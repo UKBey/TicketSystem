@@ -6,11 +6,11 @@ export default function ProductPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Modal state
+  // Urun ekleme/duzenleme penceresinin aciklik durumu ve secili kayit.
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState(null); // null means adding new product
+  const [currentProduct, setCurrentProduct] = useState(null); // null oldugunda form yeni urun modunda calisir.
   
-  // Form state
+  // Modal icerisinde kullanilan form alanlarinin yerel durumu.
   const [formData, setFormData] = useState({ name: '', isActive: true });
 
   const fetchProducts = async () => {
@@ -55,11 +55,11 @@ export default function ProductPanel() {
     
     try {
       if (currentProduct) {
-        // Update
+        // Duzenleme modunda secili urun kaydi guncellenir.
         const res = await api.put(`/products/${currentProduct.id}`, formData);
         setProducts(products.map(p => p.id === currentProduct.id ? res.data : p));
       } else {
-        // Create
+        // Yeni urun modunda olusan kayit listeye eklenir.
         const res = await api.post('/products', formData);
         setProducts([...products, res.data]);
       }
@@ -151,7 +151,7 @@ export default function ProductPanel() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Urun ekleme/duzenleme islemlerini yapan modal. */}
       {isModalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>

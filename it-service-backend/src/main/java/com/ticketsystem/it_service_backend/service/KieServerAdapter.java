@@ -23,13 +23,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Düşük seviye jBPM REST adaptörü.
- * KieServicesClient üzerinden ProcessServicesClient, QueryServicesClient
- * ve UserTaskServicesClient ile iletişim kurar.
- * Tüm jBPM API detaylarını bu sınıfta soyutlar.
- *
- * Circuit Breaker ile korunur — KIE Server çöktüğünde
- * cascading failure önlenir.
+ * jBPM istemci cagri detaylarini tek noktada toplayan adaptordur.
+ * Ust servisler bu sinif uzerinden surec, task ve sinyal operasyonlarini yapar.
  */
 @Component
 @Log4j2
@@ -52,15 +47,10 @@ public class KieServerAdapter {
         this.circuitBreaker = kieServerCircuitBreaker;
     }
 
-    // ==================== SÜREÇ OPERASYONLARI ====================
+    // Surec ornegi yasam dongusu islemleri.
 
     /**
-     * Yeni bir BPMN süreç örneği başlatır.
-     * Circuit Breaker ile korunur.
-     *
-     * @param processId  BPMN tanımlayıcısı (ör: com.ticketsystem.workflow.ticket-lifecycle)
-     * @param variables  Sürece gönderilecek değişkenler
-     * @return Process Instance ID
+     * Verilen process tanimi icin yeni bir surec ornegi baslatir.
      */
     public Long startProcess(String processId, Map<String, Object> variables) {
         log.info("jBPM süreci başlatılıyor: processId={}, containerId={}, variables={}", processId, containerId, variables);
@@ -82,7 +72,7 @@ public class KieServerAdapter {
     }
 
     /**
-     * Çalışan bir süreçteki işlem değişkenini günceller.
+     * Calisan surecin degiskenlerinden birini gunceller.
      */
     public void setProcessVariable(Long processInstanceId, String variableName, Object value) {
         log.debug("Süreç değişkeni güncelleniyor: processInstanceId={}, variable={}={}", processInstanceId, variableName, value);
@@ -103,7 +93,7 @@ public class KieServerAdapter {
     }
 
     /**
-     * Bir süreç örneğinin mevcut durumunu sorgular.
+     * Surec orneginin mevcut durum bilgisini getirir.
      */
     public ProcessInstance getProcessInstance(Long processInstanceId) {
         Supplier<ProcessInstance> decoratedCall = CircuitBreaker.decorateSupplier(circuitBreaker, () ->
@@ -120,7 +110,7 @@ public class KieServerAdapter {
     }
 
     /**
-     * Çalışan bir süreci iptal eder (abort).
+     * Calisan sureci iptal ederek sonlandirir.
      */
     public void abortProcess(Long processInstanceId) {
         log.info("jBPM süreci iptal ediliyor: processInstanceId={}", processInstanceId);
@@ -138,7 +128,7 @@ public class KieServerAdapter {
     }
 
     /**
-     * Bir süreç işlem değişkenini okur.
+     * Surec degiskenini tekil olarak okur.
      */
     public Object getProcessVariable(Long processInstanceId, String variableName) {
         try {
@@ -150,15 +140,10 @@ public class KieServerAdapter {
         }
     }
 
-    // ==================== SİNYAL OPERASYONLARI ====================
+    // Surece olay sinyali gonderme islemleri.
 
     /**
-     * Çalışan bir süreç örneğine sinyal gönderir.
-     * SLA duraklatma/devam ettirme ve bilet kapatma işlemleri için kullanılır.
-     *
-     * @param processInstanceId Hedef süreç örneği ID
-     * @param signalName        Sinyal adı (ör: "pause_sla", "resume_sla", "ticket_closed")
-     * @param data              Sinyale eklenecek veri (null olabilir)
+     * Surec ornegine isimli bir sinyal gonderir.
      */
     public void signalProcessInstance(Long processInstanceId, String signalName, Object data) {
         log.info("jBPM sürece sinyal gönderiliyor: processInstanceId={}, signal={}, data={}",
@@ -179,13 +164,10 @@ public class KieServerAdapter {
         }
     }
 
-    // ==================== HUMAN TASK OPERASYONLARI ====================
+    // Human task sorgu ve tamamlama islemleri.
 
     /**
-     * Belirli bir süreç örneği için aktif Human Task'ları listeler.
-     *
-     * @param processInstanceId Süreç örneği ID
-     * @return Aktif görev listesi
+     * Surec ornegine ait aktif task listesini dondurur.
      */
     public List<TaskSummary> getActiveTasks(Long processInstanceId) {
         try {
@@ -201,11 +183,7 @@ public class KieServerAdapter {
     }
 
     /**
-     * Bir Human Task'ı sahiplenip (claim), başlatıp (start), tamamlar (complete).
-     *
-     * @param taskId  Görev ID
-     * @param userId  İşlemi yapan kullanıcı
-     * @param output  Görev çıktı parametreleri
+     * Task'i claim/start/complete adimlariyla tek akis halinde sonlandirir.
      */
     public void claimAndCompleteTask(Long taskId, String userId, Map<String, Object> output) {
         log.info("jBPM task tamamlanıyor: taskId={}, user={}", taskId, userId);
@@ -230,14 +208,13 @@ public class KieServerAdapter {
 
 
     /**
-     * Finds active timers for the given process instance and returns the deadline timestamp (ms).
-     * Returns null if no active timer is found.
+     * Surecte aktif timer varsa bir sonraki tetikleme zamanini milisaniye olarak dondurur.
      */
     public Long getActiveTimerDeadline(Long processInstanceId) {
         Supplier<Long> decoratedCall = CircuitBreaker.decorateSupplier(circuitBreaker, () -> {
             List<TimerInstance> timers = adminClient.getTimerInstances(containerId, processInstanceId);
             if (timers != null && !timers.isEmpty()) {
-                // Return the date of the first timer (Assuming only 1 SLA timer is active)
+                // Bu akisda tek SLA timer beklendigi icin ilk kayit yeterlidir.
                 return timers.get(0).getNextFireTime().getTime();
             }
             return null;

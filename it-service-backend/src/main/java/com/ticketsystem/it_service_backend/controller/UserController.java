@@ -27,7 +27,7 @@ public class UserController {
 
     private final UserService userService;
 
-    // Frontend login olduktan hemen sonra Keycloak Token'ı ile bu endpoint'e vurur.
+    // UI girisinden sonra kullaniciyi yerel veritabaniyla esitlemek icin cagrilir.
     @Operation(summary = "Kullanıcı senkronizasyonu", description = "Keycloak'tan gelen kullanıcı bilgilerini yerel veritabanı ile eşitler.")
     @PostMapping("/sync")
     public ResponseEntity<UserDTO> syncCurrentUser(@AuthenticationPrincipal Jwt jwt) {

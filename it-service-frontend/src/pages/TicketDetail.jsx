@@ -26,7 +26,7 @@ export default function TicketDetail() {
   const [slaInfo, setSlaInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(Date.now());
 
-  // Durum geçiş seçenekleri
+  // Mevcut durumdan gecilebilecek hedef durum listesi.
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
     IN_PROGRESS: ['NEW', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'],
@@ -50,7 +50,7 @@ export default function TicketDetail() {
          try {
            const res = await api.get(`/tickets/${id}/sla-timer`);
            const data = res.data;
-           data.fetchTime = Date.now(); // Record the exact local time we received the remainingMs
+           data.fetchTime = Date.now(); // Kalan sure degerinin alindigi an istemci saatine gore kaydedilir.
            setSlaInfo(data);
          } catch (e) { console.error('SLA fetch error', e); }
       };
@@ -93,7 +93,7 @@ export default function TicketDetail() {
       });
       setComments((prev) => [...prev, res.data]);
       setMessage('');
-      // Keep the right-side detail panel in sync with backend status transitions.
+      // Yorum sonrasi olasi otomatik statu degisimlerini yansitmak icin bilet yeniden cekilir.
       const ticketRes = await api.get(`/tickets/${id}`);
       setTicket(ticketRes.data);
     } catch (err) {
@@ -193,14 +193,14 @@ export default function TicketDetail() {
 
   return (
     <div className="ticket-detail">
-      {/* ------ SOL: Ana İçerik ------ */}
+      {/* Sol kolon: baslik, yorum akisi ve mesaj giris alani. */}
       <div className="ticket-detail-main">
-        {/* Back Link */}
+        {/* Onceki ekrana donus baglantisi. */}
         <a className="back-link" onClick={() => navigate(-1)} style={{cursor: 'pointer'}}>
           ← Back
         </a>
 
-        {/* Ticket Header */}
+        {/* Bilet kimligi, oncelik ve temel meta bilgileri. */}
         <div>
           <div className="ticket-header">
             <h1>{ticketCode}</h1>
@@ -216,7 +216,7 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        {/* Chat Area */}
+        {/* Yorum gecmisinin gosterildigi sohbet alani. */}
         <div className="card">
           <div className="chat-area">
             {comments.length === 0 && (
@@ -246,7 +246,7 @@ export default function TicketDetail() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Comment Input */}
+          {/* Bilet acik oldugu surece yeni yorum gonderim alani. */}
           {ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
             <div className="comment-input-area">
               {isAgent && (
@@ -288,9 +288,9 @@ export default function TicketDetail() {
         </div>
       </div>
 
-      {/* ------ SAĞ: Detay Paneli ------ */}
+      {/* Sag kolon: statu aksiyonlari ve detay kartlari. */}
       <div className="ticket-detail-aside">
-        {/* Status Actions (Agent/Manager Only) */}
+        {/* Agent/manager icin durum gecisi butonlari. */}
         {isAgent && allowedStatuses.length > 0 && (
           <div className="card">
             <div className="card-header">Status Actions</div>
@@ -322,7 +322,7 @@ export default function TicketDetail() {
           </div>
         )}
 
-        {/* Ticket Details Card */}
+        {/* Biletin tarih, atama ve durum detaylari. */}
         <div className="card">
           <div className="card-header">Ticket Details</div>
           <div className="card-body">
@@ -345,7 +345,7 @@ export default function TicketDetail() {
               <div className="detail-info-value"><PriorityBadge priority={ticket.priority} /></div>
             </div>
 
-            {/* Dinamik SLA Gösterimi */}
+            {/* SLA kalan sure bilgisini anlik olarak gosterir. */}
             {!isCustomer && slaInfo && (
               <div className="detail-info-item">
                 <div className="detail-info-label">SLA Kalan Süre</div>
@@ -362,7 +362,7 @@ export default function TicketDetail() {
                          return <span className="badge badge-neutral">Tamamlandı</span>;
                       }
 
-                      // Calculate remaining using relative time rather than absolute, bypassing clock desync issues
+                      // Kalan sureyi fetch anina gore hesaplayarak istemci/sunucu saat farkini tolere eder.
                       let diff = slaInfo.remainingMs;
                       if (slaInfo.deadlineTimestamp !== -1) {
                           const elapsedSinceFetch = currentDate - slaInfo.fetchTime;
@@ -396,7 +396,7 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        {/* Customer Resolution Approval */}
+        {/* Musterinin cozum onayi ve CSAT akis girisi. */}
         {isCustomer && ticket.status === 'RESOLVED' && (
           <div className="card" style={{ marginTop: 'var(--space-4)' }}>
             <div className="card-header">Sorununuz Çözüldü mü?</div>
@@ -417,7 +417,7 @@ export default function TicketDetail() {
         )}
       </div>
 
-      {/* Extra Actions Modal */}
+      {/* Ikincil durum aksiyonlarini acan modal pencere. */}
       {extraActionsOpen && (
         <div className="modal-overlay" onClick={() => setExtraActionsOpen(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
@@ -454,7 +454,7 @@ export default function TicketDetail() {
         </div>
       )}
 
-      {/* Csat Modal */}
+      {/* Memnuniyet puani ve yorumunun girildigi CSAT modal'i. */}
       {csatModalOpen && (
         <div className="modal-overlay" onClick={() => !submittingCsat && setCsatModalOpen(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

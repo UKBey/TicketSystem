@@ -23,7 +23,7 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final TicketService ticketService;
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // Yukleme ust limiti.
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "png", "jpg", "jpeg", "txt", "log");
 
     public Attachment uploadAttachment(Long ticketId, String uploaderId, List<String> roles, MultipartFile file) throws IOException {
@@ -32,16 +32,16 @@ public class AttachmentService {
 
         log.info("Dosya yükleme işlemi başlatıldı. Bilet ID: {}, Dosya: {}, Yükleyen: {}", ticketId, fileName, uploaderId);
 
-        // 1. Sıkı Yetki Kontrolü (Agent=Assignee, Customer=Owner)
+        // Dosya ekleme, sadece kaydi degistirme yetkisi olan kullanicilara aciktir.
         Ticket ticket = ticketService.validateMutationAccess(ticketId, uploaderId, roles);
 
-        // 2. Boyut Kotrolü
+        // Buyuk dosyalari erken reddederek depolama ve performans maliyeti sinirlanir.
         if (file.getSize() > MAX_FILE_SIZE) {
             log.warn("Yükleme reddedildi: Dosya boyutu sınırda ({} bytes)", file.getSize());
             throw new IllegalArgumentException("Dosya boyutu 5MB sınırını aşamaz.");
         }
 
-        // 3. Tip Kontrolü
+        // Yalnizca izinli uzantilara sahip dosyalar kabul edilir.
         if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
             log.warn("Yükleme reddedildi: Desteklenmeyen dosya uzantısı ({})", extension);
             throw new IllegalArgumentException("Desteklenmeyen dosya tipi: " + extension);
@@ -49,7 +49,7 @@ public class AttachmentService {
 
         byte[] content = file.getBytes();
 
-        // 4. İçerik Kontrolü (.txt için)
+        // Metin dosyalarinda beklenen anahtar ifadeleri kontrol edilerek alakasiz yukleme azaltilir.
         if ("txt".equalsIgnoreCase(extension)) {
             log.debug(".txt dosyası içerik kontrolü yapılıyor...");
             String textContent = new String(content, StandardCharsets.UTF_8);
@@ -87,14 +87,14 @@ public class AttachmentService {
         
         log.info("Dosya silme işlemi. ID: {}, Siler: {}, Roller: {}", id, userId, roles);
 
-        // 1. MANAGER her şeyi silebilir
+        // Yonetici rolunde dosya sahipligi aranmadan silme izni vardir.
         if (roles.contains("MANAGER")) {
             log.info("Yönetici yetkisiyle dosya siliniyor. Dosya ID: {}", id);
             attachmentRepository.delete(attachment);
             return;
         }
 
-        // 2. Sadece yükleyen kişi silebilir
+        // Yonetici disinda silme islemi sadece dosyayi yukleyen kullaniciya aciktir.
         if (!userId.equals(attachment.getUploaderId())) {
             log.warn("Silme reddedildi: Kullanıcı ({}) dosyanın sahibi değil (Sahibi: {})", userId, attachment.getUploaderId());
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Sadece kendi yüklediğiniz dosyaları silebilirsiniz.");

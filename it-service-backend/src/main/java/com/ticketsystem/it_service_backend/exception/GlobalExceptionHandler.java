@@ -9,14 +9,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-@Log4j2 // Log4j2 aktif! Buradaki loglar Kafka üzerinden OpenSearch'e akacak.
+@Log4j2 // Uygulama genelindeki hatalari merkezden loglayip standart hata cevabi uretir.
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1. ResponseStatusException (Servislerden fırlatılan kontrollü hatalar)
+    // Servis katmaninin bilerek firlattigi is kurali hatalarini yakalar.
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
-        // Kontrollü bir iş kuralı hatası olduğu için WARN seviyesi uygundur
+        // Beklenen is kurali ihlallerini hata yerine uyari seviyesinde kaydederiz.
         log.warn("Kontrollü Servis Hatası ({}): {}", ex.getStatusCode(), ex.getReason());
 
         ErrorResponse error = ErrorResponse.builder()
@@ -27,10 +27,10 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatusCode());
     }
 
-    // 2. IllegalArgumentException (Uygulama içi validasyon hataları)
+    // Parametre ve dogrulama kaynakli hatalari 400 olarak dondurur.
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        // Eksik/hatalı parametre durumlarında çalışır
+        // Giris verisi hatalarinda istemciye acik bir geri bildirim verir.
         log.warn("Doğrulama Hatası (400 BAD_REQUEST): {}", ex.getMessage());
 
         ErrorResponse error = ErrorResponse.builder()
@@ -41,10 +41,10 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // 3. AccessDeniedException (Spring Security yetki hataları)
+    // Spring Security tarafinda yakalanan yetki ihlallerini ele alir.
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
-        // Güvenlik ve yetki ihlali logu
+        // Yetkisiz erisim denemeleri denetim amacli kayda gecirilir.
         log.warn("Yetki İhlali (403 FORBIDDEN): Kullanıcı yetkisi olmayan bir kaynağa erişmeye çalıştı. Detay: {}",
                 ex.getMessage());
 
@@ -56,7 +56,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
-    // 4. NoResourceFoundException (Spring 6 — eşleşen handler bulunamadı → 404)
+    // Eslesen endpoint bulunamadiginda standart 404 cevabi uretir.
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
         log.warn("Kaynak bulunamadı (404 NOT_FOUND): {}", ex.getMessage());
@@ -69,11 +69,10 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
-    // 5. Genel Beklenmedik Hatalar
+    // Beklenmeyen tum hatalar icin son guvenlik agi gorevi gorur.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
-        // DİKKAT: Burada log.error kullanıyoruz ve 'ex' objesini veriyoruz ki hatanın
-        // tüm detayları (Stacktrace) loglansın!
+        // Stacktrace'i koruyarak loglamak, uretim ortami hata analizi icin kritiktir.
         log.error("Sistemde beklenmeyen kritik bir hata oluştu (500 INTERNAL_SERVER_ERROR): ", ex);
 
         ErrorResponse error = ErrorResponse.builder()

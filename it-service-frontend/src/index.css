@@ -1,9 +1,9 @@
 /* ============================================================ */
-/* IT SERVICE DESK — Design System                               */
+/* IT Service Desk arayuz degiskenleri ve ortak stil kurallari  */
 /* ============================================================ */
 
 :root {
-  /* ── Colors ── */
+  /* Renk paleti */
   --color-bg: #f5f6fa;
   --color-surface: #ffffff;
   --color-sidebar: #1a2332;
@@ -24,20 +24,20 @@
   --color-border: #e2e8f0;
   --color-border-light: #f1f5f9;
 
-  /* Status colors */
+  /* Durum rozet renkleri */
   --status-new: #3b82f6;
   --status-in-progress: #f59e0b;
   --status-waiting: #8b5cf6;
   --status-resolved: #22c55e;
   --status-closed: #64748b;
 
-  /* Priority colors */
+  /* Oncelik rozet renkleri */
   --priority-low: #22c55e;
   --priority-medium: #f59e0b;
   --priority-high: #ef4444;
   --priority-critical: #dc2626;
 
-  /* ── Typography ── */
+  /* Tipografi olcegi */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.8125rem;
@@ -47,7 +47,7 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
 
-  /* ── Spacing ── */
+  /* Bosluk olcegi */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -58,7 +58,7 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  /* ── Layout ── */
+  /* Yerlesim olcekleri */
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 76px;
   --border-radius: 8px;
@@ -68,12 +68,12 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
-  /* ── Transitions ── */
+  /* Gecis hizlari */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
 }
 
-/* ── Reset & Base ── */
+/* Sifirlama ve temel eleman stilleri */
 *,
 *::before,
 *::after {
@@ -103,7 +103,7 @@ a:hover {
   text-decoration: underline;
 }
 
-/* ── App Loading ── */
+/* Uygulama yuklenme gorunumu */
 .app-loading {
   display: flex;
   flex-direction: column;
@@ -127,7 +127,7 @@ a:hover {
   to { transform: rotate(360deg); }
 }
 
-/* ── Layout ── */
+/* Ana yerlesim */
 .app-layout {
   display: flex;
   min-height: 100vh;
@@ -145,7 +145,7 @@ a:hover {
   margin-left: var(--sidebar-collapsed-width);
 }
 
-/* ── Sidebar ── */
+/* Sol menü */
 .sidebar {
   position: fixed;
   left: 0;
@@ -371,7 +371,7 @@ a:hover {
   color: var(--color-danger);
 }
 
-/* ── Page Header ── */
+/* Sayfa baslik alani */
 .page-header {
   display: flex;
   align-items: center;
@@ -385,7 +385,7 @@ a:hover {
   color: var(--color-text);
 }
 
-/* ── Buttons ── */
+/* Buton varyantlari */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -444,7 +444,7 @@ a:hover {
   cursor: not-allowed;
 }
 
-/* ── Badges ── */
+/* Rozet stilleri */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -480,7 +480,7 @@ a:hover {
   padding: 1px 6px;
 }
 
-/* ── Card ── */
+/* Kart bileseni */
 .card {
   background: var(--color-surface);
   border-radius: var(--border-radius);
@@ -499,7 +499,7 @@ a:hover {
   padding: var(--space-5);
 }
 
-/* ── Table ── */
+/* Tablo stilleri */
 .data-table {
   width: 100%;
   border-collapse: separate;
@@ -539,7 +539,7 @@ a:hover {
   color: var(--color-primary);
 }
 
-/* ── Modal / Overlay ── */
+/* Modal ve arka plan katmani */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -605,7 +605,7 @@ a:hover {
   border-top: 1px solid var(--color-border);
 }
 
-/* ── Form ── */
+/* Form bilesenleri */
 .form-group {
   margin-bottom: var(--space-4);
 }
@@ -644,7 +644,7 @@ a:hover {
   min-height: 100px;
 }
 
-/* ── Ticket Detail Page ── */
+/* Bilet detay sayfasi yerlesimi */
 .ticket-detail {
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -703,7 +703,7 @@ a:hover {
   color: var(--color-border);
 }
 
-/* ── Chat / Comments ── */
+/* Yorum akisi ve mesaj gorunumu */
 .chat-area {
   display: flex;
   flex-direction: column;
@@ -759,7 +759,7 @@ a:hover {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* ── Comment Input ── */
+/* Yorum giris alani */
 .comment-input-area {
   border-top: 1px solid var(--color-border);
   padding: var(--space-4) var(--space-5);
@@ -806,7 +806,7 @@ a:hover {
   flex: 1;
 }
 
-/* ── Detail Sidebar Card ── */
+/* Sag panel detay satirlari */
 .detail-info-item {
   margin-bottom: var(--space-3);
 }
@@ -823,7 +823,7 @@ a:hover {
   color: var(--color-text);
 }
 
-/* ── Status Select ── */
+/* Durum secim alani */
 .status-select {
   width: 100%;
   padding: var(--space-2) var(--space-3);
@@ -835,7 +835,7 @@ a:hover {
   cursor: pointer;
 }
 
-/* ── Login Page ── */
+/* Giris sayfasi */
 .login-page {
   display: flex;
   align-items: center;
@@ -885,7 +885,7 @@ a:hover {
   font-size: var(--font-size-md);
 }
 
-/* ── Coming Soon ── */
+/* Hazirlaniyor gorunumu */
 .coming-soon {
   display: flex;
   flex-direction: column;
@@ -912,7 +912,7 @@ a:hover {
   font-size: var(--font-size-base);
 }
 
-/* ── Empty State ── */
+/* Bos durum gorunumu */
 .empty-state {
   text-align: center;
   padding: var(--space-12) var(--space-8);
@@ -932,7 +932,7 @@ a:hover {
   margin-bottom: var(--space-2);
 }
 
-/* ── Admin Panel / Chips ── */
+/* Admin panel etiket (chip) stilleri */
 .chip {
   display: inline-flex;
   align-items: center;

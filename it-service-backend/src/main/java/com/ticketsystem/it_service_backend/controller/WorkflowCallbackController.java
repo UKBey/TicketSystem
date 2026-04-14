@@ -33,7 +33,7 @@ public class WorkflowCallbackController {
             @RequestHeader(value = "X-Internal-Token", required = false) String headerToken,
             @Valid @RequestBody WorkflowCallbackDTO callback) {
 
-        // 1. Güvenlik Kontrolü (Sadece Header)
+        // Callback sadece servisler arasi paylasilan token ile kabul edilir.
         if (headerToken == null || !headerToken.equals(expectedToken)) {
             log.warn("Yetkisiz Callback İsteği! Token eşleşmedi veya gönderilmedi.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized internal API call");
@@ -42,7 +42,7 @@ public class WorkflowCallbackController {
         log.info("jBPM Callback Alındı: TicketId={}, EventType={}, ProcessInstanceId={}, EkData={}",
                 callback.getTicketId(), callback.getEventType(), callback.getProcessInstanceId(), callback.getAdditionalData());
 
-        // 2. İlgili Ticket'ı Bul
+        // Olayin bagli oldugu bilet kaydi bulunur.
         Ticket ticket = ticketRepository.findById(callback.getTicketId())
                 .orElse(null);
 
@@ -51,7 +51,7 @@ public class WorkflowCallbackController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ticket not found");
         }
 
-        // 3. Olay Türüne Göre İşlem Yap (İleride genişletilebilir)
+        // Olay tipine gore alan guncelleme veya takip adimi calistirilir.
         switch (callback.getEventType()) {
             case "SLA_BREACHED":
                 handleSlaBreach(ticket);
@@ -72,8 +72,6 @@ public class WorkflowCallbackController {
         ticket.setSlaBreached(true);
         ticketRepository.save(ticket);
         
-        // Burada ileride ek işlemler tetiklenebilir: 
-        // - E-posta bildirimi gönderme (NotificationService)
-        // - Priority'i yükseltme, vb.
+        // Ileride bildirim, otomatik eskalasyon gibi ek aksiyonlar buradan zincirlenebilir.
     }
 }

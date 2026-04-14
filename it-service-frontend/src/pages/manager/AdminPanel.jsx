@@ -36,7 +36,7 @@ export default function AdminPanel() {
     }
     try {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
-      // Update the user in the local state with the returned updated user
+      // API'den donen guncel kullanici nesnesi local listedeki kaydin yerine yazilir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
       alert(err.response?.data?.message || 'Ürün atanamadı.');
@@ -48,7 +48,7 @@ export default function AdminPanel() {
     
     try {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
-      // Update the user in the local state with the returned updated user
+      // Yetki kaldirma sonrasi donen son durum local listede eszamanlanir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
       alert(err.response?.data?.message || 'Ürün yetkisi kaldırılamadı.');

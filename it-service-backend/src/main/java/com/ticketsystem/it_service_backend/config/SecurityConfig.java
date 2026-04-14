@@ -32,7 +32,7 @@ public class SecurityConfig {
         http
         .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-            // Public docs / health / auth endpoints only
+            // Dokumantasyon, saglik ve ilk giris endpoint'leri anonim erisime aciktir.
             .requestMatchers(
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
@@ -43,13 +43,12 @@ public class SecurityConfig {
                 "/api/auth/register")
             .permitAll()
 
-            // Internal API must pass dedicated internal header token.
-            // This keeps /api/internal/** out of permitAll while allowing machine-to-machine calls.
+            // Internal endpoint'ler sadece servisler arasi token ile erisilebilir.
             .requestMatchers("/api/internal/**")
             .access((authentication, context) ->
                 new AuthorizationDecision(hasValidInternalToken(context.getRequest().getHeader("X-Internal-Token"))))
 
-            // Default deny for all other endpoints: JWT authentication is required.
+            // Geri kalan tum endpoint'ler icin JWT dogrulamasi zorunludur.
             .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> 

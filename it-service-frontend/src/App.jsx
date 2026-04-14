@@ -4,7 +4,7 @@ import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Pages
+// Uygulama rotalarinda kullanilan sayfa bilesenleri.
 import LoginPage from './pages/LoginPage';
 import MyTickets from './pages/customer/MyTickets';
 import Pool from './pages/agent/Pool';
@@ -52,13 +52,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* Oturum gerektirmeyen giris rotasi. */}
         <Route
           path="/"
           element={authenticated ? <HomeRedirect /> : <LoginPage />}
         />
 
-        {/* Customer */}
+        {/* Musteri rolune acik alanlar. */}
         <Route
           path="/my-tickets"
           element={
@@ -68,7 +68,7 @@ export default function App() {
           }
         />
 
-        {/* Agent + Manager */}
+        {/* Agent ve manager tarafindan ortak kullanilan calisma ekranlari. */}
         <Route
           path="/workspace"
           element={
@@ -94,7 +94,7 @@ export default function App() {
           }
         />
 
-        {/* Manager Only */}
+        {/* Sadece manager yetkisi isteyen yonetim ekranlari. */}
         <Route
           path="/dashboard"
           element={
@@ -120,7 +120,7 @@ export default function App() {
           }
         />
 
-        {/* Ticket Detail (All authenticated users) */}
+        {/* Kimligi dogrulanmis tum roller icin bilet detay ekrani. */}
         <Route
           path="/tickets/:id"
           element={
@@ -130,7 +130,7 @@ export default function App() {
           }
         />
 
-        {/* Profile (All authenticated users) */}
+        {/* Tum rollerin erisebildigi profil sayfasi. */}
         <Route
           path="/profile"
           element={
@@ -140,7 +140,7 @@ export default function App() {
           }
         />
 
-        {/* Catch-all */}
+        {/* Eslesmeyen tum yollari ana rotaya yonlendirir. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

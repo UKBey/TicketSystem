@@ -30,7 +30,7 @@ spring:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8080/realms/TicketSystemRealm}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8080/realms/TicketSystemRealm/protocol/openid-connect/certs}
 
-# ------- jBPM Standalone KIE Server Bağlantı Ayarları -------
+# jBPM KIE Server baglanti ve callback ayarlari.
 jbpm:
   kie-server:
     url: ${JBPM_KIE_SERVER_URL:http://localhost:8180/kie-server/services/rest/server}

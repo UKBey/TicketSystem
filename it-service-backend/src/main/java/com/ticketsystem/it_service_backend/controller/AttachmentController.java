@@ -30,7 +30,7 @@ public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
-    // 1. Dosya Yükle
+    // Bilete dosya ekler; boyut, tip ve yetki kontrolleri servis katmaninda calisir.
     @Operation(summary = "Dosya yükle", description = "Belirli bir bilete yeni bir dosya eki ekler.")
     @PostMapping("/tickets/{ticketId}/attachments")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
@@ -53,7 +53,7 @@ public class AttachmentController {
         return ResponseEntity.ok(AttachmentDTO.fromEntity(attachment));
     }
 
-    // 2. Biletin Dosyalarını Listele
+    // Bilete bagli tum dosya metaverilerini listeler.
     @Operation(summary = "Biletin dosyalarını listele", description = "Bilet ID'sine göre yüklenmiş tüm dosyaların listesini getirir.")
     @GetMapping("/tickets/{ticketId}/attachments")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
@@ -69,7 +69,7 @@ public class AttachmentController {
                 .collect(Collectors.toList()));
     }
 
-    // 3. Dosyayı İndir
+    // Dosya icerigini MIME tipi ve dosya adi bilgisiyle birlikte indirir.
     @Operation(summary = "Dosya indir", description = "Dosya ID'si ile dosya içeriğini indirir.")
     @GetMapping("/attachments/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
@@ -86,7 +86,7 @@ public class AttachmentController {
                 .body(attachment.getContent());
     }
 
-    // 4. Dosyayı Sil
+    // Dosyayi rol/sahiplik kurallarina gore siler.
     @Operation(summary = "Dosya sil", description = "Sisteme yüklenmiş bir dosyayı siler.")
     @DeleteMapping("/attachments/{id}")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")

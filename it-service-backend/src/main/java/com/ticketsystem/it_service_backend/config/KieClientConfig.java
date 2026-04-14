@@ -15,11 +15,8 @@ import lombok.extern.log4j.Log4j2;
 import java.time.Duration;
 
 /**
- * Standalone jBPM KIE Server ile REST üzerinden haberleşmek için
- * KieServicesClient bean'ini yapılandırır.
- *
- * Bu bean uygulama başlangıcında bir kez oluşturulur ve tüm
- * workflow servisleri tarafından paylaşılır.
+ * KIE Server ile REST baglantisini kuran istemciyi uygulama acilisinda olusturur.
+ * Bu bean tum workflow servisleri tarafindan ortak kullanilir.
  */
 @Configuration
 @Log4j2
@@ -44,13 +41,13 @@ public class KieClientConfig {
         KieServicesConfiguration config =
                 KieServicesFactory.newRestConfiguration(kieServerUrl, username, password);
 
-        // JSON formatı REST haberleşmesinde en yaygın ve okunabilir format
+        // REST payload'lari icin okunabilir ve stabil format olarak JSON secilir.
         config.setMarshallingFormat(MarshallingFormat.JSON);
         config.setTimeout(timeout);
 
         KieServicesClient client = KieServicesFactory.newKieServicesClient(config);
 
-        // Bağlantı doğrulaması
+        // Uygulama acilisinda baglanti sagligini hizli bir ping ile dogrular.
         try {
             var serverInfo = client.getServerInfo().getResult();
             log.info("✅ KIE Server bağlantısı başarılı! Server: {}, Version: {}, Capabilities: {}",
@@ -66,21 +63,18 @@ public class KieClientConfig {
     }
 
     /**
-     * KIE Server çağrıları için Circuit Breaker bean'i.
-     * Ardışık 5 hatadan sonra devre açılır (30 sn bekler).
-     * Bu, KIE Server çöktüğünde Spring Boot'un thread havuzunun
-     * tükenmesini önler.
+     * KIE cagri hatalari arttiginda gecici olarak devreyi acip zincirleme arizayi onler.
      */
     @Bean
     public CircuitBreaker kieServerCircuitBreaker() {
         CircuitBreakerConfig cbConfig = CircuitBreakerConfig.custom()
-                .failureRateThreshold(50)                      // %50 hata oranında aç
-                .slidingWindowSize(10)                          // Son 10 çağrıyı izle
-                .minimumNumberOfCalls(5)                        // Min 5 çağrıdan sonra değerlendir
-                .waitDurationInOpenState(Duration.ofSeconds(30)) // Açık durumda 30 sn bekle
-                .permittedNumberOfCallsInHalfOpenState(3)       // Yarı-açıkta 3 test çağrısı
-                .slowCallDurationThreshold(Duration.ofSeconds(10)) // 10 sn üzeri = yavaş çağrı
-                .slowCallRateThreshold(50)                       // %50 yavaş çağrıda aç
+                .failureRateThreshold(50)                      // Hata orani bu esigi asarsa devre acilir.
+                .slidingWindowSize(10)                          // Son N cagri uzerinden oran hesaplanir.
+                .minimumNumberOfCalls(5)                        // Erken ve yanlis pozitif acilmalari azaltir.
+                .waitDurationInOpenState(Duration.ofSeconds(30)) // Acik devrede bekleme suresi.
+                .permittedNumberOfCallsInHalfOpenState(3)       // Yeniden denemede sinirli test cagrisina izin verir.
+                .slowCallDurationThreshold(Duration.ofSeconds(10)) // Bu sureyi asan cagri yavas kabul edilir.
+                .slowCallRateThreshold(50)                       // Yavas cagri orani yukselirse devre korunmaya gecer.
                 .build();
 
         CircuitBreaker cb = CircuitBreaker.of("kieServer", cbConfig);

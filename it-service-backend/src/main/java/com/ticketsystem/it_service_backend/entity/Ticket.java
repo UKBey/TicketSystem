@@ -26,19 +26,19 @@ public class Ticket {
     private String description;
 
     @Column(nullable = false, length = 30)
-    private String status; // NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED, CLOSED
+    private String status; // Biletin is akisi durumunu tutar.
 
     @Column(nullable = false, length = 10)
-    private String priority; // LOW, MEDIUM, HIGH
+    private String priority; // SLA suresini etkileyen oncelik seviyesi.
 
     @Column(name = "product_id")
     private Long productId;
 
     @Column(name = "customer_id", nullable = false, length = 36)
-    private String customerId; // Keycloak'tan gelen User ID
+    private String customerId; // Kaydi olusturan kullanicinin kimligi.
 
     @Column(name = "assignee_id", length = 36)
-    private String assigneeId; // Keycloak'tan gelen Agent ID
+    private String assigneeId; // Kayittan sorumlu agent kimligi.
 
     @Column(name = "sla_deadline")
     private ZonedDateTime slaDeadline;
@@ -47,12 +47,12 @@ public class Ticket {
     @Builder.Default
     private Boolean slaBreached = false;
 
-    // SLA kronometresinin aktif olarak geçirdiği toplam süre (milisaniye)
+    // SLA'nin aktif gecen toplam suresi milisaniye cinsinden tutulur.
     @Column(name = "sla_elapsed_ms")
     @Builder.Default
     private Long slaElapsedMs = 0L;
 
-    // SLA kronometresinin en son duraklatıldığı an (WAITING_FOR_CUSTOMER veya RESOLVED geçişi)
+    // SLA'nin en son durduruldugu zamani saklar.
     @Column(name = "sla_paused_at")
     private ZonedDateTime slaPausedAt;
 
@@ -68,19 +68,19 @@ public class Ticket {
     @Column(name = "closed_at")
     private ZonedDateTime closedAt;
 
-    // jBPM Workflow süreç örneği bağlantısı
+    // jBPM tarafindaki process instance ile iliski kurar.
     @Column(name = "process_instance_id")
     private Long processInstanceId;
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // Sonsuz döngüyü önlemek için listeyi JSON'da gizleyelim (veya DTO kullanın)
+    @JsonIgnore // Cift yonlu iliskide olasi sonsuz JSON dongusunu engeller.
     private List<Attachment> attachments;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = ZonedDateTime.now();
         if (this.status == null) {
-            this.status = "NEW"; // Varsayılan statü
+            this.status = "NEW"; // Kayit olustugunda varsayilan baslangic durumu.
         }
     }
 }

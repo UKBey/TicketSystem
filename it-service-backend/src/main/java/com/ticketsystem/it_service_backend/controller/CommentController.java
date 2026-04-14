@@ -29,7 +29,7 @@ public class CommentController {
     private final CommentService commentService;
     private final UserRepository userRepository;
 
-    // 1. Bilete Yorum Ekle
+    // Bilete yeni yorum ekler ve yetki kurallarini servis katmaninda uygular.
     @Operation(summary = "Bilete yorum ekle", description = "Belirli bir bilete (Ticket) yeni bir yorum ekler. Yetki kontrolü yapılır.")
     @PostMapping
     public ResponseEntity<CommentDTO> addComment(
@@ -42,21 +42,21 @@ public class CommentController {
         String message = body.get("message");
         String type = body.get("type");
 
-        // INFO: Ana iş akışı başladı
+        // Gelen istek bilgileri izlenebilirlik icin loglanir.
         log.info("Bilet ID: {} için yeni yorum ekleme isteği alındı. İstek atan Kullanıcı ID: {}, Yorum Tipi: {}",
                 ticketId, userId, type);
         log.debug("Yorum ekleyen kullanıcının rolleri: {}, Mesaj içeriği: {}", roles, message);
 
-        // HATA YÖNETİMİ YOK! Servis patlarsa GlobalExceptionHandler havada yakalayacak.
+        // Hatalar GlobalExceptionHandler tarafinda merkezi olarak cevaplanir.
         Comment comment = commentService.addComment(ticketId, message, type, userId, roles);
 
-        // INFO: İşlem başarıyla bitti
+        // Kayit tamamlandiginda olusan yorum kimligi donus oncesi loglanir.
         log.info("Yorum başarıyla eklendi. Bilet ID: {}, Yeni Yorum ID: {}", ticketId, comment.getId());
 
         return ResponseEntity.ok(convertToDto(comment));
     }
 
-    // 2. Biletin Yorumlarını Listele
+    // Biletin yorum gecmisini, rol kurallarina gore filtrelenmis sekilde listeler.
     @Operation(summary = "Biletin yorumlarını listele", description = "Bilet ID'sine göre tüm yorumları getirir. Yetki kontrolü yapılır.")
     @GetMapping
     public ResponseEntity<List<CommentDTO>> getComments(
@@ -66,11 +66,10 @@ public class CommentController {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
-        // INFO: Listeleme isteği geldi
+        // Listeleme talebi ve cagriyi yapan kullanici bilgisi kayda gecirilir.
         log.info("Bilet ID: {} için yorumları listeleme isteği alındı. Kullanıcı ID: {}", ticketId, userId);
 
-        // HATA YÖNETİMİ YOK! Yetkisiz biriyse AccessDeniedException fırlayacak ve
-        // handler halledecek.
+        // Yetki veya is kurali hatalari ortak exception katmanina birakilir.
         List<Comment> comments = commentService.getCommentsByTicketId(ticketId, userId, roles);
 
         log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi. Kontrol edilen roller: {}", ticketId,
@@ -80,7 +79,7 @@ public class CommentController {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
 
-        // INFO: Listeleme başarıyla bitti
+        // Donen yorum adedi yanit oncesi loglanir.
         log.info("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
 
         return ResponseEntity.ok(commentDTOs);

@@ -13,7 +13,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      {/* Brand */}
+      {/* Uygulama markasi ve sidebar ac/kapa kontrolu. */}
       <div className="sidebar-brand">
         <h2>
           <span className="sidebar-brand-icon">🎫</span>
@@ -39,9 +39,9 @@ export default function Sidebar({ collapsed = false, onToggle }) {
         </div>
       </NavLink>
 
-      {/* Navigation */}
+      {/* Role gore sekillenen ana gezinme menusu. */}
       <nav className="sidebar-nav">
-        {/* CUSTOMER */}
+        {/* Musteri menu grubu. */}
         {primaryRole === 'CUSTOMER' && (
           <NavLink to="/my-tickets" className={({ isActive }) => isActive ? 'active' : ''}>
             <span className="sidebar-nav-icon">📋</span>
@@ -49,7 +49,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           </NavLink>
         )}
 
-        {/* AGENT */}
+        {/* Agent ve managerin ortak menu grubu. */}
         {(primaryRole === 'AGENT' || primaryRole === 'MANAGER') && (
           <>
             <NavLink to="/workspace" className={({ isActive }) => isActive ? 'active' : ''}>
@@ -67,7 +67,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           </>
         )}
 
-        {/* MANAGER */}
+        {/* Manager'a ozel yonetim menu grubu. */}
         {primaryRole === 'MANAGER' && (
           <>
             <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>
@@ -86,7 +86,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
         )}
       </nav>
 
-      {/* Logout */}
+      {/* Oturum sonlandirma butonu. */}
       <div className="sidebar-footer">
         <button className="sidebar-logout" onClick={logout}>
           <span>↩</span>

@@ -7,7 +7,7 @@ export default function SlaTimerBadge({ ticket, now }) {
 
   if (!slaInfo) return <span className="badge" style={{backgroundColor: 'transparent', color: 'var(--color-text-secondary)'}}>—</span>;
 
-  // Paused / Completed
+  // Sayaç duraklatilmis veya surec tamamlanmis senaryosu.
   if (slaInfo.deadlineTimestamp === -1) {
     if (slaInfo.remainingMs <= 0 && ticket.slaBreached) {
       return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
@@ -25,7 +25,7 @@ export default function SlaTimerBadge({ ticket, now }) {
     return <span className="badge badge-neutral">Tamamlandı</span>;
   }
 
-  // Active
+  // Aktif sayaçta kalan sureyi istemci tarafinda saniye saniye gunceller.
   const elapsedSinceFetch = now - fetchTimeRef.current;
   const diff = slaInfo.remainingMs - elapsedSinceFetch;
 

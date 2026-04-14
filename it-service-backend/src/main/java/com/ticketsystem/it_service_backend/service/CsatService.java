@@ -23,16 +23,13 @@ public class CsatService {
     public Csat submitCsat(Long ticketId, CsatDTO dto, String userId, List<String> roles) {
         log.info("CSAT anketi gönderimi başlatıldı. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
-        // 1. Puan kontrolü
+        // Anket puani beklenen aralikta degilse islem erken sonlandirilir.
         if (dto.getRating() == null || dto.getRating() < 1 || dto.getRating() > 5) {
             log.warn("CSAT reddedildi: Geçersiz puan (Rating: {})", dto.getRating());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating değeri 1 ile 5 arasında olmalıdır.");
         }
 
-        // 2. Biletin varlığını ve yetkiyi kontrol et (Owner check)
-        // TicketService.getTicketById kullanırsak yetki kontrolü yapmaz.
-        // getTicketWithAuth kullanırsak sadece view yetkisine bakar.
-        // Bizim durumumuzda bu biletin müşterisi olduğunu doğrulamalıyız.
+        // CSAT gonderimi icin goruntuleme yetkisi degil, dogrudan sahiplik dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
         if (!userId.equals(ticket.getCustomerId())) {
@@ -40,13 +37,13 @@ public class CsatService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sadece kendi biletlerinize anket yapabilirsiniz.");
         }
 
-        // 3. Statü kontrolü (Sadece CLOSED veya RESOLVED)
+        // Anket yalnizca cozulmus ya da kapanmis kayitlarda kabul edilir.
         if (!"CLOSED".equals(ticket.getStatus()) && !"RESOLVED".equals(ticket.getStatus())) {
             log.warn("CSAT reddedildi: Bilet statüsü uygun değil (Statü: {})", ticket.getStatus());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sadece kapalı veya çözülmüş biletler için anket yapılabilir.");
         }
 
-        // 4. Mükerrer kayıt kontrolü
+        // Ayni bilete ikinci kez CSAT olusmasini engeller.
         if (csatRepository.existsByTicketId(ticketId)) {
             log.warn("CSAT reddedildi: Bu bilet için zaten bir anket mevcut. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Zaten bir CSAT var, yeni kayıt oluşturulamaz.");
@@ -61,7 +58,7 @@ public class CsatService {
         Csat savedCsat = csatRepository.save(csat);
         log.info("CSAT anketi başarıyla kaydedildi. Bilet ID: {}, CSAT ID: {}", ticketId, savedCsat.getId());
 
-        // Update ticket status to CLOSED if it was RESOLVED
+        // Musteri onayi geldiyse RESOLVED kayit CLOSED durumuna tasinir.
         if ("RESOLVED".equals(ticket.getStatus())) {
             ticketService.updateTicketStatus(ticketId, "CLOSED", userId, roles);
         }
@@ -76,7 +73,7 @@ public class CsatService {
     public Csat getCsatByTicketId(Long ticketId, String userId, List<String> roles) {
         log.info("CSAT detay isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
-        // Bilet erişim yetkisi kontrolü (Mevcut TicketService mantığından faydalanıyoruz)
+        // CSAT detayi donmeden once bilet erisim kurali mevcut servisle dogrulanir.
         ticketService.getTicketWithAuth(ticketId, userId, roles);
 
         return csatRepository.findByTicketId(ticketId)

@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const initCalled = useRef(false);
 
   useEffect(() => {
-    // React 19 StrictMode çift çağrı koruması
+    // StrictMode'da useEffect'in cift tetiklenmesine karsi init'i tek sefere sabitler.
     if (initCalled.current) return;
     initCalled.current = true;
 

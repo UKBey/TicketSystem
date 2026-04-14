@@ -21,7 +21,7 @@ public class UserService {
 
     public User syncUser(User user) {
         log.info("Kullanıcı senkronizasyon işlemi (Service). ID: {}, Email: {}", user.getId(), user.getEmail());
-        // Kullanıcı varsa günceller, yoksa yeni kaydeder (Keycloak'tan gelen veriyle)
+        // Ayni kimlik varsa gunceller, yoksa yeni kayit olusturur.
         User savedUser = userRepository.save(user);
         log.debug("Kullanıcı senkronize edildi. Rol: {}", savedUser.getRole());
         return savedUser;
@@ -44,8 +44,7 @@ public class UserService {
                     return new RuntimeException("Kullanıcı bulunamadı: " + id);
                 });
         
-        // Lazy loading (Hibernate) json serialize edilirken session kapalı olduğu için
-        // patlamaması adına listeyi initialize ediyoruz.
+        // Yetkili urun koleksiyonu, session kapanmadan once initialize edilir.
         int productCount = user.getAuthorizedProducts().size();
         log.debug("Kullanıcı çekildi: {}, Yetkili ürün sayısı: {}", user.getFullName(), productCount);
         

@@ -26,10 +26,10 @@ public class CommentService {
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
         log.info("Yorum ekleme işlemi. Bilet ID: {}, Kullanıcı: {}, Tip: {}", ticketId, userId, type);
 
-        // Sıkı Yetki Kontrolü (Agent=Assignee, Customer=Owner)
+        // Yorum ekleme, mutasyon yetkisi denetiminden gecmeden ilerlemez.
         Ticket ticket = ticketService.validateMutationAccess(ticketId, userId, roles);
 
-        // Müşteriler sadece EXTERNAL (genel) yorum yapabilir
+        // Sadece CUSTOMER olan kullanici dahili not birakamaz.
         boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("MANAGER");
         if (isOnlyCustomer && "INTERNAL".equals(type)) {
             log.warn("Yorum reddedildi: Müşteri (ID: {}) dahili yorum eklemeye çalıştı.", userId);
@@ -46,7 +46,7 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         log.info("Yorum başarıyla kaydedildi. Bilet ID: {}, Yorum ID: {}", ticketId, savedComment.getId());
 
-        // Otomatik Statü Güncellemesi: Müşteri yanıt verdiğinde, bilet "WAITING_FOR_CUSTOMER" ise "IN_PROGRESS" yap.
+        // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
         if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
             log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
             ticketService.updateTicketStatus(ticketId, "IN_PROGRESS", userId, roles);
@@ -58,13 +58,13 @@ public class CommentService {
     public List<Comment> getCommentsByTicketId(Long ticketId, String userId, List<String> roles) {
         log.info("Yorum listeleme işlemi. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
-        // Bileti görme yetkisi kontrolü
+        // Yorumlari dondurmeden once bilet goruntuleme yetkisi dogrulanir.
         ticketService.getTicketWithAuth(ticketId, userId, roles);
 
         List<Comment> allComments = commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
         log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi.", ticketId, allComments.size());
 
-        // Eğer kullanıcı sadece CUSTOMER ise INTERNAL (dahili) yorumları gizle
+        // Müşteri ekraninda dahili notlar filtrelenerek sadece disa acik yorumlar dondurulur.
         boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("MANAGER");
         if (isOnlyCustomer) {
             log.debug("Müşteri filtresi uygulanıyor: Dahili yorumlar gizleniyor.");

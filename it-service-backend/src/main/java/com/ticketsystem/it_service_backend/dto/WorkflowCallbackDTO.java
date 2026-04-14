@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * jBPM'den (RestWorkItemHandler üzerinden) gelecek JSON payload modeli.
+ * jBPM callback endpoint'ine gelen olay yukunun DTO karsiligidir.
  */
 @Data
 public class WorkflowCallbackDTO {
@@ -14,9 +14,9 @@ public class WorkflowCallbackDTO {
     private Long ticketId;
 
     @NotBlank(message = "eventType zorunludur")
-    private String eventType;       // Örn: "SLA_BREACHED", "STATUS_UPDATED", "PROCESS_COMPLETED"
+    private String eventType;       // Islenecek olay turunu belirtir.
 
     private Long processInstanceId;
 
-    private String additionalData;  // Ek mesaj veya veriler (Örn: "Priority: HIGH")
+    private String additionalData;  // Olaya bagli ek aciklama/veri alani.
 }

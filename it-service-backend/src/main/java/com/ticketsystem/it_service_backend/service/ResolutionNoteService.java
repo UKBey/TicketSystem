@@ -21,22 +21,21 @@ public class ResolutionNoteService {
     private final TicketService ticketService;
 
     /**
-     * Claim'li agent, üzerindeki bilete ilk kez çözüm notu ekler.
-     * Kural: ticket.assigneeId == agentId olmalı; bilete daha önce not eklenmemiş olmalı.
+     * Bileti sahiplenen agentin, ilgili kayda ilk cozum notunu eklemesini saglar.
      */
     public ResolutionNote createResolutionNote(Long ticketId, ResolutionNoteRequestDTO dto, String agentId) {
         log.info("Çözüm notu oluşturma isteği. Bilet ID: {}, Agent: {}", ticketId, agentId);
 
-        // 1. Not içeriği boş olamaz
+        // Bos not kabul edilmez.
         if (dto.getNote() == null || dto.getNote().isBlank()) {
             log.warn("Çözüm notu reddedildi: Not içeriği boş olamaz.");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Çözüm notu içeriği boş olamaz.");
         }
 
-        // 2. Bileti çek (varlık kontrolü)
+        // Islem oncesi biletin varligi dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        // 3. Yetki kontrolü: Yalnızca claim'li agent (ticket.assigneeId) yazabilir
+        // Not yazma yetkisi yalnizca kaydin mevcut assignee kullanicisindadir.
         if (!agentId.equals(ticket.getAssigneeId())) {
             log.warn("Çözüm notu reddedildi: Agent (ID: {}) bu biletin atanan kişisi değil. Assignee: {}",
                     agentId, ticket.getAssigneeId());
@@ -44,14 +43,14 @@ public class ResolutionNoteService {
                     "Çözüm notu yalnızca bileti üzerine almış (claim'li) agent tarafından yazılabilir.");
         }
 
-        // 4. Kapalı bilete not eklenemez
+        // Kapanmis kayitlara yeni cozum notu eklenmez.
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Çözüm notu reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Kapalı (CLOSED) biletlere çözüm notu eklenemez.");
         }
 
-        // 5. Bu bilete zaten bir not eklenmiş mi? (one-to-one)
+        // Her bilet icin tek cozum notu olmasi kuralini korur.
         if (resolutionNoteRepository.existsByTicketId(ticketId)) {
             log.warn("Çözüm notu reddedildi: Bilete (ID: {}) zaten bir çözüm notu eklenmiş.", ticketId);
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -70,22 +69,21 @@ public class ResolutionNoteService {
     }
 
     /**
-     * Claim'li agent, mevcut çözüm notunu günceller.
-     * Kural: ticket.assigneeId == agentId olmalı; bilete daha önce not eklenmiş olmalı.
+     * Mevcut cozum notunu, yalnizca ilgili kaydi sahiplenen agentin guncellemesini saglar.
      */
     public ResolutionNote updateResolutionNote(Long ticketId, ResolutionNoteRequestDTO dto, String agentId) {
         log.info("Çözüm notu güncelleme isteği. Bilet ID: {}, Agent: {}", ticketId, agentId);
 
-        // 1. Not içeriği boş olamaz
+        // Bos notla guncelleme yapilmaz.
         if (dto.getNote() == null || dto.getNote().isBlank()) {
             log.warn("Çözüm notu güncelleme reddedildi: Not içeriği boş olamaz.");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Çözüm notu içeriği boş olamaz.");
         }
 
-        // 2. Bileti çek (varlık kontrolü)
+        // Islem yapilacak bilet once dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        // 3. Yetki kontrolü: Yalnızca claim'li agent güncelleyebilir
+        // Guncelleme yetkisi sadece biletin assignee kullanicisina aittir.
         if (!agentId.equals(ticket.getAssigneeId())) {
             log.warn("Çözüm notu güncelleme reddedildi: Agent (ID: {}) bu biletin atanan kişisi değil. Assignee: {}",
                     agentId, ticket.getAssigneeId());
@@ -93,14 +91,14 @@ public class ResolutionNoteService {
                     "Çözüm notu yalnızca bileti üzerine almış (claim'li) agent tarafından güncellenebilir.");
         }
 
-        // 4. Kapalı biletlerde güncelleme yapılamaz
+        // Kapanmis bilette not degistirilemez.
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Çözüm notu güncelleme reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Kapalı (CLOSED) biletlerin çözüm notu güncellenemez.");
         }
 
-        // 5. Mevcut notu bul
+        // Guncellenecek mevcut not kaydi bulunur.
         ResolutionNote resolutionNote = resolutionNoteRepository.findByTicketId(ticketId)
                 .orElseThrow(() -> {
                     log.warn("Güncellenecek çözüm notu bulunamadı. Bilet ID: {}", ticketId);
@@ -117,9 +115,7 @@ public class ResolutionNoteService {
 
 
     /**
-     * Bir biletin çözüm notunu getirir.
-     * - Claim'li agent (ticket.assigneeId == agentId) kendi biletinin notunu görebilir.
-     * - Manager tüm notları görebilir.
+     * Cozum notunu, rol ve sahiplik kurallarina gore yetkili kullaniciya dondurur.
      */
     public ResolutionNote getResolutionNoteByTicket(Long ticketId, String userId, List<String> roles) {
         log.info("Çözüm notu görüntüleme isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
@@ -152,7 +148,7 @@ public class ResolutionNoteService {
     }
 
     /**
-     * Manager: sistemdeki tüm çözüm notlarını listeler.
+     * Tum cozum notlarini yonetici gorunumu icin listeler.
      */
     public List<ResolutionNote> getAllResolutionNotes() {
         log.info("Tüm çözüm notlarını listeleme isteği (Manager).");
