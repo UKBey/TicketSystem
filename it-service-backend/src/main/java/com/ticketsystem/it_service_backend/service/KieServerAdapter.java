@@ -63,7 +63,7 @@ public class KieServerAdapter {
             log.info("jBPM süreci başarıyla başlatıldı. ProcessInstanceId={}", processInstanceId);
             return processInstanceId;
         } catch (CallNotPermittedException e) {
-            log.error("⚡ KIE Server Circuit Breaker AÇIK! Süreç başlatılamıyor. processId={}", processId);
+            log.error("KIE Server Circuit Breaker AÇIK! Süreç başlatılamıyor. processId={}", processId);
             throw new RuntimeException("KIE Server şu anda erişilemez (Circuit Breaker açık)", e);
         } catch (Exception e) {
             log.error("jBPM süreci başlatılamadı! processId={}, hata={}", processId, e.getMessage(), e);
@@ -86,7 +86,7 @@ public class KieServerAdapter {
         try {
             decoratedCall.run();
         } catch (CallNotPermittedException e) {
-            log.warn("⚡ Circuit Breaker açık — süreç değişkeni güncellenemedi: processInstanceId={}", processInstanceId);
+            log.warn("KIE Server Circuit Breaker açık — süreç değişkeni güncellenemedi: processInstanceId={}", processInstanceId);
         } catch (Exception e) {
             log.error("Süreç değişkeni güncellenemedi: processInstanceId={}, hata={}", processInstanceId, e.getMessage());
         }
@@ -101,7 +101,7 @@ public class KieServerAdapter {
         try {
             return decoratedCall.get();
         } catch (CallNotPermittedException e) {
-            log.warn("⚡ Circuit Breaker açık — süreç durumu sorgulanamadı: processInstanceId={}", processInstanceId);
+            log.warn("KIE Server Circuit Breaker açık — süreç durumu sorgulanamadı: processInstanceId={}", processInstanceId);
             return null;
         } catch (Exception e) {
             log.warn("Süreç örneği bulunamadı: processInstanceId={}, hata={}", processInstanceId, e.getMessage());
@@ -121,7 +121,7 @@ public class KieServerAdapter {
             decoratedCall.run();
             log.info("jBPM süreci başarıyla iptal edildi. ProcessInstanceId={}", processInstanceId);
         } catch (CallNotPermittedException e) {
-            log.warn("⚡ Circuit Breaker açık — süreç iptal edilemedi: processInstanceId={}", processInstanceId);
+            log.warn("KIE Server Circuit Breaker açık — süreç iptal edilemedi: processInstanceId={}", processInstanceId);
         } catch (Exception e) {
             log.error("jBPM süreci iptal edilemedi: processInstanceId={}, hata={}", processInstanceId, e.getMessage(), e);
         }
@@ -156,7 +156,7 @@ public class KieServerAdapter {
             decoratedCall.run();
             log.info("jBPM sinyal başarıyla gönderildi: processInstanceId={}, signal={}", processInstanceId, signalName);
         } catch (CallNotPermittedException e) {
-            log.warn("⚡ Circuit Breaker açık — sinyal gönderilemedi: processInstanceId={}, signal={}",
+            log.warn("KIE Server Circuit Breaker açık — sinyal gönderilemedi: processInstanceId={}, signal={}",
                     processInstanceId, signalName);
         } catch (Exception e) {
             log.error("jBPM sinyal gönderilemedi: processInstanceId={}, signal={}, hata={}",
@@ -198,7 +198,7 @@ public class KieServerAdapter {
             decoratedCall.run();
             log.info("jBPM task başarıyla tamamlandı: taskId={}", taskId);
         } catch (CallNotPermittedException e) {
-            log.error("⚡ Circuit Breaker açık — task tamamlanamıyor: taskId={}", taskId);
+            log.error("KIE Server Circuit Breaker açık — task tamamlanamıyor: taskId={}", taskId);
             throw new RuntimeException("KIE Server erişilemez (Circuit Breaker açık)", e);
         } catch (Exception e) {
             log.error("jBPM task tamamlanamadı: taskId={}, hata={}", taskId, e.getMessage(), e);
@@ -222,7 +222,7 @@ public class KieServerAdapter {
         try {
             return decoratedCall.get();
         } catch (Exception e) {
-            log.warn("Active timer sorgulanamadı: processInstanceId={}, hata={}", processInstanceId, e.getMessage());
+            log.warn("KIE Server Circuit Breaker açık — active timer sorgulanamadı: processInstanceId={}, hata={}", processInstanceId, e.getMessage());
             return null;
         }
     }

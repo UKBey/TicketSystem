@@ -44,9 +44,7 @@ public class WorkflowService {
     }
 
 
-    /**
-     * Yeni olusturulan bilet icin surec baslatir ve instance kimligini dondurur.
-     */
+    // Yeni olusturulan bilet icin surec baslatir ve instance kimligini dondurur.
     public Long startTicketWorkflow(Ticket ticket) {
         log.info("Ticket için workflow başlatılıyor. TicketId={}, Priority={}, CustomerId={}",
                 ticket.getId(), ticket.getPriority(), ticket.getCustomerId());

@@ -50,13 +50,13 @@ public class KieClientConfig {
         // Uygulama acilisinda baglanti sagligini hizli bir ping ile dogrular.
         try {
             var serverInfo = client.getServerInfo().getResult();
-            log.info("✅ KIE Server bağlantısı başarılı! Server: {}, Version: {}, Capabilities: {}",
+            log.info("KIE Server bağlantısı başarılı! Server: {}, Version: {}, Capabilities: {}",
                     serverInfo.getName(),
                     serverInfo.getVersion(),
                     serverInfo.getCapabilities());
         } catch (Exception e) {
-            log.error("❌ KIE Server bağlantısı başarısız! URL: {} — Hata: {}", kieServerUrl, e.getMessage());
-            log.warn("⚠️ Uygulama başlatılmaya devam edecek, ancak workflow özellikleri çalışmayacak.");
+            log.error("KIE Server bağlantısı başarısız! URL: {} — Hata: {}", kieServerUrl, e.getMessage());
+            log.warn("Uygulama başlatılmaya devam edecek, ancak workflow özellikleri çalışmayacak.");
         }
 
         return client;
@@ -81,7 +81,7 @@ public class KieClientConfig {
 
         cb.getEventPublisher()
                 .onStateTransition(event ->
-                        log.warn("⚡ KIE Server Circuit Breaker durum değişikliği: {}", event.getStateTransition()));
+                        log.warn("KIE Server Circuit Breaker durum değişikliği: {}", event.getStateTransition()));
 
         return cb;
     }
