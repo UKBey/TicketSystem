@@ -10,21 +10,15 @@
                    expressionLanguage="http://www.mvel.org/2.0"
                    typeLanguage="http://www.java.com/javaTypes">
 
-  <!-- ================================================================ -->
-  <!-- TICKET LIFECYCLE PROCESS v2.1 (Flat Design - No SubProcess)       -->
-  <!-- SLA Duraklatma / Devam Ettirme / Kapatma Sinyalleri ile           -->
-  <!--                                                                   -->
-  <!-- ANA AKIS:                                                         -->
-  <!--   Start -> Init -> [SLA Gateway]                                  -->
-  <!--     ├── Timer doldu -> Breach Callback -> [PostBreach Gateway]     -->
-  <!--     │                                      └── ticket_closed->END -->
-  <!--     ├── pause_sla -> [Paused Gateway]                             -->
-  <!--     │                  ├── resume_sla -> [SLA Gateway] (loop)     -->
-  <!--     │                  └── ticket_closed -> END                   -->
-  <!--     └── ticket_closed -> END                                      -->
-  <!-- ================================================================ -->
+    <!-- Ticket lifecycle sureci (flat tasarim, subprocess yok).
+      Ana akis:
+      Start -> Init -> SLA Gateway
+      - Timer dolarsa callback gonderilir, sonra close sinyali beklenir.
+      - pause_sla gelirse Paused Gateway'e gecilir.
+      - resume_sla gelirse SLA Gateway'e geri donulur.
+      - ticket_closed her iki koldan da sureci sonlandirir. -->
 
-  <!-- Süreç değişkenleri tanımları -->
+  <!-- Surec degisken tipleri -->
   <bpmn2:itemDefinition id="_ticketIdItem" structureRef="String"/>
   <bpmn2:itemDefinition id="_priorityItem" structureRef="String"/>
   <bpmn2:itemDefinition id="_customerIdItem" structureRef="String"/>
@@ -33,7 +27,7 @@
   <bpmn2:itemDefinition id="_callbackUrlItem" structureRef="String"/>
   <bpmn2:itemDefinition id="_slaDurationItem" structureRef="String"/>
 
-  <!-- Sinyal tanımları -->
+  <!-- Disardan alinacak surec sinyalleri -->
   <bpmn2:signal id="Signal_PauseSla" name="pause_sla"/>
   <bpmn2:signal id="Signal_ResumeSla" name="resume_sla"/>
   <bpmn2:signal id="Signal_TicketClosed" name="ticket_closed"/>
@@ -43,7 +37,7 @@
                  isExecutable="true"
                  tns:packageName="com.ticketsystem.workflow">
 
-    <!-- Süreç değişkenleri -->
+    <!-- Surec degiskenleri -->
     <bpmn2:property id="ticketId" itemSubjectRef="_ticketIdItem"/>
     <bpmn2:property id="priority" itemSubjectRef="_priorityItem"/>
     <bpmn2:property id="customerId" itemSubjectRef="_customerIdItem"/>
@@ -52,16 +46,12 @@
     <bpmn2:property id="callbackUrl" itemSubjectRef="_callbackUrlItem"/>
     <bpmn2:property id="slaDuration" itemSubjectRef="_slaDurationItem"/>
 
-    <!-- ============================================================== -->
-    <!-- 1. START EVENT                                                  -->
-    <!-- ============================================================== -->
+    <!-- 1) Baslangic olayi -->
     <bpmn2:startEvent id="StartEvent_1" name="Ticket Created">
       <bpmn2:outgoing>Flow_Start_To_Init</bpmn2:outgoing>
     </bpmn2:startEvent>
 
-    <!-- ============================================================== -->
-    <!-- 2. SCRIPT: Baslangiç logu                                       -->
-    <!-- ============================================================== -->
+    <!-- 2) Baslangic log adimi -->
     <bpmn2:scriptTask id="ScriptTask_Init" name="Log Ticket Init" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_Start_To_Init</bpmn2:incoming>
       <bpmn2:outgoing>Flow_Init_To_SlaGateway</bpmn2:outgoing>
@@ -70,19 +60,14 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- ============================================================== -->
-    <!-- 3a. XOR MERGE: Init ve Resume akışlarını birleştirir             -->
-    <!--     (EventBasedGateway birden fazla incoming kabul etmez)        -->
-    <!-- ============================================================== -->
+        <!-- 3a) Init ve resume kollari tek giriste birlestirilir. -->
     <bpmn2:exclusiveGateway id="Gateway_XorMerge" name="Merge Gateway" gatewayDirection="Converging">
       <bpmn2:incoming>Flow_Init_To_XorMerge</bpmn2:incoming>
       <bpmn2:incoming>Flow_ResumeScript_To_XorMerge</bpmn2:incoming>
       <bpmn2:outgoing>Flow_XorMerge_To_SlaGateway</bpmn2:outgoing>
     </bpmn2:exclusiveGateway>
 
-    <!-- ============================================================== -->
-    <!-- 3b. SLA ANA GATEWAY: Timer / PauseSla / TicketClosed bekler      -->
-    <!-- ============================================================== -->
+    <!-- 3b) SLA ana bekleme noktasi: timer, pause_sla veya ticket_closed -->
     <bpmn2:eventBasedGateway id="Gateway_Sla" name="SLA Gateway" gatewayDirection="Diverging">
       <bpmn2:incoming>Flow_XorMerge_To_SlaGateway</bpmn2:incoming>
       <bpmn2:outgoing>Flow_SlaGw_To_Timer</bpmn2:outgoing>
@@ -90,7 +75,7 @@
       <bpmn2:outgoing>Flow_SlaGw_To_CloseSignal1</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <!-- SLA TIMER: slaDuration değişkenine göre dinamik süre -->
+    <!-- SLA timer'i slaDuration degiskenine gore dinamik calisir -->
     <bpmn2:intermediateCatchEvent id="Timer_SlaDeadline" name="SLA Timer">
       <bpmn2:incoming>Flow_SlaGw_To_Timer</bpmn2:incoming>
       <bpmn2:outgoing>Flow_Timer_To_BreachLog</bpmn2:outgoing>
@@ -99,24 +84,21 @@
       </bpmn2:timerEventDefinition>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- PAUSE SLA SİNYALİ -->
+    <!-- pause_sla sinyali -->
     <bpmn2:intermediateCatchEvent id="Signal_PauseSla_Catch" name="Pause SLA Signal">
       <bpmn2:incoming>Flow_SlaGw_To_PauseSignal</bpmn2:incoming>
       <bpmn2:outgoing>Flow_PauseSignal_To_PauseLog</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_PauseSla"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- CLOSE SİNYALİ (SLA aktifken) -->
+    <!-- SLA aktifken close sinyali -->
     <bpmn2:intermediateCatchEvent id="Signal_Close_InSla" name="Close (SLA Active)">
       <bpmn2:incoming>Flow_SlaGw_To_CloseSignal1</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInSla_To_CloseLog</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TicketClosed"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- ============================================================== -->
-    <!-- 4. SLA BREACH YOLU: Timer doldu -> Log -> REST Callback         -->
-    <!--    -> PostBreach Gateway (artik sadece ticket_closed bekler)     -->
-    <!-- ============================================================== -->
+    <!-- 4) SLA breach yolu: timer -> log -> REST callback -->
     <bpmn2:scriptTask id="ScriptTask_BreachLog" name="Log SLA Breach" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_Timer_To_BreachLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_BreachLog_To_RestCall</bpmn2:outgoing>
@@ -125,7 +107,7 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- REST CALLBACK: Spring Boot'a SLA Breach bildirimi -->
+    <!-- Spring Boot'a SLA breach bildirimi gonderen REST task'i -->
     <bpmn2:task id="RestTask_SlaCallback" name="SLA Breach Callback" drools:taskName="Rest">
       <bpmn2:incoming>Flow_BreachLog_To_RestCall</bpmn2:incoming>
       <bpmn2:outgoing>Flow_RestCall_To_PostBreachGw</bpmn2:outgoing>
@@ -181,11 +163,9 @@
       </bpmn2:dataInputAssociation>
     </bpmn2:task>
 
-    <!-- ============================================================== -->
-    <!-- 5. POST-BREACH: SLA zaten asildi, ticket_closed sinyali bekle    -->
-    <!-- ============================================================== -->
+    <!-- 5) Post-breach: SLA asildiktan sonra close sinyali beklenir -->
 
-    <!-- CLOSE SINYALI (SLA patlamasindan sonra) -->
+    <!-- SLA breach sonrasinda close sinyali -->
     <bpmn2:intermediateCatchEvent id="Signal_Close_PostBreach" name="Close (Post Breach)">
       <bpmn2:incoming>Flow_RestCall_To_PostBreachClose</bpmn2:incoming>
       <bpmn2:outgoing>Flow_ClosePostBreach_To_PostBreachCloseLog</bpmn2:outgoing>
@@ -200,11 +180,8 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- ============================================================== -->
-    <!-- 6. PAUSE YOLU: SLA durduruldu -> Paused Gateway                 -->
-    <!--    resume_sla -> SLA Gateway'e geri dön (loop)                  -->
-    <!--    ticket_closed -> END                                         -->
-    <!-- ============================================================== -->
+        <!-- 6) Pause yolu: pause_sla -> Paused Gateway.
+          resume_sla ile SLA akisi devam eder, ticket_closed ile biter. -->
     <bpmn2:scriptTask id="ScriptTask_PauseLog" name="Log SLA Paused" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_PauseSignal_To_PauseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_PauseLog_To_PausedGw</bpmn2:outgoing>
@@ -219,21 +196,21 @@
       <bpmn2:outgoing>Flow_PausedGw_To_CloseSignal2</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <!-- RESUME SLA SİNYALİ -->
+    <!-- resume_sla sinyali -->
     <bpmn2:intermediateCatchEvent id="Signal_ResumeSla_Catch" name="Resume SLA Signal">
       <bpmn2:incoming>Flow_PausedGw_To_ResumeSignal</bpmn2:incoming>
       <bpmn2:outgoing>Flow_ResumeSignal_To_ResumeLog</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_ResumeSla"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- CLOSE SİNYALİ (Bekleme modundayken) -->
+    <!-- Bekleme modundayken close sinyali -->
     <bpmn2:intermediateCatchEvent id="Signal_Close_InPaused" name="Close (Paused)">
       <bpmn2:incoming>Flow_PausedGw_To_CloseSignal2</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInPaused_To_CloseLog</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TicketClosed"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- RESUME LOGU (SLA devam ettiriliyor, SLA Gateway'e geri dön) -->
+    <!-- Resume log adimi, ardindan SLA akisina donus -->
     <bpmn2:scriptTask id="ScriptTask_ResumeLog" name="Log SLA Resumed" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_ResumeSignal_To_ResumeLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_ResumeScript_To_SlaGateway</bpmn2:outgoing>
@@ -242,9 +219,7 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- ============================================================== -->
-    <!-- 7a. CLOSE LOG (SLA aktifken close sinyali geldi)                 -->
-    <!-- ============================================================== -->
+    <!-- 7a) SLA aktif kolda kapanis logu -->
     <bpmn2:scriptTask id="ScriptTask_CloseInSlaLog" name="Log Close (SLA Active)" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_CloseInSla_To_CloseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInSlaLog_To_End1</bpmn2:outgoing>
@@ -253,9 +228,7 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- ============================================================== -->
-    <!-- 7b. CLOSE LOG (Bekleme modundayken close sinyali geldi)          -->
-    <!-- ============================================================== -->
+    <!-- 7b) Bekleme kolda kapanis logu -->
     <bpmn2:scriptTask id="ScriptTask_CloseInPausedLog" name="Log Close (Paused)" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_CloseInPaused_To_CloseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInPausedLog_To_End2</bpmn2:outgoing>
@@ -264,9 +237,7 @@
       </bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- ============================================================== -->
-    <!-- 8. END EVENTS                                                   -->
-    <!-- ============================================================== -->
+    <!-- 8) Surec bitis olaylari -->
     <bpmn2:endEvent id="EndEvent_ClosedFromSla" name="Closed (SLA Active)">
       <bpmn2:incoming>Flow_CloseInSlaLog_To_End1</bpmn2:incoming>
     </bpmn2:endEvent>
@@ -279,51 +250,49 @@
       <bpmn2:incoming>Flow_PostBreachClose_To_End3</bpmn2:incoming>
     </bpmn2:endEvent>
 
-    <!-- ============================================================== -->
-    <!-- SEQUENCE FLOWS                                                  -->
-    <!-- ============================================================== -->
-    <!-- Start -> Init -> SLA Gateway -->
+    <!-- Sequence flow baglantilari -->
+    <!-- Start -> Init -> Merge -> SLA Gateway -->
     <bpmn2:sequenceFlow id="Flow_Start_To_Init" sourceRef="StartEvent_1" targetRef="ScriptTask_Init"/>
     <bpmn2:sequenceFlow id="Flow_Init_To_XorMerge" sourceRef="ScriptTask_Init" targetRef="Gateway_XorMerge"/>
     <bpmn2:sequenceFlow id="Flow_XorMerge_To_SlaGateway" sourceRef="Gateway_XorMerge" targetRef="Gateway_Sla"/>
 
-    <!-- SLA Gateway çıkışları -->
+    <!-- SLA Gateway cikislari -->
     <bpmn2:sequenceFlow id="Flow_SlaGw_To_Timer" sourceRef="Gateway_Sla" targetRef="Timer_SlaDeadline"/>
     <bpmn2:sequenceFlow id="Flow_SlaGw_To_PauseSignal" sourceRef="Gateway_Sla" targetRef="Signal_PauseSla_Catch"/>
     <bpmn2:sequenceFlow id="Flow_SlaGw_To_CloseSignal1" sourceRef="Gateway_Sla" targetRef="Signal_Close_InSla"/>
 
-    <!-- Timer -> Breach Log -> REST Callback -> PostBreach Gateway -->
+    <!-- Timer -> Breach Log -> REST Callback -->
     <bpmn2:sequenceFlow id="Flow_Timer_To_BreachLog" sourceRef="Timer_SlaDeadline" targetRef="ScriptTask_BreachLog"/>
     <bpmn2:sequenceFlow id="Flow_BreachLog_To_RestCall" sourceRef="ScriptTask_BreachLog" targetRef="RestTask_SlaCallback"/>
     <bpmn2:sequenceFlow id="Flow_RestCall_To_PostBreachClose" sourceRef="RestTask_SlaCallback" targetRef="Signal_Close_PostBreach"/>
 
-    <!-- PostBreach Close Signal -> Log -> End -->
+    <!-- Post-breach close -> log -> end -->
     <bpmn2:sequenceFlow id="Flow_ClosePostBreach_To_PostBreachCloseLog" sourceRef="Signal_Close_PostBreach" targetRef="ScriptTask_PostBreachClose"/>
     <bpmn2:sequenceFlow id="Flow_PostBreachClose_To_End3" sourceRef="ScriptTask_PostBreachClose" targetRef="EndEvent_ClosedPostBreach"/>
 
-    <!-- Pause Signal -> Pause Log -> Paused Gateway -->
+    <!-- Pause sinyali -> pause log -> paused gateway -->
     <bpmn2:sequenceFlow id="Flow_PauseSignal_To_PauseLog" sourceRef="Signal_PauseSla_Catch" targetRef="ScriptTask_PauseLog"/>
     <bpmn2:sequenceFlow id="Flow_PauseLog_To_PausedGw" sourceRef="ScriptTask_PauseLog" targetRef="Gateway_Paused"/>
 
-    <!-- Paused Gateway çıkışları -->
+    <!-- Paused Gateway cikislari -->
     <bpmn2:sequenceFlow id="Flow_PausedGw_To_ResumeSignal" sourceRef="Gateway_Paused" targetRef="Signal_ResumeSla_Catch"/>
     <bpmn2:sequenceFlow id="Flow_PausedGw_To_CloseSignal2" sourceRef="Gateway_Paused" targetRef="Signal_Close_InPaused"/>
 
-    <!-- Resume -> Resume Log -> SLA Gateway (loop) -->
+    <!-- Resume -> resume log -> merge (loop) -->
     <bpmn2:sequenceFlow id="Flow_ResumeSignal_To_ResumeLog" sourceRef="Signal_ResumeSla_Catch" targetRef="ScriptTask_ResumeLog"/>
     <bpmn2:sequenceFlow id="Flow_ResumeScript_To_XorMerge" sourceRef="ScriptTask_ResumeLog" targetRef="Gateway_XorMerge"/>
 
-    <!-- Close (SLA active) -> Log -> End -->
+    <!-- Close (SLA active) -> log -> end -->
     <bpmn2:sequenceFlow id="Flow_CloseInSla_To_CloseLog" sourceRef="Signal_Close_InSla" targetRef="ScriptTask_CloseInSlaLog"/>
     <bpmn2:sequenceFlow id="Flow_CloseInSlaLog_To_End1" sourceRef="ScriptTask_CloseInSlaLog" targetRef="EndEvent_ClosedFromSla"/>
 
-    <!-- Close (Paused) -> Log -> End -->
+    <!-- Close (Paused) -> log -> end -->
     <bpmn2:sequenceFlow id="Flow_CloseInPaused_To_CloseLog" sourceRef="Signal_Close_InPaused" targetRef="ScriptTask_CloseInPausedLog"/>
     <bpmn2:sequenceFlow id="Flow_CloseInPausedLog_To_End2" sourceRef="ScriptTask_CloseInPausedLog" targetRef="EndEvent_ClosedFromPaused"/>
 
   </bpmn2:process>
 
-  <!-- DIAGRAM -->
+  <!-- BPMN diyagram yerlesim bilgileri -->
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="com.ticketsystem.workflow.ticket-lifecycle">
       <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_1">

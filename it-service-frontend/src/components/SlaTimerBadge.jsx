@@ -10,7 +10,7 @@ export default function SlaTimerBadge({ ticket, now }) {
   // Sayaç duraklatilmis veya surec tamamlanmis senaryosu.
   if (slaInfo.deadlineTimestamp === -1) {
     if (slaInfo.remainingMs <= 0 && ticket.slaBreached) {
-      return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+      return <span className="badge badge-sla-breach">Süresi Doldu</span>;
     }
     if (slaInfo.remainingMs > 0) {
       const diff = slaInfo.remainingMs;
@@ -30,7 +30,7 @@ export default function SlaTimerBadge({ ticket, now }) {
   const diff = slaInfo.remainingMs - elapsedSinceFetch;
 
   if (diff <= 0) {
-    return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+    return <span className="badge badge-sla-breach">Süresi Doldu</span>;
   }
 
   const mins = Math.floor(diff / 60000);
