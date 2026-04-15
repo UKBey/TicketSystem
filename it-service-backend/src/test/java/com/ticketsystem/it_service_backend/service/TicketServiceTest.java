@@ -151,6 +151,212 @@ class TicketServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
+        @Test
+        void getAllTickets_whenManager_returnsAllTickets() {
+                Ticket ticket = Ticket.builder().id(701L).build();
+                when(ticketRepository.findAll()).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getAllTickets("manager-1", List.of("MANAGER"));
+
+                assertEquals(1, result.size());
+                assertEquals(701L, result.get(0).getId());
+        }
+
+        @Test
+        void getAllTickets_whenUserIdMissing_returnsEmptyList() {
+                List<Ticket> result = ticketService.getAllTickets(null, List.of("AGENT"));
+
+                assertEquals(0, result.size());
+        }
+
+        @Test
+        void getAllTickets_whenAgentReturnsAuthorizedTickets() {
+                Ticket ticket = Ticket.builder().id(702L).build();
+                User agentUser = User.builder()
+                                .id("agent-1")
+                                .email("agent@example.com")
+                                .fullName("Agent User")
+                                .role("AGENT")
+                                .authorizedProducts(List.of(product))
+                                .build();
+
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agentUser));
+                when(ticketRepository.findByCustomerIdOrProductIdIn("agent-1", List.of(10L))).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getAllTickets("agent-1", List.of("AGENT"));
+
+                assertEquals(1, result.size());
+                assertEquals(702L, result.get(0).getId());
+        }
+
+        @Test
+        void getPoolTickets_whenManager_returnsNewTickets() {
+                Ticket ticket = Ticket.builder().id(703L).build();
+                when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getPoolTickets("manager-1", List.of("MANAGER"));
+
+                assertEquals(1, result.size());
+                assertEquals(703L, result.get(0).getId());
+        }
+
+        @Test
+        void getPoolTickets_whenAgentHasNoProducts_returnsEmptyList() {
+                User agentWithoutProducts = User.builder()
+                                .id("agent-3")
+                                .email("agent3@example.com")
+                                .fullName("Agent Three")
+                                .role("AGENT")
+                                .authorizedProducts(List.of())
+                                .build();
+
+                when(userRepository.findById("agent-3")).thenReturn(Optional.of(agentWithoutProducts));
+
+                List<Ticket> result = ticketService.getPoolTickets("agent-3", List.of("AGENT"));
+
+                assertEquals(0, result.size());
+        }
+
+        @Test
+        void getTicketWithAuth_whenManager_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(704L).customerId("customer-1").build();
+                when(ticketRepository.findById(704L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.getTicketWithAuth(704L, "manager-1", List.of("MANAGER"));
+
+                assertEquals(704L, result.getId());
+        }
+
+        @Test
+        void getTicketWithAuth_whenCustomerOwnsTicket_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(705L).customerId("customer-1").build();
+                when(ticketRepository.findById(705L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.getTicketWithAuth(705L, "customer-1", List.of("CUSTOMER"));
+
+                assertEquals(705L, result.getId());
+        }
+
+        @Test
+        void getTicketWithAuth_whenAgentAuthorized_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(706L).productId(10L).customerId("customer-1").build();
+                when(ticketRepository.findById(706L)).thenReturn(Optional.of(ticket));
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+
+                Ticket result = ticketService.getTicketWithAuth(706L, "agent-1", List.of("AGENT"));
+
+                assertEquals(706L, result.getId());
+        }
+
+        @Test
+        void validateMutationAccess_whenManager_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(707L).customerId("customer-1").build();
+                when(ticketRepository.findById(707L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.validateMutationAccess(707L, "manager-1", List.of("MANAGER"));
+
+                assertEquals(707L, result.getId());
+        }
+
+        @Test
+        void validateMutationAccess_whenCustomerOwnsTicket_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(708L).customerId("customer-1").build();
+                when(ticketRepository.findById(708L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.validateMutationAccess(708L, "customer-1", List.of("CUSTOMER"));
+
+                assertEquals(708L, result.getId());
+        }
+
+        @Test
+        void validateMutationAccess_whenAgentAssigned_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(709L).assigneeId("agent-1").customerId("customer-1").build();
+                when(ticketRepository.findById(709L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.validateMutationAccess(709L, "agent-1", List.of("AGENT"));
+
+                assertEquals(709L, result.getId());
+        }
+
+        @Test
+        void claimTicket_whenAgentAuthorized_updatesAssignmentAndSyncsWorkflow() {
+                Ticket existing = Ticket.builder()
+                                .id(203L)
+                                .title("Pool ticket")
+                                .description("desc")
+                                .priority("MEDIUM")
+                                .status("NEW")
+                                .productId(10L)
+                                .customerId("customer-1")
+                                .build();
+
+                when(ticketRepository.findById(203L)).thenReturn(Optional.of(existing));
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                Ticket updated = ticketService.claimTicket(203L, "agent-1");
+
+                assertEquals("agent-1", updated.getAssigneeId());
+                assertEquals("IN_PROGRESS", updated.getStatus());
+                verify(workflowService).syncTicketAssignment(updated);
+        }
+
+        @Test
+        void updateTicketStatus_whenResolved_setsResolvedAtAndPausesSla() {
+                Ticket existing = Ticket.builder()
+                                .id(304L)
+                                .title("Ticket")
+                                .description("desc")
+                                .priority("HIGH")
+                                .status("IN_PROGRESS")
+                                .productId(10L)
+                                .customerId("customer-1")
+                                .assigneeId("agent-1")
+                                .build();
+
+                when(ticketRepository.findById(304L)).thenReturn(Optional.of(existing));
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "agent-1", List.of("AGENT"));
+
+                assertEquals("RESOLVED", updated.getStatus());
+                assertNotNull(updated.getResolvedAt());
+                verify(workflowService).pauseSla(updated);
+                verify(ticketRepository, times(2)).save(any(Ticket.class));
+        }
+
+        @Test
+        void updateTicketStatus_whenWaitingForCustomer_resumesLaterOnInProgress() {
+                Ticket waiting = Ticket.builder()
+                                .id(305L)
+                                .title("Ticket")
+                                .description("desc")
+                                .priority("HIGH")
+                                .status("WAITING_FOR_CUSTOMER")
+                                .productId(10L)
+                                .customerId("customer-1")
+                                .build();
+                Ticket resumed = Ticket.builder()
+                                .id(305L)
+                                .title("Ticket")
+                                .description("desc")
+                                .priority("HIGH")
+                                .status("WAITING_FOR_CUSTOMER")
+                                .productId(10L)
+                                .customerId("customer-1")
+                                .build();
+
+                when(ticketRepository.findById(305L)).thenReturn(Optional.of(waiting));
+                when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                Ticket updated = ticketService.updateTicketStatus(305L, "IN_PROGRESS", "customer-1", List.of("CUSTOMER"));
+
+                assertEquals("IN_PROGRESS", updated.getStatus());
+                verify(workflowService).resumeSla(updated);
+                verify(ticketRepository, times(2)).save(any(Ticket.class));
+        }
+
     @Test
     void claimTicket_whenTicketNotNew_throwsRuntimeException() {
         Ticket existing = Ticket.builder()

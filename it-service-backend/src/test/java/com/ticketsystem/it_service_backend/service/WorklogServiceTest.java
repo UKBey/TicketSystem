@@ -18,6 +18,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,12 +68,58 @@ class WorklogServiceTest {
     }
 
     @Test
+    void addWorklog_whenNotAssignee_throwsForbidden() {
+        WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(30).description("investigation").build();
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.addWorklog(20L, dto, "agent-2"));
+
+        assertEquals(403, ex.getStatusCode().value());
+        verify(worklogRepository, never()).save(any(TicketWorklog.class));
+    }
+
+    @Test
+    void addWorklog_whenTicketClosed_throwsBadRequest() {
+        Ticket closedTicket = Ticket.builder().id(20L).assigneeId("agent-1").status("CLOSED").build();
+        WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(30).description("investigation").build();
+        when(ticketService.getTicketById(20L)).thenReturn(closedTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.addWorklog(20L, dto, "agent-1"));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
     void getWorklogsByTicket_agentNotAssignee_throwsForbidden() {
         Ticket otherAssigned = Ticket.builder().id(20L).assigneeId("agent-2").status("IN_PROGRESS").build();
         when(ticketService.getTicketById(20L)).thenReturn(otherAssigned);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> worklogService.getWorklogsByTicket(20L, "agent-1", List.of("AGENT")));
+
+        assertEquals(403, ex.getStatusCode().value());
+    }
+
+    @Test
+    void getWorklogsByTicket_managerReturnsRepositoryResult() {
+        TicketWorklog worklog = TicketWorklog.builder().id(10L).ticketId(20L).agentId("agent-1").minutes(15).build();
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+        when(worklogRepository.findByTicketId(20L)).thenReturn(List.of(worklog));
+
+        List<TicketWorklog> result = worklogService.getWorklogsByTicket(20L, "manager-1", List.of("MANAGER"));
+
+        assertEquals(1, result.size());
+        assertEquals(10L, result.get(0).getId());
+    }
+
+    @Test
+    void getWorklogsByTicket_withoutManagerOrAgent_throwsForbidden() {
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.getWorklogsByTicket(20L, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(403, ex.getStatusCode().value());
     }
@@ -84,5 +132,77 @@ class WorklogServiceTest {
         worklogService.deleteWorklog(99L, "agent-1", List.of("AGENT"));
 
         verify(worklogRepository).deleteById(99L);
+    }
+
+    @Test
+    void deleteWorklog_managerDeletes() {
+        TicketWorklog worklog = TicketWorklog.builder().id(100L).ticketId(20L).agentId("agent-2").minutes(15).build();
+        when(worklogRepository.findById(100L)).thenReturn(Optional.of(worklog));
+
+        worklogService.deleteWorklog(100L, "manager-1", List.of("MANAGER"));
+
+        verify(worklogRepository).deleteById(100L);
+    }
+
+    @Test
+    void updateWorklog_nonPositiveMinutes_throwsBadRequest() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.updateWorklog(20L, 101L,
+                        WorklogRequestDTO.builder().minutes(0).description("x").build(), "agent-1"));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void updateWorklog_whenTicketMismatched_throwsBadRequest() {
+        TicketWorklog worklog = TicketWorklog.builder().id(102L).ticketId(21L).agentId("agent-1").minutes(15).build();
+        when(worklogRepository.findById(102L)).thenReturn(Optional.of(worklog));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.updateWorklog(20L, 102L,
+                        WorklogRequestDTO.builder().minutes(10).description("x").build(), "agent-1"));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void updateWorklog_whenOwnerMismatch_throwsForbidden() {
+        TicketWorklog worklog = TicketWorklog.builder().id(103L).ticketId(20L).agentId("agent-2").minutes(15).build();
+        when(worklogRepository.findById(103L)).thenReturn(Optional.of(worklog));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.updateWorklog(20L, 103L,
+                        WorklogRequestDTO.builder().minutes(10).description("x").build(), "agent-1"));
+
+        assertEquals(403, ex.getStatusCode().value());
+    }
+
+    @Test
+    void updateWorklog_whenTicketClosed_throwsBadRequest() {
+        Ticket closedTicket = Ticket.builder().id(20L).assigneeId("agent-1").status("CLOSED").build();
+        TicketWorklog worklog = TicketWorklog.builder().id(104L).ticketId(20L).agentId("agent-1").minutes(15).build();
+        when(worklogRepository.findById(104L)).thenReturn(Optional.of(worklog));
+        when(ticketService.getTicketById(20L)).thenReturn(closedTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.updateWorklog(20L, 104L,
+                        WorklogRequestDTO.builder().minutes(10).description("x").build(), "agent-1"));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void updateWorklog_partialUpdate_keepsMissingFields() {
+        TicketWorklog worklog = TicketWorklog.builder().id(105L).ticketId(20L).agentId("agent-1").minutes(15).description("old").build();
+        when(worklogRepository.findById(105L)).thenReturn(Optional.of(worklog));
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+        when(worklogRepository.save(any(TicketWorklog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TicketWorklog updated = worklogService.updateWorklog(20L, 105L,
+                WorklogRequestDTO.builder().description("new").build(), "agent-1");
+
+        assertEquals(15, updated.getMinutes());
+        assertEquals("new", updated.getDescription());
+        verify(worklogRepository).save(worklog);
     }
 }
