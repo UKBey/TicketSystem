@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
@@ -26,6 +26,12 @@ export default function TicketDetail() {
   const [slaInfo, setSlaInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(Date.now());
 
+  // Dosya ekleri icin durum degiskenleri
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Mevcut durumdan gecilebilecek hedef durum listesi.
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
@@ -38,6 +44,7 @@ export default function TicketDetail() {
   useEffect(() => {
     fetchTicket();
     fetchComments();
+    fetchAttachments();
   }, [id]);
 
   useEffect(() => {
@@ -63,6 +70,16 @@ export default function TicketDetail() {
     return () => clearInterval(timer);
   }, []);
 
+  // Yorum ve dosya eklerini createdAt'e gore birlestirip kronolojik siralar.
+  const timeline = useMemo(() => {
+    const items = [
+      ...comments.map((c) => ({ ...c, _type: 'comment' })),
+      ...attachments.map((a) => ({ ...a, _type: 'attachment' })),
+    ];
+    items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    return items;
+  }, [comments, attachments]);
+
   const fetchTicket = async () => {
     try {
       const res = await api.get(`/tickets/${id}`);
@@ -82,6 +99,90 @@ export default function TicketDetail() {
       console.error('Yorumlar yüklenemedi:', err);
     }
   };
+
+  // Bilete bagli dosya eklerini sunucudan ceker.
+  const fetchAttachments = async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/attachments`);
+      setAttachments(res.data);
+    } catch (err) {
+      console.error('Dosya ekleri yüklenemedi:', err);
+    }
+  };
+
+  // Secilen dosyayi multipart/form-data olarak bilete yukler.
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post(`/tickets/${id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setAttachments((prev) => [...prev, res.data]);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Dosya yüklenemedi.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Dosya indirme: icerik blob olarak alinir ve tarayici indirme tetiklenir.
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      const res = await api.get(`/attachments/${attachment.id}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', attachment.fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Dosya indirilemedi.');
+    }
+  };
+
+  // Dosya tipine gore ikon belirler.
+  const getFileIcon = (fileType) => {
+    if (!fileType) return '📄';
+    if (fileType.startsWith('image/')) return '🖼️';
+    if (fileType.includes('pdf')) return '📕';
+    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar')) return '📦';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('sheet') || fileType.includes('excel')) return '📊';
+    if (fileType.includes('text') || fileType.includes('log')) return '📃';
+    return '📄';
+  };
+
+  // Dosya boyutunu okunabilir formata cevirir.
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Surukleme olaylarini yonetir.
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
+  }, [id]);
 
   const handleSendComment = async () => {
     if (!message.trim()) return;
@@ -216,30 +317,58 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        {/* Yorum gecmisinin gosterildigi sohbet alani. */}
+        {/* Yorum ve dosya eklerinin kronolojik olarak gosterildigi sohbet alani. */}
         <div className="card">
           <div className="chat-area">
-            {comments.length === 0 && (
+            {timeline.length === 0 && (
               <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
-                <p>Henüz yorum bulunmuyor.</p>
+                <p>Henüz yorum veya dosya eki bulunmuyor.</p>
               </div>
             )}
-            {comments.map((c) => {
-              const isOwnComment = c.authorId === user?.id;
-              const isInternal = c.type === 'INTERNAL';
+            {timeline.map((item) => {
+              const itemAuthorId = item._type === 'attachment' ? item.uploaderId : item.authorId;
+              const itemAuthorName = item._type === 'attachment' ? null : item.authorName;
+              const isOwnItem = itemAuthorId === user?.id;
+              const isInternal = item.type === 'INTERNAL'; // Attachments are implicitly EXTERNAL in this case
 
               let messageClass = 'chat-message-customer';
-              if (isOwnComment && !isInternal) messageClass = 'chat-message-agent';
+              if (isOwnItem && !isInternal) messageClass = 'chat-message-agent';
               if (isInternal) messageClass = 'chat-message-internal';
 
+              const displayName = itemAuthorName || (itemAuthorId === ticket.customerId ? ticket.customerName : 'Agent');
+
               return (
-                <div key={c.id} className={`chat-message ${messageClass}`}>
+                <div key={`${item._type}-${item.id}`} className={`chat-message ${messageClass}`}>
                   <div className="chat-author">
-                    {c.authorName || (c.authorId === ticket.customerId ? ticket.customerName : 'Agent')}
+                    {displayName}
                     {isInternal && <span className="badge badge-internal">Internal</span>}
                   </div>
-                  <div>{c.message}</div>
-                  <div className="chat-time">{formatShortDate(c.createdAt)}</div>
+                  
+                  {item._type === 'attachment' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      <div 
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}
+                        onClick={() => handleDownloadAttachment(item)}
+                        title="İndirmek için tıklayın"
+                      >
+                        <span style={{ fontSize: '1.5rem' }}>{getFileIcon(item.fileType)}</span>
+                        <span style={{ fontWeight: 600 }}>{item.fileName}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => handleDownloadAttachment(item)}
+                          style={{ borderColor: 'rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.2)' }}
+                        >
+                          ⬇ İndir
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>{item.message}</div>
+                  )}
+
+                  <div className="chat-time">{formatShortDate(item.createdAt)}</div>
                 </div>
               );
             })}
@@ -275,6 +404,21 @@ export default function TicketDetail() {
                   onKeyDown={handleKeyDown}
                   disabled={sending}
                 />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                />
+                <button
+                  className="btn btn-outline btn-icon"
+                  title="Dosya Ekle"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  type="button"
+                >
+                  {uploading ? '⏳' : '📎'}
+                </button>
                 <button
                   className="btn btn-primary"
                   onClick={handleSendComment}
@@ -395,6 +539,8 @@ export default function TicketDetail() {
             )}
           </div>
         </div>
+
+
 
         {/* Musterinin cozum onayi ve CSAT akis girisi. */}
         {isCustomer && ticket.status === 'RESOLVED' && (

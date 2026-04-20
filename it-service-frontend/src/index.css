@@ -957,3 +957,206 @@ a:hover {
 .chip-remove:hover {
   color: var(--color-danger);
 }
+
+/* Dosya eki bilesenleri */
+.attachment-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--border-radius);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: center;
+}
+
+.attachment-dropzone:hover {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.04);
+  color: var(--color-primary);
+}
+
+.attachment-dropzone.drag-over {
+  border-color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--color-primary);
+}
+
+.attachment-dropzone-icon {
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+.attachment-dropzone-sm {
+  padding: var(--space-2) var(--space-3);
+  flex-direction: row;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+.attachment-dropzone-sm .attachment-dropzone-icon {
+  display: none;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.attachment-item:hover {
+  background: #f8fafc;
+  border-color: var(--color-border);
+}
+
+.attachment-item-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.attachment-item-info:hover .attachment-item-name {
+  color: var(--color-primary);
+}
+
+.attachment-item-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.attachment-item-details {
+  min-width: 0;
+}
+
+.attachment-item-name {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+.attachment-item-meta {
+  font-size: 11px;
+  color: var(--color-text-light);
+}
+
+.attachment-item-delete {
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  font-size: 12px;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.attachment-item-delete:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Ikon buton */
+.btn-icon {
+  padding: var(--space-2);
+  min-width: 36px;
+  justify-content: center;
+  font-size: var(--font-size-md);
+}
+
+/* Sohbet akisindaki inline dosya eki karti */
+.chat-message-attachment {
+  align-self: center !important;
+  max-width: 85% !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.chat-attachment-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: #f0f4ff;
+  border: 1px solid #dbe4f8;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-fast);
+}
+
+.chat-attachment-card:hover {
+  background: #e8eefb;
+  border-color: #c7d4f0;
+}
+
+.chat-attachment-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.chat-attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-attachment-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+.chat-attachment-name:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.chat-attachment-meta {
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: 1px;
+}
+
+.chat-attachment-download {
+  background: none;
+  border: none;
+  font-size: var(--font-size-md);
+  color: var(--color-text-light);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.chat-attachment-download:hover {
+  color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.08);
+}
