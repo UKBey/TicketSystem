@@ -1211,3 +1211,55 @@ a:hover {
   border-radius: var(--border-radius-sm);
   background: var(--color-bg);
 }
+
+/* Bilet listesi sekme butonlari */
+.ticket-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid var(--color-border-light);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ticket-tab-btn:first-child {
+  border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
+}
+
+.ticket-tab-btn:last-child {
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  border-left: none;
+}
+
+.ticket-tab-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.ticket-tab-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.ticket-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.ticket-tab-btn.active .ticket-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+}
