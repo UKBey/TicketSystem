@@ -202,15 +202,13 @@ public class TicketController {
             ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse("Unknown") 
             : "Unknown";
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, assigneeName);
-        if (roles.contains("AGENT") || roles.contains("MANAGER")) {
-            dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
-        }
+        dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
         return dto;
     }
 
     @GetMapping("/{id}/sla-timer")
     @Operation(summary = "Get SLA timer information from jBPM", description = "Returns the precise Unix timestamp (ms) for the SLA deadline, or remaining milliseconds if paused.")
-    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<Map<String, Long>> getSlaTimer(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);

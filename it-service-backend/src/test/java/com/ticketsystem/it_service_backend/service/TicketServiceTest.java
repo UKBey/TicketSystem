@@ -316,6 +316,7 @@ class TicketServiceTest {
 
                 when(ticketRepository.findById(304L)).thenReturn(Optional.of(existing));
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(resolutionNoteRepository.existsByTicketId(304L)).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
                 Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "agent-1", List.of("AGENT"));
@@ -508,4 +509,29 @@ class TicketServiceTest {
         assertNull(updated.getResolvedAt());
         verify(workflowService).syncTicketStatus(updated);
     }
+
+    @Test
+    void updateTicketStatus_whenResolvedWithoutResolutionNote_throwsBadRequest() {
+        Ticket existing = Ticket.builder()
+                .id(602L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("IN_PROGRESS")
+                .productId(10L)
+                .customerId("customer-1")
+                .assigneeId("agent-1")
+                .build();
+
+        when(ticketRepository.findById(602L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(resolutionNoteRepository.existsByTicketId(602L)).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(602L, "RESOLVED", "agent-1", List.of("AGENT")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
 }
+

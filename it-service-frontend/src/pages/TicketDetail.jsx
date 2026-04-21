@@ -39,6 +39,12 @@ export default function TicketDetail() {
   const [addingWorklog, setAddingWorklog] = useState(false);
   const [worklogFormOpen, setWorklogFormOpen] = useState(false);
 
+  // Resolution Note (cozum notu) icin durum degiskenleri
+  const [resolutionNote, setResolutionNote] = useState(null);
+  const [resolutionNoteText, setResolutionNoteText] = useState('');
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
+  const [savingResolutionNote, setSavingResolutionNote] = useState(false);
+
   // Mevcut durumdan gecilebilecek hedef durum listesi.
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
@@ -53,6 +59,7 @@ export default function TicketDetail() {
     fetchComments();
     fetchAttachments();
     fetchWorklogs();
+    fetchResolutionNote();
   }, [id]);
 
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function TicketDetail() {
   }, [comments]);
 
   useEffect(() => {
-    if (ticket && (hasRole('AGENT') || hasRole('MANAGER'))) {
+    if (ticket) {
       const fetchSla = async () => {
          try {
            const res = await api.get(`/tickets/${id}/sla-timer`);
@@ -134,6 +141,51 @@ export default function TicketDetail() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Cozum notunu sunucudan ceker (varsa).
+  const fetchResolutionNote = async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/resolution-note`);
+      setResolutionNote(res.data);
+      setResolutionNoteText(res.data.note || '');
+    } catch (err) {
+      // 404 veya 403 donebilir, sessizce atla.
+      setResolutionNote(null);
+    }
+  };
+
+  // Resolved butonuna tiklaninca modal acar; mevcut notu onceden doldurur.
+  const handleResolveClick = () => {
+    if (resolutionNote) {
+      setResolutionNoteText(resolutionNote.note);
+    } else {
+      setResolutionNoteText('');
+    }
+    setResolveModalOpen(true);
+  };
+
+  // Modal'dan cozum notunu kaydeder/gunceller, ardindan RESOLVED durumuna gecer.
+  const handleSubmitResolve = async () => {
+    if (!resolutionNoteText.trim()) return;
+    setSavingResolutionNote(true);
+    try {
+      // Not varsa guncelle, yoksa olustur.
+      if (resolutionNote) {
+        await api.put(`/tickets/${id}/resolution-note`, { note: resolutionNoteText.trim() });
+      } else {
+        await api.post(`/tickets/${id}/resolution-note`, { note: resolutionNoteText.trim() });
+      }
+      // Ardindan durum gecisini yap.
+      const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED' });
+      setTicket(res.data);
+      setResolveModalOpen(false);
+      fetchResolutionNote();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Çözüm notu kaydedilemedi veya durum güncellenemedi.');
+    } finally {
+      setSavingResolutionNote(false);
     }
   };
 
@@ -514,7 +566,7 @@ export default function TicketDetail() {
                     <button 
                       className={`btn ${ticket.status === 'RESOLVED' ? 'btn-danger' : 'btn-success'}`} 
                       style={{ flex: 1 }} 
-                      onClick={() => handleStatusChange(ticket.status === 'RESOLVED' ? 'IN_PROGRESS' : 'RESOLVED')}
+                      onClick={() => ticket.status === 'RESOLVED' ? handleStatusChange('IN_PROGRESS') : handleResolveClick()}
                     >
                       {ticket.status === 'RESOLVED' ? 'Reopen (In Progress)' : 'Resolved'}
                     </button>
@@ -551,7 +603,7 @@ export default function TicketDetail() {
             </div>
 
             {/* SLA kalan sure bilgisini anlik olarak gosterir. */}
-            {!isCustomer && slaInfo && (
+            {slaInfo && (
               <div className="detail-info-item">
                 <div className="detail-info-label">SLA Kalan Süre</div>
                 <div className="detail-info-value">
@@ -596,6 +648,17 @@ export default function TicketDetail() {
               <div className="detail-info-item">
                 <div className="detail-info-label">Closed At</div>
                 <div className="detail-info-value">{formatDate(ticket.closedAt)}</div>
+              </div>
+            )}
+            {resolutionNote && (
+              <div className="detail-info-item">
+                <div className="detail-info-label">✅ Çözüm Notu</div>
+                <div className="detail-info-value" style={{ fontSize: 'var(--font-size-xs)', lineHeight: 1.5, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
+                  {resolutionNote.note}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-light)', marginTop: 'var(--space-1)' }}>
+                  {resolutionNote.agentId} · {formatShortDate(resolutionNote.updatedAt || resolutionNote.createdAt)}
+                </div>
               </div>
             )}
           </div>
@@ -791,6 +854,41 @@ export default function TicketDetail() {
             <div className="modal-footer">
               <button className="btn btn-outline" disabled={submittingCsat} onClick={() => setCsatModalOpen(false)}>İptal</button>
               <button className="btn btn-primary" disabled={submittingCsat} onClick={handleSubmitCsat}>Gönder ve Kapat</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cozum notu girisi icin modal. Resolved butonuna tiklaninca acilir. */}
+      {resolveModalOpen && (
+        <div className="modal-overlay" onClick={() => !savingResolutionNote && setResolveModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{resolutionNote ? 'Çözüm Notunu Güncelle' : 'Çözüm Notu Yaz'}</h3>
+              <button className="modal-close" onClick={() => !savingResolutionNote && setResolveModalOpen(false)}>×</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                Bileti çözüldü olarak işaretlemek için bir çözüm notu yazmalısınız.
+              </p>
+              <textarea
+                className="form-textarea"
+                placeholder="Sorunu nasıl çözdüğünüzü açıklayın..."
+                rows="4"
+                value={resolutionNoteText}
+                onChange={(e) => setResolutionNoteText(e.target.value)}
+                disabled={savingResolutionNote}
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" disabled={savingResolutionNote} onClick={() => setResolveModalOpen(false)}>İptal</button>
+              <button
+                className="btn btn-success"
+                disabled={savingResolutionNote || !resolutionNoteText.trim()}
+                onClick={handleSubmitResolve}
+              >
+                {savingResolutionNote ? 'Kaydediliyor...' : '✅ Kaydet ve Çözüldü Olarak İşaretle'}
+              </button>
             </div>
           </div>
         </div>

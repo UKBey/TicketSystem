@@ -303,6 +303,16 @@ public class TicketService {
         // Bu gecisi yapan kullanicinin rol ve sahiplik yetkisi denetlenir.
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
 
+        // RESOLVED gecisi icin cozum notu zorunludur.
+        if ("RESOLVED".equals(newStatus)) {
+            boolean hasResolutionNote = resolutionNoteRepository.existsByTicketId(id);
+            if (!hasResolutionNote) {
+                log.warn("RESOLVED geçişi reddedildi: Çözüm notu bulunamadı. Bilet ID: {}", id);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Bileti çözüldü olarak işaretlemek için önce bir çözüm notu oluşturmalısınız.");
+            }
+        }
+
         // Unclaim gibi gecise ozel ek etkiler uygulanir.
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
