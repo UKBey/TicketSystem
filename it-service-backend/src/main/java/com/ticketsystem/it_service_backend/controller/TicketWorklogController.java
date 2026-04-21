@@ -6,6 +6,11 @@ import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.service.WorklogService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -27,7 +32,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Log4j2
-@Tag(name = "Ticket Worklog", description = "Ticket iş kaydı (worklog) işlemleri")
+@Tag(name = "Ticket Worklog", description = "Agent ve Manager'ların bilet üzerinde harcadıkları sürenin takibi")
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
@@ -35,10 +40,19 @@ public class TicketWorklogController {
 
     private final WorklogService worklogService;
 
-    @Operation(summary = "Worklog ekle", description = "Bir bilete iş kaydı ekler. Yalnızca biletin atandığı agent işlem yapabilir.")
+    @Operation(summary = "Worklog ekle",
+            description = "Belirtilen bilete yeni bir iş kaydı (süre + açıklama) ekler. "
+                    + "Agent yalnızca üzerine atanmış bilete worklog ekleyebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "İş kaydı başarıyla oluşturuldu",
+                    content = @Content(schema = @Schema(implementation = WorklogResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Bu bilete worklog ekleme yetkiniz yok"),
+            @ApiResponse(responseCode = "400", description = "Geçersiz süre değeri")
+    })
     @PostMapping("/{id}/worklogs")
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<WorklogResponseDTO> addWorklog(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
             @RequestBody WorklogRequestDTO dto,
             @AuthenticationPrincipal Jwt jwt) {
@@ -51,10 +65,17 @@ public class TicketWorklogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(WorklogResponseDTO.fromEntity(saved));
     }
 
-    @Operation(summary = "Bilete ait worklogları listele", description = "Bir biletin iş kayıtlarını getirir. Agent yalnızca kendine atanmış bileti görebilir.")
+    @Operation(summary = "Bilete ait worklogları listele",
+            description = "Belirtilen biletin tüm iş kayıtlarını kronolojik sırada getirir. "
+                    + "Agent yalnızca kendine atanmış biletin workloglarını görebilir, Manager tüm biletleri görebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Worklog listesi başarıyla döndü"),
+            @ApiResponse(responseCode = "403", description = "Bu biletin workloglarını görüntüleme yetkiniz yok")
+    })
     @GetMapping("/{id}/worklogs")
     @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
     public ResponseEntity<List<WorklogResponseDTO>> getWorklogsByTicket(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
@@ -69,7 +90,12 @@ public class TicketWorklogController {
                 .collect(Collectors.toList()));
     }
 
-    @Operation(summary = "Tüm worklogları listele", description = "Sistemdeki tüm iş kayıtlarını getirir. Yalnızca Manager erişebilir.")
+    @Operation(summary = "Tüm worklogları listele",
+            description = "Sistemdeki tüm biletlere ait iş kayıtlarını getirir. Raporlama ve yönetim amaçlıdır.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tüm workloglar başarıyla listelendi"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
+    })
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
@@ -84,11 +110,21 @@ public class TicketWorklogController {
                 .collect(Collectors.toList()));
     }
 
-    @Operation(summary = "Worklog güncelle", description = "Bir iş kaydını günceller. Yalnızca worklogu oluşturan agent güncelleyebilir.")
+    @Operation(summary = "Worklog güncelle",
+            description = "Mevcut bir iş kaydının süre ve açıklamasını günceller. "
+                    + "Yalnızca worklogu oluşturan agent güncelleyebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Worklog başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = WorklogResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Bu worklogu güncelleme yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Worklog bulunamadı")
+    })
     @PutMapping("/{id}/worklogs/{worklogId}")
     @PreAuthorize("hasRole('AGENT')")
     public ResponseEntity<WorklogResponseDTO> updateWorklog(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Güncellenecek worklogun ID'si", example = "15", required = true)
             @PathVariable Long worklogId,
             @RequestBody WorklogRequestDTO dto,
             @AuthenticationPrincipal Jwt jwt) {
@@ -102,11 +138,19 @@ public class TicketWorklogController {
         return ResponseEntity.ok(WorklogResponseDTO.fromEntity(updated));
     }
 
-    @Operation(summary = "Worklog sil", description = "Bir iş kaydını siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Manager hepsini silebilir.")
+    @Operation(summary = "Worklog sil",
+            description = "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Manager hepsini silebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Worklog başarıyla silindi"),
+            @ApiResponse(responseCode = "403", description = "Bu worklogu silme yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Worklog bulunamadı")
+    })
     @DeleteMapping("/{id}/worklogs/{worklogId}")
     @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
     public ResponseEntity<Void> deleteWorklog(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
+            @Parameter(description = "Silinecek worklogun ID'si", example = "15", required = true)
             @PathVariable Long worklogId,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();

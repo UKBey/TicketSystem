@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
 import com.ticketsystem.it_service_backend.entity.Comment;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,12 +12,25 @@ import java.time.ZonedDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Bilet yorumu yanıt modeli — hem müşteri yanıtı hem dahili notları kapsar")
 public class CommentDTO {
+
+    @Schema(description = "Yorumun benzersiz kimliği", example = "128")
     private Long id;
+
+    @Schema(description = "Yorumu yazan kullanıcının Keycloak ID'si", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     private String authorId;
+
+    @Schema(description = "Yazar adı (sunucu tarafında çözümlenir)", example = "Ali Yılmaz")
     private String authorName;
+
+    @Schema(description = "Yorum içeriği", example = "VPN ayarlarınızı kontrol ettim, port 443 engelli görünüyor.")
     private String message;
+
+    @Schema(description = "Yorum tipi: EXTERNAL = müşteriye görünür, INTERNAL = sadece agent/manager görebilir", example = "EXTERNAL", allowableValues = {"EXTERNAL", "INTERNAL"})
     private String type;
+
+    @Schema(description = "Yorumun oluşturulma tarihi", example = "2026-04-21T11:30:00+03:00")
     private ZonedDateTime createdAt;
 
     public static CommentDTO fromEntity(Comment comment, String authorName) {

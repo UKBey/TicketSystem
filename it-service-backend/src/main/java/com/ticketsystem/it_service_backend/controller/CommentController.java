@@ -14,13 +14,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Log4j2
-@Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan yorumların (Comment) yönetimi")
+@Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan müşteri yanıtları ve dahili notların yönetimi")
 @RestController
 @RequestMapping("/api/tickets/{ticketId}/comments")
 @RequiredArgsConstructor
@@ -30,10 +35,30 @@ public class CommentController {
     private final UserRepository userRepository;
 
     // Bilete yeni yorum ekler ve yetki kurallarini servis katmaninda uygular.
-    @Operation(summary = "Bilete yorum ekle", description = "Belirli bir bilete (Ticket) yeni bir yorum ekler. Yetki kontrolü yapılır.")
+    @Operation(summary = "Bilete yorum ekle",
+            description = """
+                    Belirtilen bilete yeni bir yorum ekler. Yorum tipleri:
+                    - **EXTERNAL**: Müşteriye görünür yanıt. Tüm roller kullanabilir.
+                    - **INTERNAL**: Sadece Agent ve Manager görebilir. Müşteri bu yorumu göremez.
+                    
+                    Yetki kuralları:
+                    - Müşteri yalnızca kendi biletine EXTERNAL yorum ekleyebilir
+                    - Agent yalnızca üzerine atanan bilete yorum ekleyebilir
+                    - Manager tüm biletlere yorum ekleyebilir
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Yorum başarıyla eklendi",
+                    content = @Content(schema = @Schema(implementation = CommentDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Bu bilete yorum ekleme yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
+    })
     @PostMapping
     public ResponseEntity<CommentDTO> addComment(
+            @Parameter(description = "Yorumun ekleneceği biletin ID'si", example = "42", required = true)
             @PathVariable Long ticketId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Yorum içeriği ve tipi",
+                    content = @Content(schema = @Schema(example = "{\"message\": \"VPN ayarlarınızı kontrol ettim.\", \"type\": \"EXTERNAL\"}")))
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -57,9 +82,22 @@ public class CommentController {
     }
 
     // Biletin yorum gecmisini, rol kurallarina gore filtrelenmis sekilde listeler.
-    @Operation(summary = "Biletin yorumlarını listele", description = "Bilet ID'sine göre tüm yorumları getirir. Yetki kontrolü yapılır.")
+    @Operation(summary = "Biletin yorumlarını listele",
+            description = """
+                    Belirtilen biletin tüm yorumlarını kronolojik sırada getirir.
+                    
+                    **Filtreleme kuralları:**
+                    - Müşteri yalnızca EXTERNAL tip yorumları görür
+                    - Agent ve Manager hem EXTERNAL hem INTERNAL yorumları görür
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Yorum listesi başarıyla döndü"),
+            @ApiResponse(responseCode = "403", description = "Bu biletin yorumlarını görüntüleme yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
+    })
     @GetMapping
     public ResponseEntity<List<CommentDTO>> getComments(
+            @Parameter(description = "Yorumları listelenecek biletin ID'si", example = "42", required = true)
             @PathVariable Long ticketId,
             @AuthenticationPrincipal Jwt jwt) {
 

@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,9 +10,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Müşteri memnuniyet anketi (CSAT) isteği")
 public class CsatDTO {
     
-    private Integer rating; // 1-5 (Mandatory check in Service)
+    @Schema(description = "Memnuniyet puanı (1 = çok kötü, 5 = mükemmel)", example = "4", minimum = "1", maximum = "5", requiredMode = Schema.RequiredMode.REQUIRED)
+    private Integer rating;
     
-    private String comment; // Optional
+    @Schema(description = "Müşterinin opsiyonel yorumu", example = "Sorun hızlıca çözüldü, teşekkürler!")
+    private String comment;
 }

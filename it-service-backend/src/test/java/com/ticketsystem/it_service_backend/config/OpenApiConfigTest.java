@@ -15,8 +15,27 @@ class OpenApiConfigTest {
         OpenAPI openAPI = new OpenApiConfig().customOpenAPI();
 
         assertNotNull(openAPI.getInfo());
-        assertEquals("IT Service Ticket System API", openAPI.getInfo().getTitle());
-        assertEquals("Bilet (Ticket) yönetim sistemi için REST API dökümantasyonu.", openAPI.getInfo().getDescription());
+        assertEquals("IT Service Desk — Ticket Management API", openAPI.getInfo().getTitle());
+        assertTrue(openAPI.getInfo().getDescription().contains("Kurumsal IT destek bilet yönetim sistemi"));
+        assertEquals("0.10.6", openAPI.getInfo().getVersion());
+
+        // Contact bilgisi
+        assertNotNull(openAPI.getInfo().getContact());
+        assertEquals("IT Service Desk Ekibi", openAPI.getInfo().getContact().getName());
+
+        // Lisans bilgisi
+        assertNotNull(openAPI.getInfo().getLicense());
+        assertEquals("MIT License", openAPI.getInfo().getLicense().getName());
+
+        // Sunucu tanımları
+        assertNotNull(openAPI.getServers());
+        assertEquals(2, openAPI.getServers().size());
+
+        // Tag tanımları
+        assertNotNull(openAPI.getTags());
+        assertTrue(openAPI.getTags().size() >= 9);
+
+        // Güvenlik şeması
         assertNotNull(openAPI.getComponents());
         assertNotNull(openAPI.getComponents().getSecuritySchemes().get("bearerAuth"));
 
@@ -24,6 +43,11 @@ class OpenApiConfigTest {
         assertEquals(SecurityScheme.Type.HTTP, securityScheme.getType());
         assertEquals("bearer", securityScheme.getScheme());
         assertEquals("JWT", securityScheme.getBearerFormat());
+        assertNotNull(securityScheme.getDescription());
         assertTrue(openAPI.getSecurity().stream().anyMatch(requirement -> requirement.containsKey("bearerAuth")));
+
+        // Harici doküman
+        assertNotNull(openAPI.getExternalDocs());
+        assertTrue(openAPI.getExternalDocs().getUrl().contains("github.com"));
     }
 }

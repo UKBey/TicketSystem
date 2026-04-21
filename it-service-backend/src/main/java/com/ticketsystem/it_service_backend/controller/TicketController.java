@@ -10,6 +10,11 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -24,7 +29,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Log4j2
-@Tag(name = "Ticket Yönetimi", description = "Destek talepleri (Ticket) ile ilgili tüm işlemler")
+@Tag(name = "Bilet Yönetimi", description = "Destek biletlerinin oluşturulması, listelenmesi, sahiplenilmesi, durum güncellenmesi ve silinmesi")
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
@@ -37,7 +42,16 @@ public class TicketController {
     // Bilet yasam dongusu islemleri.
 
     // Musteri tarafindan yeni destek kaydi olusturur.
-    @Operation(summary = "Yeni bilet oluştur", description = "Sadece Müşteri rolündeki kullanıcılar bilet açabilir.")
+    @Operation(summary = "Yeni bilet oluştur",
+            description = "Müşteri rolündeki kullanıcı, yetkili olduğu bir ürün altında yeni destek bileti açar. "
+                    + "Biletin açıklama metni otomatik olarak ilk yorum (EXTERNAL) olarak da kaydedilir. "
+                    + "Oluşturma sonrası jBPM workflow başlatılarak SLA sayacı devreye girer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bilet başarıyla oluşturuldu",
+                    content = @Content(schema = @Schema(implementation = TicketResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Kullanıcı bu ürün için yetkili değil"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<TicketResponseDTO> createTicket(@RequestBody TicketRequestDTO ticketRequest,
@@ -63,7 +77,16 @@ public class TicketController {
     }
 
     // Rol bilgisine gore kullanicinin gorebilecegi biletleri listeler.
-    @Operation(summary = "Biletleri listele", description = "Müşteri kendi biletlerini, Ajan/Yönetici yetkili olduğu biletleri görür.")
+    @Operation(summary = "Biletleri listele",
+            description = "Kullanıcının rolüne göre erişebileceği biletleri döner:\n"
+                    + "- **CUSTOMER**: Yalnızca kendi oluşturduğu biletler\n"
+                    + "- **AGENT**: Kendi biletleri + yetkili olduğu ürün grubundaki biletler\n"
+                    + "- **MANAGER**: Sistemdeki tüm biletler\n\n"
+                    + "Her bilet SLA gerçek zamanlı bilgisiyle birlikte döner.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bilet listesi başarıyla döndü"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
     public ResponseEntity<List<TicketResponseDTO>> getTickets(@AuthenticationPrincipal Jwt jwt) {
@@ -87,7 +110,14 @@ public class TicketController {
     }
 
     // Atanmamis havuz biletlerini agent/manager icin getirir.
-    @Operation(summary = "Havuzdaki biletleri listele", description = "Henüz bir ajana atanmamış ve kullanıcının yetki dahilindeki biletler.")
+    @Operation(summary = "Havuzdaki biletleri listele",
+            description = "Henüz bir ajana atanmamış (`NEW` statüsündeki) biletleri getirir. "
+                    + "Agent yalnızca yetkili olduğu ürün grubundaki havuz biletlerini görür; Manager tüm havuzu görür.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Havuz biletleri başarıyla listelendi"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token"),
+            @ApiResponse(responseCode = "403", description = "CUSTOMER rolü havuza erişemez")
+    })
     @GetMapping("/pool")
     @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
     public ResponseEntity<List<TicketResponseDTO>> getPoolTickets(@AuthenticationPrincipal Jwt jwt) {
@@ -106,7 +136,12 @@ public class TicketController {
     }
 
     // Giris yapan agentin uzerindeki acik biletleri listeler.
-    @Operation(summary = "Ajanın üzerindeki biletleri listele", description = "Giriş yapan ajana atanmış aktif biletler.")
+    @Operation(summary = "Ajanın üzerindeki biletleri listele",
+            description = "Giriş yapan ajana (assigneeId) atanmış tüm aktif biletleri getirir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Atanan biletler başarıyla listelendi"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
     @GetMapping("/my-assigned")
     public ResponseEntity<List<TicketResponseDTO>> getMyAssignedTickets(@AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
@@ -124,9 +159,22 @@ public class TicketController {
     }
 
     // Tek bilet detayini yetki kontroluyle birlikte dondurur.
-    @Operation(summary = "Bilet detayı getir", description = "ID ile bilet detayını çeker. Yetki kontrolü yapılır.")
+    @Operation(summary = "Bilet detayı getir",
+            description = "Belirtilen ID'ye sahip biletin tüm detaylarını getirir. Erişim yetki kontrolüne tabidir:\n"
+                    + "- **CUSTOMER**: Yalnızca kendi bileti\n"
+                    + "- **AGENT**: Yetkili olduğu ürün grubundaki biletler\n"
+                    + "- **MANAGER**: Tüm biletler")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bilet detayı başarıyla döndü",
+                    content = @Content(schema = @Schema(implementation = TicketResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Bu bileti görüntüleme yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<TicketResponseDTO> getTicket(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<TicketResponseDTO> getTicket(
+            @Parameter(description = "Biletin benzersiz ID'si", example = "42", required = true)
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
@@ -139,10 +187,23 @@ public class TicketController {
     }
 
     // Agentin havuzdaki bileti sahiplenmesini saglar.
-    @Operation(summary = "Bileti sahiplen (Claim)", description = "Havuzdaki bir bileti ajanın kendi üzerine almasını sağlar.")
+    @Operation(summary = "Bileti sahiplen (Claim)",
+            description = "Havuzdaki (`NEW` statüsündeki) bir bileti ajanın kendi üzerine almasını sağlar. "
+                    + "Bilet `IN_PROGRESS` statüsüne geçer ve `assigneeId` güncellenir. "
+                    + "Agent yalnızca yetkili olduğu ürün grubundaki biletleri sahiplenebilir. "
+                    + "jBPM workflow'unda atama bilgisi de senkronize edilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bilet başarıyla sahiplenildi",
+                    content = @Content(schema = @Schema(implementation = TicketResponseDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Bu ürüne ait biletleri üzerinize alma yetkiniz yok"),
+            @ApiResponse(responseCode = "400", description = "Bilet NEW statüsünde değil, sahiplenilemez")
+    })
     @PutMapping("/{id}/claim")
     @PreAuthorize("hasRole('AGENT')")
-    public ResponseEntity<TicketResponseDTO> claimTicket(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<TicketResponseDTO> claimTicket(
+            @Parameter(description = "Sahiplenilecek biletin ID'si", example = "42", required = true)
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
 
         log.info("Bileti sahiplenme (claim) isteği. Bilet ID: {}, Ajan ID: {}", id, agentId);
@@ -155,10 +216,39 @@ public class TicketController {
     }
 
     // Durum makinesi kurallarina uygun statu degisimi yapar.
-    @Operation(summary = "Bilet statüsü güncelle", description = "Biletin durumunu (OPEN, IN_PROGRESS, RESOLVED, CLOSED) değiştirir.")
+    @Operation(summary = "Bilet statüsü güncelle",
+            description = """
+                    Biletin durumunu günceller. Geçiş kuralları (state machine):
+                    
+                    | Mevcut Durum           | İzin Verilen Hedefler                                    |
+                    |------------------------|----------------------------------------------------------|
+                    | NEW                    | IN_PROGRESS                                              |
+                    | IN_PROGRESS            | NEW, WAITING_FOR_CUSTOMER, RESOLVED, CLOSED              |
+                    | WAITING_FOR_CUSTOMER   | IN_PROGRESS                                              |
+                    | RESOLVED               | IN_PROGRESS, CLOSED                                      |
+                    | CLOSED                 | _(son durum — geçiş yapılamaz)_                          |
+                    
+                    **Önemli kurallar:**
+                    - `RESOLVED` geçişi için **çözüm notu zorunludur** (önce `/resolution-note` endpoint'i kullanılmalı)
+                    - `IN_PROGRESS → NEW` geçişi bırakma (unclaim) anlamına gelir, `assigneeId` sıfırlanır
+                    - Müşteri yalnızca `WAITING_FOR_CUSTOMER → IN_PROGRESS` ve `RESOLVED → IN_PROGRESS/CLOSED` geçişlerini yapabilir
+                    - SLA sayacı durum değişimine göre otomatik olarak duraklatılır/devam ettirilir
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Statü başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = TicketResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Geçersiz durum geçişi veya çözüm notu eksik"),
+            @ApiResponse(responseCode = "403", description = "Bu durum geçişi için yetkiniz yok")
+    })
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
-    public ResponseEntity<TicketResponseDTO> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body,
+    public ResponseEntity<TicketResponseDTO> updateStatus(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
+            @PathVariable Long id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Yeni statü bilgisi. `status` anahtarı ile gönderilir.",
+                    content = @Content(schema = @Schema(example = "{\"status\": \"RESOLVED\"}")))
+            @RequestBody Map<String, String> body,
             @AuthenticationPrincipal Jwt jwt) {
         String newStatus = body.get("status");
         String userId = jwt.getSubject();
@@ -174,10 +264,19 @@ public class TicketController {
     }
 
     // Bileti ve bagli kayitlarini yonetici yetkisiyle siler.
-    @Operation(summary = "Bileti sil", description = "Sadece Yönetici (MANAGER) bilet silebilir.")
+    @Operation(summary = "Bileti sil",
+            description = "Bileti ve tüm bağlı verilerini (yorumlar, dosyalar, worklog, çözüm notu, CSAT) kalıcı olarak siler. "
+                    + "İlişkili jBPM workflow'u da sonlandırılır. **Bu işlem geri alınamaz.**")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Bilet ve bağlı kayıtları başarıyla silindi"),
+            @ApiResponse(responseCode = "403", description = "Sadece MANAGER rolü bilet silebilir"),
+            @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
+    })
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTicket(
+            @Parameter(description = "Silinecek biletin ID'si", example = "42", required = true)
+            @PathVariable Long id) {
         log.info("Bilet silme isteği. Bilet ID: {}", id);
 
         ticketService.deleteTicket(id);
@@ -206,10 +305,28 @@ public class TicketController {
         return dto;
     }
 
+    @Operation(summary = "SLA zamanlayıcı bilgisi",
+            description = """
+                    jBPM workflow'undan biletin gerçek zamanlı SLA geri sayım bilgisini döner.
+                    
+                    Dönen alanlar:
+                    - **deadlineTs**: SLA son tarihinin Unix timestamp değeri (ms). Sayaç aktifken kullanılır.
+                    - **remainingMs**: Sayaç duraklatıldıysa kalan süre (ms).
+                    - **breached**: 1 ise SLA ihlal edilmiş demektir.
+                    
+                    SLA sayacı `WAITING_FOR_CUSTOMER` ve `RESOLVED` durumlarında otomatik duraklatılır.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "SLA bilgisi başarıyla döndü"),
+            @ApiResponse(responseCode = "403", description = "Bu bilete erişim yetkiniz yok"),
+            @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
+    })
     @GetMapping("/{id}/sla-timer")
-    @Operation(summary = "Get SLA timer information from jBPM", description = "Returns the precise Unix timestamp (ms) for the SLA deadline, or remaining milliseconds if paused.")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
-    public ResponseEntity<Map<String, Long>> getSlaTimer(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Map<String, Long>> getSlaTimer(
+            @Parameter(description = "Biletin ID'si", example = "42", required = true)
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         Ticket ticket = ticketService.getTicketWithAuth(id, userId, roles);
