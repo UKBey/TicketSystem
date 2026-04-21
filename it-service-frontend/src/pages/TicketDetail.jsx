@@ -32,6 +32,13 @@ export default function TicketDetail() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Worklog (is kaydi) icin durum degiskenleri
+  const [worklogs, setWorklogs] = useState([]);
+  const [worklogMinutes, setWorklogMinutes] = useState('');
+  const [worklogDescription, setWorklogDescription] = useState('');
+  const [addingWorklog, setAddingWorklog] = useState(false);
+  const [worklogFormOpen, setWorklogFormOpen] = useState(false);
+
   // Mevcut durumdan gecilebilecek hedef durum listesi.
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
@@ -45,6 +52,7 @@ export default function TicketDetail() {
     fetchTicket();
     fetchComments();
     fetchAttachments();
+    fetchWorklogs();
   }, [id]);
 
   useEffect(() => {
@@ -144,6 +152,59 @@ export default function TicketDetail() {
     } catch (err) {
       alert('Dosya indirilemedi.');
     }
+  };
+
+  // Worklog listeleme
+  const fetchWorklogs = async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/worklogs`);
+      setWorklogs(res.data);
+    } catch (err) {
+      // CUSTOMER rolunde 403 donecektir, sessizce atla.
+      console.debug('Worklog listelenemedi:', err);
+    }
+  };
+
+  // Yeni worklog ekleme
+  const handleAddWorklog = async () => {
+    const mins = parseInt(worklogMinutes, 10);
+    if (!mins || mins <= 0) return;
+    setAddingWorklog(true);
+    try {
+      const res = await api.post(`/tickets/${id}/worklogs`, {
+        minutes: mins,
+        description: worklogDescription.trim() || null,
+      });
+      setWorklogs((prev) => [...prev, res.data]);
+      setWorklogMinutes('');
+      setWorklogDescription('');
+      setWorklogFormOpen(false);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Worklog eklenemedi.');
+    } finally {
+      setAddingWorklog(false);
+    }
+  };
+
+  // Worklog silme
+  const handleDeleteWorklog = async (worklogId) => {
+    if (!confirm('Bu iş kaydını silmek istediğinize emin misiniz?')) return;
+    try {
+      await api.delete(`/tickets/${id}/worklogs/${worklogId}`);
+      setWorklogs((prev) => prev.filter((w) => w.id !== worklogId));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Worklog silinemedi.');
+    }
+  };
+
+  // Dakikayi okunabilir saat:dakika formatina cevirir.
+  const formatMinutes = (mins) => {
+    if (!mins) return '0dk';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m}dk`;
+    if (m === 0) return `${h}sa`;
+    return `${h}sa ${m}dk`;
   };
 
   // Dosya tipine gore ikon belirler.
@@ -540,7 +601,104 @@ export default function TicketDetail() {
           </div>
         </div>
 
-
+        {/* Agent/Manager icin worklog (is kaydi) yonetim karti. */}
+        {isAgent && (
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>⏱ Worklogs ({worklogs.length})</span>
+              {worklogs.length > 0 && (
+                <span className="badge badge-new" style={{ fontSize: '11px' }}>
+                  Toplam: {formatMinutes(worklogs.reduce((sum, w) => sum + w.minutes, 0))}
+                </span>
+              )}
+            </div>
+            <div className="card-body">
+              {worklogs.length === 0 && !worklogFormOpen && (
+                <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)', padding: 'var(--space-3)' }}>
+                  Henüz iş kaydı yok.
+                </div>
+              )}
+              {worklogs.length > 0 && (
+                <div className="worklog-list">
+                  {worklogs.map((w) => (
+                    <div key={w.id} className="worklog-item">
+                      <div className="worklog-item-header">
+                        <span className="worklog-item-minutes">{formatMinutes(w.minutes)}</span>
+                        <button
+                          className="attachment-item-delete"
+                          title="Sil"
+                          onClick={() => handleDeleteWorklog(w.id)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {w.description && (
+                        <div className="worklog-item-desc">{w.description}</div>
+                      )}
+                      <div className="worklog-item-meta">
+                        {w.agentId} · {formatShortDate(w.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {ticket.status !== 'CLOSED' && (
+                <>
+                  {!worklogFormOpen ? (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      style={{ width: '100%', justifyContent: 'center', marginTop: worklogs.length > 0 ? 'var(--space-3)' : '0' }}
+                      onClick={() => setWorklogFormOpen(true)}
+                    >
+                      + İş Kaydı Ekle
+                    </button>
+                  ) : (
+                    <div className="worklog-form" style={{ marginTop: worklogs.length > 0 ? 'var(--space-3)' : '0' }}>
+                      <div className="form-group" style={{ marginBottom: 'var(--space-2)' }}>
+                        <label style={{ fontSize: 'var(--font-size-xs)' }}>Süre (dakika) *</label>
+                        <input
+                          className="form-input"
+                          type="number"
+                          min="1"
+                          placeholder="Ör: 30"
+                          value={worklogMinutes}
+                          onChange={(e) => setWorklogMinutes(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 'var(--space-3)' }}>
+                        <label style={{ fontSize: 'var(--font-size-xs)' }}>Açıklama</label>
+                        <textarea
+                          className="form-input"
+                          rows="2"
+                          placeholder="Yapılan iş hakkında kısa açıklama..."
+                          value={worklogDescription}
+                          onChange={(e) => setWorklogDescription(e.target.value)}
+                          style={{ resize: 'vertical', minHeight: '48px' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ flex: 1, justifyContent: 'center' }}
+                          onClick={handleAddWorklog}
+                          disabled={addingWorklog || !worklogMinutes || parseInt(worklogMinutes, 10) <= 0}
+                        >
+                          {addingWorklog ? 'Ekleniyor...' : 'Kaydet'}
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => { setWorklogFormOpen(false); setWorklogMinutes(''); setWorklogDescription(''); }}
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Musterinin cozum onayi ve CSAT akis girisi. */}
         {isCustomer && ticket.status === 'RESOLVED' && (

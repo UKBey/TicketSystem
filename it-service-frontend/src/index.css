@@ -1160,3 +1160,54 @@ a:hover {
   color: var(--color-primary);
   background: rgba(59, 130, 246, 0.08);
 }
+
+/* Worklog (is kaydi) bilesenleri */
+.worklog-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.worklog-item {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.worklog-item:hover {
+  background: #f8fafc;
+  border-color: var(--color-border);
+}
+
+.worklog-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.worklog-item-minutes {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.worklog-item-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
+.worklog-item-meta {
+  font-size: 11px;
+  color: var(--color-text-light);
+  margin-top: var(--space-1);
+}
+
+.worklog-form {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-bg);
+}
