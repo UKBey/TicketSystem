@@ -226,6 +226,67 @@ class TicketControllerTest {
         assertEquals(555L, response.getBody().get("deadlineTs"));
     }
 
+    @Test
+    void getTickets_withManagerRole_returnsAllTickets() {
+        Ticket t1 = Ticket.builder().id(8001L).title("T1").description("D1").priority("LOW").status("NEW").customerId("customer-1").build();
+        when(ticketService.getAllTickets("manager-1", List.of("MANAGER"))).thenReturn(List.of(t1));
+        when(userRepository.findById("customer-1")).thenReturn(Optional.empty()); // covers null customerName case
+
+        ResponseEntity<List<TicketResponseDTO>> response = ticketController.getTickets(jwtWithRole("manager-1", "MANAGER"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+        assertEquals("Unknown", response.getBody().get(0).getCustomerName()); // tests null mapped to Unknown
+    }
+
+    @Test
+    void getMyAssignedTickets_returnsAgentTickets() {
+        Ticket t1 = Ticket.builder().id(9001L).title("T1").description("D1").priority("LOW").status("IN_PROGRESS").customerId("c1").assigneeId("agent-1").build();
+        when(ticketService.getAgentAssignedTickets("agent-1")).thenReturn(List.of(t1));
+
+        ResponseEntity<List<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(jwtWithRole("agent-1", "AGENT"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+        assertEquals(9001L, response.getBody().get(0).getId());
+    }
+
+    @Test
+    void getTicket_returnsTicketDetail() {
+        Ticket t1 = Ticket.builder().id(10001L).title("T1").description("D1").priority("LOW").status("NEW").productId(1L).customerId("c1").assigneeId(null).build();
+        when(ticketService.getTicketWithAuth(10001L, "customer-1", List.of("CUSTOMER"))).thenReturn(t1);
+
+        ResponseEntity<TicketResponseDTO> response = ticketController.getTicket(10001L, jwtWithRole("customer-1", "CUSTOMER"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(10001L, response.getBody().getId());
+        assertEquals("Unknown", response.getBody().getProductName()); // productId=1L but productRepository returns empty -> "Unknown"
+    }
+
+    @Test
+    void updateStatus_withEmptyRoles() {
+        Ticket updated = Ticket.builder()
+                .id(4002L)
+                .title("Network issue")
+                .description("Packet loss")
+                .priority("HIGH")
+                .status("IN_PROGRESS")
+                .build();
+
+        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", "c1", List.of()))
+                .thenReturn(updated);
+
+        Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
+        when(jwt.getSubject()).thenReturn("c1");
+        lenient().when(jwt.getClaimAsMap("realm_access")).thenReturn(null); // triggers empty roles
+
+        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(4002L, Map.of("status", "IN_PROGRESS"), jwt);
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("Unknown", response.getBody().getCustomerName());
+        assertEquals("Unknown", response.getBody().getProductName());
+        org.junit.jupiter.api.Assertions.assertNull(response.getBody().getAssigneeName());
+    }
+
     private Jwt jwtWithRole(String subject, String role) {
         Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
         when(jwt.getSubject()).thenReturn(subject);
