@@ -6,12 +6,12 @@ import { AlertTriangle, Inbox } from 'lucide-react';
 
 export default function TicketTable({ tickets, showClaimButton, onClaim, showSla = false }) {
   const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(Date.now());
+  const [tickSeconds, setTickSeconds] = useState(0);
 
   useEffect(() => {
     if (!showSla) return undefined;
 
-    const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
+    const timer = setInterval(() => setTickSeconds((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [showSla]);
 
@@ -80,7 +80,7 @@ export default function TicketTable({ tickets, showClaimButton, onClaim, showSla
               </td>
               <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
               <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
-              {showSla && <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} now={currentDate} /></td>}
+              {showSla && <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>}
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</td>
               {showClaimButton && (
                 <td className="px-4 py-3">

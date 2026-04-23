@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import keycloak from '../keycloak';
 
@@ -10,6 +11,22 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
+
+  const extractUserInfo = useCallback(() => {
+    if (keycloak.tokenParsed) {
+      const tokenRoles = keycloak.tokenParsed.realm_access?.roles || [];
+      const appRoles = tokenRoles.filter((r) =>
+        ['CUSTOMER', 'AGENT', 'MANAGER'].includes(r)
+      );
+      setRoles(appRoles);
+      setUser({
+        id: keycloak.tokenParsed.sub,
+        name: keycloak.tokenParsed.name || keycloak.tokenParsed.preferred_username,
+        email: keycloak.tokenParsed.email,
+        username: keycloak.tokenParsed.preferred_username,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     // StrictMode'da useEffect'in cift tetiklenmesine karsi init'i tek sefere sabitler.
@@ -54,23 +71,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
     };
-  }, []);
-
-  const extractUserInfo = () => {
-    if (keycloak.tokenParsed) {
-      const tokenRoles = keycloak.tokenParsed.realm_access?.roles || [];
-      const appRoles = tokenRoles.filter((r) =>
-        ['CUSTOMER', 'AGENT', 'MANAGER'].includes(r)
-      );
-      setRoles(appRoles);
-      setUser({
-        id: keycloak.tokenParsed.sub,
-        name: keycloak.tokenParsed.name || keycloak.tokenParsed.preferred_username,
-        email: keycloak.tokenParsed.email,
-        username: keycloak.tokenParsed.preferred_username,
-      });
-    }
-  };
+  }, [extractUserInfo]);
 
   const login = useCallback(() => {
     keycloak.login({ redirectUri: window.location.origin + '/' });

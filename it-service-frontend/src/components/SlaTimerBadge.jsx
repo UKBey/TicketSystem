@@ -1,8 +1,6 @@
-import { useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function SlaTimerBadge({ ticket, now }) {
-  const fetchTimeRef = useRef(Date.now());
+export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -37,7 +35,7 @@ export default function SlaTimerBadge({ ticket, now }) {
   }
 
   // Aktif sayaçta kalan sureyi istemci tarafinda saniye saniye gunceller.
-  const elapsedSinceFetch = now - fetchTimeRef.current;
+  const elapsedSinceFetch = tickSeconds * 1000;
   const diff = slaInfo.remainingMs - elapsedSinceFetch;
 
   if (diff <= 0) {

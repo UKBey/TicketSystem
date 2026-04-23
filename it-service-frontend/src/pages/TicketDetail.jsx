@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -26,7 +26,7 @@ import {
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, hasRole, getPrimaryRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const chatEndRef = useRef(null);
@@ -37,7 +37,6 @@ export default function TicketDetail() {
   const [message, setMessage] = useState('');
   const [commentType, setCommentType] = useState('EXTERNAL');
   const [sending, setSending] = useState(false);
-  const [statusUpdating, setStatusUpdating] = useState(false);
   const [extraActionsOpen, setExtraActionsOpen] = useState(false);
   const [csatModalOpen, setCsatModalOpen] = useState(false);
   const [csatRating, setCsatRating] = useState(5);
@@ -50,7 +49,6 @@ export default function TicketDetail() {
   // Dosya ekleri icin durum degiskenleri
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
   // Worklog (is kaydi) icin durum degiskenleri
@@ -171,7 +169,7 @@ export default function TicketDetail() {
       const res = await api.get(`/tickets/${id}/resolution-note`);
       setResolutionNote(res.data);
       setResolutionNoteText(res.data.note || '');
-    } catch (err) {
+    } catch {
       // 404 veya 403 donebilir, sessizce atla.
       setResolutionNote(null);
     }
@@ -222,7 +220,7 @@ export default function TicketDetail() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       alert('Could not download file.');
     }
   };
@@ -291,32 +289,6 @@ export default function TicketDetail() {
     return <File className="h-5 w-5" />;
   };
 
-  // Dosya boyutunu okunabilir formata cevirir.
-  const formatFileSize = (bytes) => {
-    if (!bytes) return '';
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  // Surukleme olaylarini yonetir.
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    setDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    setDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFileUpload(file);
-  }, [id]);
-
   const handleSendComment = async () => {
     if (!message.trim()) return;
     setSending(true);
@@ -354,14 +326,11 @@ export default function TicketDetail() {
   };
 
   const handleStatusChange = async (newStatus) => {
-    setStatusUpdating(true);
     try {
       const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
       setTicket(res.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not update status.');
-    } finally {
-      setStatusUpdating(false);
     }
   };
 
