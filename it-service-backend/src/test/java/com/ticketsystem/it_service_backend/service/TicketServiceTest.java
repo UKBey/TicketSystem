@@ -218,6 +218,25 @@ class TicketServiceTest {
         }
 
         @Test
+        void getPoolTickets_whenUserIdMissing_returnsEmptyList() {
+                List<Ticket> result = ticketService.getPoolTickets(null, List.of("AGENT"));
+
+                assertEquals(0, result.size());
+        }
+
+        @Test
+        void getPoolTickets_whenAgentHasProducts_returnsMatchingNewTickets() {
+                Ticket ticket = Ticket.builder().id(703L).status("NEW").productId(10L).build();
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(ticketRepository.findByStatusAndProductIdIn("NEW", List.of(10L))).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getPoolTickets("agent-1", List.of("AGENT"));
+
+                assertEquals(1, result.size());
+                assertEquals(703L, result.get(0).getId());
+        }
+
+        @Test
         void getTicketWithAuth_whenManager_returnsTicket() {
                 Ticket ticket = Ticket.builder().id(704L).customerId("customer-1").build();
                 when(ticketRepository.findById(704L)).thenReturn(Optional.of(ticket));
@@ -249,6 +268,18 @@ class TicketServiceTest {
         }
 
         @Test
+        void getTicketWithAuth_whenAgentNotAuthorized_throwsForbidden() {
+                Ticket ticket = Ticket.builder().id(706L).productId(99L).customerId("customer-1").build();
+                when(ticketRepository.findById(706L)).thenReturn(Optional.of(ticket));
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> ticketService.getTicketWithAuth(706L, "agent-1", List.of("AGENT")));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+
+        @Test
         void validateMutationAccess_whenManager_returnsTicket() {
                 Ticket ticket = Ticket.builder().id(707L).customerId("customer-1").build();
                 when(ticketRepository.findById(707L)).thenReturn(Optional.of(ticket));
@@ -276,6 +307,39 @@ class TicketServiceTest {
                 Ticket result = ticketService.validateMutationAccess(709L, "agent-1", List.of("AGENT"));
 
                 assertEquals(709L, result.getId());
+        }
+
+        @Test
+        void validateMutationAccess_whenAgentNotAssigned_throwsForbidden() {
+                Ticket ticket = Ticket.builder().id(710L).assigneeId("agent-2").customerId("customer-1").build();
+                when(ticketRepository.findById(710L)).thenReturn(Optional.of(ticket));
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> ticketService.validateMutationAccess(710L, "agent-1", List.of("AGENT")));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+
+        @Test
+        void validateMutationAccess_whenCustomerNotOwner_throwsForbidden() {
+                Ticket ticket = Ticket.builder().id(711L).customerId("customer-2").build();
+                when(ticketRepository.findById(711L)).thenReturn(Optional.of(ticket));
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> ticketService.validateMutationAccess(711L, "customer-1", List.of("CUSTOMER")));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+
+        @Test
+        void validateMutationAccess_whenNoRecognizedRole_throwsForbidden() {
+                Ticket ticket = Ticket.builder().id(712L).customerId("customer-1").build();
+                when(ticketRepository.findById(712L)).thenReturn(Optional.of(ticket));
+
+                ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                                () -> ticketService.validateMutationAccess(712L, "user-1", List.of("VIEWER")));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
 
         @Test
@@ -532,6 +596,138 @@ class TicketServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    void updateTicketStatus_whenCurrentStatusUnknown_throwsBadRequest() {
+        Ticket existing = Ticket.builder()
+                .id(603L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("UNKNOWN_STATE")
+                .productId(10L)
+                .customerId("customer-1")
+                .build();
+
+        when(ticketRepository.findById(603L)).thenReturn(Optional.of(existing));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(603L, "NEW", "agent-1", List.of("AGENT")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    void updateTicketStatus_whenCustomerNotOwner_throwsForbidden() {
+        Ticket existing = Ticket.builder()
+                .id(604L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("RESOLVED")
+                .productId(10L)
+                .customerId("customer-2")
+                .build();
+
+        when(ticketRepository.findById(604L)).thenReturn(Optional.of(existing));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(604L, "CLOSED", "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketStatus_whenAgentUnauthorizedForProduct_throwsForbidden() {
+        Ticket existing = Ticket.builder()
+                .id(605L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("IN_PROGRESS")
+                .productId(99L)
+                .customerId("customer-1")
+                .assigneeId("agent-1")
+                .build();
+
+        when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(605L, "NEW", "agent-1", List.of("AGENT")));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketStatus_whenInProgressToNew_clearsAssigneeAndSyncsStatus() {
+        Ticket existing = Ticket.builder()
+                .id(606L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("IN_PROGRESS")
+                .productId(10L)
+                .customerId("customer-1")
+                .assigneeId("agent-1")
+                .build();
+
+        when(ticketRepository.findById(606L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Ticket updated = ticketService.updateTicketStatus(606L, "NEW", "agent-1", List.of("AGENT"));
+
+        assertEquals("NEW", updated.getStatus());
+        assertNull(updated.getAssigneeId());
+        verify(workflowService).syncTicketStatus(updated);
+    }
+
+    @Test
+    void updateTicketStatus_whenClosed_setsClosedAtAndClosesWorkflow() {
+        Ticket existing = Ticket.builder()
+                .id(607L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("RESOLVED")
+                .productId(10L)
+                .customerId("customer-1")
+                .build();
+
+        when(ticketRepository.findById(607L)).thenReturn(Optional.of(existing));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Ticket updated = ticketService.updateTicketStatus(607L, "CLOSED", "customer-1", List.of("CUSTOMER"));
+
+        assertEquals("CLOSED", updated.getStatus());
+        assertNotNull(updated.getClosedAt());
+        verify(workflowService).closeTicketWorkflow(updated);
+    }
+
+    @Test
+    void updateTicketStatus_whenWorkflowSyncFails_stillUpdatesTicket() {
+        Ticket existing = Ticket.builder()
+                .id(608L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("NEW")
+                .productId(10L)
+                .customerId("customer-1")
+                .build();
+
+        when(ticketRepository.findById(608L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doThrow(new RuntimeException("workflow unavailable")).when(workflowService).syncTicketStatus(any(Ticket.class));
+
+        Ticket updated = ticketService.updateTicketStatus(608L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
+
+        assertEquals("IN_PROGRESS", updated.getStatus());
+        verify(ticketRepository, times(1)).save(any(Ticket.class));
     }
 }
 

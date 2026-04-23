@@ -123,6 +123,15 @@ class WorkflowServiceTest {
     }
 
     @Test
+    void syncTicketAssignmentSkipsWhenProcessInstanceMissing() {
+        Ticket ticket = Ticket.builder().id(15L).assigneeId("agent-2").status("IN_PROGRESS").build();
+
+        workflowService.syncTicketAssignment(ticket);
+
+        verify(kieServerAdapter, never()).setProcessVariable(any(), any(), any());
+    }
+
+    @Test
     void pauseSlaWithoutProcessInstanceUpdatesTicketOnly() {
         Ticket ticket = Ticket.builder()
                 .id(16L)
@@ -151,6 +160,41 @@ class WorkflowServiceTest {
 
         assertNotNull(ticket.getSlaPausedAt());
         verify(kieServerAdapter).signalProcessInstance(700L, "pause_sla", null);
+    }
+
+    @Test
+    void pauseSlaWhenAlreadyPaused_returnsEarly() {
+        ZonedDateTime pausedAt = ZonedDateTime.now().minusSeconds(30);
+        Ticket ticket = Ticket.builder()
+                .id(171L)
+                .priority("MEDIUM")
+                .createdAt(ZonedDateTime.now().minusMinutes(3))
+                .slaElapsedMs(120_000L)
+                .slaPausedAt(pausedAt)
+                .processInstanceId(700L)
+                .build();
+
+        workflowService.pauseSla(ticket);
+
+        assertEquals(pausedAt, ticket.getSlaPausedAt());
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+    }
+
+    @Test
+    void pauseSlaWhenSignalFails_doesNotThrow() {
+        Ticket ticket = Ticket.builder()
+                .id(172L)
+                .priority("MEDIUM")
+                .createdAt(ZonedDateTime.now().minusMinutes(1))
+                .processInstanceId(701L)
+                .build();
+        doThrow(new RuntimeException("signal failed"))
+                .when(kieServerAdapter).signalProcessInstance(701L, "pause_sla", null);
+
+        workflowService.pauseSla(ticket);
+
+        assertNotNull(ticket.getSlaPausedAt());
+        verify(kieServerAdapter).signalProcessInstance(701L, "pause_sla", null);
     }
 
     @Test
@@ -185,6 +229,53 @@ class WorkflowServiceTest {
     }
 
     @Test
+    void resumeSlaWhenRemainingHasMinutesAndSeconds_usesMixedIsoFormat() {
+        Ticket ticket = Ticket.builder()
+                .id(191L)
+                .priority("LOW")
+                .slaElapsedMs(119_000L)
+                .processInstanceId(801L)
+                .build();
+
+        workflowService.resumeSla(ticket);
+
+        verify(kieServerAdapter).setProcessVariable(801L, "slaDuration", "PT18M1S");
+        verify(kieServerAdapter).signalProcessInstance(801L, "resume_sla", "PT18M1S");
+    }
+
+    @Test
+    void resumeSlaWhenRemainingSecondsOnly_usesSecondsIsoFormat() {
+        Ticket ticket = Ticket.builder()
+                .id(192L)
+                .priority("CRITICAL")
+                .slaElapsedMs(59_000L)
+                .processInstanceId(802L)
+                .build();
+
+        workflowService.resumeSla(ticket);
+
+        verify(kieServerAdapter).setProcessVariable(802L, "slaDuration", "PT1S");
+        verify(kieServerAdapter).signalProcessInstance(802L, "resume_sla", "PT1S");
+    }
+
+    @Test
+    void resumeSlaWhenSignalFails_doesNotThrow() {
+        Ticket ticket = Ticket.builder()
+                .id(193L)
+                .priority("LOW")
+                .slaElapsedMs(60_000L)
+                .processInstanceId(803L)
+                .build();
+        doThrow(new RuntimeException("signal failed"))
+                .when(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT19M");
+
+        workflowService.resumeSla(ticket);
+
+        verify(kieServerAdapter).setProcessVariable(803L, "slaDuration", "PT19M");
+        verify(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT19M");
+    }
+
+    @Test
     void closeTicketWorkflowFallsBackToAbortOnSignalFailure() {
         Ticket ticket = Ticket.builder()
                 .id(20L)
@@ -197,6 +288,30 @@ class WorkflowServiceTest {
         workflowService.closeTicketWorkflow(ticket);
 
         verify(kieServerAdapter).abortProcess(900L);
+    }
+
+    @Test
+    void closeTicketWorkflowSkipsWhenProcessMissing() {
+        Ticket ticket = Ticket.builder().id(201L).build();
+
+        workflowService.closeTicketWorkflow(ticket);
+
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+        verify(kieServerAdapter, never()).abortProcess(any());
+    }
+
+    @Test
+    void closeTicketWorkflowWhenSignalAndAbortFail_doesNotThrow() {
+        Ticket ticket = Ticket.builder().id(202L).processInstanceId(901L).build();
+        doThrow(new RuntimeException("signal failed"))
+                .when(kieServerAdapter).signalProcessInstance(901L, "ticket_closed", null);
+        doThrow(new RuntimeException("abort failed"))
+                .when(kieServerAdapter).abortProcess(901L);
+
+        workflowService.closeTicketWorkflow(ticket);
+
+        verify(kieServerAdapter).signalProcessInstance(901L, "ticket_closed", null);
+        verify(kieServerAdapter).abortProcess(901L);
     }
 
     @Test
@@ -239,5 +354,54 @@ class WorkflowServiceTest {
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
         assertEquals(0L, result.get("remainingMs"));
+    }
+
+    @Test
+    void startTicketWorkflowWithUnknownPriority_usesDefaultSlaDuration() {
+        Ticket ticket = Ticket.builder()
+                .id(23L)
+                .priority("UNSUPPORTED")
+                .status("NEW")
+                .customerId("customer-9")
+                .build();
+
+        when(kieServerAdapter.startProcess(eq("ticket-workflow"), any())).thenReturn(81L);
+
+        workflowService.startTicketWorkflow(ticket);
+
+        verify(kieServerAdapter).startProcess(eq("ticket-workflow"), org.mockito.ArgumentMatchers.argThat(variables ->
+                "PT10M".equals(variables.get("slaDuration"))
+        ));
+    }
+
+    @Test
+    void getSlaTimerInfoReturnsRemainingForClosedStatus() {
+        Ticket ticket = Ticket.builder()
+                .priority("HIGH")
+                .status("CLOSED")
+                .slaElapsedMs(120_000L)
+                .build();
+
+        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+
+        assertEquals(-1L, result.get("deadlineTimestamp"));
+        assertEquals(180_000L, result.get("remainingMs"));
+    }
+
+    @Test
+    void getSlaTimerInfoActiveStatusComputesPositiveDeadline() {
+        Ticket ticket = Ticket.builder()
+                .priority("MEDIUM")
+                .status("IN_PROGRESS")
+                .createdAt(ZonedDateTime.now().minusMinutes(1))
+                .slaElapsedMs(30_000L)
+                .build();
+
+        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+
+        assertNotNull(result.get("deadlineTimestamp"));
+        assertNotNull(result.get("remainingMs"));
+        assertFalse(result.get("deadlineTimestamp") < 0);
+        assertFalse(result.get("remainingMs") < 0);
     }
 }

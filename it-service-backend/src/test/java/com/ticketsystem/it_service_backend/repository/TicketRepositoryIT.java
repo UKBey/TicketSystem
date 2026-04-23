@@ -1,10 +1,11 @@
 package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -12,23 +13,43 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringJUnitConfig(RepositoryTestConfig.class)
 @Transactional
-class TicketRepositoryTest {
+class TicketRepositoryIT extends RepositoryIntegrationTestBase {
 
     @Autowired
     private TicketRepository ticketRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private Long productId1;
+    private Long productId2;
+
     @BeforeEach
     void setUp() {
         ticketRepository.deleteAll();
+        userRepository.deleteAll();
+        productRepository.deleteAll();
+
+        Product p1 = productRepository.save(Product.builder().name("Support").isActive(true).build());
+        Product p2 = productRepository.save(Product.builder().name("Network").isActive(true).build());
+        productId1 = p1.getId();
+        productId2 = p2.getId();
+
+        userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
+        userRepository.save(User.builder().id("customer-2").email("customer-2@test.com").fullName("Customer Two").role("CUSTOMER").build());
+        userRepository.save(User.builder().id("customer-3").email("customer-3@test.com").fullName("Customer Three").role("CUSTOMER").build());
+        userRepository.save(User.builder().id("agent-1").email("agent-1@test.com").fullName("Agent One").role("AGENT").build());
 
         ticketRepository.save(Ticket.builder()
                 .title("Customer ticket")
                 .description("desc 1")
                 .status("NEW")
                 .priority("HIGH")
-                .productId(10L)
+            .productId(productId1)
                 .customerId("customer-1")
                 .assigneeId("agent-1")
                 .build());
@@ -38,7 +59,7 @@ class TicketRepositoryTest {
                 .description("desc 2")
                 .status("NEW")
                 .priority("LOW")
-                .productId(20L)
+                .productId(productId2)
                 .customerId("customer-2")
                 .assigneeId(null)
                 .build());
@@ -48,7 +69,7 @@ class TicketRepositoryTest {
                 .description("desc 3")
                 .status("IN_PROGRESS")
                 .priority("MEDIUM")
-                .productId(10L)
+                .productId(productId1)
                 .customerId("customer-3")
                 .assigneeId("agent-1")
                 .build());
@@ -73,7 +94,7 @@ class TicketRepositoryTest {
 
     @Test
     void findByStatusAndProductIdIn_filtersByStatusAndProductScope() {
-        List<Ticket> result = ticketRepository.findByStatusAndProductIdIn("NEW", List.of(10L));
+        List<Ticket> result = ticketRepository.findByStatusAndProductIdIn("NEW", List.of(productId1));
 
         assertEquals(1, result.size());
         assertEquals("Customer ticket", result.get(0).getTitle());
@@ -81,7 +102,7 @@ class TicketRepositoryTest {
 
     @Test
     void findByCustomerIdOrProductIdIn_mergesCustomerAndAuthorizedProducts() {
-        List<Ticket> result = ticketRepository.findByCustomerIdOrProductIdIn("customer-2", List.of(10L));
+        List<Ticket> result = ticketRepository.findByCustomerIdOrProductIdIn("customer-2", List.of(productId1));
 
         assertEquals(3, result.size());
         assertTrue(result.stream().anyMatch(t -> "Pool ticket".equals(t.getTitle())));

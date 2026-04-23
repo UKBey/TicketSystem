@@ -15,9 +15,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -94,5 +96,83 @@ class CommentServiceTest {
         List<Comment> result = commentService.getCommentsByTicketId(100L, "agent-1", List.of("AGENT"));
 
         assertEquals(2, result.size());
+    }
+
+    @Test
+    void addComment_whenTypeMissing_defaultsToExternal() {
+        Ticket inProgressTicket = Ticket.builder()
+                .id(101L)
+                .status("IN_PROGRESS")
+                .customerId("customer-1")
+                .build();
+
+        when(ticketService.validateMutationAccess(101L, "agent-1", List.of("AGENT"))).thenReturn(inProgressTicket);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment c = invocation.getArgument(0);
+            c.setId(7L);
+            return c;
+        });
+
+        Comment saved = commentService.addComment(101L, "agent note", null, "agent-1", List.of("AGENT"));
+
+        assertEquals(7L, saved.getId());
+        assertEquals("EXTERNAL", saved.getType());
+    }
+
+    @Test
+    void addComment_whenAgentAddsInternalComment_isAllowed() {
+        Ticket inProgressTicket = Ticket.builder()
+                .id(102L)
+                .status("IN_PROGRESS")
+                .customerId("customer-1")
+                .build();
+
+        when(ticketService.validateMutationAccess(102L, "agent-1", List.of("AGENT"))).thenReturn(inProgressTicket);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment c = invocation.getArgument(0);
+            c.setId(8L);
+            return c;
+        });
+
+        Comment saved = commentService.addComment(102L, "internal", "INTERNAL", "agent-1", List.of("AGENT"));
+
+        assertEquals(8L, saved.getId());
+        assertEquals("INTERNAL", saved.getType());
+        verify(ticketService, never()).updateTicketStatus(102L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
+    }
+
+    @Test
+    void addComment_whenWaitingStatusButNotCustomer_doesNotUpdateTicketStatus() {
+        Ticket waiting = Ticket.builder()
+                .id(103L)
+                .status("WAITING_FOR_CUSTOMER")
+                .customerId("customer-1")
+                .build();
+
+        when(ticketService.validateMutationAccess(103L, "agent-1", List.of("AGENT"))).thenReturn(waiting);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment c = invocation.getArgument(0);
+            c.setId(9L);
+            return c;
+        });
+
+        Comment saved = commentService.addComment(103L, "ping", "EXTERNAL", "agent-1", List.of("AGENT"));
+
+        assertNotNull(saved);
+        verify(ticketService, never()).updateTicketStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    void getCommentsByTicketId_customerWithAgentRoleSeesAll() {
+        Comment external = Comment.builder().id(1L).type("EXTERNAL").message("public").build();
+        Comment internal = Comment.builder().id(2L).type("INTERNAL").message("secret").build();
+
+        when(ticketService.getTicketWithAuth(100L, "agent-customer", List.of("CUSTOMER", "AGENT"))).thenReturn(waitingTicket);
+        when(commentRepository.findByTicketIdOrderByCreatedAtAsc(100L)).thenReturn(List.of(external, internal));
+
+        List<Comment> result = commentService.getCommentsByTicketId(100L, "agent-customer", List.of("CUSTOMER", "AGENT"));
+
+        assertEquals(2, result.size());
+        verify(commentRepository, times(1)).findByTicketIdOrderByCreatedAtAsc(100L);
     }
 }
