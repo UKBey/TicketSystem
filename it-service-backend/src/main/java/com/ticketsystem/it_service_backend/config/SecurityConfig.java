@@ -75,6 +75,13 @@ public class SecurityConfig {
         return converter;
     }
 
+    // AGENT_ADMIN ve MANAGER rollerini desteklemek için yardımcı method
+    @Bean
+    public org.springframework.security.authentication.AuthenticationManager authenticationManager(
+            org.springframework.security.authentication.AuthenticationProvider authenticationProvider) throws Exception {
+        return new org.springframework.security.authentication.ProviderManager(authenticationProvider);
+    }
+
     private boolean hasValidInternalToken(String headerToken) {
         return StringUtils.hasText(headerToken)
                 && StringUtils.hasText(internalApiToken)

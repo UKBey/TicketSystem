@@ -25,7 +25,7 @@ public class User {
     private String fullName;
 
     @Column(nullable = false, length = 20)
-    private String role; // CUSTOMER, AGENT, MANAGER
+    private String role; // CUSTOMER, AGENT, AGENT_ADMIN, MANAGER
 
     @Column(name = "is_active")
     @Builder.Default

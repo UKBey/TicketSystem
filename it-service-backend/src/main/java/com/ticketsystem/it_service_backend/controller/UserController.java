@@ -57,7 +57,10 @@ public class UserController {
 
         String assignedRole = "CUSTOMER"; 
 
-        if (roles.contains("MANAGER")) {
+        if (roles.contains("AGENT_ADMIN")) {
+            assignedRole = "AGENT_ADMIN";
+        } else if (roles.contains("MANAGER")) {
+            // Geçiş dönemi uyumluluğu: MANAGER token'ı taşıyan eski sistem kullanıcıları
             assignedRole = "MANAGER";
         } else if (roles.contains("AGENT")) {
             assignedRole = "AGENT";
