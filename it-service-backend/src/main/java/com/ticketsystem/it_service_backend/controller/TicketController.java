@@ -88,7 +88,7 @@ public class TicketController {
             @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
     })
     @GetMapping
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<List<TicketResponseDTO>> getTickets(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
@@ -109,10 +109,10 @@ public class TicketController {
                 .collect(Collectors.toList()));
     }
 
-    // Atanmamis havuz biletlerini agent/manager icin getirir.
+    // Atanmamis havuz biletlerini agent/agent_admin icin getirir.
     @Operation(summary = "Havuzdaki biletleri listele",
             description = "Henüz bir ajana atanmamış (`NEW` statüsündeki) biletleri getirir. "
-                    + "Agent yalnızca yetkili olduğu ürün grubundaki havuz biletlerini görür; Manager tüm havuzu görür.")
+                    + "Agent yalnızca yetkili olduğu ürün grubundaki havuz biletlerini görür; Agent Admin tüm havuzu görür.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Havuz biletleri başarıyla listelendi"),
             @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token"),
@@ -241,7 +241,7 @@ public class TicketController {
             @ApiResponse(responseCode = "403", description = "Bu durum geçişi için yetkiniz yok")
     })
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -269,7 +269,7 @@ public class TicketController {
                     + "İlişkili jBPM workflow'u da sonlandırılır. **Bu işlem geri alınamaz.**")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Bilet ve bağlı kayıtları başarıyla silindi"),
-            @ApiResponse(responseCode = "403", description = "Sadece MANAGER rolü bilet silebilir"),
+            @ApiResponse(responseCode = "403", description = "Sadece AGENT_ADMIN rolü bilet silebilir"),
             @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
     })
     @DeleteMapping("/{id}")
@@ -322,7 +322,7 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
     })
     @GetMapping("/{id}/sla-timer")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<Map<String, Long>> getSlaTimer(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

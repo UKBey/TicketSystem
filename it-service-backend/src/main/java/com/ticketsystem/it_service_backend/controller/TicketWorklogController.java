@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Log4j2
-@Tag(name = "Ticket Worklog", description = "Agent ve Manager'ların bilet üzerinde harcadıkları sürenin takibi")
+@Tag(name = "Ticket Worklog", description = "Agent ve Agent Admin'ların bilet üzerinde harcadıkları sürenin takibi")
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
@@ -94,7 +94,7 @@ public class TicketWorklogController {
             description = "Sistemdeki tüm biletlere ait iş kayıtlarını getirir. Raporlama ve yönetim amaçlıdır.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Tüm workloglar başarıyla listelendi"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasRole('AGENT_ADMIN')")

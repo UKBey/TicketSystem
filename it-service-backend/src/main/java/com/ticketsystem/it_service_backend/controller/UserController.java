@@ -120,10 +120,10 @@ public class UserController {
     }
 
     @Operation(summary = "Tüm kullanıcıları listele",
-            description = "Sistemdeki tüm kullanıcıları (CUSTOMER, AGENT, MANAGER) yetkili ürün bilgileriyle birlikte getirir.")
+            description = "Sistemdeki tüm kullanıcıları (CUSTOMER, AGENT, AGENT_ADMIN) yetkili ürün bilgileriyle birlikte getirir.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Kullanıcı listesi başarıyla döndü"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping
     @PreAuthorize("hasRole('AGENT_ADMIN')")
@@ -147,7 +147,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün yetkisi başarıyla atandı",
                     content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER yetki atayabilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN yetki atayabilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @PostMapping("/{userId}/products/{productId}")
@@ -172,7 +172,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün yetkisi başarıyla kaldırıldı",
                     content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER yetki kaldırabilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN yetki kaldırabilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @DeleteMapping("/{userId}/products/{productId}")

@@ -35,7 +35,7 @@ public class ProductController {
                     Kullanıcının rolüne göre erişebileceği ürün/kategori listesini döner:
                     - **CUSTOMER**: Yalnızca yetkili olduğu ürünler
                     - **AGENT**: Yalnızca yetkili olduğu ürünler
-                    - **MANAGER**: Tüm ürünler
+                    - **AGENT_ADMIN**: Tüm ürünler
                     
                     Bilet oluşturma formunda ürün seçimi için kullanılır.
                     """)

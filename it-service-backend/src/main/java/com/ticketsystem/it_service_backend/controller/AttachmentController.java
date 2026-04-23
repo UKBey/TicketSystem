@@ -130,7 +130,7 @@ public class AttachmentController {
     // Dosyayi rol/sahiplik kurallarina gore siler.
     @Operation(summary = "Dosya sil",
             description = "Yüklenen dosyayı kalıcı olarak siler. Müşteri yalnızca kendi yüklediği dosyayı silebilir, "
-                    + "Agent yalnızca üzerine atanan biletin dosyasını silebilir, Manager herhangi bir dosyayı silebilir.")
+                    + "Agent yalnızca üzerine atanan biletin dosyasını silebilir, Agent Admin herhangi bir dosyayı silebilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Dosya başarıyla silindi"),
             @ApiResponse(responseCode = "403", description = "Bu dosyayı silme yetkiniz yok"),

@@ -39,12 +39,12 @@ public class CommentController {
             description = """
                     Belirtilen bilete yeni bir yorum ekler. Yorum tipleri:
                     - **EXTERNAL**: Müşteriye görünür yanıt. Tüm roller kullanabilir.
-                    - **INTERNAL**: Sadece Agent ve Manager görebilir. Müşteri bu yorumu göremez.
+                    - **INTERNAL**: Sadece Agent ve Agent Admin görebilir. Müşteri bu yorumu göremez.
                     
                     Yetki kuralları:
                     - Müşteri yalnızca kendi biletine EXTERNAL yorum ekleyebilir
                     - Agent yalnızca üzerine atanan bilete yorum ekleyebilir
-                    - Manager tüm biletlere yorum ekleyebilir
+                    - Agent Admin tüm biletlere yorum ekleyebilir
                     """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Yorum başarıyla eklendi",
@@ -88,7 +88,7 @@ public class CommentController {
                     
                     **Filtreleme kuralları:**
                     - Müşteri yalnızca EXTERNAL tip yorumları görür
-                    - Agent ve Manager hem EXTERNAL hem INTERNAL yorumları görür
+                    - Agent ve Agent Admin hem EXTERNAL hem INTERNAL yorumları görür
                     """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Yorum listesi başarıyla döndü"),
