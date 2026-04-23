@@ -13,7 +13,7 @@ export default function Workspace() {
         // Workspace listesinde kapanmis biletler gizlenir.
         setTickets(res.data.filter((t) => t.status !== 'CLOSED'));
       } catch (err) {
-        console.error('Atanan biletler yüklenemedi:', err);
+        console.error('Could not load assigned tickets:', err);
       } finally {
         setLoading(false);
       }
@@ -23,16 +23,15 @@ export default function Workspace() {
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Workspace</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Workspace</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Tickets currently assigned to you.</p>
       </div>
 
-      <div className="card">
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {loading ? (
-          <div className="card-body">
-            <div className="app-loading" style={{ minHeight: 200 }}>
-              <div className="spinner" />
-            </div>
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
           <TicketTable tickets={tickets} showSla />

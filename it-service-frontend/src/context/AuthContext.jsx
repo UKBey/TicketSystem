@@ -94,9 +94,9 @@ export function AuthProvider({ children }) {
 
   if (loading) {
     return (
-      <div className="app-loading">
-        <div className="spinner" />
-        <p>Yükleniyor...</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4" style={{ backgroundColor: 'var(--bg-body)', color: 'var(--text-secondary)' }}>
+        <div className="h-10 w-10 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
+        <p className="text-sm font-medium">Loading...</p>
       </div>
     );
   }

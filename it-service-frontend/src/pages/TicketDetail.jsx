@@ -1,13 +1,34 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
 import api from '../services/api';
+import {
+  ArrowLeft,
+  Send,
+  Paperclip,
+  X,
+  Clock,
+  Plus,
+  Trash2,
+  Download,
+  Star,
+  CheckCircle2,
+  Settings2,
+  FileText,
+  Image,
+  FileArchive,
+  File,
+  AlertTriangle,
+} from 'lucide-react';
 
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, hasRole, getPrimaryRole } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const chatEndRef = useRef(null);
 
   const [ticket, setTicket] = useState(null);
@@ -100,7 +121,7 @@ export default function TicketDetail() {
       const res = await api.get(`/tickets/${id}`);
       setTicket(res.data);
     } catch (err) {
-      console.error('Bilet yüklenemedi:', err);
+      console.error('Could not load ticket:', err);
     } finally {
       setLoading(false);
     }
@@ -111,7 +132,7 @@ export default function TicketDetail() {
       const res = await api.get(`/tickets/${id}/comments`);
       setComments(res.data);
     } catch (err) {
-      console.error('Yorumlar yüklenemedi:', err);
+      console.error('Could not load comments:', err);
     }
   };
 
@@ -121,7 +142,7 @@ export default function TicketDetail() {
       const res = await api.get(`/tickets/${id}/attachments`);
       setAttachments(res.data);
     } catch (err) {
-      console.error('Dosya ekleri yüklenemedi:', err);
+      console.error('Could not load attachments:', err);
     }
   };
 
@@ -137,7 +158,7 @@ export default function TicketDetail() {
       });
       setAttachments((prev) => [...prev, res.data]);
     } catch (err) {
-      alert(err.response?.data?.message || 'Dosya yüklenemedi.');
+      alert(err.response?.data?.message || 'Could not upload file.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -183,7 +204,7 @@ export default function TicketDetail() {
       setResolveModalOpen(false);
       fetchResolutionNote();
     } catch (err) {
-      alert(err.response?.data?.message || 'Çözüm notu kaydedilemedi veya durum güncellenemedi.');
+      alert(err.response?.data?.message || 'Could not save resolution note or update status.');
     } finally {
       setSavingResolutionNote(false);
     }
@@ -202,7 +223,7 @@ export default function TicketDetail() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Dosya indirilemedi.');
+      alert('Could not download file.');
     }
   };
 
@@ -213,7 +234,7 @@ export default function TicketDetail() {
       setWorklogs(res.data);
     } catch (err) {
       // CUSTOMER rolunde 403 donecektir, sessizce atla.
-      console.debug('Worklog listelenemedi:', err);
+      console.debug('Could not load worklogs:', err);
     }
   };
 
@@ -232,7 +253,7 @@ export default function TicketDetail() {
       setWorklogDescription('');
       setWorklogFormOpen(false);
     } catch (err) {
-      alert(err.response?.data?.message || 'Worklog eklenemedi.');
+      alert(err.response?.data?.message || 'Could not add worklog.');
     } finally {
       setAddingWorklog(false);
     }
@@ -240,35 +261,34 @@ export default function TicketDetail() {
 
   // Worklog silme
   const handleDeleteWorklog = async (worklogId) => {
-    if (!confirm('Bu iş kaydını silmek istediğinize emin misiniz?')) return;
+    if (!confirm('Are you sure you want to delete this work log?')) return;
     try {
       await api.delete(`/tickets/${id}/worklogs/${worklogId}`);
       setWorklogs((prev) => prev.filter((w) => w.id !== worklogId));
     } catch (err) {
-      alert(err.response?.data?.message || 'Worklog silinemedi.');
+      alert(err.response?.data?.message || 'Could not delete worklog.');
     }
   };
 
   // Dakikayi okunabilir saat:dakika formatina cevirir.
   const formatMinutes = (mins) => {
-    if (!mins) return '0dk';
+    if (!mins) return '0m';
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    if (h === 0) return `${m}dk`;
-    if (m === 0) return `${h}sa`;
-    return `${h}sa ${m}dk`;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
   };
 
   // Dosya tipine gore ikon belirler.
   const getFileIcon = (fileType) => {
-    if (!fileType) return '📄';
-    if (fileType.startsWith('image/')) return '🖼️';
-    if (fileType.includes('pdf')) return '📕';
-    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar')) return '📦';
-    if (fileType.includes('word') || fileType.includes('document')) return '📝';
-    if (fileType.includes('sheet') || fileType.includes('excel')) return '📊';
-    if (fileType.includes('text') || fileType.includes('log')) return '📃';
-    return '📄';
+    if (!fileType) return <File className="h-5 w-5" />;
+    if (fileType.startsWith('image/')) return <Image className="h-5 w-5" />;
+    if (fileType.includes('pdf')) return <FileText className="h-5 w-5 text-danger-500" />;
+    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar')) return <FileArchive className="h-5 w-5" />;
+    if (fileType.includes('word') || fileType.includes('document')) return <FileText className="h-5 w-5 text-primary-500" />;
+    if (fileType.includes('sheet') || fileType.includes('excel')) return <FileText className="h-5 w-5 text-accent-500" />;
+    return <File className="h-5 w-5" />;
   };
 
   // Dosya boyutunu okunabilir formata cevirir.
@@ -311,7 +331,7 @@ export default function TicketDetail() {
       const ticketRes = await api.get(`/tickets/${id}`);
       setTicket(ticketRes.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Yorum gönderilemedi.');
+      alert(err.response?.data?.message || 'Could not send comment.');
     } finally {
       setSending(false);
     }
@@ -327,7 +347,7 @@ export default function TicketDetail() {
       setCsatModalOpen(false);
       fetchTicket(); 
     } catch (err) {
-      alert(err.response?.data?.message || 'Anket gönderilemedi.');
+      alert(err.response?.data?.message || 'Could not submit survey.');
     } finally {
       setSubmittingCsat(false);
     }
@@ -339,7 +359,7 @@ export default function TicketDetail() {
       const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Durum güncellenemedi.');
+      alert(err.response?.data?.message || 'Could not update status.');
     } finally {
       setStatusUpdating(false);
     }
@@ -390,14 +410,18 @@ export default function TicketDetail() {
 
   if (loading) {
     return (
-      <div className="app-loading" style={{ minHeight: '60vh' }}>
-        <div className="spinner" />
+      <div className="flex items-center justify-center py-40">
+        <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
       </div>
     );
   }
 
   if (!ticket) {
-    return <div className="empty-state"><h3>Bilet bulunamadı</h3></div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20" style={{ color: 'var(--text-tertiary)' }}>
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Ticket not found</h3>
+      </div>
+    );
   }
 
   const ticketCode = `TCK-${String(ticket.id).padStart(3, '0')}`;
@@ -406,82 +430,119 @@ export default function TicketDetail() {
   const isCustomer = hasRole('CUSTOMER');
 
   return (
-    <div className="ticket-detail">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       {/* Sol kolon: baslik, yorum akisi ve mesaj giris alani. */}
-      <div className="ticket-detail-main">
+      <div className="flex flex-col gap-5 min-w-0">
         {/* Onceki ekrana donus baglantisi. */}
-        <a className="back-link" onClick={() => navigate(-1)} style={{cursor: 'pointer'}}>
-          ← Back
-        </a>
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary-500 cursor-pointer self-start"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
 
         {/* Bilet kimligi, oncelik ve temel meta bilgileri. */}
         <div>
-          <div className="ticket-header">
-            <h1>{ticketCode}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{ticketCode}</h1>
             <PriorityBadge priority={ticket.priority} />
+            <StatusBadge status={ticket.status} />
           </div>
-          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, marginTop: 'var(--space-1)' }}>
+          <div className="text-lg font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>
             {ticket.title}
           </div>
-          <div className="ticket-meta" style={{ marginTop: 'var(--space-2)' }}>
+          <div className="flex items-center gap-2 mt-2 text-sm flex-wrap" style={{ color: 'var(--text-secondary)' }}>
             <span>👤 {ticket.customerName || ticket.customerId}</span>
-            <span className="ticket-meta-separator">•</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>•</span>
             <span>Product: {ticket.productName || ticket.productId}</span>
           </div>
         </div>
 
         {/* Yorum ve dosya eklerinin kronolojik olarak gosterildigi sohbet alani. */}
-        <div className="card">
-          <div className="chat-area">
+        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="flex flex-col gap-4 p-5 min-h-[300px] max-h-[500px] overflow-y-auto">
             {timeline.length === 0 && (
-              <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
-                <p>Henüz yorum veya dosya eki bulunmuyor.</p>
+              <div className="flex items-center justify-center py-8" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-sm">No comments or attachments yet.</p>
               </div>
             )}
             {timeline.map((item) => {
               const itemAuthorId = item._type === 'attachment' ? item.uploaderId : item.authorId;
               const itemAuthorName = item._type === 'attachment' ? null : item.authorName;
               const isOwnItem = itemAuthorId === user?.id;
-              const isInternal = item.type === 'INTERNAL'; // Attachments are implicitly EXTERNAL in this case
+              const isInternal = item.type === 'INTERNAL';
 
-              let messageClass = 'chat-message-customer';
-              if (isOwnItem && !isInternal) messageClass = 'chat-message-agent';
-              if (isInternal) messageClass = 'chat-message-internal';
-
+              const isRight = isOwnItem && !isInternal;
               const displayName = itemAuthorName || (itemAuthorId === ticket.customerId ? ticket.customerName : 'Agent');
 
+              let bubbleBg, bubbleText;
+              if (isInternal) {
+                bubbleBg = 'border';
+                bubbleText = '';
+              } else if (isRight) {
+                bubbleBg = 'bg-primary-500';
+                bubbleText = 'text-white';
+              } else {
+                bubbleBg = 'border';
+                bubbleText = '';
+              }
+
               return (
-                <div key={`${item._type}-${item.id}`} className={`chat-message ${messageClass}`}>
-                  <div className="chat-author">
-                    {displayName}
-                    {isInternal && <span className="badge badge-internal">Internal</span>}
+                <div
+                  key={`${item._type}-${item.id}`}
+                  className={`max-w-[70%] rounded-xl px-4 py-3 text-sm animate-fade-in ${bubbleBg} ${bubbleText} ${
+                    isInternal ? 'self-end' : isRight ? 'self-end' : 'self-start'
+                  }`}
+                  style={
+                    isInternal
+                      ? { backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb', borderColor: isDark ? 'rgba(245,158,11,0.2)' : '#fde68a' }
+                      : !isRight
+                        ? { backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)' }
+                        : {}
+                  }
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs font-semibold ${isRight && !isInternal ? 'text-white/80' : ''}`} style={!isRight || isInternal ? { color: 'var(--text-secondary)' } : {}}>
+                      {displayName}
+                    </span>
+                    {isInternal && (
+                      <span
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                        style={{ backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', color: isDark ? '#fde68a' : '#92400e' }}
+                      >
+                        Internal
+                      </span>
+                    )}
                   </div>
                   
                   {item._type === 'attachment' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    <div className="flex flex-col gap-2">
                       <div 
-                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}
+                        className="flex items-center gap-2 cursor-pointer"
                         onClick={() => handleDownloadAttachment(item)}
-                        title="İndirmek için tıklayın"
+                        title="Click to download"
                       >
-                        <span style={{ fontSize: '1.5rem' }}>{getFileIcon(item.fileType)}</span>
-                        <span style={{ fontWeight: 600 }}>{item.fileName}</span>
+                        {getFileIcon(item.fileType)}
+                        <span className="font-semibold text-sm">{item.fileName}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-1)' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleDownloadAttachment(item)}
-                          style={{ borderColor: 'rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.2)' }}
-                        >
-                          ⬇ İndir
-                        </button>
-                      </div>
+                      <button
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors cursor-pointer border"
+                        style={{ borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.1)' }}
+                        onClick={() => handleDownloadAttachment(item)}
+                      >
+                        <Download className="h-3 w-3" />
+                        Download
+                      </button>
                     </div>
                   ) : (
-                    <div>{item.message}</div>
+                    <div style={!isRight || isInternal ? { color: 'var(--text-primary)' } : {}}>{item.message}</div>
                   )}
 
-                  <div className="chat-time">{formatShortDate(item.createdAt)}</div>
+                  <div className={`text-[11px] mt-1 ${isRight && !isInternal ? 'text-white/60' : ''}`} style={!isRight || isInternal ? { color: 'var(--text-tertiary)' } : {}}>
+                    {formatShortDate(item.createdAt)}
+                  </div>
                 </div>
               );
             })}
@@ -490,32 +551,44 @@ export default function TicketDetail() {
 
           {/* Bilet acik oldugu surece yeni yorum gonderim alani. */}
           {ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
-            <div className="comment-input-area">
+            <div className="border-t px-5 py-4" style={{ borderColor: 'var(--border-color)' }}>
               {isAgent && (
-                <div className="comment-tabs">
+                <div className="flex gap-2 mb-3">
                   <button
-                    className={`comment-tab ${commentType === 'EXTERNAL' ? 'active' : ''}`}
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors cursor-pointer ${
+                      commentType === 'EXTERNAL'
+                        ? 'bg-primary-500 text-white border-primary-500'
+                        : ''
+                    }`}
+                    style={commentType !== 'EXTERNAL' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' } : {}}
                     onClick={() => setCommentType('EXTERNAL')}
                   >
                     Reply to Customer
                   </button>
                   <button
-                    className={`comment-tab comment-tab-internal ${commentType === 'INTERNAL' ? 'active' : ''}`}
+                    className="rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors cursor-pointer"
+                    style={
+                      commentType === 'INTERNAL'
+                        ? { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', color: isDark ? '#fde68a' : '#92400e', borderColor: isDark ? 'rgba(245,158,11,0.3)' : '#fcd34d' }
+                        : { borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }
+                    }
+
                     onClick={() => setCommentType('INTERNAL')}
                   >
                     Internal Note
                   </button>
                 </div>
               )}
-              <div className="comment-input-row">
+              <div className="flex items-center gap-2">
                 <input
-                  className="form-input"
                   type="text"
                   placeholder="Type your message..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={sending}
+                  className="flex-1 rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
                 <input
                   ref={fileInputRef}
@@ -524,19 +597,25 @@ export default function TicketDetail() {
                   onChange={(e) => handleFileUpload(e.target.files?.[0])}
                 />
                 <button
-                  className="btn btn-outline btn-icon"
-                  title="Dosya Ekle"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border transition-colors cursor-pointer"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                  title="Attach File"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                   type="button"
                 >
-                  {uploading ? '⏳' : '📎'}
+                  {uploading ? (
+                    <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
                 </button>
                 <button
-                  className="btn btn-primary"
+                  className="flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   onClick={handleSendComment}
                   disabled={sending || !message.trim()}
                 >
+                  <Send className="h-4 w-4" />
                   Send
                 </button>
               </div>
@@ -546,77 +625,84 @@ export default function TicketDetail() {
       </div>
 
       {/* Sag kolon: statu aksiyonlari ve detay kartlari. */}
-      <div className="ticket-detail-aside">
+      <div className="flex flex-col gap-4">
         {/* Agent/manager icin durum gecisi butonlari. */}
         {isAgent && allowedStatuses.length > 0 && (
-          <div className="card">
-            <div className="card-header">Status Actions</div>
-            <div className="card-body">
-                              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
-                    <button 
-                      className={`btn ${ticket.status === 'WAITING_FOR_CUSTOMER' ? 'btn-primary' : 'btn-outline'}`} 
-                      style={{ flex: 1 }} 
-                      onClick={() => handleStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
-                    >
-                      {ticket.status === 'WAITING_FOR_CUSTOMER' ? 'Resume (In Progress)' : 'Waiting'}
-                    </button>
-                  )}
-                  {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
-                    <button 
-                      className={`btn ${ticket.status === 'RESOLVED' ? 'btn-danger' : 'btn-success'}`} 
-                      style={{ flex: 1 }} 
-                      onClick={() => ticket.status === 'RESOLVED' ? handleStatusChange('IN_PROGRESS') : handleResolveClick()}
-                    >
-                      {ticket.status === 'RESOLVED' ? 'Reopen (In Progress)' : 'Resolved'}
-                    </button>
-                  )}
-                </div>
-              <button className="btn btn-outline" style={{ width: '100%', borderColor: 'var(--color-border)' }} onClick={() => setExtraActionsOpen(true)}>
-                Extra Actions ⚙️
+          <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+              Status Actions
+            </div>
+            <div className="p-4 space-y-2">
+              <div className="flex gap-2">
+                {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
+                  <button 
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                      ticket.status === 'WAITING_FOR_CUSTOMER'
+                        ? 'bg-primary-500 text-white'
+                        : 'border'
+                    }`}
+                    style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
+                    onClick={() => handleStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
+                  >
+                    {ticket.status === 'WAITING_FOR_CUSTOMER' ? 'Resume' : 'Waiting'}
+                  </button>
+                )}
+                {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
+                  <button 
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                      ticket.status === 'RESOLVED'
+                        ? 'bg-danger-500 text-white hover:bg-danger-600'
+                        : 'bg-accent-500 text-white hover:bg-accent-600'
+                    }`}
+                    onClick={() => ticket.status === 'RESOLVED' ? handleStatusChange('IN_PROGRESS') : handleResolveClick()}
+                  >
+                    {ticket.status === 'RESOLVED' ? 'Reopen' : 'Resolve'}
+                  </button>
+                )}
+              </div>
+              <button
+                className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                onClick={() => setExtraActionsOpen(true)}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Extra Actions
               </button>
             </div>
           </div>
         )}
 
         {/* Biletin tarih, atama ve durum detaylari. */}
-        <div className="card">
-          <div className="card-header">Ticket Details</div>
-          <div className="card-body">
-            <div className="detail-info-item">
-              <div className="detail-info-label">Created</div>
-              <div className="detail-info-value">{formatDate(ticket.createdAt)}</div>
-            </div>
+        <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+            Ticket Details
+          </div>
+          <div className="p-5 space-y-4">
+            <DetailRow label="Created" value={formatDate(ticket.createdAt)} />
             {!isCustomer && (
-              <div className="detail-info-item">
-                <div className="detail-info-label">Assigned To</div>
-                <div className="detail-info-value">{ticket.assigneeName || 'Unassigned'}</div>
-              </div>
+              <DetailRow label="Assigned To" value={ticket.assigneeName || 'Unassigned'} />
             )}
-            <div className="detail-info-item">
-              <div className="detail-info-label">Status</div>
-              <div className="detail-info-value">{statusLabel(ticket.status)}</div>
-            </div>
-            <div className="detail-info-item">
-              <div className="detail-info-label">Priority</div>
-              <div className="detail-info-value"><PriorityBadge priority={ticket.priority} /></div>
+            <DetailRow label="Status" value={statusLabel(ticket.status)} />
+            <div>
+              <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Priority</div>
+              <PriorityBadge priority={ticket.priority} />
             </div>
 
             {/* SLA kalan sure bilgisini anlik olarak gosterir. */}
             {slaInfo && (
-              <div className="detail-info-item">
-                <div className="detail-info-label">SLA Kalan Süre</div>
-                <div className="detail-info-value">
+              <div>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>SLA Remaining</div>
+                <div>
                   {(() => {
                       if (slaInfo.deadlineTimestamp === -1) {
-                         if (slaInfo.remainingMs <= 0 && ticket.slaBreached) return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+                         if (slaInfo.remainingMs <= 0 && ticket.slaBreached) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />Expired</span>;
                          if (slaInfo.remainingMs > 0) {
                              const diff = slaInfo.remainingMs;
                              const mins = Math.floor(diff / 60000);
                              const secs = Math.floor((diff % 60000) / 1000);
-                             return <span className="badge" style={{backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)'}}>{mins}dk {secs}sn (Duraklatıldı)</span>;
+                             return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{mins}m {secs}s (Paused)</span>;
                          }
-                         return <span className="badge badge-neutral">Tamamlandı</span>;
+                         return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>Completed</span>;
                       }
 
                       // Kalan sureyi fetch anina gore hesaplayarak istemci/sunucu saat farkini tolere eder.
@@ -626,37 +712,31 @@ export default function TicketDetail() {
                           diff = slaInfo.remainingMs - elapsedSinceFetch;
                       }
                       
-                      if (diff <= 0) return <span className="badge badge-sla-breach">⚠️ Süresi Doldu</span>;
+                      if (diff <= 0) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />Expired</span>;
                       const mins = Math.floor(diff / 60000);
                       const secs = Math.floor((diff % 60000) / 1000);
-                      let badgeClass = 'badge-success';
-                      if (mins < 1) badgeClass = 'badge-danger';
-                      else if (mins < 2) badgeClass = 'badge-warning';
-                      return <span className={`badge ${badgeClass}`}>{mins}dk {secs}sn</span>;
+                      let badgeStyle = { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7', color: isDark ? '#86efac' : '#166534' };
+                      let extraCls = '';
+                      if (mins < 1) { badgeStyle = { backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }; extraCls = 'animate-pulse-subtle font-bold'; }
+                      else if (mins < 2) { badgeStyle = { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', color: isDark ? '#fde68a' : '#92400e' }; }
+                      return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${extraCls}`} style={badgeStyle}>{mins}m {secs}s</span>;
                   })()}
                 </div>
               </div>
             )}
 
-            {ticket.resolvedAt && (
-              <div className="detail-info-item">
-                <div className="detail-info-label">Resolved At</div>
-                <div className="detail-info-value">{formatDate(ticket.resolvedAt)}</div>
-              </div>
-            )}
-            {ticket.closedAt && (
-              <div className="detail-info-item">
-                <div className="detail-info-label">Closed At</div>
-                <div className="detail-info-value">{formatDate(ticket.closedAt)}</div>
-              </div>
-            )}
+            {ticket.resolvedAt && <DetailRow label="Resolved At" value={formatDate(ticket.resolvedAt)} />}
+            {ticket.closedAt && <DetailRow label="Closed At" value={formatDate(ticket.closedAt)} />}
             {resolutionNote && (
-              <div className="detail-info-item">
-                <div className="detail-info-label">✅ Çözüm Notu</div>
-                <div className="detail-info-value" style={{ fontSize: 'var(--font-size-xs)', lineHeight: 1.5, color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
+              <div>
+                <div className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                  <CheckCircle2 className="h-3 w-3 text-accent-500" />
+                  Resolution Note
+                </div>
+                <div className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
                   {resolutionNote.note}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-light)', marginTop: 'var(--space-1)' }}>
+                <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
                   {resolutionNote.agentId} · {formatShortDate(resolutionNote.updatedAt || resolutionNote.createdAt)}
                 </div>
               </div>
@@ -666,39 +746,46 @@ export default function TicketDetail() {
 
         {/* Agent/Manager icin worklog (is kaydi) yonetim karti. */}
         {isAgent && (
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>⏱ Worklogs ({worklogs.length})</span>
+          <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+              <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                <Clock className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+                Worklogs ({worklogs.length})
+              </span>
               {worklogs.length > 0 && (
-                <span className="badge badge-new" style={{ fontSize: '11px' }}>
-                  Toplam: {formatMinutes(worklogs.reduce((sum, w) => sum + w.minutes, 0))}
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
+                  Total: {formatMinutes(worklogs.reduce((sum, w) => sum + w.minutes, 0))}
                 </span>
               )}
             </div>
-            <div className="card-body">
+            <div className="p-4">
               {worklogs.length === 0 && !worklogFormOpen && (
-                <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)', padding: 'var(--space-3)' }}>
-                  Henüz iş kaydı yok.
+                <div className="text-center py-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  No work logs yet.
                 </div>
               )}
               {worklogs.length > 0 && (
-                <div className="worklog-list">
+                <div className="space-y-2">
                   {worklogs.map((w) => (
-                    <div key={w.id} className="worklog-item">
-                      <div className="worklog-item-header">
-                        <span className="worklog-item-minutes">{formatMinutes(w.minutes)}</span>
+                    <div key={w.id} className="rounded-lg border p-3 transition-colors" style={{ borderColor: 'var(--border-color-light)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-primary-500">{formatMinutes(w.minutes)}</span>
                         <button
-                          className="attachment-item-delete"
-                          title="Sil"
+                          className="rounded p-1 transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
+                          style={{ color: 'var(--text-tertiary)' }}
+                          title="Delete"
                           onClick={() => handleDeleteWorklog(w.id)}
                         >
-                          ✕
+                          <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
                       {w.description && (
-                        <div className="worklog-item-desc">{w.description}</div>
+                        <div className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-primary)' }}>{w.description}</div>
                       )}
-                      <div className="worklog-item-meta">
+                      <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
                         {w.agentId} · {formatShortDate(w.createdAt)}
                       </div>
                     </div>
@@ -709,50 +796,52 @@ export default function TicketDetail() {
                 <>
                   {!worklogFormOpen ? (
                     <button
-                      className="btn btn-outline btn-sm"
-                      style={{ width: '100%', justifyContent: 'center', marginTop: worklogs.length > 0 ? 'var(--space-3)' : '0' }}
+                      className={`w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${worklogs.length > 0 ? 'mt-3' : ''}`}
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                       onClick={() => setWorklogFormOpen(true)}
                     >
-                      + İş Kaydı Ekle
+                      <Plus className="h-3 w-3" />
+                      Add Work Log
                     </button>
                   ) : (
-                    <div className="worklog-form" style={{ marginTop: worklogs.length > 0 ? 'var(--space-3)' : '0' }}>
-                      <div className="form-group" style={{ marginBottom: 'var(--space-2)' }}>
-                        <label style={{ fontSize: 'var(--font-size-xs)' }}>Süre (dakika) *</label>
+                    <div className={`rounded-lg border p-3 space-y-2 ${worklogs.length > 0 ? 'mt-3' : ''}`} style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-surface-secondary)' }}>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Duration (minutes) *</label>
                         <input
-                          className="form-input"
                           type="number"
                           min="1"
-                          placeholder="Ör: 30"
+                          placeholder="e.g. 30"
                           value={worklogMinutes}
                           onChange={(e) => setWorklogMinutes(e.target.value)}
+                          className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none transition-all focus:ring-2"
+                          style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                         />
                       </div>
-                      <div className="form-group" style={{ marginBottom: 'var(--space-3)' }}>
-                        <label style={{ fontSize: 'var(--font-size-xs)' }}>Açıklama</label>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Description</label>
                         <textarea
-                          className="form-input"
                           rows="2"
-                          placeholder="Yapılan iş hakkında kısa açıklama..."
+                          placeholder="Brief description of work done..."
                           value={worklogDescription}
                           onChange={(e) => setWorklogDescription(e.target.value)}
-                          style={{ resize: 'vertical', minHeight: '48px' }}
+                          className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[48px]"
+                          style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                         />
                       </div>
-                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <div className="flex gap-2">
                         <button
-                          className="btn btn-primary btn-sm"
-                          style={{ flex: 1, justifyContent: 'center' }}
+                          className="flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
                           onClick={handleAddWorklog}
                           disabled={addingWorklog || !worklogMinutes || parseInt(worklogMinutes, 10) <= 0}
                         >
-                          {addingWorklog ? 'Ekleniyor...' : 'Kaydet'}
+                          {addingWorklog ? 'Saving...' : 'Save'}
                         </button>
                         <button
-                          className="btn btn-outline btn-sm"
+                          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                           onClick={() => { setWorklogFormOpen(false); setWorklogMinutes(''); setWorklogDescription(''); }}
                         >
-                          İptal
+                          Cancel
                         </button>
                       </div>
                     </div>
@@ -765,18 +854,26 @@ export default function TicketDetail() {
 
         {/* Musterinin cozum onayi ve CSAT akis girisi. */}
         {isCustomer && ticket.status === 'RESOLVED' && (
-          <div className="card" style={{ marginTop: 'var(--space-4)' }}>
-            <div className="card-header">Sorununuz Çözüldü mü?</div>
-            <div className="card-body">
-              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
-                Biletiniz çözüldü olarak işaretlendi. Doğrulayıp ankete katılabilir veya çözülmediğini belirterek destek sürecini uzatabilirsiniz.
+          <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+              Was your issue resolved?
+            </div>
+            <div className="p-4">
+              <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                Your ticket has been marked as resolved. You can confirm and provide feedback, or reopen if the issue persists.
               </p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn btn-success" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setCsatModalOpen(true)}>
-                  Evet, Çözüldü
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors cursor-pointer"
+                  onClick={() => setCsatModalOpen(true)}
+                >
+                  Yes, Resolved
                 </button>
-                <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }} onClick={() => handleStatusChange('IN_PROGRESS')}>
-                  Hayır, Çözülmedi
+                <button
+                  className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                  onClick={() => handleStatusChange('IN_PROGRESS')}
+                >
+                  No, Not Resolved
                 </button>
               </div>
             </div>
@@ -786,34 +883,39 @@ export default function TicketDetail() {
 
       {/* Ikincil durum aksiyonlarini acan modal pencere. */}
       {extraActionsOpen && (
-        <div className="modal-overlay" onClick={() => setExtraActionsOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Extra Actions</h3>
-              <button className="modal-close" onClick={() => setExtraActionsOpen(false)}>×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setExtraActionsOpen(false)}>
+          <div
+            className="w-full max-w-sm rounded-xl border animate-slide-up"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Extra Actions</h3>
+              <button onClick={() => setExtraActionsOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div className="p-5 space-y-3">
               {allowedStatuses.includes('NEW') && (
                 <button 
-                  className="btn btn-outline" 
-                  style={{ justifyContent: 'center' }}
+                  className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   onClick={() => { handleStatusChange('NEW'); setExtraActionsOpen(false); }}
                 >
-                  Unclaim (Bırak)
+                  Unclaim (Release)
                 </button>
               )}
               {allowedStatuses.includes('CLOSED') && (
                 <button 
-                  className="btn btn-danger" 
-                  style={{ justifyContent: 'center' }}
+                  className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
                   onClick={() => { handleStatusChange('CLOSED'); setExtraActionsOpen(false); }}
                 >
                   Close Ticket
                 </button>
               )}
               {!allowedStatuses.includes('NEW') && !allowedStatuses.includes('CLOSED') && (
-                <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: 'var(--space-4)' }}>
-                  Şu anki statüde ekstra bir aksiyon bulunmuyor.
+                <div className="text-center py-4 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                  No extra actions available for current status.
                 </div>
               )}
             </div>
@@ -823,37 +925,58 @@ export default function TicketDetail() {
 
       {/* Memnuniyet puani ve yorumunun girildigi CSAT modal'i. */}
       {csatModalOpen && (
-        <div className="modal-overlay" onClick={() => !submittingCsat && setCsatModalOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Müşteri Memnuniyet Anketi</h3>
-              <button className="modal-close" onClick={() => !submittingCsat && setCsatModalOpen(false)}>×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => !submittingCsat && setCsatModalOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-xl border animate-slide-up"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Customer Satisfaction Survey</h3>
+              <button onClick={() => !submittingCsat && setCsatModalOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <p>Çözüm sürecini 1 ile 5 arasında nasıl değerlendirirsiniz?</p>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', margin: 'var(--space-3) 0' }}>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>How would you rate the resolution process from 1 to 5?</p>
+              <div className="flex gap-2 justify-center py-2">
                 {[1, 2, 3, 4, 5].map(star => (
                   <button 
                     key={star}
                     type="button"
-                    style={{ fontSize: '32px', background: 'none', border: 'none', outline: 'none', cursor: 'pointer', color: csatRating >= star ? '#f59e0b' : '#e5e7eb', transition: 'color 0.2s' }}
+                    className="transition-all duration-200 hover:scale-110 cursor-pointer"
+                    style={{ fontSize: '32px', background: 'none', border: 'none', outline: 'none', color: csatRating >= star ? '#f59e0b' : 'var(--text-tertiary)' }}
                     onClick={() => setCsatRating(star)}
                   >
-                    ★
+                    <Star className="h-8 w-8" fill={csatRating >= star ? '#f59e0b' : 'none'} />
                   </button>
                 ))}
               </div>
               <textarea 
-                className="form-input" 
-                placeholder="Eklemek istediğiniz notlar (opsiyonel)..."
+                placeholder="Any additional notes (optional)..."
                 rows="3"
                 value={csatComment}
                 onChange={e => setCsatComment(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               />
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" disabled={submittingCsat} onClick={() => setCsatModalOpen(false)}>İptal</button>
-              <button className="btn btn-primary" disabled={submittingCsat} onClick={handleSubmitCsat}>Gönder ve Kapat</button>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+              <button
+                disabled={submittingCsat}
+                onClick={() => setCsatModalOpen(false)}
+                className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={submittingCsat}
+                onClick={handleSubmitCsat}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Submit & Close
+              </button>
             </div>
           </div>
         </div>
@@ -861,38 +984,64 @@ export default function TicketDetail() {
 
       {/* Cozum notu girisi icin modal. Resolved butonuna tiklaninca acilir. */}
       {resolveModalOpen && (
-        <div className="modal-overlay" onClick={() => !savingResolutionNote && setResolveModalOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{resolutionNote ? 'Çözüm Notunu Güncelle' : 'Çözüm Notu Yaz'}</h3>
-              <button className="modal-close" onClick={() => !savingResolutionNote && setResolveModalOpen(false)}>×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => !savingResolutionNote && setResolveModalOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-xl border animate-slide-up"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                {resolutionNote ? 'Update Resolution Note' : 'Write Resolution Note'}
+              </h3>
+              <button onClick={() => !savingResolutionNote && setResolveModalOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-                Bileti çözüldü olarak işaretlemek için bir çözüm notu yazmalısınız.
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                You must write a resolution note to mark this ticket as resolved.
               </p>
               <textarea
-                className="form-textarea"
-                placeholder="Sorunu nasıl çözdüğünüzü açıklayın..."
+                placeholder="Explain how the issue was resolved..."
                 rows="4"
                 value={resolutionNoteText}
                 onChange={(e) => setResolutionNoteText(e.target.value)}
                 disabled={savingResolutionNote}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[100px]"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               />
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" disabled={savingResolutionNote} onClick={() => setResolveModalOpen(false)}>İptal</button>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
               <button
-                className="btn btn-success"
+                disabled={savingResolutionNote}
+                onClick={() => setResolveModalOpen(false)}
+                className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
                 disabled={savingResolutionNote || !resolutionNoteText.trim()}
                 onClick={handleSubmitResolve}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {savingResolutionNote ? 'Kaydediliyor...' : '✅ Kaydet ve Çözüldü Olarak İşaretle'}
+                {savingResolutionNote ? 'Saving...' : 'Save & Mark Resolved'}
               </button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Helper component for detail info rows
+function DetailRow({ label, value }) {
+  return (
+    <div>
+      <div className="text-xs font-medium mb-0.5" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
+      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{value}</div>
     </div>
   );
 }

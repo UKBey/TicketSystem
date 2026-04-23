@@ -13,7 +13,7 @@ export default function Pool() {
       const res = await api.get('/tickets/pool');
       setTickets(res.data);
     } catch (err) {
-      console.error('Havuz biletleri yüklenemedi:', err);
+      console.error('Could not load pool tickets:', err);
     } finally {
       setLoading(false);
     }
@@ -29,22 +29,21 @@ export default function Pool() {
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
       navigate(`/tickets/${ticketId}`);
     } catch (err) {
-      alert(err.response?.data?.message || 'Bilet sahiplenilemedi.');
+      alert(err.response?.data?.message || 'Could not claim ticket.');
     }
   };
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Pool</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Pool</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Unassigned tickets waiting to be claimed.</p>
       </div>
 
-      <div className="card">
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {loading ? (
-          <div className="card-body">
-            <div className="app-loading" style={{ minHeight: 200 }}>
-              <div className="spinner" />
-            </div>
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
           <TicketTable tickets={tickets} showClaimButton onClaim={handleClaim} showSla />

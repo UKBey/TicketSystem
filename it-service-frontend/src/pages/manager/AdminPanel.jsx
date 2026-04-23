@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Plus, X } from 'lucide-react';
 import api from '../../services/api';
 
 export default function AdminPanel() {
@@ -18,8 +19,8 @@ export default function AdminPanel() {
       setUsers(usersRes.data);
       setProducts(productsRes.data);
     } catch (err) {
-      console.error('Veriler yüklenemedi:', err);
-      setError('Veriler yüklenirken bir hata oluştu.');
+      console.error('Could not load data:', err);
+      setError('An error occurred while loading data.');
     } finally {
       setLoading(false);
     }
@@ -31,7 +32,7 @@ export default function AdminPanel() {
 
   const handleAssignProduct = async (userId) => {
     if (!selectedProductId) {
-      alert('Lütfen eklenecek bir ürün seçin.');
+      alert('Please select a product to assign.');
       return;
     }
     try {
@@ -39,93 +40,97 @@ export default function AdminPanel() {
       // API'den donen guncel kullanici nesnesi local listedeki kaydin yerine yazilir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'Ürün atanamadı.');
+      alert(err.response?.data?.message || 'Could not assign product.');
     }
   };
 
   const handleRemoveProduct = async (userId, productId) => {
-    if (!window.confirm('Bu ürün yetkisini kaldırmak istediğinize emin misiniz?')) return;
+    if (!window.confirm('Are you sure you want to remove this product authorization?')) return;
     
     try {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
       // Yetki kaldirma sonrasi donen son durum local listede eszamanlanir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'Ürün yetkisi kaldırılamadı.');
+      alert(err.response?.data?.message || 'Could not remove product authorization.');
     }
   };
 
   if (loading) {
     return (
-      <div className="app-loading" style={{ minHeight: '60vh' }}>
-        <div className="spinner" />
+      <div className="flex items-center justify-center py-40">
+        <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
       </div>
     );
   }
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">Admin Panel</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Admin Panel</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage user product authorizations.</p>
       </div>
 
       {error && (
-        <div style={{ color: 'var(--color-danger)', marginBottom: 'var(--space-4)' }}>
+        <div className="rounded-lg px-4 py-3 mb-5 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
           {error}
         </div>
       )}
 
-      <div className="card">
-        <div className="card-header">Kullanıcı & Ürün Atamaları</div>
-        <div className="card-body" style={{ overflowX: 'auto' }}>
-          <table className="data-table">
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="px-6 py-4 border-b font-semibold text-sm" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+          User & Product Assignments
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
             <thead>
-              <tr>
-                <th>İsim</th>
-                <th>E-mail</th>
-                <th>Rol</th>
-                <th>Yetkili Ürünler</th>
-                <th style={{ width: '250px' }}>Ürün Ata</th>
+              <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Name</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Email</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Role</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Authorized Products</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '250px' }}>Assign Product</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id} style={{ cursor: 'default' }}>
-                  <td style={{ fontWeight: 600 }}>{user.fullName}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className="badge badge-in-progress" style={{ fontSize: '10px' }}>
+                <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{user.fullName}</td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
                       {user.role}
                     </span>
                   </td>
-                  <td>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1.5">
                       {user.authorizedProducts && user.authorizedProducts.map(prod => (
-                        <span key={prod.id} className="chip">
+                        <span key={prod.id} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
                           {prod.name}
                           <button 
-                            className="chip-remove" 
                             onClick={() => handleRemoveProduct(user.id, prod.id)}
-                            title="Yetkiyi Kaldır"
+                            title="Remove"
+                            className="ml-0.5 rounded hover:text-danger-500 transition-colors cursor-pointer"
+                            style={{ color: 'var(--text-tertiary)' }}
                           >
-                            ×
+                            <X className="h-3 w-3" />
                           </button>
                         </span>
                       ))}
                       {(!user.authorizedProducts || user.authorizedProducts.length === 0) && (
-                        <span style={{ color: 'var(--color-text-light)', fontSize: 'element' }}>Ürün yok</span>
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No products</span>
                       )}
                     </div>
                   </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
                       <select 
-                        className="form-select" 
-                        style={{ padding: '4px 8px', borderColor: 'var(--color-border)', fontSize: 'var(--font-size-xs)' }}
+                        className="flex-1 rounded-lg border px-2 py-1.5 text-xs outline-none transition-all focus:ring-2 cursor-pointer"
+                        style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                         onChange={(e) => setSelectedProductId(e.target.value)}
                         value={selectedProductId}
                       >
-                        <option value="">Seç...</option>
+                        <option value="">Select...</option>
                         {products
                           .filter(p => !(user.authorizedProducts || []).some(ap => ap.id === p.id))
                           .map(p => (
@@ -134,10 +139,11 @@ export default function AdminPanel() {
                         }
                       </select>
                       <button 
-                        className="btn btn-primary btn-sm"
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
                         onClick={() => handleAssignProduct(user.id)}
                       >
-                        Ekle
+                        <Plus className="h-3 w-3" />
+                        Add
                       </button>
                     </div>
                   </td>
@@ -145,8 +151,8 @@ export default function AdminPanel() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-                    Kullanıcı bulunamadı.
+                  <td colSpan="5" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                    No users found.
                   </td>
                 </tr>
               )}

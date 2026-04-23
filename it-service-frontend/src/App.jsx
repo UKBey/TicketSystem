@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
@@ -20,12 +21,18 @@ function AppLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-body)' }}>
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((prev) => !prev)}
       />
-      <main className="main-content">{children}</main>
+      <div
+        className="flex flex-1 flex-col transition-all duration-300"
+        style={{ marginLeft: sidebarCollapsed ? '76px' : '260px' }}
+      >
+        <Navbar />
+        <main className="flex-1 p-6 lg:p-8">{children}</main>
+      </div>
     </div>
   );
 }

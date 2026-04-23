@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Plus } from 'lucide-react';
 import api from '../../services/api';
 import TicketTable from '../../components/TicketTable';
 import CreateTicketModal from '../../components/CreateTicketModal';
@@ -14,7 +15,7 @@ export default function MyTickets() {
       const res = await api.get('/tickets');
       setTickets(res.data);
     } catch (err) {
-      console.error('Biletler yüklenemedi:', err);
+      console.error('Could not load tickets:', err);
     } finally {
       setLoading(false);
     }
@@ -42,36 +43,65 @@ export default function MyTickets() {
 
   return (
     <>
-      <div className="page-header">
-        <h1 className="page-title">My Tickets</h1>
-        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
-          + Yeni Bilet
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>My Tickets</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>View and manage your support requests.</p>
+        </div>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
+        >
+          <Plus className="h-4 w-4" />
+          New Ticket
         </button>
       </div>
 
-      <div className="ticket-tabs" style={{ display: 'flex', gap: 0, marginBottom: 'var(--space-4)' }}>
+      {/* Tabs */}
+      <div className="flex gap-0 mb-5">
         <button
-          className={`ticket-tab-btn ${tab === 'active' ? 'active' : ''}`}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-colors cursor-pointer rounded-l-lg ${
+            tab === 'active'
+              ? 'bg-primary-500 text-white border-primary-500'
+              : 'border-[var(--border-color)] hover:bg-[var(--bg-surface-hover)]'
+          }`}
+          style={tab !== 'active' ? { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' } : {}}
           onClick={() => setTab('active')}
         >
-          Açık Biletler
-          {!loading && <span className="ticket-tab-count">{activeTickets.length}</span>}
+          Active
+          {!loading && (
+            <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
+              tab === 'active' ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
+            }`}>
+              {activeTickets.length}
+            </span>
+          )}
         </button>
         <button
-          className={`ticket-tab-btn ${tab === 'closed' ? 'active' : ''}`}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-l-0 transition-colors cursor-pointer rounded-r-lg ${
+            tab === 'closed'
+              ? 'bg-primary-500 text-white border-primary-500'
+              : 'border-[var(--border-color)] hover:bg-[var(--bg-surface-hover)]'
+          }`}
+          style={tab !== 'closed' ? { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' } : {}}
           onClick={() => setTab('closed')}
         >
-          Kapanmış Biletler
-          {!loading && <span className="ticket-tab-count">{closedTickets.length}</span>}
+          Closed
+          {!loading && (
+            <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
+              tab === 'closed' ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
+            }`}>
+              {closedTickets.length}
+            </span>
+          )}
         </button>
       </div>
 
-      <div className="card">
+      {/* Table card */}
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {loading ? (
-          <div className="card-body">
-            <div className="app-loading" style={{ minHeight: 200 }}>
-              <div className="spinner" />
-            </div>
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
           <TicketTable tickets={displayedTickets} showSla={tab === 'active'} />
