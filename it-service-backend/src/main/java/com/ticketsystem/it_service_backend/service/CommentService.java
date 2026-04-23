@@ -30,7 +30,7 @@ public class CommentService {
         Ticket ticket = ticketService.validateMutationAccess(ticketId, userId, roles);
 
         // Sadece CUSTOMER olan kullanici dahili not birakamaz.
-        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("MANAGER");
+        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("AGENT_ADMIN");
         if (isOnlyCustomer && "INTERNAL".equals(type)) {
             log.warn("Yorum reddedildi: Müşteri (ID: {}) dahili yorum eklemeye çalıştı.", userId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Müşteriler sadece genel yorum ekleyebilir.");
@@ -65,7 +65,7 @@ public class CommentService {
         log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi.", ticketId, allComments.size());
 
         // Müşteri ekraninda dahili notlar filtrelenerek sadece disa acik yorumlar dondurulur.
-        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("MANAGER");
+        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("AGENT_ADMIN");
         if (isOnlyCustomer) {
             log.debug("Müşteri filtresi uygulanıyor: Dahili yorumlar gizleniyor.");
             return allComments.stream()

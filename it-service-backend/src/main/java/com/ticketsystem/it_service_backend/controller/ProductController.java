@@ -68,7 +68,7 @@ public class ProductController {
             @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER ürün oluşturabilir")
     })
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Oluşturulacak ürün bilgileri",
@@ -91,7 +91,7 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
     })
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<Void> deleteProduct(
             @Parameter(description = "Silinecek ürünün ID'si", example = "1", required = true)
             @PathVariable Long id) {
@@ -113,7 +113,7 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
     })
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<ProductDTO> updateProduct(
             @Parameter(description = "Güncellenecek ürünün ID'si", example = "1", required = true)
             @PathVariable Long id,

@@ -56,7 +56,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "413", description = "Dosya boyutu izin verilen limiti aşıyor")
     })
     @PostMapping("/tickets/{ticketId}/attachments")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<AttachmentDTO> uploadAttachment(
             @Parameter(description = "Dosyanın ekleneceği biletin ID'si", example = "42", required = true)
             @PathVariable Long ticketId,
@@ -86,7 +86,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
     })
     @GetMapping("/tickets/{ticketId}/attachments")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<List<AttachmentDTO>> getAttachments(
             @Parameter(description = "Dosyaları listelenecek biletin ID'si", example = "42", required = true)
             @PathVariable Long ticketId) {
@@ -111,7 +111,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "404", description = "Dosya bulunamadı")
     })
     @GetMapping("/attachments/{id}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<byte[]> downloadAttachment(
             @Parameter(description = "İndirilecek dosyanın ID'si", example = "55", required = true)
             @PathVariable Long id) {
@@ -137,7 +137,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "404", description = "Dosya bulunamadı")
     })
     @DeleteMapping("/attachments/{id}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<Void> deleteAttachment(
             @Parameter(description = "Silinecek dosyanın ID'si", example = "55", required = true)
             @PathVariable Long id,

@@ -104,7 +104,7 @@ public class TicketResolutionNoteController {
             @ApiResponse(responseCode = "404", description = "Çözüm notu bulunamadı")
     })
     @GetMapping("/{id}/resolution-note")
-    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<ResolutionNoteResponseDTO> getResolutionNote(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -126,9 +126,9 @@ public class TicketResolutionNoteController {
             @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
     })
     @GetMapping("/all-resolution-notes")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<ResolutionNoteResponseDTO>> getAllResolutionNotes() {
-        log.info("Tüm çözüm notlarını listeleme isteği (Manager).");
+        log.info("Tüm çözüm notlarını listeleme isteği (Agent admin).");;
 
         List<ResolutionNote> notes = resolutionNoteService.getAllResolutionNotes();
 

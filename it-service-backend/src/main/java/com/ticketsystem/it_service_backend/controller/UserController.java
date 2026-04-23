@@ -126,7 +126,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
     })
     @GetMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         log.info("Tüm kullanıcıları listeleme isteği (Yönetici).");
 
@@ -151,7 +151,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @PostMapping("/{userId}/products/{productId}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<UserDTO> assignProductToUser(
             @Parameter(description = "Ajanın Keycloak ID'si", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321", required = true)
             @PathVariable String userId,
@@ -176,7 +176,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @DeleteMapping("/{userId}/products/{productId}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<UserDTO> removeProductFromUser(
             @Parameter(description = "Ajanın Keycloak ID'si", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321", required = true)
             @PathVariable String userId,

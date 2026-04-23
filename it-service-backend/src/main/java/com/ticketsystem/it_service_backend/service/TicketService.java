@@ -103,8 +103,8 @@ public class TicketService {
     public List<Ticket> getAllTickets(String userId, List<String> roles) {
         log.info("Tüm biletleri listeleme işlemi. Kullanıcı: {}, Roller: {}", userId, roles);
 
-        if (roles.contains("MANAGER")) {
-            log.debug("Yönetici rolü algılandı, tüm biletler getiriliyor.");
+        if (roles.contains("AGENT_ADMIN")) {
+            log.debug("Agent admin rolü algılandı, tüm biletler getiriliyor.");
             return ticketRepository.findAll();
         }
 
@@ -137,8 +137,8 @@ public class TicketService {
     public List<Ticket> getPoolTickets(String userId, List<String> roles) {
         log.info("Bilet havuzu listeleme işlemi. Kullanıcı: {}, Roller: {}", userId, roles);
 
-        if (roles.contains("MANAGER")) {
-            log.debug("Yönetici rolü için tüm NEW biletler getiriliyor.");
+        if (roles.contains("AGENT_ADMIN")) {
+            log.debug("Agent admin rolü için tüm NEW biletler getiriliyor.");
             return ticketRepository.findByStatus("NEW");
         }
 
@@ -180,9 +180,9 @@ public class TicketService {
         log.info("Bilet detayı (yetkili) çekme işlemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // Yonetici rolunde urun veya sahiplik siniri olmadan erisim verilir.
-        if (roles.contains("MANAGER")) {
-            log.debug("Yönetici yetkisiyle erişim sağlandı.");
+        // Agent admin rolunde urun veya sahiplik siniri olmadan erisim verilir.
+        if (roles.contains("AGENT_ADMIN")) {
+            log.debug("Agent admin yetkisiyle erişim sağlandı.");
             return ticket;
         }
 
@@ -217,9 +217,9 @@ public class TicketService {
         log.info("Kritik işlem yetki kontrolü (Mutation). Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // Yonetici degisiklik yapan tum islemlerde dogrudan yetkilidir.
-        if (roles.contains("MANAGER")) {
-            log.debug("Yönetici için işlem izni verildi.");
+        // Agent admin degisiklik yapan tum islemlerde dogrudan yetkilidir.
+        if (roles.contains("AGENT_ADMIN")) {
+            log.debug("Agent admin için işlem izni verildi.");
             return ticket;
         }
 
@@ -361,8 +361,8 @@ public class TicketService {
      */
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
                                                  String userId, List<String> roles) {
-        // Yonetici, durum gecislerinde kisitsiz yetkiye sahiptir.
-        if (roles.contains("MANAGER")) {
+        // Agent admin, durum gecislerinde kisitsiz yetkiye sahiptir.
+        if (roles.contains("AGENT_ADMIN")) {
             return;
         }
 

@@ -96,7 +96,7 @@ public class TicketController {
         log.info("Biletleri listeleme isteği. Kullanıcı ID: {}, Roller: {}", userId, roles);
 
         List<Ticket> tickets;
-        if (roles.contains("MANAGER") || roles.contains("AGENT")) {
+        if (roles.contains("AGENT_ADMIN") || roles.contains("AGENT")) {
             tickets = ticketService.getAllTickets(userId, roles);
         } else {
             tickets = ticketService.getCustomerTickets(userId);
@@ -119,7 +119,7 @@ public class TicketController {
             @ApiResponse(responseCode = "403", description = "CUSTOMER rolü havuza erişemez")
     })
     @GetMapping("/pool")
-    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<List<TicketResponseDTO>> getPoolTickets(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
@@ -273,7 +273,7 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Bilet bulunamadı")
     })
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<Void> deleteTicket(
             @Parameter(description = "Silinecek biletin ID'si", example = "42", required = true)
             @PathVariable Long id) {

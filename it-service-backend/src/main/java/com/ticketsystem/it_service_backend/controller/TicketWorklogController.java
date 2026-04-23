@@ -73,7 +73,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "403", description = "Bu biletin workloglarını görüntüleme yetkiniz yok")
     })
     @GetMapping("/{id}/worklogs")
-    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getWorklogsByTicket(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -97,9 +97,9 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
     })
     @GetMapping("/all-worklogs")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
-        log.info("Tüm worklogları listeleme isteği (Manager).");
+        log.info("Tüm worklogları listeleme isteği (Agent admin).");;
 
         List<TicketWorklog> worklogs = worklogService.getAllWorklogs();
 
@@ -139,14 +139,14 @@ public class TicketWorklogController {
     }
 
     @Operation(summary = "Worklog sil",
-            description = "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Manager hepsini silebilir.")
+                    + "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Agent Admin hepsini silebilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Worklog başarıyla silindi"),
             @ApiResponse(responseCode = "403", description = "Bu worklogu silme yetkiniz yok"),
             @ApiResponse(responseCode = "404", description = "Worklog bulunamadı")
     })
     @DeleteMapping("/{id}/worklogs/{worklogId}")
-    @PreAuthorize("hasAnyRole('AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<Void> deleteWorklog(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

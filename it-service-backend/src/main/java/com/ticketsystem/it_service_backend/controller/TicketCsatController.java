@@ -71,7 +71,7 @@ public class TicketCsatController {
             @ApiResponse(responseCode = "404", description = "Bu bilet için CSAT anketi bulunamadı")
     })
     @GetMapping("/{id}/csat")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<Csat> getCsat(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -88,7 +88,7 @@ public class TicketCsatController {
             @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER erişebilir")
     })
     @GetMapping("/all-csats")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<Csat>> getAllCsats() {
         return ResponseEntity.ok(csatService.getAllCsats());
     }

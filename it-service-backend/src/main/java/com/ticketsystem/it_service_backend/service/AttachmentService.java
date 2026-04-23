@@ -87,9 +87,9 @@ public class AttachmentService {
         
         log.info("Dosya silme işlemi. ID: {}, Siler: {}, Roller: {}", id, userId, roles);
 
-        // Yonetici rolunde dosya sahipligi aranmadan silme izni vardir.
-        if (roles.contains("MANAGER")) {
-            log.info("Yönetici yetkisiyle dosya siliniyor. Dosya ID: {}", id);
+        // Agent admin rolunde dosya sahipligi aranmadan silme izni vardir.
+        if (roles.contains("AGENT_ADMIN")) {
+            log.info("Agent admin yetkisiyle dosya siliniyor. Dosya ID: {}", id);
             attachmentRepository.delete(attachment);
             return;
         }

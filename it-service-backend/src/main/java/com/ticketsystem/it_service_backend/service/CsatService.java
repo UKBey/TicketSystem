@@ -84,7 +84,7 @@ public class CsatService {
     }
 
     public List<Csat> getAllCsats() {
-        log.info("Tüm CSAT anketlerini listeleme isteği (Manager).");
+        log.info("Tüm CSAT anketlerini listeleme isteği (Agent admin).");
         return csatRepository.findAll();
     }
 }

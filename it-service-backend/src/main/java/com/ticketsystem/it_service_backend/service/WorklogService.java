@@ -71,12 +71,12 @@ public class WorklogService {
         // Listeleme oncesi biletin varligi teyit edilir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        boolean isManager = roles.contains("MANAGER");
+        boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
         boolean isAgent = roles.contains("AGENT");
 
-        if (isManager) {
-            // Yonetici rolunde tum kayitlar listelenebilir.
-            log.debug("Manager erişimi: Tüm workloglar listeleniyor. Bilet ID: {}", ticketId);
+        if (isAgentAdmin) {
+            // Agent admin rolunde tum kayitlar listelenebilir.
+            log.debug("Agent admin erişimi: Tüm workloglar listeleniyor. Bilet ID: {}", ticketId);
         } else if (isAgent) {
             // Agent sadece uzerine atanmis kaydin workloglarini gorebilir.
             if (!userId.equals(ticket.getAssigneeId())) {
@@ -168,12 +168,12 @@ public class WorklogService {
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Worklog bulunamadı: " + worklogId);
                 });
 
-        boolean isManager = roles.contains("MANAGER");
+        boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
         boolean isAgent = roles.contains("AGENT");
 
-        if (isManager) {
-            // Yonetici tum worklog kayitlarini silebilir.
-            log.debug("Manager yetkisiyle worklog silme izni verildi. Worklog ID: {}", worklogId);
+        if (isAgentAdmin) {
+            // Agent admin tum worklog kayitlarini silebilir.
+            log.debug("Agent admin yetkisiyle worklog silme izni verildi. Worklog ID: {}", worklogId);
         } else if (isAgent) {
             // Agent yalnizca kendi olusturdugu kaydi silebilir.
             if (!userId.equals(worklog.getAgentId())) {

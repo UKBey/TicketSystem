@@ -122,11 +122,11 @@ public class ResolutionNoteService {
 
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        boolean isManager = roles.contains("MANAGER");
+        boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
         boolean isAgent = roles.contains("AGENT");
 
-        if (isManager) {
-            log.debug("Manager erişimi: Çözüm notu görüntüleniyor. Bilet ID: {}", ticketId);
+        if (isAgentAdmin) {
+            log.debug("Agent admin erişimi: Çözüm notu görüntülenıyor. Bilet ID: {}", ticketId);
         } else if (isAgent) {
             if (!userId.equals(ticket.getAssigneeId())) {
                 log.warn("Çözüm notu görüntüleme reddedildi: Agent (ID: {}) bu biletin assignee'si değil.", userId);
@@ -148,10 +148,10 @@ public class ResolutionNoteService {
     }
 
     /**
-     * Tum cozum notlarini yonetici gorunumu icin listeler.
+     * Tum cozum notlarini agent admin gorunumu icin listeler.
      */
     public List<ResolutionNote> getAllResolutionNotes() {
-        log.info("Tüm çözüm notlarını listeleme isteği (Manager).");
+        log.info("Tüm çözüm notlarını listeleme isteği (Agent admin).");
         return resolutionNoteRepository.findAll();
     }
 }
