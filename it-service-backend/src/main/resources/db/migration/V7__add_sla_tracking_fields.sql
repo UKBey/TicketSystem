@@ -1,0 +1,2 @@
+ALTER TABLE tickets ADD COLUMN sla_elapsed_ms BIGINT DEFAULT 0;
+ALTER TABLE tickets ADD COLUMN sla_paused_at TIMESTAMPTZ;

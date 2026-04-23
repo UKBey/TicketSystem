@@ -1,0 +1,9 @@
+FROM osixia/openldap:1.5.0
+
+USER root
+
+# Template dosyasi container acilisinda envsubst ile bootstrap.ldif'e donusturulur.
+COPY ./ldap-init/bootstrap.ldif.template /container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif.template
+COPY ./ldap-init/10-render-bootstrap.sh /container/service/slapd/startup/10-render-bootstrap.sh
+
+RUN chmod +x /container/service/slapd/startup/10-render-bootstrap.sh

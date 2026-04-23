@@ -1,0 +1,32 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+exporters:
+  opensearch:
+    http:
+      endpoint: "http://opensearch:9200"
+      tls:
+        insecure: true
+    logs_index: otel-logs
+    traces_index: otel-traces
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [opensearch]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [opensearch]
