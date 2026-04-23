@@ -84,6 +84,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     volumes:
       - ./keycloak-init:/opt/keycloak/data/import
+      - ./keycloak-themes/it-service-desk:/opt/keycloak/themes/it-service-desk
     depends_on:
       it-service-db:
         condition: service_healthy
