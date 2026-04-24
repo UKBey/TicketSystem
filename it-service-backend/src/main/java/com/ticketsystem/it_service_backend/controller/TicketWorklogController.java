@@ -99,7 +99,7 @@ public class TicketWorklogController {
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
-        log.info("Tüm worklogları listeleme isteği (Agent admin).");;
+                log.info("Tüm worklogları listeleme isteği (Agent admin).");
 
         List<TicketWorklog> worklogs = worklogService.getAllWorklogs();
 
@@ -139,7 +139,7 @@ public class TicketWorklogController {
     }
 
     @Operation(summary = "Worklog sil",
-                    + "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Agent Admin hepsini silebilir.")
+            description = "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Agent Admin hepsini silebilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Worklog başarıyla silindi"),
             @ApiResponse(responseCode = "403", description = "Bu worklogu silme yetkiniz yok"),
