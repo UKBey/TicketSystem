@@ -7,7 +7,7 @@ USER root
 COPY ./ldap-init/bootstrap.ldif.template /ldap-seed/bootstrap.ldif.template
 COPY ./ldap-init/entrypoint-wrapper.sh /ldap-seed/entrypoint-wrapper.sh
 
-RUN chmod +x /ldap-seed/entrypoint-wrapper.sh
+RUN sed -i 's/\r$//' /ldap-seed/entrypoint-wrapper.sh && chmod +x /ldap-seed/entrypoint-wrapper.sh
 
 # osixia/openldap'in LDAP_SEED_INTERNAL_LDIF_PATH mekanizmasini kullaniyoruz.
 # Render edilmis LDIF dosyasi bu dizinden otomatik olarak custom bootstrap'e kopyalanacak.

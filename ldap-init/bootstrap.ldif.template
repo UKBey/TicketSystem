@@ -29,3 +29,12 @@ cn: manager
 sn: test
 mail: mtest@ticketsystem.com
 userPassword: ${LDAP_MANAGER_PASSWORD}
+
+# 5. Test Agent Admin ekliyoruz
+dn: uid=aatest,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: aatest
+cn: agentadmin
+sn: test
+mail: aatest@ticketsystem.com
+userPassword: ${LDAP_AGENT_ADMIN_PASSWORD}
