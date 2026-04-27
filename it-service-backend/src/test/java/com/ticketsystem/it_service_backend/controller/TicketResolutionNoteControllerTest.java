@@ -59,9 +59,11 @@ class TicketResolutionNoteControllerTest {
     @Test
     void getResolutionNote_returnsOk() {
         ResolutionNote note = ResolutionNote.builder().id(3L).ticketId(10L).agentId("agent-1").note("note").build();
-        when(resolutionNoteService.getResolutionNoteByTicket(10L, "manager-1", List.of("MANAGER"))).thenReturn(note);
 
-        ResponseEntity<ResolutionNoteResponseDTO> response = controller.getResolutionNote(10L, jwtWithRoles("manager-1", List.of("MANAGER")));
+        // Manager no longer has operational access; AGENT_ADMIN should be used
+        when(resolutionNoteService.getResolutionNoteByTicket(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(note);
+
+        ResponseEntity<ResolutionNoteResponseDTO> response = controller.getResolutionNote(10L, jwtWithRoles("admin-1", List.of("AGENT_ADMIN")));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(3L, response.getBody().getId());

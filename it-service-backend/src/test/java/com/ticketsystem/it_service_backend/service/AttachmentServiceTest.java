@@ -84,7 +84,8 @@ class AttachmentServiceTest {
         Attachment attachment = Attachment.builder().id(6L).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(6L)).thenReturn(Optional.of(attachment));
 
-        attachmentService.deleteAttachment(6L, "manager-1", List.of("MANAGER"));
+        // Only AGENT_ADMIN can delete arbitrary attachments now
+        attachmentService.deleteAttachment(6L, "admin-1", List.of("AGENT_ADMIN"));
 
         verify(attachmentRepository).delete(attachment);
     }

@@ -178,7 +178,8 @@ class ResolutionNoteServiceTest {
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
         when(resolutionNoteRepository.findByTicketId(30L)).thenReturn(Optional.of(note));
 
-        ResolutionNote result = resolutionNoteService.getResolutionNoteByTicket(30L, "manager-1", List.of("MANAGER"));
+        // Manager role removed from operational access; AGENT_ADMIN should view resolution notes.
+        ResolutionNote result = resolutionNoteService.getResolutionNoteByTicket(30L, "admin-1", List.of("AGENT_ADMIN"));
 
         assertEquals(2L, result.getId());
     }
@@ -210,7 +211,7 @@ class ResolutionNoteServiceTest {
         when(resolutionNoteRepository.findByTicketId(30L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> resolutionNoteService.getResolutionNoteByTicket(30L, "manager-1", List.of("MANAGER")));
+            () -> resolutionNoteService.getResolutionNoteByTicket(30L, "admin-1", List.of("AGENT_ADMIN")));
 
         assertEquals(404, ex.getStatusCode().value());
     }

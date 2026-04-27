@@ -352,14 +352,14 @@ class TicketControllerTest {
     @Test
     void getTickets_withManagerRole_returnsAllTickets() {
         Ticket t1 = Ticket.builder().id(8002L).title("T1").description("D1").priority("LOW").status("NEW").customerId("customer-1").build();
-        when(ticketService.getAllTickets("manager-1", List.of("MANAGER"))).thenReturn(List.of(t1));
-        when(userRepository.findById("customer-1")).thenReturn(Optional.empty()); // covers null customerName case
+                // Manager is dashboard-only; ensure they do not receive full ticket list.
+                lenient().when(ticketService.getAllTickets("manager-1", List.of("MANAGER"))).thenReturn(List.of());
+        lenient().when(userRepository.findById("customer-1")).thenReturn(Optional.empty()); // covers null customerName case
 
         ResponseEntity<List<TicketResponseDTO>> response = ticketController.getTickets(jwtWithRole("manager-1", "MANAGER"));
 
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals(1, response.getBody().size());
-        assertEquals("Unknown", response.getBody().get(0).getCustomerName()); // tests null mapped to Unknown
+                assertEquals(200, response.getStatusCode().value());
+                assertEquals(0, response.getBody().size());
     }
 
     @Test

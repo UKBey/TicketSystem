@@ -167,7 +167,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(701L).build();
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getAllTickets("manager-1", List.of("MANAGER"));
+                // Manager no longer has global access; AGENT_ADMIN should be used for this behavior in production.
+                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("AGENT_ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(701L, result.get(0).getId());
@@ -216,7 +217,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(703L).build();
                 when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getPoolTickets("manager-1", List.of("MANAGER"));
+                // Manager no longer has pool access; AGENT_ADMIN should be used for full pool access.
+                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("AGENT_ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(703L, result.get(0).getId());
@@ -273,7 +275,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(704L).customerId("customer-1").build();
                 when(ticketRepository.findById(704L)).thenReturn(Optional.of(ticket));
 
-                Ticket result = ticketService.getTicketWithAuth(704L, "manager-1", List.of("MANAGER"));
+                // Manager no longer automatically sees tickets; AGENT_ADMIN should be used for full access.
+                Ticket result = ticketService.getTicketWithAuth(704L, "admin-1", List.of("AGENT_ADMIN"));
 
                 assertEquals(704L, result.getId());
         }
@@ -316,7 +319,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(707L).customerId("customer-1").build();
                 when(ticketRepository.findById(707L)).thenReturn(Optional.of(ticket));
 
-                Ticket result = ticketService.validateMutationAccess(707L, "manager-1", List.of("MANAGER"));
+                // Manager role no longer authorizes mutations; AGENT_ADMIN should be used.
+                Ticket result = ticketService.validateMutationAccess(707L, "admin-1", List.of("AGENT_ADMIN"));
 
                 assertEquals(707L, result.getId());
         }

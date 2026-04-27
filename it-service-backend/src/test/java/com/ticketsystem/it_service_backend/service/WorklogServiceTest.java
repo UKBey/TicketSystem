@@ -103,27 +103,16 @@ class WorklogServiceTest {
     }
 
     @Test
-    void getWorklogsByTicket_agentAdminReturnsRepositoryResult() {
+    void getWorklogsByTicket_managerReturnsRepositoryResult() {
         TicketWorklog worklog = TicketWorklog.builder().id(10L).ticketId(20L).agentId("agent-1").minutes(15).build();
         when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
         when(worklogRepository.findByTicketId(20L)).thenReturn(List.of(worklog));
 
+        // Manager no longer has operational access; AGENT_ADMIN can view worklogs
         List<TicketWorklog> result = worklogService.getWorklogsByTicket(20L, "admin-1", List.of("AGENT_ADMIN"));
 
         assertEquals(1, result.size());
         assertEquals(10L, result.get(0).getId());
-    }
-
-    @Test
-    void getWorklogsByTicket_managerReturnsRepositoryResult() {
-        TicketWorklog worklog = TicketWorklog.builder().id(11L).ticketId(20L).agentId("agent-1").minutes(15).build();
-        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
-        when(worklogRepository.findByTicketId(20L)).thenReturn(List.of(worklog));
-
-        List<TicketWorklog> result = worklogService.getWorklogsByTicket(20L, "manager-1", List.of("MANAGER"));
-
-        assertEquals(1, result.size());
-        assertEquals(11L, result.get(0).getId());
     }
 
     @Test
@@ -147,21 +136,12 @@ class WorklogServiceTest {
     }
 
     @Test
-    void deleteWorklog_agentAdminDeletes() {
-        TicketWorklog worklog = TicketWorklog.builder().id(101L).ticketId(20L).agentId("agent-2").minutes(15).build();
-        when(worklogRepository.findById(101L)).thenReturn(Optional.of(worklog));
-
-        worklogService.deleteWorklog(101L, "admin-1", List.of("AGENT_ADMIN"));
-
-        verify(worklogRepository).deleteById(101L);
-    }
-
-    @Test
     void deleteWorklog_managerDeletes() {
         TicketWorklog worklog = TicketWorklog.builder().id(100L).ticketId(20L).agentId("agent-2").minutes(15).build();
         when(worklogRepository.findById(100L)).thenReturn(Optional.of(worklog));
 
-        worklogService.deleteWorklog(100L, "manager-1", List.of("MANAGER"));
+        // Manager no longer authorized to delete worklogs; AGENT_ADMIN should be used
+        worklogService.deleteWorklog(100L, "admin-1", List.of("AGENT_ADMIN"));
 
         verify(worklogRepository).deleteById(100L);
     }

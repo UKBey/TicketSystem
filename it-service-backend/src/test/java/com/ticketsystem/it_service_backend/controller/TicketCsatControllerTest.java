@@ -46,9 +46,11 @@ class TicketCsatControllerTest {
     @Test
     void getCsat_returnsEntity() {
         Csat csat = Csat.builder().id(2L).ticketId(11L).rating(4).build();
-        when(csatService.getCsatByTicketId(11L, "manager-1", List.of("MANAGER"))).thenReturn(csat);
 
-        ResponseEntity<Csat> response = controller.getCsat(11L, jwtWithRoles("manager-1", List.of("MANAGER")));
+        // Manager role no longer has operational access; AGENT_ADMIN should be used
+        when(csatService.getCsatByTicketId(11L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(csat);
+
+        ResponseEntity<Csat> response = controller.getCsat(11L, jwtWithRoles("admin-1", List.of("AGENT_ADMIN")));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(2L, response.getBody().getId());

@@ -43,7 +43,8 @@ class ProductServiceTest {
     void getAllProducts_managerGetsEverything() {
         when(productRepository.findAll()).thenReturn(List.of(product));
 
-        List<Product> result = productService.getAllProducts("manager-1", List.of("MANAGER"));
+        // Manager role no longer has full product access; use AGENT_ADMIN
+        List<Product> result = productService.getAllProducts("admin-1", List.of("AGENT_ADMIN"));
 
         assertEquals(1, result.size());
         assertEquals("ERP", result.get(0).getName());
