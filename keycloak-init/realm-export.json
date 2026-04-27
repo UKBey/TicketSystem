@@ -1765,7 +1765,7 @@
             "cn=admin,dc=ticketsystem,dc=com"
           ],
           "bindCredential": [
-            "**********"
+            "321654"
           ],
           "changedSyncPeriod": [
             "-1"
