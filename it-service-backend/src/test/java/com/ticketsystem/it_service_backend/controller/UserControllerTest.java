@@ -35,7 +35,30 @@ class UserControllerTest {
     }
 
     @Test
-    void syncCurrentUser_mapsRoleAndReturnsDto() {
+    void syncCurrentUser_mapsAgentAdminRoleAndReturnsDto() {
+        User synced = User.builder()
+                .id("admin-1")
+                .email("admin@example.com")
+                .fullName("Ada Admin")
+                .role("AGENT_ADMIN")
+                .build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+
+        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+        when(jwt.getClaimAsString("email")).thenReturn("admin@example.com");
+        when(jwt.getClaimAsString("given_name")).thenReturn("Ada");
+        when(jwt.getClaimAsString("family_name")).thenReturn("Admin");
+
+        ResponseEntity<UserDTO> response = userController.syncCurrentUser(jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals("admin-1", response.getBody().getId());
+        assertEquals("AGENT_ADMIN", response.getBody().getRole());
+    }
+
+    @Test
+    void syncCurrentUser_mapsManagerRoleAndReturnsDto() {
         User synced = User.builder()
                 .id("manager-1")
                 .email("manager@example.com")

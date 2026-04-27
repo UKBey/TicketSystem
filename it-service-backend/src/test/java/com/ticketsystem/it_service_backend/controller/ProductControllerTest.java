@@ -34,8 +34,21 @@ class ProductControllerTest {
     }
 
     @Test
-    void getAllProducts_returnsMappedDtos() {
+    void getAllProducts_withAgentAdminRole_returnsMappedDtos() {
         Product product = Product.builder().id(11L).name("ERP").isActive(true).build();
+        when(productService.getAllProducts("admin-1", List.of("AGENT_ADMIN"))).thenReturn(List.of(product));
+
+        ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("admin-1", "AGENT_ADMIN"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().size());
+        assertEquals("ERP", response.getBody().get(0).getName());
+    }
+
+    @Test
+    void getAllProducts_withManagerRole_returnsMappedDtos() {
+        Product product = Product.builder().id(12L).name("CRM").isActive(true).build();
         when(productService.getAllProducts("manager-1", List.of("MANAGER"))).thenReturn(List.of(product));
 
         ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("manager-1", "MANAGER"));
@@ -43,7 +56,7 @@ class ProductControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
-        assertEquals("ERP", response.getBody().get(0).getName());
+        assertEquals("CRM", response.getBody().get(0).getName());
     }
 
     @Test

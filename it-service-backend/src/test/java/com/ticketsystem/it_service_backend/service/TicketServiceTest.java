@@ -152,6 +152,17 @@ class TicketServiceTest {
     }
 
         @Test
+        void getAllTickets_whenAgentAdmin_returnsAllTickets() {
+                Ticket ticket = Ticket.builder().id(700L).build();
+                when(ticketRepository.findAll()).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("AGENT_ADMIN"));
+
+                assertEquals(1, result.size());
+                assertEquals(700L, result.get(0).getId());
+        }
+
+        @Test
         void getAllTickets_whenManager_returnsAllTickets() {
                 Ticket ticket = Ticket.builder().id(701L).build();
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
@@ -184,6 +195,17 @@ class TicketServiceTest {
                 when(ticketRepository.findByCustomerIdOrProductIdIn("agent-1", List.of(10L))).thenReturn(List.of(ticket));
 
                 List<Ticket> result = ticketService.getAllTickets("agent-1", List.of("AGENT"));
+
+                assertEquals(1, result.size());
+                assertEquals(702L, result.get(0).getId());
+        }
+
+        @Test
+        void getPoolTickets_whenAgentAdmin_returnsNewTickets() {
+                Ticket ticket = Ticket.builder().id(702L).build();
+                when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
+
+                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("AGENT_ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(702L, result.get(0).getId());
@@ -234,6 +256,16 @@ class TicketServiceTest {
 
                 assertEquals(1, result.size());
                 assertEquals(703L, result.get(0).getId());
+        }
+
+        @Test
+        void getTicketWithAuth_whenAgentAdmin_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(705L).customerId("customer-1").build();
+                when(ticketRepository.findById(705L)).thenReturn(Optional.of(ticket));
+
+                Ticket result = ticketService.getTicketWithAuth(705L, "admin-1", List.of("AGENT_ADMIN"));
+
+                assertEquals(705L, result.getId());
         }
 
         @Test
