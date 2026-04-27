@@ -2,8 +2,15 @@ FROM osixia/openldap:1.5.0
 
 USER root
 
-# Template dosyasi container acilisinda envsubst ile bootstrap.ldif'e donusturulur.
-COPY ./ldap-init/bootstrap.ldif.template /container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif.template
-COPY ./ldap-init/10-render-bootstrap.sh /container/service/slapd/startup/10-render-bootstrap.sh
+# Template dosyasini seed dizinine kopyaliyoruz.
+# Container acilisinda entrypoint-wrapper.sh bu sablonu render edecek.
+COPY ./ldap-init/bootstrap.ldif.template /ldap-seed/bootstrap.ldif.template
+COPY ./ldap-init/entrypoint-wrapper.sh /ldap-seed/entrypoint-wrapper.sh
 
-RUN chmod +x /container/service/slapd/startup/10-render-bootstrap.sh
+RUN chmod +x /ldap-seed/entrypoint-wrapper.sh
+
+# osixia/openldap'in LDAP_SEED_INTERNAL_LDIF_PATH mekanizmasini kullaniyoruz.
+# Render edilmis LDIF dosyasi bu dizinden otomatik olarak custom bootstrap'e kopyalanacak.
+ENV LDAP_SEED_INTERNAL_LDIF_PATH=/ldap-seed/rendered
+
+ENTRYPOINT ["/ldap-seed/entrypoint-wrapper.sh"]
