@@ -8,7 +8,7 @@ OUTPUT="$OUTPUT_DIR/bootstrap.ldif"
 echo "[ldap-init] Rendering LDAP bootstrap template..."
 
 # Sablondaki degiskenleri kontrol et
-for var_name in LDAP_CUSTOMER_PASSWORD LDAP_AGENT_PASSWORD LDAP_MANAGER_PASSWORD; do
+for var_name in LDAP_CUSTOMER_PASSWORD LDAP_AGENT_PASSWORD LDAP_MANAGER_PASSWORD LDAP_AGENT_ADMIN_PASSWORD; do
   if [ -z "${!var_name:-}" ]; then
     echo "[ldap-init] HATA: Zorunlu degisken eksik: $var_name"
     exit 1
@@ -23,6 +23,7 @@ sed \
   -e "s|\${LDAP_CUSTOMER_PASSWORD}|${LDAP_CUSTOMER_PASSWORD}|g" \
   -e "s|\${LDAP_AGENT_PASSWORD}|${LDAP_AGENT_PASSWORD}|g" \
   -e "s|\${LDAP_MANAGER_PASSWORD}|${LDAP_MANAGER_PASSWORD}|g" \
+  -e "s|\${LDAP_AGENT_ADMIN_PASSWORD}|${LDAP_AGENT_ADMIN_PASSWORD}|g" \
   "$TEMPLATE" > "$OUTPUT"
 
 echo "[ldap-init] Bootstrap LDIF basariyla olusturuldu: $OUTPUT"
