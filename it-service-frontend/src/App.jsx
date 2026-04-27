@@ -42,8 +42,10 @@ function HomeRedirect() {
   const role = getPrimaryRole();
 
   switch (role) {
-    case 'MANAGER':
+    case 'AGENT_ADMIN':
       return <Navigate to="/workspace" replace />;
+    case 'MANAGER':
+      return <Navigate to="/dashboard" replace />;
     case 'AGENT':
       return <Navigate to="/workspace" replace />;
     case 'CUSTOMER':
@@ -75,11 +77,11 @@ export default function App() {
           }
         />
 
-        {/* Agent ve manager tarafindan ortak kullanilan calisma ekranlari. */}
+        {/* Agent ve agent_admin tarafindan kullanilan calisma ekranlari. */}
         <Route
           path="/workspace"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
               <AppLayout><Workspace /></AppLayout>
             </ProtectedRoute>
           }
@@ -87,7 +89,7 @@ export default function App() {
         <Route
           path="/pool"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
               <AppLayout><Pool /></AppLayout>
             </ProtectedRoute>
           }
@@ -95,17 +97,17 @@ export default function App() {
         <Route
           path="/history"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
               <AppLayout><History /></AppLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* Sadece manager yetkisi isteyen yonetim ekranlari. */}
+        {/* Manager (dashboard-only) ve agent_admin yetkisi isteyen yonetim ekranlari. */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProtectedRoute allowedRoles={['MANAGER', 'AGENT_ADMIN']}>
               <AppLayout><Dashboard /></AppLayout>
             </ProtectedRoute>
           }
@@ -113,7 +115,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
               <AppLayout><AdminPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -121,7 +123,7 @@ export default function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
               <AppLayout><ProductPanel /></AppLayout>
             </ProtectedRoute>
           }

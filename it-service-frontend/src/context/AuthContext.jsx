@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
     if (keycloak.tokenParsed) {
       const tokenRoles = keycloak.tokenParsed.realm_access?.roles || [];
       const appRoles = tokenRoles.filter((r) =>
-        ['CUSTOMER', 'AGENT', 'MANAGER'].includes(r)
+        ['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'].includes(r)
       );
       setRoles(appRoles);
       setUser({
@@ -87,6 +87,7 @@ export function AuthProvider({ children }) {
   );
 
   const getPrimaryRole = useCallback(() => {
+    if (roles.includes('AGENT_ADMIN')) return 'AGENT_ADMIN';
     if (roles.includes('MANAGER')) return 'MANAGER';
     if (roles.includes('AGENT')) return 'AGENT';
     if (roles.includes('CUSTOMER')) return 'CUSTOMER';

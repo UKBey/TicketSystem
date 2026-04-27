@@ -395,7 +395,7 @@ export default function TicketDetail() {
 
   const ticketCode = `TCK-${String(ticket.id).padStart(3, '0')}`;
   const allowedStatuses = STATUS_OPTIONS[ticket.status] || [];
-  const isAgent = hasRole('AGENT') || hasRole('MANAGER');
+  const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
   const isCustomer = hasRole('CUSTOMER');
 
   return (
@@ -595,7 +595,7 @@ export default function TicketDetail() {
 
       {/* Sag kolon: statu aksiyonlari ve detay kartlari. */}
       <div className="flex flex-col gap-4">
-        {/* Agent/manager icin durum gecisi butonlari. */}
+        {/* Agent/agent_admin icin durum gecisi butonlari. */}
         {isAgent && allowedStatuses.length > 0 && (
           <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>

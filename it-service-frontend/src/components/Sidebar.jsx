@@ -83,10 +83,9 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           </NavLink>
         )}
 
-        {/* Agent/Manager shared section */}
-        {(primaryRole === 'AGENT' || primaryRole === 'MANAGER') && (
+        {/* Agent/Agent_Admin shared section */}
+        {(primaryRole === 'AGENT' || primaryRole === 'AGENT_ADMIN') && (
           <>
-
             <NavLink to="/workspace" className={linkClassName}>
               <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>Workspace</span>}
@@ -102,8 +101,8 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           </>
         )}
 
-        {/* Manager-only section */}
-        {primaryRole === 'MANAGER' && (
+        {/* Agent_Admin-only management section */}
+        {primaryRole === 'AGENT_ADMIN' && (
           <>
             {!collapsed && (
               <div className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -121,6 +120,21 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             <NavLink to="/products" className={linkClassName}>
               <Package className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>Products</span>}
+            </NavLink>
+          </>
+        )}
+
+        {/* Manager-only dashboard section (read-only) */}
+        {primaryRole === 'MANAGER' && (
+          <>
+            {!collapsed && (
+              <div className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Analytics
+              </div>
+            )}
+            <NavLink to="/dashboard" className={linkClassName}>
+              <LayoutDashboard className="h-[18px] w-[18px] flex-shrink-0" />
+              {!collapsed && <span>Dashboard</span>}
             </NavLink>
           </>
         )}
