@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
@@ -23,4 +24,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // Karma rolde kullanicinin hem sahip oldugu hem yetkili oldugu urun biletlerini birlestirir.
     List<Ticket> findByCustomerIdOrProductIdIn(String customerId, List<Long> productIds);
+
+    // Tum ticket durumlarinin dagilimini doner.
+    @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")
+    List<Object[]> countTicketsGroupedByStatus();
 }

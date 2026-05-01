@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -61,5 +62,42 @@ public class MetricsController {
         log.info("Dashboard özet metrikleri istendi");
         DashboardMetricsDTO metrics = metricsService.getDashboardSummary();
         return ResponseEntity.ok(metrics);
+    }
+
+    /**
+     * Ticket durum dağılımı endpoint'i.
+     * Dashboard chart'ı için NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED ve CLOSED sayımlarını döner.
+     *
+     * @return StatusDistributionDTO — ticket durum dağılımı
+     */
+    @Operation(
+            summary = "Ticket durum dağılımı",
+            description = "Tüm ticket'ların status bazlı dağılımını döner. Dashboard chart'ı için kullanılır. "
+                    + "Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Durum dağılımı başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = StatusDistributionDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/status-distribution")
+    public ResponseEntity<StatusDistributionDTO> getStatusDistribution() {
+        log.info("Ticket durum dağılımı istendi");
+        StatusDistributionDTO distribution = metricsService.getStatusDistribution();
+        return ResponseEntity.ok(distribution);
     }
 }

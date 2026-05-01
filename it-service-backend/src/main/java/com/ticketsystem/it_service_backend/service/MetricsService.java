@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
@@ -12,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Log4j2
 @Service
@@ -78,6 +78,44 @@ public class MetricsService {
                 .priorityDistribution(priorityDistribution)
                 .build();
     }
+
+        /**
+         * Ticket durum dağılımını hesaplar.
+         *
+         * @return StatusDistributionDTO — tüm durumlar için ticket sayıları
+         */
+        public StatusDistributionDTO getStatusDistribution() {
+                log.info("Ticket durum dağılımı hesaplanıyor...");
+
+                List<Object[]> rawRows = ticketRepository.countTicketsGroupedByStatus();
+
+                StatusDistributionDTO.StatusDistributionDTOBuilder builder = StatusDistributionDTO.builder()
+                                .newCount(0L)
+                                .inProgressCount(0L)
+                                .waitingForCustomerCount(0L)
+                                .resolvedCount(0L)
+                                .closedCount(0L)
+                                .totalCount(0L);
+
+                long totalCount = 0L;
+
+                for (Object[] row : rawRows) {
+                        String status = String.valueOf(row[0]);
+                        long count = ((Number) row[1]).longValue();
+                        totalCount += count;
+
+                        switch (status) {
+                                case "NEW" -> builder.newCount(count);
+                                case "IN_PROGRESS" -> builder.inProgressCount(count);
+                                case "WAITING_FOR_CUSTOMER" -> builder.waitingForCustomerCount(count);
+                                case "RESOLVED" -> builder.resolvedCount(count);
+                                case "CLOSED" -> builder.closedCount(count);
+                                default -> log.warn("Bilinmeyen ticket status değeri: {}", status);
+                        }
+                }
+
+                return builder.totalCount(totalCount).build();
+        }
 
     /**
      * Açık biletlerin priority'ye göre dağılımını hesaplar.
