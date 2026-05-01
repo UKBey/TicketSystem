@@ -19,12 +19,20 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
+    @Transactional
     public User syncUser(User user) {
         log.info("Kullanıcı senkronizasyon işlemi (Service). ID: {}, Email: {}", user.getId(), user.getEmail());
-        // Ayni kimlik varsa gunceller, yoksa yeni kayit olusturur.
-        User savedUser = userRepository.save(user);
-        log.debug("Kullanıcı senkronize edildi. Rol: {}", savedUser.getRole());
-        return savedUser;
+        
+        return userRepository.findById(user.getId()).map(existingUser -> {
+            existingUser.setEmail(user.getEmail());
+            existingUser.setFullName(user.getFullName());
+            existingUser.setRole(user.getRole());
+            log.debug("Mevcut kullanıcı güncellendi. Rol: {}", existingUser.getRole());
+            return userRepository.save(existingUser);
+        }).orElseGet(() -> {
+            log.debug("Yeni kullanıcı eklendi. Rol: {}", user.getRole());
+            return userRepository.save(user);
+        });
     }
 
     public List<User> getAgents() {

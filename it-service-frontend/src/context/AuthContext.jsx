@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import keycloak from '../keycloak';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
         setInitialized(true);
         if (auth) {
           extractUserInfo();
+          api.post('/users/sync').catch(err => console.error('Sync error:', err));
         }
         setLoading(false);
       })
@@ -64,6 +66,7 @@ export function AuthProvider({ children }) {
     keycloak.onAuthSuccess = () => {
       setAuthenticated(true);
       extractUserInfo();
+      api.post('/users/sync').catch(err => console.error('Sync error:', err));
     };
 
     keycloak.onAuthLogout = () => {
