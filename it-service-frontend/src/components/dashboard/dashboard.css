@@ -1,0 +1,26 @@
+.timeline-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pinch-zoom;
+}
+
+.timeline-chart-inner {
+  min-width: 680px;
+  height: 340px;
+}
+
+.timeline-legend-button {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.timeline-legend-button:hover {
+  opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .timeline-chart-inner {
+    min-width: 0;
+    height: 360px;
+  }
+}

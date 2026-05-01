@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
-import DashboardPlaceholderPanel from '../../components/dashboard/DashboardPlaceholderPanel';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
+import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 
@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [agentPerformance, setAgentPerformance] = useState(null);
   const [agentLoading, setAgentLoading] = useState(true);
+  const [ticketTimeline, setTicketTimeline] = useState({ timeline: [] });
+  const [timelineLoading, setTimelineLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -56,15 +58,17 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
+        metricService.getTicketTimeline(30),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
       setStatusDistribution(statusResponse);
       setAgentPerformance(agentResponse);
+      setTicketTimeline(timelineResponse ?? { timeline: [] });
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -74,6 +78,7 @@ export default function Dashboard() {
       setRefreshing(false);
       setStatusLoading(false);
       setAgentLoading(false);
+      setTimelineLoading(false);
     }
   };
 
@@ -228,10 +233,7 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <DashboardPlaceholderPanel
-          title="Zaman çizgisi grafiği"
-          description="Burada günlük ticket trendi, resolved/closed hareketi ve SLA kırılmaları görselleştirilecek."
-        />
+        <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
       </section>
     </div>
