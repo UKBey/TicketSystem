@@ -5,6 +5,8 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import DashboardPlaceholderPanel from '../../components/dashboard/DashboardPlaceholderPanel';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
+import ErrorBoundary from '../../components/ErrorBoundary';
+import SkeletonLoader from '../../components/SkeletonLoader';
 
 const DEFAULT_SUMMARY = {
   totalOpenTickets: 0,
@@ -163,19 +165,38 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((item) => (
-          <KpiCard
-            key={item.title}
-            title={item.title}
-            value={item.value}
-            detail={item.detail}
-            icon={item.icon}
-            accent={item.accent}
-            loading={loading}
-          />
-        ))}
-      </section>
+      <ErrorBoundary>
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {loading ? (
+            <>
+              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+                <SkeletonLoader lines={3} />
+              </div>
+              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+                <SkeletonLoader lines={3} />
+              </div>
+              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+                <SkeletonLoader lines={3} />
+              </div>
+              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+                <SkeletonLoader lines={3} />
+              </div>
+            </>
+          ) : (
+            kpis.map((item) => (
+              <KpiCard
+                key={item.title}
+                title={item.title}
+                value={item.value}
+                detail={item.detail}
+                icon={item.icon}
+                accent={item.accent}
+                loading={loading}
+              />
+            ))
+          )}
+        </section>
+      </ErrorBoundary>
 
       <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />

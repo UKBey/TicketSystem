@@ -10,7 +10,13 @@ async function getStatusDistribution() {
   return response.data;
 }
 
+async function getAgentPerformance() {
+  const response = await api.get('/metrics/agent-performance');
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
+  getAgentPerformance,
 };
