@@ -1,18 +1,30 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
+import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
+import com.ticketsystem.it_service_backend.entity.TicketWorklog;
+import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.repository.WorklogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Log4j2
 @Service
@@ -22,6 +34,8 @@ public class MetricsService {
 
     private final TicketRepository ticketRepository;
     private final CsatRepository csatRepository;
+        private final UserRepository userRepository;
+        private final WorklogRepository worklogRepository;
 
     /**
      * Dashboard özet metrikleri hesaplar.
@@ -116,6 +130,147 @@ public class MetricsService {
 
                 return builder.totalCount(totalCount).build();
         }
+
+    /**
+     * Ajan performans leaderboard verisini hesaplar.
+     *
+     * @return AgentPerformanceDTO — agent satırları ve özet metrikler
+     */
+    public AgentPerformanceDTO getAgentPerformance() {
+        log.info("Agent performans metrikleri hesaplanıyor...");
+
+        List<User> agents = userRepository.findByRole("AGENT");
+        agents.addAll(userRepository.findByRole("AGENT_ADMIN"));
+
+        List<User> activeAgents = agents.stream()
+                .filter(agent -> Boolean.TRUE.equals(agent.getIsActive()))
+                .filter(agent -> agent.getId() != null)
+                .collect(Collectors.toMap(User::getId, agent -> agent, (left, right) -> left))
+                .values()
+                .stream()
+                .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+
+        List<Ticket> tickets = ticketRepository.findAll();
+        List<TicketWorklog> worklogs = worklogRepository.findAll();
+        Map<Long, Integer> csatByTicketId = csatRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        csat -> csat.getTicketId(),
+                        csat -> csat.getRating(),
+                        (left, right) -> left
+                ));
+
+        ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
+        ZonedDateTime last7Days = ZonedDateTime.now().minusDays(7);
+
+        List<AgentPerformanceItemDTO> agentRows = activeAgents.stream()
+                .map(agent -> buildAgentPerformanceRow(agent, tickets, worklogs, csatByTicketId, last24Hours, last7Days))
+                .sorted(Comparator
+                        .comparing(AgentPerformanceItemDTO::getActiveTickets, Comparator.reverseOrder())
+                        .thenComparing(AgentPerformanceItemDTO::getResolvedLast24Hours, Comparator.reverseOrder())
+                        .thenComparing(AgentPerformanceItemDTO::getCsatAverage, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        long totalActiveTickets = agentRows.stream().mapToLong(row -> row.getActiveTickets() != null ? row.getActiveTickets() : 0L).sum();
+        long totalSlaBreachedCount = agentRows.stream().mapToLong(row -> row.getSlaBreachedCount() != null ? row.getSlaBreachedCount() : 0L).sum();
+        long totalResolvedLast24Hours = agentRows.stream().mapToLong(row -> row.getResolvedLast24Hours() != null ? row.getResolvedLast24Hours() : 0L).sum();
+
+        double averageCsat = agentRows.stream()
+                .map(AgentPerformanceItemDTO::getCsatAverage)
+                .filter(value -> value != null && value > 0)
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+
+        return AgentPerformanceDTO.builder()
+                .generatedAt(ZonedDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS))
+                .totalAgents((long) agentRows.size())
+                .totalActiveTickets(totalActiveTickets)
+                .totalSlaBreachedCount(totalSlaBreachedCount)
+                .totalResolvedLast24Hours(totalResolvedLast24Hours)
+                .averageCsat(averageCsat)
+                .agents(agentRows)
+                .build();
+    }
+
+    private AgentPerformanceItemDTO buildAgentPerformanceRow(
+            User agent,
+            List<Ticket> tickets,
+            List<TicketWorklog> worklogs,
+            Map<Long, Integer> csatByTicketId,
+            ZonedDateTime last24Hours,
+            ZonedDateTime last7Days) {
+
+        List<Ticket> agentTickets = tickets.stream()
+                .filter(ticket -> agent.getId().equals(ticket.getAssigneeId()))
+                .toList();
+
+        long activeTickets = agentTickets.stream()
+                .filter(ticket -> Set.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER").contains(ticket.getStatus()))
+                .count();
+
+        long resolvedLast24Hours = agentTickets.stream()
+                .filter(ticket -> ticket.getResolvedAt() != null && ticket.getResolvedAt().isAfter(last24Hours))
+                .count();
+
+        long slaBreachedCount = agentTickets.stream()
+                .filter(ticket -> Boolean.TRUE.equals(ticket.getSlaBreached()))
+                .count();
+
+        Double avgResolutionHours = calculateAverageResolutionHours(agentTickets);
+        Double csatAverage = calculateAverageCsat(agentTickets, csatByTicketId);
+        Long worklogMinutesLast7Days = worklogs.stream()
+                .filter(worklog -> agent.getId().equals(worklog.getAgentId()))
+                .filter(worklog -> worklog.getCreatedAt() != null && worklog.getCreatedAt().isAfter(last7Days))
+                .mapToLong(worklog -> worklog.getMinutes() != null ? worklog.getMinutes() : 0L)
+                .sum();
+
+        return AgentPerformanceItemDTO.builder()
+                .agentId(agent.getId())
+                .agentName(agent.getFullName())
+                .role(agent.getRole())
+                .activeTickets(activeTickets)
+                .resolvedLast24Hours(resolvedLast24Hours)
+                .avgResolutionHours(avgResolutionHours)
+                .csatAverage(csatAverage)
+                .slaBreachedCount(slaBreachedCount)
+                .worklogMinutesLast7Days(worklogMinutesLast7Days)
+                .build();
+    }
+
+    private Double calculateAverageResolutionHours(List<Ticket> tickets) {
+        List<Ticket> resolvedTickets = tickets.stream()
+                .filter(ticket -> ticket.getCreatedAt() != null && ticket.getResolvedAt() != null)
+                .toList();
+
+        if (resolvedTickets.isEmpty()) {
+            return 0.0;
+        }
+
+        double totalHours = resolvedTickets.stream()
+                .mapToDouble(ticket -> ChronoUnit.MILLIS.between(ticket.getCreatedAt(), ticket.getResolvedAt()) / (1000.0 * 60 * 60))
+                .sum();
+
+        return totalHours / resolvedTickets.size();
+    }
+
+    private Double calculateAverageCsat(List<Ticket> tickets, Map<Long, Integer> csatByTicketId) {
+        List<Integer> ratings = tickets.stream()
+                .map(Ticket::getId)
+                .map(csatByTicketId::get)
+                .filter(rating -> rating != null)
+                .toList();
+
+        if (ratings.isEmpty()) {
+            return 0.0;
+        }
+
+        return ratings.stream()
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0.0);
+    }
 
     /**
      * Açık biletlerin priority'ye göre dağılımını hesaplar.

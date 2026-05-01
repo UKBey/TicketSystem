@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.controller;
 
+import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
@@ -99,5 +100,42 @@ public class MetricsController {
         log.info("Ticket durum dağılımı istendi");
         StatusDistributionDTO distribution = metricsService.getStatusDistribution();
         return ResponseEntity.ok(distribution);
+    }
+
+    /**
+     * Ajan performans leaderboard endpoint'i.
+     * Dashboard tablosu için aktif ticket, çözüm hızı, CSAT, SLA breach ve worklog verilerini döner.
+     *
+     * @return AgentPerformanceDTO — agent leaderboard özeti
+     */
+    @Operation(
+            summary = "Ajan performans leaderboard",
+            description = "Ajanların aktif ticket yükü, son 24 saat çözüm sayısı, ortalama çözüm süresi, CSAT ve SLA breach bilgilerini döner. "
+                    + "Sadece Manager ve Agent Admin erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Ajan performans verisi başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AgentPerformanceDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager veya Agent Admin rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasAnyRole('MANAGER', 'AGENT_ADMIN')")
+    @GetMapping("/agent-performance")
+    public ResponseEntity<AgentPerformanceDTO> getAgentPerformance() {
+        log.info("Ajan performans leaderboard isteği alındı");
+        AgentPerformanceDTO performance = metricsService.getAgentPerformance();
+        return ResponseEntity.ok(performance);
     }
 }

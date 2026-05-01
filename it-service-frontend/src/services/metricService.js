@@ -5,6 +5,12 @@ async function getDashboardSummary() {
   return response.data;
 }
 
+async function getStatusDistribution() {
+  const response = await api.get('/metrics/status-distribution');
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
+  getStatusDistribution,
 };

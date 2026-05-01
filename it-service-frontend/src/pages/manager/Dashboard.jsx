@@ -3,6 +3,7 @@ import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } f
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
 import DashboardPlaceholderPanel from '../../components/dashboard/DashboardPlaceholderPanel';
+import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 
 const DEFAULT_SUMMARY = {
   totalOpenTickets: 0,
@@ -38,6 +39,8 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [statusDistribution, setStatusDistribution] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -48,8 +51,13 @@ export default function Dashboard() {
       }
 
       setError('');
-      const response = await metricService.getDashboardSummary();
-      setSummary({ ...DEFAULT_SUMMARY, ...response });
+      const [summaryResponse, statusResponse] = await Promise.all([
+        metricService.getDashboardSummary(),
+        metricService.getStatusDistribution(),
+      ]);
+
+      setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
+      setStatusDistribution(statusResponse);
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -57,6 +65,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setStatusLoading(false);
     }
   };
 
@@ -94,19 +103,6 @@ export default function Dashboard() {
       accent: 'bg-accent-500',
     },
   ]), [summary]);
-
-  const priorityRows = useMemo(() => {
-    const distribution = summary.priorityDistribution || DEFAULT_SUMMARY.priorityDistribution;
-
-    return [
-      { key: 'critical', label: 'CRITICAL', color: 'var(--color-danger-500)', value: distribution.critical ?? 0 },
-      { key: 'high', label: 'HIGH', color: 'var(--color-warning-500)', value: distribution.high ?? 0 },
-      { key: 'medium', label: 'MEDIUM', color: 'var(--color-primary-500)', value: distribution.medium ?? 0 },
-      { key: 'low', label: 'LOW', color: 'var(--color-accent-500)', value: distribution.low ?? 0 },
-    ];
-  }, [summary.priorityDistribution]);
-
-  const priorityTotal = useMemo(() => priorityRows.reduce((total, row) => total + Number(row.value || 0), 0), [priorityRows]);
 
   const syncLabel = lastUpdated
     ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
@@ -176,38 +172,7 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Priority dağılımı</h2>
-              <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Açık biletlerin öncelik bazlı dağılımı ve toplam hacim.
-              </p>
-            </div>
-            <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-              <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Toplam</div>
-              <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(priorityTotal)}</div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {priorityRows.map((row) => {
-              const percent = priorityTotal > 0 ? Math.round((Number(row.value) / priorityTotal) * 100) : 0;
-
-              return (
-                <div key={row.key}>
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{row.label}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>{formatNumber(row.value)} bilet • %{percent}</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                    <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: row.color }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
 
         <div className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Hızlı operasyon özeti</h2>
