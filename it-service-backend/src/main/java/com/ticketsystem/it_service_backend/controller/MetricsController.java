@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
+import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Log4j2
@@ -137,5 +139,45 @@ public class MetricsController {
         log.info("Ajan performans leaderboard isteği alındı");
         AgentPerformanceDTO performance = metricsService.getAgentPerformance();
         return ResponseEntity.ok(performance);
+    }
+
+    /**
+     * Ticket timeline metrikleri endpoint'i.
+     * Son N günün günlük ticket trend verilerini (oluşturulan, çözülen, kapalı, SLA breach) döner.
+     *
+     * @param days Kaç günlük veri isteneceği (default 30, max 365)
+     * @return TicketTimelineDTO — günlük metriklerin timeline'ı
+     */
+    @Operation(
+            summary = "Ticket timeline metrikleri",
+            description = "Son N günün günlük ticket trend verilerini döner. "
+                    + "Günlük oluşturulan, çözülen, kapalı bilet sayılarını ve SLA breach sayılarını içerir. "
+                    + "Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Timeline metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = TicketTimelineDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/ticket-timeline")
+    public ResponseEntity<TicketTimelineDTO> getTicketTimeline(
+            @RequestParam(defaultValue = "30") int days) {
+        log.info("Ticket timeline metrikleri istendi (days={})", days);
+        TicketTimelineDTO timeline = metricsService.getTicketTimeline(days);
+        return ResponseEntity.ok(timeline);
     }
 }

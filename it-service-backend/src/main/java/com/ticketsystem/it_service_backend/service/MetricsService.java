@@ -2,9 +2,11 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
+import com.ticketsystem.it_service_backend.dto.DailyMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
+import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -17,6 +19,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
@@ -322,5 +325,37 @@ public class MetricsService {
                 .sum();
 
         return resolvedTickets.isEmpty() ? 0.0 : totalHours / resolvedTickets.size();
+    }
+
+    /**
+     * Son N güne ait günlük ticket timeline metriklerini hesaplar.
+     * Günlük oluşturulan, çözülen, kapalı bilet sayılarını ve SLA breach sayılarını döner.
+     * 
+     * @param days Kaç günlük veri isteneceği (default 30)
+     * @return TicketTimelineDTO — günlük metriklerin timeline'ı
+     */
+    public TicketTimelineDTO getTicketTimeline(int days) {
+        log.info("Ticket timeline metrikleri hesaplanıyor... (days={})", days);
+
+        // Maksimum 365 gün sınırlaması
+        int safeDays = Math.min(Math.max(days, 1), 365);
+
+        List<Object[]> rawRows = ticketRepository.getTicketTimelineMetrics(safeDays);
+
+        List<DailyMetricsDTO> timeline = rawRows.stream()
+                .map(row -> DailyMetricsDTO.builder()
+                        .date((LocalDate) row[0])
+                        .created(((Number) row[1]).longValue())
+                        .resolved(((Number) row[2]).longValue())
+                        .closed(((Number) row[3]).longValue())
+                        .slaBreach(((Number) row[4]).longValue())
+                        .build())
+                .toList();
+
+        log.info("Ticket timeline hesaplandı: {} günlük veri elde edildi", timeline.size());
+
+        return TicketTimelineDTO.builder()
+                .timeline(timeline)
+                .build();
     }
 }
