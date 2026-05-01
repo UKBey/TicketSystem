@@ -4,13 +4,16 @@ import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
 import com.ticketsystem.it_service_backend.dto.DailyMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
+import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -23,7 +26,6 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,7 @@ public class MetricsService {
     private final CsatRepository csatRepository;
         private final UserRepository userRepository;
         private final WorklogRepository worklogRepository;
+        private final SLAPolicyRepository slaPolicyRepository;
 
     /**
      * Dashboard özet metrikleri hesaplar.
@@ -356,6 +359,37 @@ public class MetricsService {
 
         return TicketTimelineDTO.builder()
                 .timeline(timeline)
+                .build();
+    }
+
+    /**
+     * Priority bazlı SLA hedef ve performans metriklerini hesaplar.
+     * Her priority için ticket adedi, SLA hedef süresi, ortalama çözüm süresi,
+     * breach yüzdesi ve on-time yüzdesi döner.
+     *
+     * @return PrioritySLAMetricsDTO — priority detay satırları
+     */
+    public PrioritySLAMetricsDTO getPrioritySlaMetrics() {
+        log.info("Priority-SLA metrikleri hesaplanıyor...");
+
+        List<Object[]> rawRows = slaPolicyRepository.findPrioritySlaMetrics();
+
+        List<PriorityDetailDTO> details = rawRows.stream()
+                .map(row -> PriorityDetailDTO.builder()
+                        .priority(String.valueOf(row[0]))
+                        .ticketCount(((Number) row[1]).longValue())
+                        .slaTargetHours(((Number) row[2]).intValue())
+                        .avgResolutionHours(((Number) row[3]).doubleValue())
+                        .breachCount(((Number) row[4]).longValue())
+                        .breachPercentage(((Number) row[5]).doubleValue())
+                        .onTimePercentage(((Number) row[6]).doubleValue())
+                        .build())
+                .toList();
+
+        log.info("Priority-SLA metrikleri hesaplandı: {} satır", details.size());
+
+        return PrioritySLAMetricsDTO.builder()
+                .priorityMetrics(details)
                 .build();
     }
 }

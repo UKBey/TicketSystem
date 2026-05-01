@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
@@ -179,5 +180,42 @@ public class MetricsController {
         log.info("Ticket timeline metrikleri istendi (days={})", days);
         TicketTimelineDTO timeline = metricsService.getTicketTimeline(days);
         return ResponseEntity.ok(timeline);
+    }
+
+    /**
+     * Priority-SLA metrikleri endpoint'i.
+     * Priority bazlı ticket hacmi, SLA hedefi, ortalama çözüm süresi, breach ve on-time oranlarını döner.
+     *
+     * @return PrioritySLAMetricsDTO — priority detay metrikleri
+     */
+    @Operation(
+            summary = "Priority-SLA metrikleri",
+            description = "CRITICAL, HIGH, MEDIUM ve LOW öncelik seviyeleri için SLA hedef karşılaştırmalı metriklerini döner. "
+                    + "Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Priority-SLA metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PrioritySLAMetricsDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/priority-sla-metrics")
+    public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics() {
+        log.info("Priority-SLA metrikleri istendi");
+        PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics();
+        return ResponseEntity.ok(metrics);
     }
 }
