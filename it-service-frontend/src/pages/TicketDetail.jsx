@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -79,7 +79,7 @@ export default function TicketDetail() {
     fetchAttachments();
     fetchWorklogs();
     fetchResolutionNote();
-  }, [id]);
+    }, [id, fetchTicket, fetchComments, fetchAttachments, fetchWorklogs, fetchResolutionNote]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,7 +114,7 @@ export default function TicketDetail() {
     return items;
   }, [comments, attachments]);
 
-  const fetchTicket = async () => {
+  const fetchTicket = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}`);
       setTicket(res.data);
@@ -123,26 +123,26 @@ export default function TicketDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}/comments`);
       setComments(res.data);
     } catch (err) {
       console.error('Could not load comments:', err);
     }
-  };
+  }, [id]);
 
   // Bilete bagli dosya eklerini sunucudan ceker.
-  const fetchAttachments = async () => {
+  const fetchAttachments = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}/attachments`);
       setAttachments(res.data);
     } catch (err) {
       console.error('Could not load attachments:', err);
     }
-  };
+  }, [id]);
 
   // Secilen dosyayi multipart/form-data olarak bilete yukler.
   const handleFileUpload = async (file) => {
@@ -164,7 +164,7 @@ export default function TicketDetail() {
   };
 
   // Cozum notunu sunucudan ceker (varsa).
-  const fetchResolutionNote = async () => {
+  const fetchResolutionNote = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}/resolution-note`);
       setResolutionNote(res.data);
@@ -173,7 +173,7 @@ export default function TicketDetail() {
       // 404 veya 403 donebilir, sessizce atla.
       setResolutionNote(null);
     }
-  };
+  }, [id]);
 
   // Resolved butonuna tiklaninca modal acar; mevcut notu onceden doldurur.
   const handleResolveClick = () => {
@@ -226,7 +226,7 @@ export default function TicketDetail() {
   };
 
   // Worklog listeleme
-  const fetchWorklogs = async () => {
+  const fetchWorklogs = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}/worklogs`);
       setWorklogs(res.data);
@@ -234,7 +234,7 @@ export default function TicketDetail() {
       // CUSTOMER rolunde 403 donecektir, sessizce atla.
       console.debug('Could not load worklogs:', err);
     }
-  };
+  }, [id]);
 
   // Yeni worklog ekleme
   const handleAddWorklog = async () => {
