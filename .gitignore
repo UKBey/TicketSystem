@@ -21,6 +21,7 @@ build/
 # Environment files
 .env
 .env.*
+!.env.example
 *.local
 
 # Editor and IDE settings
