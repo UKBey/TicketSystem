@@ -55,7 +55,7 @@ public class TicketResolutionNoteController {
             @ApiResponse(responseCode = "403", description = "Sadece bileti sahiplenmiş agent çözüm notu oluşturabilir")
     })
     @PostMapping("/{id}/resolution-note")
-    @PreAuthorize("hasRole('AGENT')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<ResolutionNoteResponseDTO> createResolutionNote(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -80,7 +80,7 @@ public class TicketResolutionNoteController {
             @ApiResponse(responseCode = "403", description = "Sadece bileti sahiplenmiş agent güncelleyebilir")
     })
     @PutMapping("/{id}/resolution-note")
-    @PreAuthorize("hasRole('AGENT')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<ResolutionNoteResponseDTO> updateResolutionNote(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

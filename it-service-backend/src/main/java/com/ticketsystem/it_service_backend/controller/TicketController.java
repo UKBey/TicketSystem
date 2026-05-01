@@ -199,7 +199,7 @@ public class TicketController {
             @ApiResponse(responseCode = "400", description = "Bilet NEW statüsünde değil, sahiplenilemez")
     })
     @PutMapping("/{id}/claim")
-    @PreAuthorize("hasRole('AGENT')")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> claimTicket(
             @Parameter(description = "Sahiplenilecek biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

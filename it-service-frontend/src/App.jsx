@@ -133,7 +133,7 @@ export default function App() {
         <Route
           path="/tickets/:id"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><TicketDetail /></AppLayout>
             </ProtectedRoute>
           }
@@ -143,7 +143,7 @@ export default function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><ProfilePage /></AppLayout>
             </ProtectedRoute>
           }
