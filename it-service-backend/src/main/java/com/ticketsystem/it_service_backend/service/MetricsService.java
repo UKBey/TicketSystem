@@ -23,8 +23,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.sql.Date;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -347,7 +350,7 @@ public class MetricsService {
 
         List<DailyMetricsDTO> timeline = rawRows.stream()
                 .map(row -> DailyMetricsDTO.builder()
-                        .date((LocalDate) row[0])
+                        .date(convertToLocalDate(row[0]))
                         .created(((Number) row[1]).longValue())
                         .resolved(((Number) row[2]).longValue())
                         .closed(((Number) row[3]).longValue())
@@ -361,6 +364,34 @@ public class MetricsService {
                 .timeline(timeline)
                 .build();
     }
+
+        private LocalDate convertToLocalDate(Object value) {
+                if (value == null) {
+                        return null;
+                }
+
+                if (value instanceof LocalDate localDate) {
+                        return localDate;
+                }
+
+                if (value instanceof Date sqlDate) {
+                        return sqlDate.toLocalDate();
+                }
+
+                if (value instanceof LocalDateTime localDateTime) {
+                        return localDateTime.toLocalDate();
+                }
+
+                if (value instanceof OffsetDateTime offsetDateTime) {
+                        return offsetDateTime.toLocalDate();
+                }
+
+                if (value instanceof java.util.Date utilDate) {
+                        return utilDate.toInstant().atZone(ZonedDateTime.now().getZone()).toLocalDate();
+                }
+
+                return LocalDate.parse(value.toString());
+        }
 
     /**
      * Priority bazlı SLA hedef ve performans metriklerini hesaplar.

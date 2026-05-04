@@ -22,9 +22,15 @@ async function getTicketTimeline(days = 30) {
   return response.data;
 }
 
+async function getPrioritySLAMetrics() {
+  const response = await api.get('/metrics/priority-sla-metrics');
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
   getAgentPerformance,
   getTicketTimeline,
+  getPrioritySLAMetrics,
 };

@@ -43,7 +43,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                 COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
                 COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
             FROM date_range dr
-            LEFT JOIN ticket t ON 
+            LEFT JOIN tickets t ON 
                 DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
                 DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
                 DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date

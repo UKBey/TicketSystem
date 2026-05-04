@@ -5,6 +5,7 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
 import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
+import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 
@@ -48,6 +49,8 @@ export default function Dashboard() {
   const [agentLoading, setAgentLoading] = useState(true);
   const [ticketTimeline, setTicketTimeline] = useState({ timeline: [] });
   const [timelineLoading, setTimelineLoading] = useState(true);
+  const [prioritySlaMetrics, setPrioritySlaMetrics] = useState({ priorityMetrics: [] });
+  const [prioritySlaLoading, setPrioritySlaLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -58,17 +61,19 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
         metricService.getTicketTimeline(30),
+        metricService.getPrioritySLAMetrics(),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
       setStatusDistribution(statusResponse);
       setAgentPerformance(agentResponse);
       setTicketTimeline(timelineResponse ?? { timeline: [] });
+      setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -79,6 +84,7 @@ export default function Dashboard() {
       setStatusLoading(false);
       setAgentLoading(false);
       setTimelineLoading(false);
+      setPrioritySlaLoading(false);
     }
   };
 
@@ -205,31 +211,7 @@ export default function Dashboard() {
 
       <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
-
-        <div className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Hızlı operasyon özeti</h2>
-          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Bu alan commit 3+ adımda grafiklere bağlanacak ana çerçeveyi hazırlıyor.
-          </p>
-
-          <div className="mt-5 space-y-3">
-            <div className="rounded-2xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-              <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Yeni kayıt</div>
-              <div className="mt-1 text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(summary.newTicketsLast24Hours)}</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Son 24 saatte açılan biletler</div>
-            </div>
-            <div className="rounded-2xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-              <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>SLA baskısı</div>
-              <div className="mt-1 text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(summary.slaBreachedCount)}</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{summary.slaBreachedPercentage?.toFixed(1) ?? '0.0'}% open ticket havuzunda risk altında</div>
-            </div>
-            <div className="rounded-2xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-              <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>CSAT çerçevesi</div>
-              <div className="mt-1 text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{Number(summary.csatAverage ?? 0).toFixed(1)}</div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{formatNumber(summary.csatTotalResponses)} yanıt üzerinden hesaplandı</div>
-            </div>
-          </div>
-        </div>
+        <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
