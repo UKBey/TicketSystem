@@ -74,6 +74,14 @@ export default function TicketDetail() {
   };
 
   useEffect(() => {
+    fetchTicket();
+    fetchComments();
+    fetchAttachments();
+    fetchWorklogs();
+    fetchResolutionNote();
+  }, [id]);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments]);
 
@@ -227,14 +235,6 @@ export default function TicketDetail() {
       console.debug('Could not load worklogs:', err);
     }
   }, [id]);
-
-  useEffect(() => {
-    fetchTicket();
-    fetchComments();
-    fetchAttachments();
-    fetchWorklogs();
-    fetchResolutionNote();
-  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchWorklogs, fetchResolutionNote]);
 
   // Yeni worklog ekleme
   const handleAddWorklog = async () => {
