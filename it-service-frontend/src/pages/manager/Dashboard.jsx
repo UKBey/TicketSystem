@@ -6,6 +6,7 @@ import StatusDistributionChart from '../../components/dashboard/StatusDistributi
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
 import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
+import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 
@@ -51,6 +52,8 @@ export default function Dashboard() {
   const [timelineLoading, setTimelineLoading] = useState(true);
   const [prioritySlaMetrics, setPrioritySlaMetrics] = useState({ priorityMetrics: [] });
   const [prioritySlaLoading, setPrioritySlaLoading] = useState(true);
+  const [productMetrics, setProductMetrics] = useState({ productMetrics: [] });
+  const [productLoading, setProductLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -61,12 +64,13 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
         metricService.getTicketTimeline(30),
         metricService.getPrioritySLAMetrics(),
+        metricService.getProductMetrics(),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
@@ -74,6 +78,7 @@ export default function Dashboard() {
       setAgentPerformance(agentResponse);
       setTicketTimeline(timelineResponse ?? { timeline: [] });
       setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
+      setProductMetrics(productResponse ?? { productMetrics: [] });
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -85,6 +90,7 @@ export default function Dashboard() {
       setAgentLoading(false);
       setTimelineLoading(false);
       setPrioritySlaLoading(false);
+      setProductLoading(false);
     }
   };
 
@@ -217,6 +223,10 @@ export default function Dashboard() {
       <section className="grid gap-4 lg:grid-cols-2">
         <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+        <ProductMetricsChart data={productMetrics} loading={productLoading} />
       </section>
     </div>
   );

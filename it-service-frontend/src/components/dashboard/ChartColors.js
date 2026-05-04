@@ -7,6 +7,16 @@ export const CHART_COLORS = {
   axis: 'var(--text-tertiary, #94a3b8)',
 };
 
+export const PRODUCT_COLORS = [
+  { bar: '#3b82f6', bg: 'rgba(59,130,246,0.12)', text: '#1d4ed8' },
+  { bar: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', text: '#6d28d9' },
+  { bar: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  text: '#0e7490' },
+  { bar: '#f59e0b', bg: 'rgba(245,158,11,0.12)', text: '#b45309' },
+  { bar: '#ec4899', bg: 'rgba(236,72,153,0.12)', text: '#be185d' },
+  { bar: '#10b981', bg: 'rgba(16,185,129,0.12)', text: '#047857' },
+  { bar: '#94a3b8', bg: 'rgba(148,163,184,0.10)', text: '#475569' },
+];
+
 export const SLA_TONE_COLORS = {
   goodBg: 'rgba(59, 130, 246, 0.10)',
   goodText: 'var(--color-primary-700, #1d4ed8)',
