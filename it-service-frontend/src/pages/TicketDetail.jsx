@@ -79,7 +79,7 @@ export default function TicketDetail() {
     fetchAttachments();
     fetchWorklogs();
     fetchResolutionNote();
-  }, [id]);
+  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchWorklogs, fetchResolutionNote]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

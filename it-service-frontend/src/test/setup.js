@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 // Recharts uses ResizeObserver internally
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
