@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(node -e ' *)",
-      "Bash(Get-ChildItem \"c:\\\\Code\\\\TicketSystemProject\\\\it-service-frontend\\\\src\\\\__tests__\" -Recurse)",
-      "Bash(Select-Object FullName)"
-    ]
-  }
-}
