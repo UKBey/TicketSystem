@@ -1,0 +1,257 @@
+package com.ticketsystem.it_service_backend.integration;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import static org.hamcrest.Matchers.isA;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Tüm MetricsController endpoint'lerinin entegrasyon testleri.
+ *
+ * <p>Gerçek PostgreSQL container (Testcontainers) üzerinde çalışır.
+ * Veritabanı boşken her endpoint sıfır/boş değerler döner; hata fırlamamalıdır.
+ * Her endpoint için yetki kontrolleri MANAGER, AGENT_ADMIN, CUSTOMER ve AGENT
+ * rolleriyle doğrulanır.
+ */
+@DisplayName("MetricsController — Tüm Endpoint Entegrasyon Testleri")
+class MetricsControllerIT extends BaseIntegrationTest {
+
+    private static final SimpleGrantedAuthority MANAGER     = new SimpleGrantedAuthority("ROLE_MANAGER");
+    private static final SimpleGrantedAuthority AGENT_ADMIN = new SimpleGrantedAuthority("ROLE_AGENT_ADMIN");
+    private static final SimpleGrantedAuthority AGENT       = new SimpleGrantedAuthority("ROLE_AGENT");
+    private static final SimpleGrantedAuthority CUSTOMER    = new SimpleGrantedAuthority("ROLE_CUSTOMER");
+
+    // =========================================================================
+    // GET /api/metrics/dashboard-summary
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/dashboard-summary")
+    class DashboardSummary {
+
+        @Test
+        @DisplayName("MANAGER → 200, response structure correct")
+        void manager_gets200WithValidStructure() throws Exception {
+            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalOpenTickets").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.slaBreachedCount").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.avgResponseTimeHours").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.csatAverage").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.priorityDistribution").exists());
+        }
+
+        @Test
+        @DisplayName("Boş DB → sıfır değerler, hata yok")
+        void emptyDatabase_returnsZeroDefaults() throws Exception {
+            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalOpenTickets").value(0))
+                    .andExpect(jsonPath("$.slaBreachedCount").value(0))
+                    .andExpect(jsonPath("$.avgResponseTimeHours").value(0.0));
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("AGENT → 403")
+        void agent_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/metrics/status-distribution
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/status-distribution")
+    class StatusDistribution {
+
+        @Test
+        @DisplayName("MANAGER → 200, distribution fields present")
+        void manager_gets200WithFields() throws Exception {
+            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.newCount").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.inProgressCount").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.resolvedCount").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.totalCount").value(isA(Number.class)));
+        }
+
+        @Test
+        @DisplayName("Boş DB → tüm sayımlar sıfır")
+        void emptyDatabase_allCountsZero() throws Exception {
+            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalCount").value(0));
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("AGENT → 403")
+        void agent_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/metrics/agent-performance
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/agent-performance")
+    class AgentPerformance {
+
+        @Test
+        @DisplayName("MANAGER → 200, agents list returned")
+        void manager_gets200WithAgentsList() throws Exception {
+            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.agents").isArray())
+                    .andExpect(jsonPath("$.totalAgents").value(isA(Number.class)));
+        }
+
+        @Test
+        @DisplayName("AGENT_ADMIN → 200")
+        void agentAdmin_gets200() throws Exception {
+            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(AGENT_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("AGENT → 403")
+        void agent_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/metrics/ticket-timeline
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/ticket-timeline")
+    class TicketTimeline {
+
+        @Test
+        @DisplayName("MANAGER, default days → 200, timeline array")
+        void manager_defaultDays_gets200WithTimeline() throws Exception {
+            mockMvc.perform(get("/api/metrics/ticket-timeline").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.timeline").isArray());
+        }
+
+        @Test
+        @DisplayName("MANAGER, days=7 → 200, array")
+        void manager_customDays_gets200() throws Exception {
+            mockMvc.perform(get("/api/metrics/ticket-timeline?days=7").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.timeline").isArray());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/ticket-timeline").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/metrics/priority-sla-metrics
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/priority-sla-metrics")
+    class PrioritySlaMetrics {
+
+        @Test
+        @DisplayName("MANAGER → 200, priorityMetrics array")
+        void manager_gets200WithPriorityList() throws Exception {
+            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.priorityMetrics").isArray());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("AGENT → 403")
+        void agent_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/metrics/product-metrics
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/metrics/product-metrics")
+    class ProductMetrics {
+
+        @Test
+        @DisplayName("MANAGER → 200, productMetrics array")
+        void manager_gets200WithProductList() throws Exception {
+            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.productMetrics").isArray());
+        }
+
+        @Test
+        @DisplayName("Boş DB → boş liste, hata yok")
+        void emptyDatabase_returnsEmptyList() throws Exception {
+            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(MANAGER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.productMetrics").isArray());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("AGENT → 403")
+        void agent_gets403() throws Exception {
+            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+}

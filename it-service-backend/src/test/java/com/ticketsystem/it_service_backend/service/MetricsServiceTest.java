@@ -2,6 +2,8 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
+import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -30,6 +32,12 @@ class MetricsServiceTest {
 
     @Mock
     WorklogRepository worklogRepository;
+
+    @Mock
+    SLAPolicyRepository slaPolicyRepository;
+
+    @Mock
+    ProductRepository productRepository;
 
     @InjectMocks
     MetricsService metricsService;
