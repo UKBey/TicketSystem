@@ -84,8 +84,9 @@ public class MetricsService {
         List<Ticket> resolvedTickets = ticketRepository.findByStatus("RESOLVED");
         Double avgResponseTimeHours = calculateAverageResponseTime(resolvedTickets);
 
-        // 5. CSAT ortalaması
+        // 5. CSAT ortalaması — SQL AVG() boş tabloda NULL döner, 0.0 yap
         Double csatAverage = csatRepository.findAverageRating();
+        if (csatAverage == null) csatAverage = 0.0;
         Long csatTotalResponses = csatRepository.count();
 
         // 6. Priority dağılımı
