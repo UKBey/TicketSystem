@@ -60,3 +60,103 @@
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Priority SLA Chart ───────────────────────────────────────── */
+
+.priority-sla-row {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color-light, #e2e8f0);
+  cursor: default;
+  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.priority-sla-row:hover,
+.priority-sla-row:focus-visible,
+.priority-sla-row--hovered {
+  background-color: var(--bg-surface-secondary, #f8fafc);
+  border-color: var(--border-color, #cbd5e1);
+}
+
+.priority-sla-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-sla-badge--good    { background-color: var(--color-primary-500, #3b82f6); }
+.priority-sla-badge--warning { background-color: var(--color-warning-500, #f59e0b); }
+.priority-sla-badge--danger  { background-color: var(--color-danger-500,  #ef4444); }
+
+.priority-sla-track {
+  position: relative;
+  height: 8px;
+  border-radius: 9999px;
+  overflow: visible;
+  background-color: var(--border-color-light, #e2e8f0);
+}
+
+.priority-sla-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.priority-sla-fill--good    { background-color: var(--color-primary-500, #3b82f6); }
+.priority-sla-fill--warning { background-color: var(--color-warning-500, #f59e0b); }
+.priority-sla-fill--danger  { background-color: var(--color-danger-500,  #ef4444); }
+
+.priority-sla-target {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background-color: var(--text-tertiary, #94a3b8);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.priority-sla-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.priority-sla-legend {
+  display: none;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color-light, #e2e8f0);
+}
+
+.priority-sla-legend--visible {
+  display: block;
+}
+
+/* ── Responsive chart containers ─────────────────────────────── */
+
+@media (max-width: 639px) {
+  .timeline-chart-inner {
+    height: 260px;
+  }
+
+  /* Prevent tooltip overflow on narrow screens */
+  .product-tooltip {
+    left: auto;
+    right: 0;
+    min-width: 180px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1279px) {
+  .timeline-chart-inner {
+    height: 300px;
+  }
+}

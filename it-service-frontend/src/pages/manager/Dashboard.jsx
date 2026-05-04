@@ -215,17 +215,17 @@ export default function Dashboard() {
         </section>
       </ErrorBoundary>
 
-      <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+      <section>
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
         <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+      <section className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
         <ProductMetricsChart data={productMetrics} loading={productLoading} />
       </section>
     </div>
