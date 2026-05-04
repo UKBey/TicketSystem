@@ -7,12 +7,15 @@ import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.ProductDetailDTO;
+import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
+import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -42,9 +45,10 @@ public class MetricsService {
 
     private final TicketRepository ticketRepository;
     private final CsatRepository csatRepository;
-        private final UserRepository userRepository;
-        private final WorklogRepository worklogRepository;
-        private final SLAPolicyRepository slaPolicyRepository;
+    private final UserRepository userRepository;
+    private final WorklogRepository worklogRepository;
+    private final SLAPolicyRepository slaPolicyRepository;
+    private final ProductRepository productRepository;
 
     /**
      * Dashboard özet metrikleri hesaplar.
@@ -316,21 +320,24 @@ public class MetricsService {
      * @return Ortalama çözüm süresi saat cinsinden, veya 0.0 eğer boş liste
      */
     private Double calculateAverageResponseTime(List<Ticket> resolvedTickets) {
-        if (resolvedTickets.isEmpty()) {
+        List<Ticket> validTickets = resolvedTickets.stream()
+                .filter(t -> t.getCreatedAt() != null && t.getResolvedAt() != null)
+                .toList();
+
+        if (validTickets.isEmpty()) {
             return 0.0;
         }
 
-        double totalHours = resolvedTickets.stream()
-                .filter(t -> t.getCreatedAt() != null && t.getResolvedAt() != null)
+        double totalHours = validTickets.stream()
                 .mapToDouble(t -> {
                     long millis = java.time.temporal.ChronoUnit.MILLIS.between(
                             t.getCreatedAt(), t.getResolvedAt()
                     );
-                    return millis / (1000.0 * 60 * 60); // millisaniyeyi saate çevir
+                    return millis / (1000.0 * 60 * 60);
                 })
                 .sum();
 
-        return resolvedTickets.isEmpty() ? 0.0 : totalHours / resolvedTickets.size();
+        return totalHours / validTickets.size();
     }
 
     /**
@@ -421,6 +428,38 @@ public class MetricsService {
 
         return PrioritySLAMetricsDTO.builder()
                 .priorityMetrics(details)
+                .build();
+    }
+
+    /**
+     * Ürün bazında bilet metriklerini hesaplar.
+     * Her aktif ürün için toplam bilet, açık bilet, ortalama çözüm süresi,
+     * CSAT ortalaması ve SLA breach yüzdesi döner; toplam bilete göre azalan sıralıdır.
+     *
+     * @return ProductMetricsDTO — ürün detay satırları
+     */
+    public ProductMetricsDTO getProductMetrics() {
+        log.info("Ürün bazında bilet metrikleri hesaplanıyor...");
+
+        List<Object[]> rawRows = productRepository.findProductMetrics();
+
+        List<ProductDetailDTO> products = rawRows.stream()
+                .map(row -> ProductDetailDTO.builder()
+                        .productId(((Number) row[0]).longValue())
+                        .productName(String.valueOf(row[1]))
+                        .totalTickets(((Number) row[2]).longValue())
+                        .openTickets(((Number) row[3]).longValue())
+                        .avgResolutionHours(row[4] != null ? ((Number) row[4]).doubleValue() : 0.0)
+                        .csatAverage(row[5] != null ? ((Number) row[5]).doubleValue() : 0.0)
+                        .slaBreachCount(((Number) row[6]).longValue())
+                        .slaBreachPercentage(((Number) row[7]).doubleValue())
+                        .build())
+                .toList();
+
+        log.info("Ürün metrikleri hesaplandı: {} ürün", products.size());
+
+        return ProductMetricsDTO.builder()
+                .productMetrics(products)
                 .build();
     }
 }

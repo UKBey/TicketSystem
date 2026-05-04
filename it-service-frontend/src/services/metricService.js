@@ -27,10 +27,16 @@ async function getPrioritySLAMetrics() {
   return response.data;
 }
 
+async function getProductMetrics() {
+  const response = await api.get('/metrics/product-metrics');
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
   getAgentPerformance,
   getTicketTimeline,
   getPrioritySLAMetrics,
+  getProductMetrics,
 };

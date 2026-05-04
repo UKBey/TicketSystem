@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
@@ -216,6 +217,43 @@ public class MetricsController {
     public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics() {
         log.info("Priority-SLA metrikleri istendi");
         PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics();
+        return ResponseEntity.ok(metrics);
+    }
+
+    /**
+     * Ürün bazında bilet metrikleri endpoint'i.
+     * Her aktif ürün için toplam bilet, açık bilet, ort. çözüm, CSAT ve SLA breach oranını döner.
+     *
+     * @return ProductMetricsDTO — ürün detay metrikleri
+     */
+    @Operation(
+            summary = "Ürün bazında bilet metrikleri",
+            description = "Aktif ürünlerin bilet yükü, ortalama çözüm süresi, CSAT ortalaması ve SLA breach yüzdesini döner. "
+                    + "Toplam bilet sayısına göre azalan sırada listelenir. Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Ürün metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProductMetricsDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/product-metrics")
+    public ResponseEntity<ProductMetricsDTO> getProductMetrics() {
+        log.info("Ürün bazında bilet metrikleri istendi");
+        ProductMetricsDTO metrics = metricsService.getProductMetrics();
         return ResponseEntity.ok(metrics);
     }
 }
