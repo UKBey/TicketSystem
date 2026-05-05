@@ -60,105 +60,59 @@ jobs:
             exit 1
           fi
 
-      - name: Copy deployment files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USER }}
-          key: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.VDS_PORT }}
-          source: >-
-            docker-compose.yaml,
-            init-db.sql,
-            Dockerfile-ldap,
-            logstash.conf,
-            otel-collector-config.yaml,
-            keycloak-init,
-            keycloak-themes,
-            ldap-init,
-            it-service-backend,
-            it-service-frontend
-          target: /home/deployment/it-service
-          overwrite: true
+      - name: Setup SSH key and agent (supports passphrase)
+        env:
+          VDS_SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          VDS_SSH_PASSPHRASE: ${{ secrets.VDS_SSH_PASSPHRASE }}
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+        run: |
+          set -e
+          echo "Writing private key to disk"
+          printf '%s\n' "$VDS_SSH_PRIVATE_KEY" > deploy_key.pem
+          chmod 600 deploy_key.pem
 
-      - name: Run remote deploy commands
-        uses: appleboy/ssh-action@v1.2.0
+          echo "Starting ssh-agent and adding key"
+          eval "$(ssh-agent -s)"
+
+          apt-get update
+          apt-get install -y expect openssh-client
+
+          /usr/bin/expect <<'EXPECT'
+          set timeout -1
+          spawn ssh-add deploy_key.pem
+          expect {
+            "Enter passphrase" {
+              send "$env(VDS_SSH_PASSPHRASE)\r"
+              exp_continue
+            }
+            eof
+          }
+          EXPECT
+
+          echo "Testing SSH auth to host (will create target dir)"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "mkdir -p /home/$VDS_USER/it-service && chown $VDS_USER:$VDS_USER /home/$VDS_USER/it-service || true"
+
+      - name: Copy deployment files to server (scp)
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+        run: |
+          set -e
+          echo "Copying files to server via scp"
+          scp -o StrictHostKeyChecking=no -i deploy_key.pem -P "$VDS_PORT" -r docker-compose.yaml init-db.sql Dockerfile-ldap logstash.conf otel-collector-config.yaml keycloak-init keycloak-themes ldap-init it-service-backend it-service-frontend "$VDS_USER"@"$VDS_HOST":/home/$VDS_USER/it-service
+
+      - name: Run remote deploy commands (ssh)
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USER }}
-          key: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.VDS_PORT }}
-          envs: PROD_ENV_FILE
-          script_stop: true
-          script: |
-            set -e
-            mkdir -p /home/deployment/it-service
-            cd /home/deployment/it-service
-
-            if [ -z "$PROD_ENV_FILE" ]; then
-              echo "PROD_ENV_FILE secret is empty" >&2
-              exit 1
-            fi
-
-            printf "%s" "$PROD_ENV_FILE" > .env
-
-            docker compose pull || true
-            docker compose up -d --build --remove-orphans
-            docker image prune -f
-        - name: Setup SSH key and agent (supports passphrase)
-          env:
-            VDS_SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
-            VDS_SSH_PASSPHRASE: ${{ secrets.VDS_SSH_PASSPHRASE }}
-            VDS_HOST: ${{ secrets.VDS_HOST }}
-            VDS_PORT: ${{ secrets.VDS_PORT }}
-            VDS_USER: ${{ secrets.VDS_USER }}
-          run: |
-            set -e
-            echo "Writing private key to disk"
-            printf '%s\n' "$VDS_SSH_PRIVATE_KEY" > deploy_key.pem
-            chmod 600 deploy_key.pem
-
-            echo "Starting ssh-agent and adding key"
-            eval "$(ssh-agent -s)"
-
-            apt-get update
-            apt-get install -y expect openssh-client
-
-            /usr/bin/expect <<'EXPECT'
-            set timeout -1
-            spawn ssh-add deploy_key.pem
-            expect {
-              "Enter passphrase" {
-                send "$env(VDS_SSH_PASSPHRASE)\r"
-                exp_continue
-              }
-              eof
-            }
-            EXPECT
-
-            echo "Testing SSH auth to host (will create target dir)"
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "mkdir -p /home/$VDS_USER/it-service && chown $VDS_USER:$VDS_USER /home/$VDS_USER/it-service || true"
-
-        - name: Copy deployment files to server (scp)
-          env:
-            VDS_HOST: ${{ secrets.VDS_HOST }}
-            VDS_PORT: ${{ secrets.VDS_PORT }}
-            VDS_USER: ${{ secrets.VDS_USER }}
-          run: |
-            set -e
-            echo "Copying files to server via scp"
-            scp -o StrictHostKeyChecking=no -i deploy_key.pem -P "$VDS_PORT" -r docker-compose.yaml init-db.sql Dockerfile-ldap logstash.conf otel-collector-config.yaml keycloak-init keycloak-themes ldap-init it-service-backend it-service-frontend "$VDS_USER"@"$VDS_HOST":/home/$VDS_USER/it-service
-
-        - name: Run remote deploy commands (ssh)
-          env:
-            PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
-            VDS_HOST: ${{ secrets.VDS_HOST }}
-            VDS_PORT: ${{ secrets.VDS_PORT }}
-            VDS_USER: ${{ secrets.VDS_USER }}
-          run: |
-            set -e
-            ssh_opts='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem'
-            echo "Writing .env on remote and running docker compose"
-            ssh $ssh_opts -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "printf '%s' \"$PROD_ENV_FILE\" > /home/$VDS_USER/it-service/.env && cd /home/$VDS_USER/it-service && docker compose pull || true && docker compose up -d --build --remove-orphans && docker image prune -f"
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+        run: |
+          set -e
+          ssh_opts='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem'
+          echo "Writing .env on remote and running docker compose"
+          ssh $ssh_opts -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "printf '%s' \"$PROD_ENV_FILE\" > /home/$VDS_USER/it-service/.env && cd /home/$VDS_USER/it-service && docker compose pull || true && docker compose up -d --build --remove-orphans && docker image prune -f"
+      
