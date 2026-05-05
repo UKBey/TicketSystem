@@ -94,7 +94,7 @@ jobs:
           EXPECT
 
           echo "Testing SSH auth to host (will create target dir)"
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "mkdir -p /home/$VDS_USER/it-service && chown $VDS_USER:$VDS_USER /home/$VDS_USER/it-service || true"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "mkdir -p /home/$VDS_USER/it-service && chown $VDS_USER:$VDS_USER /home/$VDS_USER/it-service && find /home/$VDS_USER/it-service -maxdepth 1 -type d -name 'Caddyfile' -exec rm -rf {} + || true"
 
       - name: Copy deployment files to server (scp)
         env:
