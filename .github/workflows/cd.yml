@@ -1,0 +1,69 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy To VDS
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Copy deployment files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VDS_PORT }}
+          source: >-
+            docker-compose.yaml,
+            init-db.sql,
+            Dockerfile-ldap,
+            logstash.conf,
+            otel-collector-config.yaml,
+            keycloak-init,
+            keycloak-themes,
+            ldap-init,
+            it-service-backend,
+            it-service-frontend
+          target: /home/deployment/it-service
+          overwrite: true
+
+      - name: Run remote deploy commands
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USER }}
+          key: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VDS_PORT }}
+          envs: PROD_ENV_FILE
+          script_stop: true
+          script: |
+            set -e
+            mkdir -p /home/deployment/it-service
+            cd /home/deployment/it-service
+
+            if [ -z "$PROD_ENV_FILE" ]; then
+              echo "PROD_ENV_FILE secret is empty" >&2
+              exit 1
+            fi
+
+            printf "%s" "$PROD_ENV_FILE" > .env
+
+            docker compose pull || true
+            docker compose up -d --build --remove-orphans
+            docker image prune -f
