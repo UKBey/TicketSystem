@@ -75,9 +75,11 @@ jobs:
 
           echo "Starting ssh-agent and adding key"
           eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
 
-          apt-get update
-          apt-get install -y expect openssh-client
+          sudo apt-get update -qq
+          sudo apt-get install -y expect openssh-client
 
           /usr/bin/expect <<'EXPECT'
           set timeout -1
