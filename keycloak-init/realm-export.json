@@ -861,10 +861,12 @@
       "redirectUris": [
         "http://localhost:3000/*",
         "http://localhost/*",
-        "http://localhost:3001/*"
+        "http://localhost:3001/*",
+        "https://138.197.182.117/*"
       ],
       "webOrigins": [
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "https://138.197.182.117"
       ],
       "notBefore": 0,
       "bearerOnly": false,

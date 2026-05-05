@@ -1,0 +1,4 @@
+https://138.197.182.117 {
+    tls internal
+    reverse_proxy it-service-frontend:80
+}
