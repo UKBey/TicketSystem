@@ -14,6 +14,7 @@ vi.mock('../../services/metricService', () => ({
     getProductMetrics: vi.fn(),
     getCSATMetrics: vi.fn(),
     getAlertsAndBacklog: vi.fn(),
+    getWorklogCompletion: vi.fn(),
   },
 }));
 
@@ -45,6 +46,11 @@ const EMPTY_RESPONSES = {
     waitingTooLong: [],
     backlogMetrics: { unassignedCount: 0, newTicketsWaiting: 0, avgWaitingHours: 0 },
   },
+  worklog: {
+    periodDays: 30,
+    agentWorklogs: [],
+    completionRates: { totalResolved: 0, totalClosed: 0, totalCreated: 0, completionRate: 0, avgResolutionHours: 0, slaComplianceRate: 100 },
+  },
 };
 
 function setupHappyPath() {
@@ -56,6 +62,7 @@ function setupHappyPath() {
   metricService.getProductMetrics.mockResolvedValue(EMPTY_RESPONSES.products);
   metricService.getCSATMetrics.mockResolvedValue(EMPTY_RESPONSES.csatMetrics);
   metricService.getAlertsAndBacklog.mockResolvedValue(EMPTY_RESPONSES.alerts);
+  metricService.getWorklogCompletion.mockResolvedValue(EMPTY_RESPONSES.worklog);
 }
 
 describe('Dashboard — Integration', () => {
@@ -89,7 +96,7 @@ describe('Dashboard — Integration', () => {
     });
   });
 
-  it('calls all eight metric service methods on mount', async () => {
+  it('calls all nine metric service methods on mount', async () => {
     setupHappyPath();
     render(<Dashboard />);
     await waitFor(() => {
@@ -100,6 +107,7 @@ describe('Dashboard — Integration', () => {
       expect(metricService.getPrioritySLAMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getProductMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getCSATMetrics).toHaveBeenCalledWith(3);
+      expect(metricService.getWorklogCompletion).toHaveBeenCalledWith(30);
       expect(metricService.getAlertsAndBacklog).toHaveBeenCalledTimes(1);
     });
   });
@@ -113,6 +121,7 @@ describe('Dashboard — Integration', () => {
     metricService.getProductMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getCSATMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getAlertsAndBacklog.mockRejectedValue(new Error('Network error'));
+    metricService.getWorklogCompletion.mockRejectedValue(new Error('Network error'));
 
     render(<Dashboard />);
     await waitFor(() => {

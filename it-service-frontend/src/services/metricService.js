@@ -42,6 +42,11 @@ async function getAlertsAndBacklog() {
   return response.data;
 }
 
+async function getWorklogCompletion(days = 30) {
+  const response = await api.get('/metrics/worklog-completion', { params: { days } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -51,4 +56,5 @@ export default {
   getProductMetrics,
   getCSATMetrics,
   getAlertsAndBacklog,
+  getWorklogCompletion,
 };

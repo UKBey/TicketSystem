@@ -146,6 +146,16 @@
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Worklog Completion ──────────────────────────────────────── */
+
+.completion-meter-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-agents-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* ── Alert Banner ────────────────────────────────────────────── */
 
 .alert-banner-header:hover {

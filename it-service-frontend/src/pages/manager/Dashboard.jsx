@@ -8,6 +8,9 @@ import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart'
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
 import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
+import WorklogCompletionChart from '../../components/dashboard/WorklogCompletionChart';
+import CompletionMeters from '../../components/dashboard/CompletionMeters';
+import TopAgentsBar from '../../components/dashboard/TopAgentsBar';
 import AlertBanner from '../../components/dashboard/AlertBanner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
@@ -59,6 +62,8 @@ export default function Dashboard() {
   const [productLoading, setProductLoading] = useState(true);
   const [csatMetrics, setCsatMetrics] = useState(null);
   const [csatLoading, setCsatLoading] = useState(true);
+  const [worklogCompletion, setWorklogCompletion] = useState(null);
+  const [worklogLoading, setWorklogLoading] = useState(true);
   const [alertsData, setAlertsData] = useState(null);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
@@ -71,7 +76,7 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse, csatResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse, csatResponse, worklogResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
@@ -79,6 +84,7 @@ export default function Dashboard() {
         metricService.getPrioritySLAMetrics(),
         metricService.getProductMetrics(),
         metricService.getCSATMetrics(3),
+        metricService.getWorklogCompletion(30),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
@@ -88,6 +94,7 @@ export default function Dashboard() {
       setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
       setProductMetrics(productResponse ?? { productMetrics: [] });
       setCsatMetrics(csatResponse ?? null);
+      setWorklogCompletion(worklogResponse ?? null);
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -101,6 +108,7 @@ export default function Dashboard() {
       setPrioritySlaLoading(false);
       setProductLoading(false);
       setCsatLoading(false);
+      setWorklogLoading(false);
     }
   };
 
@@ -253,6 +261,14 @@ export default function Dashboard() {
       <section className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
         <ProductMetricsChart data={productMetrics} loading={productLoading} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <WorklogCompletionChart data={worklogCompletion} loading={worklogLoading} />
+        <div className="flex flex-col gap-4">
+          <CompletionMeters data={worklogCompletion} loading={worklogLoading} />
+          <TopAgentsBar data={worklogCompletion} loading={worklogLoading} />
+        </div>
       </section>
 
       <section>
