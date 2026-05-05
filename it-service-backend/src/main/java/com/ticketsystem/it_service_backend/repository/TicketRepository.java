@@ -3,6 +3,9 @@ package com.ticketsystem.it_service_backend.repository;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
+
+import java.time.ZonedDateTime;
 import java.util.List;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
@@ -25,9 +28,24 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Karma rolde kullanicinin hem sahip oldugu hem yetkili oldugu urun biletlerini birlestirir.
     List<Ticket> findByCustomerIdOrProductIdIn(String customerId, List<Long> productIds);
 
+    // Belirtilen statü listesindeki ticket'ları döner.
+    List<Ticket> findByStatusIn(List<String> statuses);
+
     // Tum ticket durumlarinin dagilimini doner.
     @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")
     List<Object[]> countTicketsGroupedByStatus();
+
+    // SLA'yı aşmış açık biletler (slaBreached=true, henüz kapatılmamış).
+    @Query("SELECT t FROM Ticket t WHERE t.slaBreached = true AND t.status IN ('NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER') ORDER BY t.slaDeadline ASC")
+    List<Ticket> findBreachedOpenTickets();
+
+    // SLA deadline'ı [now, cutoff] aralığında olan açık biletler (yaklaşan breach).
+    @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline >= :now AND t.slaDeadline <= :cutoff AND t.status IN ('NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER') ORDER BY t.slaDeadline ASC")
+    List<Ticket> findUpcomingBreachTickets(@Param("now") ZonedDateTime now, @Param("cutoff") ZonedDateTime cutoff);
+
+    // WAITING_FOR_CUSTOMER statüsünde cutoff tarihinden önce oluşturulmuş biletler.
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt < :cutoff ORDER BY t.createdAt ASC")
+    List<Ticket> findWaitingTooLongTickets(@Param("cutoff") ZonedDateTime cutoff);
 
     // Son N gün içinde günlük ticket metrikleri (created, resolved, closed, sla breach) dönülür
     @Query(value = """

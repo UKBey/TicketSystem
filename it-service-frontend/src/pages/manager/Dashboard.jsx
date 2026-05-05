@@ -7,6 +7,7 @@ import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTa
 import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
+import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 
@@ -54,6 +55,8 @@ export default function Dashboard() {
   const [prioritySlaLoading, setPrioritySlaLoading] = useState(true);
   const [productMetrics, setProductMetrics] = useState({ productMetrics: [] });
   const [productLoading, setProductLoading] = useState(true);
+  const [csatMetrics, setCsatMetrics] = useState(null);
+  const [csatLoading, setCsatLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -64,13 +67,14 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse, csatResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
         metricService.getTicketTimeline(30),
         metricService.getPrioritySLAMetrics(),
         metricService.getProductMetrics(),
+        metricService.getCSATMetrics(3),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
@@ -79,6 +83,7 @@ export default function Dashboard() {
       setTicketTimeline(timelineResponse ?? { timeline: [] });
       setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
       setProductMetrics(productResponse ?? { productMetrics: [] });
+      setCsatMetrics(csatResponse ?? null);
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -91,6 +96,7 @@ export default function Dashboard() {
       setTimelineLoading(false);
       setPrioritySlaLoading(false);
       setProductLoading(false);
+      setCsatLoading(false);
     }
   };
 
@@ -227,6 +233,10 @@ export default function Dashboard() {
       <section className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
         <ProductMetricsChart data={productMetrics} loading={productLoading} />
+      </section>
+
+      <section>
+        <CSATGaugeChart data={csatMetrics} loading={csatLoading} />
       </section>
     </div>
   );

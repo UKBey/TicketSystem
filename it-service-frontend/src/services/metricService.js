@@ -32,6 +32,11 @@ async function getProductMetrics() {
   return response.data;
 }
 
+async function getCSATMetrics(months = 3) {
+  const response = await api.get('/metrics/csat-metrics', { params: { months } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -39,4 +44,5 @@ export default {
   getTicketTimeline,
   getPrioritySLAMetrics,
   getProductMetrics,
+  getCSATMetrics,
 };

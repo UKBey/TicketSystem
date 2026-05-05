@@ -12,6 +12,7 @@ vi.mock('../../services/metricService', () => ({
     getTicketTimeline: vi.fn(),
     getPrioritySLAMetrics: vi.fn(),
     getProductMetrics: vi.fn(),
+    getCSATMetrics: vi.fn(),
   },
 }));
 
@@ -29,6 +30,14 @@ const EMPTY_RESPONSES = {
   timeline:    { timeline: [] },
   prioritySla: { priorityMetrics: [] },
   products:    { productMetrics: [] },
+  csatMetrics: {
+    totalResponses: 0,
+    averageRating: 0,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    trend: { thisMonth: 0, lastMonth: 0, trend: 'STABLE' },
+    byPriority: {},
+    topComments: [],
+  },
 };
 
 function setupHappyPath() {
@@ -38,6 +47,7 @@ function setupHappyPath() {
   metricService.getTicketTimeline.mockResolvedValue(EMPTY_RESPONSES.timeline);
   metricService.getPrioritySLAMetrics.mockResolvedValue(EMPTY_RESPONSES.prioritySla);
   metricService.getProductMetrics.mockResolvedValue(EMPTY_RESPONSES.products);
+  metricService.getCSATMetrics.mockResolvedValue(EMPTY_RESPONSES.csatMetrics);
 }
 
 describe('Dashboard — Integration', () => {
@@ -71,7 +81,7 @@ describe('Dashboard — Integration', () => {
     });
   });
 
-  it('calls all six metric service methods on mount', async () => {
+  it('calls all seven metric service methods on mount', async () => {
     setupHappyPath();
     render(<Dashboard />);
     await waitFor(() => {
@@ -81,6 +91,7 @@ describe('Dashboard — Integration', () => {
       expect(metricService.getTicketTimeline).toHaveBeenCalledWith(30);
       expect(metricService.getPrioritySLAMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getProductMetrics).toHaveBeenCalledTimes(1);
+      expect(metricService.getCSATMetrics).toHaveBeenCalledWith(3);
     });
   });
 
@@ -91,6 +102,7 @@ describe('Dashboard — Integration', () => {
     metricService.getTicketTimeline.mockRejectedValue(new Error('Network error'));
     metricService.getPrioritySLAMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getProductMetrics.mockRejectedValue(new Error('Network error'));
+    metricService.getCSATMetrics.mockRejectedValue(new Error('Network error'));
 
     render(<Dashboard />);
     await waitFor(() => {

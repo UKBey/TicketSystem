@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
+import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
+import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
@@ -255,5 +257,83 @@ public class MetricsController {
         log.info("Ürün bazında bilet metrikleri istendi");
         ProductMetricsDTO metrics = metricsService.getProductMetrics();
         return ResponseEntity.ok(metrics);
+    }
+
+    /**
+     * CSAT detaylı analitik endpoint'i.
+     * Son N ay için puan dağılımı, aylık trend, priority bazlı CSAT ve en iyi yorumları döner.
+     *
+     * @param months Analiz edilecek ay sayısı (default 3, max 12)
+     * @return CSATMetricsDTO — CSAT analitik özeti
+     */
+    @Operation(
+            summary = "CSAT detaylı analitik metrikleri",
+            description = "Son N aylık CSAT verilerini analiz eder. Puan dağılımı, bu ay ile geçen ay trendi, "
+                    + "priority bazlı CSAT ortalamaları ve en yüksek puanlı yorumları döner. "
+                    + "Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "CSAT metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CSATMetricsDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/csat-metrics")
+    public ResponseEntity<CSATMetricsDTO> getCSATMetrics(
+            @RequestParam(defaultValue = "3") int months) {
+        log.info("CSAT detaylı metrikleri istendi (months={})", months);
+        CSATMetricsDTO metrics = metricsService.getCSATMetrics(months);
+        return ResponseEntity.ok(metrics);
+    }
+
+    /**
+     * SLA breach uyarıları ve backlog metrikleri endpoint'i.
+     * Zaten aşılmış biletler, 4 saat içinde aşılacak biletler, uzun süre bekleyenler ve backlog özeti.
+     *
+     * @return AlertsBacklogDTO — alert listeleri ve backlog istatistikleri
+     */
+    @Operation(
+            summary = "SLA breach uyarıları ve backlog metrikleri",
+            description = "SLA'yı aşmış açık biletleri, 4 saat içinde SLA breach riski taşıyanları, "
+                    + "3+ gün WAITING_FOR_CUSTOMER statüsünde kalanları ve atanmamış bilet sayısını döner. "
+                    + "Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Alert ve backlog metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AlertsBacklogDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/alerts-backlog")
+    public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog() {
+        log.info("Alert ve backlog metrikleri istendi");
+        AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
+        return ResponseEntity.ok(dto);
     }
 }

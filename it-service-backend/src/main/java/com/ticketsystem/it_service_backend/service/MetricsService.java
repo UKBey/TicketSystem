@@ -2,6 +2,12 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
+import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
+import com.ticketsystem.it_service_backend.dto.AlertTicketItemDTO;
+import com.ticketsystem.it_service_backend.dto.BacklogMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.CSATPriorityItemDTO;
+import com.ticketsystem.it_service_backend.dto.CSATTrendDTO;
 import com.ticketsystem.it_service_backend.dto.DailyMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
@@ -32,10 +38,13 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.sql.Date;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 
 @Log4j2
 @Service
@@ -429,6 +438,198 @@ public class MetricsService {
 
         return PrioritySLAMetricsDTO.builder()
                 .priorityMetrics(details)
+                .build();
+    }
+
+    /**
+     * CSAT detaylı analitik metriklerini hesaplar.
+     * Son N ay içindeki CSAT yanıtlarını analiz eder: dağılım, trend, priority bazlı ortalama ve en iyi yorumlar.
+     *
+     * @param months Kaç aylık veri analiz edileceği (default 3, max 12)
+     * @return CSATMetricsDTO — CSAT analitik özeti
+     */
+    public CSATMetricsDTO getCSATMetrics(int months) {
+        log.info("CSAT detaylı metrikleri hesaplanıyor... (months={})", months);
+
+        int safeMonths = Math.min(Math.max(months, 1), 12);
+
+        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime since = now.minusMonths(safeMonths);
+        ZonedDateTime startOfThisMonth = now.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+        ZonedDateTime startOfLastMonth = startOfThisMonth.minusMonths(1);
+
+        // Toplam yanıt ve genel ortalama
+        long totalResponses = csatRepository.findRatingDistributionSince(since).stream()
+                .mapToLong(row -> ((Number) row[1]).longValue())
+                .sum();
+
+        Double avgRaw = csatRepository.findAverageRatingSince(since);
+        double averageRating = avgRaw != null ? avgRaw : 0.0;
+
+        // Puan dağılımı (1-5 tüm anahtarlar, yoksa 0)
+        Map<Integer, Long> ratingDistribution = new LinkedHashMap<>();
+        for (int i = 1; i <= 5; i++) ratingDistribution.put(i, 0L);
+        for (Object[] row : csatRepository.findRatingDistributionSince(since)) {
+            int rating = ((Number) row[0]).intValue();
+            long count = ((Number) row[1]).longValue();
+            ratingDistribution.put(rating, count);
+        }
+
+        // Trend: bu ay vs geçen ay
+        Double thisMonthRaw = csatRepository.findAverageRatingSince(startOfThisMonth);
+        double thisMonth = thisMonthRaw != null ? thisMonthRaw : 0.0;
+        double lastMonthOnlyRaw = computeLastMonthAverage(startOfLastMonth, startOfThisMonth);
+        String trendDirection = determineTrend(thisMonth, lastMonthOnlyRaw);
+
+        CSATTrendDTO trend = CSATTrendDTO.builder()
+                .thisMonth(thisMonth)
+                .lastMonth(lastMonthOnlyRaw)
+                .trend(trendDirection)
+                .build();
+
+        // Priority bazlı CSAT
+        Map<String, CSATPriorityItemDTO> byPriority = new LinkedHashMap<>();
+        for (Object[] row : csatRepository.findAverageRatingByPrioritySince(since)) {
+            String priority = String.valueOf(row[0]);
+            double avg = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+            long responses = ((Number) row[2]).longValue();
+            byPriority.put(priority, CSATPriorityItemDTO.builder().avg(avg).responses(responses).build());
+        }
+
+        // En iyi yorumlar (en fazla 5)
+        List<String> topComments = csatRepository.findTopPositiveCommentsSince(since, PageRequest.of(0, 5));
+
+        log.info("CSAT metrikleri hesaplandı: {} yanıt, ort={}, trend={}", totalResponses, averageRating, trendDirection);
+
+        return CSATMetricsDTO.builder()
+                .totalResponses(totalResponses)
+                .averageRating(averageRating)
+                .ratingDistribution(ratingDistribution)
+                .trend(trend)
+                .byPriority(byPriority)
+                .topComments(topComments)
+                .build();
+    }
+
+    private double computeLastMonthAverage(ZonedDateTime startOfLastMonth, ZonedDateTime startOfThisMonth) {
+        List<Object[]> distrib = csatRepository.findRatingDistributionSince(startOfLastMonth);
+        List<Object[]> thisMonthDistrib = csatRepository.findRatingDistributionSince(startOfThisMonth);
+
+        Map<Integer, Long> lastMonthMap = new HashMap<>();
+        for (Object[] row : distrib) {
+            lastMonthMap.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+        }
+        Map<Integer, Long> thisMonthMap = new HashMap<>();
+        for (Object[] row : thisMonthDistrib) {
+            thisMonthMap.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+        }
+
+        long totalCount = 0;
+        long totalSum = 0;
+        for (int r = 1; r <= 5; r++) {
+            long last = lastMonthMap.getOrDefault(r, 0L);
+            long cur = thisMonthMap.getOrDefault(r, 0L);
+            long onlyLastMonth = Math.max(0, last - cur);
+            totalCount += onlyLastMonth;
+            totalSum += (long) r * onlyLastMonth;
+        }
+        return totalCount > 0 ? (double) totalSum / totalCount : 0.0;
+    }
+
+    private String determineTrend(double current, double previous) {
+        if (previous == 0.0) return "STABLE";
+        double diff = current - previous;
+        if (diff > 0.05) return "UP";
+        if (diff < -0.05) return "DOWN";
+        return "STABLE";
+    }
+
+    /**
+     * SLA breach uyarılarını ve backlog metriklerini hesaplar.
+     * Zaten aşılmış biletler, yaklaşan breach (4 saat), uzun süre bekleyenler ve atanmamış bilet sayısı.
+     *
+     * @return AlertsBacklogDTO — alert listeleri ve backlog özeti
+     */
+    public AlertsBacklogDTO getAlertsAndBacklog() {
+        log.info("Alert ve backlog metrikleri hesaplanıyor...");
+
+        ZonedDateTime now = ZonedDateTime.now();
+        List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
+
+        // SLA'yı aşmış açık biletler
+        List<AlertTicketItemDTO> breachedSLA = ticketRepository.findBreachedOpenTickets()
+                .stream()
+                .limit(10)
+                .map(t -> toAlertItem(t, now))
+                .toList();
+
+        // 4 saat içinde SLA'yı aşacak biletler
+        ZonedDateTime upcomingCutoff = now.plusHours(4);
+        List<AlertTicketItemDTO> upcomingBreach = ticketRepository
+                .findUpcomingBreachTickets(now, upcomingCutoff)
+                .stream()
+                .limit(10)
+                .map(t -> toAlertItem(t, now))
+                .toList();
+
+        // 3+ gün WAITING_FOR_CUSTOMER biletler
+        ZonedDateTime waitingCutoff = now.minusDays(3);
+        List<AlertTicketItemDTO> waitingTooLong = ticketRepository
+                .findWaitingTooLongTickets(waitingCutoff)
+                .stream()
+                .limit(10)
+                .map(t -> AlertTicketItemDTO.builder()
+                        .ticketId(t.getId())
+                        .title(t.getTitle())
+                        .priority(t.getPriority())
+                        .customerId(t.getCustomerId())
+                        .hoursWaiting(t.getCreatedAt() != null
+                                ? ChronoUnit.MILLIS.between(t.getCreatedAt(), now) / (1000.0 * 60 * 60)
+                                : 0.0)
+                        .build())
+                .toList();
+
+        // Backlog metrikleri
+        List<Ticket> openTickets = ticketRepository.findByStatusIn(openStatuses);
+
+        long unassignedCount = openTickets.stream()
+                .filter(t -> t.getAssigneeId() == null || t.getAssigneeId().isBlank())
+                .count();
+        long newWaiting = openTickets.stream()
+                .filter(t -> "NEW".equals(t.getStatus()))
+                .count();
+        double avgWaitingHours = openTickets.stream()
+                .filter(t -> t.getCreatedAt() != null)
+                .mapToDouble(t -> ChronoUnit.MILLIS.between(t.getCreatedAt(), now) / (1000.0 * 60 * 60))
+                .average()
+                .orElse(0.0);
+
+        log.info("Alert metrikleri hesaplandı: breach={}, upcoming={}, waiting={}, unassigned={}",
+                breachedSLA.size(), upcomingBreach.size(), waitingTooLong.size(), unassignedCount);
+
+        return AlertsBacklogDTO.builder()
+                .breachedSLA(breachedSLA)
+                .upcomingBreach(upcomingBreach)
+                .waitingTooLong(waitingTooLong)
+                .backlogMetrics(BacklogMetricsDTO.builder()
+                        .unassignedCount(unassignedCount)
+                        .newTicketsWaiting(newWaiting)
+                        .avgWaitingHours(avgWaitingHours)
+                        .build())
+                .build();
+    }
+
+    private AlertTicketItemDTO toAlertItem(Ticket t, ZonedDateTime now) {
+        double hoursUntilDeadline = t.getSlaDeadline() != null
+                ? ChronoUnit.MILLIS.between(now, t.getSlaDeadline()) / (1000.0 * 60 * 60)
+                : 0.0;
+        return AlertTicketItemDTO.builder()
+                .ticketId(t.getId())
+                .title(t.getTitle())
+                .priority(t.getPriority())
+                .customerId(t.getCustomerId())
+                .deadline(t.getSlaDeadline())
+                .hoursUntilDeadline(hoursUntilDeadline)
                 .build();
     }
 
