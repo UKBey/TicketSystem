@@ -10,6 +10,8 @@ volumes:
     # OpenSearch indekslerinin konteyner yeniden baslasa da korunmasini saglar.
   jbpm_postgres_data:
     # jBPM surec verilerinin kalici depoda tutulmasini saglar.
+  caddy_data:
+  caddy_config:
 
 services:
   # Uygulama veritabani servisi.
@@ -83,6 +85,8 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME_URL: ${KEYCLOAK_FRONTEND_URL:-}
+      KC_PROXY_HEADERS: xforwarded
     volumes:
       - ./keycloak-init:/opt/keycloak/data/import
       - ./keycloak-themes/it-service-desk:/opt/keycloak/themes/it-service-desk
@@ -199,6 +203,22 @@ services:
       - "3000:80"
     depends_on:
       - it-service-backend
+    networks:
+      - it-service-net
+
+  # HTTPS terminasyonu ve reverse proxy.
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - it-service-frontend
     networks:
       - it-service-net
   # Log akisinda tampon gorevi yapan Kafka broker.

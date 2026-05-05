@@ -1,7 +1,11 @@
 import Keycloak from 'keycloak-js';
 
+const keycloakUrl = window.location.hostname === 'localhost'
+  ? 'http://localhost:8080'
+  : window.location.origin;
+
 const keycloak = new Keycloak({
-  url: 'http://localhost:8080',
+  url: keycloakUrl,
   realm: 'TicketSystemRealm',
   clientId: 'ticket-frontend',
 });
