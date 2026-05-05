@@ -20,6 +20,36 @@ jobs:
         with:
           ref: main
 
+      - name: Validate deploy secrets
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_PORT: ${{ secrets.VDS_PORT }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+          VDS_SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+        run: |
+          set -e
+
+          if [ -z "$VDS_HOST" ] || [ -z "$VDS_PORT" ] || [ -z "$VDS_USER" ]; then
+            echo "One or more VDS connection secrets are empty" >&2
+            exit 1
+          fi
+
+          if [ -z "$VDS_SSH_PRIVATE_KEY" ]; then
+            echo "VDS_SSH_PRIVATE_KEY is empty. Paste the private key content, not the .pub file." >&2
+            exit 1
+          fi
+
+          if ! printf '%s\n' "$VDS_SSH_PRIVATE_KEY" | ssh-keygen -lf /dev/stdin >/dev/null 2>&1; then
+            echo "VDS_SSH_PRIVATE_KEY is not a valid SSH private key" >&2
+            exit 1
+          fi
+
+          if [ -z "$PROD_ENV_FILE" ]; then
+            echo "PROD_ENV_FILE is empty" >&2
+            exit 1
+          fi
+
       - name: Copy deployment files to server
         uses: appleboy/scp-action@v0.1.7
         with:
