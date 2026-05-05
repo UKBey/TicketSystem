@@ -26,6 +26,7 @@ jobs:
           VDS_PORT: ${{ secrets.VDS_PORT }}
           VDS_USER: ${{ secrets.VDS_USER }}
           VDS_SSH_PRIVATE_KEY: ${{ secrets.VDS_SSH_PRIVATE_KEY }}
+          VDS_SSH_PASSPHRASE: ${{ secrets.VDS_SSH_PASSPHRASE }}
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
           set -e
@@ -40,8 +41,17 @@ jobs:
             exit 1
           fi
 
-          if ! printf '%s\n' "$VDS_SSH_PRIVATE_KEY" | ssh-keygen -lf /dev/stdin >/dev/null 2>&1; then
-            echo "VDS_SSH_PRIVATE_KEY is not a valid SSH private key" >&2
+          tmp_key_file=$(mktemp)
+          trap 'rm -f "$tmp_key_file"' EXIT
+          printf '%s\n' "$VDS_SSH_PRIVATE_KEY" > "$tmp_key_file"
+
+          if [ -n "$VDS_SSH_PASSPHRASE" ]; then
+            if ! ssh-keygen -y -P "$VDS_SSH_PASSPHRASE" -f "$tmp_key_file" >/dev/null 2>&1; then
+              echo "VDS_SSH_PRIVATE_KEY could not be parsed with the provided passphrase. Make sure both secrets are correct." >&2
+              exit 1
+            fi
+          elif ! ssh-keygen -y -f "$tmp_key_file" >/dev/null 2>&1; then
+            echo "VDS_SSH_PRIVATE_KEY could not be parsed. Make sure it is the full private key from id_ed25519, not the .pub file." >&2
             exit 1
           fi
 
