@@ -8,6 +8,7 @@ import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
+import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -334,6 +335,45 @@ public class MetricsController {
     public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog() {
         log.info("Alert ve backlog metrikleri istendi");
         AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Worklog özeti ve bilet tamamlanma metrikleri endpoint'i.
+     * Agent bazında kayıtlı çalışma sürelerini ve dönem bilet tamamlanma istatistiklerini döner.
+     *
+     * @param days Analiz edilecek gün sayısı (default 30, max 365)
+     * @return WorklogCompletionDTO — worklog özetleri ve tamamlanma oranları
+     */
+    @Operation(
+            summary = "Worklog özeti ve bilet tamamlanma metrikleri",
+            description = "Son N günün agent bazında kayıtlı çalışma dakikalarını, toplam bilet oluşturma/çözme/kapatma sayılarını, "
+                    + "ortalama çözüm süresini ve SLA uyum oranını döner. Sadece Manager rolü erişebilir."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Worklog ve tamamlanma metrikleri başarıyla döndürdü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = WorklogCompletionDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yetkisiz erişim (Manager rolü gerekli)"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Sunucu hatası"
+            )
+    })
+    @PreAuthorize("hasRole('MANAGER')")
+    @GetMapping("/worklog-completion")
+    public ResponseEntity<WorklogCompletionDTO> getWorklogCompletion(
+            @RequestParam(defaultValue = "30") int days) {
+        log.info("Worklog ve tamamlanma metrikleri istendi (days={})", days);
+        WorklogCompletionDTO dto = metricsService.getWorklogCompletion(days);
         return ResponseEntity.ok(dto);
     }
 }

@@ -13,9 +13,12 @@ import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.CompletionRatesDTO;
 import com.ticketsystem.it_service_backend.dto.ProductDetailDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
+import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
+import com.ticketsystem.it_service_backend.dto.WorklogSummaryItemDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -662,6 +665,73 @@ public class MetricsService {
 
         return ProductMetricsDTO.builder()
                 .productMetrics(products)
+                .build();
+    }
+
+    /**
+     * Worklog özeti ve bilet tamamlanma metriklerini hesaplar.
+     * Agent bazında kayıtlı çalışma sürelerini ve dönem bilet tamamlanma istatistiklerini döner.
+     *
+     * @param days Analiz edilecek gün sayısı (1-365)
+     * @return WorklogCompletionDTO — worklog özetleri ve tamamlanma oranları
+     */
+    public WorklogCompletionDTO getWorklogCompletion(int days) {
+        int safeDays = Math.max(1, Math.min(days, 365));
+        ZonedDateTime since = ZonedDateTime.now().minusDays(safeDays);
+
+        log.info("Worklog ve tamamlanma metrikleri hesaplanıyor (days={})...", safeDays);
+
+        // Agent worklog aggregations
+        List<Object[]> rawWorklogs = worklogRepository.findAgentWorklogSummary(since);
+        List<String> agentIds = rawWorklogs.stream()
+                .map(row -> (String) row[0])
+                .toList();
+
+        Map<String, String> usernameByAgentId = userRepository.findAll().stream()
+                .filter(u -> agentIds.contains(u.getId()))
+                .collect(Collectors.toMap(User::getId, User::getFullName));
+
+        List<WorklogSummaryItemDTO> agentWorklogs = rawWorklogs.stream()
+                .map(row -> {
+                    String agentId = (String) row[0];
+                    long totalMinutes = ((Number) row[1]).longValue();
+                    long totalEntries = ((Number) row[2]).longValue();
+                    return WorklogSummaryItemDTO.builder()
+                            .agentId(agentId)
+                            .agentUsername(usernameByAgentId.getOrDefault(agentId, "Unknown"))
+                            .totalMinutes(totalMinutes)
+                            .totalEntries(totalEntries)
+                            .avgMinutesPerEntry(totalEntries > 0 ? (double) totalMinutes / totalEntries : 0.0)
+                            .build();
+                })
+                .toList();
+
+        // Completion rates
+        long totalCreated = ticketRepository.countCreatedSince(since);
+        long totalResolved = ticketRepository.countResolvedSince(since);
+        long totalClosed = ticketRepository.countClosedSince(since);
+        double completionRate = totalCreated > 0
+                ? Math.min(100.0, (totalResolved + totalClosed) * 100.0 / totalCreated)
+                : 0.0;
+        Double avgResolutionRaw = ticketRepository.avgResolutionHoursSince(since);
+        double avgResolutionHours = avgResolutionRaw != null ? avgResolutionRaw : 0.0;
+        Double slaComplianceRaw = ticketRepository.slaComplianceRateSince(since);
+        double slaComplianceRate = slaComplianceRaw != null ? slaComplianceRaw : 100.0;
+
+        log.info("Worklog metrikleri hesaplandı: {} agent, created={}, resolved={}, closed={}",
+                agentWorklogs.size(), totalCreated, totalResolved, totalClosed);
+
+        return WorklogCompletionDTO.builder()
+                .periodDays(safeDays)
+                .agentWorklogs(agentWorklogs)
+                .completionRates(CompletionRatesDTO.builder()
+                        .totalCreated(totalCreated)
+                        .totalResolved(totalResolved)
+                        .totalClosed(totalClosed)
+                        .completionRate(completionRate)
+                        .avgResolutionHours(avgResolutionHours)
+                        .slaComplianceRate(slaComplianceRate)
+                        .build())
                 .build();
     }
 }

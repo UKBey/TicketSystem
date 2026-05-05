@@ -47,6 +47,30 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt < :cutoff ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("cutoff") ZonedDateTime cutoff);
 
+    // Dönem içinde oluşturulan bilet sayısı.
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.createdAt >= :since")
+    long countCreatedSince(@Param("since") ZonedDateTime since);
+
+    // Dönem içinde çözülen bilet sayısı.
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = 'RESOLVED' AND t.resolvedAt >= :since")
+    long countResolvedSince(@Param("since") ZonedDateTime since);
+
+    // Dönem içinde kapatılan bilet sayısı.
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = 'CLOSED' AND t.closedAt >= :since")
+    long countClosedSince(@Param("since") ZonedDateTime since);
+
+    // Çözülen biletlerin ortalama çözüm süresi (saat).
+    @Query("SELECT AVG(FUNCTION('TIMESTAMPDIFF', HOUR, t.createdAt, t.resolvedAt)) " +
+           "FROM Ticket t WHERE t.status = 'RESOLVED' AND t.resolvedAt >= :since AND t.createdAt IS NOT NULL")
+    Double avgResolutionHoursSince(@Param("since") ZonedDateTime since);
+
+    // Çözülen biletlerde SLA ihlali yaşanmayanların oranı (%).
+    @Query("SELECT " +
+           "CASE WHEN COUNT(t) = 0 THEN 100.0 " +
+           "ELSE (SUM(CASE WHEN t.slaBreached = false THEN 1 ELSE 0 END) * 100.0 / COUNT(t)) END " +
+           "FROM Ticket t WHERE t.status = 'RESOLVED' AND t.resolvedAt >= :since")
+    Double slaComplianceRateSince(@Param("since") ZonedDateTime since);
+
     // Son N gün içinde günlük ticket metrikleri (created, resolved, closed, sla breach) dönülür
     @Query(value = """
         WITH date_range AS (

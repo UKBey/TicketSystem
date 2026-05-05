@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
@@ -8,8 +8,10 @@ import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart'
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
 import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
+import AlertBanner from '../../components/dashboard/AlertBanner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { usePolling } from '../../hooks/usePolling';
 
 const DEFAULT_SUMMARY = {
   totalOpenTickets: 0,
@@ -57,6 +59,8 @@ export default function Dashboard() {
   const [productLoading, setProductLoading] = useState(true);
   const [csatMetrics, setCsatMetrics] = useState(null);
   const [csatLoading, setCsatLoading] = useState(true);
+  const [alertsData, setAlertsData] = useState(null);
+  const [alertsLoading, setAlertsLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -100,9 +104,23 @@ export default function Dashboard() {
     }
   };
 
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await metricService.getAlertsAndBacklog();
+      setAlertsData(data ?? null);
+    } catch {
+      // alerts are non-critical; don't show a top-level error
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadSummary();
+    loadAlerts();
   }, []);
+
+  usePolling(loadAlerts, 30_000);
 
   const kpis = useMemo(() => ([
     {
@@ -187,6 +205,8 @@ export default function Dashboard() {
           {error}
         </div>
       )}
+
+      <AlertBanner data={alertsData} loading={alertsLoading} />
 
       <ErrorBoundary>
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

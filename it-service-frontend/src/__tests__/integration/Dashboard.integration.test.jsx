@@ -13,6 +13,7 @@ vi.mock('../../services/metricService', () => ({
     getPrioritySLAMetrics: vi.fn(),
     getProductMetrics: vi.fn(),
     getCSATMetrics: vi.fn(),
+    getAlertsAndBacklog: vi.fn(),
   },
 }));
 
@@ -38,6 +39,12 @@ const EMPTY_RESPONSES = {
     byPriority: {},
     topComments: [],
   },
+  alerts: {
+    breachedSLA: [],
+    upcomingBreach: [],
+    waitingTooLong: [],
+    backlogMetrics: { unassignedCount: 0, newTicketsWaiting: 0, avgWaitingHours: 0 },
+  },
 };
 
 function setupHappyPath() {
@@ -48,6 +55,7 @@ function setupHappyPath() {
   metricService.getPrioritySLAMetrics.mockResolvedValue(EMPTY_RESPONSES.prioritySla);
   metricService.getProductMetrics.mockResolvedValue(EMPTY_RESPONSES.products);
   metricService.getCSATMetrics.mockResolvedValue(EMPTY_RESPONSES.csatMetrics);
+  metricService.getAlertsAndBacklog.mockResolvedValue(EMPTY_RESPONSES.alerts);
 }
 
 describe('Dashboard — Integration', () => {
@@ -81,7 +89,7 @@ describe('Dashboard — Integration', () => {
     });
   });
 
-  it('calls all seven metric service methods on mount', async () => {
+  it('calls all eight metric service methods on mount', async () => {
     setupHappyPath();
     render(<Dashboard />);
     await waitFor(() => {
@@ -92,6 +100,7 @@ describe('Dashboard — Integration', () => {
       expect(metricService.getPrioritySLAMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getProductMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getCSATMetrics).toHaveBeenCalledWith(3);
+      expect(metricService.getAlertsAndBacklog).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -103,6 +112,7 @@ describe('Dashboard — Integration', () => {
     metricService.getPrioritySLAMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getProductMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getCSATMetrics.mockRejectedValue(new Error('Network error'));
+    metricService.getAlertsAndBacklog.mockRejectedValue(new Error('Network error'));
 
     render(<Dashboard />);
     await waitFor(() => {

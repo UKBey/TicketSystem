@@ -37,6 +37,11 @@ async function getCSATMetrics(months = 3) {
   return response.data;
 }
 
+async function getAlertsAndBacklog() {
+  const response = await api.get('/metrics/alerts-backlog');
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -45,4 +50,5 @@ export default {
   getPrioritySLAMetrics,
   getProductMetrics,
   getCSATMetrics,
+  getAlertsAndBacklog,
 };
