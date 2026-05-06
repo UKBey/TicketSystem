@@ -23,12 +23,27 @@ spring:
   docker:
     compose:
       enabled: false
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8080/realms/TicketSystemRealm}
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8080/realms/TicketSystemRealm/protocol/openid-connect/certs}
+
+app:
+  mail:
+    from: ${MAIL_FROM:noreply@ticketsystem.local}
 
 # jBPM KIE Server baglanti ve callback ayarlari.
 jbpm:

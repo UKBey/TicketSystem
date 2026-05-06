@@ -94,6 +94,16 @@ services:
     networks:
       - it-service-net
 
+  # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - it-service-net
+
   # Gozlemlenebilirlik katmani servisleri.
 
   # Log ve telemetry verisi icin arama/veri deposu.
@@ -167,6 +177,11 @@ services:
       JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
       JBPM_KIE_SERVER_CALLBACK_BASE_URL: "${JBPM_KIE_SERVER_CALLBACK_BASE_URL}"
 
+      # Mail ayarlari.
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-noreply@ticketsystem.local}
+
       # OpenTelemetry ayarlari.
       OTEL_SERVICE_NAME: "it-service-backend"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
@@ -179,6 +194,8 @@ services:
       keycloak-iam:
         condition: service_started
       kie-server:
+        condition: service_started
+      mailpit:
         condition: service_started
       otel-collector:
         # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
