@@ -5,9 +5,9 @@ import { getNotifications } from '../../services/notificationApi';
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (diff < 60) return 'Az önce';
-  if (diff < 3600) return `${Math.floor(diff / 60)} dk önce`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} sa önce`;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return new Date(dateStr).toLocaleDateString('tr-TR');
 }
 
@@ -40,14 +40,14 @@ export default function NotificationList({ onMarkAllRead }) {
         style={{ borderColor: 'var(--border-color)' }}
       >
         <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Bildirimler
+          Notifications
         </span>
         <button
           onClick={onMarkAllRead}
           className="text-xs transition-opacity hover:opacity-70 cursor-pointer"
           style={{ color: '#3b82f6', background: 'none', border: 'none' }}
         >
-          Tümünü okundu işaretle
+          Mark all as read
         </button>
       </div>
 
@@ -64,7 +64,7 @@ export default function NotificationList({ onMarkAllRead }) {
 
         {!loading && notifications.length === 0 && (
           <div className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            Bildiriminiz bulunmuyor.
+            No notifications.
           </div>
         )}
 

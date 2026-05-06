@@ -16,6 +16,7 @@ import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
 import TicketDetail from './pages/TicketDetail';
 import ProfilePage from './pages/ProfilePage';
+import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
 function AppLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -145,6 +146,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><ProfilePage /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Tum rollerin erisebildigi bildirim tercihleri sayfasi. */}
+        <Route
+          path="/notification-preferences"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+              <AppLayout><NotificationPreferencesPage /></AppLayout>
             </ProtectedRoute>
           }
         />

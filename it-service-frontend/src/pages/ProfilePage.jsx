@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Key, IdCard, Package } from 'lucide-react';
+import { User, Mail, Key, IdCard, Package, Bell, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { user, getPrimaryRole } = useAuth();
   const primaryRole = getPrimaryRole();
   const [products, setProducts] = useState([]);
@@ -86,6 +88,26 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
+
+        {/* Notification Preferences Link Card */}
+        <button
+          onClick={() => navigate('/notification-preferences')}
+          className="w-full rounded-xl border text-left transition-opacity hover:opacity-80 cursor-pointer"
+          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+                <Bell className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Notification Preferences</div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Manage which events trigger email notifications.</div>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+          </div>
+        </button>
 
         {/* Authorized Products Card */}
         <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>

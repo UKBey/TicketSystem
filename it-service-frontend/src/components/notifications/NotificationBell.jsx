@@ -34,7 +34,7 @@ export default function NotificationBell() {
           backgroundColor: 'var(--bg-surface-secondary)',
           color: 'var(--text-secondary)',
         }}
-        aria-label="Bildirimler"
+        aria-label="Notifications"
       >
         <Bell className="h-[18px] w-[18px]" />
 
