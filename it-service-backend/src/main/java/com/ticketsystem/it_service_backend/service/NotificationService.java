@@ -34,10 +34,12 @@ public class NotificationService {
 
     public void notifyTicketCreated(Ticket ticket) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
-            saveNotification(customer.getId(), NotificationType.TICKET_CREATED,
-                    "Bilet #" + ticket.getId() + " başarıyla oluşturuldu: " + ticket.getTitle(),
-                    ticket.getId());
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnTicketCreated())) {
+                saveNotification(customer.getId(), NotificationType.TICKET_CREATED,
+                        "Bilet #" + ticket.getId() + " başarıyla oluşturuldu: " + ticket.getTitle(),
+                        ticket.getId());
+            }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketCreated())) {
                 emailService.sendTicketCreatedEmail(customer, ticket);
             }
@@ -47,10 +49,12 @@ public class NotificationService {
     public void notifyTicketAssigned(Ticket ticket) {
         if (ticket.getAssigneeId() == null) return;
         userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
-            saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                    "Bilet #" + ticket.getId() + " üzerinize atandı: " + ticket.getTitle(),
-                    ticket.getId());
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
+                saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
+                        "Bilet #" + ticket.getId() + " üzerinize atandı: " + ticket.getTitle(),
+                        ticket.getId());
+            }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
                 emailService.sendTicketAssignedEmail(agent, ticket);
             }
@@ -59,11 +63,13 @@ public class NotificationService {
 
     public void notifyStatusChanged(Ticket ticket, String oldStatus) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
-            saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
-                    "Bilet #" + ticket.getId() + " durumu güncellendi: "
-                            + oldStatus + " → " + ticket.getStatus(),
-                    ticket.getId());
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
+                saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
+                        "Bilet #" + ticket.getId() + " durumu güncellendi: "
+                                + oldStatus + " → " + ticket.getStatus(),
+                        ticket.getId());
+            }
             if (Boolean.TRUE.equals(pref.getEmailOnStatusChanged())) {
                 emailService.sendStatusChangedEmail(customer, ticket, oldStatus, ticket.getStatus());
             }
@@ -79,10 +85,12 @@ public class NotificationService {
             // Müşteri yazdı → ajana bildir
             if (ticket.getAssigneeId() == null) return;
             userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
-                saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
-                        "Bilet #" + ticket.getId() + " için yeni müşteri yorumu eklendi.",
-                        ticket.getId());
                 NotificationPreference pref = getOrDefaultPreference(agent.getId());
+                if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
+                    saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
+                            "Bilet #" + ticket.getId() + " için yeni müşteri yorumu eklendi.",
+                            ticket.getId());
+                }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
                     userRepository.findById(comment.getAuthorId()).ifPresent(author ->
                             emailService.sendCommentAddedEmail(agent, ticket,
@@ -92,10 +100,12 @@ public class NotificationService {
         } else {
             // Ajan yazdı → müşteriye bildir
             userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
-                saveNotification(customer.getId(), NotificationType.COMMENT_ADDED,
-                        "Bilet #" + ticket.getId() + " için yeni bir yanıt eklendi.",
-                        ticket.getId());
                 NotificationPreference pref = getOrDefaultPreference(customer.getId());
+                if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
+                    saveNotification(customer.getId(), NotificationType.COMMENT_ADDED,
+                            "Bilet #" + ticket.getId() + " için yeni bir yanıt eklendi.",
+                            ticket.getId());
+                }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
                     userRepository.findById(comment.getAuthorId()).ifPresent(author ->
                             emailService.sendCommentAddedEmail(customer, ticket,
@@ -119,10 +129,12 @@ public class NotificationService {
 
     public void notifyTicketResolved(Ticket ticket) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
-            saveNotification(customer.getId(), NotificationType.TICKET_RESOLVED,
-                    "Bilet #" + ticket.getId() + " çözüme kavuşturuldu: " + ticket.getTitle(),
-                    ticket.getId());
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnTicketResolved())) {
+                saveNotification(customer.getId(), NotificationType.TICKET_RESOLVED,
+                        "Bilet #" + ticket.getId() + " çözüme kavuşturuldu: " + ticket.getTitle(),
+                        ticket.getId());
+            }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketResolved())) {
                 emailService.sendTicketResolvedEmail(customer, ticket);
             }
@@ -176,13 +188,21 @@ public class NotificationService {
         NotificationPreference pref = preferenceRepository.findByUserId(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
 
-        if (req.getEmailOnTicketCreated() != null)  pref.setEmailOnTicketCreated(req.getEmailOnTicketCreated());
-        if (req.getEmailOnTicketAssigned() != null) pref.setEmailOnTicketAssigned(req.getEmailOnTicketAssigned());
-        if (req.getEmailOnStatusChanged() != null)  pref.setEmailOnStatusChanged(req.getEmailOnStatusChanged());
-        if (req.getEmailOnCommentAdded() != null)   pref.setEmailOnCommentAdded(req.getEmailOnCommentAdded());
-        if (req.getEmailOnSlaWarning() != null)     pref.setEmailOnSlaWarning(req.getEmailOnSlaWarning());
-        if (req.getEmailOnSlaBreached() != null)    pref.setEmailOnSlaBreached(req.getEmailOnSlaBreached());
-        if (req.getEmailOnTicketResolved() != null) pref.setEmailOnTicketResolved(req.getEmailOnTicketResolved());
+        if (req.getEmailOnTicketCreated() != null)   pref.setEmailOnTicketCreated(req.getEmailOnTicketCreated());
+        if (req.getEmailOnTicketAssigned() != null)  pref.setEmailOnTicketAssigned(req.getEmailOnTicketAssigned());
+        if (req.getEmailOnStatusChanged() != null)   pref.setEmailOnStatusChanged(req.getEmailOnStatusChanged());
+        if (req.getEmailOnCommentAdded() != null)    pref.setEmailOnCommentAdded(req.getEmailOnCommentAdded());
+        if (req.getEmailOnSlaWarning() != null)      pref.setEmailOnSlaWarning(req.getEmailOnSlaWarning());
+        if (req.getEmailOnSlaBreached() != null)     pref.setEmailOnSlaBreached(req.getEmailOnSlaBreached());
+        if (req.getEmailOnTicketResolved() != null)  pref.setEmailOnTicketResolved(req.getEmailOnTicketResolved());
+
+        if (req.getNotifyOnTicketCreated() != null)  pref.setNotifyOnTicketCreated(req.getNotifyOnTicketCreated());
+        if (req.getNotifyOnTicketAssigned() != null) pref.setNotifyOnTicketAssigned(req.getNotifyOnTicketAssigned());
+        if (req.getNotifyOnStatusChanged() != null)  pref.setNotifyOnStatusChanged(req.getNotifyOnStatusChanged());
+        if (req.getNotifyOnCommentAdded() != null)   pref.setNotifyOnCommentAdded(req.getNotifyOnCommentAdded());
+        if (req.getNotifyOnSlaWarning() != null)     pref.setNotifyOnSlaWarning(req.getNotifyOnSlaWarning());
+        if (req.getNotifyOnSlaBreached() != null)    pref.setNotifyOnSlaBreached(req.getNotifyOnSlaBreached());
+        if (req.getNotifyOnTicketResolved() != null) pref.setNotifyOnTicketResolved(req.getNotifyOnTicketResolved());
 
         return NotificationPreferenceResponse.fromEntity(preferenceRepository.save(pref));
     }
@@ -193,14 +213,16 @@ public class NotificationService {
 
     private void notifyStaffAboutSla(Ticket ticket, NotificationType type,
                                      String message, boolean isWarning) {
-        // Atanan ajan varsa bildir
         if (ticket.getAssigneeId() != null) {
             userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
-                saveNotification(agent.getId(), type, message, ticket.getId());
                 NotificationPreference pref = getOrDefaultPreference(agent.getId());
+                boolean shouldNotify = isWarning
+                        ? Boolean.TRUE.equals(pref.getNotifyOnSlaWarning())
+                        : Boolean.TRUE.equals(pref.getNotifyOnSlaBreached());
                 boolean shouldEmail = isWarning
                         ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                         : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
+                if (shouldNotify) saveNotification(agent.getId(), type, message, ticket.getId());
                 if (shouldEmail) {
                     if (isWarning) emailService.sendSlaWarningEmail(agent, ticket);
                     else           emailService.sendSlaBreachedEmail(agent, ticket);
@@ -208,14 +230,16 @@ public class NotificationService {
             });
         }
 
-        // Tüm yöneticileri bildir
         List<User> managers = userRepository.findByRole("MANAGER");
         for (User manager : managers) {
-            saveNotification(manager.getId(), type, message, ticket.getId());
             NotificationPreference pref = getOrDefaultPreference(manager.getId());
+            boolean shouldNotify = isWarning
+                    ? Boolean.TRUE.equals(pref.getNotifyOnSlaWarning())
+                    : Boolean.TRUE.equals(pref.getNotifyOnSlaBreached());
             boolean shouldEmail = isWarning
                     ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                     : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
+            if (shouldNotify) saveNotification(manager.getId(), type, message, ticket.getId());
             if (shouldEmail) {
                 if (isWarning) emailService.sendSlaWarningEmail(manager, ticket);
                 else           emailService.sendSlaBreachedEmail(manager, ticket);

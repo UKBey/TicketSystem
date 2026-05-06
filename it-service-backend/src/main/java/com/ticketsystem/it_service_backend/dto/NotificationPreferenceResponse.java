@@ -11,29 +11,24 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Kullanıcı e-posta bildirim tercihleri")
+@Schema(description = "User notification preferences for email and in-app channels")
 public class NotificationPreferenceResponse {
 
-    @Schema(description = "Bilet oluşturulduğunda e-posta gönderilsin mi?")
     private Boolean emailOnTicketCreated;
-
-    @Schema(description = "Bilet atandığında e-posta gönderilsin mi?")
     private Boolean emailOnTicketAssigned;
-
-    @Schema(description = "Bilet durumu değiştiğinde e-posta gönderilsin mi?")
     private Boolean emailOnStatusChanged;
-
-    @Schema(description = "Yorum eklendiğinde e-posta gönderilsin mi?")
     private Boolean emailOnCommentAdded;
-
-    @Schema(description = "SLA uyarısında e-posta gönderilsin mi?")
     private Boolean emailOnSlaWarning;
-
-    @Schema(description = "SLA ihlalinde e-posta gönderilsin mi?")
     private Boolean emailOnSlaBreached;
-
-    @Schema(description = "Bilet çözüldüğünde e-posta gönderilsin mi?")
     private Boolean emailOnTicketResolved;
+
+    private Boolean notifyOnTicketCreated;
+    private Boolean notifyOnTicketAssigned;
+    private Boolean notifyOnStatusChanged;
+    private Boolean notifyOnCommentAdded;
+    private Boolean notifyOnSlaWarning;
+    private Boolean notifyOnSlaBreached;
+    private Boolean notifyOnTicketResolved;
 
     public static NotificationPreferenceResponse fromEntity(NotificationPreference p) {
         return NotificationPreferenceResponse.builder()
@@ -44,6 +39,13 @@ public class NotificationPreferenceResponse {
                 .emailOnSlaWarning(p.getEmailOnSlaWarning())
                 .emailOnSlaBreached(p.getEmailOnSlaBreached())
                 .emailOnTicketResolved(p.getEmailOnTicketResolved())
+                .notifyOnTicketCreated(p.getNotifyOnTicketCreated())
+                .notifyOnTicketAssigned(p.getNotifyOnTicketAssigned())
+                .notifyOnStatusChanged(p.getNotifyOnStatusChanged())
+                .notifyOnCommentAdded(p.getNotifyOnCommentAdded())
+                .notifyOnSlaWarning(p.getNotifyOnSlaWarning())
+                .notifyOnSlaBreached(p.getNotifyOnSlaBreached())
+                .notifyOnTicketResolved(p.getNotifyOnTicketResolved())
                 .build();
     }
 
@@ -56,6 +58,13 @@ public class NotificationPreferenceResponse {
                 .emailOnSlaWarning(true)
                 .emailOnSlaBreached(true)
                 .emailOnTicketResolved(true)
+                .notifyOnTicketCreated(true)
+                .notifyOnTicketAssigned(true)
+                .notifyOnStatusChanged(true)
+                .notifyOnCommentAdded(true)
+                .notifyOnSlaWarning(true)
+                .notifyOnSlaBreached(true)
+                .notifyOnTicketResolved(true)
                 .build();
     }
 }

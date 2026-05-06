@@ -46,6 +46,34 @@ public class NotificationPreference {
     @Builder.Default
     private Boolean emailOnTicketResolved = true;
 
+    @Column(name = "notify_on_ticket_created", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnTicketCreated = true;
+
+    @Column(name = "notify_on_ticket_assigned", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnTicketAssigned = true;
+
+    @Column(name = "notify_on_status_changed", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnStatusChanged = true;
+
+    @Column(name = "notify_on_comment_added", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnCommentAdded = true;
+
+    @Column(name = "notify_on_sla_warning", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnSlaWarning = true;
+
+    @Column(name = "notify_on_sla_breached", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnSlaBreached = true;
+
+    @Column(name = "notify_on_ticket_resolved", nullable = false)
+    @Builder.Default
+    private Boolean notifyOnTicketResolved = true;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

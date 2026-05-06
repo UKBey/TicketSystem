@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Bildirim tercihi güncelleme isteği — null gönderilen alanlar değiştirilmez")
+@Schema(description = "Notification preference update request — null fields are left unchanged")
 public class UpdateNotificationPreferenceRequest {
 
     private Boolean emailOnTicketCreated;
@@ -20,4 +20,12 @@ public class UpdateNotificationPreferenceRequest {
     private Boolean emailOnSlaWarning;
     private Boolean emailOnSlaBreached;
     private Boolean emailOnTicketResolved;
+
+    private Boolean notifyOnTicketCreated;
+    private Boolean notifyOnTicketAssigned;
+    private Boolean notifyOnStatusChanged;
+    private Boolean notifyOnCommentAdded;
+    private Boolean notifyOnSlaWarning;
+    private Boolean notifyOnSlaBreached;
+    private Boolean notifyOnTicketResolved;
 }
