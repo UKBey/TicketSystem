@@ -17,6 +17,7 @@ import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Product;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -70,13 +71,17 @@ public class TicketService {
                     return new RuntimeException("Kullanıcı bulunamadı: " + customerId);
                 });
 
-        boolean isAuthorized = customer.getAuthorizedProducts().stream()
-                .anyMatch(product -> product.getId().equals(ticket.getProductId()));
+        Product product = customer.getAuthorizedProducts().stream()
+                .filter(p -> p.getId().equals(ticket.getProductId()))
+                .findFirst()
+                .orElseThrow(() -> {
+                    log.warn("Bilet oluşturma reddedildi: Müşteri (ID: {}) ürün (ID: {}) için yetkili değil.", customerId, ticket.getProductId());
+                    return new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu ürün için destek kaydı oluşturma yetkiniz yok");
+                });
 
-        if (!isAuthorized) {
-            log.warn("Bilet oluşturma reddedildi: Müşteri (ID: {}) ürün (ID: {}) için yetkili değil.", customerId,
-                    ticket.getProductId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu ürün için destek kaydı oluşturma yetkiniz yok");
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            log.warn("Bilet oluşturma reddedildi: Ürün (ID: {}) aktif değil.", ticket.getProductId());
+            throw new ResponseStatusException(HttpStatusCode.valueOf(422), "Bu ürün şu anda aktif değil");
         }
 
         ticket.setCustomerId(customerId);

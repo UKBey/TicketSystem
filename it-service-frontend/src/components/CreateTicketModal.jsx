@@ -122,7 +122,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               >
                 <option value="">Select a product...</option>
-                {products.map((p) => (
+                {products.filter((p) => p.isActive).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
