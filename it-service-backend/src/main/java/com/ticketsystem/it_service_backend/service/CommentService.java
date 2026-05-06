@@ -5,11 +5,14 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
@@ -23,9 +26,17 @@ public class CommentService {
     private final TicketService ticketService;
     private final NotificationService notificationService;
 
+    private final ConcurrentHashMap<String, Instant> lastCommentTime = new ConcurrentHashMap<>();
+    private static final long COMMENT_COOLDOWN_SECONDS = 5;
+
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
         log.info("Yorum ekleme işlemi. Bilet ID: {}, Kullanıcı: {}, Tip: {}", ticketId, userId, type);
+
+        Instant last = lastCommentTime.get(userId);
+        if (last != null && Instant.now().isBefore(last.plusSeconds(COMMENT_COOLDOWN_SECONDS))) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(429), "Too many requests. Please wait before sending another comment.");
+        }
 
         // Yorum ekleme, mutasyon yetkisi denetiminden gecmeden ilerlemez.
         Ticket ticket = ticketService.validateMutationAccess(ticketId, userId, roles);
@@ -45,6 +56,7 @@ public class CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
+        lastCommentTime.put(userId, Instant.now());
         log.info("Yorum başarıyla kaydedildi. Bilet ID: {}, Yorum ID: {}", ticketId, savedComment.getId());
 
         notificationService.notifyCommentAdded(ticket, savedComment);

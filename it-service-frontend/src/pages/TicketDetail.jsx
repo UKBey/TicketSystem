@@ -37,6 +37,7 @@ export default function TicketDetail() {
   const [message, setMessage] = useState('');
   const [commentType, setCommentType] = useState('EXTERNAL');
   const [sending, setSending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const [extraActionsOpen, setExtraActionsOpen] = useState(false);
   const [csatModalOpen, setCsatModalOpen] = useState(false);
   const [csatRating, setCsatRating] = useState(5);
@@ -290,7 +291,7 @@ export default function TicketDetail() {
   };
 
   const handleSendComment = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || cooldown > 0) return;
     setSending(true);
     try {
       const res = await api.post(`/tickets/${id}/comments`, {
@@ -299,6 +300,13 @@ export default function TicketDetail() {
       });
       setComments((prev) => [...prev, res.data]);
       setMessage('');
+      setCooldown(5);
+      const timer = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
       // Yorum sonrasi olasi otomatik statu degisimlerini yansitmak icin bilet yeniden cekilir.
       const ticketRes = await api.get(`/tickets/${id}`);
       setTicket(ticketRes.data);
@@ -555,7 +563,7 @@ export default function TicketDetail() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  disabled={sending}
+                  disabled={sending || cooldown > 0}
                   className="flex-1 rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
@@ -582,10 +590,10 @@ export default function TicketDetail() {
                 <button
                   className="flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   onClick={handleSendComment}
-                  disabled={sending || !message.trim()}
+                  disabled={sending || !message.trim() || cooldown > 0}
                 >
                   <Send className="h-4 w-4" />
-                  Send
+                  {cooldown > 0 ? `${cooldown}s` : 'Send'}
                 </button>
               </div>
             </div>
