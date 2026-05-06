@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { PieChart } from 'lucide-react';
 
 const STATUS_CONFIG = [
@@ -37,7 +38,7 @@ function polarToCartesian(cx, cy, radius, angleInDegrees) {
   };
 }
 
-export default function StatusDistributionChart({ data, loading }) {
+function StatusDistributionChart({ data, loading }) {
   const entries = STATUS_CONFIG.map((item) => ({
     ...item,
     value: Number(data?.[item.key] ?? 0),
@@ -157,3 +158,5 @@ export default function StatusDistributionChart({ data, loading }) {
     </section>
   );
 }
+
+export default memo(StatusDistributionChart);

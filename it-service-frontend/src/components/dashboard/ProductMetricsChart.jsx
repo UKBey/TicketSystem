@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { Package } from 'lucide-react';
 import { PRODUCT_COLORS } from './ChartColors';
 import './dashboard.css';
@@ -9,7 +9,7 @@ function fmt1(v) {
   return v != null ? Number(v).toFixed(1) : '—';
 }
 
-export default function ProductMetricsChart({ data, loading }) {
+function ProductMetricsChart({ data, loading }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const { rows, otherRow, maxTotal } = useMemo(() => {
@@ -209,3 +209,5 @@ export default function ProductMetricsChart({ data, loading }) {
     </div>
   );
 }
+
+export default memo(ProductMetricsChart);

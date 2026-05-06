@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { LineChart as LineChartIcon, ZoomIn } from 'lucide-react';
 import {
   Brush,
@@ -60,7 +60,7 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-export default function TicketTimelineChart({ data, loading }) {
+function TicketTimelineChart({ data, loading }) {
   const chartData = useMemo(() => normalizeTimeline(data), [data]);
   const [visibleSeries, setVisibleSeries] = useState(() => ({
     created: true,
@@ -151,3 +151,5 @@ export default function TicketTimelineChart({ data, loading }) {
     </section>
   );
 }
+
+export default memo(TicketTimelineChart);

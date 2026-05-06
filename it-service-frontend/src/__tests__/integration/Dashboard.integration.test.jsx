@@ -12,6 +12,9 @@ vi.mock('../../services/metricService', () => ({
     getTicketTimeline: vi.fn(),
     getPrioritySLAMetrics: vi.fn(),
     getProductMetrics: vi.fn(),
+    getCSATMetrics: vi.fn(),
+    getAlertsAndBacklog: vi.fn(),
+    getWorklogCompletion: vi.fn(),
   },
 }));
 
@@ -29,6 +32,25 @@ const EMPTY_RESPONSES = {
   timeline:    { timeline: [] },
   prioritySla: { priorityMetrics: [] },
   products:    { productMetrics: [] },
+  csatMetrics: {
+    totalResponses: 0,
+    averageRating: 0,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    trend: { thisMonth: 0, lastMonth: 0, trend: 'STABLE' },
+    byPriority: {},
+    topComments: [],
+  },
+  alerts: {
+    breachedSLA: [],
+    upcomingBreach: [],
+    waitingTooLong: [],
+    backlogMetrics: { unassignedCount: 0, newTicketsWaiting: 0, avgWaitingHours: 0 },
+  },
+  worklog: {
+    periodDays: 30,
+    agentWorklogs: [],
+    completionRates: { totalResolved: 0, totalClosed: 0, totalCreated: 0, completionRate: 0, avgResolutionHours: 0, slaComplianceRate: 100 },
+  },
 };
 
 function setupHappyPath() {
@@ -38,6 +60,9 @@ function setupHappyPath() {
   metricService.getTicketTimeline.mockResolvedValue(EMPTY_RESPONSES.timeline);
   metricService.getPrioritySLAMetrics.mockResolvedValue(EMPTY_RESPONSES.prioritySla);
   metricService.getProductMetrics.mockResolvedValue(EMPTY_RESPONSES.products);
+  metricService.getCSATMetrics.mockResolvedValue(EMPTY_RESPONSES.csatMetrics);
+  metricService.getAlertsAndBacklog.mockResolvedValue(EMPTY_RESPONSES.alerts);
+  metricService.getWorklogCompletion.mockResolvedValue(EMPTY_RESPONSES.worklog);
 }
 
 describe('Dashboard — Integration', () => {
@@ -71,7 +96,7 @@ describe('Dashboard — Integration', () => {
     });
   });
 
-  it('calls all six metric service methods on mount', async () => {
+  it('calls all nine metric service methods on mount', async () => {
     setupHappyPath();
     render(<Dashboard />);
     await waitFor(() => {
@@ -81,6 +106,9 @@ describe('Dashboard — Integration', () => {
       expect(metricService.getTicketTimeline).toHaveBeenCalledWith(30);
       expect(metricService.getPrioritySLAMetrics).toHaveBeenCalledTimes(1);
       expect(metricService.getProductMetrics).toHaveBeenCalledTimes(1);
+      expect(metricService.getCSATMetrics).toHaveBeenCalledWith(3);
+      expect(metricService.getWorklogCompletion).toHaveBeenCalledWith(30);
+      expect(metricService.getAlertsAndBacklog).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -91,6 +119,9 @@ describe('Dashboard — Integration', () => {
     metricService.getTicketTimeline.mockRejectedValue(new Error('Network error'));
     metricService.getPrioritySLAMetrics.mockRejectedValue(new Error('Network error'));
     metricService.getProductMetrics.mockRejectedValue(new Error('Network error'));
+    metricService.getCSATMetrics.mockRejectedValue(new Error('Network error'));
+    metricService.getAlertsAndBacklog.mockRejectedValue(new Error('Network error'));
+    metricService.getWorklogCompletion.mockRejectedValue(new Error('Network error'));
 
     render(<Dashboard />);
     await waitFor(() => {

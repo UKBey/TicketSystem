@@ -7,6 +7,15 @@ export default defineConfig({
   esbuild: {
     jsx: 'automatic',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('recharts')) return 'recharts';
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

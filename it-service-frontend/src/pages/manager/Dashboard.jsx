@@ -1,14 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
-import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
+import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
+import WorklogCompletionChart from '../../components/dashboard/WorklogCompletionChart';
+import CompletionMeters from '../../components/dashboard/CompletionMeters';
+import TopAgentsBar from '../../components/dashboard/TopAgentsBar';
+import AlertBanner from '../../components/dashboard/AlertBanner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { usePolling } from '../../hooks/usePolling';
+
+const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
 const DEFAULT_SUMMARY = {
   totalOpenTickets: 0,
@@ -54,6 +61,12 @@ export default function Dashboard() {
   const [prioritySlaLoading, setPrioritySlaLoading] = useState(true);
   const [productMetrics, setProductMetrics] = useState({ productMetrics: [] });
   const [productLoading, setProductLoading] = useState(true);
+  const [csatMetrics, setCsatMetrics] = useState(null);
+  const [csatLoading, setCsatLoading] = useState(true);
+  const [worklogCompletion, setWorklogCompletion] = useState(null);
+  const [worklogLoading, setWorklogLoading] = useState(true);
+  const [alertsData, setAlertsData] = useState(null);
+  const [alertsLoading, setAlertsLoading] = useState(true);
 
   const loadSummary = async ({ silent = false } = {}) => {
     try {
@@ -64,13 +77,15 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse] = await Promise.all([
+      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse, csatResponse, worklogResponse] = await Promise.all([
         metricService.getDashboardSummary(),
         metricService.getStatusDistribution(),
         metricService.getAgentPerformance(),
         metricService.getTicketTimeline(30),
         metricService.getPrioritySLAMetrics(),
         metricService.getProductMetrics(),
+        metricService.getCSATMetrics(3),
+        metricService.getWorklogCompletion(30),
       ]);
 
       setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
@@ -79,6 +94,8 @@ export default function Dashboard() {
       setTicketTimeline(timelineResponse ?? { timeline: [] });
       setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
       setProductMetrics(productResponse ?? { productMetrics: [] });
+      setCsatMetrics(csatResponse ?? null);
+      setWorklogCompletion(worklogResponse ?? null);
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
@@ -91,12 +108,28 @@ export default function Dashboard() {
       setTimelineLoading(false);
       setPrioritySlaLoading(false);
       setProductLoading(false);
+      setCsatLoading(false);
+      setWorklogLoading(false);
     }
   };
 
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await metricService.getAlertsAndBacklog();
+      setAlertsData(data ?? null);
+    } catch {
+      // alerts are non-critical; don't show a top-level error
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadSummary();
+    loadAlerts();
   }, []);
+
+  usePolling(loadAlerts, 30_000);
 
   const kpis = useMemo(() => ([
     {
@@ -182,6 +215,8 @@ export default function Dashboard() {
         </div>
       )}
 
+      <AlertBanner data={alertsData} loading={alertsLoading} />
+
       <ErrorBoundary>
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {loading ? (
@@ -220,13 +255,27 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+        <Suspense fallback={<SkeletonLoader lines={6} />}>
+          <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+        </Suspense>
         <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[3fr_2fr]">
         <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
         <ProductMetricsChart data={productMetrics} loading={productLoading} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <WorklogCompletionChart data={worklogCompletion} loading={worklogLoading} />
+        <div className="flex flex-col gap-4">
+          <CompletionMeters data={worklogCompletion} loading={worklogLoading} />
+          <TopAgentsBar data={worklogCompletion} loading={worklogLoading} />
+        </div>
+      </section>
+
+      <section>
+        <CSATGaugeChart data={csatMetrics} loading={csatLoading} />
       </section>
     </div>
   );

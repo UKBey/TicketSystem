@@ -140,6 +140,28 @@
   display: block;
 }
 
+/* ── CSAT Gauge Chart ────────────────────────────────────────── */
+
+.csat-dist-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Worklog Completion ──────────────────────────────────────── */
+
+.completion-meter-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-agents-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Alert Banner ────────────────────────────────────────────── */
+
+.alert-banner-header:hover {
+  background-color: var(--bg-surface-secondary, #f8fafc);
+}
+
 /* ── Responsive chart containers ─────────────────────────────── */
 
 @media (max-width: 639px) {

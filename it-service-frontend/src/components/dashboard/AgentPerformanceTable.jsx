@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Award, Clock3, Flame, Star, Users } from 'lucide-react';
 
 function formatNumber(value) {
@@ -44,7 +45,7 @@ function createPlaceholderRows() {
   return Array.from({ length: 5 }, (_, index) => ({ id: index }));
 }
 
-export default function AgentPerformanceTable({ data, loading }) {
+function AgentPerformanceTable({ data, loading }) {
   const agents = data?.agents ?? [];
   const totalAgents = data?.totalAgents ?? 0;
   const totalActiveTickets = data?.totalActiveTickets ?? 0;
@@ -171,3 +172,5 @@ export default function AgentPerformanceTable({ data, loading }) {
     </section>
   );
 }
+
+export default memo(AgentPerformanceTable);

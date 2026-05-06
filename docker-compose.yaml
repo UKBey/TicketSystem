@@ -197,6 +197,7 @@ services:
       - "3000:80"
     depends_on:
       - it-service-backend
+      - keycloak-iam
     networks:
       - it-service-net
 

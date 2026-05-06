@@ -32,6 +32,21 @@ async function getProductMetrics() {
   return response.data;
 }
 
+async function getCSATMetrics(months = 3) {
+  const response = await api.get('/metrics/csat-metrics', { params: { months } });
+  return response.data;
+}
+
+async function getAlertsAndBacklog() {
+  const response = await api.get('/metrics/alerts-backlog');
+  return response.data;
+}
+
+async function getWorklogCompletion(days = 30) {
+  const response = await api.get('/metrics/worklog-completion', { params: { days } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -39,4 +54,7 @@ export default {
   getTicketTimeline,
   getPrioritySLAMetrics,
   getProductMetrics,
+  getCSATMetrics,
+  getAlertsAndBacklog,
+  getWorklogCompletion,
 };

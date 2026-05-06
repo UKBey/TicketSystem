@@ -32,3 +32,16 @@ export const TIMELINE_SERIES = [
   { key: 'closed', label: 'Closed', color: CHART_COLORS.closed },
   { key: 'slaBreach', label: 'SLA Breach', color: CHART_COLORS.slaBreach },
 ];
+
+export const COMPLETION_COLORS = {
+  good:    '#22c55e',
+  warning: '#f59e0b',
+  danger:  '#ef4444',
+  missing: 'rgba(239,68,68,0.18)',
+};
+
+export function getCompletionColor(rate) {
+  if (rate >= 90) return COMPLETION_COLORS.good;
+  if (rate >= 80) return COMPLETION_COLORS.warning;
+  return COMPLETION_COLORS.danger;
+}
