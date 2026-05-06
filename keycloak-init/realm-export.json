@@ -862,11 +862,13 @@
         "http://localhost:3000/*",
         "http://localhost/*",
         "http://localhost:3001/*",
-        "https://138.197.182.117/*"
+        "https://138.197.182.117/*",
+        "https://ticket-system.duckdns.org/*"
       ],
       "webOrigins": [
         "http://localhost:3000",
-        "https://138.197.182.117"
+        "https://138.197.182.117",
+        "https://ticket-system.duckdns.org"
       ],
       "notBefore": 0,
       "bearerOnly": false,

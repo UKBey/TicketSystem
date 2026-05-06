@@ -1,4 +1,3 @@
-https://138.197.182.117 {
-    tls internal
+ticket-system.duckdns.org {
     reverse_proxy it-service-frontend:80
 }
