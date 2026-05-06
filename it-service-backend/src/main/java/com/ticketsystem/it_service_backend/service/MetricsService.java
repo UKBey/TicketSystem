@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.data.domain.PageRequest;
 
 @Log4j2
@@ -168,8 +169,10 @@ public class MetricsService {
     public AgentPerformanceDTO getAgentPerformance() {
         log.info("Agent performans metrikleri hesaplanıyor...");
 
-        List<User> agents = userRepository.findByRole("AGENT");
-        agents.addAll(userRepository.findByRole("AGENT_ADMIN"));
+        List<User> agents = Stream.concat(
+                userRepository.findByRole("AGENT").stream(),
+                userRepository.findByRole("AGENT_ADMIN").stream()
+        ).collect(Collectors.toList());
 
         List<User> activeAgents = agents.stream()
                 .filter(agent -> Boolean.TRUE.equals(agent.getIsActive()))
