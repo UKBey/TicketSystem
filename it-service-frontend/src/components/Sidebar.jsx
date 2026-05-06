@@ -109,10 +109,6 @@ export default function Sidebar({ collapsed = false, onToggle }) {
                 Management
               </div>
             )}
-            <NavLink to="/dashboard" className={linkClassName}>
-              <LayoutDashboard className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Dashboard</span>}
-            </NavLink>
             <NavLink to="/admin" className={linkClassName}>
               <Settings className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>Admin Panel</span>}
