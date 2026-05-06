@@ -16,9 +16,16 @@ const SAMPLE_PREFS = {
   emailOnTicketAssigned: false,
   emailOnStatusChanged: true,
   emailOnCommentAdded: true,
-  emailOnSlaWarning: false,
+  emailOnSlaWarning: true,
   emailOnSlaBreached: true,
   emailOnTicketResolved: true,
+  notifyOnTicketCreated: true,
+  notifyOnTicketAssigned: true,
+  notifyOnStatusChanged: false,
+  notifyOnCommentAdded: true,
+  notifyOnSlaWarning: true,
+  notifyOnSlaBreached: true,
+  notifyOnTicketResolved: true,
 };
 
 describe('NotificationPreferencesPage', () => {
@@ -32,18 +39,55 @@ describe('NotificationPreferencesPage', () => {
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
-  it('renders all 7 preference toggles after load', async () => {
+  it('renders all 7 event labels after load', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     render(<NotificationPreferencesPage />);
     await waitFor(() => {
-      expect(screen.getByText('When a ticket is created')).toBeInTheDocument();
-      expect(screen.getByText('When a ticket is assigned to me')).toBeInTheDocument();
-      expect(screen.getByText('When ticket status changes')).toBeInTheDocument();
-      expect(screen.getByText('When a comment is added')).toBeInTheDocument();
-      expect(screen.getByText('On SLA warning')).toBeInTheDocument();
-      expect(screen.getByText('On SLA breach')).toBeInTheDocument();
-      expect(screen.getByText('When a ticket is resolved')).toBeInTheDocument();
+      expect(screen.getByText('Ticket created')).toBeInTheDocument();
+      expect(screen.getByText('Ticket assigned to me')).toBeInTheDocument();
+      expect(screen.getByText('Ticket status changed')).toBeInTheDocument();
+      expect(screen.getByText('Comment added')).toBeInTheDocument();
+      expect(screen.getByText('SLA warning')).toBeInTheDocument();
+      expect(screen.getByText('SLA breached')).toBeInTheDocument();
+      expect(screen.getByText('Ticket resolved')).toBeInTheDocument();
     });
+  });
+
+  it('renders 14 toggles — 2 per event', async () => {
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => {
+      expect(screen.getAllByRole('switch')).toHaveLength(14);
+    });
+  });
+
+  it('shows column headers for Email and In-App', async () => {
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Email')).toBeInTheDocument();
+      expect(screen.getByText('In-App')).toBeInTheDocument();
+    });
+  });
+
+  it('reflects correct initial checked state for email toggle', async () => {
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('Ticket assigned to me'));
+
+    // emailOnTicketAssigned=false → switch at index 2 (row 1, col email)
+    const switches = screen.getAllByRole('switch');
+    expect(switches[2]).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('reflects correct initial checked state for in-app toggle', async () => {
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('Ticket status changed'));
+
+    // notifyOnStatusChanged=false → switch at index 5 (row 2, col in-app)
+    const switches = screen.getAllByRole('switch');
+    expect(switches[5]).toHaveAttribute('aria-checked', 'false');
   });
 
   it('shows error feedback when preferences fail to load', async () => {
@@ -90,18 +134,29 @@ describe('NotificationPreferencesPage', () => {
     });
   });
 
-  it('toggles a preference when its switch is clicked', async () => {
+  it('toggling an email switch updates its aria-checked', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     const user = userEvent.setup();
     render(<NotificationPreferencesPage />);
-    await waitFor(() => screen.getByText('When a ticket is assigned to me'));
+    await waitFor(() => screen.getByText('Ticket assigned to me'));
 
-    // emailOnTicketAssigned is false in SAMPLE_PREFS — it is the second toggle (index 1)
+    // emailOnTicketAssigned starts false (index 2)
     const switches = screen.getAllByRole('switch');
-    const assignedToggle = switches[1];
-    expect(assignedToggle).toHaveAttribute('aria-checked', 'false');
+    expect(switches[2]).toHaveAttribute('aria-checked', 'false');
+    await user.click(switches[2]);
+    expect(switches[2]).toHaveAttribute('aria-checked', 'true');
+  });
 
-    await user.click(assignedToggle);
-    expect(assignedToggle).toHaveAttribute('aria-checked', 'true');
+  it('toggling an in-app switch updates its aria-checked', async () => {
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    const user = userEvent.setup();
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('Ticket status changed'));
+
+    // notifyOnStatusChanged starts false (index 5)
+    const switches = screen.getAllByRole('switch');
+    expect(switches[5]).toHaveAttribute('aria-checked', 'false');
+    await user.click(switches[5]);
+    expect(switches[5]).toHaveAttribute('aria-checked', 'true');
   });
 });
