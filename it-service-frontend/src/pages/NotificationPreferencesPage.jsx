@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { getPreferences, updatePreferences } from '../services/notificationApi';
 
-const PREFERENCE_LABELS = [
-  { key: 'emailOnTicketCreated',  label: 'When a ticket is created' },
-  { key: 'emailOnTicketAssigned', label: 'When a ticket is assigned to me' },
-  { key: 'emailOnStatusChanged',  label: 'When ticket status changes' },
-  { key: 'emailOnCommentAdded',   label: 'When a comment is added' },
-  { key: 'emailOnSlaWarning',     label: 'On SLA warning' },
-  { key: 'emailOnSlaBreached',    label: 'On SLA breach' },
-  { key: 'emailOnTicketResolved', label: 'When a ticket is resolved' },
+const EVENT_LABELS = [
+  { key: 'TicketCreated',  label: 'Ticket created' },
+  { key: 'TicketAssigned', label: 'Ticket assigned to me' },
+  { key: 'StatusChanged',  label: 'Ticket status changed' },
+  { key: 'CommentAdded',   label: 'Comment added' },
+  { key: 'SlaWarning',     label: 'SLA warning' },
+  { key: 'SlaBreached',    label: 'SLA breached' },
+  { key: 'TicketResolved', label: 'Ticket resolved' },
 ];
 
 function Toggle({ checked, onChange }) {
@@ -68,7 +68,7 @@ export default function NotificationPreferencesPage() {
           Notification Preferences
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Choose which events you want to receive email notifications for.
+          Choose which events you want to receive email and in-app notifications for.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function NotificationPreferencesPage() {
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           >
             <Bell className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-            Email Notifications
+            Notification Channels
           </div>
 
           <div className="p-6">
@@ -98,18 +98,45 @@ export default function NotificationPreferencesPage() {
                 />
               </div>
             ) : (
-              <div className="space-y-5">
-                {PREFERENCE_LABELS.map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {label}
-                    </span>
-                    <Toggle
-                      checked={prefs?.[key] ?? true}
-                      onChange={(val) => handleToggle(key, val)}
-                    />
-                  </div>
-                ))}
+              <div>
+                {/* Column headers */}
+                <div className="grid items-center mb-3" style={{ gridTemplateColumns: '1fr 56px 56px' }}>
+                  <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                    Event
+                  </span>
+                  <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
+                    Email
+                  </span>
+                  <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
+                    In-App
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {EVENT_LABELS.map(({ key, label }) => {
+                    const emailKey = `emailOn${key}`;
+                    const notifyKey = `notifyOn${key}`;
+                    return (
+                      <div key={key} className="grid items-center" style={{ gridTemplateColumns: '1fr 56px 56px' }}>
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {label}
+                        </span>
+                        <div className="flex justify-center">
+                          <Toggle
+                            checked={prefs?.[emailKey] ?? true}
+                            onChange={(val) => handleToggle(emailKey, val)}
+                          />
+                        </div>
+                        <div className="flex justify-center">
+                          <Toggle
+                            checked={prefs?.[notifyKey] ?? true}
+                            onChange={(val) => handleToggle(notifyKey, val)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
