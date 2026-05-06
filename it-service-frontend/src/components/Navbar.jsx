@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, Bell } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './notifications/NotificationBell';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -44,16 +45,7 @@ export default function Navbar() {
         </button>
 
         {/* Notifications */}
-        <button
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer"
-          style={{
-            backgroundColor: 'var(--bg-surface-secondary)',
-            color: 'var(--text-secondary)',
-          }}
-          aria-label="Notifications"
-        >
-          <Bell className="h-[18px] w-[18px]" />
-        </button>
+        <NotificationBell />
 
         {/* Divider */}
         <div className="mx-2 h-8 w-px" style={{ backgroundColor: 'var(--border-color)' }} />

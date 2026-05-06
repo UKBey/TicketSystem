@@ -1,0 +1,56 @@
+import { useState, useEffect, useRef } from 'react';
+import { Bell } from 'lucide-react';
+import { useNotifications } from '../../hooks/useNotifications';
+import NotificationList from './NotificationList';
+
+export default function NotificationBell() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { unreadCount, markAllAsRead } = useNotifications();
+  const containerRef = useRef(null);
+
+  // Dışarı tıklayınca kapat.
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer"
+        style={{
+          backgroundColor: 'var(--bg-surface-secondary)',
+          color: 'var(--text-secondary)',
+        }}
+        aria-label="Bildirimler"
+      >
+        <Bell className="h-[18px] w-[18px]" />
+
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
+            style={{ backgroundColor: '#ef4444' }}
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <NotificationList onMarkAllRead={handleMarkAllRead} />
+      )}
+    </div>
+  );
+}
