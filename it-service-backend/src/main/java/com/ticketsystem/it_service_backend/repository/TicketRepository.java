@@ -84,6 +84,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     long countByStatus(String status);
 
+    // Scheduler: slaBreached=false iken deadline gecmis biletleri bulur (yeni ihlal tespiti).
+    @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline < :now AND t.status IN :statuses")
+    List<Ticket> findOverdueUnmarkedTickets(@Param("now") ZonedDateTime now,
+                                            @Param("statuses") List<String> statuses);
+
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.created_at)) / 3600.0) FROM tickets t WHERE t.status IN (:statuses) AND t.created_at IS NOT NULL", nativeQuery = true)
     Double avgWaitingHoursForOpen(@Param("statuses") List<String> statuses);
 

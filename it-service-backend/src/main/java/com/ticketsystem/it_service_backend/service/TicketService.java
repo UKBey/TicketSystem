@@ -42,6 +42,7 @@ public class TicketService {
     private final ResolutionNoteRepository resolutionNoteRepository;
     private final WorklogRepository worklogRepository;
     private final AttachmentRepository attachmentRepository;
+    private final NotificationService notificationService;
 
     // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
 
@@ -92,6 +93,8 @@ public class TicketService {
                 .type("EXTERNAL")
                 .build();
         commentRepository.save(firstComment);
+
+        notificationService.notifyTicketCreated(savedTicket);
 
         // Event, commit sonrasinda tetiklenir; boylece workflow tarafi kaydedilmis bileti gorur.
         eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
@@ -283,6 +286,8 @@ public class TicketService {
             log.error("Workflow atama sync başarısız. TicketId={}, Hata={}", id, e.getMessage());
         }
 
+        notificationService.notifyTicketAssigned(savedTicket);
+
         return savedTicket;
     }
 
@@ -331,6 +336,12 @@ public class TicketService {
 
         // Durum degisiminden sonra workflow ve SLA tarafi senkronize edilir.
         handleWorkflowSignals(savedTicket, oldStatus, newStatus);
+
+        if ("RESOLVED".equals(newStatus)) {
+            notificationService.notifyTicketResolved(savedTicket);
+        } else {
+            notificationService.notifyStatusChanged(savedTicket, oldStatus);
+        }
 
         return savedTicket;
     }

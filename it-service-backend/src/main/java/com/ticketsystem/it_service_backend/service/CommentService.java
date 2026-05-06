@@ -21,6 +21,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final TicketService ticketService;
+    private final NotificationService notificationService;
 
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
@@ -45,6 +46,8 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         log.info("Yorum başarıyla kaydedildi. Bilet ID: {}, Yorum ID: {}", ticketId, savedComment.getId());
+
+        notificationService.notifyCommentAdded(ticket, savedComment);
 
         // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
         if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
