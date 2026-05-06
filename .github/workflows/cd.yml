@@ -104,11 +104,12 @@ jobs:
         run: |
           set -e
           echo "Copying files to server via scp"
-          scp -o StrictHostKeyChecking=no -i deploy_key.pem -P "$VDS_PORT" -r docker-compose.yaml init-db.sql Dockerfile-ldap logstash.conf otel-collector-config.yaml keycloak-init keycloak-themes ldap-init it-service-backend it-service-frontend Caddyfile "$VDS_USER"@"$VDS_HOST":/home/$VDS_USER/it-service
+          scp -o StrictHostKeyChecking=no -i deploy_key.pem -P "$VDS_PORT" -r docker-compose.yaml init-db.sql logstash.conf otel-collector-config.yaml keycloak-init keycloak-themes ldap-init Caddyfile "$VDS_USER"@"$VDS_HOST":/home/$VDS_USER/it-service
 
       - name: Run remote deploy commands (ssh)
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           VDS_HOST: ${{ secrets.VDS_HOST }}
           VDS_PORT: ${{ secrets.VDS_PORT }}
           VDS_USER: ${{ secrets.VDS_USER }}
@@ -116,5 +117,5 @@ jobs:
           set -e
           ssh_opts='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=180 -i deploy_key.pem'
           echo "Writing .env on remote and running docker compose"
-          ssh $ssh_opts -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "printf '%s' \"$PROD_ENV_FILE\" > /home/$VDS_USER/it-service/.env && cd /home/$VDS_USER/it-service && docker compose pull || true && docker compose up -d --build --remove-orphans && docker image prune -f"
+          ssh $ssh_opts -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "echo '$GHCR_TOKEN' | docker login ghcr.io -u ukbey --password-stdin && printf '%s' \"$PROD_ENV_FILE\" > /home/$VDS_USER/it-service/.env && cd /home/$VDS_USER/it-service && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
       

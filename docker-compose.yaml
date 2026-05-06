@@ -37,9 +37,7 @@ services:
 
   # Kimlik dizini (LDAP) servisi.
   openldap-server:
-    build:
-      context: .
-      dockerfile: Dockerfile-ldap
+    image: ghcr.io/ukbey/it-service-ldap:latest
     container_name: openldap-server
     ports:
       - "389:389"
@@ -147,9 +145,7 @@ services:
 
   # Backend API servisi.
   it-service-backend:
-    build:
-      context: ./it-service-backend
-      dockerfile: Dockerfile
+    image: ghcr.io/ukbey/it-service-backend:latest
     container_name: it-service-backend
     ports:
       - "8081:8081"
@@ -195,9 +191,7 @@ services:
 
   # Frontend web uygulamasi.
   it-service-frontend:
-    build:
-      context: ./it-service-frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/ukbey/it-service-frontend:latest
     container_name: it-service-frontend
     ports:
       - "3000:80"
