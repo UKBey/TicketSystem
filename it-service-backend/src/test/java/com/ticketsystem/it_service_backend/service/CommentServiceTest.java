@@ -30,6 +30,8 @@ class CommentServiceTest {
     private CommentRepository commentRepository;
     @Mock
     private TicketService ticketService;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private CommentService commentService;

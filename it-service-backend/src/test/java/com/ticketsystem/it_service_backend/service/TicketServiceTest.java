@@ -59,6 +59,8 @@ class TicketServiceTest {
     private WorklogRepository worklogRepository;
     @Mock
     private AttachmentRepository attachmentRepository;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private TicketService ticketService;
