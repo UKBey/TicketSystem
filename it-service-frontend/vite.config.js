@@ -7,6 +7,15 @@ export default defineConfig({
   esbuild: {
     jsx: 'automatic',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

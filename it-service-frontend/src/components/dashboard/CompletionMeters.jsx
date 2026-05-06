@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { getCompletionColor } from './ChartColors';
 
@@ -17,7 +18,7 @@ const METERS = [
   },
 ];
 
-export default function CompletionMeters({ data, loading }) {
+function CompletionMeters({ data, loading }) {
   const rates             = data?.completionRates ?? {};
   const avgResolutionHours = rates.avgResolutionHours ?? 0;
 
@@ -80,3 +81,5 @@ export default function CompletionMeters({ data, loading }) {
     </section>
   );
 }
+
+export default memo(CompletionMeters);

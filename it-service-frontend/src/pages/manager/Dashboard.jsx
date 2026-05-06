@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
-import TicketTimelineChart from '../../components/dashboard/TicketTimelineChart';
+const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
 import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
@@ -254,7 +254,9 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+        <Suspense fallback={<SkeletonLoader lines={6} />}>
+          <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+        </Suspense>
         <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
       </section>
 

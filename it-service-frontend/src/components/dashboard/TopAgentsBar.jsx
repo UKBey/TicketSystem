@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { Users } from 'lucide-react';
 import { PRODUCT_COLORS } from './ChartColors';
 
-export default function TopAgentsBar({ data, loading }) {
+function TopAgentsBar({ data, loading }) {
   const agentWorklogs = data?.agentWorklogs ?? [];
   const top5          = agentWorklogs.slice(0, 5);
   const maxMinutes    = top5.length > 0 ? top5[0].totalMinutes : 1;
@@ -69,3 +70,5 @@ export default function TopAgentsBar({ data, loading }) {
     </section>
   );
 }
+
+export default memo(TopAgentsBar);

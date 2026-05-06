@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { SLA_TONE_COLORS } from './ChartColors';
 import PrioritySLARow from './PrioritySLARow';
@@ -31,7 +31,7 @@ function normalizePriorityMetrics(data) {
     .sort((left, right) => (order[left.priority] ?? 99) - (order[right.priority] ?? 99));
 }
 
-export default function PrioritySLAChart({ data, loading }) {
+function PrioritySLAChart({ data, loading }) {
   const items = useMemo(() => normalizePriorityMetrics(data), [data]);
   const [hoveredPriority, setHoveredPriority] = useState(null);
 
@@ -114,3 +114,5 @@ export default function PrioritySLAChart({ data, loading }) {
     </section>
   );
 }
+
+export default memo(PrioritySLAChart);

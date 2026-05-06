@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Clock } from 'lucide-react';
 import { getCompletionColor } from './ChartColors';
 
@@ -27,7 +28,7 @@ function StatCard({ label, value }) {
   );
 }
 
-export default function WorklogCompletionChart({ data, loading }) {
+function WorklogCompletionChart({ data, loading }) {
   const periodDays      = data?.periodDays ?? 30;
   const agentWorklogs   = data?.agentWorklogs ?? [];
   const completionRates = data?.completionRates ?? {};
@@ -134,3 +135,5 @@ export default function WorklogCompletionChart({ data, loading }) {
     </section>
   );
 }
+
+export default memo(WorklogCompletionChart);

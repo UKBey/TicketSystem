@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { MessageSquare, Star } from 'lucide-react';
 
 const CX = 110;
@@ -57,7 +58,7 @@ function getScoreColor(score) {
   return '#ef4444';
 }
 
-export default function CSATGaugeChart({ data, loading }) {
+function CSATGaugeChart({ data, loading }) {
   const avgRating = data?.averageRating ?? 0;
   const totalResponses = data?.totalResponses ?? 0;
   const distribution = data?.ratingDistribution ?? {};
@@ -260,3 +261,5 @@ export default function CSATGaugeChart({ data, loading }) {
     </section>
   );
 }
+
+export default memo(CSATGaugeChart);

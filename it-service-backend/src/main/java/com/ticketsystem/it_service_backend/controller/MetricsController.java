@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,6 +65,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'dashboard-summary'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/dashboard-summary")
     public ResponseEntity<DashboardMetricsDTO> getDashboardSummary() {
@@ -101,6 +103,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'status-distribution'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/status-distribution")
     public ResponseEntity<StatusDistributionDTO> getStatusDistribution() {
@@ -138,6 +141,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'agent-performance'")
     @PreAuthorize("hasAnyRole('MANAGER', 'AGENT_ADMIN')")
     @GetMapping("/agent-performance")
     public ResponseEntity<AgentPerformanceDTO> getAgentPerformance() {
@@ -177,6 +181,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'ticket-timeline-' + #days")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/ticket-timeline")
     public ResponseEntity<TicketTimelineDTO> getTicketTimeline(
@@ -215,6 +220,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'priority-sla-metrics'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/priority-sla-metrics")
     public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics() {
@@ -252,6 +258,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'product-metrics'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/product-metrics")
     public ResponseEntity<ProductMetricsDTO> getProductMetrics() {
@@ -291,6 +298,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'csat-metrics-' + #months")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/csat-metrics")
     public ResponseEntity<CSATMetricsDTO> getCSATMetrics(
@@ -368,6 +376,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
+    @Cacheable(value = "metrics", key = "'worklog-completion-' + #days")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/worklog-completion")
     public ResponseEntity<WorklogCompletionDTO> getWorklogCompletion(
