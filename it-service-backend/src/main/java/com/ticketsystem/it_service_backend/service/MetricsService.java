@@ -2,24 +2,24 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
-import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
 import com.ticketsystem.it_service_backend.dto.AlertTicketItemDTO;
+import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
 import com.ticketsystem.it_service_backend.dto.BacklogMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.CSATPriorityItemDTO;
 import com.ticketsystem.it_service_backend.dto.CSATTrendDTO;
+import com.ticketsystem.it_service_backend.dto.CompletionRatesDTO;
 import com.ticketsystem.it_service_backend.dto.DailyMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
-import com.ticketsystem.it_service_backend.dto.CompletionRatesDTO;
 import com.ticketsystem.it_service_backend.dto.ProductDetailDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
+import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogSummaryItemDTO;
-import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -31,8 +31,11 @@ import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static com.ticketsystem.it_service_backend.config.CacheConfig.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,7 +45,6 @@ import java.time.temporal.ChronoUnit;
 import java.sql.Date;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,40 +71,39 @@ public class MetricsService {
      *
      * @return DashboardMetricsDTO — tüm KPI metrikleri
      */
+    private static final List<String> OPEN_STATUSES = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
+
+    @Cacheable(DASHBOARD_SUMMARY)
     public DashboardMetricsDTO getDashboardSummary() {
         log.info("Dashboard özet metrikleri hesaplanıyor...");
 
-        // 1. Açık biletleri getir (NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER)
-        List<Ticket> openTickets = ticketRepository.findByStatus("NEW");
-        openTickets.addAll(ticketRepository.findByStatus("IN_PROGRESS"));
-        openTickets.addAll(ticketRepository.findByStatus("WAITING_FOR_CUSTOMER"));
-        Long totalOpenTickets = (long) openTickets.size();
+        // 1. Açık bilet sayısı — tek COUNT sorgusu
+        Long totalOpenTickets = ticketRepository.countByStatusIn(OPEN_STATUSES);
+        if (totalOpenTickets == null) totalOpenTickets = 0L;
 
-        // 2. Son 24 saatte oluşan biletler
+        // 2. Son 24 saatte açılan biletler — tek COUNT sorgusu
         ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
-        Long newTicketsLast24Hours = openTickets.stream()
-                .filter(t -> t.getCreatedAt().isAfter(last24Hours))
-                .count();
+        Long newTicketsLast24Hours = ticketRepository.countCreatedSinceByStatusIn(OPEN_STATUSES, last24Hours);
+        if (newTicketsLast24Hours == null) newTicketsLast24Hours = 0L;
 
-        // 3. SLA breach biletleri
-        Long slaBreachedCount = openTickets.stream()
-                .filter(t -> t.getSlaBreached() != null && t.getSlaBreached())
-                .count();
+        // 3. SLA breach biletleri — tek COUNT sorgusu
+        Long slaBreachedCount = ticketRepository.countSlaBreachedByStatusIn(OPEN_STATUSES);
+        if (slaBreachedCount == null) slaBreachedCount = 0L;
         Double slaBreachedPercentage = totalOpenTickets > 0
                 ? (double) slaBreachedCount / totalOpenTickets * 100
                 : 0.0;
 
-        // 4. Ortalama yanıt süresi — RESOLVED biletlerin creation -> resolution süresi
-        List<Ticket> resolvedTickets = ticketRepository.findByStatus("RESOLVED");
-        Double avgResponseTimeHours = calculateAverageResponseTime(resolvedTickets);
+        // 4. Ortalama çözüm süresi — DB'de AVG ile hesaplanır, entity yüklenmiyor
+        Double avgResponseTimeHours = ticketRepository.findAvgResolutionHoursForResolved();
+        if (avgResponseTimeHours == null) avgResponseTimeHours = 0.0;
 
         // 5. CSAT ortalaması — SQL AVG() boş tabloda NULL döner, 0.0 yap
         Double csatAverage = csatRepository.findAverageRating();
         if (csatAverage == null) csatAverage = 0.0;
         Long csatTotalResponses = csatRepository.count();
 
-        // 6. Priority dağılımı
-        PriorityMetricsDTO priorityDistribution = getPriorityDistribution(openTickets);
+        // 6. Priority dağılımı — GROUP BY ile tek sorgu
+        PriorityMetricsDTO priorityDistribution = getPriorityDistributionFromDb();
 
         log.info("Dashboard metrikleri hesaplandı: açık={}, SLAbreach={}, CSAT={}, yanıt={}h",
                 totalOpenTickets, slaBreachedCount, csatAverage, avgResponseTimeHours);
@@ -124,6 +125,7 @@ public class MetricsService {
          *
          * @return StatusDistributionDTO — tüm durumlar için ticket sayıları
          */
+        @Cacheable(STATUS_DISTRIBUTION)
         public StatusDistributionDTO getStatusDistribution() {
                 log.info("Ticket durum dağılımı hesaplanıyor...");
 
@@ -162,6 +164,7 @@ public class MetricsService {
      *
      * @return AgentPerformanceDTO — agent satırları ve özet metrikler
      */
+    @Cacheable(AGENT_PERFORMANCE)
     public AgentPerformanceDTO getAgentPerformance() {
         log.info("Agent performans metrikleri hesaplanıyor...");
 
@@ -298,25 +301,21 @@ public class MetricsService {
                 .orElse(0.0);
     }
 
-    /**
-     * Açık biletlerin priority'ye göre dağılımını hesaplar.
-     *
-     * @param openTickets açık biletlerin listesi
-     * @return PriorityMetricsDTO — her priority seviyesi için sayı
-     */
-    private PriorityMetricsDTO getPriorityDistribution(List<Ticket> openTickets) {
-        long critical = openTickets.stream()
-                .filter(t -> "CRITICAL".equals(t.getPriority()))
-                .count();
-        long high = openTickets.stream()
-                .filter(t -> "HIGH".equals(t.getPriority()))
-                .count();
-        long medium = openTickets.stream()
-                .filter(t -> "MEDIUM".equals(t.getPriority()))
-                .count();
-        long low = openTickets.stream()
-                .filter(t -> "LOW".equals(t.getPriority()))
-                .count();
+    private PriorityMetricsDTO getPriorityDistributionFromDb() {
+        List<Object[]> rows = ticketRepository.countByStatusInGroupByPriority(OPEN_STATUSES);
+
+        long critical = 0, high = 0, medium = 0, low = 0;
+        for (Object[] row : rows) {
+            String priority = String.valueOf(row[0]);
+            long count = ((Number) row[1]).longValue();
+            switch (priority) {
+                case "CRITICAL" -> critical = count;
+                case "HIGH"     -> high     = count;
+                case "MEDIUM"   -> medium   = count;
+                case "LOW"      -> low      = count;
+                default -> log.warn("Bilinmeyen priority değeri: {}", priority);
+            }
+        }
 
         return PriorityMetricsDTO.builder()
                 .critical(critical)
@@ -327,39 +326,13 @@ public class MetricsService {
     }
 
     /**
-     * RESOLVED biletlerin ortalama çözüm süresi hesaplar (saat cinsinden).
-     *
-     * @param resolvedTickets RESOLVED durumdaki biletler
-     * @return Ortalama çözüm süresi saat cinsinden, veya 0.0 eğer boş liste
-     */
-    private Double calculateAverageResponseTime(List<Ticket> resolvedTickets) {
-        List<Ticket> validTickets = resolvedTickets.stream()
-                .filter(t -> t.getCreatedAt() != null && t.getResolvedAt() != null)
-                .toList();
-
-        if (validTickets.isEmpty()) {
-            return 0.0;
-        }
-
-        double totalHours = validTickets.stream()
-                .mapToDouble(t -> {
-                    long millis = java.time.temporal.ChronoUnit.MILLIS.between(
-                            t.getCreatedAt(), t.getResolvedAt()
-                    );
-                    return millis / (1000.0 * 60 * 60);
-                })
-                .sum();
-
-        return totalHours / validTickets.size();
-    }
-
-    /**
      * Son N güne ait günlük ticket timeline metriklerini hesaplar.
      * Günlük oluşturulan, çözülen, kapalı bilet sayılarını ve SLA breach sayılarını döner.
      * 
      * @param days Kaç günlük veri isteneceği (default 30)
      * @return TicketTimelineDTO — günlük metriklerin timeline'ı
      */
+    @Cacheable(value = TICKET_TIMELINE, key = "#days")
     public TicketTimelineDTO getTicketTimeline(int days) {
         log.info("Ticket timeline metrikleri hesaplanıyor... (days={})", days);
 
@@ -420,6 +393,7 @@ public class MetricsService {
      *
      * @return PrioritySLAMetricsDTO — priority detay satırları
      */
+    @Cacheable(PRIORITY_SLA_METRICS)
     public PrioritySLAMetricsDTO getPrioritySlaMetrics() {
         log.info("Priority-SLA metrikleri hesaplanıyor...");
 
@@ -445,204 +419,13 @@ public class MetricsService {
     }
 
     /**
-     * CSAT detaylı analitik metriklerini hesaplar.
-     * Son N ay içindeki CSAT yanıtlarını analiz eder: dağılım, trend, priority bazlı ortalama ve en iyi yorumlar.
-     *
-     * @param months Kaç aylık veri analiz edileceği (default 3, max 12)
-     * @return CSATMetricsDTO — CSAT analitik özeti
-     */
-    public CSATMetricsDTO getCSATMetrics(int months) {
-        log.info("CSAT detaylı metrikleri hesaplanıyor... (months={})", months);
-
-        int safeMonths = Math.min(Math.max(months, 1), 12);
-
-        ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime since = now.minusMonths(safeMonths);
-        ZonedDateTime startOfThisMonth = now.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-        ZonedDateTime startOfLastMonth = startOfThisMonth.minusMonths(1);
-
-        // Toplam yanıt ve genel ortalama
-        long totalResponses = csatRepository.findRatingDistributionSince(since).stream()
-                .mapToLong(row -> ((Number) row[1]).longValue())
-                .sum();
-
-        Double avgRaw = csatRepository.findAverageRatingSince(since);
-        double averageRating = avgRaw != null ? avgRaw : 0.0;
-
-        // Puan dağılımı (1-5 tüm anahtarlar, yoksa 0)
-        Map<Integer, Long> ratingDistribution = new LinkedHashMap<>();
-        for (int i = 1; i <= 5; i++) ratingDistribution.put(i, 0L);
-        for (Object[] row : csatRepository.findRatingDistributionSince(since)) {
-            int rating = ((Number) row[0]).intValue();
-            long count = ((Number) row[1]).longValue();
-            ratingDistribution.put(rating, count);
-        }
-
-        // Trend: bu ay vs geçen ay
-        Double thisMonthRaw = csatRepository.findAverageRatingSince(startOfThisMonth);
-        double thisMonth = thisMonthRaw != null ? thisMonthRaw : 0.0;
-        double lastMonthOnlyRaw = computeLastMonthAverage(startOfLastMonth, startOfThisMonth);
-        String trendDirection = determineTrend(thisMonth, lastMonthOnlyRaw);
-
-        CSATTrendDTO trend = CSATTrendDTO.builder()
-                .thisMonth(thisMonth)
-                .lastMonth(lastMonthOnlyRaw)
-                .trend(trendDirection)
-                .build();
-
-        // Priority bazlı CSAT
-        Map<String, CSATPriorityItemDTO> byPriority = new LinkedHashMap<>();
-        for (Object[] row : csatRepository.findAverageRatingByPrioritySince(since)) {
-            String priority = String.valueOf(row[0]);
-            double avg = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
-            long responses = ((Number) row[2]).longValue();
-            byPriority.put(priority, CSATPriorityItemDTO.builder().avg(avg).responses(responses).build());
-        }
-
-        // En iyi yorumlar (en fazla 5)
-        List<String> topComments = csatRepository.findTopPositiveCommentsSince(since, PageRequest.of(0, 5));
-
-        log.info("CSAT metrikleri hesaplandı: {} yanıt, ort={}, trend={}", totalResponses, averageRating, trendDirection);
-
-        return CSATMetricsDTO.builder()
-                .totalResponses(totalResponses)
-                .averageRating(averageRating)
-                .ratingDistribution(ratingDistribution)
-                .trend(trend)
-                .byPriority(byPriority)
-                .topComments(topComments)
-                .build();
-    }
-
-    private double computeLastMonthAverage(ZonedDateTime startOfLastMonth, ZonedDateTime startOfThisMonth) {
-        List<Object[]> distrib = csatRepository.findRatingDistributionSince(startOfLastMonth);
-        List<Object[]> thisMonthDistrib = csatRepository.findRatingDistributionSince(startOfThisMonth);
-
-        Map<Integer, Long> lastMonthMap = new HashMap<>();
-        for (Object[] row : distrib) {
-            lastMonthMap.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
-        }
-        Map<Integer, Long> thisMonthMap = new HashMap<>();
-        for (Object[] row : thisMonthDistrib) {
-            thisMonthMap.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
-        }
-
-        long totalCount = 0;
-        long totalSum = 0;
-        for (int r = 1; r <= 5; r++) {
-            long last = lastMonthMap.getOrDefault(r, 0L);
-            long cur = thisMonthMap.getOrDefault(r, 0L);
-            long onlyLastMonth = Math.max(0, last - cur);
-            totalCount += onlyLastMonth;
-            totalSum += (long) r * onlyLastMonth;
-        }
-        return totalCount > 0 ? (double) totalSum / totalCount : 0.0;
-    }
-
-    private String determineTrend(double current, double previous) {
-        if (previous == 0.0) return "STABLE";
-        double diff = current - previous;
-        if (diff > 0.05) return "UP";
-        if (diff < -0.05) return "DOWN";
-        return "STABLE";
-    }
-
-    /**
-     * SLA breach uyarılarını ve backlog metriklerini hesaplar.
-     * Zaten aşılmış biletler, yaklaşan breach (4 saat), uzun süre bekleyenler ve atanmamış bilet sayısı.
-     *
-     * @return AlertsBacklogDTO — alert listeleri ve backlog özeti
-     */
-    public AlertsBacklogDTO getAlertsAndBacklog() {
-        log.info("Alert ve backlog metrikleri hesaplanıyor...");
-
-        ZonedDateTime now = ZonedDateTime.now();
-        List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
-
-        // SLA'yı aşmış açık biletler
-        List<AlertTicketItemDTO> breachedSLA = ticketRepository.findBreachedOpenTickets()
-                .stream()
-                .limit(10)
-                .map(t -> toAlertItem(t, now))
-                .toList();
-
-        // 4 saat içinde SLA'yı aşacak biletler
-        ZonedDateTime upcomingCutoff = now.plusHours(4);
-        List<AlertTicketItemDTO> upcomingBreach = ticketRepository
-                .findUpcomingBreachTickets(now, upcomingCutoff)
-                .stream()
-                .limit(10)
-                .map(t -> toAlertItem(t, now))
-                .toList();
-
-        // 3+ gün WAITING_FOR_CUSTOMER biletler
-        ZonedDateTime waitingCutoff = now.minusDays(3);
-        List<AlertTicketItemDTO> waitingTooLong = ticketRepository
-                .findWaitingTooLongTickets(waitingCutoff)
-                .stream()
-                .limit(10)
-                .map(t -> AlertTicketItemDTO.builder()
-                        .ticketId(t.getId())
-                        .title(t.getTitle())
-                        .priority(t.getPriority())
-                        .customerId(t.getCustomerId())
-                        .hoursWaiting(t.getCreatedAt() != null
-                                ? ChronoUnit.MILLIS.between(t.getCreatedAt(), now) / (1000.0 * 60 * 60)
-                                : 0.0)
-                        .build())
-                .toList();
-
-        // Backlog metrikleri
-        List<Ticket> openTickets = ticketRepository.findByStatusIn(openStatuses);
-
-        long unassignedCount = openTickets.stream()
-                .filter(t -> t.getAssigneeId() == null || t.getAssigneeId().isBlank())
-                .count();
-        long newWaiting = openTickets.stream()
-                .filter(t -> "NEW".equals(t.getStatus()))
-                .count();
-        double avgWaitingHours = openTickets.stream()
-                .filter(t -> t.getCreatedAt() != null)
-                .mapToDouble(t -> ChronoUnit.MILLIS.between(t.getCreatedAt(), now) / (1000.0 * 60 * 60))
-                .average()
-                .orElse(0.0);
-
-        log.info("Alert metrikleri hesaplandı: breach={}, upcoming={}, waiting={}, unassigned={}",
-                breachedSLA.size(), upcomingBreach.size(), waitingTooLong.size(), unassignedCount);
-
-        return AlertsBacklogDTO.builder()
-                .breachedSLA(breachedSLA)
-                .upcomingBreach(upcomingBreach)
-                .waitingTooLong(waitingTooLong)
-                .backlogMetrics(BacklogMetricsDTO.builder()
-                        .unassignedCount(unassignedCount)
-                        .newTicketsWaiting(newWaiting)
-                        .avgWaitingHours(avgWaitingHours)
-                        .build())
-                .build();
-    }
-
-    private AlertTicketItemDTO toAlertItem(Ticket t, ZonedDateTime now) {
-        double hoursUntilDeadline = t.getSlaDeadline() != null
-                ? ChronoUnit.MILLIS.between(now, t.getSlaDeadline()) / (1000.0 * 60 * 60)
-                : 0.0;
-        return AlertTicketItemDTO.builder()
-                .ticketId(t.getId())
-                .title(t.getTitle())
-                .priority(t.getPriority())
-                .customerId(t.getCustomerId())
-                .deadline(t.getSlaDeadline())
-                .hoursUntilDeadline(hoursUntilDeadline)
-                .build();
-    }
-
-    /**
      * Ürün bazında bilet metriklerini hesaplar.
      * Her aktif ürün için toplam bilet, açık bilet, ortalama çözüm süresi,
      * CSAT ortalaması ve SLA breach yüzdesi döner; toplam bilete göre azalan sıralıdır.
      *
      * @return ProductMetricsDTO — ürün detay satırları
      */
+    @Cacheable(PRODUCT_METRICS)
     public ProductMetricsDTO getProductMetrics() {
         log.info("Ürün bazında bilet metrikleri hesaplanıyor...");
 
@@ -668,37 +451,141 @@ public class MetricsService {
                 .build();
     }
 
-    /**
-     * Worklog özeti ve bilet tamamlanma metriklerini hesaplar.
-     * Agent bazında kayıtlı çalışma sürelerini ve dönem bilet tamamlanma istatistiklerini döner.
-     *
-     * @param days Analiz edilecek gün sayısı (1-365)
-     * @return WorklogCompletionDTO — worklog özetleri ve tamamlanma oranları
-     */
+    @Cacheable(value = CSAT_METRICS, key = "#months")
+    public CSATMetricsDTO getCSATMetrics(int months) {
+        int safeMonths = Math.max(1, Math.min(months, 12));
+        ZonedDateTime since = ZonedDateTime.now().minusMonths(safeMonths);
+        ZonedDateTime thisMonthStart = ZonedDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+        ZonedDateTime lastMonthStart = thisMonthStart.minusMonths(1);
+
+        List<Object[]> rawDist = csatRepository.findRatingDistributionSince(since);
+        Map<Integer, Long> ratingDistribution = new HashMap<>();
+        long totalResponses = 0;
+        for (Object[] row : rawDist) {
+            int rating = ((Number) row[0]).intValue();
+            long count = ((Number) row[1]).longValue();
+            ratingDistribution.put(rating, count);
+            totalResponses += count;
+        }
+
+        Double avg = csatRepository.findAverageRatingSince(since);
+        double averageRating = avg != null ? avg : 0.0;
+
+        Double thisMonthAvg = csatRepository.findAverageRatingSince(thisMonthStart);
+        Double lastMonthAvg = csatRepository.findAverageRatingSince(lastMonthStart);
+        double thisMonth = thisMonthAvg != null ? thisMonthAvg : 0.0;
+        double lastMonth = lastMonthAvg != null ? lastMonthAvg : 0.0;
+        String trendDir = thisMonth > lastMonth + 0.05 ? "UP" : thisMonth < lastMonth - 0.05 ? "DOWN" : "STABLE";
+
+        List<Object[]> rawPriority = csatRepository.findAverageRatingByPrioritySince(since);
+        Map<String, CSATPriorityItemDTO> byPriority = new HashMap<>();
+        for (Object[] row : rawPriority) {
+            String priority = String.valueOf(row[0]);
+            double priorityAvg = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+            long priorityResponses = ((Number) row[2]).longValue();
+            byPriority.put(priority, CSATPriorityItemDTO.builder()
+                    .avg(priorityAvg)
+                    .responses(priorityResponses)
+                    .build());
+        }
+
+        List<String> topComments = csatRepository.findTopPositiveCommentsSince(since, PageRequest.of(0, 5));
+
+        return CSATMetricsDTO.builder()
+                .totalResponses(totalResponses)
+                .averageRating(averageRating)
+                .ratingDistribution(ratingDistribution)
+                .trend(CSATTrendDTO.builder()
+                        .thisMonth(thisMonth)
+                        .lastMonth(lastMonth)
+                        .trend(trendDir)
+                        .build())
+                .byPriority(byPriority)
+                .topComments(topComments)
+                .build();
+    }
+
+    public AlertsBacklogDTO getAlertsAndBacklog() {
+        List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
+        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime upcoming4h = now.plusHours(4);
+        ZonedDateTime waitingThreshold = now.minusDays(3);
+        PageRequest top10 = PageRequest.of(0, 10);
+
+        List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTickets(openStatuses, top10);
+        List<AlertTicketItemDTO> breachedSLA = breachedTickets.stream()
+                .map(t -> AlertTicketItemDTO.builder()
+                        .ticketId(t.getId())
+                        .title(t.getTitle())
+                        .priority(t.getPriority())
+                        .customerId(t.getCustomerId())
+                        .deadline(t.getSlaDeadline())
+                        .hoursUntilDeadline(t.getSlaDeadline() != null
+                                ? ChronoUnit.MINUTES.between(now, t.getSlaDeadline()) / 60.0
+                                : null)
+                        .build())
+                .toList();
+
+        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(openStatuses, upcoming4h, top10);
+        List<AlertTicketItemDTO> upcomingBreach = upcomingTickets.stream()
+                .map(t -> AlertTicketItemDTO.builder()
+                        .ticketId(t.getId())
+                        .title(t.getTitle())
+                        .priority(t.getPriority())
+                        .customerId(t.getCustomerId())
+                        .deadline(t.getSlaDeadline())
+                        .hoursUntilDeadline(t.getSlaDeadline() != null
+                                ? ChronoUnit.MINUTES.between(now, t.getSlaDeadline()) / 60.0
+                                : null)
+                        .build())
+                .toList();
+
+        List<Ticket> waitingTickets = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
+        List<AlertTicketItemDTO> waitingTooLong = waitingTickets.stream()
+                .map(t -> AlertTicketItemDTO.builder()
+                        .ticketId(t.getId())
+                        .title(t.getTitle())
+                        .priority(t.getPriority())
+                        .customerId(t.getCustomerId())
+                        .hoursWaiting(t.getCreatedAt() != null
+                                ? ChronoUnit.MINUTES.between(t.getCreatedAt(), now) / 60.0
+                                : null)
+                        .build())
+                .toList();
+
+        long unassigned = ticketRepository.countUnassignedByStatusIn(openStatuses);
+        long newWaiting = ticketRepository.countByStatus("NEW");
+        Double avgWaiting = ticketRepository.avgWaitingHoursForOpen(openStatuses);
+
+        return AlertsBacklogDTO.builder()
+                .breachedSLA(breachedSLA)
+                .upcomingBreach(upcomingBreach)
+                .waitingTooLong(waitingTooLong)
+                .backlogMetrics(BacklogMetricsDTO.builder()
+                        .unassignedCount(unassigned)
+                        .newTicketsWaiting(newWaiting)
+                        .avgWaitingHours(avgWaiting != null ? avgWaiting : 0.0)
+                        .build())
+                .build();
+    }
+
+    @Cacheable(value = WORKLOG_COMPLETION, key = "#days")
     public WorklogCompletionDTO getWorklogCompletion(int days) {
         int safeDays = Math.max(1, Math.min(days, 365));
         ZonedDateTime since = ZonedDateTime.now().minusDays(safeDays);
 
-        log.info("Worklog ve tamamlanma metrikleri hesaplanıyor (days={})...", safeDays);
-
-        // Agent worklog aggregations
         List<Object[]> rawWorklogs = worklogRepository.findAgentWorklogSummary(since);
-        List<String> agentIds = rawWorklogs.stream()
-                .map(row -> (String) row[0])
-                .toList();
-
-        Map<String, String> usernameByAgentId = userRepository.findAll().stream()
-                .filter(u -> agentIds.contains(u.getId()))
-                .collect(Collectors.toMap(User::getId, User::getFullName));
-
         List<WorklogSummaryItemDTO> agentWorklogs = rawWorklogs.stream()
                 .map(row -> {
-                    String agentId = (String) row[0];
+                    String agentId = String.valueOf(row[0]);
                     long totalMinutes = ((Number) row[1]).longValue();
                     long totalEntries = ((Number) row[2]).longValue();
+                    String agentName = userRepository.findById(agentId)
+                            .map(u -> u.getFullName())
+                            .orElse(agentId);
                     return WorklogSummaryItemDTO.builder()
                             .agentId(agentId)
-                            .agentUsername(usernameByAgentId.getOrDefault(agentId, "Unknown"))
+                            .agentUsername(agentName)
                             .totalMinutes(totalMinutes)
                             .totalEntries(totalEntries)
                             .avgMinutesPerEntry(totalEntries > 0 ? (double) totalMinutes / totalEntries : 0.0)
@@ -706,20 +593,15 @@ public class MetricsService {
                 })
                 .toList();
 
-        // Completion rates
         long totalCreated = ticketRepository.countCreatedSince(since);
         long totalResolved = ticketRepository.countResolvedSince(since);
         long totalClosed = ticketRepository.countClosedSince(since);
-        double completionRate = totalCreated > 0
-                ? Math.min(100.0, (totalResolved + totalClosed) * 100.0 / totalCreated)
-                : 0.0;
-        Double avgResolutionRaw = ticketRepository.avgResolutionHoursSince(since);
-        double avgResolutionHours = avgResolutionRaw != null ? avgResolutionRaw : 0.0;
-        Double slaComplianceRaw = ticketRepository.slaComplianceRateSince(since);
-        double slaComplianceRate = slaComplianceRaw != null ? slaComplianceRaw : 100.0;
+        Double avgResolutionHours = ticketRepository.avgResolutionHoursSince(since);
+        Double slaComplianceRate = ticketRepository.slaComplianceRateSince(since);
 
-        log.info("Worklog metrikleri hesaplandı: {} agent, created={}, resolved={}, closed={}",
-                agentWorklogs.size(), totalCreated, totalResolved, totalClosed);
+        double completionRate = totalCreated > 0
+                ? ((double) (totalResolved + totalClosed) / totalCreated) * 100.0
+                : 0.0;
 
         return WorklogCompletionDTO.builder()
                 .periodDays(safeDays)
@@ -729,8 +611,8 @@ public class MetricsService {
                         .totalResolved(totalResolved)
                         .totalClosed(totalClosed)
                         .completionRate(completionRate)
-                        .avgResolutionHours(avgResolutionHours)
-                        .slaComplianceRate(slaComplianceRate)
+                        .avgResolutionHours(avgResolutionHours != null ? avgResolutionHours : 0.0)
+                        .slaComplianceRate(slaComplianceRate != null ? slaComplianceRate : 0.0)
                         .build())
                 .build();
     }

@@ -10,8 +10,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          recharts: ['recharts'],
+        manualChunks(id) {
+          if (id.includes('recharts')) return 'recharts';
         },
       },
     },

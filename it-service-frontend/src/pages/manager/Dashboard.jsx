@@ -4,7 +4,6 @@ import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
 import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTable';
-const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart';
 import CSATGaugeChart from '../../components/dashboard/CSATGaugeChart';
@@ -15,6 +14,8 @@ import AlertBanner from '../../components/dashboard/AlertBanner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import { usePolling } from '../../hooks/usePolling';
+
+const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
 const DEFAULT_SUMMARY = {
   totalOpenTickets: 0,
