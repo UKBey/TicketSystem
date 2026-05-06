@@ -114,7 +114,7 @@ jobs:
           VDS_USER: ${{ secrets.VDS_USER }}
         run: |
           set -e
-          ssh_opts='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i deploy_key.pem'
+          ssh_opts='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -o ServerAliveCountMax=180 -i deploy_key.pem'
           echo "Writing .env on remote and running docker compose"
           ssh $ssh_opts -p "$VDS_PORT" "$VDS_USER"@"$VDS_HOST" "printf '%s' \"$PROD_ENV_FILE\" > /home/$VDS_USER/it-service/.env && cd /home/$VDS_USER/it-service && docker compose pull || true && docker compose up -d --build --remove-orphans && docker image prune -f"
       
