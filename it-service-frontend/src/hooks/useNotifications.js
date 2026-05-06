@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { getUnreadCount, markAsRead as apiMarkAsRead, markAllAsRead as apiMarkAllAsRead } from '../services/notificationApi';
 import { usePolling } from './usePolling';
 
@@ -16,11 +16,7 @@ export function useNotifications() {
     }
   }, []);
 
-  // Mount'ta hemen çek.
-  useEffect(() => { fetchCount(); }, [fetchCount]);
-
-  // Sonra 60 saniyede bir yenile.
-  usePolling(fetchCount, 60_000);
+  usePolling(fetchCount, 60_000, true);
 
   const markAsRead = useCallback(async (id) => {
     await apiMarkAsRead(id);
