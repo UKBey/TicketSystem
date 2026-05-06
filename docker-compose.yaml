@@ -10,8 +10,6 @@ volumes:
     # OpenSearch indekslerinin konteyner yeniden baslasa da korunmasini saglar.
   jbpm_postgres_data:
     # jBPM surec verilerinin kalici depoda tutulmasini saglar.
-  caddy_data:
-  caddy_config:
 
 services:
   # Uygulama veritabani servisi.
@@ -37,7 +35,9 @@ services:
 
   # Kimlik dizini (LDAP) servisi.
   openldap-server:
-    image: ghcr.io/ukbey/it-service-ldap:latest
+    build:
+      context: .
+      dockerfile: Dockerfile-ldap
     container_name: openldap-server
     ports:
       - "389:389"
@@ -145,7 +145,7 @@ services:
 
   # Backend API servisi.
   it-service-backend:
-    image: ghcr.io/ukbey/it-service-backend:latest
+    build: ./it-service-backend
     container_name: it-service-backend
     ports:
       - "8081:8081"
@@ -191,7 +191,7 @@ services:
 
   # Frontend web uygulamasi.
   it-service-frontend:
-    image: ghcr.io/ukbey/it-service-frontend:latest
+    build: ./it-service-frontend
     container_name: it-service-frontend
     ports:
       - "3000:80"
@@ -201,21 +201,6 @@ services:
     networks:
       - it-service-net
 
-  # HTTPS terminasyonu ve reverse proxy.
-  caddy:
-    image: caddy:2-alpine
-    container_name: caddy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - it-service-frontend
-    networks:
-      - it-service-net
   # Log akisinda tampon gorevi yapan Kafka broker.
   kafka:
     image: apache/kafka:3.7.0

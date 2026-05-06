@@ -1,3 +1,0 @@
-ticket-system.duckdns.org {
-    reverse_proxy it-service-frontend:80
-}
