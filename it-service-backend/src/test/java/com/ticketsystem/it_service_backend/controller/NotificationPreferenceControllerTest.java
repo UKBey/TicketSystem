@@ -40,7 +40,8 @@ class NotificationPreferenceControllerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody().getEmailOnTicketCreated());
         assertTrue(response.getBody().getEmailOnSlaBreached());
-        assertTrue(response.getBody().getEmailOnTicketResolved());
+        assertTrue(response.getBody().getNotifyOnTicketCreated());
+        assertTrue(response.getBody().getNotifyOnSlaBreached());
         verify(notificationService).getPreferences("user-1");
     }
 
@@ -48,7 +49,7 @@ class NotificationPreferenceControllerTest {
     void updatePreferences_returns200WithUpdatedValues() {
         UpdateNotificationPreferenceRequest req = UpdateNotificationPreferenceRequest.builder()
                 .emailOnTicketCreated(false)
-                .emailOnSlaBreached(false)
+                .notifyOnStatusChanged(false)
                 .build();
 
         NotificationPreferenceResponse updated = NotificationPreferenceResponse.builder()
@@ -57,8 +58,15 @@ class NotificationPreferenceControllerTest {
                 .emailOnStatusChanged(true)
                 .emailOnCommentAdded(true)
                 .emailOnSlaWarning(true)
-                .emailOnSlaBreached(false)
+                .emailOnSlaBreached(true)
                 .emailOnTicketResolved(true)
+                .notifyOnTicketCreated(true)
+                .notifyOnTicketAssigned(true)
+                .notifyOnStatusChanged(false)
+                .notifyOnCommentAdded(true)
+                .notifyOnSlaWarning(true)
+                .notifyOnSlaBreached(true)
+                .notifyOnTicketResolved(true)
                 .build();
 
         when(notificationService.updatePreferences("user-1", req)).thenReturn(updated);
@@ -68,8 +76,9 @@ class NotificationPreferenceControllerTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertFalse(response.getBody().getEmailOnTicketCreated());
-        assertFalse(response.getBody().getEmailOnSlaBreached());
+        assertFalse(response.getBody().getNotifyOnStatusChanged());
         assertTrue(response.getBody().getEmailOnCommentAdded());
+        assertTrue(response.getBody().getNotifyOnTicketCreated());
         verify(notificationService).updatePreferences("user-1", req);
     }
 

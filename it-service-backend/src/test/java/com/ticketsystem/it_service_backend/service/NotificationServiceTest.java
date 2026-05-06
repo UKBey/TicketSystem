@@ -79,7 +79,7 @@ class NotificationServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void notifyTicketCreated_savesNotificationAndSendsEmail_whenPreferenceEnabled() {
+    void notifyTicketCreated_savesNotificationAndSendsEmail_whenBothPreferencesEnabled() {
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.empty());
 
@@ -90,7 +90,7 @@ class NotificationServiceTest {
     }
 
     @Test
-    void notifyTicketCreated_savesNotificationButSkipsEmail_whenPreferenceDisabled() {
+    void notifyTicketCreated_savesNotificationButSkipsEmail_whenEmailPreferenceDisabled() {
         NotificationPreference pref = NotificationPreference.builder()
                 .userId("customer-1")
                 .emailOnTicketCreated(false)
@@ -106,13 +106,29 @@ class NotificationServiceTest {
     }
 
     @Test
+    void notifyTicketCreated_skipsNotificationButSendsEmail_whenNotifyPreferenceDisabled() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1")
+                .notifyOnTicketCreated(false)
+                .build();
+
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyTicketCreated(ticket);
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendTicketCreatedEmail(customer, ticket);
+    }
+
+    @Test
     void notifyTicketCreated_usesAllTrueDefaults_whenNoPreferenceFound() {
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.empty());
 
         notificationService.notifyTicketCreated(ticket);
 
-        // Default is all-true, so email should be sent
+        verify(notificationRepository).save(any(Notification.class));
         verify(emailService).sendTicketCreatedEmail(customer, ticket);
     }
 
@@ -131,7 +147,7 @@ class NotificationServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void notifyTicketAssigned_savesNotificationAndSendsEmail_whenPreferenceEnabled() {
+    void notifyTicketAssigned_savesNotificationAndSendsEmail_whenBothPreferencesEnabled() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
 
@@ -217,6 +233,23 @@ class NotificationServiceTest {
         verify(emailService, times(3)).sendSlaBreachedEmail(any(User.class), eq(ticket));
     }
 
+    @Test
+    void notifySlaBreached_skipsNotificationForAgent_whenNotifyPreferenceDisabled() {
+        NotificationPreference agentPref = NotificationPreference.builder()
+                .userId("agent-1")
+                .notifyOnSlaBreached(false)
+                .build();
+
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(agentPref));
+        when(userRepository.findByRole("MANAGER")).thenReturn(List.of());
+
+        notificationService.notifySlaBreached(ticket);
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendSlaBreachedEmail(agent, ticket);
+    }
+
     // -------------------------------------------------------------------------
     // markAsRead
     // -------------------------------------------------------------------------
@@ -269,6 +302,8 @@ class NotificationServiceTest {
 
         assertTrue(result.getEmailOnTicketCreated());
         assertTrue(result.getEmailOnSlaBreached());
+        assertTrue(result.getNotifyOnTicketCreated());
+        assertTrue(result.getNotifyOnSlaBreached());
     }
 
     @Test
@@ -282,6 +317,13 @@ class NotificationServiceTest {
                 .emailOnSlaWarning(true)
                 .emailOnSlaBreached(true)
                 .emailOnTicketResolved(true)
+                .notifyOnTicketCreated(true)
+                .notifyOnTicketAssigned(true)
+                .notifyOnStatusChanged(true)
+                .notifyOnCommentAdded(true)
+                .notifyOnSlaWarning(true)
+                .notifyOnSlaBreached(true)
+                .notifyOnTicketResolved(true)
                 .build();
 
         when(preferenceRepository.findByUserId("user-1")).thenReturn(Optional.of(existing));
@@ -289,14 +331,17 @@ class NotificationServiceTest {
 
         UpdateNotificationPreferenceRequest req = UpdateNotificationPreferenceRequest.builder()
                 .emailOnTicketCreated(false)
+                .notifyOnStatusChanged(false)
                 .build();
 
         NotificationPreferenceResponse result = notificationService.updatePreferences("user-1", req);
 
         assertFalse(result.getEmailOnTicketCreated());
+        assertFalse(result.getNotifyOnStatusChanged());
         // Null fields must stay unchanged
         assertTrue(result.getEmailOnSlaBreached());
-        assertTrue(result.getEmailOnCommentAdded());
+        assertTrue(result.getNotifyOnTicketCreated());
+        assertTrue(result.getNotifyOnCommentAdded());
     }
 
     // -------------------------------------------------------------------------
