@@ -14,15 +14,9 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserProducts = async () => {
       try {
-        // Mevcut kullanicinin yetkili urunlerini almak icin /users endpointinden tum kullanicilar cekilir
-        // ve mevcut kullanici ID'sine gore filtrelenir.
-        const res = await api.get('/users');
-        const currentUser = res.data.find(u => u.id === user?.id);
-        if (currentUser?.authorizedProducts) {
-          setProducts(currentUser.authorizedProducts);
-        }
+        const res = await api.get(`/users/${user.id}`);
+        setProducts(res.data.authorizedProducts ?? []);
       } catch (err) {
-        // Kullanicinin /users endpointine erisimi yoksa sessizce atla.
         console.debug('Could not fetch authorized products:', err);
       } finally {
         setLoadingProducts(false);
