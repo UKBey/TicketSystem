@@ -218,7 +218,7 @@ class MetricsServiceTest {
                     .build();
             when(ticketRepository.findAll()).thenReturn(List.of(activeTicket));
             when(ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(anyList()))
-                    .thenReturn(List.of(new Object[]{"uuid-1", 1L}));
+                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-1", 1L}));
             when(worklogRepository.findAll()).thenReturn(Collections.emptyList());
             when(csatRepository.findAll()).thenReturn(Collections.emptyList());
 
