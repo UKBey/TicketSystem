@@ -1,28 +1,36 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { getAgentLimits } from '../../services/api';
 import TicketTable from '../../components/TicketTable';
 
 export default function Workspace() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState([]);
+  const [agentLimits, setAgentLimits] = useState([]);
   const [loading, setLoading] = useState(true);
   const currentUserId = user?.sub || user?.id;
 
   useEffect(() => {
-    const fetchAssigned = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/tickets/my-assigned');
+        const [ticketsRes, limitsRes] = await Promise.all([
+          api.get('/tickets/my-assigned'),
+          getAgentLimits(currentUserId)
+        ]);
         // Workspace listesinde kapanmis biletler gizlenir.
-        setTickets(res.data.filter((t) => t.status !== 'CLOSED'));
+        setTickets(ticketsRes.data.filter((t) => t.status !== 'CLOSED'));
+        setAgentLimits(limitsRes.data);
       } catch (err) {
-        console.error('Could not load assigned tickets:', err);
+        console.error('Could not load workspace data:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAssigned();
-  }, []);
+    if (currentUserId) {
+      fetchData();
+    }
+  }, [currentUserId]);
 
   return (
     <>
@@ -30,6 +38,49 @@ export default function Workspace() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Workspace</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Tickets you have claimed.</p>
       </div>
+
+      {/* Active Ticket Summary by Product */}
+      {!loading && agentLimits.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {agentLimits.map(limit => {
+            const activeCount = tickets.filter(t => t.productId === limit.productId).length;
+            const effectiveLimit = limit.effectiveLimit;
+
+            return (
+              <div 
+                key={limit.productId} 
+                className="rounded-lg border p-4" 
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                  {limit.productName}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                    {activeCount}
+                  </span>
+                  {effectiveLimit && (
+                    <>
+                      <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+                      <span className="text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {effectiveLimit}
+                      </span>
+                    </>
+                  )}
+                  <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    aktif bilet
+                  </span>
+                </div>
+                {effectiveLimit && activeCount >= effectiveLimit && (
+                  <p className="text-xs mt-2 font-semibold text-danger-600 dark:text-danger-400">
+                    Limit aşıldı
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {loading ? (
