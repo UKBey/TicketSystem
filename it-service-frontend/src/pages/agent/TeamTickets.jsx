@@ -14,20 +14,22 @@ export default function TeamTickets() {
   const [joiningId, setJoiningId] = useState(null);
   const [tickSeconds, setTickSeconds] = useState(0);
 
-  const fetchTeam = async () => {
-    try {
-      const res = await api.get('/tickets/team');
-      setTickets(res.data);
-    } catch (err) {
-      console.error('Could not load team tickets:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const currentUserId = user?.sub || user?.id;
 
   useEffect(() => {
+    if (!currentUserId) return;
+    const fetchTeam = async () => {
+      try {
+        const res = await api.get('/tickets/team');
+        setTickets(res.data.filter((t) => !t.claimers?.some((c) => c.agentId === currentUserId)));
+      } catch (err) {
+        console.error('Could not load team tickets:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTeam();
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
     const timer = setInterval(() => setTickSeconds((v) => v + 1), 1000);
@@ -39,7 +41,7 @@ export default function TeamTickets() {
     setJoiningId(ticketId);
     try {
       await api.put(`/tickets/${ticketId}/claim`);
-      navigate(`/tickets/${ticketId}`);
+      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
     } catch (err) {
       alert(err.response?.data?.message || 'Could not join ticket.');
     } finally {
@@ -54,11 +56,6 @@ export default function TeamTickets() {
       hour: '2-digit', minute: '2-digit',
     });
   };
-
-  const currentUserId = user?.sub || user?.id;
-
-  const isAlreadyClaimer = (ticket) =>
-    ticket.claimers?.some((c) => c.agentId === currentUserId);
 
   return (
     <>
@@ -114,9 +111,7 @@ export default function TeamTickets() {
                 </tr>
               </thead>
               <tbody>
-                {tickets.map((ticket) => {
-                  const alreadyIn = isAlreadyClaimer(ticket);
-                  return (
+                {tickets.map((ticket) => (
                     <tr
                       key={ticket.id}
                       onClick={() => navigate(`/tickets/${ticket.id}`)}
@@ -162,28 +157,17 @@ export default function TeamTickets() {
                         {formatDate(ticket.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        {alreadyIn ? (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold"
-                            style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}
-                          >
-                            <Users className="h-3 w-3" />
-                            Joined
-                          </span>
-                        ) : (
-                          <button
-                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
-                            disabled={joiningId === ticket.id}
-                            onClick={(e) => handleJoin(ticket.id, e)}
-                          >
-                            <Users className="h-3 w-3" />
-                            {joiningId === ticket.id ? 'Joining…' : 'Join'}
-                          </button>
-                        )}
+                        <button
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                          disabled={joiningId === ticket.id}
+                          onClick={(e) => handleJoin(ticket.id, e)}
+                        >
+                          <Users className="h-3 w-3" />
+                          {joiningId === ticket.id ? 'Joining…' : 'Join'}
+                        </button>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>
