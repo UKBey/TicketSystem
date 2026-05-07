@@ -384,19 +384,27 @@ export default function TicketDetail() {
     closeReasonModal();
   };
 
-  const reasonModalConfig = reasonModal.action === 'CLOSE'
-    ? {
-        title: 'Close Ticket',
-        description: 'Please provide a note before closing this ticket.',
-        confirmLabel: 'Close Ticket',
-        confirmVariant: 'danger',
-      }
-    : {
-        title: 'Release Ticket',
-        description: 'Please provide a note before releasing this ticket.',
-        confirmLabel: 'Release Ticket',
-        confirmVariant: 'warning',
-      };
+  const reasonModalConfig = 
+    reasonModal.action === 'CLOSE'
+      ? {
+          title: 'Close Ticket',
+          description: 'Please provide a note before closing this ticket.',
+          confirmLabel: 'Close Ticket',
+          confirmVariant: 'danger',
+        }
+      : reasonModal.action === 'UNCLAIM'
+      ? {
+          title: 'Release Ticket',
+          description: 'Please provide a note before releasing this ticket.',
+          confirmLabel: 'Release Ticket',
+          confirmVariant: 'warning',
+        }
+      : {
+          title: '',
+          description: '',
+          confirmLabel: '',
+          confirmVariant: 'primary',
+        };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1021,11 +1029,11 @@ export default function TicketDetail() {
               </button>
             </div>
             <div className="p-5 space-y-3">
-              {allowedStatuses.includes('NEW') && (
+              {allowedStatuses.includes('NEW') && ticket?.claimers?.some((c) => c.agentId === (user?.sub || user?.id)) && (
                 <button
                   className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
                   style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  onClick={() => { handleStatusChange('NEW'); setExtraActionsOpen(false); }}
+                  onClick={() => openReasonModal('UNCLAIM')}
                 >
                   Unclaim (Release)
                 </button>
