@@ -342,6 +342,15 @@ export default function TicketDetail() {
     }
   };
 
+  const handleUnclaim = async () => {
+    try {
+      const res = await api.delete(`/tickets/${id}/claim`);
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not release ticket.');
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -891,7 +900,7 @@ export default function TicketDetail() {
             </div>
             <div className="p-5 space-y-3">
               {allowedStatuses.includes('NEW') && (
-                <button 
+                <button
                   className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
                   style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   onClick={() => { handleStatusChange('NEW'); setExtraActionsOpen(false); }}
@@ -899,15 +908,24 @@ export default function TicketDetail() {
                   Unclaim (Release)
                 </button>
               )}
+              {ticket?.status === 'WAITING_FOR_CUSTOMER' && ticket?.claimers?.some((c) => c.agentId === (user?.sub || user?.id)) && (
+                <button
+                  className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  onClick={() => { handleUnclaim(); setExtraActionsOpen(false); }}
+                >
+                  Unclaim (Release)
+                </button>
+              )}
               {allowedStatuses.includes('CLOSED') && (
-                <button 
+                <button
                   className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
                   onClick={() => { handleStatusChange('CLOSED'); setExtraActionsOpen(false); }}
                 >
                   Close Ticket
                 </button>
               )}
-              {!allowedStatuses.includes('NEW') && !allowedStatuses.includes('CLOSED') && (
+              {!allowedStatuses.includes('NEW') && ticket?.status !== 'WAITING_FOR_CUSTOMER' && !allowedStatuses.includes('CLOSED') && (
                 <div className="text-center py-4 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                   No extra actions available for current status.
                 </div>

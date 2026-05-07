@@ -244,9 +244,9 @@ public class TicketService {
         Ticket ticket = getTicketById(id);
 
         String currentStatus = ticket.getStatus();
-        if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus)) {
+        if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus) && !"WAITING_FOR_CUSTOMER".equals(currentStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Yalnızca NEW veya IN_PROGRESS statüsündeki biletler üzerinize alınabilir.");
+                    "Yalnızca NEW, IN_PROGRESS veya WAITING_FOR_CUSTOMER statüsündeki biletler üzerinize alınabilir.");
         }
 
         User agent = userRepository.findById(agentId)

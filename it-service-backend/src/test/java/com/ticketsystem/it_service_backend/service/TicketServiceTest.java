@@ -482,7 +482,7 @@ class TicketServiceTest {
                 () -> ticketService.claimTicket(201L, "agent-1"));
 
         assertEquals(400, ex.getStatusCode().value());
-        assertEquals("Yalnızca NEW veya IN_PROGRESS statüsündeki biletler üzerinize alınabilir.", ex.getReason());
+        assertEquals("Yalnızca NEW, IN_PROGRESS veya WAITING_FOR_CUSTOMER statüsündeki biletler üzerinize alınabilir.", ex.getReason());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
