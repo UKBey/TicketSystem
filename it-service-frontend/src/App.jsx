@@ -17,6 +17,7 @@ import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
 import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
+import NoRolePage from './pages/NoRolePage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
@@ -54,7 +55,7 @@ function HomeRedirect() {
     case 'CUSTOMER':
       return <Navigate to="/my-tickets" replace />;
     default:
-      return <Navigate to="/" replace />;
+      return <Navigate to="/no-role" replace />;
   }
 }
 
@@ -177,6 +178,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Rolsüz oturum açmış kullanıcılar için bilgi ekranı. */}
+        <Route path="/no-role" element={<NoRolePage />} />
 
         {/* Eslesmeyen tum yollari ana rotaya yonlendirir. */}
         <Route path="*" element={<Navigate to="/" replace />} />
