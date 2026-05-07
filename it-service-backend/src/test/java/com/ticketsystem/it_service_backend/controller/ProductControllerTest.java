@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.ProductDTO;
+import com.ticketsystem.it_service_backend.dto.ProductLimitUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.service.ProductService;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +85,19 @@ class ProductControllerTest {
         assertNotNull(response.getBody());
         assertEquals("New Name", response.getBody().getName());
         assertEquals(false, response.getBody().getIsActive());
+    }
+
+    @Test
+    void updateProductLimit_returnsUpdatedDto() {
+        ProductLimitUpdateRequestDTO request = ProductLimitUpdateRequestDTO.builder().maxActiveTickets(8).build();
+        Product updated = Product.builder().id(15L).name("ERP").isActive(true).maxActiveTickets(8).build();
+        when(productService.updateMaxActiveTickets(15L, 8)).thenReturn(updated);
+
+        ResponseEntity<ProductDTO> response = productController.updateProductLimit(15L, request);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(8, response.getBody().getMaxActiveTickets());
     }
 
     @Test

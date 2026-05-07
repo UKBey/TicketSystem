@@ -103,4 +103,22 @@ public class ProductService {
         log.info("Ürün başarıyla güncellendi. ID: {}", savedProduct.getId());
         return savedProduct;
     }
+
+    @Transactional
+    public Product updateMaxActiveTickets(Long productId, Integer limit) {
+        log.info("Ürün aktif bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);
+
+        if (limit != null && limit < 1) {
+            throw new IllegalArgumentException("Maksimum aktif bilet limiti 1 veya daha büyük olmalıdır.");
+        }
+
+        Product existingProduct = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ürün bulunamadı: " + productId));
+
+        existingProduct.setMaxActiveTickets(limit);
+
+        Product savedProduct = productRepository.save(existingProduct);
+        log.info("Ürün aktif bilet limiti güncellendi. ID: {}, Limit: {}", savedProduct.getId(), savedProduct.getMaxActiveTickets());
+        return savedProduct;
+    }
 }

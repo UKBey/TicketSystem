@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -94,6 +95,31 @@ class ProductServiceTest {
 
         assertEquals("New", updated.getName());
         assertEquals(true, updated.getIsActive());
+    }
+
+    @Test
+    void updateMaxActiveTickets_setsLimit() {
+        Product existing = Product.builder().id(11L).name("CRM").isActive(true).build();
+
+        when(productRepository.findById(11L)).thenReturn(Optional.of(existing));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Product updated = productService.updateMaxActiveTickets(11L, 5);
+
+        assertEquals(5, updated.getMaxActiveTickets());
+        assertEquals(11L, updated.getId());
+    }
+
+    @Test
+    void updateMaxActiveTickets_nullClearsLimit() {
+        Product existing = Product.builder().id(12L).name("ERP").isActive(true).maxActiveTickets(3).build();
+
+        when(productRepository.findById(12L)).thenReturn(Optional.of(existing));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Product updated = productService.updateMaxActiveTickets(12L, null);
+
+        assertNull(updated.getMaxActiveTickets());
     }
 
     @Test

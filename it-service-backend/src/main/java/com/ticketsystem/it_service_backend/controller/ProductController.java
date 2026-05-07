@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.ticketsystem.it_service_backend.dto.ProductDTO;
+import com.ticketsystem.it_service_backend.dto.ProductLimitUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -135,6 +136,29 @@ public class ProductController {
         Product updated = productService.updateProduct(id, product);
         
         log.info("Ürün başarıyla güncellendi. ID: {}", updated.getId());
+
+        return ResponseEntity.ok(ProductDTO.fromEntity(updated));
+    }
+
+    @Operation(summary = "Ürünün maksimum aktif bilet limitini güncelle",
+            description = "Belirtilen ürün için varsayılan aktif bilet limitini günceller. Null gönderilirse limit kaldırılır.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ürün limiti başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = ProductDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN ürün limitini güncelleyebilir"),
+            @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
+    })
+    @PatchMapping("/{id}/limit")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<ProductDTO> updateProductLimit(
+            @Parameter(description = "Limit güncellenecek ürünün ID'si", example = "1", required = true)
+            @PathVariable Long id,
+            @RequestBody ProductLimitUpdateRequestDTO request) {
+        log.info("Ürün limit güncelleme isteği. ID: {}, Yeni limit: {}", id, request.getMaxActiveTickets());
+
+        Product updated = productService.updateMaxActiveTickets(id, request.getMaxActiveTickets());
+
+        log.info("Ürün limiti başarıyla güncellendi. ID: {}", updated.getId());
 
         return ResponseEntity.ok(ProductDTO.fromEntity(updated));
     }
