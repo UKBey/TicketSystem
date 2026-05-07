@@ -29,7 +29,12 @@ export default function Pool() {
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
       navigate(`/tickets/${ticketId}`);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not claim ticket.');
+      // Handle ticket limit exceeded error (409 Conflict)
+      if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
+        alert(`Limit exceeded: ${err.response.data.message}`);
+      } else {
+        alert(err.response?.data?.message || 'Could not claim ticket.');
+      }
     }
   };
 
