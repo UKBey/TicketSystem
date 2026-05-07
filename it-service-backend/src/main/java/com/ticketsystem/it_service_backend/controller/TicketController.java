@@ -4,11 +4,13 @@ import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
+import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
+import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.service.TicketService;
@@ -38,6 +40,7 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final TicketClaimRepository ticketClaimRepository;
+    private final TicketAuditLogRepository ticketAuditLogRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
@@ -225,8 +228,13 @@ public class TicketController {
                         .build())
                 .collect(Collectors.toList());
 
+        List<TicketAuditLogDTO> auditLogs = ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId()).stream()
+                .map(TicketAuditLogDTO::fromEntity)
+                .collect(Collectors.toList());
+
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, claimers);
         dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
+        dto.setAuditLogs(auditLogs);
         return dto;
     }
 }

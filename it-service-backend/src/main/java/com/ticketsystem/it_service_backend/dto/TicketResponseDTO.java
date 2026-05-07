@@ -75,6 +75,9 @@ public class TicketResponseDTO {
     @Schema(description = "Gerçek zamanlı SLA bilgisi")
     private java.util.Map<String, Long> slaInfo;
 
+    @Schema(description = "Bilet aksiyon denetim günlüğü")
+    private List<TicketAuditLogDTO> auditLogs;
+
     public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat,
                                                String productName, String customerName,
                                                List<ClaimerDTO> claimers) {

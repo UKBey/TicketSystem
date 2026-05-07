@@ -7,6 +7,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
+import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,11 +45,15 @@ class TicketControllerTest {
         @Mock
     private TicketClaimRepository ticketClaimRepository;
 
+        @Mock
+    private TicketAuditLogRepository ticketAuditLogRepository;
+
         private TicketController ticketController;
 
         @BeforeEach
         void setUp() {
-                ticketController = new TicketController(ticketService, ticketClaimRepository, userRepository, productRepository);
+                ticketController = new TicketController(ticketService, ticketClaimRepository, ticketAuditLogRepository, userRepository, productRepository);
+                lenient().when(ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
         }
 
     @Test
