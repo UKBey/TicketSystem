@@ -194,9 +194,6 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         assertThat(savedTicket.get().getCustomerId())
                 .as("Bilet musteri kimligine ait olmalidir")
                 .isEqualTo(CUSTOMER_ID);
-        assertThat(savedTicket.get().getAssigneeId())
-                .as("Yeni biletin henuz bir atanansi olmamalidir")
-                .isNull();
         assertThat(savedTicket.get().getProductId())
                 .as("Bilet dogru urune bagli olmalidir")
                 .isEqualTo(testProduct.getId());
@@ -228,7 +225,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ticketId))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$.assigneeId").value(AGENT_ID));
+                .andExpect(jsonPath("$.claimers[0].agentId").value(AGENT_ID));
 
         // =====================================================================
         // DOGRULAMA 2: Veritabaninda biletin IN_PROGRESS'e gecisi ve
@@ -242,9 +239,10 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         assertThat(claimedTicket.get().getStatus())
                 .as("Claim sonrasi bilet statusu IN_PROGRESS olmalidir")
                 .isEqualTo("IN_PROGRESS");
-        assertThat(claimedTicket.get().getAssigneeId())
-                .as("Bilet ajanin kimligine atanmis olmalidir")
-                .isEqualTo(AGENT_ID);
+        int claimCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM ticket_claims WHERE ticket_id = ? AND agent_id = ?",
+                Integer.class, ticketId, AGENT_ID);
+        assertThat(claimCount).as("ticket_claims tablosunda ajan kaydı bulunmalıdır").isEqualTo(1);
         assertThat(claimedTicket.get().getCustomerId())
                 .as("Musteri kimligi claim sonrasi degismemelidir")
                 .isEqualTo(CUSTOMER_ID);

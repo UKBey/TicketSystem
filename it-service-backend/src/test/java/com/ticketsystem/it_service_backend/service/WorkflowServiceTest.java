@@ -40,13 +40,12 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void startTicketWorkflowAddsAssigneeAndCallbackData() {
+    void startTicketWorkflow_addsCallbackDataWithoutAssigneeId() {
         Ticket ticket = Ticket.builder()
                 .id(11L)
                 .priority("HIGH")
                 .status("NEW")
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(kieServerAdapter.startProcess(eq("ticket-workflow"), any())).thenReturn(77L);
@@ -61,7 +60,7 @@ class WorkflowServiceTest {
                         && "NEW".equals(variables.get("status"))
                         && "PT5M".equals(variables.get("slaDuration"))
                         && "https://example.com/callback?token=token-123".equals(variables.get("callbackUrl"))
-                        && "agent-1".equals(variables.get("assigneeId"))
+                        && !variables.containsKey("assigneeId")
         ));
     }
 
@@ -111,12 +110,11 @@ class WorkflowServiceTest {
     void syncTicketAssignmentUpdatesBothAssignmentAndStatus() {
         Ticket ticket = Ticket.builder()
                 .id(15L)
-                .assigneeId("agent-2")
                 .status("IN_PROGRESS")
                 .processInstanceId(600L)
                 .build();
 
-        workflowService.syncTicketAssignment(ticket);
+        workflowService.syncTicketAssignment(ticket, "agent-2");
 
         verify(kieServerAdapter).setProcessVariable(600L, "assigneeId", "agent-2");
         verify(kieServerAdapter).setProcessVariable(600L, "status", "IN_PROGRESS");
@@ -124,9 +122,9 @@ class WorkflowServiceTest {
 
     @Test
     void syncTicketAssignmentSkipsWhenProcessInstanceMissing() {
-        Ticket ticket = Ticket.builder().id(15L).assigneeId("agent-2").status("IN_PROGRESS").build();
+        Ticket ticket = Ticket.builder().id(15L).status("IN_PROGRESS").build();
 
-        workflowService.syncTicketAssignment(ticket);
+        workflowService.syncTicketAssignment(ticket, "agent-2");
 
         verify(kieServerAdapter, never()).setProcessVariable(any(), any(), any());
     }

@@ -51,7 +51,6 @@ class WorklogRepositoryIT extends RepositoryIntegrationTestBase {
             .priority("HIGH")
             .productId(product.getId())
             .customerId("customer-1")
-            .assigneeId("agent-1")
             .build()).getId();
 
         ticketId2 = ticketRepository.save(Ticket.builder()
@@ -61,7 +60,6 @@ class WorklogRepositoryIT extends RepositoryIntegrationTestBase {
             .priority("MEDIUM")
             .productId(product.getId())
             .customerId("customer-1")
-            .assigneeId("agent-2")
             .build()).getId();
 
         worklogRepository.save(TicketWorklog.builder().ticketId(ticketId1).agentId("agent-1").minutes(30).description("investigate").build());

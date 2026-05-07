@@ -56,7 +56,6 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .priority("HIGH")
             .productId(product.getId())
             .customerId("customer-1")
-            .assigneeId("agent-1")
             .build()).getId();
 
         ticketId2 = ticketRepository.save(Ticket.builder()
@@ -66,7 +65,6 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .priority("MEDIUM")
             .productId(product.getId())
             .customerId("customer-1")
-            .assigneeId("agent-1")
             .build()).getId();
 
         ticketId3 = ticketRepository.save(Ticket.builder()
@@ -76,7 +74,6 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .priority("LOW")
             .productId(product.getId())
             .customerId("customer-1")
-            .assigneeId("agent-2")
             .build()).getId();
 
         resolutionNoteRepository.save(ResolutionNote.builder().ticketId(ticketId1).agentId("agent-1").note("fixed issue").build());

@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,11 +41,14 @@ class TicketControllerTest {
         @Mock
     private ProductRepository productRepository;
 
+        @Mock
+    private TicketClaimRepository ticketClaimRepository;
+
         private TicketController ticketController;
 
         @BeforeEach
         void setUp() {
-                ticketController = new TicketController(ticketService, userRepository, productRepository);
+                ticketController = new TicketController(ticketService, ticketClaimRepository, userRepository, productRepository);
         }
 
     @Test
@@ -170,14 +174,11 @@ class TicketControllerTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(ticketService.claimTicket(9001L, "agent-1")).thenReturn(claimed);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(
-                User.builder().id("agent-1").fullName("Agent One").email("a1@example.com").role("AGENT").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(claimed)).thenReturn(Map.of("deadlineTs", 777L));
 
@@ -199,14 +200,11 @@ class TicketControllerTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("admin-1")
                 .build();
 
         when(ticketService.claimTicket(9002L, "admin-1")).thenReturn(claimed);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
-        when(userRepository.findById("admin-1")).thenReturn(Optional.of(
-                User.builder().id("admin-1").fullName("Admin One").email("admin@example.com").role("AGENT_ADMIN").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(claimed)).thenReturn(Map.of("deadlineTs", 777L));
 
@@ -228,15 +226,12 @@ class TicketControllerTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(ticketService.updateTicketStatus(4001L, "IN_PROGRESS", "agent-1", List.of("AGENT")))
                 .thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(
-                User.builder().id("agent-1").fullName("Agent One").email("a1@example.com").role("AGENT").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.of("deadlineTs", 888L));
 
@@ -261,15 +256,12 @@ class TicketControllerTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("admin-1")
                 .build();
 
         when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", "admin-1", List.of("AGENT_ADMIN")))
                 .thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
-        when(userRepository.findById("admin-1")).thenReturn(Optional.of(
-                User.builder().id("admin-1").fullName("Admin One").email("admin@example.com").role("AGENT_ADMIN").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.of("deadlineTs", 888L));
 
@@ -364,8 +356,8 @@ class TicketControllerTest {
 
     @Test
     void getMyAssignedTickets_returnsAgentTickets() {
-        Ticket t1 = Ticket.builder().id(9001L).title("T1").description("D1").priority("LOW").status("IN_PROGRESS").customerId("c1").assigneeId("agent-1").build();
-        when(ticketService.getAgentAssignedTickets("agent-1")).thenReturn(List.of(t1));
+        Ticket t1 = Ticket.builder().id(9001L).title("T1").description("D1").priority("LOW").status("IN_PROGRESS").customerId("c1").build();
+        when(ticketService.getAgentClaimedTickets("agent-1")).thenReturn(List.of(t1));
 
         ResponseEntity<List<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(jwtWithRole("agent-1", "AGENT"));
 
@@ -376,7 +368,7 @@ class TicketControllerTest {
 
     @Test
     void getTicket_returnsTicketDetail() {
-        Ticket t1 = Ticket.builder().id(10001L).title("T1").description("D1").priority("LOW").status("NEW").productId(1L).customerId("c1").assigneeId(null).build();
+        Ticket t1 = Ticket.builder().id(10001L).title("T1").description("D1").priority("LOW").status("NEW").productId(1L).customerId("c1").build();
         when(ticketService.getTicketWithAuth(10001L, "customer-1", List.of("CUSTOMER"))).thenReturn(t1);
 
         ResponseEntity<TicketResponseDTO> response = ticketController.getTicket(10001L, jwtWithRole("customer-1", "CUSTOMER"));
@@ -407,7 +399,7 @@ class TicketControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals("Unknown", response.getBody().getCustomerName());
         assertEquals("Unknown", response.getBody().getProductName());
-        org.junit.jupiter.api.Assertions.assertNull(response.getBody().getAssigneeName());
+        org.junit.jupiter.api.Assertions.assertTrue(response.getBody().getClaimers().isEmpty());
     }
 
     private Jwt jwtWithRole(String subject, String role) {

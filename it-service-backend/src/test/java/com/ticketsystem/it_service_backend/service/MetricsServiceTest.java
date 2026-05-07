@@ -9,6 +9,7 @@ import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.when;
 class MetricsServiceTest {
 
     @Mock TicketRepository ticketRepository;
+    @Mock TicketClaimRepository ticketClaimRepository;
     @Mock CsatRepository csatRepository;
     @Mock UserRepository userRepository;
     @Mock WorklogRepository worklogRepository;
@@ -210,11 +212,13 @@ class MetricsServiceTest {
             when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
 
             Ticket activeTicket = Ticket.builder()
-                    .id(1L).assigneeId("uuid-1").status("IN_PROGRESS")
+                    .id(1L).status("IN_PROGRESS")
                     .priority("HIGH").slaBreached(false)
                     .createdAt(ZonedDateTime.now().minusDays(2))
                     .build();
             when(ticketRepository.findAll()).thenReturn(List.of(activeTicket));
+            when(ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(anyList()))
+                    .thenReturn(List.of(new Object[]{"uuid-1", 1L}));
             when(worklogRepository.findAll()).thenReturn(Collections.emptyList());
             when(csatRepository.findAll()).thenReturn(Collections.emptyList());
 

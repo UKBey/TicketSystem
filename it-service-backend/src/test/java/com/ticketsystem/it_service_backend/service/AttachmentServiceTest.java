@@ -37,7 +37,7 @@ class AttachmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ticket = Ticket.builder().id(10L).customerId("customer-1").assigneeId("agent-1").status("IN_PROGRESS").build();
+        ticket = Ticket.builder().id(10L).customerId("customer-1").status("IN_PROGRESS").build();
     }
 
     @Test

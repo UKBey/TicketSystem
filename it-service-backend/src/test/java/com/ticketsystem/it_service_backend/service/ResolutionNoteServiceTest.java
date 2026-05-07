@@ -4,6 +4,7 @@ import com.ticketsystem.it_service_backend.dto.ResolutionNoteRequestDTO;
 import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,8 @@ class ResolutionNoteServiceTest {
     private ResolutionNoteRepository resolutionNoteRepository;
     @Mock
     private TicketService ticketService;
+    @Mock
+    private TicketClaimRepository ticketClaimRepository;
 
     @InjectMocks
     private ResolutionNoteService resolutionNoteService;
@@ -37,7 +40,7 @@ class ResolutionNoteServiceTest {
 
     @BeforeEach
     void setUp() {
-        assignedTicket = Ticket.builder().id(30L).assigneeId("agent-1").status("IN_PROGRESS").build();
+        assignedTicket = Ticket.builder().id(30L).status("IN_PROGRESS").build();
     }
 
     @Test
@@ -54,6 +57,7 @@ class ResolutionNoteServiceTest {
     void createResolutionNote_alreadyExists_throwsConflict() {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("fixed by patch").build();
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.existsByTicketId(30L)).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -66,6 +70,7 @@ class ResolutionNoteServiceTest {
     void createResolutionNote_whenAssigneeAndOpen_createsNote() {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("fixed by restart").build();
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.existsByTicketId(30L)).thenReturn(false);
         when(resolutionNoteRepository.save(any(ResolutionNote.class))).thenAnswer(invocation -> {
             ResolutionNote note = invocation.getArgument(0);
@@ -94,8 +99,9 @@ class ResolutionNoteServiceTest {
     @Test
     void createResolutionNote_whenTicketClosed_throwsBadRequest() {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("fixed by patch").build();
-        Ticket closed = Ticket.builder().id(30L).assigneeId("agent-1").status("CLOSED").build();
+        Ticket closed = Ticket.builder().id(30L).status("CLOSED").build();
         when(ticketService.getTicketById(30L)).thenReturn(closed);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> resolutionNoteService.createResolutionNote(30L, dto, "agent-1"));
@@ -108,6 +114,7 @@ class ResolutionNoteServiceTest {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("updated note").build();
         ResolutionNote existing = ResolutionNote.builder().id(1L).ticketId(30L).agentId("agent-1").note("old").build();
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.findByTicketId(30L)).thenReturn(Optional.of(existing));
         when(resolutionNoteRepository.save(any(ResolutionNote.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -140,8 +147,9 @@ class ResolutionNoteServiceTest {
     @Test
     void updateResolutionNote_whenTicketClosed_throwsBadRequest() {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("updated").build();
-        Ticket closed = Ticket.builder().id(30L).assigneeId("agent-1").status("CLOSED").build();
+        Ticket closed = Ticket.builder().id(30L).status("CLOSED").build();
         when(ticketService.getTicketById(30L)).thenReturn(closed);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> resolutionNoteService.updateResolutionNote(30L, dto, "agent-1"));
@@ -153,6 +161,7 @@ class ResolutionNoteServiceTest {
     void updateResolutionNote_whenMissing_throwsNotFound() {
         ResolutionNoteRequestDTO dto = ResolutionNoteRequestDTO.builder().note("updated").build();
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.findByTicketId(30L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -163,7 +172,7 @@ class ResolutionNoteServiceTest {
 
     @Test
     void getResolutionNoteByTicket_agentNotAssignee_throwsForbidden() {
-        Ticket otherTicket = Ticket.builder().id(30L).assigneeId("agent-2").status("IN_PROGRESS").build();
+        Ticket otherTicket = Ticket.builder().id(30L).status("IN_PROGRESS").build();
         when(ticketService.getTicketById(30L)).thenReturn(otherTicket);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -188,6 +197,7 @@ class ResolutionNoteServiceTest {
     void getResolutionNoteByTicket_assignedAgentCanView() {
         ResolutionNote note = ResolutionNote.builder().id(3L).ticketId(30L).note("fixed").build();
         when(ticketService.getTicketById(30L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(30L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.findByTicketId(30L)).thenReturn(Optional.of(note));
 
         ResolutionNote result = resolutionNoteService.getResolutionNoteByTicket(30L, "agent-1", List.of("AGENT"));

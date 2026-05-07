@@ -5,6 +5,7 @@ import com.ticketsystem.it_service_backend.dto.UpdateNotificationPreferenceReque
 import com.ticketsystem.it_service_backend.entity.*;
 import com.ticketsystem.it_service_backend.repository.NotificationPreferenceRepository;
 import com.ticketsystem.it_service_backend.repository.NotificationRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,8 @@ class NotificationServiceTest {
     private NotificationPreferenceRepository preferenceRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private TicketClaimRepository ticketClaimRepository;
     @Mock
     private EmailService emailService;
 
@@ -67,7 +70,6 @@ class NotificationServiceTest {
                 .priority("HIGH")
                 .status("IN_PROGRESS")
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         lenient().when(notificationRepository.save(any(Notification.class)))
@@ -143,25 +145,25 @@ class NotificationServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // notifyTicketAssigned
+    // notifyTicketClaimed
     // -------------------------------------------------------------------------
 
     @Test
-    void notifyTicketAssigned_savesNotificationAndSendsEmail_whenBothPreferencesEnabled() {
+    void notifyTicketClaimed_savesNotificationAndSendsEmail_whenBothPreferencesEnabled() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
 
-        notificationService.notifyTicketAssigned(ticket);
+        notificationService.notifyTicketClaimed(ticket, "agent-1");
 
         verify(notificationRepository).save(any(Notification.class));
         verify(emailService).sendTicketAssignedEmail(agent, ticket);
     }
 
     @Test
-    void notifyTicketAssigned_doesNothing_whenAssigneeIdIsNull() {
-        Ticket unassigned = Ticket.builder().id(11L).customerId("customer-1").build();
+    void notifyTicketClaimed_doesNothing_whenAgentNotFound() {
+        when(userRepository.findById("unknown-agent")).thenReturn(Optional.empty());
 
-        notificationService.notifyTicketAssigned(unassigned);
+        notificationService.notifyTicketClaimed(ticket, "unknown-agent");
 
         verify(notificationRepository, never()).save(any());
     }
@@ -175,6 +177,8 @@ class NotificationServiceTest {
         Comment comment = Comment.builder()
                 .id(1L).authorId("customer-1").message("Sorun devam ediyor.").type("EXTERNAL").build();
 
+        TicketClaim claimByAgent = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claimByAgent));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
@@ -220,6 +224,8 @@ class NotificationServiceTest {
         User manager1 = User.builder().id("mgr-1").email("mgr1@example.com").fullName("Yönetici 1").role("MANAGER").build();
         User manager2 = User.builder().id("mgr-2").email("mgr2@example.com").fullName("Yönetici 2").role("MANAGER").build();
 
+        TicketClaim claimByAgent = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claimByAgent));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
         when(userRepository.findByRole("MANAGER")).thenReturn(List.of(manager1, manager2));
@@ -240,6 +246,8 @@ class NotificationServiceTest {
                 .notifyOnSlaBreached(false)
                 .build();
 
+        TicketClaim claimByAgent = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claimByAgent));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(agentPref));
         when(userRepository.findByRole("MANAGER")).thenReturn(List.of());

@@ -9,6 +9,7 @@ import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -61,6 +62,8 @@ class TicketServiceTest {
     private AttachmentRepository attachmentRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private TicketClaimRepository ticketClaimRepository;
 
     @InjectMocks
     private TicketService ticketService;
@@ -338,9 +341,10 @@ class TicketServiceTest {
         }
 
         @Test
-        void validateMutationAccess_whenAgentAssigned_returnsTicket() {
-                Ticket ticket = Ticket.builder().id(709L).assigneeId("agent-1").customerId("customer-1").build();
+        void validateMutationAccess_whenAgentIsClaimer_returnsTicket() {
+                Ticket ticket = Ticket.builder().id(709L).customerId("customer-1").build();
                 when(ticketRepository.findById(709L)).thenReturn(Optional.of(ticket));
+                when(ticketClaimRepository.existsByTicketIdAndAgentId(709L, "agent-1")).thenReturn(true);
 
                 Ticket result = ticketService.validateMutationAccess(709L, "agent-1", List.of("AGENT"));
 
@@ -348,9 +352,10 @@ class TicketServiceTest {
         }
 
         @Test
-        void validateMutationAccess_whenAgentNotAssigned_throwsForbidden() {
-                Ticket ticket = Ticket.builder().id(710L).assigneeId("agent-2").customerId("customer-1").build();
+        void validateMutationAccess_whenAgentNotClaimer_throwsForbidden() {
+                Ticket ticket = Ticket.builder().id(710L).customerId("customer-1").build();
                 when(ticketRepository.findById(710L)).thenReturn(Optional.of(ticket));
+                when(ticketClaimRepository.existsByTicketIdAndAgentId(710L, "agent-1")).thenReturn(false);
 
                 ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                                 () -> ticketService.validateMutationAccess(710L, "agent-1", List.of("AGENT")));
@@ -398,9 +403,8 @@ class TicketServiceTest {
 
                 Ticket updated = ticketService.claimTicket(203L, "agent-1");
 
-                assertEquals("agent-1", updated.getAssigneeId());
                 assertEquals("IN_PROGRESS", updated.getStatus());
-                verify(workflowService).syncTicketAssignment(updated);
+                verify(workflowService).syncTicketAssignment(updated, "agent-1");
         }
 
         @Test
@@ -413,7 +417,7 @@ class TicketServiceTest {
                                 .status("IN_PROGRESS")
                                 .productId(10L)
                                 .customerId("customer-1")
-                                .assigneeId("agent-1")
+
                                 .build();
 
                 when(ticketRepository.findById(304L)).thenReturn(Optional.of(existing));
@@ -622,7 +626,6 @@ class TicketServiceTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(ticketRepository.findById(602L)).thenReturn(Optional.of(existing));
@@ -687,7 +690,6 @@ class TicketServiceTest {
                 .status("IN_PROGRESS")
                 .productId(99L)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
@@ -709,7 +711,6 @@ class TicketServiceTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build();
 
         when(ticketRepository.findById(606L)).thenReturn(Optional.of(existing));
@@ -719,7 +720,7 @@ class TicketServiceTest {
         Ticket updated = ticketService.updateTicketStatus(606L, "NEW", "agent-1", List.of("AGENT"));
 
         assertEquals("NEW", updated.getStatus());
-        assertNull(updated.getAssigneeId());
+        verify(ticketClaimRepository).deleteByTicketId(606L);
         verify(workflowService).syncTicketStatus(updated);
     }
 

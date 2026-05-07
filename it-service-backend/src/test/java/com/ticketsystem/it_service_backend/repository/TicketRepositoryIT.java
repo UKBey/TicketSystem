@@ -49,9 +49,8 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .description("desc 1")
                 .status("NEW")
                 .priority("HIGH")
-            .productId(productId1)
+                .productId(productId1)
                 .customerId("customer-1")
-                .assigneeId("agent-1")
                 .build());
 
         ticketRepository.save(Ticket.builder()
@@ -61,7 +60,6 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .priority("LOW")
                 .productId(productId2)
                 .customerId("customer-2")
-                .assigneeId(null)
                 .build());
 
         ticketRepository.save(Ticket.builder()
@@ -71,7 +69,6 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .priority("MEDIUM")
                 .productId(productId1)
                 .customerId("customer-3")
-                .assigneeId("agent-1")
                 .build());
     }
 
@@ -81,15 +78,6 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
 
         assertEquals(1, result.size());
         assertEquals("Customer ticket", result.get(0).getTitle());
-    }
-
-    @Test
-    void findByAssigneeId_returnsAssignedTickets() {
-        List<Ticket> result = ticketRepository.findByAssigneeId("agent-1");
-
-        assertEquals(2, result.size());
-        assertTrue(result.stream().anyMatch(t -> "Customer ticket".equals(t.getTitle())));
-        assertTrue(result.stream().anyMatch(t -> "In progress".equals(t.getTitle())));
     }
 
     @Test
