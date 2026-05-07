@@ -461,6 +461,39 @@ export default function TicketDetail() {
   const allowedStatuses = STATUS_OPTIONS[ticket.status] || [];
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
   const isCustomer = hasRole('CUSTOMER');
+  const auditLogs = Array.isArray(ticket.auditLogs)
+    ? ticket.auditLogs
+    : Array.isArray(ticket.ticketAuditLogs)
+      ? ticket.ticketAuditLogs
+      : [];
+
+  const getAuditActionLabel = (actionType) => {
+    const labels = {
+      UNCLAIM: 'Released',
+      CLOSE: 'Closed',
+      CLAIM: 'Claimed',
+    };
+    return labels[actionType] || actionType || 'Updated';
+  };
+
+  const getAuditActionStyles = (actionType) => {
+    if (actionType === 'CLOSE') {
+      return {
+        backgroundColor: isDark ? 'rgba(239,68,68,0.18)' : '#fee2e2',
+        color: isDark ? '#fca5a5' : '#991b1b',
+      };
+    }
+    if (actionType === 'UNCLAIM') {
+      return {
+        backgroundColor: isDark ? 'rgba(245,158,11,0.18)' : '#fef3c7',
+        color: isDark ? '#fde68a' : '#92400e',
+      };
+    }
+    return {
+      backgroundColor: isDark ? 'rgba(59,130,246,0.18)' : '#dbeafe',
+      color: isDark ? '#93c5fd' : '#1d4ed8',
+    };
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
@@ -791,6 +824,48 @@ export default function TicketDetail() {
                 </div>
               </div>
             )}
+
+            <div className="pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="text-xs font-medium mb-2 flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                <Clock className="h-3 w-3" />
+                Audit History
+              </div>
+              {auditLogs.length > 0 ? (
+                <div className="space-y-2">
+                  {auditLogs.map((entry) => (
+                    <div key={entry.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-color-light)', backgroundColor: 'var(--bg-surface-secondary)' }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold" style={getAuditActionStyles(entry.actionType)}>
+                              {getAuditActionLabel(entry.actionType)}
+                            </span>
+                            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                              {entry.actorId || 'Unknown actor'}
+                            </span>
+                          </div>
+                          <div className="text-xs mt-1 leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+                            {entry.note || 'No note provided.'}
+                          </div>
+                        </div>
+                        <div className="text-[11px] shrink-0 text-right" style={{ color: 'var(--text-tertiary)' }}>
+                          {formatShortDate(entry.createdAt)}
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <span>{entry.previousState || '—'}</span>
+                        <span>→</span>
+                        <span>{entry.newState || '—'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed px-3 py-3 text-xs leading-relaxed" style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}>
+                  Audit history will appear here once the backend includes ticket audit log entries.
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
