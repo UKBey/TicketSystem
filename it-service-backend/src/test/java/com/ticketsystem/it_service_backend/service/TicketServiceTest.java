@@ -465,23 +465,24 @@ class TicketServiceTest {
         }
 
     @Test
-    void claimTicket_whenTicketNotNew_throwsRuntimeException() {
+    void claimTicket_whenTicketResolved_throwsBadRequest() {
         Ticket existing = Ticket.builder()
                 .id(201L)
-                .title("Already in progress")
+                .title("Already resolved")
                 .description("desc")
                 .priority("MEDIUM")
-                .status("IN_PROGRESS")
+                .status("RESOLVED")
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
 
         when(ticketRepository.findById(201L)).thenReturn(Optional.of(existing));
 
-        RuntimeException ex = assertThrows(RuntimeException.class,
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketService.claimTicket(201L, "agent-1"));
 
-        assertEquals("Sadece NEW statüsündeki biletler üzerinize alınabilir.", ex.getMessage());
+        assertEquals(400, ex.getStatusCode().value());
+        assertEquals("Yalnızca NEW veya IN_PROGRESS statüsündeki biletler üzerinize alınabilir.", ex.getReason());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
