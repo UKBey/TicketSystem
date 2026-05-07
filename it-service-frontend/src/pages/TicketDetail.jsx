@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
+import ActionReasonModal from '../components/ActionReasonModal';
 import api from '../services/api';
+import { closeTicket as closeTicketWithNote, unclaimTicket as unclaimTicketWithNote } from '../services/api';
 import {
   ArrowLeft,
   Send,
@@ -46,6 +48,10 @@ export default function TicketDetail() {
   const [submittingCsat, setSubmittingCsat] = useState(false);
   const [slaInfo, setSlaInfo] = useState(null);
   const [currentDate, setCurrentDate] = useState(Date.now());
+  const [reasonModal, setReasonModal] = useState({
+    isOpen: false,
+    action: null,
+  });
 
   // Dosya ekleri icin durum degiskenleri
   const [attachments, setAttachments] = useState([]);
@@ -342,14 +348,55 @@ export default function TicketDetail() {
     }
   };
 
-  const handleUnclaim = async () => {
+  const handleUnclaim = async (note) => {
     try {
-      const res = await api.delete(`/tickets/${id}/claim`);
+      const res = await unclaimTicketWithNote(id, note);
       setTicket(res.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not release ticket.');
     }
   };
+
+  const handleCloseTicket = async (note) => {
+    try {
+      const res = await closeTicketWithNote(id, note);
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not close ticket.');
+    }
+  };
+
+  const openReasonModal = (action) => {
+    setReasonModal({ isOpen: true, action });
+    setExtraActionsOpen(false);
+  };
+
+  const closeReasonModal = () => {
+    setReasonModal({ isOpen: false, action: null });
+  };
+
+  const handleReasonConfirm = async (note) => {
+    if (reasonModal.action === 'UNCLAIM') {
+      await handleUnclaim(note);
+    } else if (reasonModal.action === 'CLOSE') {
+      await handleCloseTicket(note);
+    }
+    closeReasonModal();
+  };
+
+  const reasonModalConfig = reasonModal.action === 'CLOSE'
+    ? {
+        title: 'Close Ticket',
+        description: 'Please provide a note before closing this ticket.',
+        confirmLabel: 'Close Ticket',
+        confirmVariant: 'danger',
+      }
+    : {
+        title: 'Release Ticket',
+        description: 'Please provide a note before releasing this ticket.',
+        confirmLabel: 'Release Ticket',
+        confirmVariant: 'warning',
+      };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -912,7 +959,7 @@ export default function TicketDetail() {
                 <button
                   className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"
                   style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  onClick={() => { handleUnclaim(); setExtraActionsOpen(false); }}
+                  onClick={() => openReasonModal('UNCLAIM')}
                 >
                   Unclaim (Release)
                 </button>
@@ -920,7 +967,7 @@ export default function TicketDetail() {
               {allowedStatuses.includes('CLOSED') && (
                 <button
                   className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                  onClick={() => { handleStatusChange('CLOSED'); setExtraActionsOpen(false); }}
+                  onClick={() => openReasonModal('CLOSE')}
                 >
                   Close Ticket
                 </button>
@@ -993,6 +1040,16 @@ export default function TicketDetail() {
           </div>
         </div>
       )}
+
+      <ActionReasonModal
+        isOpen={reasonModal.isOpen}
+        onClose={closeReasonModal}
+        onConfirm={handleReasonConfirm}
+        title={reasonModalConfig.title}
+        description={reasonModalConfig.description}
+        confirmLabel={reasonModalConfig.confirmLabel}
+        confirmVariant={reasonModalConfig.confirmVariant}
+      />
 
       {/* Cozum notu girisi icin modal. Resolved butonuna tiklaninca acilir. */}
       {resolveModalOpen && (
