@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -12,6 +13,7 @@ import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepositor
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -52,6 +54,7 @@ public class TicketService {
     private final ResolutionNoteRepository resolutionNoteRepository;
     private final WorklogRepository worklogRepository;
     private final AttachmentRepository attachmentRepository;
+    private final TicketAuditLogRepository ticketAuditLogRepository;
     private final NotificationService notificationService;
 
     // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
@@ -329,8 +332,17 @@ public class TicketService {
      */
     @Transactional
     public Ticket unclaimTicket(Long id, String agentId) {
+        return unclaimTicket(id, agentId, null);
+    }
+
+    /**
+     * Ajan kendi claim'ini geri bırakır ve sebebini audit log olarak saklar.
+     */
+    @Transactional
+    public Ticket unclaimTicket(Long id, String agentId, String note) {
         log.info("Unclaim isteği. Bilet: {}, Ajan: {}", id, agentId);
         Ticket ticket = getTicketById(id);
+        String previousStatus = ticket.getStatus();
 
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -351,7 +363,33 @@ public class TicketService {
             }
         }
 
+        recordTicketAuditLog(ticket, agentId, "UNCLAIM", note, previousStatus, ticket.getStatus());
         return ticket;
+    }
+
+    /**
+     * Bileti kapatır ve kapatma nedenini audit log olarak saklar.
+     */
+    @Transactional
+    public Ticket closeTicket(Long id, String note, String userId, List<String> roles) {
+        log.info("Close isteği. Bilet: {}, Kullanıcı: {}", id, userId);
+        Ticket ticket = getTicketById(id);
+        String oldStatus = ticket.getStatus();
+
+        validateStateTransition(oldStatus, "CLOSED");
+        validateStatusChangePermission(ticket, oldStatus, "CLOSED", userId, roles);
+
+        applyStatusSpecificRules(ticket, oldStatus, "CLOSED", userId);
+
+        ticket.setStatus("CLOSED");
+        ticket.setClosedAt(ZonedDateTime.now());
+
+        Ticket saved = ticketRepository.save(ticket);
+        handleWorkflowSignals(saved, oldStatus, "CLOSED");
+        notificationService.notifyStatusChanged(saved, oldStatus);
+        recordTicketAuditLog(saved, userId, "CLOSE", note, oldStatus, saved.getStatus());
+
+        return saved;
     }
 
     // -----------------------------------------------------------------
@@ -361,6 +399,10 @@ public class TicketService {
     @Transactional
     public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
         log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}", id, newStatus, userId);
+        if ("CLOSED".equals(newStatus)) {
+            return closeTicket(id, null, userId, roles);
+        }
+
         Ticket ticket = getTicketById(id);
         String oldStatus = ticket.getStatus();
 
@@ -385,6 +427,19 @@ public class TicketService {
         else                               notificationService.notifyStatusChanged(saved, oldStatus);
 
         return saved;
+    }
+
+    private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String note,
+                                      String previousState, String newState) {
+        TicketAuditLog auditLog = TicketAuditLog.builder()
+                .ticket(ticket)
+                .actorId(actorId)
+                .actionType(actionType)
+                .note(note)
+                .previousState(previousState)
+                .newState(newState)
+                .build();
+        ticketAuditLogRepository.save(auditLog);
     }
 
     private void validateStateTransition(String current, String next) {
