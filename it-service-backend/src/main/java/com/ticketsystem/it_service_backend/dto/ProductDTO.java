@@ -23,11 +23,15 @@ public class ProductDTO {
     @Schema(description = "Ürün aktif mi?", example = "true")
     private Boolean isActive;
 
+    @Schema(description = "Ürünün varsayılan maksimum aktif bilet limiti", example = "5", nullable = true)
+    private Integer maxActiveTickets;
+
     public static ProductDTO fromEntity(Product product) {
         return ProductDTO.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .isActive(product.getIsActive())
+                .maxActiveTickets(product.getMaxActiveTickets())
                 .build();
     }
 }

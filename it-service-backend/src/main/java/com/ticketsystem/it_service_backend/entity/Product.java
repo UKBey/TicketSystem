@@ -22,4 +22,7 @@ public class Product {
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "max_active_tickets")
+    private Integer maxActiveTickets;
 }
