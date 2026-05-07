@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -26,19 +27,16 @@ public class Ticket {
     private String description;
 
     @Column(nullable = false, length = 30)
-    private String status; // Biletin is akisi durumunu tutar.
+    private String status;
 
     @Column(nullable = false, length = 10)
-    private String priority; // SLA suresini etkileyen oncelik seviyesi.
+    private String priority;
 
     @Column(name = "product_id")
     private Long productId;
 
     @Column(name = "customer_id", nullable = false, length = 36)
-    private String customerId; // Kaydi olusturan kullanicinin kimligi.
-
-    @Column(name = "assignee_id", length = 36)
-    private String assigneeId; // Kayittan sorumlu agent kimligi.
+    private String customerId;
 
     @Column(name = "sla_deadline")
     private ZonedDateTime slaDeadline;
@@ -47,12 +45,10 @@ public class Ticket {
     @Builder.Default
     private Boolean slaBreached = false;
 
-    // SLA'nin aktif gecen toplam suresi milisaniye cinsinden tutulur.
     @Column(name = "sla_elapsed_ms")
     @Builder.Default
     private Long slaElapsedMs = 0L;
 
-    // SLA'nin en son durduruldugu zamani saklar.
     @Column(name = "sla_paused_at")
     private ZonedDateTime slaPausedAt;
 
@@ -68,19 +64,24 @@ public class Ticket {
     @Column(name = "closed_at")
     private ZonedDateTime closedAt;
 
-    // jBPM tarafindaki process instance ile iliski kurar.
     @Column(name = "process_instance_id")
     private Long processInstanceId;
 
+    // Bileti sahiplenen ajanlar — cok-agentli claim yapisi.
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Builder.Default
+    private List<TicketClaim> claims = new ArrayList<>();
+
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // Cift yonlu iliskide olasi sonsuz JSON dongusunu engeller.
+    @JsonIgnore
     private List<Attachment> attachments;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = ZonedDateTime.now();
         if (this.status == null) {
-            this.status = "NEW"; // Kayit olustugunda varsayilan baslangic durumu.
+            this.status = "NEW";
         }
     }
 }

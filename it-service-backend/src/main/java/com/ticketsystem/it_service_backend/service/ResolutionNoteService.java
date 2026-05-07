@@ -4,6 +4,7 @@ import com.ticketsystem.it_service_backend.dto.ResolutionNoteRequestDTO;
 import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ public class ResolutionNoteService {
 
     private final ResolutionNoteRepository resolutionNoteRepository;
     private final TicketService ticketService;
+    private final TicketClaimRepository ticketClaimRepository;
 
     /**
      * Bileti sahiplenen agentin, ilgili kayda ilk cozum notunu eklemesini saglar.
@@ -35,12 +37,11 @@ public class ResolutionNoteService {
         // Islem oncesi biletin varligi dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        // Not yazma yetkisi yalnizca kaydin mevcut assignee kullanicisindadir.
-        if (!agentId.equals(ticket.getAssigneeId())) {
-            log.warn("Çözüm notu reddedildi: Agent (ID: {}) bu biletin atanan kişisi değil. Assignee: {}",
-                    agentId, ticket.getAssigneeId());
+        // Not yazma yetkisi yalnizca bileti claim alan agenta aittir.
+        if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
+            log.warn("Çözüm notu reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Çözüm notu yalnızca bileti üzerine almış (claim'li) agent tarafından yazılabilir.");
+                    "Çözüm notu yalnızca bileti claim almış agent tarafından yazılabilir.");
         }
 
         // Kapanmis kayitlara yeni cozum notu eklenmez.
@@ -83,12 +84,11 @@ public class ResolutionNoteService {
         // Islem yapilacak bilet once dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        // Guncelleme yetkisi sadece biletin assignee kullanicisina aittir.
-        if (!agentId.equals(ticket.getAssigneeId())) {
-            log.warn("Çözüm notu güncelleme reddedildi: Agent (ID: {}) bu biletin atanan kişisi değil. Assignee: {}",
-                    agentId, ticket.getAssigneeId());
+        // Guncelleme yetkisi yalnizca bileti claim alan agenta aittir.
+        if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
+            log.warn("Çözüm notu güncelleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Çözüm notu yalnızca bileti üzerine almış (claim'li) agent tarafından güncellenebilir.");
+                    "Çözüm notu yalnızca bileti claim almış agent tarafından güncellenebilir.");
         }
 
         // Kapanmis bilette not degistirilemez.
@@ -128,10 +128,10 @@ public class ResolutionNoteService {
         if (isAgentAdmin) {
             log.debug("Agent admin erişimi: Çözüm notu görüntülenıyor. Bilet ID: {}", ticketId);
         } else if (isAgent) {
-            if (!userId.equals(ticket.getAssigneeId())) {
-                log.warn("Çözüm notu görüntüleme reddedildi: Agent (ID: {}) bu biletin assignee'si değil.", userId);
+            if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, userId)) {
+                log.warn("Çözüm notu görüntüleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", userId);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Yalnızca size atanmış biletin çözüm notunu görüntüleyebilirsiniz.");
+                        "Yalnızca claim aldığınız biletin çözüm notunu görüntüleyebilirsiniz.");
             }
         } else {
             log.warn("Çözüm notu görüntüleme reddedildi: Yetersiz rol. Kullanıcı: {}", userId);

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -21,61 +22,62 @@ public class TicketResponseDTO {
     @Schema(description = "Biletin kısa başlığı", example = "E-posta gönderilemiyor")
     private String title;
 
-    @Schema(description = "Sorunun detaylı açıklaması", example = "Outlook üzerinden dış adrese mail gönderilemiyor, hata: 550 Relay Denied")
+    @Schema(description = "Sorunun detaylı açıklaması")
     private String description;
 
-    @Schema(description = "Biletin güncel durumu", example = "IN_PROGRESS", allowableValues = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"})
+    @Schema(description = "Biletin güncel durumu", example = "IN_PROGRESS",
+            allowableValues = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"})
     private String status;
 
-    @Schema(description = "Öncelik seviyesi", example = "HIGH", allowableValues = {"LOW", "MEDIUM", "HIGH", "CRITICAL"})
+    @Schema(description = "Öncelik seviyesi", example = "HIGH",
+            allowableValues = {"LOW", "MEDIUM", "HIGH", "CRITICAL"})
     private String priority;
 
     @Schema(description = "Ürün/kategori ID'si", example = "1")
     private Long productId;
 
-    @Schema(description = "Ürün/kategori adı (sunucu tarafında çözümlenir)", example = "CRM")
+    @Schema(description = "Ürün/kategori adı", example = "CRM")
     private String productName;
 
-    @Schema(description = "Bileti oluşturan müşterinin Keycloak ID'si", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+    @Schema(description = "Bileti oluşturan müşterinin Keycloak ID'si")
     private String customerId;
 
-    @Schema(description = "Müşterinin tam adı (sunucu tarafında çözümlenir)", example = "Ali Yılmaz")
+    @Schema(description = "Müşterinin tam adı", example = "Ali Yılmaz")
     private String customerName;
 
-    @Schema(description = "Bileti sahiplenen ajanın Keycloak ID'si (atanmamışsa null)", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321")
-    private String assigneeId;
+    @Schema(description = "Bileti sahiplenen ajanların listesi (boşsa kimse claim almamış)")
+    private List<ClaimerDTO> claimers;
 
-    @Schema(description = "Ajanın tam adı (sunucu tarafında çözümlenir)", example = "Mehmet Kaya")
-    private String assigneeName;
-
-    @Schema(description = "SLA son tarih/saat (jBPM tarafından hesaplanır)", example = "2026-04-22T17:00:00+03:00")
+    @Schema(description = "SLA son tarih/saat")
     private ZonedDateTime slaDeadline;
 
     @Schema(description = "SLA ihlal edildi mi?", example = "false")
     private Boolean slaBreached;
 
-    @Schema(description = "Duraklatma öncesi birikmiş SLA süresi (milisaniye)", example = "3600000")
+    @Schema(description = "Duraklatma öncesi birikmiş SLA süresi (ms)", example = "3600000")
     private Long slaElapsedMs;
 
-    @Schema(description = "SLA sayacının duraklatıldığı an (null ise sayaç aktif)", example = "2026-04-21T14:00:00+03:00")
+    @Schema(description = "SLA sayacının duraklatıldığı an (null ise sayaç aktif)")
     private ZonedDateTime slaPausedAt;
 
-    @Schema(description = "Biletin oluşturulma tarihi", example = "2026-04-20T10:30:00+03:00")
+    @Schema(description = "Biletin oluşturulma tarihi")
     private ZonedDateTime createdAt;
 
-    @Schema(description = "Biletin çözüldü olarak işaretlendiği tarih", example = "2026-04-21T15:45:00+03:00")
+    @Schema(description = "Biletin çözüldü olarak işaretlendiği tarih")
     private ZonedDateTime resolvedAt;
 
-    @Schema(description = "Biletin kapatıldığı tarih", example = "2026-04-21T16:00:00+03:00")
+    @Schema(description = "Biletin kapatıldığı tarih")
     private ZonedDateTime closedAt;
 
     @Schema(description = "Bilete CSAT anketi doldurulmuş mu?", example = "true")
     private Boolean hasCsat;
 
-    @Schema(description = "Gerçek zamanlı SLA bilgisi — deadlineTs (ms cinsinden Unix) veya remainingMs (duraklatıldıysa kalan ms)")
+    @Schema(description = "Gerçek zamanlı SLA bilgisi")
     private java.util.Map<String, Long> slaInfo;
 
-    public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat, String productName, String customerName, String assigneeName) {
+    public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat,
+                                               String productName, String customerName,
+                                               List<ClaimerDTO> claimers) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())
                 .title(ticket.getTitle())
@@ -86,8 +88,7 @@ public class TicketResponseDTO {
                 .productName(productName)
                 .customerId(ticket.getCustomerId())
                 .customerName(customerName)
-                .assigneeId(ticket.getAssigneeId())
-                .assigneeName(assigneeName)
+                .claimers(claimers)
                 .slaDeadline(ticket.getSlaDeadline())
                 .slaBreached(ticket.getSlaBreached())
                 .slaElapsedMs(ticket.getSlaElapsedMs())
@@ -99,7 +100,8 @@ public class TicketResponseDTO {
                 .build();
     }
 
-    public static TicketResponseDTO fromEntity(Ticket ticket, String productName, String customerName, String assigneeName) {
-        return fromEntity(ticket, false, productName, customerName, assigneeName);
+    public static TicketResponseDTO fromEntity(Ticket ticket, String productName,
+                                               String customerName, List<ClaimerDTO> claimers) {
+        return fromEntity(ticket, false, productName, customerName, claimers);
     }
 }

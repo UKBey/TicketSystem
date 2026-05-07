@@ -26,6 +26,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -59,6 +60,7 @@ import org.springframework.data.domain.PageRequest;
 public class MetricsService {
 
     private final TicketRepository ticketRepository;
+    private final TicketClaimRepository ticketClaimRepository;
     private final CsatRepository csatRepository;
     private final UserRepository userRepository;
     private final WorklogRepository worklogRepository;
@@ -192,11 +194,18 @@ public class MetricsService {
                         (left, right) -> left
                 ));
 
+        // Ajan → sahiplenilen bilet ID'leri haritası (N+1 önleme).
+        List<String> agentIds = activeAgents.stream().map(User::getId).collect(Collectors.toList());
+        Map<String, Set<Long>> claimedTicketIdsByAgent = buildClaimedTicketIdMap(agentIds);
+
         ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
         ZonedDateTime last7Days = ZonedDateTime.now().minusDays(7);
 
         List<AgentPerformanceItemDTO> agentRows = activeAgents.stream()
-                .map(agent -> buildAgentPerformanceRow(agent, tickets, worklogs, csatByTicketId, last24Hours, last7Days))
+                .map(agent -> buildAgentPerformanceRow(
+                        agent, tickets, worklogs, csatByTicketId,
+                        claimedTicketIdsByAgent.getOrDefault(agent.getId(), Set.of()),
+                        last24Hours, last7Days))
                 .sorted(Comparator
                         .comparing(AgentPerformanceItemDTO::getActiveTickets, Comparator.reverseOrder())
                         .thenComparing(AgentPerformanceItemDTO::getResolvedLast24Hours, Comparator.reverseOrder())
@@ -226,16 +235,28 @@ public class MetricsService {
                 .build();
     }
 
+    private Map<String, Set<Long>> buildClaimedTicketIdMap(List<String> agentIds) {
+        if (agentIds.isEmpty()) return Map.of();
+        Map<String, Set<Long>> result = new HashMap<>();
+        ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(agentIds).forEach(row -> {
+            String agentId = (String) row[0];
+            Long ticketId = (Long) row[1];
+            result.computeIfAbsent(agentId, k -> new java.util.HashSet<>()).add(ticketId);
+        });
+        return result;
+    }
+
     private AgentPerformanceItemDTO buildAgentPerformanceRow(
             User agent,
             List<Ticket> tickets,
             List<TicketWorklog> worklogs,
             Map<Long, Integer> csatByTicketId,
+            Set<Long> claimedTicketIds,
             ZonedDateTime last24Hours,
             ZonedDateTime last7Days) {
 
         List<Ticket> agentTickets = tickets.stream()
-                .filter(ticket -> agent.getId().equals(ticket.getAssigneeId()))
+                .filter(ticket -> claimedTicketIds.contains(ticket.getId()))
                 .toList();
 
         long activeTickets = agentTickets.stream()

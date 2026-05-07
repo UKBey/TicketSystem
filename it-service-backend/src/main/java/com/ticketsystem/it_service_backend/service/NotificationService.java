@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.dto.UpdateNotificationPreferenceReque
 import com.ticketsystem.it_service_backend.entity.*;
 import com.ticketsystem.it_service_backend.repository.NotificationPreferenceRepository;
 import com.ticketsystem.it_service_backend.repository.NotificationRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -26,6 +27,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceRepository preferenceRepository;
     private final UserRepository userRepository;
+    private final TicketClaimRepository ticketClaimRepository;
     private final EmailService emailService;
 
     // -------------------------------------------------------------------------
@@ -46,13 +48,15 @@ public class NotificationService {
         });
     }
 
-    public void notifyTicketAssigned(Ticket ticket) {
-        if (ticket.getAssigneeId() == null) return;
-        userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
+    /**
+     * Claim alan ajana bildirim gönderir. Çok-agentli yapıda her yeni claimer için ayrı çağrılır.
+     */
+    public void notifyTicketClaimed(Ticket ticket, String agentId) {
+        userRepository.findById(agentId).ifPresent(agent -> {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        "Bilet #" + ticket.getId() + " üzerinize atandı: " + ticket.getTitle(),
+                        "Bilet #" + ticket.getId() + " üzerinize alındı: " + ticket.getTitle(),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
@@ -82,21 +86,22 @@ public class NotificationService {
         boolean authorIsCustomer = comment.getAuthorId().equals(ticket.getCustomerId());
 
         if (authorIsCustomer) {
-            // Müşteri yazdı → ajana bildir
-            if (ticket.getAssigneeId() == null) return;
-            userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
-                NotificationPreference pref = getOrDefaultPreference(agent.getId());
-                if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
-                    saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
-                            "Bilet #" + ticket.getId() + " için yeni müşteri yorumu eklendi.",
-                            ticket.getId());
-                }
-                if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
-                    userRepository.findById(comment.getAuthorId()).ifPresent(author ->
-                            emailService.sendCommentAddedEmail(agent, ticket,
-                                    comment.getMessage(), author.getFullName()));
-                }
-            });
+            // Müşteri yazdı → tüm claim sahiplerini bildir
+            ticketClaimRepository.findByTicketId(ticket.getId()).forEach(claim ->
+                userRepository.findById(claim.getAgentId()).ifPresent(agent -> {
+                    NotificationPreference pref = getOrDefaultPreference(agent.getId());
+                    if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
+                        saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
+                                "Bilet #" + ticket.getId() + " için yeni müşteri yorumu eklendi.",
+                                ticket.getId());
+                    }
+                    if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
+                        userRepository.findById(comment.getAuthorId()).ifPresent(author ->
+                                emailService.sendCommentAddedEmail(agent, ticket,
+                                        comment.getMessage(), author.getFullName()));
+                    }
+                })
+            );
         } else {
             // Ajan yazdı → müşteriye bildir
             userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
@@ -213,8 +218,9 @@ public class NotificationService {
 
     private void notifyStaffAboutSla(Ticket ticket, NotificationType type,
                                      String message, boolean isWarning) {
-        if (ticket.getAssigneeId() != null) {
-            userRepository.findById(ticket.getAssigneeId()).ifPresent(agent -> {
+        // Tüm claim sahiplerini SLA uyarısı hakkında bilgilendir.
+        ticketClaimRepository.findByTicketId(ticket.getId()).forEach(claim ->
+            userRepository.findById(claim.getAgentId()).ifPresent(agent -> {
                 NotificationPreference pref = getOrDefaultPreference(agent.getId());
                 boolean shouldNotify = isWarning
                         ? Boolean.TRUE.equals(pref.getNotifyOnSlaWarning())
@@ -227,8 +233,8 @@ public class NotificationService {
                     if (isWarning) emailService.sendSlaWarningEmail(agent, ticket);
                     else           emailService.sendSlaBreachedEmail(agent, ticket);
                 }
-            });
-        }
+            })
+        );
 
         List<User> managers = userRepository.findByRole("MANAGER");
         for (User manager : managers) {

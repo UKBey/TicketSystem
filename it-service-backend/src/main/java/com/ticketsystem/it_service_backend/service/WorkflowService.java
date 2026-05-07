@@ -62,10 +62,7 @@ public class WorkflowService {
         String fullCallbackUrl = callbackBaseUrl + "?token=" + callbackToken;
         processVariables.put("callbackUrl", fullCallbackUrl);
 
-        // Bilet onceden atanmissa assignee bilgisi de surece eklenir.
-        if (ticket.getAssigneeId() != null) {
-            processVariables.put("assigneeId", ticket.getAssigneeId());
-        }
+        // Yeni biletler her zaman NEW statüsünde oluşur; claim bilgisi yoktur.
 
         Long processInstanceId = kieServerAdapter.startProcess(processId, processVariables);
 
@@ -90,18 +87,19 @@ public class WorkflowService {
     }
 
     /**
-     * Atama bilgisini workflow tarafina aktarir.
+     * Claim alan ajanın bilgisini workflow tarafına aktarır.
+     * Çok-agentli yapıda en son claim'i alan ajanın ID'si iletilir.
      */
-    public void syncTicketAssignment(Ticket ticket) {
+    public void syncTicketAssignment(Ticket ticket, String agentId) {
         if (ticket.getProcessInstanceId() == null) {
             log.warn("Ticket'ın processInstanceId'si yok, assignment sync atlanıyor. TicketId={}", ticket.getId());
             return;
         }
 
-        log.info("Ticket ataması jBPM'e senkronize ediliyor. TicketId={}, AssigneeId={}, ProcessInstanceId={}",
-                ticket.getId(), ticket.getAssigneeId(), ticket.getProcessInstanceId());
+        log.info("Ticket ataması jBPM'e senkronize ediliyor. TicketId={}, AgentId={}, ProcessInstanceId={}",
+                ticket.getId(), agentId, ticket.getProcessInstanceId());
 
-        kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "assigneeId", ticket.getAssigneeId());
+        kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "assigneeId", agentId);
         kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "status", ticket.getStatus());
     }
 

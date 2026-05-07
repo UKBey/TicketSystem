@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -19,6 +20,7 @@ public class WorklogService {
 
     private final WorklogRepository worklogRepository;
     private final TicketService ticketService;
+    private final TicketClaimRepository ticketClaimRepository;
 
     /**
      * Atanmis agentin ilgili bilete sure ve aciklama kaydi eklemesini saglar.
@@ -35,12 +37,11 @@ public class WorklogService {
         // Isleme konu biletin varligi dogrulanir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        // Worklog sadece agentin kendi assignee oldugu kayitta acilabilir.
-        if (!agentId.equals(ticket.getAssigneeId())) {
-            log.warn("Worklog reddedildi: Agent (ID: {}) bu biletin atanan kişisi değil. Assignee: {}",
-                    agentId, ticket.getAssigneeId());
+        // Worklog yalnizca bileti claim alan agent tarafindan eklenebilir.
+        if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
+            log.warn("Worklog reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sadece size atanmış biletlere worklog ekleyebilirsiniz.");
+                    "Sadece claim aldığınız biletlere worklog ekleyebilirsiniz.");
         }
 
         // Kapali kayitta yeni worklog olusturulmaz.
@@ -78,11 +79,11 @@ public class WorklogService {
             // Agent admin rolunde tum kayitlar listelenebilir.
             log.debug("Agent admin erişimi: Tüm workloglar listeleniyor. Bilet ID: {}", ticketId);
         } else if (isAgent) {
-            // Agent sadece uzerine atanmis kaydin workloglarini gorebilir.
-            if (!userId.equals(ticket.getAssigneeId())) {
-                log.warn("Worklog görüntüleme reddedildi: Agent (ID: {}) bu biletin assignee'si değil.", userId);
+            // Agent yalnizca claim aldigi biletlerin workloglarini gorebilir.
+            if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId)) {
+                log.warn("Worklog görüntüleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", userId);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Sadece size atanmış biletlerin workloglarını görüntüleyebilirsiniz.");
+                        "Sadece claim aldığınız biletlerin workloglarını görüntüleyebilirsiniz.");
             }
         } else {
             log.warn("Worklog görüntüleme reddedildi: Yetersiz rol. Kullanıcı: {}", userId);

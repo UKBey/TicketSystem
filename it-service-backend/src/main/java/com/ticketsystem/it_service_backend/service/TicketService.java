@@ -1,33 +1,35 @@
 package com.ticketsystem.it_service_backend.service;
 
-import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketClaim;
+import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
+import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
-import com.ticketsystem.it_service_backend.repository.WorklogRepository;
-import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.entity.Product;
-import org.springframework.web.server.ResponseStatusException;
+import com.ticketsystem.it_service_backend.repository.WorklogRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import lombok.extern.log4j.Log4j2;
-import jakarta.persistence.EntityNotFoundException;
 
 @Log4j2
 @Service
@@ -35,6 +37,7 @@ import jakarta.persistence.EntityNotFoundException;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
+    private final TicketClaimRepository ticketClaimRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
@@ -46,41 +49,35 @@ public class TicketService {
     private final NotificationService notificationService;
 
     // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
-
     private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
             "NEW", Set.of("IN_PROGRESS"),
             "IN_PROGRESS", Set.of("NEW", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"),
             "WAITING_FOR_CUSTOMER", Set.of("IN_PROGRESS"),
             "RESOLVED", Set.of("IN_PROGRESS", "CLOSED"),
-            "CLOSED", Set.of() // CLOSED son durumdur, buradan cikis yoktur.
+            "CLOSED", Set.of()
     );
 
-    // Bu durumlarda SLA sayaci aktif olarak islemez.
     private static final Set<String> SLA_PAUSED_STATES = Set.of("WAITING_FOR_CUSTOMER", "RESOLVED");
-
-    // Bu durumlarda SLA suresi aktif olarak ilerler.
     private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", "IN_PROGRESS");
+
+    // -----------------------------------------------------------------
+    // Bilet oluşturma
+    // -----------------------------------------------------------------
 
     @Transactional
     public Ticket createTicket(Ticket ticket, String customerId) {
-        log.info("Yeni bilet oluşturma işlemi. Müşteri ID: {}, Ürün ID: {}", customerId, ticket.getProductId());
+        log.info("Yeni bilet oluşturma. Müşteri: {}, Ürün: {}", customerId, ticket.getProductId());
 
         User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> {
-                    log.error("Bilet oluşturulurken müşteri bulunamadı. ID: {}", customerId);
-                    return new RuntimeException("Kullanıcı bulunamadı: " + customerId);
-                });
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + customerId));
 
         Product product = customer.getAuthorizedProducts().stream()
                 .filter(p -> p.getId().equals(ticket.getProductId()))
                 .findFirst()
-                .orElseThrow(() -> {
-                    log.warn("Bilet oluşturma reddedildi: Müşteri (ID: {}) ürün (ID: {}) için yetkili değil.", customerId, ticket.getProductId());
-                    return new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu ürün için destek kaydı oluşturma yetkiniz yok");
-                });
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Bu ürün için destek kaydı oluşturma yetkiniz yok"));
 
         if (!Boolean.TRUE.equals(product.getIsActive())) {
-            log.warn("Bilet oluşturma reddedildi: Ürün (ID: {}) aktif değil.", ticket.getProductId());
             throw new ResponseStatusException(HttpStatusCode.valueOf(422), "Bu ürün şu anda aktif değil");
         }
 
@@ -88,9 +85,7 @@ public class TicketService {
         ticket.setStatus("NEW");
 
         Ticket savedTicket = ticketRepository.save(ticket);
-        log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", savedTicket.getId());
 
-        // Bilet acilis metnini ilk yorum olarak saklayip gecmisi tek yerde topluyoruz.
         Comment firstComment = Comment.builder()
                 .ticket(savedTicket)
                 .authorId(customerId)
@@ -100,41 +95,29 @@ public class TicketService {
         commentRepository.save(firstComment);
 
         notificationService.notifyTicketCreated(savedTicket);
-
-        // Event, commit sonrasinda tetiklenir; boylece workflow tarafi kaydedilmis bileti gorur.
         eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
 
         return savedTicket;
     }
 
+    // -----------------------------------------------------------------
+    // Listeleme
+    // -----------------------------------------------------------------
+
     @Transactional(readOnly = true)
     public List<Ticket> getAllTickets(String userId, List<String> roles) {
-        log.info("Tüm biletleri listeleme işlemi. Kullanıcı: {}, Roller: {}", userId, roles);
-
         if (roles.contains("AGENT_ADMIN")) {
-            log.debug("Agent admin rolü algılandı, tüm biletler getiriliyor.");
             return ticketRepository.findAll();
         }
-
-        if (userId == null) {
-            log.warn("Kullanıcı ID bulunamadı, boş liste dönülüyor.");
-            return new ArrayList<>();
-        }
+        if (userId == null) return new ArrayList<>();
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("Kullanıcı bulunamadı: {}", userId);
-                    return new RuntimeException("Kullanıcı bulunamadı: " + userId);
-                });
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
 
         List<Long> productIds = user.getAuthorizedProducts().stream()
-                .map(Product::getId)
-                .collect(Collectors.toList());
+                .map(Product::getId).collect(Collectors.toList());
 
-        List<Ticket> tickets = ticketRepository.findByCustomerIdOrProductIdIn(userId, productIds);
-        log.info("Kullanıcı (ID: {}) için {} bilet bulundu (Kendi biletleri + Yetkili olduğu ürünler).", userId,
-                tickets.size());
-        return tickets;
+        return ticketRepository.findByCustomerIdOrProductIdIn(userId, productIds);
     }
 
     public List<Ticket> getCustomerTickets(String customerId) {
@@ -143,39 +126,56 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public List<Ticket> getPoolTickets(String userId, List<String> roles) {
-        log.info("Bilet havuzu listeleme işlemi. Kullanıcı: {}, Roller: {}", userId, roles);
-
         if (roles.contains("AGENT_ADMIN")) {
-            log.debug("Agent admin rolü için tüm NEW biletler getiriliyor.");
             return ticketRepository.findByStatus("NEW");
         }
-
-        if (userId == null) {
-            return new ArrayList<>();
-        }
+        if (userId == null) return new ArrayList<>();
 
         User agent = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("Ajan bulunamadı: {}", userId);
-                    return new RuntimeException("Kullanıcı bulunamadı: " + userId);
-                });
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
 
         List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId)
-                .collect(Collectors.toList());
+                .map(Product::getId).collect(Collectors.toList());
 
-        if (productIds.isEmpty()) {
-            log.warn("Ajanın (ID: {}) atanmış hiçbir ürünü yok, havuz boş dönülüyor.", userId);
-            return new ArrayList<>();
-        }
+        if (productIds.isEmpty()) return new ArrayList<>();
 
-        List<Ticket> poolTickets = ticketRepository.findByStatusAndProductIdIn("NEW", productIds);
-        log.info("Havuzda ajan (ID: {}) için {} adet uygun bilet listelendi.", userId, poolTickets.size());
-        return poolTickets;
+        return ticketRepository.findByStatusAndProductIdIn("NEW", productIds);
     }
 
-    public List<Ticket> getAgentAssignedTickets(String agentId) {
-        return ticketRepository.findByAssigneeId(agentId);
+    /**
+     * Ajanın bizzat claim aldığı biletleri döner.
+     */
+    @Transactional(readOnly = true)
+    public List<Ticket> getAgentClaimedTickets(String agentId) {
+        List<Long> ticketIds = ticketClaimRepository.findTicketIdsByAgentId(agentId);
+        if (ticketIds.isEmpty()) return new ArrayList<>();
+        return ticketRepository.findAllById(ticketIds);
+    }
+
+    /**
+     * Ajanın yetkili olduğu ürünlerdeki aktif (IN_PROGRESS / WAITING_FOR_CUSTOMER) biletleri döner.
+     * Yeni "Team Tickets" panelini besler.
+     */
+    @Transactional(readOnly = true)
+    public List<Ticket> getTeamTickets(String userId, List<String> roles) {
+        if (roles.contains("AGENT_ADMIN")) {
+            return ticketRepository.findActiveByProductIdIn(
+                    ticketRepository.findAll().stream()
+                            .map(Ticket::getProductId)
+                            .distinct()
+                            .collect(Collectors.toList()));
+        }
+        if (userId == null) return new ArrayList<>();
+
+        User agent = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+
+        List<Long> productIds = agent.getAuthorizedProducts().stream()
+                .map(Product::getId).collect(Collectors.toList());
+
+        if (productIds.isEmpty()) return new ArrayList<>();
+
+        return ticketRepository.findActiveByProductIdIn(productIds);
     }
 
     public Ticket getTicketById(Long id) {
@@ -185,231 +185,207 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Ticket getTicketWithAuth(Long id, String userId, List<String> roles) {
-        log.info("Bilet detayı (yetkili) çekme işlemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // Agent admin rolunde urun veya sahiplik siniri olmadan erisim verilir.
-        if (roles.contains("AGENT_ADMIN")) {
-            log.debug("Agent admin yetkisiyle erişim sağlandı.");
-            return ticket;
-        }
+        if (roles.contains("AGENT_ADMIN")) return ticket;
 
-        // Bilet sahibi her zaman kendi kaydini gorur.
-        if (userId.equals(ticket.getCustomerId())) {
-            log.debug("Bilet sahibine (CUSTOMER) erişim sağlandı.");
-            return ticket;
-        }
+        if (userId.equals(ticket.getCustomerId())) return ticket;
 
-        // Agent yalnizca yetkili oldugu urun grubuna ait biletleri gorebilir.
         if (roles.contains("AGENT")) {
             User agent = userRepository.findById(userId).orElseThrow();
-            boolean isAuthorized = agent.getAuthorizedProducts().stream()
+            boolean authorized = agent.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-
-            if (isAuthorized) {
-                log.debug("Yetkili ajana (AGENT) erişim sağlandı.");
-                return ticket;
-            }
+            if (authorized) return ticket;
         }
 
-        log.warn("Yetkisiz bilet erişim denemesi! Kullanıcı: {}, Bilet ID: {}", userId, id);
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti görüntüleme yetkiniz yok.");
     }
 
     /**
-     * Yorum ekleme, dosya yukleme/silme gibi veriyi degistiren islemler icin
-     * goruntulemeden daha siki yetki denetimi uygular.
+     * Yorum/dosya/worklog gibi mutasyon işlemleri için sıkı yetki denetimi.
+     * Çok-agentli yapıda herhangi bir claimer veya AGENT_ADMIN işlem yapabilir.
      */
     @Transactional(readOnly = true)
     public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
-        log.info("Kritik işlem yetki kontrolü (Mutation). Bilet ID: {}, Kullanıcı: {}", id, userId);
         Ticket ticket = getTicketById(id);
 
-        // Agent admin degisiklik yapan tum islemlerde dogrudan yetkilidir.
-        if (roles.contains("AGENT_ADMIN")) {
-            log.debug("Agent admin için işlem izni verildi.");
-            return ticket;
-        }
+        if (roles.contains("AGENT_ADMIN")) return ticket;
 
-        // Agent sadece uzerine atanmis kayitta mutasyon yapabilir.
         if (roles.contains("AGENT")) {
-            if (userId.equals(ticket.getAssigneeId())) {
-                log.debug("Atanan ajan için işlem izni verildi.");
-                return ticket;
-            }
-            log.warn("İşlem reddedildi: Bilet ajana atanmamış.");
+            boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
+            if (isClaimer) return ticket;
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sadece üzerinize atanan biletlerde işlem yapabilirsiniz.");
+                    "Sadece bu bileti claim almış agentlar işlem yapabilir.");
         }
 
-        // Musteri sadece kendi olusturdugu kayitta islem yapabilir.
-        if (roles.contains("CUSTOMER")) {
-            if (userId.equals(ticket.getCustomerId())) {
-                log.debug("Bilet sahibi müşteri için işlem izni verildi.");
-                return ticket;
-            }
-        }
+        if (roles.contains("CUSTOMER") && userId.equals(ticket.getCustomerId())) return ticket;
 
-        log.warn("Kritik işlem yetki reddi! Kullanıcı: {}, Bilet ID: {}", userId, id);
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu işlem için yetkiniz bulunmuyor.");
     }
 
+    /**
+     * Ajanın belirtilen bileti claim alıp almadığını kontrol eder.
+     */
+    public boolean isAgentClaimer(Long ticketId, String agentId) {
+        return ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId);
+    }
+
+    // -----------------------------------------------------------------
+    // Claim & Unclaim
+    // -----------------------------------------------------------------
+
+    /**
+     * Ajan bileti sahiplenir. NEW ise ilk claim — IN_PROGRESS'e geçer.
+     * IN_PROGRESS ise mevcut sahiplenilenlerle birlikte claim eklenir.
+     */
     @Transactional
     public Ticket claimTicket(Long id, String agentId) {
-        log.info("Bilet sahiplenme (claim) işlemi başlatıldı. Bilet ID: {}, Ajan: {}", id, agentId);
+        log.info("Claim isteği. Bilet: {}, Ajan: {}", id, agentId);
         Ticket ticket = getTicketById(id);
-        if (!"NEW".equals(ticket.getStatus())) {
-            log.warn("Sahiplenme reddedildi: Bilet statüsü NEW değil ({})", ticket.getStatus());
-            throw new RuntimeException("Sadece NEW statüsündeki biletler üzerinize alınabilir.");
+
+        String currentStatus = ticket.getStatus();
+        if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Yalnızca NEW veya IN_PROGRESS statüsündeki biletler üzerinize alınabilir.");
         }
 
         User agent = userRepository.findById(agentId)
-                .orElseThrow(() -> {
-                    log.error("Ajan bulunamadı: {}", agentId);
-                    return new RuntimeException("Kullanıcı bulunamadı: " + agentId);
-                });
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + agentId));
 
         boolean isAuthorized = agent.getAuthorizedProducts().stream()
                 .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-
         if (!isAuthorized) {
-            log.warn("Sahiplenme reddedildi: Ajan bu ürün grubu için yetkili değil.");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Bu ürüne ait biletleri üzerinize alma yetkiniz yok.");
         }
 
-        String oldStatus = ticket.getStatus();
-        ticket.setAssigneeId(agentId);
-        ticket.setStatus("IN_PROGRESS");
-        Ticket savedTicket = ticketRepository.save(ticket);
-        log.info("Bilet başarıyla sahiplenildi. Bilet ID: {}, Yeni Statü: {}", id, savedTicket.getStatus());
-
-        // Claim sonrasi atama bilgisini workflow degiskenlerine de yansitir.
-        try {
-            workflowService.syncTicketAssignment(savedTicket);
-        } catch (Exception e) {
-            log.error("Workflow atama sync başarısız. TicketId={}, Hata={}", id, e.getMessage());
+        if (ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Bu bileti zaten üzerinize almışsınız.");
         }
 
-        notificationService.notifyTicketAssigned(savedTicket);
+        TicketClaim claim = TicketClaim.builder()
+                .ticket(ticket)
+                .agentId(agentId)
+                .build();
+        ticketClaimRepository.save(claim);
 
-        return savedTicket;
-    }
-
-    /**
-     * Durum degisimini tek akista yonetir: gecis dogrulama, yetki denetimi,
-     * duruma ozel kurallar ve workflow/SLA senkronizasyonu burada calisir.
-     */
-    @Transactional
-    public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
-        log.info("Statü güncelleme işlemi. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
-        Ticket ticket = getTicketById(id);
-
-        String oldStatus = ticket.getStatus();
-
-        // Hedef statuye gecis kurallara uygun mu kontrol edilir.
-        validateStateTransition(oldStatus, newStatus);
-
-        // Bu gecisi yapan kullanicinin rol ve sahiplik yetkisi denetlenir.
-        validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
-
-        // RESOLVED gecisi icin cozum notu zorunludur.
-        if ("RESOLVED".equals(newStatus)) {
-            boolean hasResolutionNote = resolutionNoteRepository.existsByTicketId(id);
-            if (!hasResolutionNote) {
-                log.warn("RESOLVED geçişi reddedildi: Çözüm notu bulunamadı. Bilet ID: {}", id);
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Bileti çözüldü olarak işaretlemek için önce bir çözüm notu oluşturmalısınız.");
+        // İlk claim ise bileti IN_PROGRESS'e taşır.
+        if ("NEW".equals(currentStatus)) {
+            ticket.setStatus("IN_PROGRESS");
+            ticketRepository.save(ticket);
+            log.info("İlk claim — bilet IN_PROGRESS'e alındı. Bilet: {}", id);
+            try {
+                workflowService.syncTicketAssignment(ticket, agentId);
+            } catch (Exception e) {
+                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
             }
         }
 
-        // Unclaim gibi gecise ozel ek etkiler uygulanir.
+        notificationService.notifyTicketClaimed(ticket, agentId);
+        return ticket;
+    }
+
+    /**
+     * Ajan kendi claim'ini geri bırakır.
+     * Son claim ise bilet NEW'e döner (havuza geri gider).
+     */
+    @Transactional
+    public Ticket unclaimTicket(Long id, String agentId) {
+        log.info("Unclaim isteği. Bilet: {}, Ajan: {}", id, agentId);
+        Ticket ticket = getTicketById(id);
+
+        if (!ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bu bilete ait aktif bir claim'iniz bulunmuyor.");
+        }
+
+        ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
+
+        long remaining = ticketClaimRepository.countByTicketId(id);
+        if (remaining == 0 && "IN_PROGRESS".equals(ticket.getStatus())) {
+            log.info("Son claim bırakıldı — bilet havuza (NEW) geri dönüyor. Bilet: {}", id);
+            ticket.setStatus("NEW");
+            ticketRepository.save(ticket);
+            try {
+                workflowService.syncTicketStatus(ticket);
+            } catch (Exception e) {
+                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
+            }
+        }
+
+        return ticket;
+    }
+
+    // -----------------------------------------------------------------
+    // Durum güncellemesi
+    // -----------------------------------------------------------------
+
+    @Transactional
+    public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
+        log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}", id, newStatus, userId);
+        Ticket ticket = getTicketById(id);
+        String oldStatus = ticket.getStatus();
+
+        validateStateTransition(oldStatus, newStatus);
+        validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
+
+        if ("RESOLVED".equals(newStatus) && !resolutionNoteRepository.existsByTicketId(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bileti çözüldü olarak işaretlemek için önce bir çözüm notu oluşturmalısınız.");
+        }
+
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
-        log.debug("Bilet statüsü güncelleniyor: {} → {}", oldStatus, newStatus);
         ticket.setStatus(newStatus);
+        if ("RESOLVED".equals(newStatus)) ticket.setResolvedAt(ZonedDateTime.now());
+        else if ("CLOSED".equals(newStatus))  ticket.setClosedAt(ZonedDateTime.now());
 
-        // Is kapanis cizelgesi icin ilgili zaman damgalari burada set edilir.
-        if ("RESOLVED".equals(newStatus)) {
-            ticket.setResolvedAt(ZonedDateTime.now());
-        } else if ("CLOSED".equals(newStatus)) {
-            ticket.setClosedAt(ZonedDateTime.now());
-        }
+        Ticket saved = ticketRepository.save(ticket);
+        handleWorkflowSignals(saved, oldStatus, newStatus);
 
-        Ticket savedTicket = ticketRepository.save(ticket);
-        log.info("Statü başarıyla güncellendi. Bilet ID: {}, Statü: {} → {}", id, oldStatus, savedTicket.getStatus());
+        if ("RESOLVED".equals(newStatus)) notificationService.notifyTicketResolved(saved);
+        else                               notificationService.notifyStatusChanged(saved, oldStatus);
 
-        // Durum degisiminden sonra workflow ve SLA tarafi senkronize edilir.
-        handleWorkflowSignals(savedTicket, oldStatus, newStatus);
-
-        if ("RESOLVED".equals(newStatus)) {
-            notificationService.notifyTicketResolved(savedTicket);
-        } else {
-            notificationService.notifyStatusChanged(savedTicket, oldStatus);
-        }
-
-        return savedTicket;
+        return saved;
     }
 
-    /**
-     * Mevcut durumdan hedef duruma gecisin izinli olup olmadigini denetler.
-     */
-    private void validateStateTransition(String currentStatus, String newStatus) {
-        Set<String> allowedTargets = VALID_TRANSITIONS.get(currentStatus);
-
-        if (allowedTargets == null) {
-            log.error("Bilinmeyen mevcut statü: {}", currentStatus);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Bilinmeyen mevcut durum: " + currentStatus);
+    private void validateStateTransition(String current, String next) {
+        Set<String> allowed = VALID_TRANSITIONS.get(current);
+        if (allowed == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bilinmeyen mevcut durum: " + current);
         }
-
-        if (!allowedTargets.contains(newStatus)) {
-            log.warn("Geçersiz durum geçişi: {} → {} (İzin verilen hedefler: {})",
-                    currentStatus, newStatus, allowedTargets);
+        if (!allowed.contains(next)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format("Geçersiz durum geçişi: %s → %s. İzin verilen geçişler: %s",
-                            currentStatus, newStatus, allowedTargets));
+                    String.format("Geçersiz durum geçişi: %s → %s. İzin verilenler: %s", current, next, allowed));
         }
     }
 
-    /**
-     * Durum degisimini yapan kullanicinin rolu ve kayit iliskisine gore yetkisini kontrol eder.
-     */
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
                                                  String userId, List<String> roles) {
-        // Agent admin, durum gecislerinde kisitsiz yetkiye sahiptir.
-        if (roles.contains("AGENT_ADMIN")) {
-            return;
-        }
+        if (roles.contains("AGENT_ADMIN")) return;
 
-        // Musteri sadece kendi kaydinda belirli geri donus/onay gecislerini yapabilir.
         if (roles.contains("CUSTOMER")) {
-            boolean isOwner = userId.equals(ticket.getCustomerId());
-            if (!isOwner) {
+            if (!userId.equals(ticket.getCustomerId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Sadece kendi biletlerinizin statüsünü değiştirebilirsiniz.");
             }
-
-            // Musteri gecisleri yalnizca yanit verme, yeniden acma ve onayla kapatma ile sinirlidir.
-            boolean customerAllowed =
+            boolean allowed =
                     ("WAITING_FOR_CUSTOMER".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
                     ("RESOLVED".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
                     ("RESOLVED".equals(oldStatus) && "CLOSED".equals(newStatus));
-
-            if (!customerAllowed) {
+            if (!allowed) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Müşteri olarak bu durum geçişini yapamazsınız: " + oldStatus + " → " + newStatus);
             }
             return;
         }
 
-        // Agent tarafinda urun bazli yetki dogrulanir.
         if (roles.contains("AGENT")) {
             User agent = userRepository.findById(userId).orElseThrow();
-            boolean isAuthorizedForProduct = agent.getAuthorizedProducts().stream()
+            boolean authorized = agent.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-
-            if (!isAuthorizedForProduct) {
+            if (!authorized) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti güncelleme yetkiniz yok.");
             }
             return;
@@ -419,90 +395,78 @@ public class TicketService {
     }
 
     /**
-     * Bazi gecislerde alan guncellemesi ve denetim kaydi gibi ek kurallari uygular.
+     * IN_PROGRESS → NEW geçişi: tüm claim'ler temizlenir, bilet havuza geri döner.
+     * Bu geçiş yalnızca AGENT_ADMIN yetkisi gerektirdiğinden, normal unclaim için
+     * DELETE /api/tickets/{id}/claim kullanılmalıdır.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
-
-        // Agent bileti biraktiginda atama temizlenir ve kayit tekrar havuza doner.
         if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {
-            log.warn("AUDIT LOG: Agent (ID: {}) bileti (ID: {}) bıraktı (Unclaim). Sebep loglanmalı.",
-                    userId, ticket.getId());
-            ticket.setAssigneeId(null); // Atamayi sifirlayarak havuza geri yollar.
+            log.warn("AUDIT: Tüm claim'ler temizleniyor. Bilet: {}, İşlemi yapan: {}", ticket.getId(), userId);
+            ticketClaimRepository.deleteByTicketId(ticket.getId());
         }
 
-        // Agent tarafindan kapatma gecisinde denetim izi birakilir.
         if ("IN_PROGRESS".equals(oldStatus) && "CLOSED".equals(newStatus)) {
-            log.warn("AUDIT LOG: Agent (ID: {}) müşteri cevap vermediği için bileti (ID: {}) kapatıyor.",
-                    userId, ticket.getId());
+            log.warn("AUDIT: Ajan müşteri yanıtı beklerken bileti kapattı. Bilet: {}, Ajan: {}",
+                    ticket.getId(), userId);
         }
     }
 
-    /**
-     * Durum degisimine gore workflow sinyali gonderir ve SLA sayaç davranisini ayarlar.
-     */
     private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
         try {
-            // Uygulamadaki son statuyu workflow degiskenine yazar.
             workflowService.syncTicketStatus(ticket);
 
-            // Aktiften bekleme/resolve durumuna gecince sayac durdurulur.
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
                 workflowService.pauseSla(ticket);
-                ticketRepository.save(ticket); // pause islemi ile guncellenen alanlari kalici hale getirir.
+                ticketRepository.save(ticket);
             }
-
-            // Beklemeden tekrar aktif duruma gecince sayac kaldigi yerden devam eder.
             if (SLA_PAUSED_STATES.contains(oldStatus) && SLA_ACTIVE_STATES.contains(newStatus)) {
                 workflowService.resumeSla(ticket);
-                ticketRepository.save(ticket); // resume sonrasi guncel SLA alanlarini kaydeder.
+                ticketRepository.save(ticket);
             }
-
-            // Bilet kapaninca ilgili workflow ornegi de sonlandirilir.
             if ("CLOSED".equals(newStatus)) {
                 workflowService.closeTicketWorkflow(ticket);
             }
-
         } catch (Exception e) {
-            log.error("Workflow sinyal gönderimi başarısız. TicketId={}, Geçiş={} → {}, Hata={}",
+            log.error("Workflow sinyal hatası. TicketId={}, Geçiş={} → {}, Hata={}",
                     ticket.getId(), oldStatus, newStatus, e.getMessage());
         }
     }
 
+    // -----------------------------------------------------------------
+    // Silme
+    // -----------------------------------------------------------------
+
     @Transactional
     public void deleteTicket(Long id) {
-        log.info("Bilet silme işlemi. Bilet ID: {}", id);
-
-        // Fiziksel silmeden once workflow tarafindaki sureci sonlandirmaya calisir.
+        log.info("Bilet silme. ID: {}", id);
         try {
             Ticket ticket = getTicketById(id);
-            log.warn("AUDIT LOG: Bilet (ID: {}) siliniyor. Bu eylem loglanmıştır.", id);
+            log.warn("AUDIT: Bilet siliniyor. ID: {}", id);
             workflowService.abortTicketWorkflow(ticket);
         } catch (Exception e) {
-            log.error("Workflow iptal başarısız (ticket silinecek). TicketId={}, Hata={}", id, e.getMessage());
+            log.error("Workflow iptal hatası (bilet silinecek). TicketId={}, Hata={}", id, e.getMessage());
         }
 
-        // Bagli kayitlar elle temizlenir; veritabani butunlugu korunur.
+        ticketClaimRepository.deleteByTicketId(id);
         commentRepository.deleteByTicketId(id);
         csatRepository.deleteByTicketId(id);
         resolutionNoteRepository.deleteByTicketId(id);
         worklogRepository.deleteByTicketId(id);
         attachmentRepository.deleteByTicketId(id);
-
         ticketRepository.deleteById(id);
-        log.info("Bilet başarıyla silindi. Bilet ID: {}", id);
     }
 
+    // -----------------------------------------------------------------
+    // SLA
+    // -----------------------------------------------------------------
 
-    /**
-     * Bilet icin SLA geri sayim bilgisini workflow katmanindan alir.
-     */
-    public java.util.Map<String, Long> getSlaTimerInfo(Long id) {
+    public Map<String, Long> getSlaTimerInfo(Long id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Bilet bulunamadı: " + id));
         return workflowService.getSlaTimerInfo(ticket);
     }
 
-    public java.util.Map<String, Long> getSlaTimerInfo(Ticket ticket) {
+    public Map<String, Long> getSlaTimerInfo(Ticket ticket) {
         return workflowService.getSlaTimerInfo(ticket);
     }
 }

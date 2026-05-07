@@ -13,12 +13,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Musterinin olusturdugu biletleri listeler.
     List<Ticket> findByCustomerId(String customerId);
 
-    // Agentin uzerine atanmis biletleri listeler.
-    List<Ticket> findByAssigneeId(String assigneeId);
-
-    // Havuzdaki NEW ve henuz sahiplenilmemis kayitlari getirir.
+    // Havuzdaki (NEW) ve henuz sahiplenilmemis kayitlari getirir.
     List<Ticket> findByStatus(String status);
-    
+
     // Agentin yetkili oldugu urunlere ait NEW biletleri getirir.
     List<Ticket> findByStatusAndProductIdIn(String status, List<Long> productIds);
 
@@ -28,32 +25,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Karma rolde kullanicinin hem sahip oldugu hem yetkili oldugu urun biletlerini birlestirir.
     List<Ticket> findByCustomerIdOrProductIdIn(String customerId, List<Long> productIds);
 
+    // Agentin yetkili oldugu urunlerde NEW olmayan ve CLOSED olmayan aktif biletleri dondurur.
+    @Query("SELECT t FROM Ticket t WHERE t.productId IN :productIds AND t.status NOT IN ('NEW', 'CLOSED')")
+    List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
+
     // Tum ticket durumlarinin dagilimini doner.
     @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")
     List<Object[]> countTicketsGroupedByStatus();
 
-    // Açık biletlerin toplam sayısı (getDashboardSummary optimizasyonu)
+    // Acik biletlerin toplam sayisi
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses")
     Long countByStatusIn(@Param("statuses") List<String> statuses);
 
-    // Açık biletler arasında SLA ihlali yapanların sayısı
+    // Acik biletler arasinda SLA ihlali yapanlarin sayisi
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true")
     Long countSlaBreachedByStatusIn(@Param("statuses") List<String> statuses);
 
-    // Son 24 saat içinde açık biletler arasında oluşturulanların sayısı
+    // Son 24 saat icinde acik biletler arasinda olusturulanlarin sayisi
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since")
     Long countCreatedSinceByStatusIn(@Param("statuses") List<String> statuses,
                                       @Param("since") java.time.ZonedDateTime since);
 
-    // Açık biletlerin priority dağılımı — [priority, count]
+    // Acik biletlerin priority dagilimi
     @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses GROUP BY t.priority")
     List<Object[]> countByStatusInGroupByPriority(@Param("statuses") List<String> statuses);
 
-    // RESOLVED biletlerin ortalama çözüm süresi (saat) — native: Hibernate 7 JPQL EXTRACT(EPOCH FROM interval) desteklemiyor
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL", nativeQuery = true)
     Double findAvgResolutionHoursForResolved();
 
-    // Worklog completion — dönem bilet sayımları
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.createdAt >= :since")
     long countCreatedSince(@Param("since") ZonedDateTime since);
 
@@ -69,7 +68,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query(value = "SELECT (COUNT(CASE WHEN t.sla_breached = false THEN 1 END) * 100.0) / NULLIF(COUNT(t.id), 0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since", nativeQuery = true)
     Double slaComplianceRateSince(@Param("since") ZonedDateTime since);
 
-    // Alert sorguları
+    // Alert sorgulari
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTickets(@Param("statuses") List<String> statuses, Pageable pageable);
 
@@ -79,12 +78,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.assigneeId IS NULL")
+    // Claim olmayan biletler = status NEW
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
     long countUnassignedByStatusIn(@Param("statuses") List<String> statuses);
 
     long countByStatus(String status);
 
-    // Scheduler: slaBreached=false iken deadline gecmis biletleri bulur (yeni ihlal tespiti).
     @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline < :now AND t.status IN :statuses")
     List<Ticket> findOverdueUnmarkedTickets(@Param("now") ZonedDateTime now,
                                             @Param("statuses") List<String> statuses);
@@ -105,13 +104,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                 COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
                 COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
             FROM date_range dr
-            LEFT JOIN tickets t ON 
+            LEFT JOIN tickets t ON
                 DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
                 DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
                 DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date
             GROUP BY dr.metric_date, COALESCE(DATE(t.created_at AT TIME ZONE 'UTC'), dr.metric_date)
         )
-        SELECT 
+        SELECT
             metric_date,
             SUM(created_count)::BIGINT,
             SUM(resolved_count)::BIGINT,
