@@ -56,6 +56,20 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
+    // Agent kapasite limiti asimlarini conflict olarak dondurur.
+    @ExceptionHandler(TicketLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleTicketLimitExceededException(TicketLimitExceededException ex) {
+        log.warn("Bilet limiti aşıldı (409 CONFLICT): {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error("TICKET_LIMIT_EXCEEDED")
+                .message(ex.getMessage())
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     // Eslesen endpoint bulunamadiginda standart 404 cevabi uretir.
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
