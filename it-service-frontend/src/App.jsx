@@ -135,7 +135,7 @@ export default function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN']}>
               <AppLayout><ProductPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -143,7 +143,7 @@ export default function App() {
         <Route
           path="/products/:id"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN']}>
               <AppLayout><ProductPage /></AppLayout>
             </ProtectedRoute>
           }

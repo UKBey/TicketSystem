@@ -137,10 +137,6 @@ export default function Sidebar({ collapsed = false, onToggle }) {
               <LayoutDashboard className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>Dashboard</span>}
             </NavLink>
-            <NavLink to="/products" className={linkClassName}>
-              <Package className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Products</span>}
-            </NavLink>
           </>
         )}
       </nav>
