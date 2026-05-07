@@ -24,6 +24,17 @@ public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> 
 
     long countByTicketId(Long ticketId);
 
+        @Query("""
+                        SELECT COUNT(tc)
+                        FROM TicketClaim tc
+                        JOIN tc.ticket t
+                        WHERE tc.agentId = :agentId
+                            AND t.productId = :productId
+                            AND t.status <> 'CLOSED'
+                        """)
+        long countActiveTicketsByAgentAndProduct(@Param("agentId") String agentId,
+                                                                                         @Param("productId") Long productId);
+
     // Ajanin sahiplendig biletlerin ID listesini dondurur.
     @Query("SELECT tc.ticket.id FROM TicketClaim tc WHERE tc.agentId = :agentId")
     List<Long> findTicketIdsByAgentId(@Param("agentId") String agentId);
