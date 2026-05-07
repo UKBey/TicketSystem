@@ -657,7 +657,24 @@ export default function TicketDetail() {
           <div className="p-5 space-y-4">
             <DetailRow label="Created" value={formatDate(ticket.createdAt)} />
             {!isCustomer && (
-              <DetailRow label="Assigned To" value={ticket.assigneeName || 'Unassigned'} />
+              <div>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Claimers</div>
+                {ticket.claimers && ticket.claimers.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {ticket.claimers.map((c) => (
+                      <span
+                        key={c.agentId}
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}
+                      >
+                        {c.agentName}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Unassigned</span>
+                )}
+              </div>
             )}
             <DetailRow label="Status" value={statusLabel(ticket.status)} />
             <div>

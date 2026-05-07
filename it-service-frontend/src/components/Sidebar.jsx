@@ -5,6 +5,7 @@ import {
   Briefcase,
   Inbox,
   History,
+  Users,
   LayoutDashboard,
   Settings,
   Package,
@@ -97,6 +98,10 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             <NavLink to="/history" className={linkClassName}>
               <History className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>History</span>}
+            </NavLink>
+            <NavLink to="/team" className={linkClassName}>
+              <Users className="h-[18px] w-[18px] flex-shrink-0" />
+              {!collapsed && <span>Team Tickets</span>}
             </NavLink>
           </>
         )}
