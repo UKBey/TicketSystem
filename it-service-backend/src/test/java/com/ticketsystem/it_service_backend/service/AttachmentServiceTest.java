@@ -68,6 +68,38 @@ class AttachmentServiceTest {
     }
 
     @Test
+    void uploadAttachment_sensitiveInfoInTextFile_throwsIllegalArgument() {
+    MockMultipartFile file = new MockMultipartFile(
+        "file",
+        "debug.log",
+        "text/plain",
+        "password=SuperSecret123\nERROR something happened".getBytes());
+    when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+
+    assertEquals(
+        "Dosyada olası gizli bilgi tespit edildi. Password, token, secret, API key veya private key gibi ifadeleri kaldırın.",
+        ex.getMessage());
+    }
+
+    @Test
+    void uploadAttachment_overSizeLimit_throwsIllegalArgument() {
+    MockMultipartFile file = new MockMultipartFile(
+        "file",
+        "large.log",
+        "text/plain",
+        new byte[(int) (10 * 1024 * 1024L + 1)]);
+    when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+
+    assertEquals("Dosya boyutu 10MB sınırını aşamaz.", ex.getMessage());
+    }
+
+    @Test
     void deleteAttachment_nonOwnerNonManager_throwsForbidden() {
         Attachment attachment = Attachment.builder().id(5L).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(5L)).thenReturn(Optional.of(attachment));

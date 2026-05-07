@@ -45,6 +45,7 @@ public class AttachmentController {
                     - İzin verilen tipler: Tüm MIME tipleri (sunucu tarafında ek filtreleme yapılabilir)
                     - Müşteri yalnızca kendi biletine dosya ekleyebilir
                     - Agent yalnızca üzerine atanan bilete dosya ekleyebilir
+                    - Metin tabanlı dosyalarda password, token, secret, API key ve private key benzeri hassas kalıplar engellenir
                     
                     Dosya metadata'sı (`id`, `fileName`, `fileType`, `uploaderId`, `createdAt`) yanıt olarak döner.
                     Dosya içeriği bu endpoint'ten dönmez; indirmek için `GET /api/attachments/{id}` kullanılır.
