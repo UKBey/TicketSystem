@@ -30,4 +30,22 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * Product limit management functions
+ */
+export const updateProductLimit = (productId, maxActiveTickets) =>
+  api.patch(`/products/${productId}/limit`, { maxActiveTickets });
+
+export const getAgentLimits = (agentId) =>
+  api.get(`/agents/${agentId}/limits`);
+
+export const setAgentLimit = (agentId, productId, useCustomLimit, maxActiveTickets) =>
+  api.put(`/agents/${agentId}/limits/${productId}`, {
+    useCustomLimit,
+    maxActiveTickets
+  });
+
+export const deleteAgentLimit = (agentId, productId) =>
+  api.delete(`/agents/${agentId}/limits/${productId}`);
+
 export default api;
