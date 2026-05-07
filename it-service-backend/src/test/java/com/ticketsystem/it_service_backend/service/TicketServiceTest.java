@@ -1,14 +1,17 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
+import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -44,6 +47,10 @@ class TicketServiceTest {
 
     @Mock
     private TicketRepository ticketRepository;
+        @Mock
+        private ProductRepository productRepository;
+        @Mock
+        private AgentProductLimitRepository agentProductLimitRepository;
     @Mock
     private CommentRepository commentRepository;
     @Mock
@@ -397,14 +404,46 @@ class TicketServiceTest {
                                 .customerId("customer-1")
                                 .build();
 
+                Product limitedProduct = Product.builder().id(10L).name("CRM").maxActiveTickets(5).build();
+
                 when(ticketRepository.findById(203L)).thenReturn(Optional.of(existing));
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(productRepository.findById(10L)).thenReturn(Optional.of(limitedProduct));
+                when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L)).thenReturn(Optional.empty());
+                when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(0L);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
                 Ticket updated = ticketService.claimTicket(203L, "agent-1");
 
                 assertEquals("IN_PROGRESS", updated.getStatus());
                 verify(workflowService).syncTicketAssignment(updated, "agent-1");
+        }
+
+        @Test
+        void claimTicket_whenActiveCountReachesLimit_throwsTicketLimitExceeded() {
+                Ticket existing = Ticket.builder()
+                                .id(204L)
+                                .title("Limit ticket")
+                                .description("desc")
+                                .priority("MEDIUM")
+                                .status("NEW")
+                                .productId(10L)
+                                .customerId("customer-1")
+                                .build();
+
+                Product limitedProduct = Product.builder().id(10L).name("CRM").maxActiveTickets(1).build();
+
+                when(ticketRepository.findById(204L)).thenReturn(Optional.of(existing));
+                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(productRepository.findById(10L)).thenReturn(Optional.of(limitedProduct));
+                when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L)).thenReturn(Optional.empty());
+                when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(1L);
+
+                var ex = assertThrows(com.ticketsystem.it_service_backend.exception.TicketLimitExceededException.class,
+                                () -> ticketService.claimTicket(204L, "agent-1"));
+
+                assertEquals("Bu ürün için aktif bilet limitinize ulaştınız. Limit: 1", ex.getMessage());
+                verify(ticketRepository, never()).save(any(Ticket.class));
         }
 
         @Test

@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -7,13 +8,16 @@ import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
+import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -38,6 +42,8 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
+    private final ProductRepository productRepository;
+    private final AgentProductLimitRepository agentProductLimitRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
@@ -268,6 +274,26 @@ public class TicketService {
         if (!isAuthorized) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Bu ürüne ait biletleri üzerinize alma yetkiniz yok.");
+        }
+
+        Product product = productRepository.findById(ticket.getProductId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "Ürün bulunamadı: " + ticket.getProductId()));
+
+        Integer effectiveLimit = product.getMaxActiveTickets();
+        AgentProductLimit customLimit = agentProductLimitRepository
+            .findByAgentIdAndProductId(agentId, product.getId())
+            .orElse(null);
+        if (customLimit != null && Boolean.TRUE.equals(customLimit.getUseCustomLimit())) {
+            effectiveLimit = customLimit.getMaxActiveTickets();
+        }
+
+        if (effectiveLimit != null) {
+            long activeCount = ticketClaimRepository.countActiveTicketsByAgentAndProduct(agentId, product.getId());
+            if (activeCount >= effectiveLimit) {
+            throw new TicketLimitExceededException(String.format(
+                "Bu ürün için aktif bilet limitinize ulaştınız. Limit: %d", effectiveLimit));
+            }
         }
 
         if (ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
