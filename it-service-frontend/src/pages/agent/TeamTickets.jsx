@@ -41,10 +41,9 @@ export default function TeamTickets() {
     setJoiningId(ticketId);
     try {
       await api.put(`/tickets/${ticketId}/claim`);
-      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      navigate(`/tickets/${ticketId}`);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not join ticket.');
-    } finally {
       setJoiningId(null);
     }
   };
