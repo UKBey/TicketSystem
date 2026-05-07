@@ -39,7 +39,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketCreated())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_CREATED,
-                        "Bilet #" + ticket.getId() + " başarıyla oluşturuldu: " + ticket.getTitle(),
+                        "Ticket #" + ticket.getId() + " has been successfully created: " + ticket.getTitle(),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketCreated())) {
@@ -56,7 +56,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        "Bilet #" + ticket.getId() + " üzerinize alındı: " + ticket.getTitle(),
+                        "Ticket #" + ticket.getId() + " has been assigned to you: " + ticket.getTitle(),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
@@ -70,7 +70,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
-                        "Bilet #" + ticket.getId() + " durumu güncellendi: "
+                        "Ticket #" + ticket.getId() + " status updated: "
                                 + oldStatus + " → " + ticket.getStatus(),
                         ticket.getId());
             }
@@ -92,7 +92,7 @@ public class NotificationService {
                     NotificationPreference pref = getOrDefaultPreference(agent.getId());
                     if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                         saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
-                                "Bilet #" + ticket.getId() + " için yeni müşteri yorumu eklendi.",
+                                "New customer comment on ticket #" + ticket.getId() + ".",
                                 ticket.getId());
                     }
                     if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -108,7 +108,7 @@ public class NotificationService {
                 NotificationPreference pref = getOrDefaultPreference(customer.getId());
                 if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                     saveNotification(customer.getId(), NotificationType.COMMENT_ADDED,
-                            "Bilet #" + ticket.getId() + " için yeni bir yanıt eklendi.",
+                            "A new reply has been added to ticket #" + ticket.getId() + ".",
                             ticket.getId());
                 }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -122,13 +122,13 @@ public class NotificationService {
 
     public void notifySlaWarning(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_WARNING,
-                "Bilet #" + ticket.getId() + " için SLA süresi dolmak üzere: " + ticket.getTitle(),
+                "SLA deadline approaching for ticket #" + ticket.getId() + ": " + ticket.getTitle(),
                 true);
     }
 
     public void notifySlaBreached(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_BREACHED,
-                "Bilet #" + ticket.getId() + " için SLA süresi doldu: " + ticket.getTitle(),
+                "SLA breached for ticket #" + ticket.getId() + ": " + ticket.getTitle(),
                 false);
     }
 
@@ -137,7 +137,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketResolved())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_RESOLVED,
-                        "Bilet #" + ticket.getId() + " çözüme kavuşturuldu: " + ticket.getTitle(),
+                        "Ticket #" + ticket.getId() + " has been resolved: " + ticket.getTitle(),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketResolved())) {
@@ -166,10 +166,10 @@ public class NotificationService {
     public void markAsRead(Long notificationId, String userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Bildirim bulunamadı: " + notificationId));
+                        "Notification not found: " + notificationId));
         if (!notification.getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Bu bildirimi okuma yetkiniz yok.");
+                    "You do not have permission to read this notification.");
         }
         notification.setIsRead(true);
         notificationRepository.save(notification);
