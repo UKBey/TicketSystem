@@ -140,7 +140,7 @@ export default function ProductPanel() {
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>ID</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Product Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Max Active Tickets</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Maximum Concurrent Tickets</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '150px' }}>Actions</th>
               </tr>
             </thead>
@@ -243,17 +243,17 @@ export default function ProductPanel() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Maks. Aktif Bilet Limiti</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Maximum Concurrent Tickets</label>
                 <input 
                   type="number"
                   min="1"
                   value={formData.maxActiveTickets}
                   onChange={e => setFormData({ ...formData, maxActiveTickets: e.target.value })}
-                  placeholder="Limitsiz"
+                  placeholder="Unlimited"
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>Boş bırakılırsa ürün limitsiz kalır.</p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>If left empty, the product will be unlimited. Enter a number to set the maximum concurrent tickets per agent.</p>
               </div>
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input 

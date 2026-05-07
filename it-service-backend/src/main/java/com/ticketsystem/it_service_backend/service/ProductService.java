@@ -99,6 +99,13 @@ public class ProductService {
             log.debug("Aktiflik durumu güncelleniyor: {} -> {}", existingProduct.getIsActive(), updatedProduct.getIsActive());
             existingProduct.setIsActive(updatedProduct.getIsActive());
         }
+        if (updatedProduct.getMaxActiveTickets() != null) {
+            log.debug("Maksimum eşzamanlı bilet limiti güncelleniyor: {} -> {}", existingProduct.getMaxActiveTickets(), updatedProduct.getMaxActiveTickets());
+            existingProduct.setMaxActiveTickets(updatedProduct.getMaxActiveTickets());
+        } else if (updatedProduct.getMaxActiveTickets() == null && existingProduct.getMaxActiveTickets() != null) {
+            log.debug("Maksimum eşzamanlı bilet limiti kaldırılıyor");
+            existingProduct.setMaxActiveTickets(null);
+        }
         Product savedProduct = productRepository.save(existingProduct);
         log.info("Ürün başarıyla güncellendi. ID: {}", savedProduct.getId());
         return savedProduct;
@@ -106,10 +113,10 @@ public class ProductService {
 
     @Transactional
     public Product updateMaxActiveTickets(Long productId, Integer limit) {
-        log.info("Ürün aktif bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);
+        log.info("Ürün eşzamanlı bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);
 
         if (limit != null && limit < 1) {
-            throw new IllegalArgumentException("Maksimum aktif bilet limiti 1 veya daha büyük olmalıdır.");
+            throw new IllegalArgumentException("Maksimum eşzamanlı bilet limiti 1 veya daha büyük olmalıdır.");
         }
 
         Product existingProduct = productRepository.findById(productId)
@@ -118,7 +125,7 @@ public class ProductService {
         existingProduct.setMaxActiveTickets(limit);
 
         Product savedProduct = productRepository.save(existingProduct);
-        log.info("Ürün aktif bilet limiti güncellendi. ID: {}, Limit: {}", savedProduct.getId(), savedProduct.getMaxActiveTickets());
+        log.info("Ürün eşzamanlı bilet limiti güncellendi. ID: {}, Limit: {}", savedProduct.getId(), savedProduct.getMaxActiveTickets());
         return savedProduct;
     }
 }

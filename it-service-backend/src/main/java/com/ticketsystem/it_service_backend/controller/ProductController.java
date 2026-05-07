@@ -140,8 +140,8 @@ public class ProductController {
         return ResponseEntity.ok(ProductDTO.fromEntity(updated));
     }
 
-    @Operation(summary = "Ürünün maksimum aktif bilet limitini güncelle",
-            description = "Belirtilen ürün için varsayılan aktif bilet limitini günceller. Null gönderilirse limit kaldırılır.")
+    @Operation(summary = "Ürünün maksimum eşzamanlı bilet limitini güncelle",
+            description = "Belirtilen ürün için varsayılan eşzamanlı bilet limitini günceller. Null gönderilirse limit kaldırılır.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün limiti başarıyla güncellendi",
                     content = @Content(schema = @Schema(implementation = ProductDTO.class))),
@@ -154,7 +154,7 @@ public class ProductController {
             @Parameter(description = "Limit güncellenecek ürünün ID'si", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody ProductLimitUpdateRequestDTO request) {
-        log.info("Ürün limit güncelleme isteği. ID: {}, Yeni limit: {}", id, request.getMaxActiveTickets());
+        log.info("Ürün eşzamanlı bilet limiti güncelleme isteği. ID: {}, Yeni limit: {}", id, request.getMaxActiveTickets());
 
         Product updated = productService.updateMaxActiveTickets(id, request.getMaxActiveTickets());
 

@@ -217,7 +217,7 @@ export default function AdminPanel() {
                   </td>
                   <td className="px-4 py-3">
                     <button 
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-info-500 hover:bg-info-600 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors cursor-pointer"
                       onClick={() => handleSelectAgent(user.id)}
                     >
                       Limit
@@ -303,7 +303,7 @@ export default function AdminPanel() {
                               <input 
                                 type="number"
                                 min="1"
-                                placeholder="No limit"
+                                placeholder="Unlimited"
                                 disabled={!formConfig.useCustomLimit}
                                 value={formConfig.maxActiveTickets}
                                 onChange={(e) => {
