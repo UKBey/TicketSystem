@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
+import com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
+import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -133,10 +136,25 @@ public class TicketController {
     @DeleteMapping("/{id}/claim")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> unclaimTicket(
-            @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+                        @PathVariable Long id,
+                        @RequestBody @Valid UnclaimRequestDTO dto,
+                        @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        Ticket ticket = ticketService.unclaimTicket(id, agentId);
+                Ticket ticket = ticketService.unclaimTicket(id, agentId, dto.getNote());
+                return ResponseEntity.ok(convertToDto(ticket, false, roles));
+        }
+
+        @Operation(summary = "Bileti kapat (not zorunlu)")
+        @PutMapping("/{id}/close")
+        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+        public ResponseEntity<TicketResponseDTO> closeTicket(
+                        @PathVariable Long id,
+                        @RequestBody @Valid CloseTicketRequestDTO dto,
+                        @AuthenticationPrincipal Jwt jwt) {
+                String userId = jwt.getSubject();
+                List<String> roles = JwtUtils.extractRoles(jwt);
+                Ticket ticket = ticketService.closeTicket(id, dto.getNote(), userId, roles);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
