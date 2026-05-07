@@ -22,6 +22,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Belirtilen urun listesine ait tum biletleri statuden bagimsiz dondurur.
     List<Ticket> findByProductIdIn(List<Long> productIds);
 
+    // Tek bir urune ait tum biletleri dondurur (urun detay sayfasi icin).
+    List<Ticket> findByProductId(Long productId);
+
+    // Musteri + urun kombinasyonuna ait biletleri dondurur.
+    List<Ticket> findByCustomerIdAndProductId(String customerId, Long productId);
+
     // Karma rolde kullanicinin hem sahip oldugu hem yetkili oldugu urun biletlerini birlestirir.
     List<Ticket> findByCustomerIdOrProductIdIn(String customerId, List<Long> productIds);
 

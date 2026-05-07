@@ -5,8 +5,10 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +22,25 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public Product getProductById(Long id, String userId, List<String> roles) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ürün bulunamadı: " + id));
+
+        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER")) return product;
+
+        if (userId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Erişim yetkisi yok.");
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kullanıcı bulunamadı: " + userId));
+
+        boolean authorized = user.getAuthorizedProducts().stream()
+                .anyMatch(p -> p.getId().equals(id));
+        if (!authorized) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu ürüne erişim yetkiniz yok.");
+
+        return product;
+    }
 
     @Transactional(readOnly = true)
     public List<Product> getAllProducts(String userId, List<String> roles) {

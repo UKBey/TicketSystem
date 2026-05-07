@@ -30,6 +30,18 @@ public class ProductController {
 
     private final ProductService productService;
 
+    @Operation(summary = "Ürün detayı getir", description = "Belirtilen ürünü döner. Kullanıcı yetkili değilse 403 döner.")
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductDTO> getProductById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt != null ? jwt.getSubject() : null;
+        List<String> roles = jwt != null ? JwtUtils.extractRoles(jwt) : List.of();
+        log.info("Ürün detayı isteği. ID: {}, Kullanıcı: {}", id, userId);
+        Product product = productService.getProductById(id, userId, roles);
+        return ResponseEntity.ok(ProductDTO.fromEntity(product));
+    }
+
     @Operation(summary = "Tüm ürünleri listele",
             description = """
                     Kullanıcının rolüne göre erişebileceği ürün/kategori listesini döner:

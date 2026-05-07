@@ -16,6 +16,7 @@ import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
 import TicketDetail from './pages/TicketDetail';
+import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
@@ -133,8 +134,16 @@ export default function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><ProductPanel /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products/:id"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+              <AppLayout><ProductPage /></AppLayout>
             </ProtectedRoute>
           }
         />

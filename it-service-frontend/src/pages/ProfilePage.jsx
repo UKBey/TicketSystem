@@ -117,14 +117,15 @@ export default function ProfilePage() {
             ) : products.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {products.map((product) => (
-                  <span
+                  <button
                     key={product.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                    onClick={() => navigate(`/products/${product.id}`)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer hover:opacity-80"
                     style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   >
                     <Package className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
                     {product.name}
-                  </span>
+                  </button>
                 ))}
               </div>
             ) : (

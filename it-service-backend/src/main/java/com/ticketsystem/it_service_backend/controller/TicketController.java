@@ -163,6 +163,18 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Ürüne ait biletleri listele (ürün detay sayfası için)")
+    @GetMapping("/by-product/{productId}")
+    public ResponseEntity<List<TicketResponseDTO>> getTicketsByProduct(
+            @PathVariable Long productId, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        List<Ticket> tickets = ticketService.getTicketsByProduct(productId, userId, roles);
+        return ResponseEntity.ok(tickets.stream()
+                .map(t -> convertToDto(t, false, roles))
+                .collect(Collectors.toList()));
+    }
+
     @Operation(summary = "SLA zamanlayıcı bilgisi")
     @GetMapping("/{id}/sla-timer")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")

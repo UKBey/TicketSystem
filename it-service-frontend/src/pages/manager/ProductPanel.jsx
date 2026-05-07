@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProductPanel() {
+  const navigate = useNavigate();
+  const { getPrimaryRole } = useAuth();
+  const isAdmin = getPrimaryRole() === 'AGENT_ADMIN';
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,15 +99,19 @@ export default function ProductPanel() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Products</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage system products and categories.</p>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {isAdmin ? 'Manage system products and categories.' : 'Your authorized products.'}
+          </p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          New Product
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => openModal()}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            New Product
+          </button>
+        )}
       </div>
 
       {error && (
@@ -140,21 +150,33 @@ export default function ProductPanel() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button 
+                      <button
                         className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                         style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                        onClick={() => openModal(product)}
+                        onClick={() => navigate(`/products/${product.id}`)}
                       >
-                        <Pencil className="h-3 w-3" />
-                        Edit
+                        <Eye className="h-3 w-3" />
+                        View
                       </button>
-                      <button 
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onClick={() => openModal(product)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Edit
+                          </button>
+                          <button
+                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                            onClick={() => handleDelete(product.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

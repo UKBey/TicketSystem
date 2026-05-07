@@ -178,6 +178,17 @@ public class TicketService {
         return ticketRepository.findActiveByProductIdIn(productIds);
     }
 
+    @Transactional(readOnly = true)
+    public List<Ticket> getTicketsByProduct(Long productId, String userId, List<String> roles) {
+        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER") || roles.contains("AGENT")) {
+            return ticketRepository.findByProductId(productId);
+        }
+        if (roles.contains("CUSTOMER")) {
+            return ticketRepository.findByCustomerIdAndProductId(userId, productId);
+        }
+        return new ArrayList<>();
+    }
+
     public Ticket getTicketById(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bilet bulunamadı: " + id));
