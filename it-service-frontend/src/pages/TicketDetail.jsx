@@ -730,33 +730,42 @@ export default function TicketDetail() {
               Status Actions
             </div>
             <div className="p-4 space-y-2">
-              <div className="flex gap-2">
-                {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
-                  <button 
-                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
-                      ticket.status === 'WAITING_FOR_CUSTOMER'
-                        ? 'bg-primary-500 text-white'
-                        : 'border'
-                    }`}
-                    style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
-                    onClick={() => handleStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
-                  >
-                    {ticket.status === 'WAITING_FOR_CUSTOMER' ? 'Resume' : 'Waiting'}
-                  </button>
-                )}
-                {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
-                  <button 
-                    className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
-                      ticket.status === 'RESOLVED'
-                        ? 'bg-danger-500 text-white hover:bg-danger-600'
-                        : 'bg-accent-500 text-white hover:bg-accent-600'
-                    }`}
-                    onClick={() => ticket.status === 'RESOLVED' ? handleStatusChange('IN_PROGRESS') : handleResolveClick()}
-                  >
-                    {ticket.status === 'RESOLVED' ? 'Reopen' : 'Resolve'}
-                  </button>
-                )}
-              </div>
+              {/* Waiting/Resume ve Resolve/Reopen butonlari:
+                  AGENT_ADMIN icin yalnizca claim almis ise gosterilir. */}
+              {(() => {
+                const currentUserId = user?.sub || user?.id;
+                const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
+                const canDoStatusActions = !isAgentAdmin || hasClaimed;
+                return canDoStatusActions ? (
+                  <div className="flex gap-2">
+                    {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
+                      <button
+                        className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                          ticket.status === 'WAITING_FOR_CUSTOMER'
+                            ? 'bg-primary-500 text-white'
+                            : 'border'
+                        }`}
+                        style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
+                        onClick={() => handleStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
+                      >
+                        {ticket.status === 'WAITING_FOR_CUSTOMER' ? 'Resume' : 'Waiting'}
+                      </button>
+                    )}
+                    {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
+                      <button
+                        className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                          ticket.status === 'RESOLVED'
+                            ? 'bg-danger-500 text-white hover:bg-danger-600'
+                            : 'bg-accent-500 text-white hover:bg-accent-600'
+                        }`}
+                        onClick={() => ticket.status === 'RESOLVED' ? handleStatusChange('IN_PROGRESS') : handleResolveClick()}
+                      >
+                        {ticket.status === 'RESOLVED' ? 'Reopen' : 'Resolve'}
+                      </button>
+                    )}
+                  </div>
+                ) : null;
+              })()}
               {(() => {
                 const currentUserId = user?.sub || user?.id;
                 const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
@@ -783,14 +792,27 @@ export default function TicketDetail() {
                   Assign to Agent
                 </button>
               )}
-              <button
-                className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                onClick={() => setExtraActionsOpen(true)}
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                Extra Actions
-              </button>
+              {(() => {
+                const currentUserId = user?.sub || user?.id;
+                const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
+                // Extra Actions modal'inda gorunecek en az bir aksiyon var mi?
+                const hasUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER')
+                  && hasClaimed;
+                const hasClose = allowedStatuses.includes('CLOSED')
+                  && (!isAgentAdmin || hasClaimed);
+                const hasExtraContent = hasUnclaim || hasClose;
+                if (!hasExtraContent) return null;
+                return (
+                  <button
+                    className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                    onClick={() => setExtraActionsOpen(true)}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                    Extra Actions
+                  </button>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1096,7 +1118,7 @@ export default function TicketDetail() {
                   Unclaim (Release)
                 </button>
               )}
-              {allowedStatuses.includes('CLOSED') && (
+              {allowedStatuses.includes('CLOSED') && (!isAgentAdmin || ticket?.claimers?.some((c) => c.agentId === (user?.sub || user?.id))) && (
                 <button
                   className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
                   onClick={() => openReasonModal('CLOSE')}
