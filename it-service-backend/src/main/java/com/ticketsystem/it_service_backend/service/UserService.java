@@ -1,13 +1,19 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
+import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.entity.Product;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 
@@ -18,6 +24,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final AgentProductLimitRepository agentProductLimitRepository;
+    private final TicketClaimRepository ticketClaimRepository;
 
     @Transactional
     public User syncUser(User user) {
@@ -94,5 +102,48 @@ public class UserService {
         
         log.info("Ürün yetkisi başarıyla kaldırıldı. Kullanıcı ID: {}", userId);
         return savedUser;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AgentCapacityDTO> getAgentsWithCapacity(Long productId) {
+        log.info("Agent kapasite listesi istendi. Product ID: {}", productId);
+        
+        // 1. Belirtilen product'a yetkili tüm agent'ları çek
+        List<User> agents = userRepository.findByRoleAndAuthorizedProductsId("AGENT", productId);
+        log.debug("Toplam {} agent bulundu", agents.size());
+        
+        // 2. Product'ı yükle (default limit için)
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found: " + productId));
+        
+        // 3. Her agent için kapasite bilgisini hesapla
+        return agents.stream().map(agent -> {
+            // a. Effective limit hesapla (custom override varsa onu, yoksa product default'u)
+            Integer effectiveLimit = product.getMaxActiveTickets();
+            AgentProductLimit customLimit = agentProductLimitRepository
+                    .findByAgentIdAndProductId(agent.getId(), productId)
+                    .orElse(null);
+            if (customLimit != null && Boolean.TRUE.equals(customLimit.getUseCustomLimit())) {
+                effectiveLimit = customLimit.getMaxActiveTickets();
+            }
+            
+            // b. Mevcut aktif bilet sayısını hesapla
+            long currentActive = ticketClaimRepository
+                    .countActiveTicketsByAgentAndProduct(agent.getId(), productId);
+            
+            // c. Limit doldu mu kontrol et
+            boolean isFull = effectiveLimit != null && currentActive >= effectiveLimit;
+            
+            log.debug("Agent: {}, Aktif: {}, Limit: {}, Dolu: {}", 
+                     agent.getFullName(), currentActive, effectiveLimit, isFull);
+            
+            return AgentCapacityDTO.builder()
+                    .agentId(agent.getId())
+                    .agentName(agent.getFullName())
+                    .currentActiveTickets(currentActive)
+                    .maxLimit(effectiveLimit)
+                    .isFull(isFull)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }
