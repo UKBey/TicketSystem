@@ -62,8 +62,6 @@ function StatusDistributionChart({ data, loading }) {
     return accumulator;
   }, []);
 
-  const activeSegment = segments[0];
-
   return (
     <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
       <div className="mb-5 flex items-start justify-between gap-4">
@@ -147,12 +145,6 @@ function StatusDistributionChart({ data, loading }) {
               </div>
             );
           })}
-          <div className="rounded-2xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-            <div className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Öncelikli durum</div>
-            <div className="mt-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {activeSegment ? `${activeSegment.label} ilk segment olarak öne çıkıyor.` : 'Veri yok.'}
-            </div>
-          </div>
         </div>
       </div>
     </section>
