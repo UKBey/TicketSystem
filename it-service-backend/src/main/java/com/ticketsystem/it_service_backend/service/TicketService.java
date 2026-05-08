@@ -525,6 +525,97 @@ public class TicketService {
     }
 
     // -----------------------------------------------------------------
+    // Manuel Atama (Agent Admin)
+    // -----------------------------------------------------------------
+
+    /**
+     * Agent Admin tarafından belirtilen bileti hedef agent'a manuel olarak atar.
+     * Kapasite kontrolü, yetki doğrulaması ve audit log kaydı içerir.
+     */
+    @Transactional
+    public Ticket assignTicket(Long ticketId, String targetAgentId, String adminId, String note) {
+        log.info("Manuel atama isteği. Bilet: {}, Hedef Agent: {}, Admin: {}", ticketId, targetAgentId, adminId);
+
+        Ticket ticket = getTicketById(ticketId);
+
+        // 1. Kapalı biletler atanamaz
+        if ("CLOSED".equals(ticket.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kapalı biletler atanamaz.");
+        }
+
+        // 2. Hedef agent'ı yükle ve ürün yetki kontrolü
+        User targetAgent = userRepository.findById(targetAgentId)
+                .orElseThrow(() -> new EntityNotFoundException("Agent bulunamadı: " + targetAgentId));
+
+        boolean isAuthorized = targetAgent.getAuthorizedProducts().stream()
+                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+        if (!isAuthorized) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Hedef agent bu ürün için yetkili değil.");
+        }
+
+        // 3. Kapasite kontrolü
+        Product product = productRepository.findById(ticket.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("Ürün bulunamadı: " + ticket.getProductId()));
+
+        Integer effectiveLimit = product.getMaxActiveTickets();
+        AgentProductLimit customLimit = agentProductLimitRepository
+                .findByAgentIdAndProductId(targetAgentId, product.getId())
+                .orElse(null);
+        if (customLimit != null && Boolean.TRUE.equals(customLimit.getUseCustomLimit())) {
+            effectiveLimit = customLimit.getMaxActiveTickets();
+        }
+
+        if (effectiveLimit != null) {
+            long activeCount = ticketClaimRepository
+                    .countActiveTicketsByAgentAndProduct(targetAgentId, product.getId());
+            if (activeCount >= effectiveLimit) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        String.format("Hedef agent'ın aktif bilet limiti doldu. Limit: %d", effectiveLimit));
+            }
+        }
+
+        // 4. Zaten claim almışsa tekrar ekleme, sadece log
+        if (ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, targetAgentId)) {
+            log.warn("Hedef agent zaten bu bileti claim almış. Bilet: {}, Agent: {}", ticketId, targetAgentId);
+            return ticket;
+        }
+
+        // 5. Claim kaydı oluştur
+        TicketClaim claim = TicketClaim.builder()
+                .ticket(ticket)
+                .agentId(targetAgentId)
+                .build();
+        ticketClaimRepository.save(claim);
+
+        // 6. İlk claim ise statüyü IN_PROGRESS'e çek
+        String previousStatus = ticket.getStatus();
+        if ("NEW".equals(previousStatus)) {
+            ticket.setStatus("IN_PROGRESS");
+            ticketRepository.save(ticket);
+            log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
+        }
+
+        // 7. Audit log kaydet
+        recordTicketAuditLog(ticket, adminId, "ASSIGN",
+                note != null ? note : "Manuel atama yapıldı",
+                previousStatus, ticket.getStatus());
+
+        // 8. Workflow sync
+        try {
+            workflowService.syncTicketAssignment(ticket, targetAgentId);
+        } catch (Exception e) {
+            log.error("Workflow sync hatası. TicketId={}, Hata={}", ticketId, e.getMessage());
+        }
+
+        // 9. Bildirim (notifyTicketAssigned Commit 12'de eklenecek; şimdilik claim bildirimi kullanılır)
+        notificationService.notifyTicketClaimed(ticket, targetAgentId);
+
+        log.info("Bilet başarıyla atandı. Bilet: {}, Agent: {}", ticketId, targetAgentId);
+        return ticket;
+    }
+
+    // -----------------------------------------------------------------
     // Silme
     // -----------------------------------------------------------------
 
