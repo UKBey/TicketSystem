@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.controller;
 
+import com.ticketsystem.it_service_backend.dto.AssignTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
@@ -17,6 +18,8 @@ import com.ticketsystem.it_service_backend.service.TicketService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -148,9 +151,40 @@ public class TicketController {
                 return ResponseEntity.ok(convertToDto(ticket, false, roles));
         }
 
+    @Operation(summary = "Bileti agent'a manuel olarak ata (Agent Admin)",
+            description = "Agent Admin rolüne sahip kullanıcılar, belirtilen bileti hedef agent'a atayabilir. Kapasite kontrolü yapılır.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bilet başarıyla atandı"),
+            @ApiResponse(responseCode = "400", description = "Hedef agent'ın limiti dolu veya bilet kapalı"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN atama yapabilir veya hedef agent yetkisiz"),
+            @ApiResponse(responseCode = "404", description = "Bilet veya agent bulunamadı")
+    })
+    @PutMapping("/{id}/assign")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<TicketResponseDTO> assignTicket(
+            @Parameter(description = "Atanacak biletin ID'si", required = true)
+            @PathVariable Long id,
+            @RequestBody @Valid AssignTicketRequestDTO request,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String adminId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+
+        log.info("Manuel atama isteği. Bilet: {}, Hedef Agent: {}, Admin: {}",
+                id, request.getTargetAgentId(), adminId);
+
+        Ticket ticket = ticketService.assignTicket(
+                id,
+                request.getTargetAgentId(),
+                adminId,
+                request.getNote()
+        );
+
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
         @Operation(summary = "Bileti kapat (not zorunlu)")
-        @PutMapping("/{id}/close")
-        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+        @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
         public ResponseEntity<TicketResponseDTO> closeTicket(
                         @PathVariable Long id,
                         @RequestBody @Valid CloseTicketRequestDTO dto,
