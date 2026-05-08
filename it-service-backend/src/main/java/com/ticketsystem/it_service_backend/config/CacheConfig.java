@@ -22,6 +22,10 @@ public class CacheConfig {
     public static final String CSAT_METRICS           = "csatMetrics";
     public static final String WORKLOG_COMPLETION     = "worklogCompletion";
 
+    // Rate limit config'leri; interceptor her istek öncesi okur.
+    // @CacheEvict admin güncellemesinde anında geçersiz kılar; TTL sadece fallback.
+    public static final String RATE_LIMIT_CONFIGS     = "rateLimitConfigs";
+
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(
@@ -33,6 +37,7 @@ public class CacheConfig {
                 PRODUCT_METRICS,
                 CSAT_METRICS,
                 WORKLOG_COMPLETION,
+                RATE_LIMIT_CONFIGS,
                 "metrics"
         );
         manager.setCaffeine(Caffeine.newBuilder()
