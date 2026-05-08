@@ -851,22 +851,20 @@
       "clientId": "ticket-frontend",
       "name": "Ticket System Frontend",
       "description": "",
-      "rootUrl": "http://localhost:3000",
-      "adminUrl": "http://localhost:3000",
-      "baseUrl": "http://localhost:3000",
+      "rootUrl": "http://localhost",
+      "adminUrl": "http://localhost",
+      "baseUrl": "http://localhost",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://localhost:3000/*",
         "http://localhost/*",
-        "http://localhost:3001/*",
         "https://138.197.182.117/*",
         "https://ticket-system.duckdns.org/*"
       ],
       "webOrigins": [
-        "http://localhost:3000",
+        "http://localhost",
         "https://138.197.182.117",
         "https://ticket-system.duckdns.org"
       ],
@@ -881,7 +879,7 @@
       "frontchannelLogout": true,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:3001/*##http://localhost:3000/*",
+        "post.logout.redirect.uris": "http://localhost/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",
