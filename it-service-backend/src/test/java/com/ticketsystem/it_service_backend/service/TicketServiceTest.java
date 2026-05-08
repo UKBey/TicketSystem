@@ -12,6 +12,7 @@ import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -71,6 +72,8 @@ class TicketServiceTest {
     private NotificationService notificationService;
     @Mock
     private TicketClaimRepository ticketClaimRepository;
+    @Mock
+    private TicketAuditLogRepository ticketAuditLogRepository;
 
     @InjectMocks
     private TicketService ticketService;
