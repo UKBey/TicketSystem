@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
-import { getAgentLimits, setAgentLimit, deleteAgentLimit } from '../../services/api';
+import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -237,118 +237,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Product Limit Settings Accordion */}
-      {selectedAgentId && (
-        <div className="mt-6 rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-          <button
-            onClick={() => setLimitsSectionOpen(!limitsSectionOpen)}
-            className="w-full flex items-center justify-between px-6 py-4 border-b font-semibold text-sm hover:bg-opacity-50 transition-colors"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-surface)' }}
-          >
-            <span>Product Limit Settings for {users.find(u => u.id === selectedAgentId)?.fullName}</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${limitsSectionOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {limitsSectionOpen && (
-            <div className="px-6 py-4">
-              {(() => {
-                const selectedAgent = users.find(u => u.id === selectedAgentId);
-                const authorizedProds = selectedAgent?.authorizedProducts || [];
-                
-                if (authorizedProds.length === 0) {
-                  return <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No authorized products for this agent.</p>;
-                }
-
-                return (
-                  <div className="space-y-4">
-                    {authorizedProds.map(prod => {
-                      const prodDefaultLimit = products.find(p => p.id === prod.id)?.maxActiveTickets;
-                      const formConfig = limitFormData[prod.id] || { useCustomLimit: false, maxActiveTickets: '' };
-                      const existingLimit = agentLimits.find(l => l.productId === prod.id);
-
-                      return (
-                        <div key={prod.id} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)' }}>
-                          <div className="grid grid-cols-4 gap-4 items-end">
-                            {/* Product info */}
-                            <div>
-                              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-tertiary)' }}>Product</label>
-                              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{prod.name}</p>
-                              <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                                Default: {prodDefaultLimit ? `${prodDefaultLimit}` : 'Unlimited'}
-                              </p>
-                            </div>
-
-                            {/* Checkbox */}
-                            <div className="flex items-end gap-2">
-                              <input 
-                                type="checkbox"
-                                checked={formConfig.useCustomLimit}
-                                onChange={(e) => {
-                                  setLimitFormData({
-                                    ...limitFormData,
-                                    [prod.id]: {
-                                      ...formConfig,
-                                      useCustomLimit: e.target.checked
-                                    }
-                                  });
-                                }}
-                                className="cursor-pointer"
-                              />
-                              <label className="text-xs font-medium cursor-pointer" style={{ color: 'var(--text-primary)' }}>Use custom limit</label>
-                            </div>
-
-                            {/* Custom limit input */}
-                            <div>
-                              <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-tertiary)' }}>Custom Limit</label>
-                              <input 
-                                type="number"
-                                min="1"
-                                placeholder="Unlimited"
-                                disabled={!formConfig.useCustomLimit}
-                                value={formConfig.maxActiveTickets}
-                                onChange={(e) => {
-                                  setLimitFormData({
-                                    ...limitFormData,
-                                    [prod.id]: {
-                                      ...formConfig,
-                                      maxActiveTickets: e.target.value
-                                    }
-                                  });
-                                }}
-                                className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none transition-all disabled:opacity-50"
-                                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                              />
-                            </div>
-
-                            {/* Action buttons */}
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => handleSaveLimit(prod.id)}
-                                disabled={savingLimit}
-                                className="flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-success-500 hover:bg-success-600 transition-colors cursor-pointer disabled:opacity-50"
-                              >
-                                Save
-                              </button>
-                              {existingLimit && (
-                                <button 
-                                  onClick={() => handleDeleteLimit(prod.id)}
-                                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
+      <RateLimitConfigPanel />
     </>
   );
 }
