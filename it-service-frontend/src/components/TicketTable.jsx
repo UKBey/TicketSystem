@@ -10,6 +10,8 @@ export default function TicketTable({
   onClaim,
   showSla = false,
   currentUserId,
+  showAssignButton = false,
+  onAssign,
 }) {
   const navigate = useNavigate();
   const [tickSeconds, setTickSeconds] = useState(0);
@@ -62,8 +64,7 @@ export default function TicketTable({
             {showClaimButton && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
-            )}
-          </tr>
+            )}          </tr>
         </thead>
         <tbody>
           {tickets.map((ticket) => (
@@ -106,12 +107,22 @@ export default function TicketTable({
               </td>
               {showClaimButton && (
                 <td className="px-4 py-3">
-                  <button
-                    className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
-                  >
-                    Claim
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
+                    >
+                      Claim
+                    </button>
+                    {showAssignButton && (
+                      <button
+                        className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                  </div>
                 </td>
               )}
             </tr>

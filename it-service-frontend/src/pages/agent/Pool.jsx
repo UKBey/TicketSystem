@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import TicketTable from '../../components/TicketTable';
+import AgentSelectionModal from '../../components/AgentSelectionModal';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Pool() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isAgentAdmin = hasRole('AGENT_ADMIN');
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Assign modal state
+  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
   const fetchPool = async () => {
     try {
@@ -38,6 +46,15 @@ export default function Pool() {
     }
   };
 
+  const handleOpenAssign = (ticket) => {
+    setAssignModal({ open: true, ticketId: ticket.id, productId: ticket.productId });
+  };
+
+  const handleAssignSuccess = (updatedTicket) => {
+    // Başarılı atama sonrası bileti listeden kaldır (artık NEW değil)
+    setTickets((prev) => prev.filter((t) => t.id !== updatedTicket.id));
+  };
+
   return (
     <>
       <div className="mb-6">
@@ -51,9 +68,24 @@ export default function Pool() {
             <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
-          <TicketTable tickets={tickets} showClaimButton onClaim={handleClaim} showSla />
+          <TicketTable
+            tickets={tickets}
+            showClaimButton
+            onClaim={handleClaim}
+            showSla
+            showAssignButton={isAgentAdmin}
+            onAssign={handleOpenAssign}
+          />
         )}
       </div>
+
+      <AgentSelectionModal
+        isOpen={assignModal.open}
+        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null })}
+        onSuccess={handleAssignSuccess}
+        ticketId={assignModal.ticketId}
+        productId={assignModal.productId}
+      />
     </>
   );
 }
