@@ -608,8 +608,8 @@ public class TicketService {
             log.error("Workflow sync hatası. TicketId={}, Hata={}", ticketId, e.getMessage());
         }
 
-        // 9. Bildirim (notifyTicketAssigned Commit 12'de eklenecek; şimdilik claim bildirimi kullanılır)
-        notificationService.notifyTicketClaimed(ticket, targetAgentId);
+        // 9. Bildirim
+        notificationService.notifyTicketAssigned(ticket, targetAgentId, adminId);
 
         log.info("Bilet başarıyla atandı. Bilet: {}, Agent: {}", ticketId, targetAgentId);
         return ticket;

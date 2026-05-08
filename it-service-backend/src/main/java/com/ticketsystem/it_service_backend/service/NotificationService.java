@@ -65,6 +65,37 @@ public class NotificationService {
         });
     }
 
+    /**
+     * Agent Admin tarafından manuel atama yapıldığında çağrılır.
+     * Hedef agent'a ve müşteriye ayrı bildirimler gönderir.
+     */
+    public void notifyTicketAssigned(Ticket ticket, String targetAgentId, String adminId) {
+        // 1. Hedef agent'a bildirim gönder
+        userRepository.findById(targetAgentId).ifPresent(agent -> {
+            NotificationPreference pref = getOrDefaultPreference(agent.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
+                saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
+                        "Ticket #" + ticket.getId() + " has been assigned to you: " + ticket.getTitle(),
+                        ticket.getId());
+            }
+            if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
+                emailService.sendTicketAssignedEmail(agent, ticket);
+            }
+        });
+
+        // 2. Müşteriye bildirim gönder
+        userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
+            NotificationPreference pref = getOrDefaultPreference(customer.getId());
+            if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
+                saveNotification(customer.getId(), NotificationType.TICKET_ASSIGNED,
+                        "Your ticket #" + ticket.getId() + " is being handled by a specialist: " + ticket.getTitle(),
+                        ticket.getId());
+            }
+        });
+
+        log.info("Atama bildirimleri gönderildi. Bilet: {}, Agent: {}", ticket.getId(), targetAgentId);
+    }
+
     public void notifyStatusChanged(Ticket ticket, String oldStatus) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
