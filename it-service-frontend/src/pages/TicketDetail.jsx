@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
 import ActionReasonModal from '../components/ActionReasonModal';
+import AgentSelectionModal from '../components/AgentSelectionModal';
 import api from '../services/api';
 import { closeTicket as closeTicketWithNote, unclaimTicket as unclaimTicketWithNote } from '../services/api';
 import {
@@ -52,6 +53,9 @@ export default function TicketDetail() {
     isOpen: false,
     action: null,
   });
+
+  // Assign modal state
+  const [assignModal, setAssignModal] = useState(false);
 
   // Dosya ekleri icin durum degiskenleri
   const [attachments, setAttachments] = useState([]);
@@ -379,6 +383,11 @@ export default function TicketDetail() {
     }
   };
 
+  const handleAssignSuccess = () => {
+    // Atama sonrası ticket'ı yenile (claimers listesi güncellenir)
+    fetchTicket();
+  };
+
   const openReasonModal = (action) => {
     setReasonModal({ isOpen: true, action });
     setExtraActionsOpen(false);
@@ -481,6 +490,7 @@ export default function TicketDetail() {
   const ticketCode = `TCK-${String(ticket.id).padStart(3, '0')}`;
   const allowedStatuses = STATUS_OPTIONS[ticket.status] || [];
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
+  const isAgentAdmin = hasRole('AGENT_ADMIN');
   const isCustomer = hasRole('CUSTOMER');
   const auditLogs = Array.isArray(ticket.auditLogs)
     ? ticket.auditLogs
@@ -765,6 +775,14 @@ export default function TicketDetail() {
                   </button>
                 );
               })()}
+              {isAgentAdmin && ticket.status !== 'CLOSED' && (
+                <button
+                  className="w-full rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                  onClick={() => setAssignModal(true)}
+                >
+                  Assign to Agent
+                </button>
+              )}
               <button
                 className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
@@ -1163,6 +1181,14 @@ export default function TicketDetail() {
         description={reasonModalConfig.description}
         confirmLabel={reasonModalConfig.confirmLabel}
         confirmVariant={reasonModalConfig.confirmVariant}
+      />
+
+      <AgentSelectionModal
+        isOpen={assignModal}
+        onClose={() => setAssignModal(false)}
+        onSuccess={handleAssignSuccess}
+        ticketId={ticket?.id}
+        productId={ticket?.productId}
       />
 
       {/* Cozum notu girisi icin modal. Resolved butonuna tiklaninca acilir. */}
