@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import api from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
 
@@ -9,13 +9,6 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [error, setError] = useState('');
-  
-  // Limit override yönetimi için state
-  const [selectedAgentId, setSelectedAgentId] = useState('');
-  const [agentLimits, setAgentLimits] = useState([]);
-  const [limitFormData, setLimitFormData] = useState({});
-  const [limitsSectionOpen, setLimitsSectionOpen] = useState(false);
-  const [savingLimit, setSavingLimit] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -45,7 +38,6 @@ export default function AdminPanel() {
     }
     try {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
-      // API'den donen guncel kullanici nesnesi local listedeki kaydin yerine yazilir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
       alert(err.response?.data?.message || 'Could not assign product.');
@@ -54,72 +46,11 @@ export default function AdminPanel() {
 
   const handleRemoveProduct = async (userId, productId) => {
     if (!window.confirm('Are you sure you want to remove this product authorization?')) return;
-    
     try {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
-      // Yetki kaldirma sonrasi donen son durum local listede eszamanlanir.
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
       alert(err.response?.data?.message || 'Could not remove product authorization.');
-    }
-  };
-
-  // Agent limit override'larını yükle
-  const fetchAgentLimits = async (agentId) => {
-    try {
-      const res = await getAgentLimits(agentId);
-      setAgentLimits(res.data);
-      
-      // Form verilerini populate et
-      const formData = {};
-      res.data.forEach(limit => {
-        formData[limit.productId] = {
-          useCustomLimit: limit.useCustomLimit,
-          maxActiveTickets: limit.maxActiveTickets || ''
-        };
-      });
-      setLimitFormData(formData);
-    } catch (err) {
-      console.error('Could not load agent limits:', err);
-    }
-  };
-
-  // Agent seçimini işle
-  const handleSelectAgent = (userId) => {
-    setSelectedAgentId(userId);
-    setLimitsSectionOpen(true);
-    fetchAgentLimits(userId);
-  };
-
-  // Limit ayarını kaydet
-  const handleSaveLimit = async (productId) => {
-    setSavingLimit(true);
-    try {
-      const formConfig = limitFormData[productId] || { useCustomLimit: false, maxActiveTickets: null };
-      const maxActiveTickets = formConfig.maxActiveTickets === '' ? null : Number(formConfig.maxActiveTickets);
-      
-      await setAgentLimit(selectedAgentId, productId, formConfig.useCustomLimit, maxActiveTickets);
-      
-      // Limitleri yeniden yükle
-      await fetchAgentLimits(selectedAgentId);
-    } catch (err) {
-      console.error('Could not save limit:', err);
-      alert(err.response?.data?.message || 'Could not save limit.');
-    } finally {
-      setSavingLimit(false);
-    }
-  };
-
-  // Limit override'ını sil
-  const handleDeleteLimit = async (productId) => {
-    if (!window.confirm('Are you sure you want to delete this limit override?')) return;
-    
-    try {
-      await deleteAgentLimit(selectedAgentId, productId);
-      await fetchAgentLimits(selectedAgentId);
-    } catch (err) {
-      console.error('Could not delete limit:', err);
-      alert(err.response?.data?.message || 'Could not delete limit.');
     }
   };
 
@@ -157,7 +88,6 @@ export default function AdminPanel() {
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Role</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Authorized Products</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '250px' }}>Assign Product</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '120px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -175,7 +105,7 @@ export default function AdminPanel() {
                       {user.authorizedProducts && user.authorizedProducts.map(prod => (
                         <span key={prod.id} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
                           {prod.name}
-                          <button 
+                          <button
                             onClick={() => handleRemoveProduct(user.id, prod.id)}
                             title="Remove"
                             className="ml-0.5 rounded hover:text-danger-500 transition-colors cursor-pointer"
@@ -192,7 +122,7 @@ export default function AdminPanel() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <select 
+                      <select
                         className="flex-1 rounded-lg border px-2 py-1.5 text-xs outline-none transition-all focus:ring-2 cursor-pointer"
                         style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                         onChange={(e) => setSelectedProductId(e.target.value)}
@@ -206,7 +136,7 @@ export default function AdminPanel() {
                           ))
                         }
                       </select>
-                      <button 
+                      <button
                         className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
                         onClick={() => handleAssignProduct(user.id)}
                       >
@@ -214,14 +144,6 @@ export default function AdminPanel() {
                         Add
                       </button>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button 
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors cursor-pointer"
-                      onClick={() => handleSelectAgent(user.id)}
-                    >
-                      Limit
-                    </button>
                   </td>
                 </tr>
               ))}

@@ -127,7 +127,7 @@ export default function Dashboard() {
   useEffect(() => {
     loadSummary();
     loadAlerts();
-  }, []);
+  }, [loadAlerts]);
 
   usePolling(loadAlerts, 30_000);
 

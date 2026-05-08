@@ -20,15 +20,16 @@ export default function RateLimitToast() {
   }, []);
 
   useEffect(() => {
-    if (!visible || countdown <= 0) {
-      if (countdown <= 0 && visible) {
-        setVisible(false);
-      }
-      return;
-    }
+    if (!visible || countdown <= 0) return;
 
     const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1);
+      setCountdown((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          setVisible(false);
+        }
+        return next;
+      });
     }, 1000);
 
     return () => clearInterval(timer);

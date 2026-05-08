@@ -20,12 +20,6 @@ export default function ActionReasonModal({
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
-      setNoteText('');
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     if (!isOpen) {
       return undefined;
     }
