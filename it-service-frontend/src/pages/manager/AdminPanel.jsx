@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import api from '../../services/api';
+import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -160,6 +161,8 @@ export default function AdminPanel() {
           </table>
         </div>
       </div>
+
+      <RateLimitConfigPanel />
     </>
   );
 }
