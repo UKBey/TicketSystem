@@ -33,13 +33,13 @@ public class WorkflowService {
     private String callbackToken;
 
     private long getSlaDurationMs(String priority) {
-        if (priority == null) return 10 * 60 * 1000L;
+        if (priority == null) return 12 * 60 * 60 * 1000L;
         return switch (priority.toUpperCase()) {
-            case "LOW" -> 20 * 60 * 1000L;
-            case "MEDIUM" -> 10 * 60 * 1000L;
-            case "HIGH" -> 5 * 60 * 1000L;
-            case "CRITICAL" -> 1 * 60 * 1000L;
-            default -> 10 * 60 * 1000L;
+            case "LOW"      -> 24 * 60 * 60 * 1000L;  // 24 saat
+            case "MEDIUM"   -> 12 * 60 * 60 * 1000L;  // 12 saat
+            case "HIGH"     ->  4 * 60 * 60 * 1000L;  //  4 saat
+            case "CRITICAL" ->  1 * 60 * 60 * 1000L;  //  1 saat
+            default         -> 12 * 60 * 60 * 1000L;
         };
     }
 
