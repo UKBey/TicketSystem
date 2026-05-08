@@ -143,7 +143,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 return entry.getValue();
             }
         }
-        return null;
+        return "GLOBAL_API"; // Fallback to global limit for all other API endpoints
     }
 
     /**

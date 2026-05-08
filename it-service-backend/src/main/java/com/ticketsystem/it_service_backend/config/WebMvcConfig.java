@@ -32,9 +32,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)
-                // "/api/tickets/{id}/claim" -- PUT (claim) endpoint
-                // The interceptor itself resolves the logical endpointKey from the URI.
-                .addPathPatterns("/api/tickets/*/claim");
-        // When new endpoints need rate limiting, add their path patterns here.
+                // Appends rate limit logic to all API endpoints for global spam protection.
+                // The interceptor resolves the logical endpointKey from the URI, falling back to GLOBAL_API.
+                .addPathPatterns("/api/**");
+        // To exclude endpoints, use .excludePathPatterns("/api/some-path")
     }
 }
