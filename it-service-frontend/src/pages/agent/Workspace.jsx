@@ -5,22 +5,28 @@ import { getAgentLimits } from '../../services/api';
 import TicketTable from '../../components/TicketTable';
 
 export default function Workspace() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [agentLimits, setAgentLimits] = useState([]);
   const [loading, setLoading] = useState(true);
   const currentUserId = user?.sub || user?.id;
+  const isAgentAdmin = hasRole('AGENT_ADMIN');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ticketsRes, limitsRes] = await Promise.all([
-          api.get('/tickets/my-assigned'),
-          getAgentLimits(currentUserId)
-        ]);
-        // Workspace listesinde kapanmis biletler gizlenir.
+        const ticketsRes = await api.get('/tickets/my-assigned');
         setTickets(ticketsRes.data.filter((t) => t.status !== 'CLOSED'));
-        setAgentLimits(limitsRes.data);
+
+        // Limit bilgisi yalnızca AGENT_ADMIN için çekilir (AGENT rolü bu endpoint'e erişemez)
+        if (isAgentAdmin) {
+          try {
+            const limitsRes = await getAgentLimits(currentUserId);
+            setAgentLimits(limitsRes.data);
+          } catch (err) {
+            console.error('Could not load agent limits:', err);
+          }
+        }
       } catch (err) {
         console.error('Could not load workspace data:', err);
       } finally {
@@ -30,7 +36,7 @@ export default function Workspace() {
     if (currentUserId) {
       fetchData();
     }
-  }, [currentUserId]);
+  }, [currentUserId, isAgentAdmin]);
 
   return (
     <>
