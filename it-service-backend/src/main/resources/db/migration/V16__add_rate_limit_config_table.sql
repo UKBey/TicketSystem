@@ -11,6 +11,6 @@ CREATE TABLE rate_limit_configs (
     updated_at       TIMESTAMPTZ
 );
 
--- Seed: claim endpoint starts at 10 requests per 60 seconds.
+-- Seed: Global API limit starts at 300 requests per 60 seconds.
 INSERT INTO rate_limit_configs (endpoint_key, description, max_requests, duration_seconds)
-VALUES ('CLAIM_TICKET', 'Bilet claim limiti (saniyede)', 10, 60);
+VALUES ('GLOBAL_API', 'Genel API İstek Limiti (Spam Koruması)', 300, 60);

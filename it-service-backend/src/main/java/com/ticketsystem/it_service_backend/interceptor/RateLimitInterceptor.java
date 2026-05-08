@@ -52,24 +52,16 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, Bucket>> buckets =
             new ConcurrentHashMap<>();
 
-    /**
-     * Maps a request URI pattern to its logical endpoint key.
-     * Pattern matching uses simple prefix/suffix checks to avoid regex overhead.
-     */
-    private static final Map<String, String> PATH_TO_KEY = Map.of(
-            "/api/tickets/*/claim", "CLAIM_TICKET"
-    );
+    // Global API key used for all endpoints
+    private static final String GLOBAL_ENDPOINT_KEY = "GLOBAL_API";
 
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws IOException {
 
-        // 1. Resolve endpointKey from request URI
-        String endpointKey = resolveEndpointKey(request.getRequestURI());
-        if (endpointKey == null) {
-            return true; // path not covered by any rate limit config
-        }
+        // 1. Use the global endpoint key
+        String endpointKey = GLOBAL_ENDPOINT_KEY;
 
         // 2. Load config (Caffeine-cached); pass through if missing or disabled
         Optional<RateLimitConfig> configOpt = rateLimitConfigService.getConfig(endpointKey);
@@ -133,39 +125,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     // Private helpers
     // ------------------------------------------------------------------
 
-    /**
-     * Resolves the logical endpoint key for a given request URI.
-     * Currently uses simple wildcard matching; extend for more patterns.
-     */
-    private String resolveEndpointKey(String uri) {
-        for (Map.Entry<String, String> entry : PATH_TO_KEY.entrySet()) {
-            if (matchesPattern(uri, entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return "GLOBAL_API"; // Fallback to global limit for all other API endpoints
-    }
-
-    /**
-     * Matches a URI against a simple glob-style pattern where {@code *}
-     * matches any single path segment (no slashes).
-     * Example: {@code /api/tickets/42/claim} matches {@code /api/tickets/*&#47;claim}
-     */
-    private boolean matchesPattern(String uri, String pattern) {
-        // Split on the wildcard and check prefix / suffix
-        int starIdx = pattern.indexOf('*');
-        if (starIdx < 0) {
-            return uri.equals(pattern);
-        }
-        String prefix = pattern.substring(0, starIdx);
-        String suffix = pattern.substring(starIdx + 1);
-        if (!uri.startsWith(prefix) || !uri.endsWith(suffix)) {
-            return false;
-        }
-        // Ensure the wildcard segment contains no additional slashes
-        String middle = uri.substring(prefix.length(), uri.length() - suffix.length());
-        return !middle.contains("/");
-    }
+    // ------------------------------------------------------------------
 
     /**
      * Extracts the subject (Keycloak user UUID) from the JWT stored in the
