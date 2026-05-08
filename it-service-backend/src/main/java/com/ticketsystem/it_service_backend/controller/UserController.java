@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.controller;
 
+import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +98,25 @@ public class UserController {
         return ResponseEntity.ok(agents.stream()
                 .map(UserDTO::fromEntity)
                 .collect(Collectors.toList()));
+    }
+
+    @Operation(summary = "Agent'ları kapasite bilgileriyle listele",
+            description = "Belirtilen ürün için yetkili agent'ları, mevcut aktif bilet sayıları ve limitleriyle birlikte döner. Atama UI'ı için kullanılır.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent kapasite listesi başarıyla döndü"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+    })
+    @GetMapping("/agents/capacity")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<List<AgentCapacityDTO>> getAgentsWithCapacity(
+            @Parameter(description = "Ürün ID'si", required = true)
+            @RequestParam Long productId) {
+        log.info("Agent kapasite listesi isteği. Product: {}", productId);
+
+        List<AgentCapacityDTO> agents = userService.getAgentsWithCapacity(productId);
+
+        log.info("Toplam {} agent kapasite bilgisiyle döndü.", agents.size());
+        return ResponseEntity.ok(agents);
     }
 
     @Operation(summary = "Kullanıcı detayı getir",
