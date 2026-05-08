@@ -455,7 +455,16 @@ public class TicketService {
 
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
                                                  String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN")) return;
+        if (roles.contains("AGENT_ADMIN")) {
+            // AGENT_ADMIN statü değişikliği yapabilmek için claim almış olmalıdır.
+            // Assign işlemi bu metoddan geçmez, doğrudan assignTicket'tan yapılır.
+            boolean hasClaim = ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId);
+            if (!hasClaim) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Bu işlemi yapabilmek için önce bileti claim almanız veya join olmanız gerekiyor.");
+            }
+            return;
+        }
 
         if (roles.contains("CUSTOMER")) {
             if (!userId.equals(ticket.getCustomerId())) {
