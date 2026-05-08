@@ -65,6 +65,14 @@ export const unclaimTicket = (ticketId, note) =>
 export const closeTicket = (ticketId, note) =>
   api.put(`/tickets/${ticketId}/close`, { note });
 
+// Agent kapasite listesini çek (atama UI'ı için)
+export const getAgentsWithCapacity = (productId) =>
+  api.get('/users/agents/capacity', { params: { productId } });
+
+// Bileti agent'a ata (Agent Admin)
+export const assignTicket = (ticketId, targetAgentId, note) =>
+  api.put(`/tickets/${ticketId}/assign`, { targetAgentId, note });
+
 export default api;
 
 // Rate Limit API Functions
