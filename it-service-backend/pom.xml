@@ -218,6 +218,14 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+
+        <!-- Token-bucket rate limiting (bucket4j-spring-boot-starter eklenmez;
+             manuel kontrol tercih edilir) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
     </dependencies>
 
 	<build>
