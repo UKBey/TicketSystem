@@ -348,6 +348,19 @@ export default function TicketDetail() {
     }
   };
 
+  const handleClaim = async () => {
+    try {
+      const res = await api.put(`/tickets/${id}/claim`);
+      setTicket(res.data);
+    } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
+        alert(`Limit exceeded: ${err.response.data.message}`);
+      } else {
+        alert(err.response?.data?.message || 'Could not claim ticket.');
+      }
+    }
+  };
+
   const handleUnclaim = async (note) => {
     try {
       const res = await unclaimTicketWithNote(id, note);
@@ -734,6 +747,24 @@ export default function TicketDetail() {
                   </button>
                 )}
               </div>
+              {(() => {
+                const currentUserId = user?.sub || user?.id;
+                const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
+                const noClaimer = !ticket?.claimers || ticket.claimers.length === 0;
+                if (hasClaimed || ticket?.status === 'CLOSED') return null;
+                return (
+                  <button
+                    className={`w-full rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors cursor-pointer ${
+                      noClaimer
+                        ? 'bg-primary-500 hover:bg-primary-600'
+                        : 'bg-accent-500 hover:bg-accent-600'
+                    }`}
+                    onClick={handleClaim}
+                  >
+                    {noClaimer ? 'Claim' : 'Join'}
+                  </button>
+                );
+              })()}
               <button
                 className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
