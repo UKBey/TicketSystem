@@ -4,17 +4,22 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { StatusBadge, PriorityBadge } from '../../components/Badges';
 import SlaTimerBadge from '../../components/SlaTimerBadge';
+import AgentSelectionModal from '../../components/AgentSelectionModal';
 import { AlertTriangle, Inbox, Users } from 'lucide-react';
 
 export default function TeamTickets() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
   const [tickSeconds, setTickSeconds] = useState(0);
 
   const currentUserId = user?.sub || user?.id;
+  const isAgentAdmin = hasRole('AGENT_ADMIN');
+
+  // Assign modal state
+  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -46,6 +51,19 @@ export default function TeamTickets() {
       alert(err.response?.data?.message || 'Could not join ticket.');
       setJoiningId(null);
     }
+  };
+
+  const handleOpenAssign = (ticket, e) => {
+    e.stopPropagation();
+    setAssignModal({ open: true, ticketId: ticket.id, productId: ticket.productId });
+  };
+
+  const handleAssignSuccess = () => {
+    // Başarılı atama sonrası listeyi yenile
+    if (!currentUserId) return;
+    api.get('/tickets/team')
+      .then((res) => setTickets(res.data.filter((t) => !t.claimers?.some((c) => c.agentId === currentUserId))))
+      .catch((err) => console.error('Could not refresh team tickets:', err));
   };
 
   const formatDate = (dateStr) => {
@@ -156,14 +174,24 @@ export default function TeamTickets() {
                         {formatDate(ticket.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
-                          disabled={joiningId === ticket.id}
-                          onClick={(e) => handleJoin(ticket.id, e)}
-                        >
-                          <Users className="h-3 w-3" />
-                          {joiningId === ticket.id ? 'Joining…' : 'Join'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                            disabled={joiningId === ticket.id}
+                            onClick={(e) => handleJoin(ticket.id, e)}
+                          >
+                            <Users className="h-3 w-3" />
+                            {joiningId === ticket.id ? 'Joining…' : 'Join'}
+                          </button>
+                          {isAgentAdmin && (
+                            <button
+                              className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                              onClick={(e) => handleOpenAssign(ticket, e)}
+                            >
+                              Assign
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                 ))}
@@ -172,6 +200,14 @@ export default function TeamTickets() {
           </div>
         )}
       </div>
+
+      <AgentSelectionModal
+        isOpen={assignModal.open}
+        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null })}
+        onSuccess={handleAssignSuccess}
+        ticketId={assignModal.ticketId}
+        productId={assignModal.productId}
+      />
     </>
   );
 }
