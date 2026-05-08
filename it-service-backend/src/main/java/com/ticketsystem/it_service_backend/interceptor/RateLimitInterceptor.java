@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final RateLimitConfigService rateLimitConfigService;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Two-level map: endpointKey -> (agentId -> Bucket).
