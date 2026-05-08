@@ -123,7 +123,7 @@ public class DateBackfiller {
     private int slaHoursForPriority(String priority) {
         if (priority == null) return 12;
         return switch (priority.toUpperCase()) {
-            case "LOW"      -> 48;
+            case "LOW"      -> 24;
             case "MEDIUM"   -> 12;
             case "HIGH"     ->  4;
             case "CRITICAL" ->  1;

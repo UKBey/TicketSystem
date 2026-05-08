@@ -58,7 +58,7 @@ class WorkflowServiceTest {
                         && "HIGH".equals(variables.get("priority"))
                         && "customer-1".equals(variables.get("customerId"))
                         && "NEW".equals(variables.get("status"))
-                        && "PT5M".equals(variables.get("slaDuration"))
+                        && "PT240M".equals(variables.get("slaDuration"))
                         && "https://example.com/callback?token=token-123".equals(variables.get("callbackUrl"))
                         && !variables.containsKey("assigneeId")
         ));
@@ -80,7 +80,7 @@ class WorkflowServiceTest {
         assertEquals(78L, processInstanceId);
         verify(kieServerAdapter).startProcess(eq("ticket-workflow"), org.mockito.ArgumentMatchers.argThat(variables ->
                 !variables.containsKey("assigneeId")
-                        && "PT20M".equals(variables.get("slaDuration"))
+                        && "PT1440M".equals(variables.get("slaDuration"))
         ));
     }
 
@@ -222,8 +222,8 @@ class WorkflowServiceTest {
 
         workflowService.resumeSla(ticket);
 
-        verify(kieServerAdapter).setProcessVariable(800L, "slaDuration", "PT19M");
-        verify(kieServerAdapter).signalProcessInstance(800L, "resume_sla", "PT19M");
+        verify(kieServerAdapter).setProcessVariable(800L, "slaDuration", "PT1439M");
+        verify(kieServerAdapter).signalProcessInstance(800L, "resume_sla", "PT1439M");
     }
 
     @Test
@@ -237,8 +237,9 @@ class WorkflowServiceTest {
 
         workflowService.resumeSla(ticket);
 
-        verify(kieServerAdapter).setProcessVariable(801L, "slaDuration", "PT18M1S");
-        verify(kieServerAdapter).signalProcessInstance(801L, "resume_sla", "PT18M1S");
+        // LOW=86_400_000ms, elapsed=119_000ms → remaining=86_281_000ms = 1438m1s
+        verify(kieServerAdapter).setProcessVariable(801L, "slaDuration", "PT1438M1S");
+        verify(kieServerAdapter).signalProcessInstance(801L, "resume_sla", "PT1438M1S");
     }
 
     @Test
@@ -246,12 +247,13 @@ class WorkflowServiceTest {
         Ticket ticket = Ticket.builder()
                 .id(192L)
                 .priority("CRITICAL")
-                .slaElapsedMs(59_000L)
+                .slaElapsedMs(3_599_000L)
                 .processInstanceId(802L)
                 .build();
 
         workflowService.resumeSla(ticket);
 
+        // CRITICAL=3_600_000ms, elapsed=3_599_000ms → remaining=1_000ms = 1s
         verify(kieServerAdapter).setProcessVariable(802L, "slaDuration", "PT1S");
         verify(kieServerAdapter).signalProcessInstance(802L, "resume_sla", "PT1S");
     }
@@ -265,12 +267,12 @@ class WorkflowServiceTest {
                 .processInstanceId(803L)
                 .build();
         doThrow(new RuntimeException("signal failed"))
-                .when(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT19M");
+                .when(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT1439M");
 
         workflowService.resumeSla(ticket);
 
-        verify(kieServerAdapter).setProcessVariable(803L, "slaDuration", "PT19M");
-        verify(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT19M");
+        verify(kieServerAdapter).setProcessVariable(803L, "slaDuration", "PT1439M");
+        verify(kieServerAdapter).signalProcessInstance(803L, "resume_sla", "PT1439M");
     }
 
     @Test
@@ -341,7 +343,8 @@ class WorkflowServiceTest {
         Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
-        assertEquals(45_000L, result.get("remainingMs"));
+        // CRITICAL=3_600_000ms, elapsed=15_000ms → remaining=3_585_000ms
+        assertEquals(3_585_000L, result.get("remainingMs"));
     }
 
     @Test
@@ -368,7 +371,7 @@ class WorkflowServiceTest {
         workflowService.startTicketWorkflow(ticket);
 
         verify(kieServerAdapter).startProcess(eq("ticket-workflow"), org.mockito.ArgumentMatchers.argThat(variables ->
-                "PT10M".equals(variables.get("slaDuration"))
+                "PT720M".equals(variables.get("slaDuration"))
         ));
     }
 
@@ -383,7 +386,8 @@ class WorkflowServiceTest {
         Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
-        assertEquals(180_000L, result.get("remainingMs"));
+        // HIGH=14_400_000ms, elapsed=120_000ms → remaining=14_280_000ms
+        assertEquals(14_280_000L, result.get("remainingMs"));
     }
 
     @Test

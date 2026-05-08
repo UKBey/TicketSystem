@@ -102,7 +102,7 @@ geriye rastgele dağıtılır. SLA süreleri önceliğe göre hesaplanır:
 | CRITICAL | 1 saat |
 | HIGH | 4 saat |
 | MEDIUM | 12 saat |
-| LOW | 48 saat |
+| LOW | 24 saat |
 
 ---
 
