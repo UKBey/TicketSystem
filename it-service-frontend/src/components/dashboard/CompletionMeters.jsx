@@ -5,16 +5,16 @@ import { getCompletionColor } from './ChartColors';
 const METERS = [
   {
     key: 'completionRate',
-    label: 'Bilet Tamamlanma',
+    label: 'Ticket Completion',
     icon: CheckCircle2,
     detail: (r) =>
-      `${(r.totalResolved ?? 0) + (r.totalClosed ?? 0)} / ${r.totalCreated ?? 0} bilet`,
+      `${(r.totalResolved ?? 0) + (r.totalClosed ?? 0)} / ${r.totalCreated ?? 0} tickets`,
   },
   {
     key: 'slaComplianceRate',
-    label: 'SLA Uyum',
+    label: 'SLA Compliance',
     icon: ShieldCheck,
-    detail: (r) => `${r.totalResolved ?? 0} çözülen bilette`,
+    detail: (r) => `across ${r.totalResolved ?? 0} resolved tickets`,
   },
 ];
 
@@ -27,7 +27,7 @@ function CompletionMeters({ data, loading }) {
 
       <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.18em]"
         style={{ color: 'var(--text-secondary)' }}>
-        Tamamlanma Göstergeleri
+        Completion Meters
       </h2>
 
       <div className="space-y-5">
@@ -71,7 +71,7 @@ function CompletionMeters({ data, loading }) {
       <div className="mt-5 flex items-center justify-between rounded-xl border px-4 py-2.5"
         style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Ort. çözüm süresi
+          Avg. resolution time
         </span>
         <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
           {loading ? '…' : `${avgResolutionHours.toFixed(1)} sa`}

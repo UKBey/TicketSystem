@@ -1,8 +1,8 @@
 import { Activity, BarChart3, PieChart } from 'lucide-react';
 
 const panels = {
-  'Zaman çizgisi grafiği': Activity,
-  'Agent workload görünümü': BarChart3,
+  'Timeline chart': Activity,
+  'Agent workload view': BarChart3,
   default: PieChart,
 };
 
@@ -26,9 +26,9 @@ export default function DashboardPlaceholderPanel({ title, description }) {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
             <Icon className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="mt-4 text-base font-bold" style={{ color: 'var(--text-primary)' }}>Chart alanı hazır</h3>
+          <h3 className="mt-4 text-base font-bold" style={{ color: 'var(--text-primary)' }}>Chart area ready</h3>
           <p className="mt-2 text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>
-            Bu bölüm sonraki commitlerde veri görselleştirmeleri için kullanılacak. Şimdilik layout'u sabit tutuyor ve dashboard'un boş görünmesini engelliyor.
+            This section will be used for data visualizations in upcoming releases. For now it keeps the layout stable and prevents the dashboard from appearing empty.
           </p>
         </div>
       </div>

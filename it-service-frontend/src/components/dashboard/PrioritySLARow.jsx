@@ -7,7 +7,7 @@ function formatHours(value) {
 }
 
 function formatNumber(value) {
-  return new Intl.NumberFormat('tr-TR').format(value ?? 0);
+  return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
 function getStatusTone(onTimePercentage) {
@@ -38,7 +38,7 @@ export default function PrioritySLARow({ item, maxScaleHours }) {
             </h3>
           </div>
           <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {formatNumber(item.ticketCount)} bilet · SLA hedefi {formatHours(item.slaTargetHours)}
+            {formatNumber(item.ticketCount)} tickets · SLA target {formatHours(item.slaTargetHours)}
           </p>
         </div>
 
@@ -65,7 +65,7 @@ export default function PrioritySLARow({ item, maxScaleHours }) {
           On-time: {Number(item.onTimePercentage ?? 0).toFixed(0)}%
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          Hedef: {formatHours(item.slaTargetHours)}
+          Target: {formatHours(item.slaTargetHours)}
         </span>
       </div>
     </div>

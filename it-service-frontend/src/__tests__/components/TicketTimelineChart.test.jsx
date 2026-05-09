@@ -20,7 +20,7 @@ describe('TicketTimelineChart', () => {
 
   it('shows empty state message when timeline is empty', () => {
     render(<TicketTimelineChart data={{ timeline: [] }} loading={false} />);
-    expect(screen.getByText(/Timeline verisi bulunamadı/i)).toBeInTheDocument();
+    expect(screen.getByText(/No timeline data available/i)).toBeInTheDocument();
   });
 
   it('renders chart container when data is present', () => {
@@ -30,7 +30,7 @@ describe('TicketTimelineChart', () => {
 
   it('shows chart section header', () => {
     render(<TicketTimelineChart data={SAMPLE_DATA} loading={false} />);
-    expect(screen.getByText(/30 Günlük Trend/i)).toBeInTheDocument();
+    expect(screen.getByText(/Trend Chart/i)).toBeInTheDocument();
   });
 
   it('renders null data gracefully without crash', () => {

@@ -24,7 +24,7 @@ function ProductMetricsChart({ data, loading }) {
       const otherTotal = rest.reduce((s, p) => s + (p.totalTickets ?? 0), 0);
       const otherOpen  = rest.reduce((s, p) => s + (p.openTickets ?? 0), 0);
       otherRow = {
-        productName: `Diğer (${rest.length} ürün)`,
+        productName: `Other (${rest.length} products)`,
         totalTickets: otherTotal,
         openTickets: otherOpen,
         avgResolutionHours: null,
@@ -60,7 +60,7 @@ function ProductMetricsChart({ data, loading }) {
     return (
       <div className="rounded-2xl border p-8 flex flex-col items-center justify-center gap-2 text-center" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
         <Package className="h-8 w-8" style={{ color: 'var(--text-tertiary)' }} />
-        <p className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>Ürün verisi bulunamadı</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>No product data found</p>
       </div>
     );
   }
@@ -69,25 +69,25 @@ function ProductMetricsChart({ data, loading }) {
 
   return (
     <div className="rounded-2xl border p-5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-      {/* Başlık */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Ürün Bazında Bilet Dağılımı
+            Ticket Distribution by Product
           </h3>
           <p className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            Toplam {totalTickets.toLocaleString('tr-TR')} bilet · İlk {Math.min(TOP_N, rows.length)} ürün
+            {totalTickets.toLocaleString('en-US')} total tickets · Top {Math.min(TOP_N, rows.length)} products
           </p>
         </div>
         <span
           className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: 'rgba(59,130,246,0.10)', color: '#1d4ed8' }}
         >
-          {(data?.productMetrics ?? []).length} ürün
+          {(data?.productMetrics ?? []).length} products
         </span>
       </div>
 
-      {/* Satırlar */}
+      {/* Rows */}
       <div className="space-y-4">
         {allRows.map((product, idx) => {
           const isOther = product.isOther;
@@ -104,7 +104,7 @@ function ProductMetricsChart({ data, loading }) {
               onMouseEnter={() => !isOther && setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
             >
-              {/* İsim + sayı */}
+              {/* Name + count */}
               <div className="flex items-center justify-between mb-1.5">
                 <span
                   className="text-xs font-semibold truncate max-w-[65%]"
@@ -115,13 +115,13 @@ function ProductMetricsChart({ data, loading }) {
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {openPct}% açık
+                    {openPct}% open
                   </span>
                   <span
                     className="text-xs font-bold tabular-nums"
                     style={{ color: color.text }}
                   >
-                    {(product.totalTickets ?? 0).toLocaleString('tr-TR')}
+                    {(product.totalTickets ?? 0).toLocaleString('en-US')}
                   </span>
                 </div>
               </div>
@@ -142,25 +142,25 @@ function ProductMetricsChart({ data, loading }) {
                   </p>
                   <div className="space-y-1" style={{ color: 'var(--text-secondary)' }}>
                     <div className="flex justify-between gap-4">
-                      <span>Toplam Bilet</span>
+                      <span>Total Tickets</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {(product.totalTickets ?? 0).toLocaleString('tr-TR')}
+                        {(product.totalTickets ?? 0).toLocaleString('en-US')}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Açık Bilet</span>
+                      <span>Open Tickets</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {(product.openTickets ?? 0).toLocaleString('tr-TR')}
+                        {(product.openTickets ?? 0).toLocaleString('en-US')}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Ort. Çözüm</span>
+                      <span>Avg. Resolution</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {product.avgResolutionHours != null ? `${fmt1(product.avgResolutionHours)}h` : '—'}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>CSAT Ort.</span>
+                      <span>Avg. CSAT</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {product.csatAverage != null && product.csatAverage > 0 ? `${fmt1(product.csatAverage)} / 5` : '—'}
                       </span>
@@ -188,7 +188,7 @@ function ProductMetricsChart({ data, loading }) {
         })}
       </div>
 
-      {/* Renk lejantı */}
+      {/* Color legend */}
       <div className="mt-5 pt-4 border-t flex flex-wrap gap-x-4 gap-y-2" style={{ borderColor: 'var(--border-color-light)' }}>
         {rows.map((product, idx) => {
           const color = PRODUCT_COLORS[idx] ?? PRODUCT_COLORS[0];
@@ -202,7 +202,7 @@ function ProductMetricsChart({ data, loading }) {
         {otherRow && (
           <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: PRODUCT_COLORS[PRODUCT_COLORS.length - 1].bar }} />
-            Diğer
+            Other
           </span>
         )}
       </div>

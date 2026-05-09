@@ -22,7 +22,7 @@ describe('PrioritySLAChart', () => {
 
   it('shows empty state when priorityMetrics is empty', () => {
     render(<PrioritySLAChart data={{ priorityMetrics: [] }} loading={false} />);
-    expect(screen.getByText(/Priority-SLA metrikleri bulunamadı/i)).toBeInTheDocument();
+    expect(screen.getByText(/No priority SLA metrics found/i)).toBeInTheDocument();
   });
 
   it('renders a row for each priority level', () => {
@@ -46,7 +46,7 @@ describe('PrioritySLAChart', () => {
     const criticalRow = screen.getByRole('button', { name: /CRITICAL priority SLA metric row/i });
     await user.hover(criticalRow);
 
-    expect(screen.getByText(/Seçili satır/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selected row/i)).toBeInTheDocument();
   });
 
   it('sorts rows in CRITICAL → HIGH → MEDIUM → LOW order', () => {

@@ -19,7 +19,7 @@ describe('ProductMetricsChart', () => {
 
   it('shows empty state when productMetrics is empty', () => {
     render(<ProductMetricsChart data={{ productMetrics: [] }} loading={false} />);
-    expect(screen.getByText(/Ürün verisi bulunamadı/i)).toBeInTheDocument();
+    expect(screen.getByText(/No product data found/i)).toBeInTheDocument();
   });
 
   it('renders a bar row for each product', () => {
@@ -38,10 +38,10 @@ describe('ProductMetricsChart', () => {
 
   it('shows correct product count badge', () => {
     render(<ProductMetricsChart data={SAMPLE_DATA} loading={false} />);
-    expect(screen.getByText('3 ürün')).toBeInTheDocument();
+    expect(screen.getByText('3 products')).toBeInTheDocument();
   });
 
-  it('groups products beyond TOP_N into "Diğer" row', () => {
+  it('groups products beyond TOP_N into "Other" row', () => {
     const manyProducts = {
       productMetrics: Array.from({ length: 8 }, (_, i) => ({
         productName: `Product ${i + 1}`,
@@ -53,7 +53,7 @@ describe('ProductMetricsChart', () => {
       })),
     };
     render(<ProductMetricsChart data={manyProducts} loading={false} />);
-    // "Diğer" appears in both the bar row and the legend
-    expect(screen.getAllByText(/Diğer/i).length).toBeGreaterThanOrEqual(1);
+    // "Other" appears in both the bar row and the legend
+    expect(screen.getAllByText(/Other/i).length).toBeGreaterThanOrEqual(1);
   });
 });

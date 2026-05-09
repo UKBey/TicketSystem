@@ -88,9 +88,9 @@ describe('Dashboard — Integration', () => {
     setupHappyPath();
     render(<Dashboard />);
     await waitFor(() => {
-      expect(screen.getByText('Açık Bilet')).toBeInTheDocument();
+      expect(screen.getByText('Open Tickets')).toBeInTheDocument();
       expect(screen.getByText('SLA Breach')).toBeInTheDocument();
-      expect(screen.getByText('Ort. Çözüm Süresi')).toBeInTheDocument();
+      expect(screen.getByText('Avg. Resolution Time')).toBeInTheDocument();
       // 'CSAT' may appear in multiple places (KPI card + AgentPerformanceTable header)
       expect(screen.getAllByText('CSAT').length).toBeGreaterThanOrEqual(1);
     });
@@ -125,7 +125,7 @@ describe('Dashboard — Integration', () => {
 
     render(<Dashboard />);
     await waitFor(() => {
-      expect(screen.getByText(/yüklenemedi/i)).toBeInTheDocument();
+      expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
     });
   });
 
@@ -134,8 +134,8 @@ describe('Dashboard — Integration', () => {
     const user = userEvent.setup();
     render(<Dashboard />);
 
-    await waitFor(() => screen.getByText('Veriyi yenile'));
-    await user.click(screen.getByText('Veriyi yenile'));
+    await waitFor(() => screen.getByText('Refresh data'));
+    await user.click(screen.getByText('Refresh data'));
 
     await waitFor(() => {
       expect(metricService.getDashboardSummary).toHaveBeenCalledTimes(2);

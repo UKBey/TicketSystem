@@ -24,9 +24,9 @@ const PRIORITY_COLORS = {
 };
 
 const TREND_CONFIG = {
-  UP:     { icon: '↑', label: 'yükseliyor', bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#15803d' },
-  DOWN:   { icon: '↓', label: 'düşüyor',    bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.30)',  color: '#b91c1c' },
-  STABLE: { icon: '→', label: 'stabil',     bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.3)', color: '#64748b' },
+  UP:     { icon: '↑', label: 'rising',  bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#15803d' },
+  DOWN:   { icon: '↓', label: 'falling', bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.30)',  color: '#b91c1c' },
+  STABLE: { icon: '→', label: 'stable',  bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.3)', color: '#64748b' },
 };
 
 // Convention: 0 = top, clockwise positive (matches StatusDistributionChart)
@@ -74,7 +74,6 @@ function CSATGaugeChart({ data, loading }) {
   const indicatorPos = polarToCartesian(CX, CY, MID_R, indicatorAngle);
 
   const maxCount = Math.max(...Object.values(distribution).map(Number), 1);
-
   return (
     <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
@@ -83,24 +82,24 @@ function CSATGaugeChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <Star className="h-3.5 w-3.5" />
-            CSAT Analitik
+            CSAT Analytics
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Müşteri memnuniyet skoru</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Customer satisfaction score</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Puan dağılımı, aylık trend ve priority bazlı CSAT analizi.
+            Rating distribution, monthly trend and priority-based CSAT analysis.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {!loading && (
             <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: trendConf.bg, borderColor: trendConf.border, color: trendConf.color }}>
-              {trendConf.icon} {trend.thisMonth.toFixed(2)} bu ay · {trendConf.label}
+              {trendConf.icon} {trend.thisMonth.toFixed(2)} this month · {trendConf.label}
             </span>
           )}
           <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Yanıt</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Responses</div>
             <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
-              {loading ? '…' : totalResponses.toLocaleString('tr-TR')}
+              {loading ? '…' : totalResponses.toLocaleString('en-US')}
             </div>
           </div>
         </div>
@@ -111,7 +110,7 @@ function CSATGaugeChart({ data, loading }) {
 
         {/* Gauge SVG */}
         <div className="flex justify-center">
-          <svg viewBox="0 0 220 122" className="w-full max-w-[260px]" aria-label={`CSAT skoru: ${avgRating.toFixed(1)} / 5`}>
+          <svg viewBox="0 0 220 122" className="w-full max-w-[260px]" aria-label={`CSAT score: ${avgRating.toFixed(1)} / 5`}>
 
             {/* Background arc */}
             <path
@@ -200,9 +199,9 @@ function CSATGaugeChart({ data, loading }) {
           {/* Month comparison */}
           {!loading && trend.lastMonth > 0 && (
             <div className="mt-1 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-              <span style={{ color: 'var(--text-tertiary)' }}>Geçen ay</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>Last month</span>
               <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{trend.lastMonth.toFixed(2)}</span>
-              <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>Bu ay</span>
+              <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>This month</span>
               <span className="font-bold" style={{ color: trendConf.color }}>{trend.thisMonth.toFixed(2)}</span>
             </div>
           )}
@@ -213,7 +212,7 @@ function CSATGaugeChart({ data, loading }) {
       {!loading && Object.keys(byPriority).length > 0 && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>
-            Priority bazlı CSAT
+            CSAT by priority
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PRIORITY_ORDER.filter((p) => byPriority[p]).map((priority) => {
@@ -228,7 +227,7 @@ function CSATGaugeChart({ data, loading }) {
                     {Number(item.avg).toFixed(1)}
                   </div>
                   <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {item.responses} yanıt
+                    {item.responses} responses
                   </div>
                 </div>
               );
@@ -242,7 +241,7 @@ function CSATGaugeChart({ data, loading }) {
         <div className="mt-6">
           <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>
             <MessageSquare className="h-3.5 w-3.5" />
-            Son yüksek puanlı yorumlar
+            Recent high-rated comments
           </p>
           <div className="flex flex-wrap gap-2">
             {topComments.map((comment, i) => (

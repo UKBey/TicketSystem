@@ -5,7 +5,7 @@ import PrioritySLARow from './PrioritySLARow';
 import './dashboard.css';
 
 function formatNumber(value) {
-  return new Intl.NumberFormat('tr-TR').format(value ?? 0);
+  return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
 function normalizePriorityMetrics(data) {
@@ -54,29 +54,29 @@ function PrioritySLAChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <BarChart3 className="h-3.5 w-3.5" />
-            Priority SLA karşılaştırması
+            Priority SLA Comparison
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Priority çubuk grafik</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>SLA target vs. avg. resolution time</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            SLA hedefi ile ortalama çözüm süresi aynı eksende karşılaştırılır; hover ile detaylar görülebilir.
+            SLA target and average resolution time compared on the same scale.
           </p>
         </div>
 
         <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Ortalama on-time</div>
+          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Avg on-time</div>
           <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{averageOnTime.toFixed(0)}%</div>
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium">
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.goodBg, color: SLA_TONE_COLORS.goodText }}>
-          %90+ hedefte
+          90%+ on target
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.warningBg, color: SLA_TONE_COLORS.warningText }}>
-          %80-90 uyarı
+          80–90% warning
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.dangerBg, color: SLA_TONE_COLORS.dangerText }}>
-          &lt; %80 risk
+          &lt; 80% at risk
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
           Max scale: {formatNumber(maxScaleHours)}h
@@ -85,7 +85,7 @@ function PrioritySLAChart({ data, loading }) {
 
       {!loading && items.length === 0 ? (
         <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          Priority-SLA metrikleri bulunamadı.
+          No priority SLA metrics found.
         </div>
       ) : (
         <div className="space-y-3">

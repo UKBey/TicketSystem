@@ -14,7 +14,7 @@ function TopAgentsBar({ data, loading }) {
         <Users className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
         <h2 className="text-sm font-bold uppercase tracking-[0.18em]"
           style={{ color: 'var(--text-secondary)' }}>
-          En Aktif Agentlar
+          Most Active Agents
         </h2>
       </div>
 
@@ -33,7 +33,7 @@ function TopAgentsBar({ data, loading }) {
         </div>
       ) : top5.length === 0 ? (
         <p className="py-4 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-          Bu dönem kayıtlı worklog bulunamadı.
+          No worklog entries found for this period.
         </p>
       ) : (
         <div className="space-y-3">
@@ -55,7 +55,7 @@ function TopAgentsBar({ data, loading }) {
                 </div>
                 <div className="w-16 shrink-0 text-right">
                   <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {hours}sa
+                    {hours}h
                   </span>
                   <span className="ml-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     ({agent.totalEntries})

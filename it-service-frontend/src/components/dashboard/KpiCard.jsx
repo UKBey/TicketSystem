@@ -18,7 +18,7 @@ export default function KpiCard({ title, value, detail, icon, accent, loading })
 
       <div className="mt-4 flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--text-tertiary)' }} />
-        {loading ? 'Veri hazırlanıyor' : detail}
+        {loading ? 'Loading data' : detail}
       </div>
     </article>
   );

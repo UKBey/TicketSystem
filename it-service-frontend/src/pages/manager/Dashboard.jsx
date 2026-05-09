@@ -34,7 +34,7 @@ const DEFAULT_SUMMARY = {
 };
 
 function formatNumber(value) {
-  return new Intl.NumberFormat('tr-TR').format(value ?? 0);
+  return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
 function formatHours(value) {
@@ -99,7 +99,7 @@ export default function Dashboard() {
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
-      setError(requestError.response?.data?.message || 'Dashboard metrikleri yüklenemedi.');
+      setError(requestError.response?.data?.message || 'Dashboard metrics could not be loaded.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -133,38 +133,38 @@ export default function Dashboard() {
 
   const kpis = useMemo(() => ([
     {
-      title: 'Açık Bilet',
+      title: 'Open Tickets',
       value: formatNumber(summary.totalOpenTickets),
-      detail: `Son 24 saatte +${formatNumber(summary.newTicketsLast24Hours)} yeni kayıt`,
+      detail: `+${formatNumber(summary.newTicketsLast24Hours)} new in the last 24h`,
       icon: LayoutDashboard,
       accent: 'bg-primary-500',
     },
     {
       title: 'SLA Breach',
       value: `${formatNumber(summary.slaBreachedCount)}`,
-      detail: `${summary.slaBreachedPercentage?.toFixed(1) ?? '0.0'}% oran`,
+      detail: `${summary.slaBreachedPercentage?.toFixed(1) ?? '0.0'}% rate`,
       icon: ShieldAlert,
       accent: 'bg-danger-500',
     },
     {
-      title: 'Ort. Çözüm Süresi',
+      title: 'Avg. Resolution Time',
       value: formatHours(summary.avgResponseTimeHours),
-      detail: 'RESOLVED biletlerin ortalaması',
+      detail: 'Average across RESOLVED tickets',
       icon: Clock3,
       accent: 'bg-warning-500',
     },
     {
       title: 'CSAT',
       value: `${Number(summary.csatAverage ?? 0).toFixed(1)}/5`,
-      detail: `${formatNumber(summary.csatTotalResponses)} yanıt`,
+      detail: `${formatNumber(summary.csatTotalResponses)} responses`,
       icon: Star,
       accent: 'bg-accent-500',
     },
   ]), [summary]);
 
   const syncLabel = lastUpdated
-    ? lastUpdated.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
-    : 'Henüz senkronize edilmedi';
+    ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    : 'Not yet synced';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -178,19 +178,19 @@ export default function Dashboard() {
                 Manager Dashboard
               </div>
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Operasyonun tek bakışta fotoğrafı.
+                Your operations at a glance.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: 'var(--text-secondary)' }}>
-                Açık bilet hacmini, SLA baskısını ve müşteri memnuniyetini aynı yüzeyde gösteren, hızlı karar vermeye uygun bir kontrol paneli.
+                A control panel showing open ticket volume, SLA pressure and customer satisfaction in one place — built for fast decisions.
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-3 text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  Canlı özet metrikler
+                  Live summary metrics
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                   <RefreshCw className="h-3.5 w-3.5" />
-                  Son güncelleme: {syncLabel}
+                  Last updated: {syncLabel}
                 </span>
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function Dashboard() {
               style={{ backgroundColor: 'var(--bg-sidebar)', color: 'var(--text-inverse)' }}
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Yenileniyor' : 'Veriyi yenile'}
+              {refreshing ? 'Refreshing' : 'Refresh data'}
             </button>
           </div>
         </div>

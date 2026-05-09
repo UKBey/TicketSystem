@@ -14,7 +14,7 @@ import {
 import { CHART_COLORS, TIMELINE_SERIES } from './ChartColors';
 import './dashboard.css';
 
-const dateLabel = new Intl.DateTimeFormat('tr-TR', {
+const dateLabel = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'short',
 });
@@ -88,18 +88,18 @@ function TicketTimelineChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <LineChartIcon className="h-3.5 w-3.5" />
-            Trend Grafiği
+            Trend Chart
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Created, Resolved, Closed ve SLA Breach</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Created, Resolved, Closed & SLA Breach</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Çizgileri legend üstünden açıp kapatabilir, aşağıdaki bardan gün aralığını ayarlayabilirsiniz.
+            Toggle series from the legend. Use the bar below to adjust the date range.
           </p>
         </div>
       </div>
 
       {!loading && !hasData ? (
         <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          Timeline verisi bulunamadı.
+          No timeline data available.
         </div>
       ) : (
         <div className="timeline-chart-scroll">

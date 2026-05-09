@@ -40,8 +40,8 @@ function WorklogCompletionChart({ data, loading }) {
   const eksikRate      = Math.max(0, 100 - completionRate);
   const color          = getCompletionColor(completionRate);
 
-  const doluArc  = (Math.min(completionRate, 100) / 100) * CIRCUMFERENCE;
-  const eksikArc = (eksikRate / 100) * CIRCUMFERENCE;
+  const filledArc  = (Math.min(completionRate, 100) / 100) * CIRCUMFERENCE;
+  const missingArc = (eksikRate / 100) * CIRCUMFERENCE;
 
   return (
     <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
@@ -49,13 +49,13 @@ function WorklogCompletionChart({ data, loading }) {
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
           <Clock className="h-3.5 w-3.5" />
-          Worklog Özeti
+          Worklog Summary
         </div>
         <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-          Çalışma saati ve tamamlanma
+          Working hours & completion
         </h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Son {periodDays} günün kayıtlı worklog ve bilet tamamlanma analizi.
+          Logged worklog and ticket completion analysis for the last {periodDays} days.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ function WorklogCompletionChart({ data, loading }) {
         {/* Donut */}
         <div className="shrink-0">
           <svg width="160" height="160" viewBox="0 0 160 160"
-            aria-label={`Tamamlanma oranı: ${completionRate.toFixed(1)}%`}>
+            aria-label={`Completion rate: ${completionRate.toFixed(1)}%`}>
 
             {/* Track */}
             <circle cx={CX} cy={CY} r={R} fill="none" strokeWidth={STROKE_W}
@@ -79,13 +79,13 @@ function WorklogCompletionChart({ data, loading }) {
                 {eksikRate > 0.5 && (
                   <circle cx={CX} cy={CY} r={R} fill="none" strokeWidth={STROKE_W}
                     stroke="rgba(239,68,68,0.18)"
-                    strokeDasharray={`${eksikArc} ${CIRCUMFERENCE}`}
-                    strokeDashoffset={-doluArc}
+                    strokeDasharray={`${missingArc} ${CIRCUMFERENCE}`}
+                    strokeDashoffset={-filledArc}
                     transform="rotate(-90 80 80)" />
                 )}
                 <circle cx={CX} cy={CY} r={R} fill="none" strokeWidth={STROKE_W}
                   stroke={color}
-                  strokeDasharray={`${doluArc} ${CIRCUMFERENCE}`}
+                  strokeDasharray={`${filledArc} ${CIRCUMFERENCE}`}
                   transform="rotate(-90 80 80)" />
               </>
             )}
@@ -98,15 +98,15 @@ function WorklogCompletionChart({ data, loading }) {
               <>
                 <text x={CX} y={CY - 8} textAnchor="middle" fontSize="20" fontWeight="900"
                   style={{ fill: color }}>
-                  {totalHours.toFixed(0)}sa
+                  {totalHours.toFixed(0)}h
                 </text>
                 <text x={CX} y={CY + 8} textAnchor="middle" fontSize="10"
                   style={{ fill: 'var(--text-tertiary)' }}>
-                  {periodDays} günde
+                  in {periodDays} days
                 </text>
                 <text x={CX} y={CY + 24} textAnchor="middle" fontSize="10"
                   style={{ fill: 'var(--text-tertiary)' }}>
-                  {totalEntries} giriş
+                  {totalEntries} entries
                 </text>
               </>
             )}
@@ -117,17 +117,17 @@ function WorklogCompletionChart({ data, loading }) {
         <div className="flex-1 space-y-3">
           <LegendRow
             color={color}
-            label="Tamamlanan"
+            label="Completed"
             value={loading ? '…' : `${completionRate.toFixed(1)}%`}
           />
           <LegendRow
             color="rgba(239,68,68,0.45)"
-            label="Eksik"
+            label="Incomplete"
             value={loading ? '…' : `${eksikRate.toFixed(1)}%`}
           />
           <div className="mt-1 grid grid-cols-2 gap-2">
-            <StatCard label="Toplam giriş" value={loading ? null : totalEntries} />
-            <StatCard label="Toplam saat"  value={loading ? null : `${totalHours.toFixed(1)}sa`} />
+            <StatCard label="Total entries" value={loading ? null : totalEntries} />
+            <StatCard label="Total hours"   value={loading ? null : `${totalHours.toFixed(1)}h`} />
           </div>
         </div>
       </div>

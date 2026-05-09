@@ -2,15 +2,15 @@ import { memo, useState } from 'react';
 import { PieChart } from 'lucide-react';
 
 const STATUS_CONFIG = [
-  { key: 'newCount', label: 'NEW', color: '#3b82f6', description: 'Bekleyen kayıtlar' },
-  { key: 'inProgressCount', label: 'IN_PROGRESS', color: '#f59e0b', description: 'Üzerinde çalışılanlar' },
-  { key: 'waitingForCustomerCount', label: 'WAITING_FOR_CUSTOMER', color: '#8b5cf6', description: 'Müşteri yanıtı bekleyenler' },
-  { key: 'resolvedCount', label: 'RESOLVED', color: '#22c55e', description: 'Çözüme ulaşanlar' },
-  { key: 'closedCount', label: 'CLOSED', color: '#64748b', description: 'Kapanan kayıtlar' },
+  { key: 'newCount', label: 'NEW', color: '#3b82f6', description: 'Awaiting assignment' },
+  { key: 'inProgressCount', label: 'IN_PROGRESS', color: '#f59e0b', description: 'Currently being worked on' },
+  { key: 'waitingForCustomerCount', label: 'WAITING_FOR_CUSTOMER', color: '#8b5cf6', description: 'Awaiting customer response' },
+  { key: 'resolvedCount', label: 'RESOLVED', color: '#22c55e', description: 'Successfully resolved' },
+  { key: 'closedCount', label: 'CLOSED', color: '#64748b', description: 'Closed tickets' },
 ];
 
 function formatNumber(value) {
-  return new Intl.NumberFormat('tr-TR').format(value ?? 0);
+  return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
 function buildArcPath(cx, cy, radius, innerRadius, startAngle, endAngle) {
@@ -38,11 +38,11 @@ function polarToCartesian(cx, cy, radius, angleInDegrees) {
 }
 
 function StatusDistributionChart({ data, loading }) {
-  // hoveredKey: mouse üzerindeyken, activeKey: click ile sabitlenmiş
+  // hoveredKey: active on hover, activeKey: pinned by click
   const [hoveredKey, setHoveredKey] = useState(null);
   const [activeKey, setActiveKey] = useState(null);
 
-  // Gösterilecek aktif segment: click > hover
+  // Active segment to display: click > hover
   const displayKey = activeKey ?? hoveredKey;
 
   const entries = STATUS_CONFIG.map((item) => ({
@@ -63,7 +63,7 @@ function StatusDistributionChart({ data, loading }) {
   }, []);
 
   const activeSegment = segments.find((s) => s.key === displayKey);
-  const centerLabel = activeSegment ? activeSegment.label : 'Toplam';
+  const centerLabel = activeSegment ? activeSegment.label : 'Total';
   const centerValue = activeSegment ? activeSegment.value : total;
 
   const handleSegmentClick = (key) => {
@@ -76,21 +76,21 @@ function StatusDistributionChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <PieChart className="h-3.5 w-3.5" />
-            Status dağılımı
+            Status Distribution
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Ticket durumları tek bakışta</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Ticket status at a glance</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED ve CLOSED sayımları.
+            Counts for NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED and CLOSED.
           </p>
         </div>
         <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Toplam</div>
+          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Total</div>
           <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(total)}</div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr] lg:items-center">
-        {/* Daire grafik */}
+        {/* Pie chart */}
         <div className="flex justify-center">
           <div className="relative h-[220px] w-[220px]">
             <svg viewBox="0 0 220 220" className="h-full w-full">
@@ -100,7 +100,7 @@ function StatusDistributionChart({ data, loading }) {
                 </filter>
               </defs>
 
-              {/* Arka plan halkası */}
+              {/* Background ring */}
               <circle cx="110" cy="110" r={radius} fill="none" stroke="var(--bg-surface-secondary)" strokeWidth="28" />
 
               {loading ? (
@@ -135,11 +135,11 @@ function StatusDistributionChart({ data, loading }) {
                 })
               )}
 
-              {/* İç daire */}
+              {/* Inner circle */}
               <circle cx="110" cy="110" r={innerRadius} fill="var(--bg-surface)" style={{ pointerEvents: 'none' }} />
             </svg>
 
-            {/* Ortadaki metin */}
+            {/* Center text */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
               <span
                 className="text-[10px] font-semibold uppercase tracking-[0.15em] truncate max-w-[80px]"
@@ -159,7 +159,7 @@ function StatusDistributionChart({ data, loading }) {
           </div>
         </div>
 
-        {/* Sağ liste */}
+        {/* Right list */}
         <div className="space-y-3">
           {(loading ? entries : segments.length > 0 ? segments : entries).map((item) => {
             const value = item.value ?? 0;

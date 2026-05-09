@@ -10,8 +10,8 @@ const PRIORITY_COLOR = {
 
 function formatHours(hours) {
   if (!hours && hours !== 0) return '—';
-  if (hours < 1) return `${Math.round(hours * 60)}dk`;
-  return `${hours.toFixed(1)}sa`;
+  if (hours < 1) return `${Math.round(hours * 60)}m`;
+  return `${hours.toFixed(1)}h`;
 }
 
 function PriorityBadge({ priority }) {
@@ -36,12 +36,12 @@ function BreachedItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Müşteri: {item.customerId}
+          Customer: {item.customerId}
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#ef4444' }}>
               {item.hoursUntilDeadline < 0
-                ? `${formatHours(Math.abs(item.hoursUntilDeadline))} önce ihlal`
-                : `${formatHours(item.hoursUntilDeadline)} kaldı`}
+                ? `breached ${formatHours(Math.abs(item.hoursUntilDeadline))} ago`
+                : `${formatHours(item.hoursUntilDeadline)} remaining`}
             </span>
           )}
         </div>
@@ -60,10 +60,10 @@ function UpcomingItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Müşteri: {item.customerId}
+          Customer: {item.customerId}
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#f59e0b' }}>
-              {formatHours(item.hoursUntilDeadline)} içinde SLA ihlali
+              SLA breach in {formatHours(item.hoursUntilDeadline)}
             </span>
           )}
         </div>
@@ -82,9 +82,9 @@ function WaitingItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Müşteri: {item.customerId}
+          Customer: {item.customerId}
           {item.hoursWaiting !== null && item.hoursWaiting !== undefined && (
-            <span className="ml-2">{formatHours(item.hoursWaiting)} bekleniyor</span>
+            <span className="ml-2">waiting {formatHours(item.hoursWaiting)}</span>
           )}
         </div>
       </div>
@@ -122,11 +122,11 @@ export default function AlertBanner({ data, loading }) {
         </span>
         <div className="flex-1">
           <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Uyarı &amp; Backlog
+            Alerts &amp; Backlog
           </span>
           {!loading && totalAlerts > 0 && (
             <span className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              {totalAlerts} uyarı
+              {totalAlerts} alerts
             </span>
           )}
         </div>
@@ -140,11 +140,11 @@ export default function AlertBanner({ data, loading }) {
       {expanded && (
         <div className="px-5 pb-5 space-y-5">
 
-          {/* SLA İhlali */}
+          {/* SLA Breach */}
           {(loading || breached.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: '#ef4444' }}>
-                SLA İhlali ({loading ? '…' : breached.length})
+                SLA Breach ({loading ? '…' : breached.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -160,11 +160,11 @@ export default function AlertBanner({ data, loading }) {
             </div>
           )}
 
-          {/* Yaklaşan SLA */}
+          {/* Upcoming SLA */}
           {(loading || upcoming.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: '#f59e0b' }}>
-                Yaklaşan SLA İhlali ({loading ? '…' : upcoming.length})
+                Upcoming SLA Breach ({loading ? '…' : upcoming.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -180,11 +180,11 @@ export default function AlertBanner({ data, loading }) {
             </div>
           )}
 
-          {/* Uzun Süre Bekleyen */}
+          {/* Waiting Too Long */}
           {(loading || waiting.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-secondary)' }}>
-                Uzun Süre Bekleyen ({loading ? '…' : waiting.length})
+                Waiting Too Long ({loading ? '…' : waiting.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -203,9 +203,9 @@ export default function AlertBanner({ data, loading }) {
           {/* Backlog Metrics */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: Users,  label: 'Atanmamış',    value: loading ? null : (backlog?.unassignedCount ?? 0),    color: '#ef4444' },
-              { icon: Inbox,  label: 'Yeni Bekleyen', value: loading ? null : (backlog?.newTicketsWaiting ?? 0), color: '#f59e0b' },
-              { icon: Clock,  label: 'Ort. Bekleme',  value: loading ? null : formatHours(backlog?.avgWaitingHours), color: '#3b82f6' },
+              { icon: Users,  label: 'Unassigned',    value: loading ? null : (backlog?.unassignedCount ?? 0),    color: '#ef4444' },
+              { icon: Inbox,  label: 'New Waiting',    value: loading ? null : (backlog?.newTicketsWaiting ?? 0), color: '#f59e0b' },
+              { icon: Clock,  label: 'Avg. Wait',      value: loading ? null : formatHours(backlog?.avgWaitingHours), color: '#3b82f6' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="rounded-2xl border px-3 py-3 text-center" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
                 <Icon className="mx-auto mb-1 h-4 w-4" style={{ color }} />
