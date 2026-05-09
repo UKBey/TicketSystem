@@ -1,7 +1,64 @@
 import { useState, useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
+
+const VISIBLE_LIMIT = 3;
+
+function ProductChips({ products, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!products || products.length === 0) {
+    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No products</span>;
+  }
+
+  const visible = expanded ? products : products.slice(0, VISIBLE_LIMIT);
+  const hiddenCount = products.length - VISIBLE_LIMIT;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center">
+      {visible.map(prod => (
+        <span
+          key={prod.id}
+          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
+          style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+        >
+          {prod.name}
+          <button
+            onClick={() => onRemove(prod.id)}
+            title="Remove"
+            className="ml-0.5 rounded hover:text-danger-500 transition-colors cursor-pointer"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+
+      {!expanded && hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="inline-flex items-center gap-0.5 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+          style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+        >
+          +{hiddenCount} more
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      )}
+
+      {expanded && products.length > VISIBLE_LIMIT && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="inline-flex items-center gap-0.5 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+          style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+        >
+          Show less
+          <ChevronUp className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -101,24 +158,10 @@ export default function AdminPanel() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {user.authorizedProducts && user.authorizedProducts.map(prod => (
-                        <span key={prod.id} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-                          {prod.name}
-                          <button
-                            onClick={() => handleRemoveProduct(user.id, prod.id)}
-                            title="Remove"
-                            className="ml-0.5 rounded hover:text-danger-500 transition-colors cursor-pointer"
-                            style={{ color: 'var(--text-tertiary)' }}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                      {(!user.authorizedProducts || user.authorizedProducts.length === 0) && (
-                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No products</span>
-                      )}
-                    </div>
+                    <ProductChips
+                      products={user.authorizedProducts}
+                      onRemove={(productId) => handleRemoveProduct(user.id, productId)}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
