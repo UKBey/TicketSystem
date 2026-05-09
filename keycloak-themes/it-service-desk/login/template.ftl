@@ -23,10 +23,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Apply saved theme before paint to avoid flash -->
+    <!-- Apply saved theme before paint to avoid flash.
+         Uses the same localStorage key ('theme') as the React frontend
+         so dark/light preference is shared across both apps. -->
     <script>
       (function () {
-        var saved = localStorage.getItem('kc-theme');
+        var saved = localStorage.getItem('theme');
         var preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', saved || preferred);
       })();
@@ -119,7 +121,7 @@
           var current = document.documentElement.getAttribute('data-theme');
           var next = current === 'light' ? 'dark' : 'light';
           document.documentElement.setAttribute('data-theme', next);
-          localStorage.setItem('kc-theme', next);
+          localStorage.setItem('theme', next);
         });
       })();
     </script>
