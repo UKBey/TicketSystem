@@ -1,45 +1,40 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import api from '../../services/api';
+import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
+import TicketFilters from '../../components/TicketFilters';
+import PaginationBar from '../../components/PaginationBar';
 import CreateTicketModal from '../../components/CreateTicketModal';
 
+const TABS = [
+  { key: 'active',  label: 'Active',  statusFilter: '' },
+  { key: 'closed',  label: 'Closed',  statusFilter: 'CLOSED' },
+];
+
 export default function MyTickets() {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [tab, setTab] = useState('active'); // 'active' | 'closed'
+  const [tab, setTab] = useState('active');
 
-  const fetchTickets = async () => {
-    try {
-      const res = await api.get('/tickets');
-      setTickets(res.data);
-    } catch (err) {
-      console.error('Could not load tickets:', err);
-    } finally {
-      setLoading(false);
-    }
+  const {
+    tickets, totalPages, totalItems, loading, error,
+    page, setPage, size, setSize,
+    sortBy, sortDir, toggleSort,
+    status, setStatus,
+    priority, setPriority,
+    refetch,
+  } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc' });
+
+  // Tab switch: override status filter
+  const handleTabChange = (t) => {
+    setTab(t);
+    setStatus(t === 'closed' ? 'CLOSED' : '');
   };
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  const handleTicketCreated = () => refetch();
 
-  const handleTicketCreated = (newTicket) => {
-    setTickets((prev) => [newTicket, ...prev]);
-  };
-
-  // Biletleri acik ve kapanmis olarak ayirir.
-  const activeTickets = useMemo(
-    () => tickets.filter((t) => t.status !== 'CLOSED'),
-    [tickets]
-  );
-  const closedTickets = useMemo(
-    () => tickets.filter((t) => t.status === 'CLOSED'),
-    [tickets]
-  );
-
-  const displayedTickets = tab === 'active' ? activeTickets : closedTickets;
+  // Count badges — use totalItems only for the active tab (approximate)
+  const activeCount = tab === 'active' ? totalItems : null;
+  const closedCount = tab === 'closed' ? totalItems : null;
 
   return (
     <>
@@ -59,53 +54,60 @@ export default function MyTickets() {
 
       {/* Tabs */}
       <div className="flex gap-0 mb-5">
-        <button
-          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-colors cursor-pointer rounded-l-lg ${
-            tab === 'active'
-              ? 'bg-primary-500 text-white border-primary-500'
-              : 'border-[var(--border-color)] hover:bg-[var(--bg-surface-hover)]'
-          }`}
-          style={tab !== 'active' ? { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' } : {}}
-          onClick={() => setTab('active')}
-        >
-          Active
-          {!loading && (
-            <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
-              tab === 'active' ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
-            }`}>
-              {activeTickets.length}
-            </span>
-          )}
-        </button>
-        <button
-          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-l-0 transition-colors cursor-pointer rounded-r-lg ${
-            tab === 'closed'
-              ? 'bg-primary-500 text-white border-primary-500'
-              : 'border-[var(--border-color)] hover:bg-[var(--bg-surface-hover)]'
-          }`}
-          style={tab !== 'closed' ? { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' } : {}}
-          onClick={() => setTab('closed')}
-        >
-          Closed
-          {!loading && (
-            <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
-              tab === 'closed' ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
-            }`}>
-              {closedTickets.length}
-            </span>
-          )}
-        </button>
+        {TABS.map((t, i) => {
+          const active = tab === t.key;
+          const count  = t.key === 'active' ? activeCount : closedCount;
+          return (
+            <button
+              key={t.key}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border transition-colors cursor-pointer ${
+                i === 0 ? 'rounded-l-lg' : 'border-l-0 rounded-r-lg'
+              } ${active ? 'bg-primary-500 text-white border-primary-500' : 'border-[var(--border-color)] hover:bg-[var(--bg-surface-hover)]'}`}
+              style={!active ? { color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' } : {}}
+              onClick={() => handleTabChange(t.key)}
+            >
+              {t.label}
+              {!loading && count !== null && (
+                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
+                  active ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Table card */}
+      {error && (
+        <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
+          {error}
+        </div>
+      )}
+
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <TicketFilters
+          status={status}   onStatus={setStatus}
+          priority={priority} onPriority={setPriority}
+          hideStatus={tab === 'closed'}
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
-          <TicketTable tickets={displayedTickets} showSla={tab === 'active'} />
+          <TicketTable
+            tickets={tickets}
+            showSla={tab === 'active'}
+            sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
+          />
         )}
+
+        <PaginationBar
+          page={page} totalPages={totalPages} totalItems={totalItems}
+          size={size} onPageChange={setPage} onSizeChange={setSize}
+        />
       </div>
 
       <CreateTicketModal

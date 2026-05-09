@@ -2,39 +2,36 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useTicketList } from '../../hooks/useTicketList';
 import { StatusBadge, PriorityBadge } from '../../components/Badges';
 import SlaTimerBadge from '../../components/SlaTimerBadge';
+import TicketFilters from '../../components/TicketFilters';
+import PaginationBar from '../../components/PaginationBar';
 import AgentSelectionModal from '../../components/AgentSelectionModal';
-import { AlertTriangle, Inbox, Users } from 'lucide-react';
+import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Inbox, Users } from 'lucide-react';
 
 export default function TeamTickets() {
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState(null);
   const [tickSeconds, setTickSeconds] = useState(0);
+  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
   const currentUserId = user?.sub || user?.id;
   const isAgentAdmin = hasRole('AGENT_ADMIN');
 
-  // Assign modal state
-  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
+  const {
+    tickets, totalPages, totalItems, loading, error,
+    page, setPage, size, setSize,
+    sortBy, sortDir, toggleSort,
+    priority, setPriority,
+    refetch,
+  } = useTicketList('/tickets/team', { sortBy: 'createdAt', sortDir: 'desc' });
 
-  useEffect(() => {
-    if (!currentUserId) return;
-    const fetchTeam = async () => {
-      try {
-        const res = await api.get('/tickets/team');
-        setTickets(res.data.filter((t) => !t.claimers?.some((c) => c.agentId === currentUserId)));
-      } catch (err) {
-        console.error('Could not load team tickets:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTeam();
-  }, [currentUserId]);
+  // Filter out tickets the current user already claimed (client-side)
+  const displayedTickets = tickets.filter(
+    (t) => !t.claimers?.some((c) => c.agentId === currentUserId)
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setTickSeconds((v) => v + 1), 1000);
@@ -59,11 +56,8 @@ export default function TeamTickets() {
   };
 
   const handleAssignSuccess = () => {
-    // Başarılı atama sonrası listeyi yenile
-    if (!currentUserId) return;
-    api.get('/tickets/team')
-      .then((res) => setTickets(res.data.filter((t) => !t.claimers?.some((c) => c.agentId === currentUserId))))
-      .catch((err) => console.error('Could not refresh team tickets:', err));
+    setAssignModal({ open: false, ticketId: null, productId: null });
+    refetch();
   };
 
   const formatDate = (dateStr) => {
@@ -74,41 +68,66 @@ export default function TeamTickets() {
     });
   };
 
+  const SortIcon = ({ field }) => {
+    if (sortBy !== field) return <ArrowUpDown className="h-3 w-3" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
+
+  const SortTh = ({ field, label, invertArrow = false }) => (
+    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
+      <button type="button" onClick={() => toggleSort(field)}
+        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+        style={{ color: sortBy === field ? '#3b82f6' : 'var(--text-tertiary)' }}>
+        {label}
+        {sortBy === field
+          ? (() => {
+              const displayDir = invertArrow
+                ? (sortDir === 'asc' ? 'desc' : 'asc')
+                : sortDir;
+              return displayDir === 'asc'
+                ? <ArrowUp className="h-3 w-3" />
+                : <ArrowDown className="h-3 w-3" />;
+            })()
+          : <ArrowUpDown className="h-3 w-3" />
+        }
+      </button>
+    </th>
+  );
+
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          Team Tickets
-        </h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Team Tickets</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
           Active tickets in your authorized products. Join any ticket to collaborate.
         </p>
       </div>
 
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderColor: 'var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
+      {error && (
+        <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
+          {error}
+        </div>
+      )}
+
+      <div className="rounded-xl border overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+
+        <TicketFilters
+          status="" onStatus={() => {}}
+          priority={priority} onPriority={setPriority}
+          hideStatus
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div
-              className="h-8 w-8 rounded-full border-[3px] animate-spin"
-              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }}
-            />
+            <div className="h-8 w-8 rounded-full border-[3px] animate-spin"
+              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
-        ) : tickets.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-16 px-8"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
+        ) : displayedTickets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-8" style={{ color: 'var(--text-tertiary)' }}>
             <Inbox className="h-12 w-12 mb-4 opacity-30" />
-            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-              No active team tickets
-            </h3>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No active team tickets</h3>
             <p className="text-sm">No claimed tickets in your product area right now.</p>
           </div>
         ) : (
@@ -116,89 +135,78 @@ export default function TeamTickets() {
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  {['ID', 'Title', 'Status', 'Priority', 'SLA', 'Claimers', 'Created', 'Action'].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <SortTh field="id"          label="ID" />
+                  <SortTh field="title"       label="Title" />
+                  <SortTh field="status"      label="Status" />
+                  <SortTh field="priority"    label="Priority" invertArrow />
+                  <SortTh field="slaDeadline" label="SLA" />
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Claimers</th>
+                  <SortTh field="createdAt"   label="Created" />
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {tickets.map((ticket) => (
-                    <tr
-                      key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="cursor-pointer transition-colors duration-150"
-                      style={{ borderBottom: '1px solid var(--border-color-light)' }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
-                    >
-                      <td className="px-4 py-3 text-sm font-semibold text-primary-500">
-                        TCK-{String(ticket.id).padStart(3, '0')}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{ticket.title}</span>
-                          {ticket.slaBreached && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                              style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}
-                            >
-                              <AlertTriangle className="h-3 w-3" />
-                              SLA
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={ticket.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <PriorityBadge priority={ticket.priority} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <ClaimerAvatars claimers={ticket.claimers} currentUserId={currentUserId} />
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {formatDate(ticket.createdAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                {displayedTickets.map((ticket) => (
+                  <tr key={ticket.id}
+                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                    className="cursor-pointer transition-colors duration-150"
+                    style={{ borderBottom: '1px solid var(--border-color-light)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                    <td className="px-4 py-3 text-sm font-semibold text-primary-500">
+                      TCK-{String(ticket.id).padStart(3, '0')}
+                    </td>
+                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium truncate" title={ticket.title}>{ticket.title}</span>
+                        {ticket.slaBreached && (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                            style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
+                            <AlertTriangle className="h-3 w-3" />SLA
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
+                    <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
+                    <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>
+                    <td className="px-4 py-3">
+                      <ClaimerAvatars claimers={ticket.claimers} currentUserId={currentUserId} />
+                    </td>
+                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {formatDate(ticket.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                          disabled={joiningId === ticket.id}
+                          onClick={(e) => handleJoin(ticket.id, e)}>
+                          <Users className="h-3 w-3" />
+                          {joiningId === ticket.id ? 'Joining…' : 'Join'}
+                        </button>
+                        {isAgentAdmin && (
                           <button
-                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
-                            disabled={joiningId === ticket.id}
-                            onClick={(e) => handleJoin(ticket.id, e)}
-                          >
-                            <Users className="h-3 w-3" />
-                            {joiningId === ticket.id ? 'Joining…' : 'Join'}
+                            className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                            onClick={(e) => handleOpenAssign(ticket, e)}>
+                            Assign
                           </button>
-                          {isAgentAdmin && (
-                            <button
-                              className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
-                              onClick={(e) => handleOpenAssign(ticket, e)}
-                            >
-                              Assign
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+
+        <PaginationBar
+          page={page} totalPages={totalPages} totalItems={totalItems}
+          size={size} onPageChange={setPage} onSizeChange={setSize}
+        />
       </div>
 
       <AgentSelectionModal
@@ -219,16 +227,11 @@ function ClaimerAvatars({ claimers, currentUserId }) {
   return (
     <div className="flex flex-wrap gap-1">
       {claimers.map((c) => (
-        <span
-          key={c.agentId}
-          title={c.agentName}
+        <span key={c.agentId} title={c.agentName}
           className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
-          style={
-            c.agentId === currentUserId
-              ? { backgroundColor: '#dbeafe', color: '#1d4ed8' }
-              : { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }
-          }
-        >
+          style={c.agentId === currentUserId
+            ? { backgroundColor: '#dbeafe', color: '#1d4ed8' }
+            : { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
           {c.agentName?.split(' ')[0] ?? 'Agent'}
           {c.agentId === currentUserId && ' (you)'}
         </span>

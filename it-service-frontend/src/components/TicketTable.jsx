@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
-import { AlertTriangle, Inbox } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
 
 export default function TicketTable({
   tickets,
@@ -12,6 +12,10 @@ export default function TicketTable({
   currentUserId,
   showAssignButton = false,
   onAssign,
+  // Sort props (optional — omit for non-sortable tables)
+  sortBy,
+  sortDir,
+  onSort,
 }) {
   const navigate = useNavigate();
   const [tickSeconds, setTickSeconds] = useState(0);
@@ -35,36 +39,46 @@ export default function TicketTable({
       <div className="flex flex-col items-center justify-center py-16 px-8" style={{ color: 'var(--text-tertiary)' }}>
         <Inbox className="h-12 w-12 mb-4 opacity-30" />
         <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No tickets found</h3>
-        <p className="text-sm">There are no tickets in this category yet.</p>
+        <p className="text-sm">There are no tickets matching your filters.</p>
       </div>
     );
   }
 
   const showClaimers = tickets.some((t) => t.claimers?.length > 0);
+  const sortable = typeof onSort === 'function';
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '90px' }} />   {/* ID */}
+          <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
+          <col style={{ width: '130px' }} />  {/* Status */}
+          <col style={{ width: '100px' }} />  {/* Priority */}
+          {showSla     && <col style={{ width: '130px' }} />}  {/* SLA */}
+          {showClaimers && <col style={{ width: '140px' }} />} {/* Claimers */}
+          <col style={{ width: '140px' }} />  {/* Created */}
+          {showClaimButton && <col style={{ width: '120px' }} />} {/* Action */}
+        </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            {['ID', 'Title', 'Status', 'Priority'].map((h) => (
-              <th key={h} className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{h}</th>
-            ))}
+            <SortTh field="id"          label="ID"       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="title"       label="Title"    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="status"      label="Status"   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="priority"    label="Priority" sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
             {showSla && (
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>SLA</th>
+              <SortTh field="slaDeadline" label="SLA" sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             )}
             {showClaimers && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Claimers</th>
             )}
-            <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-              style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Created</th>
+            <SortTh field="createdAt"   label="Created"  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             {showClaimButton && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
-            )}          </tr>
+            )}
+          </tr>
         </thead>
         <tbody>
           {tickets.map((ticket) => (
@@ -76,14 +90,14 @@ export default function TicketTable({
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <td className="px-4 py-3 text-sm font-semibold text-primary-500">
+              <td className="px-4 py-3 text-sm font-semibold text-primary-500 truncate">
                 TCK-{String(ticket.id).padStart(3, '0')}
               </td>
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{ticket.title}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-medium truncate" title={ticket.title}>{ticket.title}</span>
                   {ticket.slaBreached && (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
                       style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
                       <AlertTriangle className="h-3 w-3" />SLA
                     </span>
@@ -130,6 +144,45 @@ export default function TicketTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function SortTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) {
+  const active = sortBy === field;
+
+  // invertArrow: priority gibi alanlarda görsel ok yönü tersine çevrilir.
+  // "asc" backend'de LOW→CRITICAL (düşük öncelik → yüksek öncelik) demek,
+  // ama kullanıcı "yukarı ok = CRITICAL üstte" bekler → ok tersine gösterilir.
+  const displayDir = invertArrow
+    ? (sortDir === 'asc' ? 'desc' : 'asc')
+    : sortDir;
+
+  const Icon = active
+    ? (displayDir === 'asc' ? ArrowUp : ArrowDown)
+    : ArrowUpDown;
+
+  if (!onSort) {
+    return (
+      <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+        style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
+        {label}
+      </th>
+    );
+  }
+
+  return (
+    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+        style={{ color: active ? '#3b82f6' : 'var(--text-tertiary)' }}
+      >
+        {label}
+        <Icon className="h-3 w-3" />
+      </button>
+    </th>
   );
 }
 

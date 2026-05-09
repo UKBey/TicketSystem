@@ -24,6 +24,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -66,55 +69,96 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(saved, false, roles));
     }
 
-    @Operation(summary = "Biletleri listele (role göre filtrelenir)")
+    @Operation(summary = "Biletleri listele — sayfalama + filtreleme (role göre filtrelenir)")
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
-    public ResponseEntity<List<TicketResponseDTO>> getTickets(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TicketResponseDTO>> getTickets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority) {
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
 
-        List<Ticket> tickets = (roles.contains("AGENT_ADMIN") || roles.contains("AGENT"))
-                ? ticketService.getAllTickets(userId, roles)
-                : ticketService.getCustomerTickets(userId);
-
-        return ResponseEntity.ok(tickets.stream()
-                .map(t -> convertToDto(t, false, roles))
-                .collect(Collectors.toList()));
+        // Agents see tickets from their authorized products; customers see only their own
+        Page<Ticket> tickets;
+        if (roles.contains("AGENT_ADMIN") || roles.contains("AGENT")) {
+            // Reuse pool-style query but without status=NEW restriction — use team query
+            tickets = ticketService.getTeamTicketsPaged(userId, roles, priority, pageable);
+        } else {
+            tickets = ticketService.getCustomerTicketsPaged(userId, status, priority, pageable);
+        }
+        return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
-    @Operation(summary = "Havuzdaki biletleri listele (NEW statüsü, ürüne göre filtrelenir)")
+    @Operation(summary = "Havuzdaki biletleri listele — sayfalama + filtreleme (NEW statüsü)")
     @GetMapping("/pool")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
-    public ResponseEntity<List<TicketResponseDTO>> getPoolTickets(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TicketResponseDTO>> getPoolTickets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String priority) {
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        List<Ticket> pool = ticketService.getPoolTickets(userId, roles);
-        return ResponseEntity.ok(pool.stream()
-                .map(t -> convertToDto(t, false, roles))
-                .collect(Collectors.toList()));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+
+        Page<Ticket> pool = ticketService.getPoolTicketsPaged(userId, roles, priority, pageable);
+        return ResponseEntity.ok(pool.map(t -> convertToDto(t, false, roles)));
     }
 
-    @Operation(summary = "Ajanın claim aldığı biletleri listele")
+    @Operation(summary = "Ajanın claim aldığı biletleri listele — sayfalama + filtreleme")
     @GetMapping("/my-assigned")
-    public ResponseEntity<List<TicketResponseDTO>> getMyAssignedTickets(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TicketResponseDTO>> getMyAssignedTickets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority) {
+
         String agentId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        List<Ticket> tickets = ticketService.getAgentClaimedTickets(agentId);
-        return ResponseEntity.ok(tickets.stream()
-                .map(t -> convertToDto(t, false, roles))
-                .collect(Collectors.toList()));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+
+        Page<Ticket> tickets = ticketService.getAgentClaimedTicketsPaged(agentId, status, priority, pageable);
+        return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
-    @Operation(summary = "Ajanın yetkili ürünlerindeki aktif biletleri listele (Team Tickets paneli)")
+    @Operation(summary = "Ajanın yetkili ürünlerindeki aktif biletleri listele — sayfalama + filtreleme")
     @GetMapping("/team")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
-    public ResponseEntity<List<TicketResponseDTO>> getTeamTickets(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TicketResponseDTO>> getTeamTickets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String priority) {
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        List<Ticket> tickets = ticketService.getTeamTickets(userId, roles);
-        return ResponseEntity.ok(tickets.stream()
-                .map(t -> convertToDto(t, false, roles))
-                .collect(Collectors.toList()));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+
+        Page<Ticket> tickets = ticketService.getTeamTicketsPaged(userId, roles, priority, pageable);
+        return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
     @Operation(summary = "Bilet detayı getir")
@@ -218,16 +262,26 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Ürüne ait biletleri listele (ürün detay sayfası için)")
+    @Operation(summary = "Ürüne ait biletleri listele — sayfalama + filtreleme")
     @GetMapping("/by-product/{productId}")
-    public ResponseEntity<List<TicketResponseDTO>> getTicketsByProduct(
-            @PathVariable Long productId, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TicketResponseDTO>> getTicketsByProduct(
+            @PathVariable Long productId,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority) {
+
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        List<Ticket> tickets = ticketService.getTicketsByProduct(productId, userId, roles);
-        return ResponseEntity.ok(tickets.stream()
-                .map(t -> convertToDto(t, false, roles))
-                .collect(Collectors.toList()));
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+
+        Page<Ticket> tickets = ticketService.getTicketsByProductPaged(productId, userId, roles, status, priority, pageable);
+        return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
     @Operation(summary = "SLA zamanlayıcı bilgisi")

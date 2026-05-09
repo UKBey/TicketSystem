@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,6 +35,590 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Agentin yetkili oldugu urunlerde NEW olmayan ve CLOSED olmayan aktif biletleri dondurur.
     @Query("SELECT t FROM Ticket t WHERE t.productId IN :productIds AND t.status NOT IN ('NEW', 'CLOSED')")
     List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
+
+    // -------------------------------------------------------------------------
+    // Sayfalama + filtreleme destekli sorgular
+    // -------------------------------------------------------------------------
+
+    // Musteri biletleri — status ve priority filtresi ile sayfalama
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findByCustomerIdFiltered(
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Musteri biletleri — SLA urgency sirasi ile
+    // Grup 0: expired (slaBreached=true) → slaDeadline ASC (en uzun suredir expired = en kucuk deadline = en urgent)
+    // Grup 1: aktif sayac (slaBreached=false, slaPausedAt IS NULL) → slaDeadline ASC (en az suresi kalan = en urgent)
+    // Grup 2: dondurulmus (slaBreached=false, slaPausedAt IS NOT NULL) → slaDeadline ASC
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderBySlaUrgencyAsc(
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderBySlaUrgencyDesc(
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderByPriorityAsc(
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderByPriorityDesc(
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Havuz (NEW) biletleri — yetkili urunler + priority filtresi ile sayfalama
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND t.productId IN :productIds
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findPoolTicketsFiltered(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND t.productId IN :productIds
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findPoolTicketsFilteredOrderByPriorityAsc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND t.productId IN :productIds
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findPoolTicketsFilteredOrderByPriorityDesc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Havuz (NEW) biletleri — SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND t.productId IN :productIds
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findPoolTicketsFilteredOrderBySlaUrgencyAsc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND t.productId IN :productIds
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findPoolTicketsFilteredOrderBySlaUrgencyDesc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findAllPoolTicketsFiltered(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findAllPoolTicketsFilteredOrderByPriorityAsc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findAllPoolTicketsFilteredOrderByPriorityDesc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Ajanin claim aldigi biletler — status ve priority filtresi ile sayfalama
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findClaimedTicketsFiltered(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderByPriorityAsc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderByPriorityDesc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Takim biletleri (aktif) — yetkili urunler + priority filtresi ile sayfalama
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findTeamTicketsFiltered(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderByPriorityAsc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderByPriorityDesc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Takim biletleri — AGENT_ADMIN icin tum urunler
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findAllTeamTicketsFiltered(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findAllTeamTicketsFilteredOrderByPriorityAsc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findAllTeamTicketsFilteredOrderByPriorityDesc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Urun biletleri — agent/admin icin status + priority filtresi ile sayfalama
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findByProductIdFiltered(
+            @Param("productId") Long productId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findByProductIdFilteredOrderByPriorityAsc(
+            @Param("productId") Long productId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findByProductIdFilteredOrderByPriorityDesc(
+            @Param("productId") Long productId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Urun biletleri — musteri icin (sadece kendi biletleri)
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFiltered(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Havuz (NEW) biletleri — AGENT_ADMIN icin tum urunler, SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status = 'NEW'
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Ajanin claim aldigi biletler — SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderBySlaUrgencyAsc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderBySlaUrgencyDesc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Takim biletleri — yetkili urunler, SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyAsc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyDesc(
+            @Param("productIds") List<Long> productIds,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Takim biletleri — AGENT_ADMIN icin tum urunler, SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Urun biletleri — agent/admin icin SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findByProductIdFilteredOrderBySlaUrgencyAsc(
+            @Param("productId") Long productId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findByProductIdFilteredOrderBySlaUrgencyDesc(
+            @Param("productId") Long productId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // Urun biletleri — musteri icin SLA urgency sirasi ile
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END ASC,
+          t.slaDeadline ASC NULLS LAST
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:status IS NULL OR t.status = :status)
+          AND (:priority IS NULL OR t.priority = :priority)
+        ORDER BY
+          CASE WHEN t.slaBreached = true THEN 0
+               WHEN t.slaPausedAt IS NULL THEN 1
+               ELSE 2 END DESC,
+          t.slaDeadline DESC NULLS LAST
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("status") String status,
+            @Param("priority") String priority,
+            Pageable pageable);
+
+    // -------------------------------------------------------------------------
 
     // Tum ticket durumlarinin dagilimini doner.
     @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")

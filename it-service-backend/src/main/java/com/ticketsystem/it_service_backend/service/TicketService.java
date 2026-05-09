@@ -24,6 +24,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -196,6 +199,206 @@ public class TicketService {
             return ticketRepository.findByCustomerIdAndProductId(userId, productId);
         }
         return new ArrayList<>();
+    }
+
+    // -----------------------------------------------------------------
+    // Sayfalama + filtreleme destekli listeleme
+    // -----------------------------------------------------------------
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getCustomerTicketsPaged(String customerId, String status, String priority, Pageable pageable) {
+        if (isSortByPriority(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findByCustomerIdFilteredOrderByPriorityAsc(customerId, status, priority, unsorted)
+                : ticketRepository.findByCustomerIdFilteredOrderByPriorityDesc(customerId, status, priority, unsorted);
+        }
+        if (isSortBySla(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(customerId, status, priority, unsorted)
+                : ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(customerId, status, priority, unsorted);
+        }
+        return ticketRepository.findByCustomerIdFiltered(customerId, status, priority, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getPoolTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
+        if (roles.contains("AGENT_ADMIN")) {
+            if (isSortByPriority(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findAllPoolTicketsFilteredOrderByPriorityAsc(priority, unsorted)
+                    : ticketRepository.findAllPoolTicketsFilteredOrderByPriorityDesc(priority, unsorted);
+            }
+            if (isSortBySla(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(priority, unsorted)
+                    : ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(priority, unsorted);
+            }
+            return ticketRepository.findAllPoolTicketsFiltered(priority, pageable);
+        }
+        if (userId == null) return Page.empty(pageable);
+
+        User agent = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+        List<Long> productIds = agent.getAuthorizedProducts().stream()
+                .map(Product::getId).collect(Collectors.toList());
+        if (productIds.isEmpty()) return Page.empty(pageable);
+
+        if (isSortByPriority(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(productIds, priority, unsorted)
+                : ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(productIds, priority, unsorted);
+        }
+        if (isSortBySla(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(productIds, priority, unsorted)
+                : ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(productIds, priority, unsorted);
+        }
+        return ticketRepository.findPoolTicketsFiltered(productIds, priority, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getAgentClaimedTicketsPaged(String agentId, String status, String priority, Pageable pageable) {
+        List<Long> ticketIds = ticketClaimRepository.findTicketIdsByAgentId(agentId);
+        if (ticketIds.isEmpty()) return Page.empty(pageable);
+        if (isSortByPriority(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findClaimedTicketsFilteredOrderByPriorityAsc(ticketIds, status, priority, unsorted)
+                : ticketRepository.findClaimedTicketsFilteredOrderByPriorityDesc(ticketIds, status, priority, unsorted);
+        }
+        if (isSortBySla(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, status, priority, unsorted)
+                : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, status, priority, unsorted);
+        }
+        return ticketRepository.findClaimedTicketsFiltered(ticketIds, status, priority, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getTeamTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
+        if (roles.contains("AGENT_ADMIN")) {
+            if (isSortByPriority(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findAllTeamTicketsFilteredOrderByPriorityAsc(priority, unsorted)
+                    : ticketRepository.findAllTeamTicketsFilteredOrderByPriorityDesc(priority, unsorted);
+            }
+            if (isSortBySla(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(priority, unsorted)
+                    : ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(priority, unsorted);
+            }
+            return ticketRepository.findAllTeamTicketsFiltered(priority, pageable);
+        }
+        if (userId == null) return Page.empty(pageable);
+
+        User agent = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+        List<Long> productIds = agent.getAuthorizedProducts().stream()
+                .map(Product::getId).collect(Collectors.toList());
+        if (productIds.isEmpty()) return Page.empty(pageable);
+
+        if (isSortByPriority(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, priority, unsorted)
+                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, priority, unsorted);
+        }
+        if (isSortBySla(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable unsorted = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, priority, unsorted)
+                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, priority, unsorted);
+        }
+        return ticketRepository.findTeamTicketsFiltered(productIds, priority, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getTicketsByProductPaged(Long productId, String userId, List<String> roles,
+                                                  String status, String priority, Pageable pageable) {
+        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER") || roles.contains("AGENT")) {
+            if (isSortByPriority(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdFilteredOrderByPriorityAsc(productId, status, priority, unsorted)
+                    : ticketRepository.findByProductIdFilteredOrderByPriorityDesc(productId, status, priority, unsorted);
+            }
+            if (isSortBySla(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(productId, status, priority, unsorted)
+                    : ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(productId, status, priority, unsorted);
+            }
+            return ticketRepository.findByProductIdFiltered(productId, status, priority, pageable);
+        }
+        if (roles.contains("CUSTOMER")) {
+            if (isSortByPriority(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(productId, userId, status, priority, unsorted)
+                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(productId, userId, status, priority, unsorted);
+            }
+            if (isSortBySla(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable unsorted = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(productId, userId, status, priority, unsorted)
+                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(productId, userId, status, priority, unsorted);
+            }
+            return ticketRepository.findByProductIdAndCustomerIdFiltered(productId, userId, status, priority, pageable);
+        }
+        return Page.empty(pageable);
+    }
+
+    // -----------------------------------------------------------------
+    // Sort yardimci metodlari
+    // -----------------------------------------------------------------
+
+    private boolean isSortByPriority(Pageable pageable) {
+        return pageable.getSort().stream()
+                .anyMatch(order -> "priority".equals(order.getProperty()));
+    }
+
+    private boolean isSortBySla(Pageable pageable) {
+        return pageable.getSort().stream()
+                .anyMatch(order -> "slaDeadline".equals(order.getProperty()));
+    }
+
+    private boolean isAscending(Pageable pageable) {
+        return pageable.getSort().stream()
+                .filter(order -> "priority".equals(order.getProperty())
+                              || "slaDeadline".equals(order.getProperty()))
+                .findFirst()
+                .map(Sort.Order::isAscending)
+                .orElse(true);
+    }
+
+    private Pageable toUnsorted(Pageable pageable) {
+        return org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), pageable.getPageSize());
     }
 
     public Ticket getTicketById(Long id) {

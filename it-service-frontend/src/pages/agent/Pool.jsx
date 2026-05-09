@@ -1,43 +1,34 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import TicketTable from '../../components/TicketTable';
-import AgentSelectionModal from '../../components/AgentSelectionModal';
 import { useAuth } from '../../context/AuthContext';
+import { useTicketList } from '../../hooks/useTicketList';
+import TicketTable from '../../components/TicketTable';
+import TicketFilters from '../../components/TicketFilters';
+import PaginationBar from '../../components/PaginationBar';
+import AgentSelectionModal from '../../components/AgentSelectionModal';
+import { useState } from 'react';
 
 export default function Pool() {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isAgentAdmin = hasRole('AGENT_ADMIN');
 
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Assign modal state
   const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
-  const fetchPool = async () => {
-    try {
-      const res = await api.get('/tickets/pool');
-      setTickets(res.data);
-    } catch (err) {
-      console.error('Could not load pool tickets:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPool();
-  }, []);
+  const {
+    tickets, totalPages, totalItems, loading, error,
+    page, setPage, size, setSize,
+    sortBy, sortDir, toggleSort,
+    priority, setPriority,
+    refetch,
+  } = useTicketList('/tickets/pool', { sortBy: 'createdAt', sortDir: 'desc' });
 
   const handleClaim = async (ticketId) => {
     try {
       await api.put(`/tickets/${ticketId}/claim`);
-      setTickets((prev) => prev.filter((t) => t.id !== ticketId));
+      refetch();
       navigate(`/tickets/${ticketId}`);
     } catch (err) {
-      // Handle ticket limit exceeded error (409 Conflict)
       if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
         alert(`Limit exceeded: ${err.response.data.message}`);
       } else {
@@ -50,9 +41,9 @@ export default function Pool() {
     setAssignModal({ open: true, ticketId: ticket.id, productId: ticket.productId });
   };
 
-  const handleAssignSuccess = (updatedTicket) => {
-    // Başarılı atama sonrası bileti listeden kaldır (artık NEW değil)
-    setTickets((prev) => prev.filter((t) => t.id !== updatedTicket.id));
+  const handleAssignSuccess = () => {
+    setAssignModal({ open: false, ticketId: null, productId: null });
+    refetch();
   };
 
   return (
@@ -62,7 +53,19 @@ export default function Pool() {
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Unassigned tickets waiting to be claimed.</p>
       </div>
 
+      {error && (
+        <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
+          {error}
+        </div>
+      )}
+
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <TicketFilters
+          status="" onStatus={() => {}}
+          priority={priority} onPriority={setPriority}
+          hideStatus
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
@@ -75,8 +78,14 @@ export default function Pool() {
             showSla
             showAssignButton={isAgentAdmin}
             onAssign={handleOpenAssign}
+            sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
           />
         )}
+
+        <PaginationBar
+          page={page} totalPages={totalPages} totalItems={totalItems}
+          size={size} onPageChange={setPage} onSizeChange={setSize}
+        />
       </div>
 
       <AgentSelectionModal
