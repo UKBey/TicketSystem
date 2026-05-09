@@ -74,12 +74,12 @@ export default function Workspace() {
                     </>
                   )}
                   <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    aktif bilet
+                    active tickets
                   </span>
                 </div>
                 {effectiveLimit && activeCount >= effectiveLimit && (
                   <p className="text-xs mt-2 font-semibold text-danger-600 dark:text-danger-400">
-                    Limit aşıldı
+                    Limit exceeded
                   </p>
                 )}
               </div>

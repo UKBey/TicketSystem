@@ -27,10 +27,10 @@ export default class ErrorBoundary extends React.Component {
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Bir hata oluştu
+            Something went wrong
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Bu bölümü yüklerken bir hata ile karşılaşıldı. Sayfayı yenileyin veya tekrar deneyin.
+            An error occurred while loading this section. Refresh the page or try again.
           </p>
           <button
             type="button"

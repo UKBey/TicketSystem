@@ -42,7 +42,7 @@ export default function RateLimitToast() {
       <div className="flex items-center gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-warning-800 shadow-lg dark:border-warning-500/20 dark:bg-warning-500/10 dark:text-warning-300 min-w-[320px]">
         <AlertCircle className="h-5 w-5 shrink-0" />
         <div className="flex-1 text-sm font-medium">
-          Çok fazla işlem yaptınız. Lütfen {countdown} saniye bekleyin.
+          Too many requests. Please wait {countdown} seconds.
         </div>
         <button 
           onClick={() => setVisible(false)}

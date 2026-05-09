@@ -37,7 +37,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
     setLoadingAgents(true);
     getAgentsWithCapacity(productId)
       .then((res) => setAgents(res.data))
-      .catch(() => setFetchError('Agent listesi yüklenemedi. Lütfen tekrar deneyin.'))
+      .catch(() => setFetchError('Failed to load agent list. Please try again.'))
       .finally(() => setLoadingAgents(false));
   }, [isOpen, productId]);
 
@@ -61,7 +61,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
       onSuccess(res.data);
       onClose();
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Atama başarısız. Lütfen tekrar deneyin.');
+      setSubmitError(err.response?.data?.message || 'Assignment failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
