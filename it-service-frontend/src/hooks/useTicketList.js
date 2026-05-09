@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -20,6 +20,10 @@ export function useTicketList(endpoint, opts = {}) {
     sortDir: initialSortDir = 'desc',
     extraParams = {},
   } = opts;
+
+  // Stable reference for extraParams to avoid infinite re-fetch loops
+  const extraParamsRef = useRef(extraParams);
+  useEffect(() => { extraParamsRef.current = extraParams; }, [extraParams]);
 
   const [page, setPage]           = useState(0);
   const [size, setSize]           = useState(initialSize);
@@ -57,7 +61,7 @@ export function useTicketList(endpoint, opts = {}) {
         ...(slaStatus ? { slaStatus } : {}),
         ...(dateFrom  ? { dateFrom }  : {}),
         ...(dateTo    ? { dateTo }    : {}),
-        ...extraParams,
+        ...extraParamsRef.current,
       };
       const res = await api.get(endpoint, { params });
       setData(res.data);
@@ -68,8 +72,7 @@ export function useTicketList(endpoint, opts = {}) {
       setLoading(false);
     }
   }, [endpoint, page, size, sortBy, sortDir,
-      status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo,
-      JSON.stringify(extraParams)]); // eslint-disable-line
+      status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo]);
 
   useEffect(() => { fetch(); }, [fetch]);
 

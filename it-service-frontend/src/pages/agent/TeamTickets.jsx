@@ -10,6 +10,27 @@ import PaginationBar from '../../components/PaginationBar';
 import AgentSelectionModal from '../../components/AgentSelectionModal';
 import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Inbox, Users } from 'lucide-react';
 
+// Declared outside component to avoid re-creation on every render
+function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort }) {
+  return (
+    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
+      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
+      <button type="button" onClick={() => toggleSort(field)}
+        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+        style={{ color: sortBy === field ? '#3b82f6' : 'var(--text-tertiary)' }}>
+        {label}
+        {sortBy === field
+          ? (() => {
+              const displayDir = invertArrow ? (sortDir === 'asc' ? 'desc' : 'asc') : sortDir;
+              return displayDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+            })()
+          : <ArrowUpDown className="h-3 w-3" />
+        }
+      </button>
+    </th>
+  );
+}
+
 export default function TeamTickets() {
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
@@ -75,33 +96,6 @@ export default function TeamTickets() {
     });
   };
 
-  const SortIcon = ({ field }) => {
-    if (sortBy !== field) return <ArrowUpDown className="h-3 w-3" />;
-    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
-  };
-
-  const SortTh = ({ field, label, invertArrow = false }) => (
-    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
-      <button type="button" onClick={() => toggleSort(field)}
-        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-        style={{ color: sortBy === field ? '#3b82f6' : 'var(--text-tertiary)' }}>
-        {label}
-        {sortBy === field
-          ? (() => {
-              const displayDir = invertArrow
-                ? (sortDir === 'asc' ? 'desc' : 'asc')
-                : sortDir;
-              return displayDir === 'asc'
-                ? <ArrowUp className="h-3 w-3" />
-                : <ArrowDown className="h-3 w-3" />;
-            })()
-          : <ArrowUpDown className="h-3 w-3" />
-        }
-      </button>
-    </th>
-  );
-
   return (
     <>
       <div className="mb-6">
@@ -148,14 +142,14 @@ export default function TeamTickets() {
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortTh field="id"          label="ID" />
-                  <SortTh field="title"       label="Title" />
-                  <SortTh field="status"      label="Status" />
-                  <SortTh field="priority"    label="Priority" invertArrow />
-                  <SortTh field="slaDeadline" label="SLA" />
+                  <SortTh field="id"          label="ID"       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="title"       label="Title"    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="status"      label="Status"   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="priority"    label="Priority" sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
+                  <SortTh field="slaDeadline" label="SLA"      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                     style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Claimers</th>
-                  <SortTh field="createdAt"   label="Created" />
+                  <SortTh field="createdAt"   label="Created"  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                     style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
                 </tr>

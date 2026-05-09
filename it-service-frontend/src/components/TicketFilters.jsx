@@ -56,7 +56,7 @@ export default function TicketFilters({
       <div className="flex flex-wrap items-center gap-2 px-4 py-3">
 
         {/* Search */}
-        <SearchInput value={search} onChange={onSearch} />
+        <SearchInput key={search || '__empty__'} value={search} onChange={onSearch} />
 
         {/* Status */}
         {!hideStatus && (
@@ -145,9 +145,6 @@ export default function TicketFilters({
 function SearchInput({ value, onChange }) {
   const [local, setLocal] = useState(value ?? '');
   const timer = useRef(null);
-
-  // Sync if parent clears
-  useEffect(() => { setLocal(value ?? ''); }, [value]);
 
   const handleChange = (e) => {
     const v = e.target.value;
