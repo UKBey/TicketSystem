@@ -137,27 +137,34 @@ export default function AdminPanel() {
           User & Product Assignments
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '14%' }} />  {/* Name */}
+              <col style={{ width: '20%' }} />  {/* Email */}
+              <col style={{ width: '10%' }} />  {/* Role */}
+              <col style={{ width: '32%' }} />  {/* Authorized Products — fixed, rows grow vertically */}
+              <col style={{ width: '24%' }} />  {/* Assign Product */}
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Email</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Role</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Authorized Products</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '250px' }}>Assign Product</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Assign Product</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
                 <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
-                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{user.fullName}</td>
-                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
+                  <td className="px-4 py-3 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user.fullName}</td>
+                  <td className="px-4 py-3 text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 align-top">
                     <ProductChips
                       products={user.authorizedProducts}
                       onRemove={(productId) => handleRemoveProduct(user.id, productId)}
