@@ -106,15 +106,19 @@ class UserControllerTest {
 
     @Test
     void getAllUsers_returnsAllDtos() {
-        when(userService.getAllUsers()).thenReturn(List.of(
-                User.builder().id("u-1").fullName("User One").role("CUSTOMER").build(),
-                User.builder().id("u-2").fullName("User Two").role("AGENT").build()
-        ));
+        org.springframework.data.domain.Page<User> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        User.builder().id("u-1").fullName("User One").role("CUSTOMER").build(),
+                        User.builder().id("u-2").fullName("User Two").role("AGENT").build()
+                ));
+        when(userService.getUsersFiltered(null, null, 0, 20)).thenReturn(page);
 
-        ResponseEntity<List<UserDTO>> response = userController.getAllUsers();
+        ResponseEntity<java.util.Map<String, Object>> response = userController.getAllUsers(null, null, 0, 20);
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(2, response.getBody().size());
+        @SuppressWarnings("unchecked")
+        java.util.List<?> content = (java.util.List<?>) response.getBody().get("content");
+        assertEquals(2, content.size());
     }
 
     @Test

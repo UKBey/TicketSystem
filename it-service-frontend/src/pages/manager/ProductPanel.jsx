@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, Search } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import PaginationBar from '../../components/PaginationBar';
+
+const PAGE_SIZE = 10;
 
 export default function ProductPanel() {
   const navigate = useNavigate();
@@ -12,10 +15,15 @@ export default function ProductPanel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
+  // Search + pagination (client-side — product count is small)
+  const [search, setSearch]   = useState('');
+  const [page, setPage]       = useState(0);
+  const [size, setSize]       = useState(PAGE_SIZE);
+
   // Urun ekleme/duzenleme penceresinin aciklik durumu ve secili kayit.
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState(null); // null oldugunda form yeni urun modunda calisir.
+  const [currentProduct, setCurrentProduct] = useState(null);
   
   // Modal icerisinde kullanilan form alanlarinin yerel durumu.
   const [formData, setFormData] = useState({ name: '', isActive: true, maxActiveTickets: '' });
@@ -36,6 +44,16 @@ export default function ProductPanel() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Client-side filtered + paginated slice
+  const filtered = products.filter(p =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const totalPages = Math.ceil(filtered.length / size);
+  const paginated  = filtered.slice(page * size, page * size + size);
+
+  // Reset page when search changes
+  useEffect(() => { setPage(0); }, [search]);
 
   const openModal = (product = null) => {
     if (product) {
@@ -130,9 +148,36 @@ export default function ProductPanel() {
       )}
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-        <div className="px-6 py-4 border-b font-semibold text-sm" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-          System Products
+        {/* Header + search */}
+        <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
+          style={{ borderColor: 'var(--border-color)' }}>
+          <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+            System Products
+            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
+              ({filtered.length} total)
+            </span>
+          </span>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
+              style={{ color: 'var(--text-tertiary)' }} />
+            <input
+              type="text"
+              placeholder="Search products…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="rounded-lg border pl-8 pr-8 py-1.5 text-xs outline-none focus:ring-2 w-48"
+              style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                style={{ color: 'var(--text-tertiary)' }}>
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -145,7 +190,7 @@ export default function ProductPanel() {
               </tr>
             </thead>
             <tbody>
-              {products.map(product => (
+              {paginated.map(product => (
                 <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
                   <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{product.id}</td>
                   <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{product.name}</td>
@@ -202,16 +247,25 @@ export default function ProductPanel() {
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && (
+              {paginated.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                    No products found.
+                  <td colSpan="5" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                    {search ? 'No products match your search.' : 'No products found.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          totalItems={filtered.length}
+          size={size}
+          onPageChange={setPage}
+          onSizeChange={(s) => { setSize(s); setPage(0); }}
+        />
       </div>
 
       {/* Urun ekleme/duzenleme islemlerini yapan modal. */}

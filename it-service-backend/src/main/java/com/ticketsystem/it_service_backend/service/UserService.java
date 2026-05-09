@@ -10,6 +10,10 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.entity.Product;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -49,6 +53,15 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<User> getUsersFiltered(String search, String role, int page, int size) {
+        String searchParam = (search == null || search.isBlank()) ? null : search.trim();
+        String roleParam   = (role   == null || role.isBlank())   ? null : role.trim();
+        // Native query kullandığımız için sort field adı SQL column adı olmalı
+        Pageable pageable  = PageRequest.of(page, size, Sort.by("full_name").ascending());
+        return userRepository.findFiltered(roleParam, searchParam, pageable);
     }
 
     @Transactional(readOnly = true)

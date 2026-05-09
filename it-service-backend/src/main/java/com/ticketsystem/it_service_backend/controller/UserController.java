@@ -4,6 +4,7 @@ import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import com.ticketsystem.it_service_backend.dto.UserDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
@@ -139,24 +141,32 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
-    @Operation(summary = "Tüm kullanıcıları listele",
-            description = "Sistemdeki tüm kullanıcıları (CUSTOMER, AGENT, AGENT_ADMIN) yetkili ürün bilgileriyle birlikte getirir.")
+    @Operation(summary = "Tüm kullanıcıları listele (sayfalı + filtreli)",
+            description = "Sistemdeki kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak getirir.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Kullanıcı listesi başarıyla döndü"),
             @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping
     @PreAuthorize("hasRole('AGENT_ADMIN')")
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        log.info("Tüm kullanıcıları listeleme isteği (Yönetici).");
+    public ResponseEntity<Map<String, Object>> getAllUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("Kullanıcı listeleme isteği. search={}, role={}, page={}, size={}", search, role, page, size);
 
-        List<User> users = userService.getAllUsers();
-        
-        log.info("Sistemdeki toplam {} kullanıcı listelendi.", users.size());
+        Page<User> userPage = userService.getUsersFiltered(search, role, page, size);
 
-        return ResponseEntity.ok(users.stream()
-                .map(UserDTO::fromEntity)
-                .collect(Collectors.toList()));
+        log.info("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
+
+        return ResponseEntity.ok(Map.of(
+                "content",       userPage.getContent().stream().map(UserDTO::fromEntity).collect(Collectors.toList()),
+                "totalElements", userPage.getTotalElements(),
+                "totalPages",    userPage.getTotalPages(),
+                "page",          userPage.getNumber(),
+                "size",          userPage.getSize()
+        ));
     }
 
     
