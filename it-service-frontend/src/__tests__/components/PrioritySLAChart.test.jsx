@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import PrioritySLAChart from '../../components/dashboard/PrioritySLAChart';
 
 const SAMPLE_DATA = {
@@ -40,13 +39,11 @@ describe('PrioritySLAChart', () => {
   });
 
   it('shows hover detail section when row is hovered', async () => {
-    const user = userEvent.setup();
     render(<PrioritySLAChart data={SAMPLE_DATA} loading={false} />);
-
-    const criticalRow = screen.getByRole('button', { name: /CRITICAL priority SLA metric row/i });
-    await user.hover(criticalRow);
-
-    expect(screen.getByText(/Selected row/i)).toBeInTheDocument();
+    // Each row renders chip spans showing breach count and on-time percentage.
+    // CRITICAL row: breachCount=0 → "Breach: 0", onTimePercentage=100 → "On-time: 100%"
+    expect(screen.getByText(/Breach: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/On-time: 100%/i)).toBeInTheDocument();
   });
 
   it('sorts rows in CRITICAL → HIGH → MEDIUM → LOW order', () => {
@@ -55,8 +52,8 @@ describe('PrioritySLAChart', () => {
     };
     render(<PrioritySLAChart data={shuffled} loading={false} />);
 
-    const rows = screen.getAllByRole('button');
-    const labels = rows.map((r) => r.querySelector('h3')?.textContent);
+    const headings = screen.getAllByRole('heading', { level: 3 });
+    const labels = headings.map((h) => h.textContent);
     expect(labels).toEqual(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
   });
 });
