@@ -1,9 +1,116 @@
 /* ============================================================ */
 /* IT Service Desk — Keycloak Custom Login Theme                */
-/* Matches the frontend glassmorphism dark login aesthetic      */
+/* Dark / Light mode via data-theme attribute on <html>         */
 /* ============================================================ */
 
-/* Reset & Base */
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-page:          linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 70%, #1a1a2e 100%);
+  --bg-card:          rgba(255, 255, 255, 0.05);
+  --bg-input:         rgba(255, 255, 255, 0.06);
+  --bg-input-focus:   rgba(255, 255, 255, 0.08);
+  --bg-social:        rgba(255, 255, 255, 0.04);
+  --bg-social-hover:  rgba(255, 255, 255, 0.08);
+  --bg-otp-device:    rgba(255, 255, 255, 0.04);
+  --bg-otp-hover:     rgba(255, 255, 255, 0.08);
+  --bg-secret:        rgba(255, 255, 255, 0.06);
+  --bg-btn-secondary: transparent;
+
+  --border-card:      rgba(255, 255, 255, 0.10);
+  --border-input:     rgba(255, 255, 255, 0.10);
+  --border-social:    rgba(255, 255, 255, 0.10);
+  --border-social-h:  rgba(255, 255, 255, 0.15);
+  --border-info:      rgba(255, 255, 255, 0.06);
+  --border-divider:   rgba(255, 255, 255, 0.08);
+  --border-secret:    rgba(255, 255, 255, 0.10);
+  --border-btn-sec:   rgba(255, 255, 255, 0.10);
+  --border-btn-sec-h: rgba(255, 255, 255, 0.15);
+
+  --text-title:       #ffffff;
+  --text-subtitle:    #94a3b8;
+  --text-label:       #cbd5e1;
+  --text-input:       #f1f5f9;
+  --text-placeholder: #64748b;
+  --text-link:        #60a5fa;
+  --text-link-hover:  #93c5fd;
+  --text-muted:       #94a3b8;
+  --text-muted-hover: #e2e8f0;
+  --text-divider:     #475569;
+  --text-social:      #e2e8f0;
+  --text-otp-device:  #e2e8f0;
+  --text-secret:      #e2e8f0;
+  --text-btn-sec:     #94a3b8;
+  --text-btn-sec-h:   #e2e8f0;
+  --text-step:        #cbd5e1;
+  --text-otp-label:   #64748b;
+
+  --orb-1: rgba(59, 130, 246, 0.10);
+  --orb-2: rgba(139, 92, 246, 0.10);
+  --orb-3: rgba(59, 130, 246, 0.05);
+
+  --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.50);
+
+  /* Toggle button */
+  --toggle-bg:     rgba(255, 255, 255, 0.08);
+  --toggle-border: rgba(255, 255, 255, 0.12);
+  --toggle-color:  #94a3b8;
+  --toggle-hover:  rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="light"] {
+  --bg-page:          linear-gradient(135deg, #eff6ff 0%, #f8fafc 40%, #f0f9ff 70%, #faf5ff 100%);
+  --bg-card:          rgba(255, 255, 255, 0.85);
+  --bg-input:         #f8fafc;
+  --bg-input-focus:   #ffffff;
+  --bg-social:        #f8fafc;
+  --bg-social-hover:  #f1f5f9;
+  --bg-otp-device:    #f8fafc;
+  --bg-otp-hover:     #f1f5f9;
+  --bg-secret:        #f1f5f9;
+  --bg-btn-secondary: transparent;
+
+  --border-card:      rgba(0, 0, 0, 0.08);
+  --border-input:     #e2e8f0;
+  --border-social:    #e2e8f0;
+  --border-social-h:  #cbd5e1;
+  --border-info:      #e2e8f0;
+  --border-divider:   #e2e8f0;
+  --border-secret:    #e2e8f0;
+  --border-btn-sec:   #e2e8f0;
+  --border-btn-sec-h: #cbd5e1;
+
+  --text-title:       #0f172a;
+  --text-subtitle:    #64748b;
+  --text-label:       #374151;
+  --text-input:       #0f172a;
+  --text-placeholder: #94a3b8;
+  --text-link:        #2563eb;
+  --text-link-hover:  #1d4ed8;
+  --text-muted:       #64748b;
+  --text-muted-hover: #0f172a;
+  --text-divider:     #94a3b8;
+  --text-social:      #374151;
+  --text-otp-device:  #374151;
+  --text-secret:      #374151;
+  --text-btn-sec:     #64748b;
+  --text-btn-sec-h:   #0f172a;
+  --text-step:        #374151;
+  --text-otp-label:   #94a3b8;
+
+  --orb-1: rgba(59, 130, 246, 0.08);
+  --orb-2: rgba(139, 92, 246, 0.06);
+  --orb-3: rgba(59, 130, 246, 0.04);
+
+  --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.10);
+
+  --toggle-bg:     rgba(0, 0, 0, 0.05);
+  --toggle-border: rgba(0, 0, 0, 0.10);
+  --toggle-color:  #64748b;
+  --toggle-hover:  rgba(0, 0, 0, 0.08);
+}
+
+/* ── Reset & Base ───────────────────────────────────────────── */
 * {
   margin: 0;
   padding: 0;
@@ -16,7 +123,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Page */
+/* ── Page ───────────────────────────────────────────────────── */
 .login-page {
   display: flex;
   align-items: center;
@@ -25,10 +132,11 @@ body {
   padding: 1rem;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 70%, #1a1a2e 100%);
+  background: var(--bg-page);
+  transition: background 0.3s ease;
 }
 
-/* Background orbs */
+/* ── Background orbs ────────────────────────────────────────── */
 .bg-decor {
   position: absolute;
   inset: 0;
@@ -47,7 +155,7 @@ body {
   right: -10rem;
   width: 24rem;
   height: 24rem;
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--orb-1);
 }
 
 .bg-orb-2 {
@@ -55,7 +163,7 @@ body {
   left: -10rem;
   width: 24rem;
   height: 24rem;
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--orb-2);
 }
 
 .bg-orb-3 {
@@ -64,10 +172,48 @@ body {
   transform: translate(-50%, -50%);
   width: 37.5rem;
   height: 37.5rem;
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--orb-3);
 }
 
-/* Container */
+/* ── Theme toggle button ────────────────────────────────────── */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--toggle-border);
+  background: var(--toggle-bg);
+  color: var(--toggle-color);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.theme-toggle:hover {
+  background: var(--toggle-hover);
+}
+
+.theme-toggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+/* Show correct icon per theme */
+.icon-moon { display: block; }
+.icon-sun  { display: none;  }
+
+[data-theme="light"] .icon-moon { display: none;  }
+[data-theme="light"] .icon-sun  { display: block; }
+
+/* ── Container ──────────────────────────────────────────────── */
 .login-container {
   position: relative;
   width: 100%;
@@ -76,29 +222,24 @@ body {
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* Card */
+/* ── Card ───────────────────────────────────────────────────── */
 .login-card {
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-card);
   padding: 2.5rem;
   text-align: center;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  background-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Logo */
+/* ── Logo ───────────────────────────────────────────────────── */
 .logo-container {
   display: flex;
   justify-content: center;
@@ -118,23 +259,25 @@ body {
               0 4px 6px -4px rgba(59, 130, 246, 0.25);
 }
 
-/* Title */
+/* ── Title ──────────────────────────────────────────────────── */
 .login-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-title);
   margin-bottom: 0.5rem;
   letter-spacing: -0.02em;
+  transition: color 0.3s ease;
 }
 
 .login-subtitle {
-  color: #94a3b8;
+  color: var(--text-subtitle);
   font-size: 0.875rem;
   margin-bottom: 2rem;
   line-height: 1.5;
+  transition: color 0.3s ease;
 }
 
-/* Alert messages */
+/* ── Alert messages ─────────────────────────────────────────── */
 .alert {
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
@@ -168,7 +311,12 @@ body {
   color: #86efac;
 }
 
-/* Form */
+[data-theme="light"] .alert-error   { color: #b91c1c; }
+[data-theme="light"] .alert-warning { color: #92400e; }
+[data-theme="light"] .alert-info    { color: #1e40af; }
+[data-theme="light"] .alert-success { color: #166534; }
+
+/* ── Form ───────────────────────────────────────────────────── */
 .form-group {
   margin-bottom: 1.25rem;
   text-align: left;
@@ -178,17 +326,18 @@ body {
   display: block;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #cbd5e1;
+  color: var(--text-label);
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.06);
-  color: #f1f5f9;
+  border: 1px solid var(--border-input);
+  background-color: var(--bg-input);
+  color: var(--text-input);
   font-size: 0.875rem;
   font-family: 'Inter', sans-serif;
   outline: none;
@@ -196,13 +345,13 @@ body {
 }
 
 .form-input::placeholder {
-  color: #64748b;
+  color: var(--text-placeholder);
 }
 
 .form-input:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-input-focus);
 }
 
 .form-input.input-error {
@@ -215,7 +364,9 @@ body {
   color: #fca5a5;
 }
 
-/* Form options row */
+[data-theme="light"] .field-error { color: #b91c1c; }
+
+/* ── Form options row ───────────────────────────────────────── */
 .form-options {
   display: flex;
   align-items: center;
@@ -229,31 +380,32 @@ body {
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .remember-me input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
   border-radius: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-input);
+  background-color: var(--bg-input);
   cursor: pointer;
   accent-color: #3b82f6;
 }
 
 .forgot-password {
   font-size: 0.8125rem;
-  color: #60a5fa;
+  color: var(--text-link);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .forgot-password:hover {
-  color: #93c5fd;
+  color: var(--text-link-hover);
 }
 
-/* Submit button */
+/* ── Submit button ──────────────────────────────────────────── */
 .submit-btn {
   width: 100%;
   display: flex;
@@ -283,16 +435,17 @@ body {
   transform: scale(0.98);
 }
 
-/* Social login divider */
+/* ── Social login divider ───────────────────────────────────── */
 .social-divider {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin: 1.5rem 0;
-  color: #475569;
+  color: var(--text-divider);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.3s ease;
 }
 
 .social-divider::before,
@@ -300,10 +453,11 @@ body {
   content: '';
   flex: 1;
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--border-divider);
+  transition: background-color 0.3s ease;
 }
 
-/* Social provider buttons */
+/* ── Social provider buttons ────────────────────────────────── */
 .social-providers {
   display: flex;
   flex-direction: column;
@@ -317,9 +471,9 @@ body {
   gap: 0.5rem;
   padding: 0.75rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  border: 1px solid var(--border-social);
+  background-color: var(--bg-social);
+  color: var(--text-social);
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
@@ -327,36 +481,37 @@ body {
 }
 
 .social-link:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--bg-social-hover);
+  border-color: var(--border-social-h);
 }
 
-/* Info area (registration link etc.) */
+/* ── Info area ──────────────────────────────────────────────── */
 .login-info {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-info);
   text-align: center;
+  transition: border-color 0.3s ease;
 }
 
 .register-link {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .register-link a {
-  color: #60a5fa;
+  color: var(--text-link);
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s;
 }
 
 .register-link a:hover {
-  color: #93c5fd;
+  color: var(--text-link-hover);
 }
 
-/* ============================================================ */
-/* Hide Keycloak default elements we don't need                 */
-/* ============================================================ */
+/* ── Hide Keycloak default elements ─────────────────────────── */
 #kc-header,
 #kc-header-wrapper,
 #kc-locale,
@@ -364,31 +519,30 @@ body {
   display: none !important;
 }
 
-/* ============================================================ */
-/* Form description & helper text                               */
-/* ============================================================ */
+/* ── Form description & helper text ─────────────────────────── */
 .form-description {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.8125rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
   text-align: left;
+  transition: color 0.3s ease;
 }
 
 .label-optional {
   font-weight: 400;
-  color: #64748b;
+  color: var(--text-placeholder);
   font-size: 0.75rem;
 }
 
-/* Back to login link */
+/* ── Back to login link ─────────────────────────────────────── */
 .back-to-login {
   margin-top: 1.5rem;
   text-align: center;
 }
 
 .back-to-login a {
-  color: #60a5fa;
+  color: var(--text-link);
   text-decoration: none;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -396,10 +550,10 @@ body {
 }
 
 .back-to-login a:hover {
-  color: #93c5fd;
+  color: var(--text-link-hover);
 }
 
-/* Form actions */
+/* ── Form actions ───────────────────────────────────────────── */
 .form-actions {
   display: flex;
   flex-direction: column;
@@ -407,24 +561,23 @@ body {
   margin-top: 0.5rem;
 }
 
-/* Secondary button (cancel) */
+/* ── Secondary button ───────────────────────────────────────── */
 .btn-secondary {
-  background-color: transparent !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #94a3b8 !important;
+  background-color: var(--bg-btn-secondary) !important;
+  border: 1px solid var(--border-btn-sec) !important;
+  color: var(--text-btn-sec) !important;
+  transition: all 0.2s ease !important;
 }
 
 .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #e2e8f0 !important;
+  background-color: var(--bg-social-hover) !important;
+  border-color: var(--border-btn-sec-h) !important;
+  color: var(--text-btn-sec-h) !important;
   box-shadow: none !important;
   transform: none !important;
 }
 
-/* ============================================================ */
-/* Registration — two-column row                                */
-/* ============================================================ */
+/* ── Registration two-column row ────────────────────────────── */
 .form-row {
   display: flex;
   gap: 0.75rem;
@@ -435,17 +588,13 @@ body {
   min-width: 0;
 }
 
-/* ============================================================ */
-/* OTP / 2FA Styles                                             */
-/* ============================================================ */
-
-/* Setup steps */
+/* ── OTP / 2FA Styles ───────────────────────────────────────── */
 .otp-steps {
   text-align: left;
   padding-left: 1.25rem;
   margin-bottom: 1.5rem;
   list-style: decimal;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .otp-steps li {
@@ -455,10 +604,10 @@ body {
 }
 
 .step-text {
-  color: #cbd5e1;
+  color: var(--text-step);
+  transition: color 0.3s ease;
 }
 
-/* QR Code */
 .otp-qr-container {
   display: flex;
   justify-content: center;
@@ -469,12 +618,11 @@ body {
   width: 200px;
   height: 200px;
   border-radius: 0.75rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--border-input);
   padding: 0.75rem;
   background-color: #ffffff;
 }
 
-/* Manual secret fallback */
 .otp-secret-fallback {
   margin-bottom: 1.5rem;
   text-align: center;
@@ -483,25 +631,26 @@ body {
 .otp-secret-label {
   display: block;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-otp-label);
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .otp-secret-code {
   display: inline-block;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background-color: var(--bg-secret);
+  border: 1px solid var(--border-secret);
+  color: var(--text-secret);
   font-family: 'Courier New', monospace;
   font-size: 0.8125rem;
   letter-spacing: 0.1em;
   word-break: break-all;
   user-select: all;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* OTP code input — centered, large */
 .otp-input {
   text-align: center;
   font-size: 1.5rem;
@@ -510,7 +659,6 @@ body {
   padding: 0.875rem 1rem;
 }
 
-/* OTP device selector */
 .otp-device-list {
   display: flex;
   flex-direction: column;
@@ -523,15 +671,15 @@ body {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-social);
+  background-color: var(--bg-otp-device);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .otp-device-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--bg-otp-hover);
+  border-color: var(--border-social-h);
 }
 
 .otp-device-item input[type="radio"] {
@@ -542,14 +690,13 @@ body {
 }
 
 .otp-device-name {
-  color: #e2e8f0;
+  color: var(--text-otp-device);
   font-size: 0.875rem;
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
-/* ============================================================ */
-/* Responsive                                                   */
-/* ============================================================ */
+/* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .login-card {
     padding: 1.5rem;
