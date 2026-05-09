@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { PieChart } from 'lucide-react';
 
 const STATUS_CONFIG = [
@@ -31,14 +31,20 @@ function buildArcPath(cx, cy, radius, innerRadius, startAngle, endAngle) {
 
 function polarToCartesian(cx, cy, radius, angleInDegrees) {
   const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-
   return {
-    x: cx + (radius * Math.cos(angleInRadians)),
-    y: cy + (radius * Math.sin(angleInRadians)),
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
   };
 }
 
 function StatusDistributionChart({ data, loading }) {
+  // hoveredKey: mouse üzerindeyken, activeKey: click ile sabitlenmiş
+  const [hoveredKey, setHoveredKey] = useState(null);
+  const [activeKey, setActiveKey] = useState(null);
+
+  // Gösterilecek aktif segment: click > hover
+  const displayKey = activeKey ?? hoveredKey;
+
   const entries = STATUS_CONFIG.map((item) => ({
     ...item,
     value: Number(data?.[item.key] ?? 0),
@@ -52,15 +58,17 @@ function StatusDistributionChart({ data, loading }) {
   const segments = positiveEntries.reduce((accumulator, item) => {
     const sliceAngle = total > 0 ? (item.value / total) * 360 : 0;
     const startAngle = accumulator.length === 0 ? 0 : accumulator[accumulator.length - 1].endAngle;
-
-    accumulator.push({
-      ...item,
-      startAngle,
-      endAngle: startAngle + sliceAngle,
-    });
-
+    accumulator.push({ ...item, startAngle, endAngle: startAngle + sliceAngle });
     return accumulator;
   }, []);
+
+  const activeSegment = segments.find((s) => s.key === displayKey);
+  const centerLabel = activeSegment ? activeSegment.label : 'Toplam';
+  const centerValue = activeSegment ? activeSegment.value : total;
+
+  const handleSegmentClick = (key) => {
+    setActiveKey((prev) => (prev === key ? null : key));
+  };
 
   return (
     <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
@@ -82,6 +90,7 @@ function StatusDistributionChart({ data, loading }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr] lg:items-center">
+        {/* Daire grafik */}
         <div className="flex justify-center">
           <div className="relative h-[220px] w-[220px]">
             <svg viewBox="0 0 220 220" className="h-full w-full">
@@ -91,45 +100,97 @@ function StatusDistributionChart({ data, loading }) {
                 </filter>
               </defs>
 
+              {/* Arka plan halkası */}
               <circle cx="110" cy="110" r={radius} fill="none" stroke="var(--bg-surface-secondary)" strokeWidth="28" />
 
               {loading ? (
                 <circle cx="110" cy="110" r={radius} fill="none" stroke="var(--text-tertiary)" strokeWidth="28" strokeDasharray="35 12" opacity="0.35" />
               ) : (
-                segments.map((segment) => (
-                  <path
-                    key={segment.key}
-                    d={buildArcPath(110, 110, radius, innerRadius, segment.startAngle, segment.endAngle)}
-                    fill={segment.color}
-                    filter="url(#status-chart-shadow)"
-                  />
-                ))
+                segments.map((segment) => {
+                  const isActive = segment.key === displayKey;
+                  const isDimmed = displayKey && !isActive;
+                  return (
+                    <path
+                      key={segment.key}
+                      d={buildArcPath(110, 110, radius, innerRadius, segment.startAngle, segment.endAngle)}
+                      fill={segment.color}
+                      filter="url(#status-chart-shadow)"
+                      opacity={isDimmed ? 0.3 : 1}
+                      stroke={isActive ? 'white' : 'none'}
+                      strokeWidth={isActive ? 2 : 0}
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'opacity 0.2s ease',
+                        outline: 'none',
+                      }}
+                      onClick={() => handleSegmentClick(segment.key)}
+                      onMouseEnter={() => setHoveredKey(segment.key)}
+                      onMouseLeave={() => setHoveredKey(null)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${segment.label}: ${formatNumber(segment.value)}`}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSegmentClick(segment.key)}
+                    />
+                  );
+                })
               )}
 
-              <circle cx="110" cy="110" r={innerRadius} fill="var(--bg-surface)" />
+              {/* İç daire */}
+              <circle cx="110" cy="110" r={innerRadius} fill="var(--bg-surface)" style={{ pointerEvents: 'none' }} />
             </svg>
 
+            {/* Ortadaki metin */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-tertiary)' }}>Durum</span>
-              <span className="mt-1 text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
-                {loading ? '...' : formatNumber(total)}
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.15em] truncate max-w-[80px]"
+                style={{ color: activeSegment ? activeSegment.color : 'var(--text-tertiary)' }}
+              >
+                {centerLabel}
               </span>
-              <span className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>ticket</span>
+              <span className="mt-1 text-3xl font-black" style={{ color: 'var(--text-primary)' }}>
+                {loading ? '...' : formatNumber(centerValue)}
+              </span>
+              <span className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {activeSegment
+                  ? `%${total > 0 ? Math.round((activeSegment.value / total) * 100) : 0}`
+                  : 'ticket'}
+              </span>
             </div>
           </div>
         </div>
 
+        {/* Sağ liste */}
         <div className="space-y-3">
           {(loading ? entries : segments.length > 0 ? segments : entries).map((item) => {
             const value = item.value ?? 0;
             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+            const isActive = item.key === displayKey;
+            const isDimmed = displayKey && !isActive;
 
             return (
-              <div key={item.key} className="rounded-2xl border px-4 py-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
+              <div
+                key={item.key}
+                className="rounded-2xl border px-4 py-3 cursor-pointer transition-all duration-200"
+                style={{
+                  backgroundColor: isActive ? `${item.color}18` : 'var(--bg-surface-secondary)',
+                  borderColor: isActive ? item.color : 'var(--border-color-light)',
+                  opacity: isDimmed ? 0.45 : 1,
+                  transform: isActive ? 'translateX(4px)' : 'none',
+                }}
+                onClick={() => handleSegmentClick(item.key)}
+                onMouseEnter={() => setHoveredKey(item.key)}
+                onMouseLeave={() => setHoveredKey(null)}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span
+                        className="h-2.5 w-2.5 rounded-full transition-transform duration-200"
+                        style={{
+                          backgroundColor: item.color,
+                          transform: isActive ? 'scale(1.4)' : 'scale(1)',
+                        }}
+                      />
                       <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
                     </div>
                     <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{item.description}</p>
@@ -140,7 +201,10 @@ function StatusDistributionChart({ data, loading }) {
                   </div>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg-surface)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: item.color }} />
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${percentage}%`, backgroundColor: item.color }}
+                  />
                 </div>
               </div>
             );
