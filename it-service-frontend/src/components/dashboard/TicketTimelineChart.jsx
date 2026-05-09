@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from 'react';
-import { LineChart as LineChartIcon, ZoomIn } from 'lucide-react';
+import { LineChart as LineChartIcon } from 'lucide-react';
 import {
   Brush,
   CartesianGrid,
@@ -88,17 +88,12 @@ function TicketTimelineChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <LineChartIcon className="h-3.5 w-3.5" />
-            30 Günlük Trend Grafiği
+            Trend Grafiği
           </div>
           <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Created, Resolved, Closed ve SLA Breach</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Çizgileri legend üstünden açıp kapatabilir, mobilde kaydırarak detayları inceleyebilirsiniz.
+            Çizgileri legend üstünden açıp kapatabilir, aşağıdaki bardan gün aralığını ayarlayabilirsiniz.
           </p>
-        </div>
-
-        <div className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-medium" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          <ZoomIn className="h-3.5 w-3.5" />
-          Mobil zoom hazır
         </div>
       </div>
 
@@ -142,7 +137,15 @@ function TicketTimelineChart({ data, loading }) {
                   />
                 ))}
 
-                <Brush dataKey="dateLabel" height={22} stroke={CHART_COLORS.created} travellerWidth={10} />
+                <Brush
+                  dataKey="dateLabel"
+                  height={32}
+                  stroke="var(--border-color)"
+                  fill="var(--bg-surface-secondary)"
+                  travellerWidth={8}
+                  tickFormatter={(v) => v}
+                  style={{ fontSize: 11 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

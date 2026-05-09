@@ -18,6 +18,28 @@
   opacity: 0.8;
 }
 
+/* Recharts Brush (gün aralığı seçici) özelleştirmesi */
+.recharts-brush {
+  border-radius: 8px;
+}
+
+.recharts-brush-slide {
+  fill: var(--bg-surface-secondary);
+  fill-opacity: 0.8;
+}
+
+.recharts-brush-traveller rect {
+  fill: var(--bg-surface);
+  stroke: var(--border-color);
+  rx: 4;
+  ry: 4;
+}
+
+.recharts-brush-texts text {
+  fill: var(--text-tertiary);
+  font-size: 11px;
+}
+
 @media (min-width: 768px) {
   .timeline-chart-inner {
     min-width: 0;
