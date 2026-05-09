@@ -22,24 +22,13 @@ function getStatusTone(onTimePercentage) {
   return 'danger';
 }
 
-export default function PrioritySLARow({ item, maxScaleHours, hovered, onHover, onLeave }) {
+export default function PrioritySLARow({ item, maxScaleHours }) {
   const progressWidth = Math.min((Number(item.avgResolutionHours ?? 0) / Math.max(maxScaleHours, 1)) * 100, 100);
   const targetPosition = Math.min((Number(item.slaTargetHours ?? 0) / Math.max(maxScaleHours, 1)) * 100, 100);
   const tone = getStatusTone(Number(item.onTimePercentage ?? 0));
-  const targetLabel = `${formatHours(item.avgResolutionHours)} / ${formatHours(item.slaTargetHours)} ${Number(item.avgResolutionHours ?? 0) <= Number(item.slaTargetHours ?? 0) ? '✅' : '⚠️'}`;
 
   return (
-    <article
-      className={`priority-sla-row ${hovered ? 'priority-sla-row--hovered' : ''}`}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      onFocus={onHover}
-      onBlur={onLeave}
-      tabIndex={0}
-      role="button"
-      aria-label={`${item.priority} priority SLA metric row`}
-      title={`${item.priority}: ${targetLabel}, breach ${formatNumber(item.breachCount)}, on-time ${Number(item.onTimePercentage ?? 0).toFixed(0)}%`}
-    >
+    <div className="priority-sla-row">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -79,18 +68,6 @@ export default function PrioritySLARow({ item, maxScaleHours, hovered, onHover, 
           Hedef: {formatHours(item.slaTargetHours)}
         </span>
       </div>
-
-      <div className={`priority-sla-legend ${hovered ? 'priority-sla-legend--visible' : ''}`}>
-        <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>
-          Hover detay
-        </div>
-        <div className="mt-1 text-xs" style={{ color: 'var(--text-primary)' }}>
-          {item.priority} · {formatHours(item.avgResolutionHours)} ortalama çözüm
-        </div>
-        <div className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          Breach {formatNumber(item.breachCount)} · On-time {Number(item.onTimePercentage ?? 0).toFixed(0)}%
-        </div>
-      </div>
-    </article>
+    </div>
   );
 }

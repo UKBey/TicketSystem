@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { SLA_TONE_COLORS } from './ChartColors';
 import PrioritySLARow from './PrioritySLARow';
@@ -33,7 +33,6 @@ function normalizePriorityMetrics(data) {
 
 function PrioritySLAChart({ data, loading }) {
   const items = useMemo(() => normalizePriorityMetrics(data), [data]);
-  const [hoveredPriority, setHoveredPriority] = useState(null);
 
   const maxScaleHours = Math.max(48, ...items.map((item) => item.slaTargetHours || 0), ...items.map((item) => item.avgResolutionHours || 0));
 
@@ -95,20 +94,8 @@ function PrioritySLAChart({ data, loading }) {
               key={item.priority}
               item={item}
               maxScaleHours={maxScaleHours}
-              hovered={hoveredPriority === item.priority}
-              onHover={() => setHoveredPriority(item.priority)}
-              onLeave={() => setHoveredPriority(null)}
             />
           ))}
-        </div>
-      )}
-
-      {hoveredPriority && (
-        <div className="mt-4 rounded-2xl border px-4 py-3 text-sm shadow-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Seçili satır</div>
-          <div className="mt-1 font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {hoveredPriority} için SLA detayları yukarıda vurgulandı.
-          </div>
         </div>
       )}
     </section>
