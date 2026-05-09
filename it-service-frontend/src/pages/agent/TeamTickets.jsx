@@ -25,6 +25,13 @@ export default function TeamTickets() {
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     priority, setPriority,
+    search, setSearch,
+    productId, setProductId,
+    agentId, setAgentId,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
     refetch,
   } = useTicketList('/tickets/team', { sortBy: 'createdAt', sortDir: 'desc' });
 
@@ -114,8 +121,14 @@ export default function TeamTickets() {
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
 
         <TicketFilters
-          status="" onStatus={() => {}}
-          priority={priority} onPriority={setPriority}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          productId={productId} onProductId={setProductId}
+          agentId={agentId}     onAgentId={setAgentId}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
           hideStatus
         />
 

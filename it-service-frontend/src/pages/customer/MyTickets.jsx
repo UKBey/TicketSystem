@@ -7,8 +7,8 @@ import PaginationBar from '../../components/PaginationBar';
 import CreateTicketModal from '../../components/CreateTicketModal';
 
 const TABS = [
-  { key: 'active',  label: 'Active',  statusFilter: '' },
-  { key: 'closed',  label: 'Closed',  statusFilter: 'CLOSED' },
+  { key: 'active', label: 'Active' },
+  { key: 'closed', label: 'Closed' },
 ];
 
 export default function MyTickets() {
@@ -21,20 +21,18 @@ export default function MyTickets() {
     sortBy, sortDir, toggleSort,
     status, setStatus,
     priority, setPriority,
+    search, setSearch,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
     refetch,
   } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc' });
 
-  // Tab switch: override status filter
   const handleTabChange = (t) => {
     setTab(t);
     setStatus(t === 'closed' ? 'CLOSED' : '');
   };
-
-  const handleTicketCreated = () => refetch();
-
-  // Count badges — use totalItems only for the active tab (approximate)
-  const activeCount = tab === 'active' ? totalItems : null;
-  const closedCount = tab === 'closed' ? totalItems : null;
 
   return (
     <>
@@ -56,7 +54,6 @@ export default function MyTickets() {
       <div className="flex gap-0 mb-5">
         {TABS.map((t, i) => {
           const active = tab === t.key;
-          const count  = t.key === 'active' ? activeCount : closedCount;
           return (
             <button
               key={t.key}
@@ -67,11 +64,9 @@ export default function MyTickets() {
               onClick={() => handleTabChange(t.key)}
             >
               {t.label}
-              {!loading && count !== null && (
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full ${
-                  active ? 'bg-white/20' : 'bg-[var(--bg-surface-secondary)]'
-                }`}>
-                  {count}
+              {active && !loading && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold rounded-full bg-white/20">
+                  {totalItems}
                 </span>
               )}
             </button>
@@ -87,9 +82,16 @@ export default function MyTickets() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
-          status={status}   onStatus={setStatus}
-          priority={priority} onPriority={setPriority}
+          status={status}       onStatus={setStatus}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
           hideStatus={tab === 'closed'}
+          hideAgent
+          hideProduct={false}
         />
 
         {loading ? (
@@ -113,7 +115,7 @@ export default function MyTickets() {
       <CreateTicketModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreated={handleTicketCreated}
+        onCreated={() => refetch()}
       />
     </>
   );

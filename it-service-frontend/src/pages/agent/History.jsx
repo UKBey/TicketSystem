@@ -9,6 +9,12 @@ export default function History() {
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     priority, setPriority,
+    search, setSearch,
+    productId, setProductId,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
   } = useTicketList('/tickets/my-assigned', {
     sortBy: 'createdAt',
     sortDir: 'desc',
@@ -30,9 +36,15 @@ export default function History() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
-          status="" onStatus={() => {}}
-          priority={priority} onPriority={setPriority}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          productId={productId} onProductId={setProductId}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
           hideStatus
+          hideAgent
         />
 
         {loading ? (

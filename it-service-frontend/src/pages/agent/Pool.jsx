@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -6,7 +7,6 @@ import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 import AgentSelectionModal from '../../components/AgentSelectionModal';
-import { useState } from 'react';
 
 export default function Pool() {
   const navigate = useNavigate();
@@ -20,6 +20,12 @@ export default function Pool() {
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     priority, setPriority,
+    search, setSearch,
+    productId, setProductId,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
     refetch,
   } = useTicketList('/tickets/pool', { sortBy: 'createdAt', sortDir: 'desc' });
 
@@ -61,9 +67,15 @@ export default function Pool() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
-          status="" onStatus={() => {}}
-          priority={priority} onPriority={setPriority}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          productId={productId} onProductId={setProductId}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
           hideStatus
+          hideAgent
         />
 
         {loading ? (

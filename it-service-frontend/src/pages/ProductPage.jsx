@@ -25,6 +25,12 @@ export default function ProductPage() {
     sortBy, sortDir, toggleSort,
     status, setStatus,
     priority, setPriority,
+    search, setSearch,
+    agentId, setAgentId,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
   } = useTicketList(`/tickets/by-product/${id}`, { sortBy: 'createdAt', sortDir: 'desc' });
 
   useEffect(() => {
@@ -158,8 +164,15 @@ export default function ProductPage() {
         </div>
 
         <TicketFilters
-          status={status}   onStatus={setStatus}
-          priority={priority} onPriority={setPriority}
+          status={status}       onStatus={setStatus}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          agentId={agentId}     onAgentId={setAgentId}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
+          hideProduct
         />
 
         {ticketsLoading ? (

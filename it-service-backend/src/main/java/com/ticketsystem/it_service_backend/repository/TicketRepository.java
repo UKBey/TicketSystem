@@ -36,9 +36,251 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.productId IN :productIds AND t.status NOT IN ('NEW', 'CLOSED')")
     List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
 
-    // -------------------------------------------------------------------------
-    // Sayfalama + filtreleme destekli sorgular
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // Genel filtreli sorgular — tüm yeni filtre parametrelerini destekler
+    // (searchPattern, status, priority, productId, agentId, slaStatus, dateFrom, dateTo)
+    // NOT: searchPattern Java tarafında '%' + search.toLowerCase() + '%' olarak hazırlanır.
+    // =========================================================================
+
+    /**
+     * Müşteri biletleri — tüm filtreler.
+     * slaStatus: BREACHED | ACTIVE | PAUSED | null
+     */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.customer_id = CAST(:customerId AS text)
+          AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text))
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true, countQuery = """
+        SELECT COUNT(*) FROM tickets t
+        WHERE t.customer_id = CAST(:customerId AS text)
+          AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text))
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """)
+    Page<Ticket> findByCustomerIdFullFiltered(
+            @Param("customerId")    String customerId,
+            @Param("status")        String status,
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Pool (NEW) biletleri — yetkili ürünler + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.status = 'NEW'
+          AND t.product_id IN :productIds
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findPoolTicketsFullFiltered(
+            @Param("productIds")    List<Long> productIds,
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Pool (NEW) biletleri — AGENT_ADMIN, tüm ürünler + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.status = 'NEW'
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findAllPoolTicketsFullFiltered(
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Ajanın claim aldığı biletler — tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.id IN :ticketIds
+          AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text))
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findClaimedTicketsFullFiltered(
+            @Param("ticketIds")     List<Long> ticketIds,
+            @Param("status")        String status,
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Takım biletleri — yetkili ürünler + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.product_id IN :productIds
+          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findTeamTicketsFullFiltered(
+            @Param("productIds")    List<Long> productIds,
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Takım biletleri — AGENT_ADMIN, tüm ürünler + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.status NOT IN ('NEW', 'CLOSED')
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:productId AS bigint) IS NULL OR t.product_id = CAST(:productId AS bigint))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findAllTeamTicketsFullFiltered(
+            @Param("priority")      String priority,
+            @Param("productId")     Long productId,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Ürün biletleri — agent/admin + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.product_id = CAST(:productId AS bigint)
+          AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text))
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findByProductIdFullFiltered(
+            @Param("productId")     Long productId,
+            @Param("status")        String status,
+            @Param("priority")      String priority,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
+
+    /** Ürün biletleri — müşteri + tüm filtreler */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.product_id = CAST(:productId AS bigint)
+          AND t.customer_id = CAST(:customerId AS text)
+          AND (CAST(:status AS text) IS NULL OR t.status = CAST(:status AS text))
+          AND (CAST(:priority AS text) IS NULL OR t.priority = CAST(:priority AS text))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (CAST(:slaStatus AS text) IS NULL
+               OR (CAST(:slaStatus AS text) = 'BREACHED' AND t.sla_breached = true)
+               OR (CAST(:slaStatus AS text) = 'ACTIVE' AND t.sla_breached = false AND t.sla_paused_at IS NULL)
+               OR (CAST(:slaStatus AS text) = 'PAUSED' AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (CAST(:agentId AS text) IS NULL
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+        """, nativeQuery = true)
+    Page<Ticket> findByProductIdAndCustomerIdFullFiltered(
+            @Param("productId")     Long productId,
+            @Param("customerId")    String customerId,
+            @Param("status")        String status,
+            @Param("priority")      String priority,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatus")     String slaStatus,
+            @Param("agentId")       String agentId,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            Pageable pageable);
 
     // Musteri biletleri — status ve priority filtresi ile sayfalama
     @Query("""

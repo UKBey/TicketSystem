@@ -8,6 +8,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
+import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
@@ -207,41 +208,65 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Page<Ticket> getCustomerTicketsPaged(String customerId, String status, String priority, Pageable pageable) {
+        return getCustomerTicketsFiltered(customerId,
+                TicketFilterDTO.builder().status(status).priority(priority).build(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getCustomerTicketsFiltered(String customerId, TicketFilterDTO f, Pageable pageable) {
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findByCustomerIdFilteredOrderByPriorityAsc(customerId, status, priority, unsorted)
-                : ticketRepository.findByCustomerIdFilteredOrderByPriorityDesc(customerId, status, priority, unsorted);
+                ? ticketRepository.findByCustomerIdFilteredOrderByPriorityAsc(customerId, f.getStatus(), f.getPriority(), u)
+                : ticketRepository.findByCustomerIdFilteredOrderByPriorityDesc(customerId, f.getStatus(), f.getPriority(), u);
         }
         if (isSortBySla(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(customerId, status, priority, unsorted)
-                : ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(customerId, status, priority, unsorted);
+                ? ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(customerId, f.getStatus(), f.getPriority(), u)
+                : ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(customerId, f.getStatus(), f.getPriority(), u);
         }
-        return ticketRepository.findByCustomerIdFiltered(customerId, status, priority, pageable);
+        // Full filter (includes search, dateFrom, dateTo, slaStatus, agentId, productId)
+        if (hasExtraFilters(f)) {
+            return ticketRepository.findByCustomerIdFullFiltered(
+                    customerId, f.getStatus(), f.getPriority(), f.getProductId(),
+                    toSearchPattern(f.getSearch()), f.getSlaStatus(), f.getAgentId(),
+                    f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+        }
+        return ticketRepository.findByCustomerIdFiltered(customerId, f.getStatus(), f.getPriority(), pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<Ticket> getPoolTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
+        return getPoolTicketsFiltered(userId, roles,
+                TicketFilterDTO.builder().priority(priority).build(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getPoolTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (roles.contains("AGENT_ADMIN")) {
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findAllPoolTicketsFilteredOrderByPriorityAsc(priority, unsorted)
-                    : ticketRepository.findAllPoolTicketsFilteredOrderByPriorityDesc(priority, unsorted);
+                    ? ticketRepository.findAllPoolTicketsFilteredOrderByPriorityAsc(f.getPriority(), u)
+                    : ticketRepository.findAllPoolTicketsFilteredOrderByPriorityDesc(f.getPriority(), u);
             }
             if (isSortBySla(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(priority, unsorted)
-                    : ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(priority, unsorted);
+                    ? ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(f.getPriority(), u)
+                    : ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(f.getPriority(), u);
             }
-            return ticketRepository.findAllPoolTicketsFiltered(priority, pageable);
+            if (hasExtraFilters(f)) {
+                return ticketRepository.findAllPoolTicketsFullFiltered(
+                        f.getPriority(), f.getProductId(), toSearchPattern(f.getSearch()),
+                        f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+            }
+            return ticketRepository.findAllPoolTicketsFiltered(f.getPriority(), pageable);
         }
         if (userId == null) return Page.empty(pageable);
 
@@ -253,60 +278,88 @@ public class TicketService {
 
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(productIds, priority, unsorted)
-                : ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(productIds, priority, unsorted);
+                ? ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(productIds, f.getPriority(), u)
+                : ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(productIds, f.getPriority(), u);
         }
         if (isSortBySla(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(productIds, priority, unsorted)
-                : ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(productIds, priority, unsorted);
+                ? ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(productIds, f.getPriority(), u)
+                : ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(productIds, f.getPriority(), u);
         }
-        return ticketRepository.findPoolTicketsFiltered(productIds, priority, pageable);
+        if (hasExtraFilters(f)) {
+            return ticketRepository.findPoolTicketsFullFiltered(
+                    productIds, f.getPriority(), f.getProductId(), toSearchPattern(f.getSearch()),
+                    f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+        }
+        return ticketRepository.findPoolTicketsFiltered(productIds, f.getPriority(), pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<Ticket> getAgentClaimedTicketsPaged(String agentId, String status, String priority, Pageable pageable) {
+        return getAgentClaimedTicketsFiltered(agentId,
+                TicketFilterDTO.builder().status(status).priority(priority).build(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getAgentClaimedTicketsFiltered(String agentId, TicketFilterDTO f, Pageable pageable) {
         List<Long> ticketIds = ticketClaimRepository.findTicketIdsByAgentId(agentId);
         if (ticketIds.isEmpty()) return Page.empty(pageable);
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findClaimedTicketsFilteredOrderByPriorityAsc(ticketIds, status, priority, unsorted)
-                : ticketRepository.findClaimedTicketsFilteredOrderByPriorityDesc(ticketIds, status, priority, unsorted);
+                ? ticketRepository.findClaimedTicketsFilteredOrderByPriorityAsc(ticketIds, f.getStatus(), f.getPriority(), u)
+                : ticketRepository.findClaimedTicketsFilteredOrderByPriorityDesc(ticketIds, f.getStatus(), f.getPriority(), u);
         }
         if (isSortBySla(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, status, priority, unsorted)
-                : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, status, priority, unsorted);
+                ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, f.getStatus(), f.getPriority(), u)
+                : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, f.getStatus(), f.getPriority(), u);
         }
-        return ticketRepository.findClaimedTicketsFiltered(ticketIds, status, priority, pageable);
+        if (hasExtraFilters(f)) {
+            return ticketRepository.findClaimedTicketsFullFiltered(
+                    ticketIds, f.getStatus(), f.getPriority(), f.getProductId(),
+                    toSearchPattern(f.getSearch()), f.getSlaStatus(), f.getAgentId(),
+                    f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+        }
+        return ticketRepository.findClaimedTicketsFiltered(ticketIds, f.getStatus(), f.getPriority(), pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<Ticket> getTeamTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
+        return getTeamTicketsFiltered(userId, roles,
+                TicketFilterDTO.builder().priority(priority).build(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getTeamTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (roles.contains("AGENT_ADMIN")) {
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findAllTeamTicketsFilteredOrderByPriorityAsc(priority, unsorted)
-                    : ticketRepository.findAllTeamTicketsFilteredOrderByPriorityDesc(priority, unsorted);
+                    ? ticketRepository.findAllTeamTicketsFilteredOrderByPriorityAsc(f.getPriority(), u)
+                    : ticketRepository.findAllTeamTicketsFilteredOrderByPriorityDesc(f.getPriority(), u);
             }
             if (isSortBySla(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(priority, unsorted)
-                    : ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(priority, unsorted);
+                    ? ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(f.getPriority(), u)
+                    : ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(f.getPriority(), u);
             }
-            return ticketRepository.findAllTeamTicketsFiltered(priority, pageable);
+            if (hasExtraFilters(f)) {
+                return ticketRepository.findAllTeamTicketsFullFiltered(
+                        f.getPriority(), f.getProductId(), toSearchPattern(f.getSearch()),
+                        f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+            }
+            return ticketRepository.findAllTeamTicketsFiltered(f.getPriority(), pageable);
         }
         if (userId == null) return Page.empty(pageable);
 
@@ -318,59 +371,100 @@ public class TicketService {
 
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, priority, unsorted)
-                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, priority, unsorted);
+                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, f.getPriority(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, f.getPriority(), u);
         }
         if (isSortBySla(pageable)) {
             boolean asc = isAscending(pageable);
-            Pageable unsorted = toUnsorted(pageable);
+            Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, priority, unsorted)
-                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, priority, unsorted);
+                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, f.getPriority(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, f.getPriority(), u);
         }
-        return ticketRepository.findTeamTicketsFiltered(productIds, priority, pageable);
+        if (hasExtraFilters(f)) {
+            return ticketRepository.findTeamTicketsFullFiltered(
+                    productIds, f.getPriority(), f.getProductId(), toSearchPattern(f.getSearch()),
+                    f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+        }
+        return ticketRepository.findTeamTicketsFiltered(productIds, f.getPriority(), pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductPaged(Long productId, String userId, List<String> roles,
                                                   String status, String priority, Pageable pageable) {
+        return getTicketsByProductFiltered(productId, userId, roles,
+                TicketFilterDTO.builder().status(status).priority(priority).build(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Ticket> getTicketsByProductFiltered(Long productId, String userId, List<String> roles,
+                                                     TicketFilterDTO f, Pageable pageable) {
         if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER") || roles.contains("AGENT")) {
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findByProductIdFilteredOrderByPriorityAsc(productId, status, priority, unsorted)
-                    : ticketRepository.findByProductIdFilteredOrderByPriorityDesc(productId, status, priority, unsorted);
+                    ? ticketRepository.findByProductIdFilteredOrderByPriorityAsc(productId, f.getStatus(), f.getPriority(), u)
+                    : ticketRepository.findByProductIdFilteredOrderByPriorityDesc(productId, f.getStatus(), f.getPriority(), u);
             }
             if (isSortBySla(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(productId, status, priority, unsorted)
-                    : ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(productId, status, priority, unsorted);
+                    ? ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(productId, f.getStatus(), f.getPriority(), u)
+                    : ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(productId, f.getStatus(), f.getPriority(), u);
             }
-            return ticketRepository.findByProductIdFiltered(productId, status, priority, pageable);
+            if (hasExtraFilters(f)) {
+                return ticketRepository.findByProductIdFullFiltered(
+                        productId, f.getStatus(), f.getPriority(), toSearchPattern(f.getSearch()),
+                        f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+            }
+            return ticketRepository.findByProductIdFiltered(productId, f.getStatus(), f.getPriority(), pageable);
         }
         if (roles.contains("CUSTOMER")) {
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(productId, userId, status, priority, unsorted)
-                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(productId, userId, status, priority, unsorted);
+                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(productId, userId, f.getStatus(), f.getPriority(), u)
+                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(productId, userId, f.getStatus(), f.getPriority(), u);
             }
             if (isSortBySla(pageable)) {
                 boolean asc = isAscending(pageable);
-                Pageable unsorted = toUnsorted(pageable);
+                Pageable u = toUnsorted(pageable);
                 return asc
-                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(productId, userId, status, priority, unsorted)
-                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(productId, userId, status, priority, unsorted);
+                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(productId, userId, f.getStatus(), f.getPriority(), u)
+                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(productId, userId, f.getStatus(), f.getPriority(), u);
             }
-            return ticketRepository.findByProductIdAndCustomerIdFiltered(productId, userId, status, priority, pageable);
+            if (hasExtraFilters(f)) {
+                return ticketRepository.findByProductIdAndCustomerIdFullFiltered(
+                        productId, userId, f.getStatus(), f.getPriority(), toSearchPattern(f.getSearch()),
+                        f.getSlaStatus(), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+            }
+            return ticketRepository.findByProductIdAndCustomerIdFiltered(productId, userId, f.getStatus(), f.getPriority(), pageable);
         }
         return Page.empty(pageable);
+    }
+
+    /** Herhangi bir "ekstra" filtre (search, dateFrom, dateTo, slaStatus, agentId, productId) aktif mi? */
+    private boolean hasExtraFilters(TicketFilterDTO f) {
+        return f.getSearch() != null && !f.getSearch().isBlank()
+            || f.getCreatedAtFrom() != null
+            || f.getCreatedAtTo() != null
+            || f.getSlaStatus() != null && !f.getSlaStatus().isBlank()
+            || f.getAgentId() != null && !f.getAgentId().isBlank()
+            || f.getProductId() != null;
+    }
+
+    /**
+     * LOWER(t.title) LIKE :searchPattern için Java tarafında hazırlanan pattern.
+     * Boş/null ise null döner (filtre uygulanmaz).
+     */
+    private String toSearchPattern(String search) {
+        if (search == null || search.isBlank()) return null;
+        return "%" + search.toLowerCase() + "%";
     }
 
     // -----------------------------------------------------------------
@@ -399,6 +493,34 @@ public class TicketService {
     private Pageable toUnsorted(Pageable pageable) {
         return org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), pageable.getPageSize());
+    }
+
+    /**
+     * Native SQL sorgular için Pageable'daki JPQL field adlarını SQL column adlarına çevirir.
+     * Spring Data JPA native query'de sort field adını olduğu gibi SQL'e ekler,
+     * bu yüzden JPQL adı (createdAt) yerine SQL adı (created_at) kullanılmalı.
+     */
+    private Pageable toNativePageable(Pageable pageable) {
+        if (!pageable.getSort().isSorted()) {
+            return pageable;
+        }
+        List<Sort.Order> nativeOrders = pageable.getSort().stream()
+                .map(order -> {
+                    String col = switch (order.getProperty()) {
+                        case "createdAt"   -> "created_at";
+                        case "resolvedAt"  -> "resolved_at";
+                        case "closedAt"    -> "closed_at";
+                        case "slaDeadline" -> "sla_deadline";
+                        case "slaBreached" -> "sla_breached";
+                        case "productId"   -> "product_id";
+                        case "customerId"  -> "customer_id";
+                        default            -> order.getProperty();
+                    };
+                    return order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
+                })
+                .collect(Collectors.toList());
+        return org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), pageable.getPageSize(), Sort.by(nativeOrders));
     }
 
     public Ticket getTicketById(Long id) {

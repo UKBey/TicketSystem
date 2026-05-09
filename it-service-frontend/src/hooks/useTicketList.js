@@ -7,7 +7,7 @@ const DEFAULT_PAGE_SIZE = 20;
  * Generic hook for paginated + filtered + sorted ticket list endpoints.
  *
  * @param {string} endpoint  - API path, e.g. '/tickets', '/tickets/pool'
- * @param {object} [opts]    - Initial options
+ * @param {object} [opts]
  * @param {number} [opts.size]
  * @param {string} [opts.sortBy]
  * @param {string} [opts.sortDir]
@@ -21,16 +21,24 @@ export function useTicketList(endpoint, opts = {}) {
     extraParams = {},
   } = opts;
 
-  const [page, setPage]         = useState(0);
-  const [size, setSize]         = useState(initialSize);
-  const [sortBy, setSortBy]     = useState(initialSortBy);
-  const [sortDir, setSortDir]   = useState(initialSortDir);
-  const [status, setStatus]     = useState('');
-  const [priority, setPriority] = useState('');
+  const [page, setPage]           = useState(0);
+  const [size, setSize]           = useState(initialSize);
+  const [sortBy, setSortBy]       = useState(initialSortBy);
+  const [sortDir, setSortDir]     = useState(initialSortDir);
 
-  const [data, setData]         = useState(null);   // Spring Page<T>
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  // Filters
+  const [status, setStatus]       = useState('');
+  const [priority, setPriority]   = useState('');
+  const [search, setSearch]       = useState('');
+  const [productId, setProductId] = useState('');
+  const [agentId, setAgentId]     = useState('');
+  const [slaStatus, setSlaStatus] = useState('');
+  const [dateFrom, setDateFrom]   = useState('');
+  const [dateTo, setDateTo]       = useState('');
+
+  const [data, setData]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState('');
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -41,8 +49,14 @@ export function useTicketList(endpoint, opts = {}) {
         size,
         sortBy,
         sortDir,
-        ...(status   ? { status }   : {}),
-        ...(priority ? { priority } : {}),
+        ...(status    ? { status }    : {}),
+        ...(priority  ? { priority }  : {}),
+        ...(search    ? { search }    : {}),
+        ...(productId ? { productId } : {}),
+        ...(agentId   ? { agentId }   : {}),
+        ...(slaStatus ? { slaStatus } : {}),
+        ...(dateFrom  ? { dateFrom }  : {}),
+        ...(dateTo    ? { dateTo }    : {}),
         ...extraParams,
       };
       const res = await api.get(endpoint, { params });
@@ -53,45 +67,63 @@ export function useTicketList(endpoint, opts = {}) {
     } finally {
       setLoading(false);
     }
-  }, [endpoint, page, size, sortBy, sortDir, status, priority, JSON.stringify(extraParams)]); // eslint-disable-line
+  }, [endpoint, page, size, sortBy, sortDir,
+      status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo,
+      JSON.stringify(extraParams)]); // eslint-disable-line
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  // Reset to page 0 when filters/sort change
-  const handleSetStatus = (v)   => { setStatus(v);   setPage(0); };
-  const handleSetPriority = (v) => { setPriority(v); setPage(0); };
-  const handleSetSortBy = (v)   => { setSortBy(v);   setPage(0); };
-  const handleSetSortDir = (v)  => { setSortDir(v);  setPage(0); };
-  const handleSetSize = (v)     => { setSize(v);     setPage(0); };
+  // Reset to page 0 on filter/sort change
+  const reset = (setter) => (v) => { setter(v); setPage(0); };
 
   const toggleSort = (field) => {
     if (sortBy === field) {
-      handleSetSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+      reset(setSortDir)(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
-      handleSetSortBy(field);
-      handleSetSortDir('desc');
+      setSortBy(field);
+      reset(setSortDir)('desc');
+      setPage(0);
     }
+  };
+
+  const clearFilters = () => {
+    setStatus('');
+    setPriority('');
+    setSearch('');
+    setProductId('');
+    setAgentId('');
+    setSlaStatus('');
+    setDateFrom('');
+    setDateTo('');
+    setPage(0);
   };
 
   return {
     // Data
-    tickets:     data?.content ?? [],
-    totalPages:  data?.totalPages ?? 0,
-    totalItems:  data?.totalElements ?? 0,
+    tickets:    data?.content ?? [],
+    totalPages: data?.totalPages ?? 0,
+    totalItems: data?.totalElements ?? 0,
     loading,
     error,
     refetch: fetch,
 
-    // Pagination state
+    // Pagination
     page, setPage,
-    size, setSize: handleSetSize,
+    size, setSize: reset(setSize),
 
-    // Sort state
+    // Sort
     sortBy, sortDir,
     toggleSort,
 
-    // Filter state
-    status,   setStatus:   handleSetStatus,
-    priority, setPriority: handleSetPriority,
+    // Filters
+    status,    setStatus:    reset(setStatus),
+    priority,  setPriority:  reset(setPriority),
+    search,    setSearch:    reset(setSearch),
+    productId, setProductId: reset(setProductId),
+    agentId,   setAgentId:   reset(setAgentId),
+    slaStatus, setSlaStatus: reset(setSlaStatus),
+    dateFrom,  setDateFrom:  reset(setDateFrom),
+    dateTo,    setDateTo:    reset(setDateTo),
+    clearFilters,
   };
 }

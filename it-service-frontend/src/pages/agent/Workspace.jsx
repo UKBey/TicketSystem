@@ -18,10 +18,13 @@ export default function Workspace() {
     sortBy, sortDir, toggleSort,
     status, setStatus,
     priority, setPriority,
-  } = useTicketList('/tickets/my-assigned', {
-    sortBy: 'createdAt',
-    sortDir: 'desc',
-  });
+    search, setSearch,
+    productId, setProductId,
+    slaStatus, setSlaStatus,
+    dateFrom, setDateFrom,
+    dateTo, setDateTo,
+    clearFilters,
+  } = useTicketList('/tickets/my-assigned', { sortBy: 'createdAt', sortDir: 'desc' });
 
   const activeTickets = tickets.filter((t) => t.status !== 'CLOSED');
 
@@ -47,9 +50,7 @@ export default function Workspace() {
             return (
               <div key={limit.productId} className="rounded-lg border p-4"
                 style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)' }}>
-                  {limit.productName}
-                </p>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)' }}>{limit.productName}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{activeCount}</span>
                   {effectiveLimit && (
@@ -77,8 +78,15 @@ export default function Workspace() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
-          status={status}   onStatus={setStatus}
-          priority={priority} onPriority={setPriority}
+          status={status}       onStatus={setStatus}
+          priority={priority}   onPriority={setPriority}
+          search={search}       onSearch={setSearch}
+          productId={productId} onProductId={setProductId}
+          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          dateFrom={dateFrom}   onDateFrom={setDateFrom}
+          dateTo={dateTo}       onDateTo={setDateTo}
+          onClear={clearFilters}
+          hideAgent
         />
 
         {loading ? (
