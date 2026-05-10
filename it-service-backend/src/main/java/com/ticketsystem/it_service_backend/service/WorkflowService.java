@@ -263,24 +263,31 @@ public class WorkflowService {
             return result;
         }
 
-        long elapsedMs  = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
-        long durationMs = getSlaDurationMs(ticket.getPriority());
+        long elapsedMs = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
 
         boolean isPaused = ticket.getSlaPausedAt() != null
                 || "RESOLVED".equals(status)
                 || "WAITING_FOR_CUSTOMER".equals(status);
 
         if (isPaused) {
-            long remaining = durationMs - elapsedMs;
+            // Derive the original SLA duration from the ticket's own deadline instead of the
+            // current cached policy. This prevents badge flickering when the policy cache
+            // expires and briefly returns a stale value different from what the ticket was
+            // originally committed to.
+            long originalDurationMs = (ticket.getSlaDeadline() != null && ticket.getCreatedAt() != null)
+                    ? Duration.between(ticket.getCreatedAt(), ticket.getSlaDeadline()).toMillis()
+                    : getSlaDurationMs(ticket.getPriority());
+
+            long remaining = originalDurationMs - elapsedMs;
             result.put("deadlineTimestamp", -1L);
             result.put("remainingMs", Math.max(0L, remaining));
-            // Süre dolmuş ama slaBreached henüz set edilmemiş (jBPM gecikmesi) → yine expired
             result.put("slaState", remaining > 0 ? "paused" : "expired");
             return result;
         }
 
         // Aktif geri sayım — resume noktası ve birikmiş süreye göre hesaplanır.
         // slaDeadline DB'de varsa onu kullan (en güvenilir kaynak); yoksa dinamik hesapla.
+        long durationMs = getSlaDurationMs(ticket.getPriority());
         long deadline;
         if (ticket.getSlaDeadline() != null) {
             deadline = ticket.getSlaDeadline().toInstant().toEpochMilli();
