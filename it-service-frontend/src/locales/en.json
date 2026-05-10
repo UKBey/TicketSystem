@@ -398,7 +398,22 @@
       "errorAssign": "Could not assign product.",
       "confirmRemove": "Are you sure you want to remove this product authorization?",
       "errorRemove": "Could not remove product authorization.",
-      "errorLoad": "An error occurred while loading users."
+      "errorLoad": "An error occurred while loading users.",
+      "agentLimits": "Ticket Limits",
+      "agentLimitsTitle": "Per-Product Ticket Limits — {{name}}",
+      "agentLimitsSubtitle": "Override the default ticket limit for each product. Leave custom limit off to use the product default.",
+      "agentLimitsClose": "Close",
+      "agentLimitsProduct": "Product",
+      "agentLimitsDefault": "Default",
+      "agentLimitsCustom": "Custom Limit",
+      "agentLimitsValue": "Max tickets",
+      "agentLimitsSave": "Save",
+      "agentLimitsSaved": "Saved",
+      "agentLimitsReset": "Reset to default",
+      "agentLimitsErrorLoad": "Could not load agent limits.",
+      "agentLimitsErrorSave": "Could not save limit.",
+      "agentLimitsUnlimited": "Unlimited",
+      "agentLimitsNoProducts": "This agent has no authorized products."
     }
   },
   "dashboard": {

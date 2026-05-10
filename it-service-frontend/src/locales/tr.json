@@ -398,7 +398,22 @@
       "errorAssign": "Ürün atanamadı.",
       "confirmRemove": "Bu ürün yetkisini kaldırmak istediğinizden emin misiniz?",
       "errorRemove": "Ürün yetkisi kaldırılamadı.",
-      "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu."
+      "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu.",
+      "agentLimits": "Bilet Limitleri",
+      "agentLimitsTitle": "Ürün Bazlı Bilet Limitleri — {{name}}",
+      "agentLimitsSubtitle": "Her ürün için varsayılan bilet limitini geçersiz kılın. Özel limit kapalıysa ürün varsayılanı kullanılır.",
+      "agentLimitsClose": "Kapat",
+      "agentLimitsProduct": "Ürün",
+      "agentLimitsDefault": "Varsayılan",
+      "agentLimitsCustom": "Özel Limit",
+      "agentLimitsValue": "Maks. bilet",
+      "agentLimitsSave": "Kaydet",
+      "agentLimitsSaved": "Kaydedildi",
+      "agentLimitsReset": "Varsayılana sıfırla",
+      "agentLimitsErrorLoad": "Agent limitleri yüklenemedi.",
+      "agentLimitsErrorSave": "Limit kaydedilemedi.",
+      "agentLimitsUnlimited": "Limitsiz",
+      "agentLimitsNoProducts": "Bu agent'ın yetkili ürünü yok."
     }
   },
   "dashboard": {
