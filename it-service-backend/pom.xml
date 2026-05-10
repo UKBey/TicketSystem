@@ -233,6 +233,45 @@
             <artifactId>bucket4j-core</artifactId>
             <version>8.10.1</version>
         </dependency>
+
+        <!-- ============================================================
+             Gözlemlenebilirlik (Observability) — OpenTelemetry
+             Spring Boot 4 resmi yaklaşımı:
+               Actuator → Micrometer Tracing (OTEL bridge) → OTLP exporter
+             ============================================================ -->
+
+        <!-- Actuator: health, metrics, /actuator endpoint'leri -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Micrometer OTLP registry: metrikleri OTLP/HTTP ile OTEL Collector'a gönderir -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency>
+
+        <!-- Micrometer Tracing köprüsü: Spring Observation → OpenTelemetry trace/span -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+
+        <!-- OTLP gRPC/HTTP trace exporter (Collector'a span gönderir) -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+
+        <!-- Log4j2 → OpenTelemetry log köprüsü: mevcut Log4j2 loglarını
+             OTEL SdkLoggerProvider üzerinden Collector'a iletir -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-log4j-appender-2.17</artifactId>
+            <version>2.16.0-alpha</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
 	<build>

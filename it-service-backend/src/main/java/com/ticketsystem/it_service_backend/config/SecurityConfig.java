@@ -32,13 +32,16 @@ public class SecurityConfig {
         http
         .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-            // Dokumantasyon, saglik ve ilk giris endpoint'leri anonim erisime aciktir.
+            // Dokumantasyon, saglik, metrik ve ilk giris endpoint'leri anonim erisime aciktir.
             .requestMatchers(
                 "/v3/api-docs/**",
                 "/swagger-ui/**",
                 "/swagger-ui.html",
                 "/actuator/health",
                 "/actuator/health/**",
+                "/actuator/info",
+                "/actuator/metrics",
+                "/actuator/metrics/**",
                 "/api/auth/login",
                 "/api/auth/register")
             .permitAll()

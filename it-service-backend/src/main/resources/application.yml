@@ -49,6 +49,33 @@ app:
   mail:
     from: ${MAIL_FROM:noreply@ticketsystem.local}
 
+# ============================================================
+# Gözlemlenebilirlik (Observability) — OpenTelemetry
+# ============================================================
+management:
+  # Actuator endpoint'lerini aç
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+  # Micrometer Tracing: her isteği örnekle (geliştirme ortamı için 1.0)
+  tracing:
+    sampling:
+      probability: 1.0
+
+  # Micrometer OTLP metrics exporter
+  otlp:
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 30s
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+
 # jBPM KIE Server baglanti ve callback ayarlari.
 jbpm:
   kie-server:

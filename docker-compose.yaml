@@ -160,8 +160,24 @@ services:
     ports:
       - "4317:4317"
       - "4318:4318"
+      - "8889:8889"
     depends_on:
       - opensearch
+    networks:
+      - it-service-net
+
+  # Metrik toplama ve saklama servisi.
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - otel-collector
     networks:
       - it-service-net
 
@@ -196,11 +212,14 @@ services:
       MAIL_FROM: ${MAIL_FROM:-noreply@ticketsystem.local}
 
       # OpenTelemetry ayarlari.
+      # Not: OTEL_TRACES_EXPORTER ve OTEL_METRICS_EXPORTER kasitli olarak tanimlanmadi.
+      # Spring Boot 4 Micrometer bu ikisini management.otlp.* via kendi SDK'siyla yonetiyor.
+      # Bu env varlar OTel SDK auto-configuration'i tetikleyerek Micrometer ile cakisiyor
+      # ve span'larin yanlis timestamp (JVM nanoTime) ile gonderilmesine yol aciyor.
       OTEL_SERVICE_NAME: "it-service-backend"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
-      OTEL_METRICS_EXPORTER: "otlp"
       OTEL_LOGS_EXPORTER: "otlp"
-      OTEL_TRACES_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
     depends_on:
       it-service-db:
         condition: service_healthy
@@ -210,6 +229,8 @@ services:
         condition: service_started
       mailpit:
         condition: service_started
+      kafka:
+        condition: service_started
       otel-collector:
         # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
         condition: service_started
@@ -218,7 +239,7 @@ services:
     extra_hosts:
       - "localhost:host-gateway"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/products"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
       interval: 15s
       timeout: 10s
       retries: 10

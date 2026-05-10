@@ -9,17 +9,27 @@
         <Console name="ConsoleJSON" target="SYSTEM_OUT">
             <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
         </Console>
+
+        <!--
+            OpenTelemetry Log Appender:
+            Log4j2 loglarını OTEL SdkLoggerProvider üzerinden Collector'a iletir.
+            Böylece loglar trace/span bağlamıyla (traceId, spanId) zenginleştirilir
+            ve OTLP protokolüyle otel-collector'a gönderilir.
+        -->
+        <OpenTelemetry name="OpenTelemetryAppender"/>
     </Appenders>
 
     <Loggers>
         <Logger name="com.ticketsystem.itservicebackend" level="debug" additivity="false">
             <AppenderRef ref="KafkaLogger" />
             <AppenderRef ref="ConsoleJSON" />
+            <AppenderRef ref="OpenTelemetryAppender" />
         </Logger>
         
         <Root level="info">
             <AppenderRef ref="KafkaLogger" />
             <AppenderRef ref="ConsoleJSON" />
+            <AppenderRef ref="OpenTelemetryAppender" />
         </Root>
     </Loggers>
 </Configuration>

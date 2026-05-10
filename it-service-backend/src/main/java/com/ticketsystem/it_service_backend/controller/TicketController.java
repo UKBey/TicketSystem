@@ -61,6 +61,9 @@ public class TicketController {
         String customerId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
+        log.info("Yeni bilet oluşturma isteği. Müşteri: {}, Ürün: {}, Öncelik: {}",
+                customerId, dto.getProductId(), dto.getPriority());
+
         Ticket ticket = Ticket.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -69,6 +72,7 @@ public class TicketController {
                 .build();
 
         Ticket saved = ticketService.createTicket(ticket, customerId);
+        log.info("Bilet başarıyla oluşturuldu. Bilet ID: {}", saved.getId());
         return ResponseEntity.ok(convertToDto(saved, false, roles));
     }
 
@@ -215,7 +219,9 @@ public class TicketController {
             @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet claim isteği. Bilet ID: {}, Agent: {}", id, agentId);
         Ticket ticket = ticketService.claimTicket(id, agentId);
+        log.info("Bilet başarıyla claim alındı. Bilet ID: {}", id);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
@@ -228,8 +234,10 @@ public class TicketController {
                         @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-                Ticket ticket = ticketService.unclaimTicket(id, agentId, dto.getNote());
-                return ResponseEntity.ok(convertToDto(ticket, false, roles));
+        log.info("Bilet unclaim isteği. Bilet ID: {}, Agent: {}", id, agentId);
+        Ticket ticket = ticketService.unclaimTicket(id, agentId, dto.getNote());
+        log.info("Bilet başarıyla unclaim yapıldı. Bilet ID: {}", id);
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
         }
 
     @Operation(summary = "Bileti agent'a manuel olarak ata (Agent Admin)",
@@ -270,9 +278,11 @@ public class TicketController {
                         @PathVariable Long id,
                         @RequestBody @Valid CloseTicketRequestDTO dto,
                         @AuthenticationPrincipal Jwt jwt) {
-                String userId = jwt.getSubject();
-                List<String> roles = JwtUtils.extractRoles(jwt);
-                Ticket ticket = ticketService.closeTicket(id, dto.getNote(), userId, roles);
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet kapatma isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
+        Ticket ticket = ticketService.closeTicket(id, dto.getNote(), userId, roles);
+        log.info("Bilet başarıyla kapatıldı. Bilet ID: {}", id);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
@@ -286,7 +296,9 @@ public class TicketController {
         String newStatus = body.get("status");
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet statüsü güncelleme isteği. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
         Ticket ticket = ticketService.updateTicketStatus(id, newStatus, userId, roles);
+        log.info("Bilet statüsü güncellendi. Bilet ID: {}, Statü: {}", id, newStatus);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
@@ -295,7 +307,9 @@ public class TicketController {
     @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<Void> deleteTicket(
             @Parameter(description = "Silinecek biletin ID'si") @PathVariable Long id) {
+        log.warn("Bilet silme isteği. Bilet ID: {}", id);
         ticketService.deleteTicket(id);
+        log.warn("Bilet kalıcı olarak silindi. Bilet ID: {}", id);
         return ResponseEntity.noContent().build();
     }
 
