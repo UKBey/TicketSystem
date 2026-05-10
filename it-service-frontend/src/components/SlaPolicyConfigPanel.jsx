@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSlaPolicies, updateSlaPolicy } from '../services/api';
 import { Save, Clock } from 'lucide-react';
@@ -18,7 +18,7 @@ export default function SlaPolicyConfigPanel() {
   const [error, setError] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
-  const fetchPolicies = async () => {
+  const fetchPolicies = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getSlaPolicies();
@@ -29,11 +29,11 @@ export default function SlaPolicyConfigPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchPolicies();
-  }, []);
+  }, [fetchPolicies]);
 
   const handleChange = (id, field, value) => {
     setPolicies(policies.map(p =>

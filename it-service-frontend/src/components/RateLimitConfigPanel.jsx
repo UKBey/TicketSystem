@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRateLimitConfigs, updateRateLimitConfig } from '../services/api';
 import { Save } from 'lucide-react';
@@ -11,7 +11,7 @@ export default function RateLimitConfigPanel() {
   const [savingId, setSavingId] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
 
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getRateLimitConfigs();
@@ -22,11 +22,11 @@ export default function RateLimitConfigPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchConfigs();
-  }, []);
+  }, [fetchConfigs]);
 
   const handleChange = (id, field, value) => {
     setConfigs(configs.map(config => 

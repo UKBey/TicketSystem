@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, X, Eye, Search } from 'lucide-react';
@@ -26,7 +26,7 @@ export default function ProductPanel() {
   const [currentProduct, setCurrentProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', isActive: true, maxActiveTickets: '' });
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/products');
@@ -37,11 +37,11 @@ export default function ProductPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const filtered = products.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())

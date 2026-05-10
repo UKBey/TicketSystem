@@ -42,7 +42,7 @@ export default function NotificationPreferencesPage() {
       .then((res) => setPrefs(res.data))
       .catch(() => setFeedback({ type: 'error', message: t('notificationPrefs.errorLoad') }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const handleToggle = (key, value) => {
     setPrefs((prev) => ({ ...prev, [key]: value }));

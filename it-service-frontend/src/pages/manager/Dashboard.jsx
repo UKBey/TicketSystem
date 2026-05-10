@@ -70,7 +70,7 @@ export default function Dashboard() {
   const [alertsData, setAlertsData] = useState(null);
   const [alertsLoading, setAlertsLoading] = useState(true);
 
-  const loadSummary = async ({ silent = false } = {}) => {
+  const loadSummary = useCallback(async ({ silent = false } = {}) => {
     try {
       if (silent) {
         setRefreshing(true);
@@ -113,7 +113,7 @@ export default function Dashboard() {
       setCsatLoading(false);
       setWorklogLoading(false);
     }
-  };
+  }, [t]);
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -129,7 +129,7 @@ export default function Dashboard() {
   useEffect(() => {
     loadSummary();
     loadAlerts();
-  }, [loadAlerts]);
+  }, [loadSummary, loadAlerts]);
 
   usePolling(loadAlerts, 30_000);
 
