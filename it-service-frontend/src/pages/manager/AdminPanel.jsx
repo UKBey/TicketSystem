@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, X, ChevronDown, ChevronUp, Search, Settings2, Check } from 'lucide-react';
-import api, { getAgentLimits, setAgentLimit, deleteAgentLimit } from '../../services/api';
+import api, { getAgentLimits, setAgentLimit } from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
 import SlaPolicyConfigPanel from '../../components/SlaPolicyConfigPanel';
 import PaginationBar from '../../components/PaginationBar';
@@ -70,16 +70,16 @@ function ProductChips({ products, onRemove, t }) {
  * Her yetkili ürün için: varsayılan limit gösterilir, özel limit toggle + input ile ayarlanır.
  */
 function AgentLimitsPanel({ user, t }) {
-  const [limits, setLimits]   = useState(null); // { [productId]: { useCustom, value, saved, saving, error } }
+  const [limits, setLimits]   = useState(null);
   const [loadErr, setLoadErr] = useState('');
 
-  // Panel açılınca mevcut limitleri yükle
   useEffect(() => {
     if (!user) return;
-    setLoadErr('');
+    let cancelled = false;
+
     getAgentLimits(user.id)
       .then(res => {
-        // Mevcut override'ları map'e çevir
+        if (cancelled) return;
         const map = {};
         (res.data || []).forEach(l => {
           map[l.productId] = {
@@ -90,7 +90,6 @@ function AgentLimitsPanel({ user, t }) {
             error:     '',
           };
         });
-        // Yetkili ürünlerin tamamını ekle (override olmayan ürünler de gösterilsin)
         (user.authorizedProducts || []).forEach(p => {
           if (!map[p.id]) {
             map[p.id] = { useCustom: false, value: '', saved: false, saving: false, error: '' };
@@ -98,7 +97,11 @@ function AgentLimitsPanel({ user, t }) {
         });
         setLimits(map);
       })
-      .catch(() => setLoadErr(t('admin.panel.agentLimitsErrorLoad')));
+      .catch(() => {
+        if (!cancelled) setLoadErr(t('admin.panel.agentLimitsErrorLoad'));
+      });
+
+    return () => { cancelled = true; };
   }, [user, t]);
 
   const handleToggle = (productId, checked) => {
