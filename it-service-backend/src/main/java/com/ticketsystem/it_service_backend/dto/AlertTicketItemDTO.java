@@ -29,6 +29,9 @@ public class AlertTicketItemDTO {
     @Schema(description = "Müşteri kimliği", example = "usr-abc123")
     private String customerId;
 
+    @Schema(description = "Müşteri adı soyadı", example = "Ahmet Yılmaz")
+    private String customerName;
+
     @Schema(description = "SLA son tarihi (breachedSLA ve upcomingBreach için)")
     private ZonedDateTime deadline;
 

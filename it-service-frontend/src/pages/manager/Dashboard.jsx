@@ -79,25 +79,29 @@ export default function Dashboard() {
       }
 
       setError('');
-      const [summaryResponse, statusResponse, agentResponse, timelineResponse, prioritySlaResponse, productResponse, csatResponse, worklogResponse] = await Promise.all([
-        metricService.getDashboardSummary(),
-        metricService.getStatusDistribution(),
-        metricService.getAgentPerformance(),
-        metricService.getTicketTimeline(30),
-        metricService.getPrioritySLAMetrics(),
-        metricService.getProductMetrics(),
-        metricService.getCSATMetrics(3),
-        metricService.getWorklogCompletion(30),
-      ]);
+      const [summaryRes, statusRes, agentRes, timelineRes, prioritySlaRes, productRes, csatRes, worklogRes] =
+        await Promise.allSettled([
+          metricService.getDashboardSummary(),
+          metricService.getStatusDistribution(),
+          metricService.getAgentPerformance(),
+          metricService.getTicketTimeline(30),
+          metricService.getPrioritySLAMetrics(),
+          metricService.getProductMetrics(),
+          metricService.getCSATMetrics(3),
+          metricService.getWorklogCompletion(30),
+        ]);
 
-      setSummary({ ...DEFAULT_SUMMARY, ...summaryResponse });
-      setStatusDistribution(statusResponse);
-      setAgentPerformance(agentResponse);
-      setTicketTimeline(timelineResponse ?? { timeline: [] });
-      setPrioritySlaMetrics(prioritySlaResponse ?? { priorityMetrics: [] });
-      setProductMetrics(productResponse ?? { productMetrics: [] });
-      setCsatMetrics(csatResponse ?? null);
-      setWorklogCompletion(worklogResponse ?? null);
+      if (summaryRes.status === 'fulfilled') setSummary({ ...DEFAULT_SUMMARY, ...summaryRes.value });
+      else setError(summaryRes.reason?.response?.data?.message || t('dashboard.loadError'));
+
+      if (statusRes.status     === 'fulfilled') setStatusDistribution(statusRes.value);
+      if (agentRes.status      === 'fulfilled') setAgentPerformance(agentRes.value);
+      if (timelineRes.status   === 'fulfilled') setTicketTimeline(timelineRes.value ?? { timeline: [] });
+      if (prioritySlaRes.status === 'fulfilled') setPrioritySlaMetrics(prioritySlaRes.value ?? { priorityMetrics: [] });
+      if (productRes.status    === 'fulfilled') setProductMetrics(productRes.value ?? { productMetrics: [] });
+      if (csatRes.status       === 'fulfilled') setCsatMetrics(csatRes.value ?? null);
+      if (worklogRes.status    === 'fulfilled') setWorklogCompletion(worklogRes.value ?? null);
+
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);

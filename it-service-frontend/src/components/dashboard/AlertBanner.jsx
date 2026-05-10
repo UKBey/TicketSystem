@@ -36,7 +36,7 @@ function BreachedItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Customer: {item.customerId}
+          {item.customerName ?? item.customerId}
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#ef4444' }}>
               {item.hoursUntilDeadline < 0
@@ -60,7 +60,7 @@ function UpcomingItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Customer: {item.customerId}
+          {item.customerName ?? item.customerId}
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#f59e0b' }}>
               SLA breach in {formatHours(item.hoursUntilDeadline)}
@@ -82,7 +82,7 @@ function WaitingItem({ item }) {
           <PriorityBadge priority={item.priority} />
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          Customer: {item.customerId}
+          {item.customerName ?? item.customerId}
           {item.hoursWaiting !== null && item.hoursWaiting !== undefined && (
             <span className="ml-2">waiting {formatHours(item.hoursWaiting)}</span>
           )}

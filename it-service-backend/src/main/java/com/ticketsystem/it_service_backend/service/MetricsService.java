@@ -537,12 +537,28 @@ public class MetricsService {
         PageRequest top10 = PageRequest.of(0, 10);
 
         List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTickets(openStatuses, top10);
+        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(openStatuses, upcoming4h, top10);
+        List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
+
+        // Tüm müşteri ID'lerini tek sorguda çek
+        Set<String> customerIds = Stream.of(breachedTickets, upcomingTickets, waitingTickets)
+                .flatMap(List::stream)
+                .map(Ticket::getCustomerId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        Map<String, String> customerNames = userRepository.findAllById(customerIds).stream()
+                .collect(Collectors.toMap(
+                        u -> u.getId(),
+                        u -> u.getFullName(),
+                        (a, b) -> a));
+
         List<AlertTicketItemDTO> breachedSLA = breachedTickets.stream()
                 .map(t -> AlertTicketItemDTO.builder()
                         .ticketId(t.getId())
                         .title(t.getTitle())
                         .priority(t.getPriority())
                         .customerId(t.getCustomerId())
+                        .customerName(customerNames.getOrDefault(t.getCustomerId(), t.getCustomerId()))
                         .deadline(t.getSlaDeadline())
                         .hoursUntilDeadline(t.getSlaDeadline() != null
                                 ? ChronoUnit.MINUTES.between(now, t.getSlaDeadline()) / 60.0
@@ -550,13 +566,13 @@ public class MetricsService {
                         .build())
                 .toList();
 
-        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(openStatuses, upcoming4h, top10);
         List<AlertTicketItemDTO> upcomingBreach = upcomingTickets.stream()
                 .map(t -> AlertTicketItemDTO.builder()
                         .ticketId(t.getId())
                         .title(t.getTitle())
                         .priority(t.getPriority())
                         .customerId(t.getCustomerId())
+                        .customerName(customerNames.getOrDefault(t.getCustomerId(), t.getCustomerId()))
                         .deadline(t.getSlaDeadline())
                         .hoursUntilDeadline(t.getSlaDeadline() != null
                                 ? ChronoUnit.MINUTES.between(now, t.getSlaDeadline()) / 60.0
@@ -564,13 +580,13 @@ public class MetricsService {
                         .build())
                 .toList();
 
-        List<Ticket> waitingTickets = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
         List<AlertTicketItemDTO> waitingTooLong = waitingTickets.stream()
                 .map(t -> AlertTicketItemDTO.builder()
                         .ticketId(t.getId())
                         .title(t.getTitle())
                         .priority(t.getPriority())
                         .customerId(t.getCustomerId())
+                        .customerName(customerNames.getOrDefault(t.getCustomerId(), t.getCustomerId()))
                         .hoursWaiting(t.getCreatedAt() != null
                                 ? ChronoUnit.MINUTES.between(t.getCreatedAt(), now) / 60.0
                                 : null)
