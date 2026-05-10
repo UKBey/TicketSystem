@@ -1,5 +1,6 @@
 import axios from 'axios';
 import keycloak from '../keycloak';
+import i18n from '../i18n';
 
 const api = axios.create({
   baseURL: '/api',
@@ -14,6 +15,7 @@ api.interceptors.request.use(
     if (keycloak.token) {
       config.headers.Authorization = `Bearer ${keycloak.token}`;
     }
+    config.headers['Accept-Language'] = i18n.language || 'en';
     return config;
   },
   (error) => Promise.reject(error)
