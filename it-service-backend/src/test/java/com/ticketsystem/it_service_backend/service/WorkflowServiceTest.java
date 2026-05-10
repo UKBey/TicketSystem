@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,9 @@ class WorkflowServiceTest {
     @Mock
     private KieServerAdapter kieServerAdapter;
 
+    @Mock
+    private SlaPolicyService slaPolicyService;
+
     @InjectMocks
     private WorkflowService workflowService;
 
@@ -37,6 +41,12 @@ class WorkflowServiceTest {
         ReflectionTestUtils.setField(workflowService, "processId", "ticket-workflow");
         ReflectionTestUtils.setField(workflowService, "callbackBaseUrl", "https://example.com/callback");
         ReflectionTestUtils.setField(workflowService, "callbackToken", "token-123");
+
+        lenient().when(slaPolicyService.getSlaDurationMs("CRITICAL")).thenReturn(3_600_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs("MEDIUM")).thenReturn(43_200_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs("LOW")).thenReturn(86_400_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs("UNSUPPORTED")).thenReturn(43_200_000L);
     }
 
     @Test
