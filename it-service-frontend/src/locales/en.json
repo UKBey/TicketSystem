@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "theme": { "toDark": "Switch to dark mode", "toLight": "Switch to light mode" },
+    "language": { "label": "Language", "en": "English", "tr": "Turkish" }
+  },
+  "sidebar": {
+    "myTickets": "My Tickets",
+    "createTicket": "Create Ticket",
+    "workspace": "Workspace",
+    "pool": "Pool",
+    "teamTickets": "Team Tickets",
+    "history": "History",
+    "dashboard": "Dashboard",
+    "admin": "Admin Panel",
+    "products": "Products",
+    "profile": "Profile"
+  },
+  "ticket": {
+    "status": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "pending": "Pending",
+      "waiting_for_customer": "Waiting for Customer"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "table": {
+      "id": "ID",
+      "title": "Title",
+      "status": "Status",
+      "priority": "Priority",
+      "product": "Product",
+      "assignee": "Assignee",
+      "createdAt": "Created At",
+      "sla": "SLA",
+      "actions": "Actions"
+    },
+    "filters": {
+      "search": "Search tickets...",
+      "status": "Status",
+      "priority": "Priority",
+      "product": "Product",
+      "all": "All"
+    },
+    "actions": {
+      "claim": "Claim",
+      "unclaim": "Unclaim",
+      "close": "Close",
+      "assign": "Assign",
+      "createTicket": "Create Ticket",
+      "viewDetail": "View Details"
+    },
+    "detail": {
+      "title": "Ticket Detail",
+      "description": "Description",
+      "comments": "Comments",
+      "addComment": "Add Comment",
+      "worklog": "Worklog",
+      "attachments": "Attachments",
+      "resolutionNote": "Resolution Note",
+      "timeline": "Timeline"
+    }
+  },
+  "form": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "submit": "Submit",
+    "edit": "Edit",
+    "add": "Add",
+    "required": "This field is required.",
+    "placeholders": {
+      "title": "Ticket title...",
+      "description": "Describe the issue in detail...",
+      "comment": "Write a comment...",
+      "reason": "Reason (optional)..."
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "User Management",
+      "search": "Search users...",
+      "role": "Role",
+      "email": "Email",
+      "name": "Name",
+      "actions": "Actions"
+    },
+    "rateLimits": {
+      "title": "Rate Limit Configuration",
+      "maxRequests": "Max Requests",
+      "duration": "Duration (sec)",
+      "enabled": "Enabled"
+    },
+    "sla": {
+      "title": "SLA Policy Configuration",
+      "priority": "Priority",
+      "targetHours": "Target (hours)",
+      "warningHours": "Warning (hours)"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalTickets": "Total Tickets",
+    "openTickets": "Open Tickets",
+    "resolvedToday": "Resolved Today",
+    "avgResolutionTime": "Avg. Resolution Time",
+    "csatScore": "CSAT Score",
+    "agentPerformance": "Agent Performance",
+    "slaCompliance": "SLA Compliance",
+    "noData": "No data available"
+  },
+  "notification": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No new notifications"
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Notification Preferences",
+    "language": "Language Preference"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred.",
+    "retry": "Retry",
+    "noResults": "No results found.",
+    "page": "Page",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next"
+  }
+}

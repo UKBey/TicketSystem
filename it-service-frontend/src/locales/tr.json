@@ -1,0 +1,139 @@
+{
+  "nav": {
+    "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },
+    "language": { "label": "Dil", "en": "İngilizce", "tr": "Türkçe" }
+  },
+  "sidebar": {
+    "myTickets": "Biletlerim",
+    "createTicket": "Bilet Oluştur",
+    "workspace": "Çalışma Alanım",
+    "pool": "Havuz",
+    "teamTickets": "Ekip Biletleri",
+    "history": "Geçmiş",
+    "dashboard": "Gösterge Paneli",
+    "admin": "Yönetim Paneli",
+    "products": "Ürünler",
+    "profile": "Profil"
+  },
+  "ticket": {
+    "status": {
+      "open": "Açık",
+      "in_progress": "İşlemde",
+      "resolved": "Çözüldü",
+      "closed": "Kapatıldı",
+      "pending": "Bekliyor",
+      "waiting_for_customer": "Müşteri Yanıtı Bekleniyor"
+    },
+    "priority": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek",
+      "critical": "Kritik"
+    },
+    "table": {
+      "id": "ID",
+      "title": "Başlık",
+      "status": "Durum",
+      "priority": "Öncelik",
+      "product": "Ürün",
+      "assignee": "Atanan",
+      "createdAt": "Oluşturulma Tarihi",
+      "sla": "SLA",
+      "actions": "İşlemler"
+    },
+    "filters": {
+      "search": "Bilet ara...",
+      "status": "Durum",
+      "priority": "Öncelik",
+      "product": "Ürün",
+      "all": "Tümü"
+    },
+    "actions": {
+      "claim": "Üstlen",
+      "unclaim": "Bırak",
+      "close": "Kapat",
+      "assign": "Ata",
+      "createTicket": "Bilet Oluştur",
+      "viewDetail": "Detayı Gör"
+    },
+    "detail": {
+      "title": "Bilet Detayı",
+      "description": "Açıklama",
+      "comments": "Yorumlar",
+      "addComment": "Yorum Ekle",
+      "worklog": "İş Kaydı",
+      "attachments": "Ekler",
+      "resolutionNote": "Çözüm Notu",
+      "timeline": "Zaman Çizelgesi"
+    }
+  },
+  "form": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "delete": "Sil",
+    "submit": "Gönder",
+    "edit": "Düzenle",
+    "add": "Ekle",
+    "required": "Bu alan zorunludur.",
+    "placeholders": {
+      "title": "Bilet başlığı...",
+      "description": "Sorunu detaylıca açıklayın...",
+      "comment": "Yorum yazın...",
+      "reason": "Neden (opsiyonel)..."
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "Kullanıcı Yönetimi",
+      "search": "Kullanıcı ara...",
+      "role": "Rol",
+      "email": "E-posta",
+      "name": "Ad Soyad",
+      "actions": "İşlemler"
+    },
+    "rateLimits": {
+      "title": "Rate Limit Yapılandırması",
+      "maxRequests": "Maks. İstek Sayısı",
+      "duration": "Süre (sn)",
+      "enabled": "Etkin"
+    },
+    "sla": {
+      "title": "SLA Politikası Yapılandırması",
+      "priority": "Öncelik",
+      "targetHours": "Hedef (saat)",
+      "warningHours": "Uyarı (saat)"
+    }
+  },
+  "dashboard": {
+    "title": "Gösterge Paneli",
+    "totalTickets": "Toplam Bilet",
+    "openTickets": "Açık Biletler",
+    "resolvedToday": "Bugün Çözülenler",
+    "avgResolutionTime": "Ort. Çözüm Süresi",
+    "csatScore": "CSAT Puanı",
+    "agentPerformance": "Ajan Performansı",
+    "slaCompliance": "SLA Uyumu",
+    "noData": "Gösterilecek veri yok"
+  },
+  "notification": {
+    "title": "Bildirimler",
+    "markAllRead": "Tümünü okundu işaretle",
+    "empty": "Yeni bildirim yok"
+  },
+  "profile": {
+    "title": "Profil",
+    "preferences": "Bildirim Tercihleri",
+    "language": "Dil Tercihi"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu.",
+    "retry": "Tekrar Dene",
+    "noResults": "Sonuç bulunamadı.",
+    "page": "Sayfa",
+    "of": "/",
+    "previous": "Önceki",
+    "next": "Sonraki"
+  }
+}
