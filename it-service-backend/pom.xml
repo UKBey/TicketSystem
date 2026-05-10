@@ -28,6 +28,13 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<sonar.projectKey>it-service-backend</sonar.projectKey>
+		<sonar.projectName>IT Service Backend</sonar.projectName>
+		<sonar.host.url>http://localhost:9000</sonar.host.url>
+		<!-- JaCoCo raporunu Sonar'a bildir -->
+		<sonar.coverage.jacoco.xmlReportPaths>
+			${project.build.directory}/site/jacoco/jacoco.xml
+		</sonar.coverage.jacoco.xmlReportPaths>
 	</properties>
 
 	<!-- Testcontainers surum yonetimi icin BOM tanimi -->
@@ -247,6 +254,19 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
+                    </execution>
+                    <!-- Sonar icin XML formatinda coverage raporu -->
+                    <execution>
+                        <id>report-xml</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <formats>
+                                <format>XML</format>
+                            </formats>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

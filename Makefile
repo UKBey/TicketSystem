@@ -4,10 +4,15 @@
         build build-backend build-frontend \
         test test-backend test-frontend \
         verify \
+        sonar sonar-up sonar-down \
         lint install clean
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
+
+# .env dosyasini oku (varsa)
+-include .env
+export
 
 # Sadece altyapı servisleri (backend/frontend hariç) — local dev için
 INFRA_SERVICES := it-service-db openldap-server phpldapadmin keycloak-iam \
@@ -45,6 +50,12 @@ help:
 	@echo  Kapsam (Coverage):
 	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
 	@echo                       Rapor: it-service-backend/target/site/jacoco/index.html
+	@echo.
+	@echo  Kod Kalitesi (SonarQube):
+	@echo    sonar-up         - SonarQube container'ini baslatir (http://localhost:9000)
+	@echo    sonar-down       - SonarQube container'ini durdurur
+	@echo    sonar            - Kodu analiz edip SonarQube'a gonderir
+	@echo                       Token .env dosyasindaki SONAR_TOKEN degiskeninden okunur
 	@echo.
 	@echo  Diger:
 	@echo    lint             - Frontend ESLint kontrolu
@@ -113,6 +124,19 @@ lint:
 
 verify:
 	cd $(BACKEND_DIR) && mvnw.cmd verify
+
+# --- SonarQube ---
+
+sonar-up:
+	docker compose up -d sonarqube-db sonarqube
+	@echo SonarQube baslatiliyor... Hazir olunca http://localhost:9000 adresini ac.
+	@echo Ilk giris: admin / admin
+
+sonar-down:
+	docker compose stop sonarqube sonarqube-db
+
+sonar:
+	cd $(BACKEND_DIR) && mvnw.cmd verify sonar:sonar -Dsonar.token=$(SONAR_TOKEN)
 
 # --- Kurulum ---
 
