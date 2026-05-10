@@ -1,5 +1,20 @@
 import { useTheme } from '../context/ThemeContext';
 
+// 60 dakikadan küçükse "Xm Ys", büyükse "Xh Ym" formatında gösterir.
+function formatSlaTime(ms) {
+  const totalSecs = Math.floor(ms / 1000);
+  const totalMins = Math.floor(totalSecs / 60);
+
+  if (totalMins < 60) {
+    const secs = totalSecs % 60;
+    return `${totalMins}m ${secs}s`;
+  }
+
+  const hours = Math.floor(totalMins / 60);
+  const mins  = totalMins % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
 export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -26,10 +41,7 @@ export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
       return <span className={`${baseCls} font-bold animate-pulse-subtle`} style={badgeStyle('breach')}>Expired</span>;
     }
     if (slaInfo.remainingMs > 0) {
-      const diff = slaInfo.remainingMs;
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      return <span className={baseCls} style={badgeStyle('neutral')}>{mins}m {secs}s (P)</span>;
+      return <span className={baseCls} style={badgeStyle('neutral')}>{formatSlaTime(slaInfo.remainingMs)} (P)</span>;
     }
     return <span className={baseCls} style={badgeStyle('neutral')}>Completed</span>;
   }
@@ -42,13 +54,11 @@ export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
     return <span className={`${baseCls} font-bold animate-pulse-subtle`} style={badgeStyle('breach')}>Expired</span>;
   }
 
-  const mins = Math.floor(diff / 60000);
-  const secs = Math.floor((diff % 60000) / 1000);
-
+  const totalMins = Math.floor(diff / 60000);
   let type = 'success';
   let extraCls = '';
-  if (mins < 1) { type = 'breach'; extraCls = 'animate-pulse-subtle font-bold'; }
-  else if (mins < 2) { type = 'warning'; }
+  if (totalMins < 1)  { type = 'breach';  extraCls = 'animate-pulse-subtle font-bold'; }
+  else if (totalMins < 2) { type = 'warning'; }
 
-  return <span className={`${baseCls} ${extraCls}`} style={badgeStyle(type)}>{mins}m {secs}s</span>;
+  return <span className={`${baseCls} ${extraCls}`} style={badgeStyle(type)}>{formatSlaTime(diff)}</span>;
 }

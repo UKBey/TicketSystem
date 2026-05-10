@@ -27,6 +27,19 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
+// 60 dakikadan küçükse "Xm Ys", büyükse "Xh Ym" formatında gösterir.
+function formatSlaTime(ms) {
+  const totalSecs = Math.floor(ms / 1000);
+  const totalMins = Math.floor(totalSecs / 60);
+  if (totalMins < 60) {
+    const secs = totalSecs % 60;
+    return `${totalMins}m ${secs}s`;
+  }
+  const hours = Math.floor(totalMins / 60);
+  const mins  = totalMins % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
 export default function TicketDetail() {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -833,9 +846,7 @@ export default function TicketDetail() {
                          if (slaInfo.remainingMs <= 0 && ticket.slaBreached) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />{t('ticketDetail.slaExpired')}</span>;
                          if (slaInfo.remainingMs > 0) {
                              const diff = slaInfo.remainingMs;
-                             const mins = Math.floor(diff / 60000);
-                             const secs = Math.floor((diff % 60000) / 1000);
-                             return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{mins}m {secs}s ({t('ticketDetail.slaPaused')})</span>;
+                             return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{formatSlaTime(diff)} ({t('ticketDetail.slaPaused')})</span>;
                          }
                          return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{t('ticketDetail.slaCompleted')}</span>;
                       }
@@ -847,13 +858,12 @@ export default function TicketDetail() {
                       }
 
                       if (diff <= 0) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />{t('ticketDetail.slaExpired')}</span>;
-                      const mins = Math.floor(diff / 60000);
-                      const secs = Math.floor((diff % 60000) / 1000);
+                      const totalMins = Math.floor(diff / 60000);
                       let badgeStyle = { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7', color: isDark ? '#86efac' : '#166534' };
                       let extraCls = '';
-                      if (mins < 1) { badgeStyle = { backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }; extraCls = 'animate-pulse-subtle font-bold'; }
-                      else if (mins < 2) { badgeStyle = { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', color: isDark ? '#fde68a' : '#92400e' }; }
-                      return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${extraCls}`} style={badgeStyle}>{mins}m {secs}s</span>;
+                      if (totalMins < 1) { badgeStyle = { backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }; extraCls = 'animate-pulse-subtle font-bold'; }
+                      else if (totalMins < 2) { badgeStyle = { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', color: isDark ? '#fde68a' : '#92400e' }; }
+                      return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${extraCls}`} style={badgeStyle}>{formatSlaTime(diff)}</span>;
                   })()}
                 </div>
               </div>
