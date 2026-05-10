@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getSlaPolicies, updateSlaPolicy } from '../services/api';
 import { Save, Clock } from 'lucide-react';
 
-const PRIORITY_LABELS = {
-  CRITICAL: { label: 'Critical', color: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' },
-  HIGH:     { label: 'High',     color: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300' },
-  MEDIUM:   { label: 'Medium',   color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300' },
-  LOW:      { label: 'Low',      color: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300' },
+const PRIORITY_COLOR = {
+  CRITICAL: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+  HIGH:     'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
+  MEDIUM:   'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300',
+  LOW:      'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
 };
 
 export default function SlaPolicyConfigPanel() {
+  const { t } = useTranslation();
   const [policies, setPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,7 +25,7 @@ export default function SlaPolicyConfigPanel() {
       setPolicies(res.data);
     } catch (err) {
       console.error('Could not load SLA policies:', err);
-      setError('An error occurred while loading SLA policies.');
+      setError(t('admin.sla.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -46,15 +48,15 @@ export default function SlaPolicyConfigPanel() {
       const warningHours = parseInt(policy.warningThresholdHours, 10);
 
       if (isNaN(targetHours) || targetHours < 1) {
-        alert(`[${policy.priority}] Target resolution time must be at least 1 hour.`);
+        alert(t('admin.sla.validationTarget', { priority: policy.priority }));
         return;
       }
       if (isNaN(warningHours) || warningHours < 0) {
-        alert(`[${policy.priority}] Warning threshold must be 0 or greater.`);
+        alert(t('admin.sla.validationWarningMin', { priority: policy.priority }));
         return;
       }
       if (warningHours > 0 && warningHours >= targetHours) {
-        alert(`[${policy.priority}] Warning threshold must be less than the target resolution time.`);
+        alert(t('admin.sla.validationWarningMax', { priority: policy.priority }));
         return;
       }
     }
@@ -70,10 +72,10 @@ export default function SlaPolicyConfigPanel() {
         )
       );
       setPolicies(updated);
-      showToast('SLA policies saved successfully!');
+      showToast(t('admin.sla.toastSaved'));
     } catch (err) {
       console.error('Save failed:', err);
-      alert(err.response?.data?.message || 'Could not update configurations.');
+      alert(err.response?.data?.message || t('admin.sla.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -103,7 +105,7 @@ export default function SlaPolicyConfigPanel() {
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            SLA Policy Configuration
+            {t('admin.sla.title')}
           </span>
         </div>
         {toastMessage && (
@@ -124,7 +126,12 @@ export default function SlaPolicyConfigPanel() {
           <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                {['Priority', 'Target Resolution (hours)', 'Warning Threshold (hours)', 'Summary'].map(h => (
+                {[
+                  t('admin.sla.colPriority'),
+                  t('admin.sla.colTarget'),
+                  t('admin.sla.colWarning'),
+                  t('admin.sla.colSummary'),
+                ].map(h => (
                   <th key={h}
                     className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                     style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
@@ -135,7 +142,9 @@ export default function SlaPolicyConfigPanel() {
             </thead>
             <tbody>
               {policies.map(policy => {
-                const meta = PRIORITY_LABELS[policy.priority] ?? { label: policy.priority, color: '' };
+                const colorClass = PRIORITY_COLOR[policy.priority] ?? '';
+                // Use translated priority label from ticket.priority namespace
+                const priorityLabel = t(`ticket.priority.${policy.priority.toLowerCase()}`, { defaultValue: policy.priority });
                 const warningHours = parseInt(policy.warningThresholdHours, 10);
                 const targetHours = parseInt(policy.targetResolutionHours, 10);
 
@@ -143,8 +152,8 @@ export default function SlaPolicyConfigPanel() {
                   <tr key={policy.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
                     {/* Priority badge */}
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${meta.color}`}>
-                        {meta.label}
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${colorClass}`}>
+                        {priorityLabel}
                       </span>
                     </td>
 
@@ -172,7 +181,9 @@ export default function SlaPolicyConfigPanel() {
                           style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                         />
                         {warningHours === 0 && (
-                          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>disabled</span>
+                          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            {t('admin.sla.disabled')}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -181,8 +192,8 @@ export default function SlaPolicyConfigPanel() {
                     <td className="px-4 py-3">
                       <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                         {warningHours > 0
-                          ? `Resolve within ${targetHours}h, warn at ${warningHours}h remaining`
-                          : `Resolve within ${targetHours}h, no warning`}
+                          ? t('admin.sla.summaryWithWarning', { targetHours, warningHours })
+                          : t('admin.sla.summaryNoWarning', { targetHours })}
                       </span>
                     </td>
                   </tr>
@@ -192,7 +203,7 @@ export default function SlaPolicyConfigPanel() {
               {policies.length === 0 && (
                 <tr>
                   <td colSpan="4" className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                    No SLA policies found.
+                    {t('admin.sla.noPolicies')}
                   </td>
                 </tr>
               )}
@@ -206,7 +217,7 @@ export default function SlaPolicyConfigPanel() {
         <div className="px-6 py-4 border-t flex items-center justify-between"
           style={{ borderColor: 'var(--border-color)' }}>
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            A warning threshold of 0 disables notifications for that priority. Changes take effect immediately.
+            {t('admin.sla.footerHint')}
           </p>
           <button
             onClick={handleSaveAll}
@@ -218,7 +229,7 @@ export default function SlaPolicyConfigPanel() {
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            Save All
+            {t('admin.sla.saveAll')}
           </button>
         </div>
       )}

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNotifications } from '../../hooks/useNotifications';
 import NotificationList from './NotificationList';
 
 export default function NotificationBell() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { unreadCount, markAllAsRead } = useNotifications();
   const containerRef = useRef(null);
@@ -34,7 +36,7 @@ export default function NotificationBell() {
           backgroundColor: 'var(--bg-surface-secondary)',
           color: 'var(--text-secondary)',
         }}
-        aria-label="Notifications"
+        aria-label={t('notification.title')}
       >
         <Bell className="h-[18px] w-[18px]" />
 

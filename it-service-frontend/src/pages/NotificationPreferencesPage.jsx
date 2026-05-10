@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getPreferences, updatePreferences } from '../services/notificationApi';
 
-const EVENT_LABELS = [
-  { key: 'TicketCreated',  label: 'Ticket created' },
-  { key: 'TicketAssigned', label: 'Ticket assigned to me' },
-  { key: 'StatusChanged',  label: 'Ticket status changed' },
-  { key: 'CommentAdded',   label: 'Comment added' },
-  { key: 'SlaWarning',     label: 'SLA warning' },
-  { key: 'SlaBreached',    label: 'SLA breached' },
-  { key: 'TicketResolved', label: 'Ticket resolved' },
+const EVENT_KEYS = [
+  'TicketCreated',
+  'TicketAssigned',
+  'StatusChanged',
+  'CommentAdded',
+  'SlaWarning',
+  'SlaBreached',
+  'TicketResolved',
 ];
 
 function Toggle({ checked, onChange }) {
@@ -30,6 +31,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function NotificationPreferencesPage() {
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +40,7 @@ export default function NotificationPreferencesPage() {
   useEffect(() => {
     getPreferences()
       .then((res) => setPrefs(res.data))
-      .catch(() => setFeedback({ type: 'error', message: 'Failed to load preferences.' }))
+      .catch(() => setFeedback({ type: 'error', message: t('notificationPrefs.errorLoad') }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,9 +55,9 @@ export default function NotificationPreferencesPage() {
     try {
       const res = await updatePreferences(prefs);
       setPrefs(res.data);
-      setFeedback({ type: 'success', message: 'Preferences saved.' });
+      setFeedback({ type: 'success', message: t('notificationPrefs.saved') });
     } catch {
-      setFeedback({ type: 'error', message: 'Failed to save. Please try again.' });
+      setFeedback({ type: 'error', message: t('notificationPrefs.errorSave') });
     } finally {
       setIsSaving(false);
     }
@@ -65,10 +67,10 @@ export default function NotificationPreferencesPage() {
     <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-          Notification Preferences
+          {t('notificationPrefs.title')}
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Choose which events you want to receive email and in-app notifications for.
+          {t('notificationPrefs.subtitle')}
         </p>
       </div>
 
@@ -86,7 +88,7 @@ export default function NotificationPreferencesPage() {
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           >
             <Bell className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-            Notification Channels
+            {t('notificationPrefs.channelsTitle')}
           </div>
 
           <div className="p-6">
@@ -102,24 +104,24 @@ export default function NotificationPreferencesPage() {
                 {/* Column headers */}
                 <div className="grid items-center mb-3" style={{ gridTemplateColumns: '1fr 56px 56px' }}>
                   <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                    Event
+                    {t('notificationPrefs.colEvent')}
                   </span>
                   <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
-                    Email
+                    {t('notificationPrefs.colEmail')}
                   </span>
                   <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
-                    In-App
+                    {t('notificationPrefs.colInApp')}
                   </span>
                 </div>
 
                 <div className="space-y-4">
-                  {EVENT_LABELS.map(({ key, label }) => {
+                  {EVENT_KEYS.map((key) => {
                     const emailKey = `emailOn${key}`;
                     const notifyKey = `notifyOn${key}`;
                     return (
                       <div key={key} className="grid items-center" style={{ gridTemplateColumns: '1fr 56px 56px' }}>
                         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {label}
+                          {t(`notificationPrefs.event.${key}`)}
                         </span>
                         <div className="flex justify-center">
                           <Toggle
@@ -162,7 +164,7 @@ export default function NotificationPreferencesPage() {
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-60 cursor-pointer"
                 style={{ backgroundColor: '#3b82f6' }}
               >
-                {isSaving ? 'Saving…' : 'Save'}
+                {isSaving ? t('notificationPrefs.saving') : t('notificationPrefs.save')}
               </button>
             </div>
           )}

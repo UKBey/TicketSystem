@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getRateLimitConfigs, updateRateLimitConfig } from '../services/api';
 import { Save } from 'lucide-react';
 
 export default function RateLimitConfigPanel() {
+  const { t } = useTranslation();
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -16,7 +18,7 @@ export default function RateLimitConfigPanel() {
       setConfigs(res.data);
     } catch (err) {
       console.error('Could not load rate limits:', err);
-      setError('An error occurred while loading rate limit configurations.');
+      setError(t('admin.rateLimits.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -49,10 +51,10 @@ export default function RateLimitConfigPanel() {
         config.id === id ? res.data : config
       ));
       
-      showToast('Configuration saved successfully!');
+      showToast(t('admin.rateLimits.toastSaved'));
     } catch (err) {
       console.error('Save failed:', err);
-      alert(err.response?.data?.message || 'Could not update configuration.');
+      alert(err.response?.data?.message || t('admin.rateLimits.errorSave'));
     } finally {
       setSavingId(null);
     }
@@ -74,7 +76,7 @@ export default function RateLimitConfigPanel() {
   return (
     <div className="rounded-xl border overflow-hidden mt-8" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
       <div className="px-6 py-4 border-b font-semibold text-sm flex justify-between items-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-        <span>Rate Limit Configurations</span>
+        <span>{t('admin.rateLimits.title')}</span>
         {toastMessage && (
           <span className="text-xs font-medium text-success-600 dark:text-success-400 animate-pulse">
             {toastMessage}
@@ -93,12 +95,12 @@ export default function RateLimitConfigPanel() {
           <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Endpoint Description</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Max Requests</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Duration (s)</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Summary</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Active</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Actions</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colEndpoint')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colMaxRequests')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colDuration')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colSummary')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colActive')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,7 +135,7 @@ export default function RateLimitConfigPanel() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                        ~{reqPerMin} req / min
+                        {t('admin.rateLimits.reqPerMin', { count: reqPerMin })}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -155,7 +157,7 @@ export default function RateLimitConfigPanel() {
                         ) : (
                           <Save className="h-3.5 w-3.5" />
                         )}
-                        Save
+                        {t('admin.rateLimits.save')}
                       </button>
                     </td>
                   </tr>
@@ -165,7 +167,7 @@ export default function RateLimitConfigPanel() {
               {configs.length === 0 && (
                 <tr>
                   <td colSpan="6" className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                    No rate limit configurations found.
+                    {t('admin.rateLimits.noConfigs')}
                   </td>
                 </tr>
               )}

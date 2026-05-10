@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getNotifications } from '../../services/notificationApi';
 
 function timeAgo(dateStr) {
@@ -12,6 +13,7 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationList({ onMarkAllRead }) {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -40,14 +42,14 @@ export default function NotificationList({ onMarkAllRead }) {
         style={{ borderColor: 'var(--border-color)' }}
       >
         <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Notifications
+          {t('notification.title')}
         </span>
         <button
           onClick={onMarkAllRead}
           className="text-xs transition-opacity hover:opacity-70 cursor-pointer"
           style={{ color: '#3b82f6', background: 'none', border: 'none' }}
         >
-          Mark all as read
+          {t('notification.markAllRead')}
         </button>
       </div>
 
@@ -64,7 +66,7 @@ export default function NotificationList({ onMarkAllRead }) {
 
         {!loading && notifications.length === 0 && (
           <div className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            No notifications.
+            {t('notification.empty')}
           </div>
         )}
 
