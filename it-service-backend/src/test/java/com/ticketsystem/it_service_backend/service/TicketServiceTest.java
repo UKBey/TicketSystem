@@ -445,7 +445,7 @@ class TicketServiceTest {
                 var ex = assertThrows(com.ticketsystem.it_service_backend.exception.TicketLimitExceededException.class,
                                 () -> ticketService.claimTicket(204L, "agent-1"));
 
-                assertEquals("Bu ürün için aktif bilet limitinize ulaştınız. Limit: 1", ex.getMessage());
+                assertEquals("error.ticket.limit.exceeded", ex.getMessage());
                 verify(ticketRepository, never()).save(any(Ticket.class));
         }
 
@@ -524,7 +524,7 @@ class TicketServiceTest {
                 () -> ticketService.claimTicket(201L, "agent-1"));
 
         assertEquals(400, ex.getStatusCode().value());
-        assertEquals("Yalnızca NEW, IN_PROGRESS veya WAITING_FOR_CUSTOMER statüsündeki biletler üzerinize alınabilir.", ex.getReason());
+        assertEquals("error.ticket.claim.invalid.status", ex.getReason());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 

@@ -1,18 +1,37 @@
 package com.ticketsystem.it_service_backend.exception;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.Locale;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private MessageSource messageSource;
+    private GlobalExceptionHandler handler;
+
+    @BeforeEach
+    void setUp() {
+        // MessageSource'u mock'layarak handler'ı bağımsız test edebiliriz.
+        // useCodeAsDefaultMessage=true davranışını simüle etmek için key'i olduğu gibi döndürüyoruz.
+        messageSource = mock(MessageSource.class);
+        when(messageSource.getMessage(any(String.class), any(), any(Locale.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        handler = new GlobalExceptionHandler(messageSource);
+    }
 
     @Test
     void handlesResponseStatusException() {
@@ -23,6 +42,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(HttpStatus.CONFLICT.value(), response.getBody().getStatus());
+        // reason bir message key olarak işlenir; mock key'i olduğu gibi döndürür
         assertEquals("duplicate ticket", response.getBody().getMessage());
     }
 
@@ -40,6 +60,10 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handlesAccessDeniedException() {
+        // error.access.denied key'i için Türkçe mesaj döndür
+        when(messageSource.getMessage(eq("error.access.denied"), any(), any(Locale.class)))
+                .thenReturn("Bu işlem için yetkiniz bulunmuyor.");
+
         AccessDeniedException exception = new AccessDeniedException("no access");
 
         var response = handler.handleAccessDeniedException(exception);
@@ -52,6 +76,10 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handlesNoResourceFoundException() {
+        // error.resource.not.found key'i için çeviri simüle et
+        when(messageSource.getMessage(eq("error.resource.not.found"), any(), any(Locale.class)))
+                .thenReturn("İstenen kaynak bulunamadı: /api/tickets/42");
+
         NoResourceFoundException exception = new NoResourceFoundException(
             HttpMethod.GET,
             "ticket",
@@ -68,6 +96,10 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handlesGeneralException() {
+        // error.unexpected key'i için çeviri simüle et
+        when(messageSource.getMessage(eq("error.unexpected"), any(), any(Locale.class)))
+                .thenReturn("Beklenmedik bir hata oluştu: unexpected failure");
+
         Exception exception = new Exception("unexpected failure");
 
         var response = handler.handleGeneralException(exception);

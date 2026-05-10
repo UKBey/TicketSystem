@@ -64,7 +64,7 @@ class AttachmentServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> attachmentService.uploadAttachment(10L, "customer-1", List.of("CUSTOMER"), file));
 
-        assertEquals(".txt dosyaları 'ERROR' veya 'WARNING' anahtar kelimelerini içermelidir.", ex.getMessage());
+        assertEquals("error.attachment.txt.missing.keywords", ex.getMessage());
     }
 
     @Test
@@ -79,9 +79,7 @@ class AttachmentServiceTest {
     IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
         () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
 
-    assertEquals(
-        "Dosyada olası gizli bilgi tespit edildi. Password, token, secret, API key veya private key gibi ifadeleri kaldırın.",
-        ex.getMessage());
+    assertEquals("error.attachment.sensitive.data", ex.getMessage());
     }
 
     @Test
@@ -96,7 +94,7 @@ class AttachmentServiceTest {
     IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
         () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
 
-    assertEquals("Dosya boyutu 10MB sınırını aşamaz.", ex.getMessage());
+    assertEquals("error.attachment.size.exceeded", ex.getMessage());
     }
 
     @Test
