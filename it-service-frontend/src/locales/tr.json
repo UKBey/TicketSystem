@@ -53,15 +53,45 @@
       "product": "Ürün",
       "assignee": "Atanan",
       "createdAt": "Oluşturulma Tarihi",
+      "created": "Oluşturulma",
       "sla": "SLA",
-      "actions": "İşlemler"
+      "actions": "İşlemler",
+      "claimers": "Üstlenenler",
+      "unassigned": "Atanmamış",
+      "you": "sen"
     },
     "filters": {
       "search": "Bilet ara...",
       "status": "Durum",
       "priority": "Öncelik",
       "product": "Ürün",
-      "all": "Tümü"
+      "all": "Tümü",
+      "searchPlaceholder": "Başlık ara…",
+      "allStatuses": "Tüm durumlar",
+      "allPriorities": "Tüm öncelikler",
+      "allSla": "Tüm SLA",
+      "allProducts": "Tüm ürünler",
+      "allAgents": "Tüm ajanlar",
+      "clearAll": "Tümünü temizle",
+      "dateRange": "Tarih aralığı",
+      "quickSelect": "Hızlı seçim",
+      "customRange": "Özel aralık",
+      "from": "Başlangıç",
+      "to": "Bitiş",
+      "clearDates": "Tarihleri temizle",
+      "slaBreached": "SLA İhlal Edildi",
+      "slaActive": "SLA Aktif",
+      "slaPaused": "SLA Duraklatıldı",
+      "presetToday": "Bugün",
+      "presetLast7": "Son 7 gün",
+      "presetLast30": "Son 30 gün",
+      "presetLast90": "Son 90 gün",
+      "chipStatus": "Durum: {{value}}",
+      "chipPriority": "Öncelik: {{value}}",
+      "chipSearch": "Arama: \"{{value}}\"",
+      "chipSla": "SLA: {{value}}",
+      "chipProduct": "Ürün: {{value}}",
+      "chipAgent": "Ajan: {{value}}"
     },
     "actions": {
       "claim": "Üstlen",
@@ -70,6 +100,10 @@
       "assign": "Ata",
       "createTicket": "Bilet Oluştur",
       "viewDetail": "Detayı Gör"
+    },
+    "empty": {
+      "title": "Bilet bulunamadı",
+      "subtitle": "Filtrelerinize uyan bilet bulunmuyor."
     },
     "detail": {
       "title": "Bilet Detayı",
@@ -80,6 +114,42 @@
       "attachments": "Ekler",
       "resolutionNote": "Çözüm Notu",
       "timeline": "Zaman Çizelgesi"
+    },
+    "createModal": {
+      "title": "Yeni Destek Bileti",
+      "labelTitle": "Başlık",
+      "labelDescription": "Açıklama",
+      "labelPriority": "Öncelik",
+      "labelProduct": "Ürün",
+      "placeholderTitle": "Sorununuzu kısaca açıklayın...",
+      "placeholderDescription": "Ayrıntılı açıklama...",
+      "selectProduct": "Ürün seçin...",
+      "creating": "Oluşturuluyor...",
+      "create": "Bilet Oluştur",
+      "errorRequired": "Başlık ve Ürün alanları zorunludur.",
+      "errorCreate": "Bilet oluşturulamadı."
+    },
+    "actionModal": {
+      "labelReason": "Neden / Not",
+      "placeholderReason": "Bu işlemi neden yaptığınızı açıklayın...",
+      "hint": "Bu not zorunludur ve denetim geçmişine kaydedilecektir.",
+      "characters": "{{count}} karakter",
+      "closeModal": "Modalı kapat"
+    },
+    "agentModal": {
+      "title": "Bilet Ata",
+      "subtitle": "Bu bileti atamak için bir ajan seçin",
+      "selectAgent": "Ajan Seç",
+      "loadingAgents": "Ajanlar yükleniyor...",
+      "noAgents": "Bu ürün için yetkili ajan bulunamadı.",
+      "fetchError": "Ajan listesi yüklenemedi. Lütfen tekrar deneyin.",
+      "noteLabel": "Not",
+      "noteOptional": "opsiyonel",
+      "placeholderNote": "Atama nedeni...",
+      "assigning": "Atanıyor...",
+      "full": "Dolu",
+      "submitError": "Atama başarısız. Lütfen tekrar deneyin.",
+      "closeModal": "Modalı kapat"
     }
   },
   "form": {
@@ -149,6 +219,9 @@
     "page": "Sayfa",
     "of": "/",
     "previous": "Önceki",
-    "next": "Sonraki"
+    "next": "Sonraki",
+    "perPage": "{{count}} / sayfa",
+    "previousPage": "Önceki sayfa",
+    "nextPage": "Sonraki sayfa"
   }
 }

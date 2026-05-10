@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, UserCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getAgentsWithCapacity, assignTicket } from '../services/api';
 
 /**
@@ -14,6 +15,7 @@ import { getAgentsWithCapacity, assignTicket } from '../services/api';
  *   ticketId   {number}   — Atanacak bilet ID'si
  */
 export default function AgentSelectionModal({ isOpen, onClose, onSuccess, productId, ticketId }) {
+  const { t } = useTranslation();
   const [agents, setAgents] = useState([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [fetchError, setFetchError] = useState('');
@@ -37,9 +39,9 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
     setLoadingAgents(true);
     getAgentsWithCapacity(productId)
       .then((res) => setAgents(res.data))
-      .catch(() => setFetchError('Failed to load agent list. Please try again.'))
+      .catch(() => setFetchError(t('ticket.agentModal.fetchError')))
       .finally(() => setLoadingAgents(false));
-  }, [isOpen, productId]);
+  }, [isOpen, productId]); // eslint-disable-line
 
   // ESC tuşu ile kapatma
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
       onSuccess(res.data);
       onClose();
     } catch (err) {
-      setSubmitError(err.response?.data?.message || 'Assignment failed. Please try again.');
+      setSubmitError(err.response?.data?.message || t('ticket.agentModal.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -91,10 +93,10 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
         >
           <div>
             <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              Assign Ticket
+              {t('ticket.agentModal.title')}
             </h3>
             <p className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
-              TCK-{String(ticketId).padStart(3, '0')} — Select an agent to assign this ticket
+              TCK-{String(ticketId).padStart(3, '0')} — {t('ticket.agentModal.subtitle')}
             </p>
           </div>
           <button
@@ -102,7 +104,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
             style={{ color: 'var(--text-tertiary)' }}
-            aria-label="Close modal"
+            aria-label={t('ticket.agentModal.closeModal')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -122,13 +124,13 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
             {/* Agent listesi */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Select Agent *
+                {t('ticket.agentModal.selectAgent')} *
               </label>
 
               {loadingAgents ? (
                 <div className="flex items-center justify-center gap-2 py-8" style={{ color: 'var(--text-tertiary)' }}>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm">Loading agents...</span>
+                  <span className="text-sm">{t('ticket.agentModal.loadingAgents')}</span>
                 </div>
               ) : fetchError ? (
                 <div className="rounded-lg px-3 py-2 text-sm bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
@@ -136,7 +138,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                 </div>
               ) : agents.length === 0 ? (
                 <div className="rounded-lg px-3 py-3 text-sm text-center" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-muted)' }}>
-                  No authorized agents found for this product.
+                  {t('ticket.agentModal.noAgents')}
                 </div>
               ) : (
                 <div
@@ -208,7 +210,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                           </span>
                           {isFull && (
                             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-50 text-danger-500 dark:bg-danger-500/10">
-                              Full
+                              {t('ticket.agentModal.full')}
                             </span>
                           )}
                         </div>
@@ -223,13 +225,14 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
             {selectedAgentId && (
               <div>
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                  Note <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(optional)</span>
+                  {t('ticket.agentModal.noteLabel')}{' '}
+                  <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>({t('ticket.agentModal.noteOptional')})</span>
                 </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={3}
-                  placeholder="Reason for assignment..."
+                  placeholder={t('ticket.agentModal.placeholderNote')}
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[72px]"
                   style={{
                     backgroundColor: 'var(--bg-input)',
@@ -257,7 +260,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                 backgroundColor: 'transparent',
               }}
             >
-              Cancel
+              {t('form.cancel')}
             </button>
             <button
               type="submit"
@@ -267,10 +270,10 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
               {submitting ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Assigning...
+                  {t('ticket.agentModal.assigning')}
                 </span>
               ) : (
-                'Assign'
+                t('ticket.agentModal.assign')
               )}
             </button>
           </div>

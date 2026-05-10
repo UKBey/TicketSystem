@@ -1,20 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, X, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 const STATUSES   = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
-const SLA_STATUSES = [
-  { value: 'BREACHED', label: 'SLA Breached' },
-  { value: 'ACTIVE',   label: 'SLA Active' },
-  { value: 'PAUSED',   label: 'SLA Paused' },
-];
-const DATE_PRESETS = [
-  { label: 'Today',      days: 0 },
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 90 days', days: 90 },
-];
 
 /**
  * Full-featured filter bar for ticket list pages.
@@ -35,8 +25,22 @@ export default function TicketFilters({
   hideAgent   = false,
   hideProduct = false,
 }) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [agents,   setAgents]   = useState([]);
+
+  const SLA_STATUSES = [
+    { value: 'BREACHED', label: t('ticket.filters.slaBreached') },
+    { value: 'ACTIVE',   label: t('ticket.filters.slaActive') },
+    { value: 'PAUSED',   label: t('ticket.filters.slaPaused') },
+  ];
+
+  const DATE_PRESETS = [
+    { label: t('ticket.filters.presetToday'),  days: 0 },
+    { label: t('ticket.filters.presetLast7'),  days: 7 },
+    { label: t('ticket.filters.presetLast30'), days: 30 },
+    { label: t('ticket.filters.presetLast90'), days: 90 },
+  ];
 
   // Fetch products and agents for dropdowns (only once)
   useEffect(() => {
@@ -56,13 +60,13 @@ export default function TicketFilters({
       <div className="flex flex-wrap items-center gap-2 px-4 py-3">
 
         {/* Search */}
-        <SearchInput key={search || '__empty__'} value={search} onChange={onSearch} />
+        <SearchInput key={search || '__empty__'} value={search} onChange={onSearch} placeholder={t('ticket.filters.searchPlaceholder')} />
 
         {/* Status */}
         {!hideStatus && (
           <FilterSelect
             value={status} onChange={onStatus}
-            placeholder="All statuses"
+            placeholder={t('ticket.filters.allStatuses')}
             options={STATUSES.map(s => ({ value: s, label: s.replace(/_/g, ' ') }))}
           />
         )}
@@ -70,14 +74,14 @@ export default function TicketFilters({
         {/* Priority */}
         <FilterSelect
           value={priority} onChange={onPriority}
-          placeholder="All priorities"
+          placeholder={t('ticket.filters.allPriorities')}
           options={PRIORITIES.map(p => ({ value: p, label: p }))}
         />
 
         {/* SLA Status */}
         <FilterSelect
           value={slaStatus} onChange={onSlaStatus}
-          placeholder="All SLA"
+          placeholder={t('ticket.filters.allSla')}
           options={SLA_STATUSES}
         />
 
@@ -85,7 +89,7 @@ export default function TicketFilters({
         {!hideProduct && products.length > 0 && (
           <FilterSelect
             value={productId} onChange={onProductId}
-            placeholder="All products"
+            placeholder={t('ticket.filters.allProducts')}
             options={products.map(p => ({ value: String(p.id), label: p.name }))}
           />
         )}
@@ -94,7 +98,7 @@ export default function TicketFilters({
         {!hideAgent && agents.length > 0 && (
           <FilterSelect
             value={agentId} onChange={onAgentId}
-            placeholder="All agents"
+            placeholder={t('ticket.filters.allAgents')}
             options={agents.map(a => ({ value: a.id, label: a.fullName }))}
           />
         )}
@@ -103,6 +107,8 @@ export default function TicketFilters({
         <DateRangePicker
           dateFrom={dateFrom} dateTo={dateTo}
           onDateFrom={onDateFrom} onDateTo={onDateTo}
+          datePresets={DATE_PRESETS}
+          t={t}
         />
 
         {/* Clear */}
@@ -114,7 +120,7 @@ export default function TicketFilters({
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
           >
             <X className="h-3 w-3" />
-            Clear all
+            {t('ticket.filters.clearAll')}
           </button>
         )}
       </div>
@@ -122,15 +128,15 @@ export default function TicketFilters({
       {/* Active filter chips */}
       {hasFilters && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-2.5">
-          {status    && <Chip label={`Status: ${status.replace(/_/g, ' ')}`}    onRemove={() => onStatus('')} />}
-          {priority  && <Chip label={`Priority: ${priority}`}                   onRemove={() => onPriority('')} />}
-          {search    && <Chip label={`Search: "${search}"`}                     onRemove={() => onSearch('')} />}
-          {slaStatus && <Chip label={`SLA: ${SLA_STATUSES.find(s => s.value === slaStatus)?.label ?? slaStatus}`} onRemove={() => onSlaStatus('')} />}
-          {productId && <Chip label={`Product: ${products.find(p => String(p.id) === productId)?.name ?? productId}`} onRemove={() => onProductId('')} />}
-          {agentId   && <Chip label={`Agent: ${agents.find(a => a.id === agentId)?.fullName ?? agentId}`}           onRemove={() => onAgentId('')} />}
+          {status    && <Chip label={t('ticket.filters.chipStatus',   { value: status.replace(/_/g, ' ') })} onRemove={() => onStatus('')} />}
+          {priority  && <Chip label={t('ticket.filters.chipPriority', { value: priority })}                  onRemove={() => onPriority('')} />}
+          {search    && <Chip label={t('ticket.filters.chipSearch',   { value: search })}                    onRemove={() => onSearch('')} />}
+          {slaStatus && <Chip label={t('ticket.filters.chipSla',      { value: SLA_STATUSES.find(s => s.value === slaStatus)?.label ?? slaStatus })} onRemove={() => onSlaStatus('')} />}
+          {productId && <Chip label={t('ticket.filters.chipProduct',  { value: products.find(p => String(p.id) === productId)?.name ?? productId })} onRemove={() => onProductId('')} />}
+          {agentId   && <Chip label={t('ticket.filters.chipAgent',    { value: agents.find(a => a.id === agentId)?.fullName ?? agentId })}           onRemove={() => onAgentId('')} />}
           {(dateFrom || dateTo) && (
             <Chip
-              label={`Date: ${dateFrom ? new Date(dateFrom).toLocaleDateString('en-US') : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString('en-US') : '…'}`}
+              label={`${t('ticket.filters.from')}: ${dateFrom ? new Date(dateFrom).toLocaleDateString() : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString() : '…'}`}
               onRemove={() => { onDateFrom(''); onDateTo(''); }}
             />
           )}
@@ -142,7 +148,7 @@ export default function TicketFilters({
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SearchInput({ value, onChange }) {
+function SearchInput({ value, onChange, placeholder }) {
   const [local, setLocal] = useState(value ?? '');
   const timer = useRef(null);
 
@@ -161,7 +167,7 @@ function SearchInput({ value, onChange }) {
         type="text"
         value={local}
         onChange={handleChange}
-        placeholder="Search title…"
+        placeholder={placeholder}
         className="rounded-lg border pl-8 pr-3 py-1.5 text-xs outline-none transition-all focus:ring-2 w-44"
         style={{
           backgroundColor: local ? 'rgba(59,130,246,0.06)' : 'var(--bg-input)',
@@ -200,7 +206,7 @@ function FilterSelect({ value, onChange, placeholder, options }) {
   );
 }
 
-function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo }) {
+function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, t }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const hasDate = dateFrom || dateTo;
@@ -256,8 +262,8 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo }) {
         }}
       >
         {hasDate
-          ? `${dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '…'}`
-          : 'Date range'}
+          ? `${dateFrom ? new Date(dateFrom).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '…'}`
+          : t('ticket.filters.dateRange')}
         <ChevronDown className="h-3 w-3" />
       </button>
 
@@ -266,9 +272,9 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo }) {
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
           {/* Presets */}
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Quick select</p>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.quickSelect')}</p>
           <div className="grid grid-cols-2 gap-1 mb-3">
-            {DATE_PRESETS.map(p => (
+            {datePresets.map(p => (
               <button key={p.label} type="button" onClick={() => applyPreset(p.days)}
                 className="rounded-lg border px-2 py-1 text-xs cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10 text-left"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
@@ -278,17 +284,17 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo }) {
           </div>
 
           {/* Custom range */}
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Custom range</p>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.customRange')}</p>
           <div className="space-y-1.5">
             <div>
-              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>From</label>
+              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
               <input type="date" value={toInputValue(dateFrom)}
                 onChange={e => onDateFrom(fromInput(e.target.value, false))}
                 className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
             </div>
             <div>
-              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>To</label>
+              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
               <input type="date" value={toInputValue(dateTo)}
                 onChange={e => onDateTo(fromInput(e.target.value, true))}
                 className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
@@ -300,7 +306,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo }) {
             <button type="button" onClick={() => { onDateFrom(''); onDateTo(''); setOpen(false); }}
               className="mt-2 w-full rounded-lg border px-2 py-1 text-xs cursor-pointer transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}>
-              Clear dates
+              {t('ticket.filters.clearDates')}
             </button>
           )}
         </div>

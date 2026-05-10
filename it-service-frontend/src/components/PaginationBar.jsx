@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -14,6 +15,8 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
  *   onSizeChange  (size: number) => void
  */
 export default function PaginationBar({ page, totalPages, totalItems, size, onPageChange, onSizeChange }) {
+  const { t } = useTranslation();
+
   if (totalPages <= 0) return null;
 
   const from = page * size + 1;
@@ -28,7 +31,7 @@ export default function PaginationBar({ page, totalPages, totalItems, size, onPa
       {/* Left: count + page size */}
       <div className="flex items-center gap-3">
         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-          {from}–{to} of {totalItems}
+          {from}–{to} {t('common.of')} {totalItems}
         </span>
         <select
           value={size}
@@ -37,14 +40,14 @@ export default function PaginationBar({ page, totalPages, totalItems, size, onPa
           style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
         >
           {PAGE_SIZE_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s} / page</option>
+            <option key={s} value={s}>{t('common.perPage', { count: s })}</option>
           ))}
         </select>
       </div>
 
       {/* Right: page buttons */}
       <div className="flex items-center gap-1">
-        <PageBtn onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label="Previous page">
+        <PageBtn onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label={t('common.previousPage')}>
           <ChevronLeft className="h-3.5 w-3.5" />
         </PageBtn>
 
@@ -58,7 +61,7 @@ export default function PaginationBar({ page, totalPages, totalItems, size, onPa
           )
         )}
 
-        <PageBtn onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1} aria-label="Next page">
+        <PageBtn onClick={() => onPageChange(page + 1)} disabled={page >= totalPages - 1} aria-label={t('common.nextPage')}>
           <ChevronRight className="h-3.5 w-3.5" />
         </PageBtn>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const VARIANT_STYLES = {
   primary: 'bg-primary-500 hover:bg-primary-600 focus:ring-primary-500/30',
@@ -17,6 +18,7 @@ export default function ActionReasonModal({
   confirmLabel,
   confirmVariant,
 }) {
+  const { t } = useTranslation();
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function ActionReasonModal({
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
             style={{ color: 'var(--text-tertiary)' }}
-            aria-label="Close modal"
+            aria-label={t('ticket.actionModal.closeModal')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -84,13 +86,13 @@ export default function ActionReasonModal({
           <div className="px-6 py-5 space-y-4">
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                Reason / Note *
+                {t('ticket.actionModal.labelReason')} *
               </label>
               <textarea
                 value={noteText}
                 onChange={(event) => setNoteText(event.target.value)}
                 rows={4}
-                placeholder="Explain why you are taking this action..."
+                placeholder={t('ticket.actionModal.placeholderReason')}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[110px]"
                 style={{
                   backgroundColor: 'var(--bg-input)',
@@ -100,8 +102,8 @@ export default function ActionReasonModal({
                 }}
               />
               <div className="mt-2 flex items-center justify-between text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <span>This note is required and will be saved to the audit history.</span>
-                <span>{characterCount} characters</span>
+                <span>{t('ticket.actionModal.hint')}</span>
+                <span>{t('ticket.actionModal.characters', { count: characterCount })}</span>
               </div>
             </div>
           </div>
@@ -113,7 +115,7 @@ export default function ActionReasonModal({
               className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
             >
-              Cancel
+              {t('form.cancel')}
             </button>
             <button
               type="submit"

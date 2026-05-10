@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
@@ -18,6 +19,7 @@ export default function TicketTable({
   onSort,
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [tickSeconds, setTickSeconds] = useState(0);
 
   useEffect(() => {
@@ -38,13 +40,13 @@ export default function TicketTable({
     return (
       <div className="flex flex-col items-center justify-center py-16 px-8" style={{ color: 'var(--text-tertiary)' }}>
         <Inbox className="h-12 w-12 mb-4 opacity-30" />
-        <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No tickets found</h3>
-        <p className="text-sm">There are no tickets matching your filters.</p>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('ticket.empty.title')}</h3>
+        <p className="text-sm">{t('ticket.empty.subtitle')}</p>
       </div>
     );
   }
 
-  const showClaimers = tickets.some((t) => t.claimers?.length > 0);
+  const showClaimers = tickets.some((tk) => tk.claimers?.length > 0);
   const sortable = typeof onSort === 'function';
 
   return (
@@ -62,21 +64,21 @@ export default function TicketTable({
         </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <SortTh field="id"          label="ID"       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="title"       label="Title"    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="status"      label="Status"   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="priority"    label="Priority" sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
+            <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
             {showSla && (
-              <SortTh field="slaDeadline" label="SLA" sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+              <SortTh field="slaDeadline" label={t('ticket.table.sla')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             )}
             {showClaimers && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Claimers</th>
+                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
             )}
-            <SortTh field="createdAt"   label="Created"  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             {showClaimButton && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
+                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.actions')}</th>
             )}
           </tr>
         </thead>
@@ -113,7 +115,7 @@ export default function TicketTable({
               )}
               {showClaimers && (
                 <td className="px-4 py-3">
-                  <ClaimerPills claimers={ticket.claimers} currentUserId={currentUserId} />
+                  <ClaimerPills claimers={ticket.claimers} currentUserId={currentUserId} t={t} />
                 </td>
               )}
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -126,14 +128,14 @@ export default function TicketTable({
                       className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
                       onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
                     >
-                      Claim
+                      {t('ticket.actions.claim')}
                     </button>
                     {showAssignButton && (
                       <button
                         className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
                       >
-                        Assign
+                        {t('ticket.actions.assign')}
                       </button>
                     )}
                   </div>
@@ -186,9 +188,9 @@ function SortTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) 
   );
 }
 
-function ClaimerPills({ claimers, currentUserId }) {
+function ClaimerPills({ claimers, currentUserId, t }) {
   if (!claimers || claimers.length === 0) {
-    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Unassigned</span>;
+    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.table.unassigned')}</span>;
   }
   return (
     <div className="flex flex-wrap gap-1">
@@ -204,7 +206,7 @@ function ClaimerPills({ claimers, currentUserId }) {
           }
         >
           {c.agentName?.split(' ')[0] ?? 'Agent'}
-          {c.agentId === currentUserId && ' (you)'}
+          {c.agentId === currentUserId && ` (${t('ticket.table.you')})`}
         </span>
       ))}
     </div>

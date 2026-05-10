@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
@@ -20,7 +22,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !productId) {
-      setError('Title and Product fields are required.');
+      setError(t('ticket.createModal.errorRequired'));
       return;
     }
 
@@ -38,7 +40,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
       resetForm();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not create ticket.');
+      setError(err.response?.data?.message || t('ticket.createModal.errorCreate'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>New Support Ticket</h3>
+          <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.title')}</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
             <X className="h-5 w-5" />
           </button>
@@ -78,10 +80,10 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Title *</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelTitle')} *</label>
               <input
                 type="text"
-                placeholder="Briefly describe your issue..."
+                placeholder={t('ticket.createModal.placeholderTitle')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
@@ -89,9 +91,9 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Description</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelDescription')}</label>
               <textarea
-                placeholder="Detailed description..."
+                placeholder={t('ticket.createModal.placeholderDescription')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -100,28 +102,28 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Priority</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelPriority')}</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
+                <option value="LOW">{t('ticket.priority.low')}</option>
+                <option value="MEDIUM">{t('ticket.priority.medium')}</option>
+                <option value="HIGH">{t('ticket.priority.high')}</option>
+                <option value="CRITICAL">{t('ticket.priority.critical')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Product *</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelProduct')} *</label>
               <select
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               >
-                <option value="">Select a product...</option>
+                <option value="">{t('ticket.createModal.selectProduct')}</option>
                 {products.filter((p) => p.isActive).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -137,14 +139,14 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
             >
-              Cancel
+              {t('form.cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? 'Creating...' : 'Create Ticket'}
+              {loading ? t('ticket.createModal.creating') : t('ticket.createModal.create')}
             </button>
           </div>
         </form>

@@ -53,15 +53,45 @@
       "product": "Product",
       "assignee": "Assignee",
       "createdAt": "Created At",
+      "created": "Created",
       "sla": "SLA",
-      "actions": "Actions"
+      "actions": "Actions",
+      "claimers": "Claimers",
+      "unassigned": "Unassigned",
+      "you": "you"
     },
     "filters": {
       "search": "Search tickets...",
       "status": "Status",
       "priority": "Priority",
       "product": "Product",
-      "all": "All"
+      "all": "All",
+      "searchPlaceholder": "Search title…",
+      "allStatuses": "All statuses",
+      "allPriorities": "All priorities",
+      "allSla": "All SLA",
+      "allProducts": "All products",
+      "allAgents": "All agents",
+      "clearAll": "Clear all",
+      "dateRange": "Date range",
+      "quickSelect": "Quick select",
+      "customRange": "Custom range",
+      "from": "From",
+      "to": "To",
+      "clearDates": "Clear dates",
+      "slaBreached": "SLA Breached",
+      "slaActive": "SLA Active",
+      "slaPaused": "SLA Paused",
+      "presetToday": "Today",
+      "presetLast7": "Last 7 days",
+      "presetLast30": "Last 30 days",
+      "presetLast90": "Last 90 days",
+      "chipStatus": "Status: {{value}}",
+      "chipPriority": "Priority: {{value}}",
+      "chipSearch": "Search: \"{{value}}\"",
+      "chipSla": "SLA: {{value}}",
+      "chipProduct": "Product: {{value}}",
+      "chipAgent": "Agent: {{value}}"
     },
     "actions": {
       "claim": "Claim",
@@ -70,6 +100,10 @@
       "assign": "Assign",
       "createTicket": "Create Ticket",
       "viewDetail": "View Details"
+    },
+    "empty": {
+      "title": "No tickets found",
+      "subtitle": "There are no tickets matching your filters."
     },
     "detail": {
       "title": "Ticket Detail",
@@ -80,6 +114,42 @@
       "attachments": "Attachments",
       "resolutionNote": "Resolution Note",
       "timeline": "Timeline"
+    },
+    "createModal": {
+      "title": "New Support Ticket",
+      "labelTitle": "Title",
+      "labelDescription": "Description",
+      "labelPriority": "Priority",
+      "labelProduct": "Product",
+      "placeholderTitle": "Briefly describe your issue...",
+      "placeholderDescription": "Detailed description...",
+      "selectProduct": "Select a product...",
+      "creating": "Creating...",
+      "create": "Create Ticket",
+      "errorRequired": "Title and Product fields are required.",
+      "errorCreate": "Could not create ticket."
+    },
+    "actionModal": {
+      "labelReason": "Reason / Note",
+      "placeholderReason": "Explain why you are taking this action...",
+      "hint": "This note is required and will be saved to the audit history.",
+      "characters": "{{count}} characters",
+      "closeModal": "Close modal"
+    },
+    "agentModal": {
+      "title": "Assign Ticket",
+      "subtitle": "Select an agent to assign this ticket",
+      "selectAgent": "Select Agent",
+      "loadingAgents": "Loading agents...",
+      "noAgents": "No authorized agents found for this product.",
+      "fetchError": "Failed to load agent list. Please try again.",
+      "noteLabel": "Note",
+      "noteOptional": "optional",
+      "placeholderNote": "Reason for assignment...",
+      "assigning": "Assigning...",
+      "full": "Full",
+      "submitError": "Assignment failed. Please try again.",
+      "closeModal": "Close modal"
     }
   },
   "form": {
@@ -149,6 +219,9 @@
     "page": "Page",
     "of": "of",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "perPage": "{{count}} / page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page"
   }
 }
