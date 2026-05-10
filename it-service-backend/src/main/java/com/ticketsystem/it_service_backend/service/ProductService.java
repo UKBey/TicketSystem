@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,8 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final TicketService ticketService;
+    private final TicketRepository ticketRepository;
 
     @Transactional(readOnly = true)
     public Product getProductById(Long id, String userId, List<String> roles) {
@@ -77,8 +80,21 @@ public class ProductService {
         return savedProduct;
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
         log.info("Ürün siliniyor. ID: {}", id);
+
+        // Ürüne bağlı tüm biletleri ve onlara ait tüm verileri sil
+        List<Long> ticketIds = ticketRepository.findByProductId(id)
+                .stream().map(t -> t.getId()).toList();
+
+        if (!ticketIds.isEmpty()) {
+            log.info("Ürüne bağlı {} bilet cascade siliniyor. Ürün ID: {}", ticketIds.size(), id);
+            for (Long ticketId : ticketIds) {
+                ticketService.deleteTicket(ticketId);
+            }
+        }
+
         productRepository.deleteById(id);
         log.info("Ürün başarıyla silindi. ID: {}", id);
     }

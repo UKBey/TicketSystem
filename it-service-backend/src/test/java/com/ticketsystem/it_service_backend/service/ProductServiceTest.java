@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +32,10 @@ class ProductServiceTest {
     private ProductRepository productRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private TicketService ticketService;
+    @Mock
+    private TicketRepository ticketRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -124,7 +131,21 @@ class ProductServiceTest {
 
     @Test
     void deleteProduct_deletesById() {
+        when(ticketRepository.findByProductId(10L)).thenReturn(List.of());
         productService.deleteProduct(10L);
+        verify(productRepository).deleteById(10L);
+    }
+
+    @Test
+    void deleteProduct_cascadesTicketDeletion() {
+        Ticket t1 = Ticket.builder().id(101L).productId(10L).build();
+        Ticket t2 = Ticket.builder().id(102L).productId(10L).build();
+        when(ticketRepository.findByProductId(10L)).thenReturn(List.of(t1, t2));
+
+        productService.deleteProduct(10L);
+
+        verify(ticketService).deleteTicket(101L);
+        verify(ticketService).deleteTicket(102L);
         verify(productRepository).deleteById(10L);
     }
 }
