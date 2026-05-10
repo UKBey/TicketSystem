@@ -531,13 +531,14 @@ public class MetricsService {
 
     public AlertsBacklogDTO getAlertsAndBacklog() {
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
+        List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime upcoming4h = now.plusHours(4);
         ZonedDateTime waitingThreshold = now.minusDays(3);
         PageRequest top10 = PageRequest.of(0, 10);
 
         List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTickets(openStatuses, top10);
-        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(openStatuses, upcoming4h, top10);
+        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(activeStatuses, upcoming4h, top10);
         List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
 
         // Tüm müşteri ID'lerini tek sorguda çek
