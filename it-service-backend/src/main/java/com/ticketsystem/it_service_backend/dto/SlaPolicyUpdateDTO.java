@@ -9,13 +9,13 @@ import lombok.Data;
 @Schema(description = "SLA politikası güncelleme isteği")
 public class SlaPolicyUpdateDTO {
 
-    @NotNull
-    @Min(value = 1, message = "Hedef çözüm süresi en az 1 saat olmalıdır.")
+    @NotNull(message = "{field.required}")
+    @Min(value = 1, message = "{field.min}")
     @Schema(description = "Hedef çözüm süresi (saat)", example = "4")
     private Integer targetResolutionHours;
 
-    @NotNull
-    @Min(value = 0, message = "Uyarı eşiği 0 veya daha büyük olmalıdır.")
+    @NotNull(message = "{field.required}")
+    @Min(value = 0, message = "{field.min}")
     @Schema(description = "Uyarı eşiği (saat) — 0 ise uyarı gönderilmez", example = "2")
     private Integer warningThresholdHours;
 }

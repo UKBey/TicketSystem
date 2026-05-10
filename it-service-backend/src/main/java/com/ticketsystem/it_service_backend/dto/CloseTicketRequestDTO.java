@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Close ticket isteği — kapatma nedeni (zorunlu)")
 public class CloseTicketRequestDTO {
 
-    @NotBlank(message = "Close note cannot be blank")
+    @NotBlank(message = "{field.notblank}")
     @Schema(description = "Kapatma nedeni", example = "Çözüm uygulanıp doğrulandı", requiredMode = Schema.RequiredMode.REQUIRED)
     private String note;
 }

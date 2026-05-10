@@ -12,11 +12,11 @@ import lombok.Data;
 @Schema(description = "jBPM workflow callback olay yükü — KIE Server'dan backend'e gelen dahili bildirim")
 public class WorkflowCallbackDTO {
 
-    @NotNull(message = "ticketId zorunludur")
+    @NotNull(message = "{field.required}")
     @Schema(description = "Olayın ilişkili olduğu biletin ID'si", example = "42", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long ticketId;
 
-    @NotBlank(message = "eventType zorunludur")
+    @NotBlank(message = "{field.notblank}")
     @Schema(description = "İşlenecek olay türü", example = "SLA_BREACHED", allowableValues = {"SLA_BREACHED", "PROCESS_COMPLETED"}, requiredMode = Schema.RequiredMode.REQUIRED)
     private String eventType;
 

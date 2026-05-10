@@ -14,13 +14,13 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Rate limit konfigurasyonu guncelleme istegi")
 public class RateLimitConfigUpdateDTO {
 
-    @Min(value = 1, message = "maxRequests en az 1 olmalidir")
+    @Min(value = 1, message = "{field.min}")
     @Schema(description = "Zaman penceresi icinde izin verilen maksimum istek sayisi",
             example = "10",
             requiredMode = Schema.RequiredMode.REQUIRED)
     private int maxRequests;
 
-    @Min(value = 1, message = "durationSeconds en az 1 olmalidir")
+    @Min(value = 1, message = "{field.min}")
     @Schema(description = "Token bucket yenileme penceresi (saniye cinsinden)",
             example = "60",
             requiredMode = Schema.RequiredMode.REQUIRED)

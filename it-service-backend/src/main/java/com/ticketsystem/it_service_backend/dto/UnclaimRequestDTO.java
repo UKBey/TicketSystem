@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Unclaim (bırakma) isteği — işlem nedeni (zorunlu)")
 public class UnclaimRequestDTO {
 
-    @NotBlank(message = "Unclaim note cannot be blank")
+    @NotBlank(message = "{field.notblank}")
     @Schema(description = "Bırakma nedeni", example = "Müşteri yanıt bekliyor", requiredMode = Schema.RequiredMode.REQUIRED)
     private String note;
 }

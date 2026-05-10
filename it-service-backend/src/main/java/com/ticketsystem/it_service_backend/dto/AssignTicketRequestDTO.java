@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Manuel bilet atama isteği — Agent Admin tarafından kullanılır")
 public class AssignTicketRequestDTO {
 
-    @NotBlank(message = "Target agent ID cannot be blank")
+    @NotBlank(message = "{field.notblank}")
     @Schema(description = "Atanacak agent'ın Keycloak ID'si",
             example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
             requiredMode = Schema.RequiredMode.REQUIRED)
