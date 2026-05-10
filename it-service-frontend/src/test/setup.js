@@ -1,4 +1,53 @@
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// ---------------------------------------------------------------------------
+// i18next global mock
+// Testlerde gerçek i18next instance'ı başlatılmaz; t() çağrıları locale JSON
+// dosyalarından çevrilmiş değerleri döndürmesi için aşağıdaki mock kullanılır.
+// ---------------------------------------------------------------------------
+vi.mock('react-i18next', () => {
+  // Locale JSON'larını doğrudan import ederek gerçek çevirileri kullanıyoruz.
+  // Bu sayede testler, bileşenlerin ürettiği gerçek metinleri doğrulayabilir.
+  const en = require('../locales/en.json');
+
+  // Nokta-ayrımlı key'i (örn: "notification.title") JSON'dan çözen yardımcı.
+  function resolve(obj, key) {
+    return key.split('.').reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : null), obj);
+  }
+
+  // i18next interpolation: {{variable}} → değer
+  function interpolate(str, opts) {
+    if (!str || typeof str !== 'string' || !opts) return str;
+    return str.replace(/\{\{(\w+)\}\}/g, (_, k) => (opts[k] !== undefined ? opts[k] : `{{${k}}}`));
+  }
+
+  function t(key, opts) {
+    const val = resolve(en, key);
+    if (val && typeof val === 'string') return interpolate(val, opts);
+    // key bulunamazsa key'in kendisini döndür (i18next varsayılan davranışı)
+    return key;
+  }
+
+  return {
+    useTranslation: () => ({
+      t,
+      i18n: {
+        language: 'en',
+        changeLanguage: vi.fn(),
+      },
+    }),
+    Trans: ({ i18nKey }) => i18nKey,
+    initReactI18next: { type: '3rdParty', init: vi.fn() },
+  };
+});
+
+vi.mock('../i18n', () => ({
+  default: {
+    language: 'en',
+    changeLanguage: vi.fn(),
+  },
+}));
 
 // Recharts uses ResizeObserver internally
 globalThis.ResizeObserver = class ResizeObserver {
