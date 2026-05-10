@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Key, IdCard, Package, Bell, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, getPrimaryRole } = useAuth();
   const primaryRole = getPrimaryRole();
@@ -26,24 +28,24 @@ export default function ProfilePage() {
   }, [user?.id]);
 
   const fields = [
-    { icon: User, label: 'Full Name', value: user?.name || '-' },
-    { icon: IdCard, label: 'Username', value: user?.username || '-' },
-    { icon: Mail, label: 'Email', value: user?.email || '-' },
-    { icon: Key, label: 'User ID', value: user?.id || '-', mono: true },
+    { icon: User,   label: t('profile.fieldFullName'), value: user?.name || '-' },
+    { icon: IdCard, label: t('profile.fieldUsername'), value: user?.username || '-' },
+    { icon: Mail,   label: t('profile.fieldEmail'),    value: user?.email || '-' },
+    { icon: Key,    label: t('profile.fieldUserId'),   value: user?.id || '-', mono: true },
   ];
 
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Profile</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Your account information and authorized products.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('profile.title')}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('profile.subtitle')}</p>
       </div>
 
       <div className="max-w-2xl space-y-6">
         {/* User Info Card */}
         <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-6 py-4 border-b font-semibold text-sm" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-            Account Details
+            {t('profile.accountDetails')}
           </div>
           <div className="p-6 space-y-5">
             {/* Avatar section */}
@@ -95,8 +97,8 @@ export default function ProfilePage() {
                 <Bell className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
               </div>
               <div>
-                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Notification Preferences</div>
-                <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Manage which events trigger email notifications.</div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('profile.notificationPreferences')}</div>
+                <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{t('profile.manageNotifications')}</div>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
@@ -107,7 +109,7 @@ export default function ProfilePage() {
         <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
           <div className="px-6 py-4 border-b font-semibold text-sm flex items-center gap-2" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
             <Package className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-            Authorized Products
+            {t('profile.authorizedProducts')}
           </div>
           <div className="p-6">
             {loadingProducts ? (
@@ -131,7 +133,7 @@ export default function ProfilePage() {
             ) : (
               <div className="text-center py-4">
                 <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                  No authorized products assigned.
+                  {t('profile.noProducts')}
                 </div>
               </div>
             )}

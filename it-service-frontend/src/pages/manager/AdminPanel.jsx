@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import api from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
@@ -9,11 +10,11 @@ const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const ROLES = ['', 'CUSTOMER', 'AGENT', 'AGENT_ADMIN'];
 
-function ProductChips({ products, onRemove }) {
+function ProductChips({ products, onRemove, t }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!products || products.length === 0) {
-    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>No products</span>;
+    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.noProducts')}</span>;
   }
 
   const visible = expanded ? products : products.slice(0, VISIBLE_LIMIT);
@@ -45,7 +46,7 @@ function ProductChips({ products, onRemove }) {
           className="inline-flex items-center gap-0.5 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
           style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
         >
-          +{hiddenCount} more
+          {t('admin.panel.moreProducts', { count: hiddenCount })}
           <ChevronDown className="h-3 w-3" />
         </button>
       )}
@@ -56,7 +57,7 @@ function ProductChips({ products, onRemove }) {
           className="inline-flex items-center gap-0.5 rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
           style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
         >
-          Show less
+          {t('admin.panel.showLess')}
           <ChevronUp className="h-3 w-3" />
         </button>
       )}
@@ -65,30 +66,28 @@ function ProductChips({ products, onRemove }) {
 }
 
 export default function AdminPanel() {
+  const { t } = useTranslation();
+
   const [users, setUsers]               = useState([]);
   const [products, setProducts]         = useState([]);
   const [loading, setLoading]           = useState(true);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [error, setError]               = useState('');
 
-  // Filters
   const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
-  // Pagination
   const [page, setPage]             = useState(0);
   const [size, setSize]             = useState(20);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset to page 0 when filters change
   useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter]);
 
   const fetchUsers = useCallback(async () => {
@@ -104,17 +103,16 @@ export default function AdminPanel() {
       setTotalItems(res.data.totalElements);
     } catch (err) {
       console.error('Could not load users:', err);
-      setError('An error occurred while loading users.');
+      setError(t('admin.panel.errorLoad'));
     } finally {
       setLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter]);
+  }, [page, size, debouncedSearch, roleFilter, t]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Products are loaded once
   useEffect(() => {
     api.get('/products')
       .then(res => setProducts(res.data))
@@ -123,24 +121,24 @@ export default function AdminPanel() {
 
   const handleAssignProduct = async (userId) => {
     if (!selectedProductId) {
-      alert('Please select a product to assign.');
+      alert(t('admin.panel.alertAssign'));
       return;
     }
     try {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not assign product.');
+      alert(err.response?.data?.message || t('admin.panel.errorAssign'));
     }
   };
 
   const handleRemoveProduct = async (userId, productId) => {
-    if (!window.confirm('Are you sure you want to remove this product authorization?')) return;
+    if (!window.confirm(t('admin.panel.confirmRemove'))) return;
     try {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not remove product authorization.');
+      alert(err.response?.data?.message || t('admin.panel.errorRemove'));
     }
   };
 
@@ -156,8 +154,8 @@ export default function AdminPanel() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Admin Panel</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage user product authorizations.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('admin.panel.title')}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('admin.panel.subtitle')}</p>
       </div>
 
       {error && (
@@ -172,10 +170,10 @@ export default function AdminPanel() {
         <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
           style={{ borderColor: 'var(--border-color)' }}>
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            User & Product Assignments
+            {t('admin.panel.userProducts')}
             {totalItems > 0 && (
               <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
-                ({totalItems} users)
+                {t('admin.panel.usersCount', { count: totalItems })}
               </span>
             )}
           </span>
@@ -187,7 +185,7 @@ export default function AdminPanel() {
                 style={{ color: 'var(--text-tertiary)' }} />
               <input
                 type="text"
-                placeholder="Search name or email…"
+                placeholder={t('admin.panel.searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="rounded-lg border pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-2 w-52"
@@ -209,7 +207,7 @@ export default function AdminPanel() {
               className="rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-2 cursor-pointer"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
             >
-              <option value="">All Roles</option>
+              <option value="">{t('admin.panel.allRoles')}</option>
               {ROLES.filter(r => r).map(r => (
                 <option key={r} value={r}>{r}</option>
               ))}
@@ -222,7 +220,7 @@ export default function AdminPanel() {
                 className="rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
-                Clear
+                {t('admin.panel.clear')}
               </button>
             )}
           </div>
@@ -246,7 +244,13 @@ export default function AdminPanel() {
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  {['Name', 'Email', 'Role', 'Authorized Products', 'Assign Product'].map(h => (
+                  {[
+                    t('admin.panel.colName'),
+                    t('admin.panel.colEmail'),
+                    t('admin.panel.colRole'),
+                    t('admin.panel.colAuthorized'),
+                    t('admin.panel.colAssign'),
+                  ].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                       style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
                       {h}
@@ -272,6 +276,7 @@ export default function AdminPanel() {
                       <ProductChips
                         products={user.authorizedProducts}
                         onRemove={(productId) => handleRemoveProduct(user.id, productId)}
+                        t={t}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -282,7 +287,7 @@ export default function AdminPanel() {
                           onChange={(e) => setSelectedProductId(e.target.value)}
                           value={selectedProductId}
                         >
-                          <option value="">Select…</option>
+                          <option value="">{t('admin.panel.selectProduct')}</option>
                           {products
                             .filter(p => !(user.authorizedProducts || []).some(ap => ap.id === p.id))
                             .map(p => (
@@ -295,7 +300,7 @@ export default function AdminPanel() {
                           onClick={() => handleAssignProduct(user.id)}
                         >
                           <Plus className="h-3 w-3" />
-                          Add
+                          {t('admin.panel.addProduct')}
                         </button>
                       </div>
                     </td>
@@ -304,7 +309,7 @@ export default function AdminPanel() {
                 {users.length === 0 && (
                   <tr>
                     <td colSpan="5" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                      {search || roleFilter ? 'No users match the current filters.' : 'No users found.'}
+                      {search || roleFilter ? t('admin.panel.noUsersFiltered') : t('admin.panel.noUsers')}
                     </td>
                   </tr>
                 )}

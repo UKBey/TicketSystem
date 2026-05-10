@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { getAgentLimits } from '../../services/api';
 import { useTicketList } from '../../hooks/useTicketList';
@@ -7,6 +8,7 @@ import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 
 export default function Workspace() {
+  const { t } = useTranslation();
   const { user, hasRole } = useAuth();
   const [agentLimits, setAgentLimits] = useState([]);
   const currentUserId = user?.sub || user?.id;
@@ -26,7 +28,7 @@ export default function Workspace() {
     clearFilters,
   } = useTicketList('/tickets/my-assigned', { sortBy: 'createdAt', sortDir: 'desc' });
 
-  const activeTickets = tickets.filter((t) => t.status !== 'CLOSED');
+  const activeTickets = tickets.filter((tk) => tk.status !== 'CLOSED');
 
   useEffect(() => {
     if (!isAgentAdmin || !currentUserId) return;
@@ -38,14 +40,14 @@ export default function Workspace() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Workspace</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Tickets you have claimed.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('workspace.title')}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('workspace.subtitle')}</p>
       </div>
 
       {!loading && agentLimits.length > 0 && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agentLimits.map(limit => {
-            const activeCount = activeTickets.filter(t => t.productId === limit.productId).length;
+            const activeCount = activeTickets.filter(tk => tk.productId === limit.productId).length;
             const effectiveLimit = limit.effectiveLimit;
             return (
               <div key={limit.productId} className="rounded-lg border p-4"
@@ -59,10 +61,10 @@ export default function Workspace() {
                       <span className="text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>{effectiveLimit}</span>
                     </>
                   )}
-                  <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>active tickets</span>
+                  <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('workspace.activeTickets')}</span>
                 </div>
                 {effectiveLimit && activeCount >= effectiveLimit && (
-                  <p className="text-xs mt-2 font-semibold text-danger-600 dark:text-danger-400">Limit exceeded</p>
+                  <p className="text-xs mt-2 font-semibold text-danger-600 dark:text-danger-400">{t('workspace.limitExceeded')}</p>
                 )}
               </div>
             );

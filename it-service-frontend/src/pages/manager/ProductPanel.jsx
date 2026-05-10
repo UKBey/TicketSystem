@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, X, Eye, Search } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +9,7 @@ import PaginationBar from '../../components/PaginationBar';
 const PAGE_SIZE = 10;
 
 export default function ProductPanel() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { getPrimaryRole } = useAuth();
   const isAdmin = getPrimaryRole() === 'AGENT_ADMIN';
@@ -16,16 +18,12 @@ export default function ProductPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Search + pagination (client-side — product count is small)
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(0);
   const [size, setSize]       = useState(PAGE_SIZE);
 
-  // Urun ekleme/duzenleme penceresinin aciklik durumu ve secili kayit.
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
-  
-  // Modal icerisinde kullanilan form alanlarinin yerel durumu.
   const [formData, setFormData] = useState({ name: '', isActive: true, maxActiveTickets: '' });
 
   const fetchProducts = async () => {
@@ -35,7 +33,7 @@ export default function ProductPanel() {
       setProducts(res.data);
     } catch (err) {
       console.error('Could not load products:', err);
-      setError('An error occurred while loading products.');
+      setError(t('productPanel.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -45,14 +43,12 @@ export default function ProductPanel() {
     fetchProducts();
   }, []);
 
-  // Client-side filtered + paginated slice
   const filtered = products.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())
   );
   const totalPages = Math.ceil(filtered.length / size);
   const paginated  = filtered.slice(page * size, page * size + size);
 
-  // Reset page when search changes
   useEffect(() => { setPage(0); }, [search]);
 
   const openModal = (product = null) => {
@@ -78,7 +74,7 @@ export default function ProductPanel() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Product name cannot be empty.');
+      alert(t('productPanel.errorNameRequired'));
       return;
     }
 
@@ -86,30 +82,28 @@ export default function ProductPanel() {
       ...formData,
       maxActiveTickets: formData.maxActiveTickets === '' ? null : Number(formData.maxActiveTickets)
     };
-    
+
     try {
       if (currentProduct) {
-        // Duzenleme modunda secili urun kaydi guncellenir.
         const res = await api.put(`/products/${currentProduct.id}`, payload);
         setProducts(products.map(p => p.id === currentProduct.id ? res.data : p));
       } else {
-        // Yeni urun modunda olusan kayit listeye eklenir.
         const res = await api.post('/products', payload);
         setProducts([...products, res.data]);
       }
       closeModal();
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not save product.');
+      alert(err.response?.data?.message || t('productPanel.errorSave'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    if (!window.confirm(t('productPanel.confirmDelete'))) return;
     try {
       await api.delete(`/products/${id}`);
       setProducts(products.filter(p => p.id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not delete product.');
+      alert(err.response?.data?.message || t('productPanel.errorDelete'));
     }
   };
 
@@ -125,9 +119,9 @@ export default function ProductPanel() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Products</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('productPanel.title')}</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {isAdmin ? 'Manage system products and categories.' : 'Your authorized products.'}
+            {isAdmin ? t('productPanel.subtitleAdmin') : t('productPanel.subtitleUser')}
           </p>
         </div>
         {isAdmin && (
@@ -136,7 +130,7 @@ export default function ProductPanel() {
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            New Product
+            {t('productPanel.newProduct')}
           </button>
         )}
       </div>
@@ -152,9 +146,9 @@ export default function ProductPanel() {
         <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
           style={{ borderColor: 'var(--border-color)' }}>
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            System Products
+            {t('productPanel.systemProducts')}
             <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
-              ({filtered.length} total)
+              {t('productPanel.totalCount', { count: filtered.length })}
             </span>
           </span>
           <div className="relative">
@@ -162,7 +156,7 @@ export default function ProductPanel() {
               style={{ color: 'var(--text-tertiary)' }} />
             <input
               type="text"
-              placeholder="Search products…"
+              placeholder={t('productPanel.searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="rounded-lg border pl-8 pr-8 py-1.5 text-xs outline-none focus:ring-2 w-48"
@@ -182,11 +176,11 @@ export default function ProductPanel() {
           <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>ID</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Product Name</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Maximum Concurrent Tickets</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '150px' }}>Actions</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colId')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colName')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colStatus')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colMaxTickets')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '150px' }}>{t('productPanel.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -200,13 +194,13 @@ export default function ProductPanel() {
                         ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
                     }`}>
-                      {product.isActive ? 'Active' : 'Inactive'}
+                      {product.isActive ? t('productPanel.statusActive') : t('productPanel.statusInactive')}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {product.maxActiveTickets == null ? (
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
-                        Limitsiz
+                        {t('productPanel.unlimited')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
@@ -222,7 +216,7 @@ export default function ProductPanel() {
                         onClick={() => navigate(`/products/${product.id}`)}
                       >
                         <Eye className="h-3 w-3" />
-                        View
+                        {t('productPanel.view')}
                       </button>
                       {isAdmin && (
                         <>
@@ -232,14 +226,14 @@ export default function ProductPanel() {
                             onClick={() => openModal(product)}
                           >
                             <Pencil className="h-3 w-3" />
-                            Edit
+                            {t('productPanel.edit')}
                           </button>
                           <button
                             className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
                             onClick={() => handleDelete(product.id)}
                           >
                             <Trash2 className="h-3 w-3" />
-                            Delete
+                            {t('productPanel.delete')}
                           </button>
                         </>
                       )}
@@ -250,7 +244,7 @@ export default function ProductPanel() {
               {paginated.length === 0 && (
                 <tr>
                   <td colSpan="5" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                    {search ? 'No products match your search.' : 'No products found.'}
+                    {search ? t('productPanel.noProductsFiltered') : t('productPanel.noProducts')}
                   </td>
                 </tr>
               )}
@@ -268,7 +262,6 @@ export default function ProductPanel() {
         />
       </div>
 
-      {/* Urun ekleme/duzenleme islemlerini yapan modal. */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={closeModal}>
           <div
@@ -278,7 +271,7 @@ export default function ProductPanel() {
           >
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                {currentProduct ? 'Edit Product' : 'New Product'}
+                {currentProduct ? t('productPanel.modalEditTitle') : t('productPanel.modalNewTitle')}
               </h3>
               <button onClick={closeModal} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
                 <X className="h-5 w-5" />
@@ -286,9 +279,9 @@ export default function ProductPanel() {
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Product Name</label>
-                <input 
-                  type="text" 
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelName')}</label>
+                <input
+                  type="text"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g. E-Commerce Module"
@@ -297,26 +290,26 @@ export default function ProductPanel() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>Maximum Concurrent Tickets</label>
-                <input 
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelMaxTickets')}</label>
+                <input
                   type="number"
                   min="1"
                   value={formData.maxActiveTickets}
                   onChange={e => setFormData({ ...formData, maxActiveTickets: e.target.value })}
-                  placeholder="Unlimited"
+                  placeholder={t('productPanel.placeholderUnlimited')}
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>If left empty, the product will be unlimited. Enter a number to set the maximum concurrent tickets per agent.</p>
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('productPanel.hintMaxTickets')}</p>
               </div>
               <label className="flex items-center gap-2.5 cursor-pointer">
-                <input 
+                <input
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
                   className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 cursor-pointer"
                 />
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Active (Available for use)</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelActive')}</span>
               </label>
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
@@ -325,13 +318,13 @@ export default function ProductPanel() {
                 className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
               >
-                Cancel
+                {t('productPanel.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
               >
-                Save
+                {t('productPanel.save')}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTicketList } from '../hooks/useTicketList';
@@ -9,7 +10,6 @@ import TicketFilters from '../components/TicketFilters';
 import PaginationBar from '../components/PaginationBar';
 import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
-// Declared outside component to avoid re-creation on every render
 function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort }) {
   return (
     <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
@@ -31,6 +31,7 @@ function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort
 }
 
 export default function ProductPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { getPrimaryRole } = useAuth();
@@ -87,10 +88,10 @@ export default function ProductPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3" style={{ color: 'var(--text-tertiary)' }}>
         <Package className="h-12 w-12 opacity-30" />
-        <p className="text-sm">Product not found or access denied.</p>
+        <p className="text-sm">{t('product.notFound')}</p>
         <button onClick={() => navigate('/products')}
           className="mt-2 text-sm font-medium text-primary-500 hover:underline cursor-pointer">
-          Back to Products
+          {t('product.backToProducts')}
         </button>
       </div>
     );
@@ -105,7 +106,7 @@ export default function ProductPage() {
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}>
           <ArrowLeft className="h-4 w-4" />
-          Back to Products
+          {t('product.backToProducts')}
         </button>
 
         <div className="flex items-start justify-between">
@@ -121,7 +122,7 @@ export default function ProductPage() {
                   ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
                   : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
               }`}>
-                {product.isActive ? 'Active' : 'Inactive'}
+                {product.isActive ? t('product.statusActive') : t('product.statusInactive')}
               </span>
             </div>
           </div>
@@ -130,17 +131,17 @@ export default function ProductPage() {
               className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
               <Settings className="h-4 w-4" />
-              Manage Products
+              {t('product.manageProducts')}
             </button>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Tickets" value={totalItems}                                                                                    icon={Ticket}        color="#3b82f6" />
-        <StatCard label="Active (page)"  value={tickets.filter(t => ['NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER'].includes(t.status)).length}  icon={Activity}      color="#f59e0b" />
-        <StatCard label="SLA Breached"   value={tickets.filter(t => t.slaBreached).length}                                                    icon={AlertTriangle}  color="#ef4444" />
-        <StatCard label="Resolved"       value={tickets.filter(t => t.status === 'RESOLVED').length}                                          icon={CheckCircle}   color="#10b981" />
+        <StatCard label={t('product.statTotal')}      value={totalItems}                                                                                    icon={Ticket}        color="#3b82f6" />
+        <StatCard label={t('product.statActive')}     value={tickets.filter(tk => ['NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER'].includes(tk.status)).length}  icon={Activity}      color="#f59e0b" />
+        <StatCard label={t('product.statSlaBreached')} value={tickets.filter(tk => tk.slaBreached).length}                                                   icon={AlertTriangle}  color="#ef4444" />
+        <StatCard label={t('product.statResolved')}   value={tickets.filter(tk => tk.status === 'RESOLVED').length}                                          icon={CheckCircle}   color="#10b981" />
       </div>
 
       {error && (
@@ -153,7 +154,7 @@ export default function ProductPage() {
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <div className="px-6 py-4 border-b text-sm font-semibold flex items-center justify-between"
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-          <span>Tickets</span>
+          <span>{t('product.ticketsSection')}</span>
           <span className="text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>{totalItems} total</span>
         </div>
 
@@ -177,19 +178,19 @@ export default function ProductPage() {
         ) : tickets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
             <Ticket className="h-10 w-10 mb-3 opacity-25" />
-            <p className="text-sm">No tickets match your filters.</p>
+            <p className="text-sm">{t('product.noTickets')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortTh field="id"          label="ID"       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="title"       label="Title"    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="status"      label="Status"   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="priority"    label="Priority" sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
-                  <SortTh field="slaDeadline" label="SLA"      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="createdAt"   label="Created"  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
+                  <SortTh field="slaDeadline" label={t('ticket.table.sla')}      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                 </tr>
               </thead>
               <tbody>

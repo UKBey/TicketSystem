@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTicketList } from '../../hooks/useTicketList';
@@ -10,7 +11,6 @@ import PaginationBar from '../../components/PaginationBar';
 import AgentSelectionModal from '../../components/AgentSelectionModal';
 import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Inbox, Users } from 'lucide-react';
 
-// Declared outside component to avoid re-creation on every render
 function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort }) {
   return (
     <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
@@ -32,6 +32,7 @@ function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort
 }
 
 export default function TeamTickets() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
   const [joiningId, setJoiningId] = useState(null);
@@ -56,9 +57,8 @@ export default function TeamTickets() {
     refetch,
   } = useTicketList('/tickets/team', { sortBy: 'createdAt', sortDir: 'desc' });
 
-  // Filter out tickets the current user already claimed (client-side)
   const displayedTickets = tickets.filter(
-    (t) => !t.claimers?.some((c) => c.agentId === currentUserId)
+    (tk) => !tk.claimers?.some((c) => c.agentId === currentUserId)
   );
 
   useEffect(() => {
@@ -99,9 +99,9 @@ export default function TeamTickets() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Team Tickets</h1>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('teamTickets.title')}</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Active tickets in your authorized products. Join any ticket to collaborate.
+          {t('teamTickets.subtitle')}
         </p>
       </div>
 
@@ -134,24 +134,24 @@ export default function TeamTickets() {
         ) : displayedTickets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-8" style={{ color: 'var(--text-tertiary)' }}>
             <Inbox className="h-12 w-12 mb-4 opacity-30" />
-            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>No active team tickets</h3>
-            <p className="text-sm">No claimed tickets in your product area right now.</p>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('teamTickets.emptyTitle')}</h3>
+            <p className="text-sm">{t('teamTickets.emptySubtitle')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortTh field="id"          label="ID"       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="title"       label="Title"    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="status"      label="Status"   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="priority"    label="Priority" sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
-                  <SortTh field="slaDeadline" label="SLA"      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                  <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
+                  <SortTh field="slaDeadline" label={t('ticket.table.sla')}      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Claimers</th>
-                  <SortTh field="createdAt"   label="Created"  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
+                  <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                   <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>Action</th>
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +180,7 @@ export default function TeamTickets() {
                     <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
                     <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>
                     <td className="px-4 py-3">
-                      <ClaimerAvatars claimers={ticket.claimers} currentUserId={currentUserId} />
+                      <ClaimerAvatars claimers={ticket.claimers} currentUserId={currentUserId} youLabel={t('ticket.table.you')} />
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {formatDate(ticket.createdAt)}
@@ -192,13 +192,13 @@ export default function TeamTickets() {
                           disabled={joiningId === ticket.id}
                           onClick={(e) => handleJoin(ticket.id, e)}>
                           <Users className="h-3 w-3" />
-                          {joiningId === ticket.id ? 'Joining…' : 'Join'}
+                          {joiningId === ticket.id ? t('teamTickets.joining') : t('teamTickets.join')}
                         </button>
                         {isAgentAdmin && (
                           <button
                             className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
                             onClick={(e) => handleOpenAssign(ticket, e)}>
-                            Assign
+                            {t('ticket.actions.assign')}
                           </button>
                         )}
                       </div>
@@ -227,7 +227,7 @@ export default function TeamTickets() {
   );
 }
 
-function ClaimerAvatars({ claimers, currentUserId }) {
+function ClaimerAvatars({ claimers, currentUserId, youLabel }) {
   if (!claimers || claimers.length === 0) {
     return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>—</span>;
   }
@@ -240,7 +240,7 @@ function ClaimerAvatars({ claimers, currentUserId }) {
             ? { backgroundColor: '#dbeafe', color: '#1d4ed8' }
             : { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
           {c.agentName?.split(' ')[0] ?? 'Agent'}
-          {c.agentId === currentUserId && ' (you)'}
+          {c.agentId === currentUserId && ` (${youLabel})`}
         </span>
       ))}
     </div>

@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 
 export default function History() {
+  const { t } = useTranslation();
+
   const {
     tickets, totalPages, totalItems, loading, error,
     page, setPage, size, setSize,
@@ -24,8 +27,8 @@ export default function History() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>History</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Previously closed tickets you worked on.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('history.title')}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('history.subtitle')}</p>
       </div>
 
       {error && (

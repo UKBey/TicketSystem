@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
@@ -41,11 +42,12 @@ function formatHours(value) {
   if (value === null || value === undefined) {
     return '0.0h';
   }
-
   return `${Number(value).toFixed(1)}h`;
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -99,7 +101,7 @@ export default function Dashboard() {
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
-      setError(requestError.response?.data?.message || 'Dashboard metrics could not be loaded.');
+      setError(requestError.response?.data?.message || t('dashboard.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -133,38 +135,38 @@ export default function Dashboard() {
 
   const kpis = useMemo(() => ([
     {
-      title: 'Open Tickets',
+      title: t('dashboard.kpiOpenTickets'),
       value: formatNumber(summary.totalOpenTickets),
-      detail: `+${formatNumber(summary.newTicketsLast24Hours)} new in the last 24h`,
+      detail: t('dashboard.kpiOpenDetail', { count: formatNumber(summary.newTicketsLast24Hours) }),
       icon: LayoutDashboard,
       accent: 'bg-primary-500',
     },
     {
-      title: 'SLA Breach',
+      title: t('dashboard.kpiSlaTitle'),
       value: `${formatNumber(summary.slaBreachedCount)}`,
-      detail: `${summary.slaBreachedPercentage?.toFixed(1) ?? '0.0'}% rate`,
+      detail: t('dashboard.kpiSlaDetail', { pct: summary.slaBreachedPercentage?.toFixed(1) ?? '0.0' }),
       icon: ShieldAlert,
       accent: 'bg-danger-500',
     },
     {
-      title: 'Avg. Resolution Time',
+      title: t('dashboard.kpiResolutionTitle'),
       value: formatHours(summary.avgResponseTimeHours),
-      detail: 'Average across RESOLVED tickets',
+      detail: t('dashboard.kpiResolutionDetail'),
       icon: Clock3,
       accent: 'bg-warning-500',
     },
     {
-      title: 'CSAT',
+      title: t('dashboard.kpiCsatTitle'),
       value: `${Number(summary.csatAverage ?? 0).toFixed(1)}/5`,
-      detail: `${formatNumber(summary.csatTotalResponses)} responses`,
+      detail: t('dashboard.kpiCsatDetail', { count: formatNumber(summary.csatTotalResponses) }),
       icon: Star,
       accent: 'bg-accent-500',
     },
-  ]), [summary]);
+  ]), [summary, t]);
 
   const syncLabel = lastUpdated
-    ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    : 'Not yet synced';
+    ? t('dashboard.lastUpdated', { time: lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) })
+    : t('dashboard.notYetSynced');
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -175,22 +177,22 @@ export default function Dashboard() {
             <div className="max-w-2xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
                 <LayoutDashboard className="h-3.5 w-3.5" />
-                Manager Dashboard
+                {t('dashboard.badge')}
               </div>
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                Your operations at a glance.
+                {t('dashboard.heading')}
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: 'var(--text-secondary)' }}>
-                A control panel showing open ticket volume, SLA pressure and customer satisfaction in one place — built for fast decisions.
+                {t('dashboard.description')}
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-3 text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  Live summary metrics
+                  {t('dashboard.liveSummary')}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                   <RefreshCw className="h-3.5 w-3.5" />
-                  Last updated: {syncLabel}
+                  {syncLabel}
                 </span>
               </div>
             </div>
@@ -203,7 +205,7 @@ export default function Dashboard() {
               style={{ backgroundColor: 'var(--bg-sidebar)', color: 'var(--text-inverse)' }}
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing' : 'Refresh data'}
+              {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
             </button>
           </div>
         </div>

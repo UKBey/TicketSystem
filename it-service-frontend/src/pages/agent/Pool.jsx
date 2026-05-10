@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTicketList } from '../../hooks/useTicketList';
@@ -9,6 +10,7 @@ import PaginationBar from '../../components/PaginationBar';
 import AgentSelectionModal from '../../components/AgentSelectionModal';
 
 export default function Pool() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isAgentAdmin = hasRole('AGENT_ADMIN');
@@ -55,8 +57,8 @@ export default function Pool() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Pool</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Unassigned tickets waiting to be claimed.</p>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('pool.title')}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('pool.subtitle')}</p>
       </div>
 
       {error && (
