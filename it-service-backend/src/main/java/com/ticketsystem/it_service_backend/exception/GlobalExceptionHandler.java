@@ -1,6 +1,9 @@
 package com.ticketsystem.it_service_backend.exception;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,11 +15,21 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Log4j2 // Uygulama genelindeki hatalari merkezden loglayip standart hata cevabi uretir.
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final MessageSource messageSource;
+
+    // useCodeAsDefaultMessage=true olduğundan: key properties'te varsa çeviri döner,
+    // yoksa key'in kendisi döner — geriye dönük uyumluluğu korur.
+    private String msg(String key, Object... args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
+    }
 
     // Servis katmaninin bilerek firlattigi is kurali hatalarini yakalar.
     @ExceptionHandler(ResponseStatusException.class)
@@ -24,9 +37,10 @@ public class GlobalExceptionHandler {
         // Beklenen is kurali ihlallerini hata yerine uyari seviyesinde kaydederiz.
         log.warn("Kontrollü Servis Hatası ({}): {}", ex.getStatusCode(), ex.getReason());
 
+        String message = ex.getReason() != null ? msg(ex.getReason()) : "";
         ErrorResponse error = ErrorResponse.builder()
                 .status(ex.getStatusCode().value())
-                .message(ex.getReason())
+                .message(message)
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, ex.getStatusCode());
@@ -38,9 +52,10 @@ public class GlobalExceptionHandler {
         // Giris verisi hatalarinda istemciye acik bir geri bildirim verir.
         log.warn("Doğrulama Hatası (400 BAD_REQUEST): {}", ex.getMessage());
 
+        String message = ex.getMessage() != null ? msg(ex.getMessage()) : msg("error.unexpected", (Object) null);
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
+                .message(message)
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
@@ -48,16 +63,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        Locale locale = LocaleContextHolder.getLocale();
         Map<String, String> fieldErrors = new LinkedHashMap<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+            // Spring'in MessageSourceResolvable implementasyonunu kullanarak field mesajını locale'e göre çözer.
+            fieldErrors.put(fieldError.getField(), messageSource.getMessage(fieldError, locale));
         }
 
         log.warn("Doğrulama Hatası (400 BAD_REQUEST): {}", fieldErrors);
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("İstek doğrulaması başarısız oldu.")
+                .message(msg("error.validation.failed"))
                 .fieldErrors(fieldErrors)
                 .timestamp(System.currentTimeMillis())
                 .build();
@@ -73,7 +90,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.FORBIDDEN.value())
-                .message("Bu işlem için yetkiniz bulunmuyor.")
+                .message(msg("error.access.denied"))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
@@ -87,7 +104,7 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.CONFLICT.value())
                 .error("TICKET_LIMIT_EXCEEDED")
-                .message(ex.getMessage())
+                .message(msg(ex.getMessage()))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
@@ -100,7 +117,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.NOT_FOUND.value())
-                .message("İstenen kaynak bulunamadı: " + ex.getResourcePath())
+                .message(msg("error.resource.not.found", ex.getResourcePath()))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
@@ -114,7 +131,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Beklenmedik bir hata oluştu: " + ex.getMessage())
+                .message(msg("error.unexpected", ex.getMessage()))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
