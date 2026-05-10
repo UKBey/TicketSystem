@@ -3,6 +3,7 @@ import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './notifications/NotificationBell';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ export default function Navbar() {
     >
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <LanguageSwitcher />
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
