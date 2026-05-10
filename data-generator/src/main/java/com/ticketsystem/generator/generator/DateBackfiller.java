@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -12,12 +13,17 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * API üzerinden oluşturulan biletlerin tarihlerini
- * doğrudan PostgreSQL'e yazarak geriye çeker.
+ * API üzerinden oluşturulan biletlerin tarihlerini ve SLA alanlarını
+ * doğrudan PostgreSQL'e yazarak gerçekçi tarihsel veri üretir.
  *
- * Biletler son DATE_SPREAD_DAYS gün içinde rastgele dağıtılır.
- * Durum geçişleri mantıksal sırayı korur:
- *   created_at < resolved_at < closed_at
+ * Durum bazlı SLA backfill stratejisi:
+ *   NEW               — SLA aktif, son (sla_duration * 0-80%) süresi içinde oluşturulmuş,
+ *                        deadline gelecekte görünür.
+ *   IN_PROGRESS       — SLA aktif, agent kısa süre önce claim almış;
+ *                        sla_resumed_at son (remaining * 0-70%) içinde ayarlanır.
+ *   WAITING_FOR_CUSTOMER — SLA duraklatılmış, bütçenin %20-75'i harcanmış.
+ *   RESOLVED          — SLA duraklatılmış, bütçenin %30-95'i harcanmış.
+ *   CLOSED            — SLA duraklatılmış (RESOLVED'dakiyle aynı), süreç tamamlanmış.
  */
 public class DateBackfiller {
 
@@ -30,7 +36,7 @@ public class DateBackfiller {
             return;
         }
 
-        log.info("Tarihler geriye çekiliyor ({} bilet, son {} gün)...",
+        log.info("Tarihler ve SLA alanları güncelleniyor ({} bilet, son {} gün)...",
                 ticketIds.size(), GeneratorConfig.DATE_SPREAD_DAYS);
 
         try (Connection conn = DriverManager.getConnection(
@@ -41,19 +47,27 @@ public class DateBackfiller {
             conn.setAutoCommit(false);
             backfillTickets(conn, ticketIds);
             conn.commit();
-            log.info("Tarih geriye çekme tamamlandı.");
+            log.info("Güncelleme tamamlandı.");
 
         } catch (SQLException e) {
             log.error("Veritabanı bağlantısı kurulamadı: {}", e.getMessage());
-            log.warn("Tarihler güncel kalacak — biletler bugünün tarihi ile görünecek.");
+            log.warn("Tarihler ve SLA alanları güncel kalacak.");
         }
     }
 
     private void backfillTickets(Connection conn, List<Long> ticketIds) throws SQLException {
-        // Biletlerin mevcut durumlarını çek
         String selectSql = "SELECT id, status, priority FROM tickets WHERE id = ANY(?)";
-        String updateSql = "UPDATE tickets SET created_at = ?, sla_deadline = ?, " +
-                           "resolved_at = ?, closed_at = ? WHERE id = ?";
+        String updateSql = """
+                UPDATE tickets
+                   SET created_at     = ?,
+                       sla_deadline   = ?,
+                       sla_elapsed_ms = ?,
+                       sla_paused_at  = ?,
+                       sla_resumed_at = ?,
+                       resolved_at    = ?,
+                       closed_at      = ?
+                 WHERE id = ?
+                """;
 
         List<Long> idList = new ArrayList<>(ticketIds);
         Array sqlArray = conn.createArrayOf("bigint",
@@ -67,29 +81,77 @@ public class DateBackfiller {
 
             int count = 0;
             while (rs.next()) {
-                long id       = rs.getLong("id");
+                long   id       = rs.getLong("id");
                 String status   = rs.getString("status");
                 String priority = rs.getString("priority");
 
-                ZonedDateTime createdAt   = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                long durationMs = slaHoursForPriority(priority) * 3_600_000L;
+
+                // --- Ortak: created_at ---
+                ZonedDateTime createdAt;
+                ZonedDateTime resolvedAt  = null;
+                ZonedDateTime closedAt    = null;
+                long          elapsedMs   = 0L;
+                ZonedDateTime pausedAt    = null;
+                ZonedDateTime resumedAt   = null;
+
+                switch (status) {
+                    case "NEW" -> {
+                        // created_at: SLA'nın bitmemesi için son (duration * 0–80%) içinde
+                        long maxAgeMs = (long) (durationMs * 0.8);
+                        createdAt = now().minus(Duration.ofMillis(randLong(0, maxAgeMs)));
+                        elapsedMs = 0L;
+                        // pausedAt, resumedAt → null (aktif sayaç createdAt'ten başlar)
+                    }
+                    case "IN_PROGRESS" -> {
+                        // Tarihsel oluşturma tarihi
+                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        // Agent kısa süre önce claim aldı; bütçenin %5-35'ini harcadı
+                        double elapsedRatio = 0.05 + RNG.nextDouble() * 0.30;
+                        elapsedMs = (long) (durationMs * elapsedRatio);
+                        long remainingMs = durationMs - elapsedMs;
+                        // sla_resumed_at: deadline gelecekte olacak şekilde ayarla
+                        long resumeOffsetMs = (long) (remainingMs * RNG.nextDouble() * 0.70);
+                        resumedAt = now().minus(Duration.ofMillis(resumeOffsetMs));
+                        // pausedAt → null (aktif)
+                    }
+                    case "WAITING_FOR_CUSTOMER" -> {
+                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        // Agent bütçenin %20-75'ini harcadı, sonra müşteriden bilgi istedi
+                        double elapsedRatio = 0.20 + RNG.nextDouble() * 0.55;
+                        elapsedMs = (long) (durationMs * elapsedRatio);
+                        pausedAt  = createdAt.plus(Duration.ofMillis(elapsedMs));
+                    }
+                    case "RESOLVED" -> {
+                        createdAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        resolvedAt = createdAt.plusHours(1 + RNG.nextInt(48));
+                        double elapsedRatio = 0.30 + RNG.nextDouble() * 0.65;
+                        elapsedMs = (long) (durationMs * elapsedRatio);
+                        pausedAt  = resolvedAt; // SLA çözüm anında duraklatıldı
+                    }
+                    case "CLOSED" -> {
+                        createdAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        resolvedAt = createdAt.plusHours(1 + RNG.nextInt(48));
+                        closedAt   = resolvedAt.plusHours(1 + RNG.nextInt(24));
+                        double elapsedRatio = 0.30 + RNG.nextDouble() * 0.65;
+                        elapsedMs = (long) (durationMs * elapsedRatio);
+                        pausedAt  = resolvedAt; // RESOLVED'dan gelen duraklama korunur
+                    }
+                    default -> {
+                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                    }
+                }
+
                 ZonedDateTime slaDeadline = createdAt.plusHours(slaHoursForPriority(priority));
-                ZonedDateTime resolvedAt = null;
-                ZonedDateTime closedAt   = null;
 
-                if ("RESOLVED".equals(status) || "CLOSED".equals(status)) {
-                    // Çözüm: oluşturma + 1-48 saat sonra
-                    resolvedAt = createdAt.plusHours(1 + RNG.nextInt(48));
-                }
-                if ("CLOSED".equals(status) && resolvedAt != null) {
-                    // Kapanış: çözüm + 1-24 saat sonra
-                    closedAt = resolvedAt.plusHours(1 + RNG.nextInt(24));
-                }
-
-                upd.setTimestamp(1, toTimestamp(createdAt));
-                upd.setTimestamp(2, toTimestamp(slaDeadline));
-                upd.setTimestamp(3, resolvedAt != null ? toTimestamp(resolvedAt) : null);
-                upd.setTimestamp(4, closedAt   != null ? toTimestamp(closedAt)   : null);
-                upd.setLong(5, id);
+                upd.setTimestamp(1, toTs(createdAt));
+                upd.setTimestamp(2, toTs(slaDeadline));
+                upd.setLong     (3, elapsedMs);
+                upd.setTimestamp(4, toTs(pausedAt));
+                upd.setTimestamp(5, toTs(resumedAt));
+                upd.setTimestamp(6, toTs(resolvedAt));
+                upd.setTimestamp(7, toTs(closedAt));
+                upd.setLong     (8, id);
                 upd.addBatch();
                 count++;
 
@@ -100,25 +162,33 @@ public class DateBackfiller {
             }
 
             upd.executeBatch();
-            log.info("Toplam {} biletin tarihi güncellendi.", count);
+            log.info("Toplam {} biletin tarihi ve SLA alanları güncellendi.", count);
         }
     }
 
-    /**
-     * Son {@code days} gün içinde rastgele bir zaman döner.
-     */
+    // ---------------------------------------------------------------
+    // Yardımcı metodlar
+    // ---------------------------------------------------------------
+
     private ZonedDateTime randomPastDate(int days) {
-        long nowEpoch    = ZonedDateTime.now(ZoneOffset.UTC).toEpochSecond();
-        long daysInSecs  = (long) days * 24 * 3600;
-        long randomSecs  = (long) (RNG.nextDouble() * daysInSecs);
+        long nowEpoch   = now().toEpochSecond();
+        long daysInSecs = (long) days * 24 * 3600;
+        long randomSecs = (long) (RNG.nextDouble() * daysInSecs);
         return ZonedDateTime.ofInstant(
                 java.time.Instant.ofEpochSecond(nowEpoch - randomSecs),
                 ZoneOffset.UTC);
     }
 
+    private ZonedDateTime now() {
+        return ZonedDateTime.now(ZoneOffset.UTC);
+    }
+
+    private long randLong(long min, long max) {
+        return min + (long) (RNG.nextDouble() * (max - min));
+    }
+
     /**
-     * Bilet önceliğine göre SLA süresi (saat) — WorkflowService ile aynı değerler.
-     * LOW=48, MEDIUM=12, HIGH=4, CRITICAL=1
+     * Bilet önceliğine göre SLA süresi (saat) — WorkflowService ile senkron.
      */
     private int slaHoursForPriority(String priority) {
         if (priority == null) return 12;
@@ -131,7 +201,7 @@ public class DateBackfiller {
         };
     }
 
-    private Timestamp toTimestamp(ZonedDateTime zdt) {
+    private Timestamp toTs(ZonedDateTime zdt) {
         return zdt != null ? Timestamp.from(zdt.toInstant()) : null;
     }
 }

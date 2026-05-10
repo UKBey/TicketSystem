@@ -74,6 +74,8 @@ class TicketServiceTest {
     private TicketClaimRepository ticketClaimRepository;
     @Mock
     private TicketAuditLogRepository ticketAuditLogRepository;
+    @Mock
+    private SlaPolicyService slaPolicyService;
 
     @InjectMocks
     private TicketService ticketService;
@@ -113,6 +115,7 @@ class TicketServiceTest {
                 .build();
 
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
             Ticket toSave = invocation.getArgument(0);
             toSave.setId(101L);
@@ -124,6 +127,7 @@ class TicketServiceTest {
         assertNotNull(saved.getId());
         assertEquals("NEW", saved.getStatus());
         assertEquals("customer-1", saved.getCustomerId());
+        assertNotNull(saved.getSlaDeadline(), "slaDeadline bilet oluşturulurken set edilmeli");
 
         ArgumentCaptor<Comment> commentCaptor = ArgumentCaptor.forClass(Comment.class);
         verify(commentRepository, times(1)).save(commentCaptor.capture());
@@ -628,9 +632,9 @@ class TicketServiceTest {
     @Test
     void getSlaTimerInfoByTicket_delegatesToWorkflowService() {
         Ticket existing = Ticket.builder().id(501L).build();
-        when(workflowService.getSlaTimerInfo(existing)).thenReturn(Map.of("deadlineTs", 12345L));
+        when(workflowService.getSlaTimerInfo(existing)).thenReturn(Map.<String, Object>of("deadlineTs", 12345L));
 
-        Map<String, Long> result = ticketService.getSlaTimerInfo(existing);
+        Map<String, Object> result = ticketService.getSlaTimerInfo(existing);
 
         assertEquals(12345L, result.get("deadlineTs"));
         verify(workflowService).getSlaTimerInfo(existing);

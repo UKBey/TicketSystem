@@ -37,22 +37,10 @@ export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
 
   const baseCls = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
 
-  // Sayaç duraklatılmış veya süreç tamamlanmış senaryosu.
-  if (slaInfo.deadlineTimestamp === -1) {
-    if (slaInfo.remainingMs <= 0 && ticket.slaBreached) {
-      return (
-        <span className={`${baseCls} font-bold animate-pulse-subtle`} style={badgeStyle('breach')}>
-          {t('ticketDetail.slaExpired')}
-        </span>
-      );
-    }
-    if (slaInfo.remainingMs > 0) {
-      return (
-        <span className={baseCls} style={badgeStyle('neutral')}>
-          {formatSlaTime(slaInfo.remainingMs)} ({t('ticketDetail.slaPaused')})
-        </span>
-      );
-    }
+  const slaState = slaInfo.slaState;
+
+  // Backend'den gelen slaState değerine göre render — iş mantığı tamamen backend'de.
+  if (slaState === 'completed') {
     return (
       <span className={baseCls} style={badgeStyle('neutral')}>
         {t('ticketDetail.slaCompleted')}
@@ -60,7 +48,23 @@ export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
     );
   }
 
-  // Aktif sayaçta kalan süreyi istemci tarafında saniye saniye günceller.
+  if (slaState === 'expired') {
+    return (
+      <span className={`${baseCls} font-bold animate-pulse-subtle`} style={badgeStyle('breach')}>
+        {t('ticketDetail.slaExpired')}
+      </span>
+    );
+  }
+
+  if (slaState === 'paused') {
+    return (
+      <span className={baseCls} style={badgeStyle('neutral')}>
+        {formatSlaTime(slaInfo.remainingMs)} ({t('ticketDetail.slaPaused')})
+      </span>
+    );
+  }
+
+  // slaState === 'active' — istemci tarafında saniye saniye geri sayım
   const elapsedSinceFetch = tickSeconds * 1000;
   const diff = slaInfo.remainingMs - elapsedSinceFetch;
 

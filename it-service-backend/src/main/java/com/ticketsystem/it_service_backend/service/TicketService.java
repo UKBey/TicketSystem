@@ -53,6 +53,7 @@ public class TicketService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
+    private final SlaPolicyService slaPolicyService;
     private final ApplicationEventPublisher eventPublisher;
     private final CsatRepository csatRepository;
     private final ResolutionNoteRepository resolutionNoteRepository;
@@ -96,6 +97,11 @@ public class TicketService {
 
         ticket.setCustomerId(customerId);
         ticket.setStatus("NEW");
+
+        // SLA deadline'ı bilet oluşturulurken hemen hesaplanır.
+        // Bu sayede scheduler ve getSlaTimerInfo her zaman tutarlı bir deadline'a sahip olur.
+        long slaDurationMs = slaPolicyService.getSlaDurationMs(ticket.getPriority());
+        ticket.setSlaDeadline(ZonedDateTime.now().plusSeconds(slaDurationMs / 1000));
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
@@ -975,13 +981,13 @@ public class TicketService {
     // SLA
     // -----------------------------------------------------------------
 
-    public Map<String, Long> getSlaTimerInfo(Long id) {
+    public Map<String, Object> getSlaTimerInfo(Long id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Bilet bulunamadı: " + id));
         return workflowService.getSlaTimerInfo(ticket);
     }
 
-    public Map<String, Long> getSlaTimerInfo(Ticket ticket) {
+    public Map<String, Object> getSlaTimerInfo(Ticket ticket) {
         return workflowService.getSlaTimerInfo(ticket);
     }
 }

@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -350,21 +351,23 @@ class WorkflowServiceTest {
                 .slaPausedAt(ZonedDateTime.now())
                 .build();
 
-        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
         // CRITICAL=3_600_000ms, elapsed=15_000ms → remaining=3_585_000ms
         assertEquals(3_585_000L, result.get("remainingMs"));
+        assertEquals("paused", result.get("slaState"));
     }
 
     @Test
     void getSlaTimerInfoReturnsBreachedMarker() {
         Ticket ticket = Ticket.builder().slaBreached(true).build();
 
-        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
         assertEquals(0L, result.get("remainingMs"));
+        assertEquals("expired", result.get("slaState"));
     }
 
     @Test
@@ -386,18 +389,50 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void getSlaTimerInfoReturnsRemainingForClosedStatus() {
+    void getSlaTimerInfoReturnsCompletedForClosedStatus() {
         Ticket ticket = Ticket.builder()
                 .priority("HIGH")
                 .status("CLOSED")
                 .slaElapsedMs(120_000L)
                 .build();
 
-        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
 
         assertEquals(-1L, result.get("deadlineTimestamp"));
-        // HIGH=14_400_000ms, elapsed=120_000ms → remaining=14_280_000ms
-        assertEquals(14_280_000L, result.get("remainingMs"));
+        assertEquals(0L, result.get("remainingMs"));
+        assertEquals("completed", result.get("slaState"));
+    }
+
+    @Test
+    void getSlaTimerInfoClosedWithBreachedReturnsCompleted() {
+        // CLOSED + slaBreached: ihlal DB'de kayıtlı ama badge "completed" gösterir
+        Ticket ticket = Ticket.builder()
+                .priority("HIGH")
+                .status("CLOSED")
+                .slaBreached(true)
+                .slaElapsedMs(14_400_001L)
+                .build();
+
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
+
+        assertEquals("completed", result.get("slaState"));
+    }
+
+    @Test
+    void getSlaTimerInfoReturnsExpiredWhenElapsedExceedsDuration() {
+        // slaBreached henüz set edilmemiş ama süre dolmuş → expired
+        Ticket ticket = Ticket.builder()
+                .priority("CRITICAL")
+                .status("RESOLVED")
+                .slaBreached(false)
+                .slaElapsedMs(3_600_001L) // CRITICAL=3_600_000ms, 1ms aşım
+                .build();
+
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
+
+        assertEquals(-1L, result.get("deadlineTimestamp"));
+        assertEquals(0L, result.get("remainingMs"));
+        assertEquals("expired", result.get("slaState"));
     }
 
     @Test
@@ -409,11 +444,12 @@ class WorkflowServiceTest {
                 .slaElapsedMs(30_000L)
                 .build();
 
-        Map<String, Long> result = workflowService.getSlaTimerInfo(ticket);
+        Map<String, Object> result = workflowService.getSlaTimerInfo(ticket);
 
         assertNotNull(result.get("deadlineTimestamp"));
         assertNotNull(result.get("remainingMs"));
-        assertFalse(result.get("deadlineTimestamp") < 0);
-        assertFalse(result.get("remainingMs") < 0);
+        assertTrue((Long) result.get("deadlineTimestamp") > 0);
+        assertTrue((Long) result.get("remainingMs") >= 0);
+        assertEquals("active", result.get("slaState"));
     }
 }

@@ -346,7 +346,7 @@ public class TicketController {
     @Operation(summary = "SLA zamanlayıcı bilgisi")
     @GetMapping("/{id}/sla-timer")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
-    public ResponseEntity<Map<String, Long>> getSlaTimer(
+    public ResponseEntity<Map<String, Object>> getSlaTimer(
             @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);

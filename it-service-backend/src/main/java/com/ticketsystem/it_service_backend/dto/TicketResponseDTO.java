@@ -72,8 +72,8 @@ public class TicketResponseDTO {
     @Schema(description = "Bilete CSAT anketi doldurulmuş mu?", example = "true")
     private Boolean hasCsat;
 
-    @Schema(description = "Gerçek zamanlı SLA bilgisi")
-    private java.util.Map<String, Long> slaInfo;
+    @Schema(description = "Gerçek zamanlı SLA bilgisi — slaState: active | paused | expired | completed")
+    private java.util.Map<String, Object> slaInfo;
 
     @Schema(description = "Bilet aksiyon denetim günlüğü")
     private List<TicketAuditLogDTO> auditLogs;

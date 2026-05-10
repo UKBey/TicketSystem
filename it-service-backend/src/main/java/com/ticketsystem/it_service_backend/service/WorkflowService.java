@@ -229,36 +229,83 @@ public class WorkflowService {
 
 
     /**
-     * Biletin anlik SLA bilgisini istemci tarafi icin hesaplar.
+     * Biletin anlık SLA bilgisini ve görsel durumunu (slaState) istemci tarafı için hesaplar.
+     *
+     * slaState değerleri:
+     *   "active"    — SLA sayacı çalışıyor (NEW, IN_PROGRESS)
+     *   "paused"    — SLA duraklatıldı, kalan süre var (WAITING_FOR_CUSTOMER, RESOLVED)
+     *   "expired"   — SLA s��resi doldu (ihlal kaydı olsun ya da olmasın)
+     *   "completed" — Bilet kapandı, SLA artık izlenmiyor (CLOSED)
+     *
+     * Karar önceliği:
+     *   1. CLOSED         → her zaman "completed"  (ihlal kaydı DB'de korunur, badge etkilenmez)
+     *   2. slaBreached    → "expired"
+     *   3. Duraklı mod    → remaining > 0 ise "paused", değilse "expired"
+     *   4. Aktif mod      → "active" ile geri sayım
      */
-    public java.util.Map<String, Long> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
-        java.util.Map<String, Long> result = new java.util.HashMap<>();
-        
+    public java.util.Map<String, Object> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        String status = ticket.getStatus() != null ? ticket.getStatus() : "";
+
+        // CLOSED: süreç bitti — ihlal durumundan bağımsız olarak "completed"
+        if ("CLOSED".equals(status)) {
+            result.put("deadlineTimestamp", -1L);
+            result.put("remainingMs", 0L);
+            result.put("slaState", "completed");
+            return result;
+        }
+
+        // Resmi ihlal kaydı varsa → "expired"
         if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
             result.put("deadlineTimestamp", -1L);
             result.put("remainingMs", 0L);
+            result.put("slaState", "expired");
             return result;
         }
 
-        long elapsedMs = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0;
+        long elapsedMs  = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
         long durationMs = getSlaDurationMs(ticket.getPriority());
 
-        if (ticket.getSlaPausedAt() != null || "CLOSED".equals(ticket.getStatus()) || "RESOLVED".equals(ticket.getStatus()) || "WAITING_FOR_CUSTOMER".equals(ticket.getStatus())) {
+        boolean isPaused = ticket.getSlaPausedAt() != null
+                || "RESOLVED".equals(status)
+                || "WAITING_FOR_CUSTOMER".equals(status);
+
+        if (isPaused) {
             long remaining = durationMs - elapsedMs;
             result.put("deadlineTimestamp", -1L);
-            result.put("remainingMs", Math.max(0, remaining));
+            result.put("remainingMs", Math.max(0L, remaining));
+            // Süre dolmuş ama slaBreached henüz set edilmemiş (jBPM gecikmesi) → yine expired
+            result.put("slaState", remaining > 0 ? "paused" : "expired");
             return result;
         }
 
-        // Aktif durumda kalan sure, resume noktasi ve birikmis sureye gore hesaplanir.
-        long resumedMs = ticket.getSlaResumedAt() != null ? ticket.getSlaResumedAt().toInstant().toEpochMilli() : 
-                         (ticket.getCreatedAt() != null ? ticket.getCreatedAt().toInstant().toEpochMilli() : System.currentTimeMillis());
-        
-        long remaining = durationMs - elapsedMs;
-        long deadline = resumedMs + remaining;
+        // Aktif geri sayım — resume noktası ve birikmiş süreye göre hesaplanır.
+        // slaDeadline DB'de varsa onu kullan (en güvenilir kaynak); yoksa dinamik hesapla.
+        long deadline;
+        if (ticket.getSlaDeadline() != null) {
+            deadline = ticket.getSlaDeadline().toInstant().toEpochMilli();
+        } else {
+            long resumedMs = ticket.getSlaResumedAt() != null
+                    ? ticket.getSlaResumedAt().toInstant().toEpochMilli()
+                    : (ticket.getCreatedAt() != null
+                            ? ticket.getCreatedAt().toInstant().toEpochMilli()
+                            : System.currentTimeMillis());
+            long remaining = durationMs - elapsedMs;
+            deadline = resumedMs + remaining;
+        }
+        long remainingMs = deadline - System.currentTimeMillis();
+
+        if (remainingMs <= 0) {
+            // Süre dolmuş ama slaBreached henüz DB'ye yazılmamış (async gecikme) → expired
+            result.put("deadlineTimestamp", deadline);
+            result.put("remainingMs", 0L);
+            result.put("slaState", "expired");
+            return result;
+        }
 
         result.put("deadlineTimestamp", deadline);
-        result.put("remainingMs", Math.max(0, deadline - System.currentTimeMillis()));
+        result.put("remainingMs", remainingMs);
+        result.put("slaState", "active");
         return result;
     }
 

@@ -842,20 +842,23 @@ export default function TicketDetail() {
                 <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('ticketDetail.slaRemaining')}</div>
                 <div>
                   {(() => {
-                      if (slaInfo.deadlineTimestamp === -1) {
-                         if (slaInfo.remainingMs <= 0 && ticket.slaBreached) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />{t('ticketDetail.slaExpired')}</span>;
-                         if (slaInfo.remainingMs > 0) {
-                             const diff = slaInfo.remainingMs;
-                             return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{formatSlaTime(diff)} ({t('ticketDetail.slaPaused')})</span>;
-                         }
-                         return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{t('ticketDetail.slaCompleted')}</span>;
+                      const slaState = slaInfo.slaState;
+
+                      if (slaState === 'completed') {
+                        return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{t('ticketDetail.slaCompleted')}</span>;
                       }
 
-                      let diff = slaInfo.remainingMs;
-                      if (slaInfo.deadlineTimestamp !== -1) {
-                          const elapsedSinceFetch = currentDate - slaInfo.fetchTime;
-                          diff = slaInfo.remainingMs - elapsedSinceFetch;
+                      if (slaState === 'expired') {
+                        return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />{t('ticketDetail.slaExpired')}</span>;
                       }
+
+                      if (slaState === 'paused') {
+                        return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: isDark ? 'rgba(100,116,139,0.3)' : '#f1f5f9', color: isDark ? '#cbd5e1' : '#475569' }}>{formatSlaTime(slaInfo.remainingMs)} ({t('ticketDetail.slaPaused')})</span>;
+                      }
+
+                      // slaState === 'active' — client-side countdown
+                      const elapsedSinceFetch = currentDate - slaInfo.fetchTime;
+                      const diff = slaInfo.remainingMs - elapsedSinceFetch;
 
                       if (diff <= 0) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold animate-pulse-subtle" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}><AlertTriangle className="h-3 w-3 mr-1" />{t('ticketDetail.slaExpired')}</span>;
                       const totalMins = Math.floor(diff / 60000);
