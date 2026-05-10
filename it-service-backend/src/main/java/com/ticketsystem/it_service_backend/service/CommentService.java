@@ -35,7 +35,7 @@ public class CommentService {
 
         Instant last = lastCommentTime.get(userId);
         if (last != null && Instant.now().isBefore(last.plusSeconds(COMMENT_COOLDOWN_SECONDS))) {
-            throw new ResponseStatusException(HttpStatusCode.valueOf(429), "Too many requests. Please wait before sending another comment.");
+            throw new ResponseStatusException(HttpStatusCode.valueOf(429), "error.comment.rate.limit");
         }
 
         // Yorum ekleme, mutasyon yetkisi denetiminden gecmeden ilerlemez.
@@ -45,7 +45,7 @@ public class CommentService {
         boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("AGENT_ADMIN");
         if (isOnlyCustomer && "INTERNAL".equals(type)) {
             log.warn("Yorum reddedildi: Müşteri (ID: {}) dahili yorum eklemeye çalıştı.", userId);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Müşteriler sadece genel yorum ekleyebilir.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.comment.customer.type.forbidden");
         }
 
         Comment comment = Comment.builder()

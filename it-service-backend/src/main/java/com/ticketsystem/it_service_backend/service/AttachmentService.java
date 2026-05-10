@@ -44,13 +44,13 @@ public class AttachmentService {
         // Buyuk dosyalari erken reddederek depolama ve performans maliyeti sinirlanir.
         if (file.getSize() > MAX_FILE_SIZE) {
             log.warn("Yükleme reddedildi: Dosya boyutu sınırda ({} bytes)", file.getSize());
-            throw new IllegalArgumentException("Dosya boyutu 10MB sınırını aşamaz.");
+            throw new IllegalArgumentException("error.attachment.size.exceeded");
         }
 
         // Yalnizca izinli uzantilara sahip dosyalar kabul edilir.
         if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
             log.warn("Yükleme reddedildi: Desteklenmeyen dosya uzantısı ({})", extension);
-            throw new IllegalArgumentException("Desteklenmeyen dosya tipi: " + extension);
+            throw new IllegalArgumentException("error.attachment.unsupported.type");
         }
 
         byte[] content = file.getBytes();
@@ -61,12 +61,11 @@ public class AttachmentService {
             String textContent = new String(content, StandardCharsets.UTF_8);
             if (!textContent.contains("ERROR") && !textContent.contains("WARNING")) {
                 log.warn("Yükleme reddedildi: .txt dosyası gerekli anahtar kelimeleri içermiyor (ERROR/WARNING)");
-                throw new IllegalArgumentException(".txt dosyaları 'ERROR' veya 'WARNING' anahtar kelimelerini içermelidir.");
+                throw new IllegalArgumentException("error.attachment.txt.missing.keywords");
             }
             if (containsSensitiveInfo(textContent)) {
                 log.warn("Yükleme reddedildi: hassas bilgi kalıbı tespit edildi (bilet: {}, dosya: {})", ticketId, fileName);
-                throw new IllegalArgumentException(
-                        "Dosyada olası gizli bilgi tespit edildi. Password, token, secret, API key veya private key gibi ifadeleri kaldırın.");
+                throw new IllegalArgumentException("error.attachment.sensitive.data");
             }
         }
 
@@ -90,7 +89,7 @@ public class AttachmentService {
 
     public Attachment getAttachment(Long id) {
         return attachmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Dosya bulunamadı: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("error.attachment.not.found"));
     }
 
     public void deleteAttachment(Long id, String userId, List<String> roles) {
@@ -108,7 +107,7 @@ public class AttachmentService {
         // Yonetici disinda silme islemi sadece dosyayi yukleyen kullaniciya aciktir.
         if (!userId.equals(attachment.getUploaderId())) {
             log.warn("Silme reddedildi: Kullanıcı ({}) dosyanın sahibi değil (Sahibi: {})", userId, attachment.getUploaderId());
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Sadece kendi yüklediğiniz dosyaları silebilirsiniz.");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "error.attachment.delete.own.only");
         }
 
         attachmentRepository.delete(attachment);

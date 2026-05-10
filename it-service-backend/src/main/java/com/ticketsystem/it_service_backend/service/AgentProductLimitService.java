@@ -40,12 +40,12 @@ public class AgentProductLimitService {
                 agentId, productId, useCustomLimit, maxActiveTickets);
 
         User agent = userRepository.findById(agentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kullanıcı bulunamadı: " + agentId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.user.not.found"));
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ürün bulunamadı: " + productId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));
 
         if (useCustomLimit && maxActiveTickets == null) {
-            throw new IllegalArgumentException("Özel limit kullanılıyorsa maksimum aktif bilet limiti boş bırakılamaz.");
+            throw new IllegalArgumentException("error.agent.limit.required.when.custom");
         }
 
         AgentProductLimit existing = agentProductLimitRepository

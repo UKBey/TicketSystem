@@ -31,7 +31,7 @@ public class ResolutionNoteService {
         // Bos not kabul edilmez.
         if (dto.getNote() == null || dto.getNote().isBlank()) {
             log.warn("Çözüm notu reddedildi: Not içeriği boş olamaz.");
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Çözüm notu içeriği boş olamaz.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.resolution.note.empty");
         }
 
         // Islem oncesi biletin varligi dogrulanir.
@@ -41,21 +41,21 @@ public class ResolutionNoteService {
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
             log.warn("Çözüm notu reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Çözüm notu yalnızca bileti claim almış agent tarafından yazılabilir.");
+                    "error.resolution.note.create.requires.claim");
         }
 
         // Kapanmis kayitlara yeni cozum notu eklenmez.
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Çözüm notu reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Kapalı (CLOSED) biletlere çözüm notu eklenemez.");
+                    "error.resolution.note.ticket.closed");
         }
 
         // Her bilet icin tek cozum notu olmasi kuralini korur.
         if (resolutionNoteRepository.existsByTicketId(ticketId)) {
             log.warn("Çözüm notu reddedildi: Bilete (ID: {}) zaten bir çözüm notu eklenmiş.", ticketId);
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Bu bilete zaten bir çözüm notu eklenmiş. Güncellemek için PUT kullanın.");
+                    "error.resolution.note.already.exists");
         }
 
         ResolutionNote resolutionNote = ResolutionNote.builder()
@@ -78,7 +78,7 @@ public class ResolutionNoteService {
         // Bos notla guncelleme yapilmaz.
         if (dto.getNote() == null || dto.getNote().isBlank()) {
             log.warn("Çözüm notu güncelleme reddedildi: Not içeriği boş olamaz.");
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Çözüm notu içeriği boş olamaz.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.resolution.note.empty");
         }
 
         // Islem yapilacak bilet once dogrulanir.
@@ -88,14 +88,14 @@ public class ResolutionNoteService {
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
             log.warn("Çözüm notu güncelleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Çözüm notu yalnızca bileti claim almış agent tarafından güncellenebilir.");
+                    "error.resolution.note.update.requires.claim");
         }
 
         // Kapanmis bilette not degistirilemez.
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Çözüm notu güncelleme reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Kapalı (CLOSED) biletlerin çözüm notu güncellenemez.");
+                    "error.resolution.note.update.ticket.closed");
         }
 
         // Guncellenecek mevcut not kaydi bulunur.
@@ -103,7 +103,7 @@ public class ResolutionNoteService {
                 .orElseThrow(() -> {
                     log.warn("Güncellenecek çözüm notu bulunamadı. Bilet ID: {}", ticketId);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Bu bilete ait bir çözüm notu bulunamadı. Önce POST ile oluşturun.");
+                            "error.resolution.note.not.found.create.first");
                 });
 
         resolutionNote.setNote(dto.getNote());
@@ -131,19 +131,19 @@ public class ResolutionNoteService {
             if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, userId)) {
                 log.warn("Çözüm notu görüntüleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", userId);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Yalnızca claim aldığınız biletin çözüm notunu görüntüleyebilirsiniz.");
+                        "error.resolution.note.view.requires.claim");
             }
         } else {
             log.warn("Çözüm notu görüntüleme reddedildi: Yetersiz rol. Kullanıcı: {}", userId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Bu kaynağa erişim yetkiniz bulunmamaktadır.");
+                    "error.resource.access.forbidden");
         }
 
         return resolutionNoteRepository.findByTicketId(ticketId)
                 .orElseThrow(() -> {
                     log.warn("Çözüm notu bulunamadı. Bilet ID: {}", ticketId);
                     return new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "Bu bilete ait bir çözüm notu bulunamadı.");
+                            "error.resolution.note.not.found");
                 });
     }
 

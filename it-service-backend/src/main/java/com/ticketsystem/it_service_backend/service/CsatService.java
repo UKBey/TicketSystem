@@ -26,7 +26,7 @@ public class CsatService {
         // Anket puani beklenen aralikta degilse islem erken sonlandirilir.
         if (dto.getRating() == null || dto.getRating() < 1 || dto.getRating() > 5) {
             log.warn("CSAT reddedildi: Geçersiz puan (Rating: {})", dto.getRating());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating değeri 1 ile 5 arasında olmalıdır.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.rating.range");
         }
 
         // CSAT gonderimi icin goruntuleme yetkisi degil, dogrudan sahiplik dogrulanir.
@@ -34,19 +34,19 @@ public class CsatService {
 
         if (!userId.equals(ticket.getCustomerId())) {
             log.warn("CSAT reddedildi: Kullanıcı (ID: {}) biletin sahibi değil (Owner: {})", userId, ticket.getCustomerId());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Sadece kendi biletlerinize anket yapabilirsiniz.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.csat.own.tickets.only");
         }
 
         // Anket yalnizca cozulmus ya da kapanmis kayitlarda kabul edilir.
         if (!"CLOSED".equals(ticket.getStatus()) && !"RESOLVED".equals(ticket.getStatus())) {
             log.warn("CSAT reddedildi: Bilet statüsü uygun değil (Statü: {})", ticket.getStatus());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sadece kapalı veya çözülmüş biletler için anket yapılabilir.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.closed.or.resolved.only");
         }
 
         // Ayni bilete ikinci kez CSAT olusmasini engeller.
         if (csatRepository.existsByTicketId(ticketId)) {
             log.warn("CSAT reddedildi: Bu bilet için zaten bir anket mevcut. Bilet ID: {}", ticketId);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Zaten bir CSAT var, yeni kayıt oluşturulamaz.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.already.exists");
         }
 
         Csat csat = Csat.builder()
@@ -79,7 +79,7 @@ public class CsatService {
         return csatRepository.findByTicketId(ticketId)
                 .orElseThrow(() -> {
                     log.warn("CSAT bulunamadı. Bilet ID: {}", ticketId);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Bu bilet için henüz bir anket yapılmamış.");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "error.csat.not.found");
                 });
     }
 

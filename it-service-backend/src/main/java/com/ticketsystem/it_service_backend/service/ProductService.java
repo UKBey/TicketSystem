@@ -26,18 +26,18 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Product getProductById(Long id, String userId, List<String> roles) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ürün bulunamadı: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));
 
         if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER")) return product;
 
-        if (userId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Erişim yetkisi yok.");
+        if (userId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Kullanıcı bulunamadı: " + userId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.user.not.found"));
 
         boolean authorized = user.getAuthorizedProducts().stream()
                 .anyMatch(p -> p.getId().equals(id));
-        if (!authorized) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu ürüne erişim yetkiniz yok.");
+        if (!authorized) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.product.access.forbidden");
 
         return product;
     }
@@ -116,11 +116,11 @@ public class ProductService {
         log.info("Ürün eşzamanlı bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);
 
         if (limit != null && limit < 1) {
-            throw new IllegalArgumentException("Maksimum eşzamanlı bilet limiti 1 veya daha büyük olmalıdır.");
+            throw new IllegalArgumentException("error.product.limit.minimum");
         }
 
         Product existingProduct = productRepository.findById(productId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ürün bulunamadı: " + productId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));
 
         existingProduct.setMaxActiveTickets(limit);
 

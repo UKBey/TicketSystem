@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.CONFLICT.value())
                 .error("TICKET_LIMIT_EXCEEDED")
-                .message(msg(ex.getMessage()))
+                .message(msg(ex.getMessage(), ex.getMessageArgs()))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);

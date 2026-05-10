@@ -197,10 +197,10 @@ public class NotificationService {
     public void markAsRead(Long notificationId, String userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Notification not found: " + notificationId));
+                        "error.notification.not.found"));
         if (!notification.getUserId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You do not have permission to read this notification.");
+                    "error.notification.access.forbidden");
         }
         notification.setIsRead(true);
         notificationRepository.save(notification);

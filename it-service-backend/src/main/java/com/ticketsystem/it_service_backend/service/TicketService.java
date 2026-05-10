@@ -88,10 +88,10 @@ public class TicketService {
                 .filter(p -> p.getId().equals(ticket.getProductId()))
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Bu ürün için destek kaydı oluşturma yetkiniz yok"));
+                        "error.ticket.create.product.forbidden"));
 
         if (!Boolean.TRUE.equals(product.getIsActive())) {
-            throw new ResponseStatusException(HttpStatusCode.valueOf(422), "Bu ürün şu anda aktif değil");
+            throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.product.inactive");
         }
 
         ticket.setCustomerId(customerId);
@@ -543,7 +543,7 @@ public class TicketService {
             if (authorized) return ticket;
         }
 
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti görüntüleme yetkiniz yok.");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
     }
 
     /**
@@ -560,12 +560,12 @@ public class TicketService {
             boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
             if (isClaimer) return ticket;
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sadece bu bileti claim almış agentlar işlem yapabilir.");
+                    "error.ticket.only.claimer.can.act");
         }
 
         if (roles.contains("CUSTOMER") && userId.equals(ticket.getCustomerId())) return ticket;
 
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu işlem için yetkiniz bulunmuyor.");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
     }
 
     /**
@@ -591,7 +591,7 @@ public class TicketService {
         String currentStatus = ticket.getStatus();
         if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus) && !"WAITING_FOR_CUSTOMER".equals(currentStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Yalnızca NEW, IN_PROGRESS veya WAITING_FOR_CUSTOMER statüsündeki biletler üzerinize alınabilir.");
+                    "error.ticket.claim.invalid.status");
         }
 
         User agent = userRepository.findById(agentId)
@@ -601,12 +601,12 @@ public class TicketService {
                 .anyMatch(p -> p.getId().equals(ticket.getProductId()));
         if (!isAuthorized) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Bu ürüne ait biletleri üzerinize alma yetkiniz yok.");
+                    "error.ticket.claim.product.forbidden");
         }
 
         Product product = productRepository.findById(ticket.getProductId())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                "Ürün bulunamadı: " + ticket.getProductId()));
+                "error.product.not.found"));
 
         Integer effectiveLimit = product.getMaxActiveTickets();
         AgentProductLimit customLimit = agentProductLimitRepository
@@ -619,14 +619,13 @@ public class TicketService {
         if (effectiveLimit != null) {
             long activeCount = ticketClaimRepository.countActiveTicketsByAgentAndProduct(agentId, product.getId());
             if (activeCount >= effectiveLimit) {
-            throw new TicketLimitExceededException(String.format(
-                "Bu ürün için aktif bilet limitinize ulaştınız. Limit: %d", effectiveLimit));
+            throw new TicketLimitExceededException("error.ticket.limit.exceeded", effectiveLimit);
             }
         }
 
         if (ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Bu bileti zaten üzerinize almışsınız.");
+                    "error.ticket.already.claimed");
         }
 
         TicketClaim claim = TicketClaim.builder()
@@ -671,7 +670,7 @@ public class TicketService {
 
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Bu bilete ait aktif bir claim'iniz bulunmuyor.");
+                    "error.ticket.no.active.claim");
         }
 
         ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
@@ -736,7 +735,7 @@ public class TicketService {
 
         if ("RESOLVED".equals(newStatus) && !resolutionNoteRepository.existsByTicketId(id)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Bileti çözüldü olarak işaretlemek için önce bir çözüm notu oluşturmalısınız.");
+                    "error.ticket.resolve.requires.note");
         }
 
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
@@ -770,11 +769,10 @@ public class TicketService {
     private void validateStateTransition(String current, String next) {
         Set<String> allowed = VALID_TRANSITIONS.get(current);
         if (allowed == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bilinmeyen mevcut durum: " + current);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.unknown.status");
         }
         if (!allowed.contains(next)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    String.format("Geçersiz durum geçişi: %s → %s. İzin verilenler: %s", current, next, allowed));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
         }
     }
 
@@ -786,7 +784,7 @@ public class TicketService {
             boolean hasClaim = ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId);
             if (!hasClaim) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Bu işlemi yapabilmek için önce bileti claim almanız veya join olmanız gerekiyor.");
+                        "error.ticket.status.requires.claim");
             }
             return;
         }
@@ -794,7 +792,7 @@ public class TicketService {
         if (roles.contains("CUSTOMER")) {
             if (!userId.equals(ticket.getCustomerId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Sadece kendi biletlerinizin statüsünü değiştirebilirsiniz.");
+                        "error.ticket.status.own.only");
             }
             boolean allowed =
                     ("WAITING_FOR_CUSTOMER".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
@@ -802,7 +800,7 @@ public class TicketService {
                     ("RESOLVED".equals(oldStatus) && "CLOSED".equals(newStatus));
             if (!allowed) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Müşteri olarak bu durum geçişini yapamazsınız: " + oldStatus + " → " + newStatus);
+                        "error.ticket.status.customer.transition");
             }
             return;
         }
@@ -812,12 +810,12 @@ public class TicketService {
             boolean authorized = agent.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
             if (!authorized) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu bileti güncelleme yetkiniz yok.");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.update.forbidden");
             }
             return;
         }
 
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bu işlem için yetkiniz bulunmuyor.");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
     }
 
     /**
@@ -874,7 +872,7 @@ public class TicketService {
 
         // 1. Kapalı biletler atanamaz
         if ("CLOSED".equals(ticket.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kapalı biletler atanamaz.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.assign.closed");
         }
 
         // 2. Hedef agent'ı yükle ve ürün yetki kontrolü
@@ -885,7 +883,7 @@ public class TicketService {
                 .anyMatch(p -> p.getId().equals(ticket.getProductId()));
         if (!isAuthorized) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Hedef agent bu ürün için yetkili değil.");
+                    "error.ticket.assign.agent.not.authorized");
         }
 
         // 3. Kapasite kontrolü
@@ -905,7 +903,7 @@ public class TicketService {
                     .countActiveTicketsByAgentAndProduct(targetAgentId, product.getId());
             if (activeCount >= effectiveLimit) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        String.format("Hedef agent'ın aktif bilet limiti doldu. Limit: %d", effectiveLimit));
+                        "error.ticket.assign.agent.limit.exceeded");
             }
         }
 

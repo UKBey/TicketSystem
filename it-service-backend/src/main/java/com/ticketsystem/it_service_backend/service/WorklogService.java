@@ -31,7 +31,7 @@ public class WorklogService {
         // Gecersiz dakika degeri erken reddedilir.
         if (dto.getMinutes() == null || dto.getMinutes() <= 0) {
             log.warn("Worklog reddedildi: Geçersiz dakika değeri ({})", dto.getMinutes());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dakika değeri 0'dan büyük olmalıdır.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.positive");
         }
 
         // Isleme konu biletin varligi dogrulanir.
@@ -41,14 +41,14 @@ public class WorklogService {
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId)) {
             log.warn("Worklog reddedildi: Agent (ID: {}) bu bileti claim almamış.", agentId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sadece claim aldığınız biletlere worklog ekleyebilirsiniz.");
+                    "error.worklog.create.requires.claim");
         }
 
         // Kapali kayitta yeni worklog olusturulmaz.
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Worklog reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Kapalı (CLOSED) biletlere worklog eklenemez.");
+                    "error.worklog.ticket.closed");
         }
 
         TicketWorklog worklog = TicketWorklog.builder()
@@ -83,12 +83,12 @@ public class WorklogService {
             if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId)) {
                 log.warn("Worklog görüntüleme reddedildi: Agent (ID: {}) bu bileti claim almamış.", userId);
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Sadece claim aldığınız biletlerin workloglarını görüntüleyebilirsiniz.");
+                        "error.worklog.view.requires.claim");
             }
         } else {
             log.warn("Worklog görüntüleme reddedildi: Yetersiz rol. Kullanıcı: {}", userId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Bu kaynağa erişim yetkiniz bulunmamaktadır.");
+                    "error.resource.access.forbidden");
         }
 
         return worklogRepository.findByTicketId(ticketId);
@@ -111,21 +111,21 @@ public class WorklogService {
         // Dakika alani gonderildiyse pozitif deger kontrol edilir.
         if (dto.getMinutes() != null && dto.getMinutes() <= 0) {
             log.warn("Worklog güncelleme reddedildi: Geçersiz dakika değeri ({})", dto.getMinutes());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dakika değeri 0'dan büyük olmalıdır.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.positive");
         }
 
         // Hedef worklog kaydi bulunur.
         TicketWorklog worklog = worklogRepository.findById(worklogId)
                 .orElseThrow(() -> {
                     log.warn("Güncellenecek worklog bulunamadı. ID: {}", worklogId);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Worklog bulunamadı: " + worklogId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "error.worklog.not.found");
                 });
 
         // URL'deki bilet kimligi ile kaydin ait oldugu bilet uyusmalidir.
         if (!worklog.getTicketId().equals(ticketId)) {
             log.warn("Worklog güncelleme reddedildi: Worklog (ID: {}) bu bilete (ID: {}) ait değil.", worklogId, ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Bu worklog belirtilen bilete ait değil.");
+                    "error.worklog.wrong.ticket");
         }
 
         // Guncelleme sadece kaydi olusturan agente aciktir.
@@ -133,7 +133,7 @@ public class WorklogService {
             log.warn("Worklog güncelleme reddedildi: Agent (ID: {}) bu worklogun sahibi değil (Owner: {}).",
                     agentId, worklog.getAgentId());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Sadece kendi oluşturduğunuz worklogları güncelleyebilirsiniz.");
+                    "error.worklog.update.own.only");
         }
 
         // Kapali bilette worklog degisikligi kabul edilmez.
@@ -141,7 +141,7 @@ public class WorklogService {
         if ("CLOSED".equals(ticket.getStatus())) {
             log.warn("Worklog güncelleme reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Kapalı (CLOSED) biletlerin worklogları güncellenemez.");
+                    "error.worklog.update.ticket.closed");
         }
 
         // Kismi guncelleme: sadece gelen alanlar degistirilir.
@@ -166,7 +166,7 @@ public class WorklogService {
         TicketWorklog worklog = worklogRepository.findById(worklogId)
                 .orElseThrow(() -> {
                     log.warn("Silinmek istenen worklog bulunamadı. ID: {}", worklogId);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Worklog bulunamadı: " + worklogId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "error.worklog.not.found");
                 });
 
         boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
@@ -181,12 +181,12 @@ public class WorklogService {
                 log.warn("Worklog silme reddedildi: Agent (ID: {}) bu worklogun sahibi değil (Owner: {}).",
                         userId, worklog.getAgentId());
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Sadece kendi oluşturduğunuz worklogları silebilirsiniz.");
+                        "error.worklog.delete.own.only");
             }
         } else {
             log.warn("Worklog silme reddedildi: Yetersiz rol. Kullanıcı: {}", userId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Bu işlem için yetkiniz bulunmamaktadır.");
+                    "error.forbidden");
         }
 
         worklogRepository.deleteById(worklogId);
