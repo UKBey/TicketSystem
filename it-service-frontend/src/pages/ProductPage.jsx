@@ -49,7 +49,7 @@ export default function ProductPage() {
     priority, setPriority,
     search, setSearch,
     agentId, setAgentId,
-    slaStatus, setSlaStatus,
+    slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -163,7 +163,7 @@ export default function ProductPage() {
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           agentId={agentId}     onAgentId={setAgentId}
-          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}

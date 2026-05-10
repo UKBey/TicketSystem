@@ -23,8 +23,8 @@ export default function Pool() {
     sortBy, sortDir, toggleSort,
     priority, setPriority,
     search, setSearch,
-    productId, setProductId,
-    slaStatus, setSlaStatus,
+    productIds, setProductIds,
+    slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -71,8 +71,8 @@ export default function Pool() {
         <TicketFilters
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
-          productId={productId} onProductId={setProductId}
-          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          productIds={productIds} onProductIds={setProductIds}
+          slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}

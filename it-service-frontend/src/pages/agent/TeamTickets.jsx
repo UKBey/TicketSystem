@@ -48,9 +48,9 @@ export default function TeamTickets() {
     sortBy, sortDir, toggleSort,
     priority, setPriority,
     search, setSearch,
-    productId, setProductId,
+    productIds, setProductIds,
     agentId, setAgentId,
-    slaStatus, setSlaStatus,
+    slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -117,9 +117,9 @@ export default function TeamTickets() {
         <TicketFilters
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
-          productId={productId} onProductId={setProductId}
-          agentId={agentId}     onAgentId={setAgentId}
-          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          productIds={productIds} onProductIds={setProductIds}
+          agentId={agentId}       onAgentId={setAgentId}
+          slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}

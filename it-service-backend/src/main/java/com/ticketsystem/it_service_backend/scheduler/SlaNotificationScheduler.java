@@ -61,7 +61,7 @@ public class SlaNotificationScheduler {
             ZonedDateTime warningThreshold = ZonedDateTime.now().plusHours(thresholdHours);
 
             List<Ticket> warningTickets = ticketRepository.findUpcomingBreachTicketsByPriority(
-                    ACTIVE_STATUSES, priority, warningThreshold, PageRequest.of(0, 100));
+                    ACTIVE_STATUSES, java.util.List.of(priority), warningThreshold, PageRequest.of(0, 100));
 
             if (warningTickets.isEmpty()) continue;
 

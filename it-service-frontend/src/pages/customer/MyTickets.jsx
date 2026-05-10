@@ -24,7 +24,7 @@ export default function MyTickets() {
     status, setStatus,
     priority, setPriority,
     search, setSearch,
-    slaStatus, setSlaStatus,
+    slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -87,7 +87,7 @@ export default function MyTickets() {
           status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
-          slaStatus={slaStatus} onSlaStatus={setSlaStatus}
+          slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}

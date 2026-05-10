@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, X, ChevronDown } from 'lucide-react';
+import { Search, X, ChevronDown, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
@@ -10,16 +10,18 @@ const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
  * Full-featured filter bar for ticket list pages.
  *
  * Props (all optional):
- *   status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo
- *   onStatus, onPriority, onSearch, onProductId, onAgentId, onSlaStatus, onDateFrom, onDateTo
+ *   status[]   — selected statuses array
+ *   priority[] — selected priorities array
+ *   search, productId, agentId, slaStatus, dateFrom, dateTo
+ *   onStatus(arr), onPriority(arr), onSearch, onProductId, onAgentId, onSlaStatus, onDateFrom, onDateTo
  *   onClear        — clears all filters
  *   hideStatus     — hide status filter (e.g. Pool always NEW)
  *   hideAgent      — hide agent filter (e.g. customer pages)
  *   hideProduct    — hide product filter (e.g. ProductPage already scoped)
  */
 export default function TicketFilters({
-  status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo,
-  onStatus, onPriority, onSearch, onProductId, onAgentId, onSlaStatus, onDateFrom, onDateTo,
+  status = [], priority = [], search, productIds = [], agentId, slaStatuses = [], dateFrom, dateTo,
+  onStatus, onPriority, onSearch, onProductIds, onAgentId, onSlaStatuses, onDateFrom, onDateTo,
   onClear,
   hideStatus  = false,
   hideAgent   = false,
@@ -52,7 +54,7 @@ export default function TicketFilters({
     }
   }, []); // eslint-disable-line
 
-  const hasFilters = status || priority || search || productId || agentId || slaStatus || dateFrom || dateTo;
+  const hasFilters = status?.length || priority?.length || search || productIds?.length || agentId || slaStatuses?.length || dateFrom || dateTo;
 
   return (
     <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
@@ -62,33 +64,37 @@ export default function TicketFilters({
         {/* Search */}
         <SearchInput key={search || '__empty__'} value={search} onChange={onSearch} placeholder={t('ticket.filters.searchPlaceholder')} />
 
-        {/* Status */}
+        {/* Status — multi-select */}
         {!hideStatus && (
-          <FilterSelect
-            value={status} onChange={onStatus}
+          <MultiSelect
+            values={status}
+            onChange={onStatus}
             placeholder={t('ticket.filters.allStatuses')}
             options={STATUSES.map(s => ({ value: s, label: s.replace(/_/g, ' ') }))}
           />
         )}
 
-        {/* Priority */}
-        <FilterSelect
-          value={priority} onChange={onPriority}
+        {/* Priority — multi-select */}
+        <MultiSelect
+          values={priority}
+          onChange={onPriority}
           placeholder={t('ticket.filters.allPriorities')}
           options={PRIORITIES.map(p => ({ value: p, label: p }))}
         />
 
-        {/* SLA Status */}
-        <FilterSelect
-          value={slaStatus} onChange={onSlaStatus}
+        {/* SLA Status — multi-select */}
+        <MultiSelect
+          values={slaStatuses}
+          onChange={onSlaStatuses}
           placeholder={t('ticket.filters.allSla')}
           options={SLA_STATUSES}
         />
 
-        {/* Product */}
+        {/* Product — multi-select */}
         {!hideProduct && products.length > 0 && (
-          <FilterSelect
-            value={productId} onChange={onProductId}
+          <MultiSelect
+            values={productIds}
+            onChange={onProductIds}
             placeholder={t('ticket.filters.allProducts')}
             options={products.map(p => ({ value: String(p.id), label: p.name }))}
           />
@@ -128,12 +134,24 @@ export default function TicketFilters({
       {/* Active filter chips */}
       {hasFilters && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-2.5">
-          {status    && <Chip label={t('ticket.filters.chipStatus',   { value: status.replace(/_/g, ' ') })} onRemove={() => onStatus('')} />}
-          {priority  && <Chip label={t('ticket.filters.chipPriority', { value: priority })}                  onRemove={() => onPriority('')} />}
-          {search    && <Chip label={t('ticket.filters.chipSearch',   { value: search })}                    onRemove={() => onSearch('')} />}
-          {slaStatus && <Chip label={t('ticket.filters.chipSla',      { value: SLA_STATUSES.find(s => s.value === slaStatus)?.label ?? slaStatus })} onRemove={() => onSlaStatus('')} />}
-          {productId && <Chip label={t('ticket.filters.chipProduct',  { value: products.find(p => String(p.id) === productId)?.name ?? productId })} onRemove={() => onProductId('')} />}
-          {agentId   && <Chip label={t('ticket.filters.chipAgent',    { value: agents.find(a => a.id === agentId)?.fullName ?? agentId })}           onRemove={() => onAgentId('')} />}
+          {status?.map(s => (
+            <Chip key={s} label={t('ticket.filters.chipStatus', { value: s.replace(/_/g, ' ') })}
+              onRemove={() => onStatus(status.filter(v => v !== s))} />
+          ))}
+          {priority?.map(p => (
+            <Chip key={p} label={t('ticket.filters.chipPriority', { value: p })}
+              onRemove={() => onPriority(priority.filter(v => v !== p))} />
+          ))}
+          {search    && <Chip label={t('ticket.filters.chipSearch', { value: search })} onRemove={() => onSearch('')} />}
+          {slaStatuses?.map(s => (
+            <Chip key={s} label={t('ticket.filters.chipSla', { value: SLA_STATUSES.find(sl => sl.value === s)?.label ?? s })}
+              onRemove={() => onSlaStatuses(slaStatuses.filter(v => v !== s))} />
+          ))}
+          {productIds?.map(pid => (
+            <Chip key={pid} label={t('ticket.filters.chipProduct', { value: products.find(p => String(p.id) === pid)?.name ?? pid })}
+              onRemove={() => onProductIds(productIds.filter(v => v !== pid))} />
+          ))}
+          {agentId   && <Chip label={t('ticket.filters.chipAgent', { value: agents.find(a => a.id === agentId)?.fullName ?? agentId })} onRemove={() => onAgentId('')} />}
           {(dateFrom || dateTo) && (
             <Chip
               label={`${t('ticket.filters.from')}: ${dateFrom ? new Date(dateFrom).toLocaleDateString() : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString() : '…'}`}
@@ -147,6 +165,95 @@ export default function TicketFilters({
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+/**
+ * Checkbox tabanlı çoklu seçim dropdown.
+ * values: string[]  — seçili değerler
+ * onChange: (string[]) => void
+ */
+function MultiSelect({ values = [], onChange, placeholder, options }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const hasValue = values.length > 0;
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (val) => {
+    if (values.includes(val)) {
+      onChange(values.filter(v => v !== val));
+    } else {
+      onChange([...values, val]);
+    }
+  };
+
+  const label = hasValue
+    ? values.map(v => options.find(o => o.value === v)?.label ?? v).join(', ')
+    : placeholder;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none"
+        style={{
+          backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
+          borderColor:     hasValue ? '#3b82f6'               : 'var(--border-color)',
+          color:           hasValue ? '#2563eb'               : 'var(--text-secondary)',
+          maxWidth: '180px',
+        }}
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown className="h-3 w-3 flex-shrink-0" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[160px]"
+          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+        >
+          {options.map(o => {
+            const checked = values.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggle(o.value)}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                style={{ color: checked ? '#2563eb' : 'var(--text-primary)' }}
+              >
+                <span
+                  className="flex-shrink-0 h-3.5 w-3.5 rounded border flex items-center justify-center"
+                  style={{
+                    backgroundColor: checked ? '#3b82f6' : 'transparent',
+                    borderColor:     checked ? '#3b82f6' : 'var(--border-color)',
+                  }}
+                >
+                  {checked && <Check className="h-2.5 w-2.5 text-white" />}
+                </span>
+                {o.label}
+              </button>
+            );
+          })}
+          {hasValue && (
+            <button
+              type="button"
+              onClick={() => { onChange([]); setOpen(false); }}
+              className="flex items-center gap-1 w-full px-3 py-1.5 text-xs cursor-pointer border-t transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)', marginTop: '2px' }}
+            >
+              <X className="h-3 w-3" /> Temizle
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SearchInput({ value, onChange, placeholder }) {
   const [local, setLocal] = useState(value ?? '');

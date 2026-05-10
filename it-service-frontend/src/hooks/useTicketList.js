@@ -31,13 +31,13 @@ export function useTicketList(endpoint, opts = {}) {
   const [sortDir, setSortDir]     = useState(initialSortDir);
 
   // Filters
-  const [status, setStatus]       = useState('');
-  const [priority, setPriority]   = useState('');
+  const [status, setStatus]       = useState([]);
+  const [priority, setPriority]   = useState([]);
   const [search, setSearch]       = useState('');
-  const [productId, setProductId] = useState('');
-  const [agentId, setAgentId]     = useState('');
-  const [slaStatus, setSlaStatus] = useState('');
-  const [dateFrom, setDateFrom]   = useState('');
+  const [productIds, setProductIds] = useState([]);
+  const [agentId, setAgentId]      = useState('');
+  const [slaStatuses, setSlaStatuses] = useState([]);
+  const [dateFrom, setDateFrom]    = useState('');
   const [dateTo, setDateTo]       = useState('');
 
   const [data, setData]     = useState(null);
@@ -48,22 +48,25 @@ export function useTicketList(endpoint, opts = {}) {
     setLoading(true);
     setError('');
     try {
-      const params = {
-        page,
-        size,
-        sortBy,
-        sortDir,
-        ...(status    ? { status }    : {}),
-        ...(priority  ? { priority }  : {}),
-        ...(search    ? { search }    : {}),
-        ...(productId ? { productId } : {}),
-        ...(agentId   ? { agentId }   : {}),
-        ...(slaStatus ? { slaStatus } : {}),
-        ...(dateFrom  ? { dateFrom }  : {}),
-        ...(dateTo    ? { dateTo }    : {}),
-        ...extraParamsRef.current,
-      };
-      const res = await api.get(endpoint, { params });
+      // Array parametreler (status, priority) için URLSearchParams kullan
+      // Axios params objesi array'leri status[]=NEW şeklinde gönderir, backend bunu kabul etmez.
+      const qs = new URLSearchParams();
+      qs.set('page', page);
+      qs.set('size', size);
+      qs.set('sortBy', sortBy);
+      qs.set('sortDir', sortDir);
+      if (status.length)     status.forEach(v => qs.append('status', v));
+      if (priority.length)   priority.forEach(v => qs.append('priority', v));
+      if (search)            qs.set('search', search);
+      if (productIds.length) productIds.forEach(v => qs.append('productId', v));
+      if (agentId)           qs.set('agentId', agentId);
+      if (slaStatuses.length) slaStatuses.forEach(v => qs.append('slaStatus', v));
+      if (dateFrom)          qs.set('dateFrom', dateFrom);
+      if (dateTo)    qs.set('dateTo', dateTo);
+      Object.entries(extraParamsRef.current).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') qs.set(k, v);
+      });
+      const res = await api.get(`${endpoint}?${qs.toString()}`);
       setData(res.data);
     } catch (err) {
       console.error(`useTicketList fetch error [${endpoint}]:`, err);
@@ -72,7 +75,7 @@ export function useTicketList(endpoint, opts = {}) {
       setLoading(false);
     }
   }, [endpoint, page, size, sortBy, sortDir,
-      status, priority, search, productId, agentId, slaStatus, dateFrom, dateTo]);
+      status, priority, search, productIds, agentId, slaStatuses, dateFrom, dateTo]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -90,12 +93,12 @@ export function useTicketList(endpoint, opts = {}) {
   };
 
   const clearFilters = () => {
-    setStatus('');
-    setPriority('');
+    setStatus([]);
+    setPriority([]);
     setSearch('');
-    setProductId('');
+    setProductIds([]);
     setAgentId('');
-    setSlaStatus('');
+    setSlaStatuses([]);
     setDateFrom('');
     setDateTo('');
     setPage(0);
@@ -122,9 +125,9 @@ export function useTicketList(endpoint, opts = {}) {
     status,    setStatus:    reset(setStatus),
     priority,  setPriority:  reset(setPriority),
     search,    setSearch:    reset(setSearch),
-    productId, setProductId: reset(setProductId),
-    agentId,   setAgentId:   reset(setAgentId),
-    slaStatus, setSlaStatus: reset(setSlaStatus),
+    productIds, setProductIds: reset(setProductIds),
+    agentId,    setAgentId:   reset(setAgentId),
+    slaStatuses, setSlaStatuses: reset(setSlaStatuses),
     dateFrom,  setDateFrom:  reset(setDateFrom),
     dateTo,    setDateTo:    reset(setDateTo),
     clearFilters,

@@ -85,12 +85,12 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long   productId,
+            @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) String agentId,
-            @RequestParam(required = false) String slaStatus,
+            @RequestParam(required = false) List<String> slaStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
@@ -99,8 +99,8 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .status(status).priority(priority).search(search)
-                .productId(productId).agentId(agentId).slaStatus(slaStatus)
+                .statuses(status).priorities(priority).search(search)
+                .productIds(productId).agentId(agentId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets;
@@ -121,11 +121,11 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long   productId,
+            @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) String agentId,
-            @RequestParam(required = false) String slaStatus,
+            @RequestParam(required = false) List<String> slaStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
@@ -134,8 +134,8 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .priority(priority).search(search).productId(productId)
-                .agentId(agentId).slaStatus(slaStatus)
+                .priorities(priority).search(search).productIds(productId)
+                .agentId(agentId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> pool = ticketService.getPoolTicketsFiltered(userId, roles, filter, pageable);
@@ -150,12 +150,12 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long   productId,
+            @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) String agentId,
-            @RequestParam(required = false) String slaStatus,
+            @RequestParam(required = false) List<String> slaStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
@@ -164,8 +164,8 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .status(status).priority(priority).search(search)
-                .productId(productId).agentId(agentId).slaStatus(slaStatus)
+                .statuses(status).priorities(priority).search(search)
+                .productIds(productId).agentId(agentId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets = ticketService.getAgentClaimedTicketsFiltered(agentUserId, filter, pageable);
@@ -181,11 +181,11 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long   productId,
+            @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) String agentId,
-            @RequestParam(required = false) String slaStatus,
+            @RequestParam(required = false) List<String> slaStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
@@ -194,8 +194,8 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .priority(priority).search(search).productId(productId)
-                .agentId(agentId).slaStatus(slaStatus)
+                .priorities(priority).search(search).productIds(productId)
+                .agentId(agentId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets = ticketService.getTeamTicketsFiltered(userId, roles, filter, pageable);
@@ -322,11 +322,11 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String agentId,
-            @RequestParam(required = false) String slaStatus,
+            @RequestParam(required = false) List<String> slaStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
@@ -335,8 +335,8 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .status(status).priority(priority).search(search)
-                .agentId(agentId).slaStatus(slaStatus)
+                .statuses(status).priorities(priority).search(search)
+                .agentId(agentId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets = ticketService.getTicketsByProductFiltered(productId, userId, roles, filter, pageable);
