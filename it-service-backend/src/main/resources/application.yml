@@ -17,6 +17,9 @@ spring:
     level:
       org.hibernate.SQL: DEBUG
       org.hibernate.orm.jdbc.bind: TRACE
+  messages:
+    encoding: UTF-8
+    use-code-as-default-message: true
   flyway:
     enabled: true
     locations: classpath:db/migration
