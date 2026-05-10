@@ -27,7 +27,7 @@ public class SLAPolicyRepository {
                 policy_target AS (
                     SELECT
                         p.priority,
-                        p.default_target_hours AS target_hours
+                        COALESCE(sp.target_resolution_hours, p.default_target_hours) AS target_hours
                     FROM priorities p
                     LEFT JOIN sla_policies sp ON sp.priority = p.priority
                 ),

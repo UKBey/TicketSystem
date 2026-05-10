@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import api from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
+import SlaPolicyConfigPanel from '../../components/SlaPolicyConfigPanel';
 import PaginationBar from '../../components/PaginationBar';
 
 const VISIBLE_LIMIT = 3;
@@ -324,6 +325,7 @@ export default function AdminPanel() {
       </div>
 
       <RateLimitConfigPanel />
+      <SlaPolicyConfigPanel />
     </>
   );
 }

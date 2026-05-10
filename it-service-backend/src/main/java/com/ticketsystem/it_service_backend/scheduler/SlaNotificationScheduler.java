@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.scheduler;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.service.NotificationService;
+import com.ticketsystem.it_service_backend.service.SlaPolicyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ public class SlaNotificationScheduler {
 
     private final TicketRepository ticketRepository;
     private final NotificationService notificationService;
+    private final SlaPolicyService slaPolicyService;
 
     /**
      * Deadline'ı geçmiş ama henüz slaBreached=false olan biletleri tespit eder,
@@ -46,22 +48,30 @@ public class SlaNotificationScheduler {
     }
 
     /**
-     * Deadline'ına 2 saatten az kalmış, henüz ihlal edilmemiş biletler için uyarı gönderir.
+     * Deadline'ına yaklaşan, henüz ihlal edilmemiş biletler için uyarı gönderir.
+     * Uyarı eşiği her öncelik için SLA politikasından okunur.
      */
     @Scheduled(fixedRate = 900_000)
     public void checkUpcomingSlaBreaches() {
-        ZonedDateTime warningThreshold = ZonedDateTime.now().plusHours(2);
+        // Her öncelik için ayrı eşik kullanarak uyarı gönder
+        for (String priority : List.of("CRITICAL", "HIGH", "MEDIUM", "LOW")) {
+            int thresholdHours = slaPolicyService.getWarningThresholdHours(priority);
+            if (thresholdHours <= 0) continue; // 0 ise bu öncelik için uyarı kapalı
 
-        List<Ticket> warningTickets = ticketRepository.findUpcomingBreachTickets(
-                ACTIVE_STATUSES, warningThreshold, PageRequest.of(0, 100));
+            ZonedDateTime warningThreshold = ZonedDateTime.now().plusHours(thresholdHours);
 
-        if (warningTickets.isEmpty()) return;
+            List<Ticket> warningTickets = ticketRepository.findUpcomingBreachTicketsByPriority(
+                    ACTIVE_STATUSES, priority, warningThreshold, PageRequest.of(0, 100));
 
-        log.info("SLA uyarı taraması: {} bilet deadline yaklaşıyor.", warningTickets.size());
+            if (warningTickets.isEmpty()) continue;
 
-        for (Ticket ticket : warningTickets) {
-            notificationService.notifySlaWarning(ticket);
-            log.info("SLA uyarısı gönderildi. Bilet ID: {}, Deadline: {}", ticket.getId(), ticket.getSlaDeadline());
+            log.info("SLA uyarı taraması [{}]: {} bilet deadline yaklaşıyor (eşik: {} saat).",
+                    priority, warningTickets.size(), thresholdHours);
+
+            for (Ticket ticket : warningTickets) {
+                notificationService.notifySlaWarning(ticket);
+                log.info("SLA uyarısı gönderildi. Bilet ID: {}, Deadline: {}", ticket.getId(), ticket.getSlaDeadline());
+            }
         }
     }
 }

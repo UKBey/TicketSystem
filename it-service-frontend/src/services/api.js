@@ -81,3 +81,10 @@ export const getRateLimitConfigs = () =>
 
 export const updateRateLimitConfig = (id, { maxRequests, durationSeconds, enabled }) =>
   api.put(`/admin/rate-limits/${id}`, { maxRequests, durationSeconds, enabled });
+
+// SLA Policy API Functions
+export const getSlaPolicies = () =>
+  api.get('/admin/sla-policies');
+
+export const updateSlaPolicy = (id, { targetResolutionHours, warningThresholdHours }) =>
+  api.put(`/admin/sla-policies/${id}`, { targetResolutionHours, warningThresholdHours });

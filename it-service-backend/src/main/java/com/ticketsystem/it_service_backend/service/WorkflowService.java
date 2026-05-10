@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.service.SlaPolicyService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+
 
 /**
  * Ticket tarafindaki workflow adimlarini tek servis uzerinde toplar.
@@ -23,6 +26,8 @@ public class WorkflowService {
 
     private final KieServerAdapter kieServerAdapter;
 
+    private final SlaPolicyService slaPolicyService;
+
     @Value("${jbpm.kie-server.process-id}")
     private String processId;
 
@@ -33,14 +38,7 @@ public class WorkflowService {
     private String callbackToken;
 
     private long getSlaDurationMs(String priority) {
-        if (priority == null) return 12 * 60 * 60 * 1000L;
-        return switch (priority.toUpperCase()) {
-            case "LOW"      -> 24 * 60 * 60 * 1000L;  // 24 saat
-            case "MEDIUM"   -> 12 * 60 * 60 * 1000L;  // 12 saat
-            case "HIGH"     ->  4 * 60 * 60 * 1000L;  //  4 saat
-            case "CRITICAL" ->  1 * 60 * 60 * 1000L;  //  1 saat
-            default         -> 12 * 60 * 60 * 1000L;
-        };
+        return slaPolicyService.getSlaDurationMs(priority);
     }
 
 

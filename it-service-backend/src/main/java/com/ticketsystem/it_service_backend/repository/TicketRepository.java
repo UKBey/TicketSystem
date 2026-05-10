@@ -908,6 +908,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTickets(@Param("statuses") List<String> statuses, @Param("before") ZonedDateTime before, Pageable pageable);
 
+    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority = :priority AND t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
+    List<Ticket> findUpcomingBreachTicketsByPriority(@Param("statuses") List<String> statuses, @Param("priority") String priority, @Param("before") ZonedDateTime before, Pageable pageable);
+
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 
