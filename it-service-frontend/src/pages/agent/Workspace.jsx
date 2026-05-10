@@ -18,7 +18,6 @@ export default function Workspace() {
     tickets, totalPages, totalItems, loading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
-    status, setStatus,
     priority, setPriority,
     search, setSearch,
     productIds, setProductIds,
@@ -26,9 +25,11 @@ export default function Workspace() {
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
-  } = useTicketList('/tickets/my-assigned', { sortBy: 'createdAt', sortDir: 'desc' });
-
-  const activeTickets = tickets.filter((tk) => tk.status !== 'CLOSED');
+  } = useTicketList('/tickets/my-assigned', {
+    sortBy: 'createdAt',
+    sortDir: 'desc',
+    extraParams: { status: ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'] },
+  });
 
   useEffect(() => {
     if (!isAgentAdmin || !currentUserId) return;
@@ -47,7 +48,7 @@ export default function Workspace() {
       {!loading && agentLimits.length > 0 && (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agentLimits.map(limit => {
-            const activeCount = activeTickets.filter(tk => tk.productId === limit.productId).length;
+            const activeCount = tickets.filter(tk => tk.productId === limit.productId).length;
             const effectiveLimit = limit.effectiveLimit;
             return (
               <div key={limit.productId} className="rounded-lg border p-4"
@@ -80,7 +81,6 @@ export default function Workspace() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
-          status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           productIds={productIds} onProductIds={setProductIds}
@@ -88,6 +88,7 @@ export default function Workspace() {
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
+          hideStatus
           hideAgent
         />
 

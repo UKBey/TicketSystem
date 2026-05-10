@@ -64,7 +64,9 @@ export function useTicketList(endpoint, opts = {}) {
       if (dateFrom)          qs.set('dateFrom', dateFrom);
       if (dateTo)    qs.set('dateTo', dateTo);
       Object.entries(extraParamsRef.current).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') qs.set(k, v);
+        if (v === undefined || v === null || v === '') return;
+        if (Array.isArray(v)) v.forEach(item => qs.append(k, item));
+        else qs.set(k, v);
       });
       const res = await api.get(`${endpoint}?${qs.toString()}`);
       setData(res.data);
