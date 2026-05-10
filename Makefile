@@ -3,6 +3,7 @@
         infra dev dev-backend dev-frontend \
         build build-backend build-frontend \
         test test-backend test-frontend \
+        verify \
         lint install clean
 
 BACKEND_DIR  := it-service-backend
@@ -40,6 +41,10 @@ help:
 	@echo    test             - Tum testleri calistirir
 	@echo    test-backend     - Backend testleri (Maven)
 	@echo    test-frontend    - Frontend testleri (Vitest)
+	@echo.
+	@echo  Kapsam (Coverage):
+	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
+	@echo                       Rapor: it-service-backend/target/site/jacoco/index.html
 	@echo.
 	@echo  Diger:
 	@echo    lint             - Frontend ESLint kontrolu
@@ -105,6 +110,9 @@ test-frontend:
 
 lint:
 	cd $(FRONTEND_DIR) && npm run lint
+
+verify:
+	cd $(BACKEND_DIR) && mvnw.cmd verify
 
 # --- Kurulum ---
 
