@@ -66,12 +66,16 @@ public class TicketGenerator {
         // ---------------------------------------------------------------
         // Aşama 1: Tüm biletleri oluştur + claim + worklog + çözüm notu + statü
         //          (yorumlar kuyruğa alınır)
+        //
+        // Sıralama önemli: CLOSED ve RESOLVED biletler önce oluşturulur.
+        // Bu biletler tamamlandıktan sonra agent limiti serbest kalır,
+        // böylece IN_PROGRESS ve WAITING biletler için claim alınabilir.
         // ---------------------------------------------------------------
-        allIds.addAll(createNewTickets(cntNew));
-        allIds.addAll(createInProgressTickets(cntProgress));
-        allIds.addAll(createWaitingTickets(cntWaiting));
-        allIds.addAll(createResolvedTickets(cntResolved));
         allIds.addAll(createClosedTickets(cntClosed));
+        allIds.addAll(createResolvedTickets(cntResolved));
+        allIds.addAll(createWaitingTickets(cntWaiting));
+        allIds.addAll(createInProgressTickets(cntProgress));
+        allIds.addAll(createNewTickets(cntNew));
 
         // ---------------------------------------------------------------
         // Aşama 2: Yorumları kullanıcı bazında round-robin ile gönder
@@ -109,7 +113,8 @@ public class TicketGenerator {
             ids.add(ticketId);
             sleep();
 
-            claimTicket(ticketId, agent);
+            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
+            if (!claimTicket(ticketId, agent)) continue;
             sleep();
 
             // Worklog: agent üzerinde aktif çalışma kaydı
@@ -135,7 +140,8 @@ public class TicketGenerator {
             ids.add(ticketId);
             sleep();
 
-            claimTicket(ticketId, agent);
+            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
+            if (!claimTicket(ticketId, agent)) continue;
             sleep();
 
             // Agent inceleme yaptı, worklog ekledi
@@ -163,7 +169,8 @@ public class TicketGenerator {
             ids.add(ticketId);
             sleep();
 
-            claimTicket(ticketId, agent);
+            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
+            if (!claimTicket(ticketId, agent)) continue;
             sleep();
 
             // Worklog: araştırma ve çözüm çalışması
@@ -175,7 +182,7 @@ public class TicketGenerator {
             createResolutionNote(ticketId, agent);
             sleep();
 
-            updateStatus(ticketId, "RESOLVED", agent);
+            if (!updateStatus(ticketId, "RESOLVED", agent)) continue;
             sleep();
         }
         return ids;
@@ -193,7 +200,8 @@ public class TicketGenerator {
             ids.add(ticketId);
             sleep();
 
-            claimTicket(ticketId, agent);
+            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
+            if (!claimTicket(ticketId, agent)) continue;
             sleep();
 
             // Worklog: CLOSED öncesinde eklenebilir (CLOSED sonrası yasak)
@@ -206,14 +214,12 @@ public class TicketGenerator {
             createResolutionNote(ticketId, agent);
             sleep();
 
-            updateStatus(ticketId, "RESOLVED", agent);
+            if (!updateStatus(ticketId, "RESOLVED", agent)) continue;
             sleep();
 
+            // CSAT submit edilince CsatService bileti otomatik olarak CLOSED'a geçirir.
+            // Ayrıca updateStatus("CLOSED") çağrısına gerek yok.
             submitCsat(ticketId, customer);
-            sleep();
-
-            // Müşteri CSAT sonrası bileti kapatır
-            updateStatus(ticketId, "CLOSED", customer);
             sleep();
         }
         return ids;
@@ -342,12 +348,14 @@ public class TicketGenerator {
         }
     }
 
-    private void claimTicket(Long ticketId, UserSession agent) throws IOException {
+    private boolean claimTicket(Long ticketId, UserSession agent) throws IOException {
         try {
             api.put("/tickets/" + ticketId + "/claim", Map.of(), agent.getToken());
             log.debug("Claim alındı: #{} → {}", ticketId, agent.getUsername());
+            return true;
         } catch (Exception e) {
             log.warn("Claim alınamadı #{}: {}", ticketId, e.getMessage());
+            return false;
         }
     }
 
@@ -361,13 +369,15 @@ public class TicketGenerator {
         }
     }
 
-    private void updateStatus(Long ticketId, String status, UserSession user) throws IOException {
+    private boolean updateStatus(Long ticketId, String status, UserSession user) throws IOException {
         Map<String, String> body = Map.of("status", status);
         try {
             api.put("/tickets/" + ticketId + "/status", body, user.getToken());
             log.debug("Statü güncellendi: #{} → {}", ticketId, status);
+            return true;
         } catch (Exception e) {
             log.warn("Statü güncellenemedi #{}: {}", ticketId, e.getMessage());
+            return false;
         }
     }
 

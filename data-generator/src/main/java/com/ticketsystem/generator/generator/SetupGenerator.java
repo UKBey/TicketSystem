@@ -50,7 +50,8 @@ public class SetupGenerator {
     public List<Long> setup() throws IOException, InterruptedException {
         log.info("=== Sistem kurulumu başlıyor ===");
 
-        deleteAllTickets();
+        // Ürünleri sil — backend cascade ile bağlı tüm biletleri ve alt verilerini temizler.
+        // Ayrıca biletleri ayrıca silmeye gerek yok.
         List<Long> productIds = ensureProducts();
         assignProductsToAgents(productIds);
         assignProductsToCustomers(productIds);
@@ -60,54 +61,41 @@ public class SetupGenerator {
     }
 
     // ---------------------------------------------------------------
-    // Tüm biletleri sil
+    // Eski [GEN] ürünleri sil (cascade → biletler de silinir), yenilerini oluştur
     // ---------------------------------------------------------------
-    private void deleteAllTickets() throws IOException, InterruptedException {
-        log.info("Mevcut biletler siliniyor...");
-        List<Long> ticketIds = new ArrayList<>();
+    private List<Long> ensureProducts() throws IOException, InterruptedException {
+        // Mevcut [GEN] ürünleri bul
+        List<Long> existingIds = new ArrayList<>();
         try {
-            // Admin tüm biletleri görebilir
-            JsonNode tickets = api.get("/tickets", adminSession.getToken());
-            if (tickets.isArray()) {
-                for (JsonNode t : tickets) {
-                    if (t.has("id")) ticketIds.add(t.get("id").asLong());
+            JsonNode products = api.get("/products", adminSession.getToken());
+            if (products.isArray()) {
+                for (JsonNode p : products) {
+                    String name = p.has("name") ? p.get("name").asText("") : "";
+                    if (name.startsWith("[GEN]")) {
+                        existingIds.add(p.get("id").asLong());
+                    }
                 }
             }
         } catch (Exception e) {
-            log.warn("Biletler listelenemedi: {}", e.getMessage());
-            return;
+            log.warn("Ürünler listelenemedi: {}", e.getMessage());
         }
 
-        if (ticketIds.isEmpty()) {
-            log.info("Silinecek bilet bulunamadı.");
-            return;
-        }
-
-        log.info("{} bilet siliniyor...", ticketIds.size());
-        int deleted = 0;
-        for (Long id : ticketIds) {
-            try {
-                api.delete("/tickets/" + id, null, adminSession.getToken());
-                deleted++;
-                Thread.sleep(150);
-            } catch (Exception e) {
-                log.warn("Bilet silinemedi (ID: {}): {}", id, e.getMessage());
+        if (!existingIds.isEmpty()) {
+            log.info("{} eski [GEN] ürünü siliniyor (cascade: bağlı biletler de silinir)...", existingIds.size());
+            for (Long id : existingIds) {
+                try {
+                    api.delete("/products/" + id, null, adminSession.getToken());
+                    log.debug("Ürün silindi: ID {}", id);
+                    Thread.sleep(300);
+                } catch (Exception e) {
+                    log.warn("Ürün silinemedi (ID: {}): {}", id, e.getMessage());
+                }
             }
         }
-        log.info("{}/{} bilet silindi.", deleted, ticketIds.size());
-    }
-
-    // ---------------------------------------------------------------
-    // Eski [GEN] ürünleri sil, yenilerini oluştur
-    // ---------------------------------------------------------------
-    private List<Long> ensureProducts() throws IOException, InterruptedException {
-        // Mevcut [GEN] ürünleri bul ve sil
-        deleteGeneratorProducts();
 
         // Yeni ürünleri oluştur
         log.info("{} ürün oluşturuluyor...", DEFAULT_PRODUCTS.size());
         List<Long> created = new ArrayList<>();
-
         for (String name : DEFAULT_PRODUCTS) {
             try {
                 JsonNode resp = api.post("/products",
@@ -126,40 +114,6 @@ public class SetupGenerator {
             log.error("Hiç ürün oluşturulamadı!");
         }
         return created;
-    }
-
-    private void deleteGeneratorProducts() throws IOException, InterruptedException {
-        List<Long> genProductIds = new ArrayList<>();
-        try {
-            JsonNode products = api.get("/products", adminSession.getToken());
-            if (products.isArray()) {
-                for (JsonNode p : products) {
-                    String name = p.has("name") ? p.get("name").asText("") : "";
-                    if (name.startsWith("[GEN]")) {
-                        genProductIds.add(p.get("id").asLong());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Ürünler listelenemedi: {}", e.getMessage());
-            return;
-        }
-
-        if (genProductIds.isEmpty()) {
-            log.info("Silinecek eski [GEN] ürünü bulunamadı.");
-            return;
-        }
-
-        log.info("{} eski [GEN] ürünü siliniyor...", genProductIds.size());
-        for (Long id : genProductIds) {
-            try {
-                api.delete("/products/" + id, null, adminSession.getToken());
-                log.debug("Ürün silindi: ID {}", id);
-                Thread.sleep(200);
-            } catch (Exception e) {
-                log.warn("Ürün silinemedi (ID: {}): {}", id, e.getMessage());
-            }
-        }
     }
 
     // ---------------------------------------------------------------
