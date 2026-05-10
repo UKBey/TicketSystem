@@ -13,7 +13,22 @@
     "dashboard": "Dashboard",
     "admin": "Admin Panel",
     "products": "Products",
-    "profile": "Profile"
+    "profile": "Profile",
+    "logout": "Logout",
+    "management": "Management",
+    "analytics": "Analytics",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar"
+  },
+  "login": {
+    "subtitle": "Create, track, and manage your support requests with ease.",
+    "signIn": "Sign In",
+    "toggleTheme": "Toggle dark/light mode"
+  },
+  "noRole": {
+    "title": "No Role Assigned",
+    "description": "Your account has been created but no role has been assigned yet. Please contact an administrator to get access.",
+    "signOut": "Sign Out"
   },
   "ticket": {
     "status": {

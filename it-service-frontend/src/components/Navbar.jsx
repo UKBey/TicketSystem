@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import NotificationBell from './notifications/NotificationBell';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -9,6 +10,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { user, getPrimaryRole } = useAuth();
+  const { t } = useTranslation();
   const primaryRole = getPrimaryRole();
   const initials = (user?.name || user?.username || 'U')
     .split(' ')
@@ -38,8 +40,8 @@ export default function Navbar() {
             backgroundColor: 'var(--bg-surface-secondary)',
             color: 'var(--text-secondary)',
           }}
-          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          aria-label={theme === 'light' ? t('nav.theme.toDark') : t('nav.theme.toLight')}
+          title={theme === 'light' ? t('nav.theme.toDark') : t('nav.theme.toLight')}
         >
           {theme === 'light' ? (
             <Moon className="h-[18px] w-[18px]" />

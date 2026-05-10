@@ -1,9 +1,11 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function NoRolePage() {
   const { user, logout, getPrimaryRole } = useAuth();
+  const { t } = useTranslation();
 
   if (getPrimaryRole() !== null) {
     return <Navigate to="/" replace />;
@@ -30,11 +32,10 @@ export default function NoRolePage() {
         </div>
 
         <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-          No Role Assigned
+          {t('noRole.title')}
         </h1>
         <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Your account has been created but no role has been assigned yet.
-          Please contact an administrator to get access.
+          {t('noRole.description')}
         </p>
 
         {user && (
@@ -53,7 +54,7 @@ export default function NoRolePage() {
           onClick={logout}
           className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
         >
-          Sign Out
+          {t('noRole.signOut')}
         </button>
       </div>
     </div>

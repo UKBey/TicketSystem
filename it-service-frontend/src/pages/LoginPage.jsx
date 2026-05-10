@@ -1,10 +1,12 @@
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Headset, ArrowRight, Moon, Sun } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const isDark = theme === 'dark';
 
   return (
@@ -27,7 +29,7 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={toggleTheme}
-        aria-label="Toggle dark/light mode"
+        aria-label={t('login.toggleTheme')}
         className="fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border backdrop-blur-sm transition-all duration-200 hover:scale-105"
         style={{
           backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
@@ -65,14 +67,14 @@ export default function LoginPage() {
             className="text-sm mb-8 leading-relaxed transition-colors duration-300"
             style={{ color: isDark ? '#94a3b8' : '#64748b' }}
           >
-            Create, track, and manage your support requests with ease.
+            {t('login.subtitle')}
           </p>
 
           <button
             onClick={login}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-500 px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-600 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary-500/25 active:scale-[0.98] cursor-pointer"
           >
-            Sign In
+            {t('login.signIn')}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   TicketCheck,
   Briefcase,
@@ -20,6 +21,7 @@ const navLinkBase =
 
 export default function Sidebar({ collapsed = false, onToggle }) {
   const { getPrimaryRole, logout } = useAuth();
+  const { t } = useTranslation();
   const primaryRole = getPrimaryRole();
 
   const linkClassName = ({ isActive }) => {
@@ -46,8 +48,8 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             <button
               onClick={onToggle}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white cursor-pointer hover:bg-primary-600 transition-colors"
-              aria-label="Expand sidebar"
-              title="Expand sidebar"
+              aria-label={t('sidebar.expand')}
+              title={t('sidebar.expand')}
             >
               <Headset className="h-5 w-5" />
             </button>
@@ -66,7 +68,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             <button
               onClick={onToggle}
               className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer ml-2"
-              aria-label="Collapse sidebar"
+              aria-label={t('sidebar.collapse')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -80,7 +82,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
         {primaryRole === 'CUSTOMER' && (
           <NavLink to="/my-tickets" className={linkClassName}>
             <TicketCheck className="h-[18px] w-[18px] flex-shrink-0" />
-            {!collapsed && <span>My Tickets</span>}
+            {!collapsed && <span>{t('sidebar.myTickets')}</span>}
           </NavLink>
         )}
 
@@ -89,19 +91,19 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           <>
             <NavLink to="/workspace" className={linkClassName}>
               <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Workspace</span>}
+              {!collapsed && <span>{t('sidebar.workspace')}</span>}
             </NavLink>
             <NavLink to="/pool" className={linkClassName}>
               <Inbox className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Pool</span>}
+              {!collapsed && <span>{t('sidebar.pool')}</span>}
             </NavLink>
             <NavLink to="/history" className={linkClassName}>
               <History className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>History</span>}
+              {!collapsed && <span>{t('sidebar.history')}</span>}
             </NavLink>
             <NavLink to="/team" className={linkClassName}>
               <Users className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Team Tickets</span>}
+              {!collapsed && <span>{t('sidebar.teamTickets')}</span>}
             </NavLink>
           </>
         )}
@@ -111,16 +113,16 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           <>
             {!collapsed && (
               <div className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Management
+                {t('sidebar.management')}
               </div>
             )}
             <NavLink to="/admin" className={linkClassName}>
               <Settings className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Admin Panel</span>}
+              {!collapsed && <span>{t('sidebar.admin')}</span>}
             </NavLink>
             <NavLink to="/products" className={linkClassName}>
               <Package className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Products</span>}
+              {!collapsed && <span>{t('sidebar.products')}</span>}
             </NavLink>
           </>
         )}
@@ -130,12 +132,12 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           <>
             {!collapsed && (
               <div className="px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Analytics
+                {t('sidebar.analytics')}
               </div>
             )}
             <NavLink to="/dashboard" className={linkClassName}>
               <LayoutDashboard className="h-[18px] w-[18px] flex-shrink-0" />
-              {!collapsed && <span>Dashboard</span>}
+              {!collapsed && <span>{t('sidebar.dashboard')}</span>}
             </NavLink>
           </>
         )}
@@ -148,7 +150,7 @@ export default function Sidebar({ collapsed = false, onToggle }) {
           className={`${navLinkBase} w-full text-slate-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer ${collapsed ? 'justify-center px-2' : ''}`}
         >
           <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          {!collapsed && <span>{t('sidebar.logout')}</span>}
         </button>
       </div>
     </aside>
