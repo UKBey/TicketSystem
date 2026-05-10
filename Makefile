@@ -5,10 +5,12 @@
         test test-backend test-frontend \
         verify \
         sonar sonar-up sonar-down \
-        lint install clean
+        lint install clean \
+        gen gen-build gen-run
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
+GENERATOR_DIR := data-generator
 
 # .env dosyasini oku (varsa)
 -include .env
@@ -56,6 +58,11 @@ help:
 	@echo    sonar-down       - SonarQube container'ini durdurur
 	@echo    sonar            - Kodu analiz edip SonarQube'a gonderir
 	@echo                       Token .env dosyasindaki SONAR_TOKEN degiskeninden okunur
+	@echo.
+	@echo  Veri Uretici (Data Generator):
+	@echo    gen              - Generator'u derler ve calistirir (build + run)
+	@echo    gen-build        - Generator JAR'ini derler
+	@echo    gen-run          - Onceden derlenmiş JAR'i calistirir
 	@echo.
 	@echo  Diger:
 	@echo    lint             - Frontend ESLint kontrolu
@@ -137,6 +144,16 @@ sonar-down:
 
 sonar:
 	cd $(BACKEND_DIR) && mvnw.cmd verify sonar:sonar -Dsonar.token=$(SONAR_TOKEN)
+
+# --- Veri Üretici ---
+
+gen: gen-build gen-run
+
+gen-build:
+	cd $(GENERATOR_DIR) && ..\$(BACKEND_DIR)\mvnw.cmd package -q -DskipTests
+
+gen-run:
+	java -jar $(GENERATOR_DIR)\target\data-generator-1.0.0.jar
 
 # --- Kurulum ---
 

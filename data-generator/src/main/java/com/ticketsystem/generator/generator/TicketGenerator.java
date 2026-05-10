@@ -51,23 +51,25 @@ public class TicketGenerator {
 
     public List<Long> generate() throws IOException, InterruptedException {
         int total       = GeneratorConfig.TICKET_COUNT;
-        int cntNew      = (int) Math.round(total * GeneratorConfig.PCT_NEW         / 100.0);
-        int cntProgress = (int) Math.round(total * GeneratorConfig.PCT_IN_PROGRESS / 100.0);
-        int cntResolved = (int) Math.round(total * GeneratorConfig.PCT_RESOLVED    / 100.0);
-        int cntClosed   = total - cntNew - cntProgress - cntResolved;
+        int cntNew      = (int) Math.round(total * GeneratorConfig.PCT_NEW              / 100.0);
+        int cntProgress = (int) Math.round(total * GeneratorConfig.PCT_IN_PROGRESS      / 100.0);
+        int cntWaiting  = (int) Math.round(total * GeneratorConfig.PCT_WAITING          / 100.0);
+        int cntResolved = (int) Math.round(total * GeneratorConfig.PCT_RESOLVED         / 100.0);
+        int cntClosed   = total - cntNew - cntProgress - cntWaiting - cntResolved;
 
         log.info("=== Bilet üretimi başlıyor ===");
-        log.info("Toplam: {} | NEW: {} | IN_PROGRESS: {} | RESOLVED: {} | CLOSED: {}",
-                total, cntNew, cntProgress, cntResolved, cntClosed);
+        log.info("Toplam: {} | NEW: {} | IN_PROGRESS: {} | WAITING: {} | RESOLVED: {} | CLOSED: {}",
+                total, cntNew, cntProgress, cntWaiting, cntResolved, cntClosed);
 
         List<Long> allIds = new ArrayList<>();
 
         // ---------------------------------------------------------------
-        // Aşama 1: Tüm biletleri oluştur + claim + çözüm notu + statü
-        //          (yorum OLMADAN — yorumlar kuyruğa alınır)
+        // Aşama 1: Tüm biletleri oluştur + claim + worklog + çözüm notu + statü
+        //          (yorumlar kuyruğa alınır)
         // ---------------------------------------------------------------
         allIds.addAll(createNewTickets(cntNew));
         allIds.addAll(createInProgressTickets(cntProgress));
+        allIds.addAll(createWaitingTickets(cntWaiting));
         allIds.addAll(createResolvedTickets(cntResolved));
         allIds.addAll(createClosedTickets(cntClosed));
 
@@ -110,9 +112,41 @@ public class TicketGenerator {
             claimTicket(ticketId, agent);
             sleep();
 
+            // Worklog: agent üzerinde aktif çalışma kaydı
+            int worklogCount = 1 + FakeData.nextInt(2);
+            addWorklogsForTicket(ticketId, agent, worklogCount);
+
             // Yorumları kuyruğa ekle (hemen gönderme)
             enqueueComment(ticketId, agent,    "INTERNAL");
             enqueueComment(ticketId, customer, "EXTERNAL");
+        }
+        return ids;
+    }
+
+    private List<Long> createWaitingTickets(int count) throws IOException, InterruptedException {
+        log.info("WAITING_FOR_CUSTOMER biletler oluşturuluyor: {}", count);
+        List<Long> ids = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            UserSession customer = FakeData.pick(customers);
+            UserSession agent    = FakeData.pick(agents);
+
+            Long ticketId = createTicket(customer);
+            if (ticketId == null) continue;
+            ids.add(ticketId);
+            sleep();
+
+            claimTicket(ticketId, agent);
+            sleep();
+
+            // Agent inceleme yaptı, worklog ekledi
+            addWorklogsForTicket(ticketId, agent, 1 + FakeData.nextInt(2));
+
+            // Agent müşteriden bilgi bekliyor — içeride not bırakıyor
+            enqueueComment(ticketId, agent, "INTERNAL");
+
+            // Müşteriden yanıt/aksiyon bekleniyor
+            updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent);
+            sleep();
         }
         return ids;
     }
@@ -131,6 +165,10 @@ public class TicketGenerator {
 
             claimTicket(ticketId, agent);
             sleep();
+
+            // Worklog: araştırma ve çözüm çalışması
+            int worklogCount = 1 + FakeData.nextInt(3);
+            addWorklogsForTicket(ticketId, agent, worklogCount);
 
             enqueueComment(ticketId, agent, "EXTERNAL");
 
@@ -158,6 +196,10 @@ public class TicketGenerator {
             claimTicket(ticketId, agent);
             sleep();
 
+            // Worklog: CLOSED öncesinde eklenebilir (CLOSED sonrası yasak)
+            int worklogCount = 1 + FakeData.nextInt(3);
+            addWorklogsForTicket(ticketId, agent, worklogCount);
+
             enqueueComment(ticketId, agent,    "EXTERNAL");
             enqueueComment(ticketId, customer, "EXTERNAL");
 
@@ -168,6 +210,10 @@ public class TicketGenerator {
             sleep();
 
             submitCsat(ticketId, customer);
+            sleep();
+
+            // Müşteri CSAT sonrası bileti kapatır
+            updateStatus(ticketId, "CLOSED", customer);
             sleep();
         }
         return ids;
@@ -249,6 +295,31 @@ public class TicketGenerator {
     }
 
     // ---------------------------------------------------------------
+    // Worklog metodları
+    // ---------------------------------------------------------------
+
+    private void addWorklogsForTicket(Long ticketId, UserSession agent, int count)
+            throws IOException, InterruptedException {
+        for (int i = 0; i < count; i++) {
+            addWorklog(ticketId, agent);
+            sleep();
+        }
+    }
+
+    private void addWorklog(Long ticketId, UserSession agent) throws IOException {
+        Map<String, Object> body = new HashMap<>();
+        body.put("minutes",     FakeData.randomWorklogMinutes());
+        body.put("description", FakeData.randomWorklogDescription());
+        try {
+            api.post("/tickets/" + ticketId + "/worklogs", body, agent.getToken());
+            log.debug("Worklog eklendi: #{} → {} dk ({})", ticketId,
+                    body.get("minutes"), agent.getUsername());
+        } catch (Exception e) {
+            log.warn("Worklog eklenemedi #{}: {}", ticketId, e.getMessage());
+        }
+    }
+
+    // ---------------------------------------------------------------
     // Atomik işlemler
     // ---------------------------------------------------------------
 
@@ -303,7 +374,7 @@ public class TicketGenerator {
     private void submitCsat(Long ticketId, UserSession customer) throws IOException {
         Map<String, Object> body = Map.of(
             "rating",  FakeData.randomCsatRating(),
-            "comment", "Destek için teşekkürler."
+            "comment", FakeData.randomCsatComment()
         );
         try {
             api.post("/tickets/" + ticketId + "/csat", body, customer.getToken());

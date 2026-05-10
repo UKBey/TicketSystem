@@ -53,13 +53,15 @@ public class GeneratorConfig {
      * Biletlerin durum dağılımı (yüzde olarak, toplamı 100 olmalı).
      * NEW: havuzda bekleyen
      * IN_PROGRESS: agent üzerinde
+     * WAITING_FOR_CUSTOMER: müşteriden bilgi/aksiyon bekleniyor
      * RESOLVED: çözüldü, CSAT bekliyor
      * CLOSED: tamamen kapandı
      */
-    public static final int PCT_NEW        = 20;
-    public static final int PCT_IN_PROGRESS = 30;
-    public static final int PCT_RESOLVED   = 20;
-    public static final int PCT_CLOSED     = 30;
+    public static final int PCT_NEW              = 15;
+    public static final int PCT_IN_PROGRESS      = 25;
+    public static final int PCT_WAITING          = 10;
+    public static final int PCT_RESOLVED         = 20;
+    public static final int PCT_CLOSED           = 30;
 
     /** İstekler arasındaki bekleme süresi (ms) — rate limit aşımını önler */
     public static final long DELAY_MS = 800;
