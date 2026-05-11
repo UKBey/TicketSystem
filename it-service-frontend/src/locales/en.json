@@ -481,6 +481,7 @@
     "saved": "Preferences saved.",
     "errorLoad": "Failed to load preferences.",
     "errorSave": "Failed to save. Please try again.",
+    "retentionNote": "Read notifications are automatically deleted after 48 hours, unread ones after 10 days.",
     "event": {
       "TicketCreated": "Ticket created",
       "TicketAssigned": "Ticket assigned to me",
