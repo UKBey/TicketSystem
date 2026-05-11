@@ -2,9 +2,7 @@
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('password','password-confirm'); section>
     <#if section = "form">
         <form id="kc-passwd-update-form" action="${url.loginAction}" method="post">
-            <p class="form-description">
-                Please set a new password for your account.
-            </p>
+            <p class="form-description">${msg("updatePasswordDesc")}</p>
 
             <input type="text" id="username" name="username" value="${username}" autocomplete="username" readonly="readonly" style="display:none;"/>
             <input type="password" id="password-hidden" name="password-hidden" autocomplete="current-password" style="display:none;"/>
@@ -17,7 +15,7 @@
                        class="form-input <#if messagesPerField.existsError('password','password-confirm')>input-error</#if>"
                        autofocus
                        autocomplete="new-password"
-                       placeholder="Enter new password"
+                       placeholder="${msg('newPasswordPlaceholder')}"
                 />
                 <#if messagesPerField.existsError('password')>
                     <div class="field-error">
@@ -33,7 +31,7 @@
                        name="password-confirm"
                        class="form-input <#if messagesPerField.existsError('password-confirm')>input-error</#if>"
                        autocomplete="new-password"
-                       placeholder="Confirm new password"
+                       placeholder="${msg('confirmPasswordPlaceholder')}"
                 />
                 <#if messagesPerField.existsError('password-confirm')>
                     <div class="field-error">

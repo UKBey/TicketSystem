@@ -15,7 +15,7 @@
                        type="text"
                        autofocus
                        autocomplete="username"
-                       placeholder="Enter your username or email"
+                       placeholder="${msg('usernamePlaceholder')}"
                 />
                 <#if messagesPerField.existsError('username','password')>
                     <div class="field-error">
@@ -34,7 +34,7 @@
                        name="password"
                        type="password"
                        autocomplete="current-password"
-                       placeholder="Enter your password"
+                       placeholder="${msg('passwordPlaceholder')}"
                 />
             </div>
 

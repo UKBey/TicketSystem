@@ -2,9 +2,7 @@
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('firstName','lastName','email','username','password','password-confirm') displayInfo=true; section>
     <#if section = "form">
         <form id="kc-register-form" action="${url.registrationAction}" method="post">
-            <p class="form-description">
-                Create your account to get started.
-            </p>
+            <p class="form-description">${msg("registerDesc")}</p>
 
             <div class="form-row">
                 <div class="form-group form-group-half">
@@ -14,7 +12,7 @@
                            name="firstName"
                            class="form-input <#if messagesPerField.existsError('firstName')>input-error</#if>"
                            value="${(register.formData.firstName!'')}"
-                           placeholder="First name"
+                           placeholder="${msg('firstNamePlaceholder')}"
                     />
                     <#if messagesPerField.existsError('firstName')>
                         <div class="field-error">
@@ -30,7 +28,7 @@
                            name="lastName"
                            class="form-input <#if messagesPerField.existsError('lastName')>input-error</#if>"
                            value="${(register.formData.lastName!'')}"
-                           placeholder="Last name"
+                           placeholder="${msg('lastNamePlaceholder')}"
                     />
                     <#if messagesPerField.existsError('lastName')>
                         <div class="field-error">
@@ -48,7 +46,7 @@
                        class="form-input <#if messagesPerField.existsError('email')>input-error</#if>"
                        value="${(register.formData.email!'')}"
                        autocomplete="email"
-                       placeholder="your@email.com"
+                       placeholder="${msg('emailPlaceholder')}"
                 />
                 <#if messagesPerField.existsError('email')>
                     <div class="field-error">
@@ -66,7 +64,7 @@
                            class="form-input <#if messagesPerField.existsError('username')>input-error</#if>"
                            value="${(register.formData.username!'')}"
                            autocomplete="username"
-                           placeholder="Choose a username"
+                           placeholder="${msg('chooseUsernamePlaceholder')}"
                     />
                     <#if messagesPerField.existsError('username')>
                         <div class="field-error">
@@ -84,7 +82,7 @@
                            name="password"
                            class="form-input <#if messagesPerField.existsError('password','password-confirm')>input-error</#if>"
                            autocomplete="new-password"
-                           placeholder="Create a password"
+                           placeholder="${msg('createPasswordPlaceholder')}"
                     />
                     <#if messagesPerField.existsError('password')>
                         <div class="field-error">
@@ -100,7 +98,7 @@
                            name="password-confirm"
                            class="form-input <#if messagesPerField.existsError('password-confirm')>input-error</#if>"
                            autocomplete="new-password"
-                           placeholder="Confirm your password"
+                           placeholder="${msg('confirmYourPasswordPlaceholder')}"
                     />
                     <#if messagesPerField.existsError('password-confirm')>
                         <div class="field-error">
@@ -121,7 +119,7 @@
             </div>
 
             <div class="back-to-login">
-                <a href="${url.loginUrl}">&larr; Already have an account? Sign In</a>
+                <a href="${url.loginUrl}">${msg("alreadyHaveAccount")}</a>
             </div>
         </form>
     </#if>

@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function NoRolePage() {
   const { user, logout, getPrimaryRole } = useAuth();
@@ -16,6 +17,9 @@ export default function NoRolePage() {
       className="flex min-h-screen flex-col items-center justify-center p-6"
       style={{ backgroundColor: 'var(--bg-body)' }}
     >
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
       <div
         className="w-full max-w-md rounded-2xl border p-8 text-center"
         style={{

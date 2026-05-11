@@ -175,12 +175,19 @@ body {
   background: var(--orb-3);
 }
 
-/* ── Theme toggle button ────────────────────────────────────── */
-.theme-toggle {
+/* ── Controls bar (language + theme) ───────────────────────── */
+.controls-bar {
   position: fixed;
   top: 1rem;
   right: 1rem;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Theme toggle button ────────────────────────────────────── */
+.theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,6 +219,103 @@ body {
 
 [data-theme="light"] .icon-moon { display: none;  }
 [data-theme="light"] .icon-sun  { display: block; }
+
+/* ── Language switcher ──────────────────────────────────────── */
+.lang-switcher {
+  position: relative;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.5rem;
+  padding: 0 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--toggle-border);
+  background: var(--toggle-bg);
+  color: var(--toggle-color);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.lang-btn:hover {
+  background: var(--toggle-hover);
+}
+
+.lang-label {
+  letter-spacing: 0.03em;
+}
+
+.lang-chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.lang-btn[aria-expanded="true"] .lang-chevron {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  min-width: 9.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--toggle-border);
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  z-index: 200;
+}
+
+.lang-dropdown.open {
+  display: block;
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lang-option:hover {
+  background: var(--toggle-hover);
+  color: var(--text-title);
+}
+
+.lang-option--active {
+  background: var(--toggle-bg);
+  color: var(--text-title);
+}
+
+.lang-option-label {
+  flex: 1;
+}
+
+.lang-check {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  color: #3b82f6;
+}
 
 /* ── Container ──────────────────────────────────────────────── */
 .login-container {

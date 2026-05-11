@@ -2,9 +2,7 @@
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('username') displayInfo=true; section>
     <#if section = "form">
         <form id="kc-reset-password-form" action="${url.loginAction}" method="post">
-            <p class="form-description">
-                Enter your username or email address and we will send you instructions to reset your password.
-            </p>
+            <p class="form-description">${msg("resetPasswordDesc")}</p>
 
             <div class="form-group">
                 <label for="username" class="form-label">
@@ -16,7 +14,7 @@
                        class="form-input <#if messagesPerField.existsError('username')>input-error</#if>"
                        autofocus
                        value="${(auth.attemptedUsername!'')}"
-                       placeholder="Enter your username or email"
+                       placeholder="${msg('resetUsernamePlaceholder')}"
                 />
                 <#if messagesPerField.existsError('username')>
                     <div class="field-error">
@@ -30,7 +28,7 @@
             </div>
 
             <div class="back-to-login">
-                <a href="${url.loginUrl}">&larr; Back to Sign In</a>
+                <a href="${url.loginUrl}">${msg("backToSignIn")}</a>
             </div>
         </form>
     </#if>

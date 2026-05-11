@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Headset, ArrowRight, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -25,20 +26,23 @@ export default function LoginPage() {
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full blur-3xl ${isDark ? 'bg-primary-500/5' : 'bg-primary-500/4'}`} />
       </div>
 
-      {/* Theme toggle — top right */}
-      <button
-        type="button"
-        onClick={toggleTheme}
-        aria-label={t('login.toggleTheme')}
-        className="fixed top-4 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl border backdrop-blur-sm transition-all duration-200 hover:scale-105"
-        style={{
-          backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-          borderColor:     isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
-          color:           isDark ? '#94a3b8' : '#64748b',
-        }}
-      >
-        {isDark ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-      </button>
+      {/* Language switcher + theme toggle — top right */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        <LanguageSwitcher />
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={t('login.toggleTheme')}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border backdrop-blur-sm transition-all duration-200 hover:scale-105"
+          style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            borderColor:     isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
+            color:           isDark ? '#94a3b8' : '#64748b',
+          }}
+        >
+          {isDark ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+        </button>
+      </div>
 
       <div className="relative w-full max-w-md animate-slide-up">
         {/* Main card */}

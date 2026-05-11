@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import keycloak from '../keycloak';
 import api from '../services/api';
+import i18n from '../i18n';
 
 const AuthContext = createContext(null);
 
@@ -77,7 +78,8 @@ export function AuthProvider({ children }) {
   }, [extractUserInfo]);
 
   const login = useCallback(() => {
-    keycloak.login({ redirectUri: window.location.origin + '/' });
+    const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+    keycloak.login({ redirectUri: window.location.origin + '/', locale });
   }, []);
 
   const logout = useCallback(() => {
