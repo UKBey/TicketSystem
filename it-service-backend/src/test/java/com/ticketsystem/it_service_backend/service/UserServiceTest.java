@@ -1,23 +1,36 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
+import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +41,10 @@ class UserServiceTest {
     private UserRepository userRepository;
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private AgentProductLimitRepository agentProductLimitRepository;
+    @Mock
+    private TicketClaimRepository ticketClaimRepository;
 
     @InjectMocks
     private UserService userService;
@@ -98,5 +115,156 @@ class UserServiceTest {
         when(userRepository.findById("missing")).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> userService.getUserById("missing"));
+    }
+
+    // -------------------------------------------------------------------------
+    // syncUser — existing user (update path)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("syncUser mevcut kullanıcıyı günceller (update path)")
+    void syncUser_whenUserExists_updatesFields() {
+        User existing = User.builder().id("agent-1").email("old@example.com").fullName("Old Name").role("AGENT").build();
+        User incoming = User.builder().id("agent-1").email("new@example.com").fullName("New Name").role("AGENT_ADMIN").build();
+
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(existing));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User result = userService.syncUser(incoming);
+
+        assertEquals("new@example.com", result.getEmail());
+        assertEquals("New Name", result.getFullName());
+        assertEquals("AGENT_ADMIN", result.getRole());
+        verify(userRepository).save(existing);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAgents / getAllUsers
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getAgents → AGENT rolündeki kullanıcıları döner")
+    void getAgents_returnsAgentList() {
+        when(userRepository.findByRole("AGENT")).thenReturn(List.of(user));
+
+        List<User> result = userService.getAgents();
+
+        assertThat(result).hasSize(1).extracting(User::getId).containsExactly("agent-1");
+    }
+
+    @Test
+    @DisplayName("getAllUsers → tüm kullanıcıları döner")
+    void getAllUsers_returnsAllUsers() {
+        User customer = User.builder().id("customer-1").role("CUSTOMER").build();
+        when(userRepository.findAll()).thenReturn(List.of(user, customer));
+
+        List<User> result = userService.getAllUsers();
+
+        assertThat(result).hasSize(2);
+    }
+
+    // -------------------------------------------------------------------------
+    // getUsersFiltered
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getUsersFiltered → null search ve null role trim edilir")
+    void getUsersFiltered_nullParams_usesNullInQuery() {
+        Page<User> page = new PageImpl<>(List.of(user));
+        when(userRepository.findFiltered(isNull(), isNull(), any(Pageable.class))).thenReturn(page);
+
+        Page<User> result = userService.getUsersFiltered(null, null, 0, 20);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getUsersFiltered → search ve role trim edilir ve sorguya geçirilir")
+    void getUsersFiltered_withParams_passesTrimmmedValues() {
+        Page<User> page = new PageImpl<>(List.of(user));
+        when(userRepository.findFiltered(eq("AGENT"), eq("agent"), any(Pageable.class))).thenReturn(page);
+
+        Page<User> result = userService.getUsersFiltered("  agent  ", "  AGENT  ", 0, 10);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAgentsWithCapacity
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getAgentsWithCapacity → agent yok → boş liste")
+    void getAgentsWithCapacity_noAgents_returnsEmpty() {
+        when(userRepository.findByRoleAndAuthorizedProductsId("AGENT", 10L)).thenReturn(List.of());
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        List<AgentCapacityDTO> result = userService.getAgentsWithCapacity(10L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getAgentsWithCapacity → ürün bulunamadıysa EntityNotFoundException")
+    void getAgentsWithCapacity_productNotFound_throws() {
+        when(userRepository.findByRoleAndAuthorizedProductsId("AGENT", 99L)).thenReturn(List.of());
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getAgentsWithCapacity(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getAgentsWithCapacity → limitsiz product, isFull=false döner")
+    void getAgentsWithCapacity_noLimit_isFullFalse() {
+        Product unlimited = Product.builder().id(10L).maxActiveTickets(null).build();
+        when(userRepository.findByRoleAndAuthorizedProductsId("AGENT", 10L)).thenReturn(List.of(user));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(unlimited));
+        when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L)).thenReturn(Optional.empty());
+        when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(3L);
+
+        List<AgentCapacityDTO> result = userService.getAgentsWithCapacity(10L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getIsFull()).isFalse();
+        assertThat(result.get(0).getCurrentActiveTickets()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("getAgentsWithCapacity → custom limit dolu, isFull=true döner")
+    void getAgentsWithCapacity_customLimitReached_isFullTrue() {
+        Product prod = Product.builder().id(10L).maxActiveTickets(10).build();
+        AgentProductLimit customLimit = AgentProductLimit.builder()
+                .agentId("agent-1").maxActiveTickets(2).useCustomLimit(true).build();
+
+        when(userRepository.findByRoleAndAuthorizedProductsId("AGENT", 10L)).thenReturn(List.of(user));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(prod));
+        when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L))
+                .thenReturn(Optional.of(customLimit));
+        when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(2L);
+
+        List<AgentCapacityDTO> result = userService.getAgentsWithCapacity(10L);
+
+        assertThat(result.get(0).getIsFull()).isTrue();
+        assertThat(result.get(0).getMaxLimit()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("getAgentsWithCapacity → custom limit var ama useCustomLimit=false → product limit kullanılır")
+    void getAgentsWithCapacity_customLimitDisabled_usesProductLimit() {
+        Product prod = Product.builder().id(10L).maxActiveTickets(5).build();
+        AgentProductLimit customLimit = AgentProductLimit.builder()
+                .agentId("agent-1").maxActiveTickets(2).useCustomLimit(false).build();
+
+        when(userRepository.findByRoleAndAuthorizedProductsId("AGENT", 10L)).thenReturn(List.of(user));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(prod));
+        when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L))
+                .thenReturn(Optional.of(customLimit));
+        when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(3L);
+
+        List<AgentCapacityDTO> result = userService.getAgentsWithCapacity(10L);
+
+        assertThat(result.get(0).getMaxLimit()).isEqualTo(5);
+        assertThat(result.get(0).getIsFull()).isFalse();
     }
 }

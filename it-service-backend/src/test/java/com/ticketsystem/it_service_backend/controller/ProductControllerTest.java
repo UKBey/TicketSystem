@@ -108,6 +108,40 @@ class ProductControllerTest {
         verify(productService).deleteProduct(14L);
     }
 
+    @Test
+    void getProductById_withNonNullJwt_returnsOk() {
+        Product product = Product.builder().id(10L).name("ERP").isActive(true).build();
+        when(productService.getProductById(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(product);
+
+        ResponseEntity<ProductDTO> response = productController.getProductById(10L, jwtWithRoles("admin-1", "AGENT_ADMIN"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(10L, response.getBody().getId());
+    }
+
+    @Test
+    void getProductById_withNullJwt_callsServiceWithNullAndEmptyRoles() {
+        Product product = Product.builder().id(10L).name("ERP").isActive(true).build();
+        when(productService.getProductById(10L, null, List.of())).thenReturn(product);
+
+        ResponseEntity<ProductDTO> response = productController.getProductById(10L, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+    }
+
+    @Test
+    void getAllProducts_withNullJwt_callsServiceWithNullAndEmptyRoles() {
+        when(productService.getAllProducts(null, List.of())).thenReturn(List.of());
+
+        ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().size());
+    }
+
     private Jwt jwtWithRoles(String subject, String... roles) {
         Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
         when(jwt.getSubject()).thenReturn(subject);

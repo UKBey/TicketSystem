@@ -6,13 +6,18 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -108,5 +113,32 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.getBody().getStatus());
         assertEquals("Beklenmedik bir hata oluştu: unexpected failure", response.getBody().getMessage());
+    }
+
+    @Test
+    void handlesMethodArgumentNotValidException() {
+        // error.validation.failed key'i için çeviri simüle et
+        when(messageSource.getMessage(eq("error.validation.failed"), any(), any(Locale.class)))
+                .thenReturn("Doğrulama hatası");
+
+        FieldError fieldError = new FieldError("ticketDTO", "title", "Başlık boş olamaz");
+        when(messageSource.getMessage(any(FieldError.class), any(Locale.class)))
+                .thenReturn("Başlık boş olamaz");
+
+        BindingResult bindingResult = mock(BindingResult.class);
+        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+
+        MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+
+        var response = handler.handleMethodArgumentNotValidException(exception);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getBody().getStatus());
+        assertEquals("Doğrulama hatası", response.getBody().getMessage());
+        assertNotNull(response.getBody().getFieldErrors());
+        assertTrue(response.getBody().getFieldErrors().containsKey("title"));
+        assertEquals("Başlık boş olamaz", response.getBody().getFieldErrors().get("title"));
     }
 }

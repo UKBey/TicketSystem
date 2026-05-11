@@ -381,4 +381,233 @@ class NotificationServiceTest {
 
         assertEquals(5L, count);
     }
+
+    // -------------------------------------------------------------------------
+    // notifyTicketAssigned
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifyTicketAssigned_notifiesAgentAndCustomer_whenBothPrefsEnabled() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.empty());
+
+        notificationService.notifyTicketAssigned(ticket, "agent-1", "admin-1");
+
+        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(emailService).sendTicketAssignedEmail(agent, ticket);
+    }
+
+    @Test
+    void notifyTicketAssigned_agentPrefDisabled_skipsAgentNotification() {
+        NotificationPreference agentPref = NotificationPreference.builder()
+                .userId("agent-1").notifyOnTicketAssigned(false).emailOnTicketAssigned(false).build();
+        NotificationPreference custPref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnStatusChanged(false).build();
+
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(agentPref));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(custPref));
+
+        notificationService.notifyTicketAssigned(ticket, "agent-1", "admin-1");
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService, never()).sendTicketAssignedEmail(any(), any());
+    }
+
+    @Test
+    void notifyTicketAssigned_agentNotFound_doesNothing() {
+        when(userRepository.findById("unknown")).thenReturn(Optional.empty());
+        when(userRepository.findById("customer-1")).thenReturn(Optional.empty());
+
+        notificationService.notifyTicketAssigned(ticket, "unknown", "admin-1");
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // notifySlaWarning
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifySlaWarning_notifiesAssigneeAndManagers() {
+        User manager = User.builder().id("mgr-1").email("m@example.com").fullName("Yönetici").role("MANAGER").build();
+
+        TicketClaim claim = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claim));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
+        when(userRepository.findByRole("MANAGER")).thenReturn(List.of(manager));
+        when(preferenceRepository.findByUserId("mgr-1")).thenReturn(Optional.empty());
+
+        notificationService.notifySlaWarning(ticket);
+
+        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(emailService).sendSlaWarningEmail(agent, ticket);
+        verify(emailService).sendSlaWarningEmail(manager, ticket);
+    }
+
+    @Test
+    void notifySlaWarning_agentPrefDisabled_skipsNotification() {
+        NotificationPreference agentPref = NotificationPreference.builder()
+                .userId("agent-1").notifyOnSlaWarning(false).emailOnSlaWarning(true).build();
+
+        TicketClaim claim = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claim));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(agentPref));
+        when(userRepository.findByRole("MANAGER")).thenReturn(List.of());
+
+        notificationService.notifySlaWarning(ticket);
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendSlaWarningEmail(agent, ticket);
+    }
+
+    // -------------------------------------------------------------------------
+    // notifyStatusChanged
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifyStatusChanged_savesNotificationAndEmail_whenBothEnabled() {
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.empty());
+
+        notificationService.notifyStatusChanged(ticket, "NEW");
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService).sendStatusChangedEmail(eq(customer), eq(ticket), eq("NEW"), any());
+    }
+
+    @Test
+    void notifyStatusChanged_emailDisabled_skipsEmail() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnStatusChanged(true).emailOnStatusChanged(false).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyStatusChanged(ticket, "IN_PROGRESS");
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService, never()).sendStatusChangedEmail(any(), any(), any(), any());
+    }
+
+    @Test
+    void notifyStatusChanged_notifyDisabled_skipsNotification() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnStatusChanged(false).emailOnStatusChanged(true).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyStatusChanged(ticket, "IN_PROGRESS");
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendStatusChangedEmail(eq(customer), eq(ticket), eq("IN_PROGRESS"), any());
+    }
+
+    // -------------------------------------------------------------------------
+    // notifyTicketResolved
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifyTicketResolved_notifiesAndEmailsCustomer_whenBothEnabled() {
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.empty());
+
+        notificationService.notifyTicketResolved(ticket);
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService).sendTicketResolvedEmail(customer, ticket);
+    }
+
+    @Test
+    void notifyTicketResolved_emailDisabled_skipsEmail() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnTicketResolved(true).emailOnTicketResolved(false).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyTicketResolved(ticket);
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService, never()).sendTicketResolvedEmail(any(), any());
+    }
+
+    @Test
+    void notifyTicketResolved_notifyDisabled_skipsNotification() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnTicketResolved(false).emailOnTicketResolved(true).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyTicketResolved(ticket);
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendTicketResolvedEmail(customer, ticket);
+    }
+
+    // -------------------------------------------------------------------------
+    // notifyTicketClaimed — email disabled branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifyTicketClaimed_notifyDisabled_skipsNotificationButSendsEmail() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("agent-1").notifyOnTicketAssigned(false).emailOnTicketAssigned(true).build();
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyTicketClaimed(ticket, "agent-1");
+
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(emailService).sendTicketAssignedEmail(agent, ticket);
+    }
+
+    // -------------------------------------------------------------------------
+    // notifyCommentAdded — email disabled branches
+    // -------------------------------------------------------------------------
+
+    @Test
+    void notifyCommentAdded_agentEmailDisabled_skipsEmail() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("agent-1").notifyOnCommentAdded(true).emailOnCommentAdded(false).build();
+        Comment comment = Comment.builder().id(5L).authorId("customer-1").message("Help?").type("EXTERNAL").build();
+
+        TicketClaim claim = TicketClaim.builder().agentId("agent-1").build();
+        when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claim));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyCommentAdded(ticket, comment);
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService, never()).sendCommentAddedEmail(any(), any(), any(), any());
+    }
+
+    @Test
+    void notifyCommentAdded_customerEmailDisabled_skipsEmail() {
+        NotificationPreference pref = NotificationPreference.builder()
+                .userId("customer-1").notifyOnCommentAdded(true).emailOnCommentAdded(false).build();
+        Comment comment = Comment.builder().id(6L).authorId("agent-1").message("Working on it").type("EXTERNAL").build();
+
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));
+
+        notificationService.notifyCommentAdded(ticket, comment);
+
+        verify(notificationRepository).save(any(Notification.class));
+        verify(emailService, never()).sendCommentAddedEmail(any(), any(), any(), any());
+    }
+
+    // -------------------------------------------------------------------------
+    // markAllAsRead
+    // -------------------------------------------------------------------------
+
+    @Test
+    void markAllAsRead_callsRepository() {
+        notificationService.markAllAsRead("user-1");
+        verify(notificationRepository).markAllAsReadByUserId("user-1");
+    }
 }

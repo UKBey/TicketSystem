@@ -7,15 +7,21 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -147,5 +153,107 @@ class ProductServiceTest {
         verify(ticketService).deleteTicket(101L);
         verify(ticketService).deleteTicket(102L);
         verify(productRepository).deleteById(10L);
+    }
+
+    // -------------------------------------------------------------------------
+    // getProductById — branch coverage
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getProductById → AGENT_ADMIN rolü → yetki kontrolü atlanır")
+    void getProductById_agentAdminRole_returnsDirectly() {
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        Product result = productService.getProductById(10L, "admin-1", List.of("AGENT_ADMIN"));
+
+        assertThat(result.getId()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("getProductById → ürün bulunamazsa 404")
+    void getProductById_notFound_throws404() {
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getProductById(99L, "user-1", List.of("AGENT")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("getProductById → userId null → FORBIDDEN")
+    void getProductById_nullUserId_throwsForbidden() {
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> productService.getProductById(10L, null, List.of("AGENT")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("getProductById → kullanıcı yetkisizse FORBIDDEN")
+    void getProductById_userNotAuthorized_throwsForbidden() {
+        User userWithNoProducts = User.builder().id("user-1").authorizedProducts(new ArrayList<>()).build();
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(userWithNoProducts));
+
+        assertThatThrownBy(() -> productService.getProductById(10L, "user-1", List.of("CUSTOMER")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("getProductById → kullanıcı yetkili → ürünü döner")
+    void getProductById_userAuthorized_returnsProduct() {
+        User authorizedUser = User.builder().id("user-1").authorizedProducts(List.of(product)).build();
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(authorizedUser));
+
+        Product result = productService.getProductById(10L, "user-1", List.of("CUSTOMER"));
+
+        assertThat(result.getId()).isEqualTo(10L);
+    }
+
+    // -------------------------------------------------------------------------
+    // getAllProducts — null userId branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getAllProducts → userId null → boş liste döner")
+    void getAllProducts_nullUserId_returnsEmpty() {
+        List<Product> result = productService.getAllProducts(null, List.of("AGENT"));
+
+        assertThat(result).isEmpty();
+    }
+
+    // -------------------------------------------------------------------------
+    // updateProduct — maxActiveTickets null-override branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updateProduct → mevcut maxActiveTickets varken null patch → limit kaldırılır")
+    void updateProduct_existingLimitWithNullPatch_clearsLimit() {
+        Product existing = Product.builder().id(10L).name("ERP").isActive(true).maxActiveTickets(5).build();
+        Product patch = Product.builder().build(); // name=null, isActive=null, maxActiveTickets=null
+
+        when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Product updated = productService.updateProduct(10L, patch);
+
+        assertNull(updated.getMaxActiveTickets());
+    }
+
+    // -------------------------------------------------------------------------
+    // updateMaxActiveTickets — limit < 1 branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updateMaxActiveTickets → limit < 1 → IllegalArgumentException")
+    void updateMaxActiveTickets_belowMinimum_throwsIllegalArgument() {
+        assertThatThrownBy(() -> productService.updateMaxActiveTickets(10L, 0))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

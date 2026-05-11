@@ -89,4 +89,77 @@ class CsatServiceTest {
 
         assertEquals(404, ex.getStatusCode().value());
     }
+
+    @Test
+    void getCsatByTicketId_whenFound_returnsCsat() {
+        Csat csat = Csat.builder().id(1L).ticketId(10L).rating(4).build();
+        when(ticketService.getTicketWithAuth(10L, "customer-1", List.of("CUSTOMER"))).thenReturn(resolvedTicket);
+        when(csatRepository.findByTicketId(10L)).thenReturn(Optional.of(csat));
+
+        Csat result = csatService.getCsatByTicketId(10L, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals(1L, result.getId());
+        assertEquals(4, result.getRating());
+    }
+
+    @Test
+    void submitCsat_nullRating_throwsBadRequest() {
+        CsatDTO dto = CsatDTO.builder().rating(null).comment("ok").build();
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void submitCsat_zeroRating_throwsBadRequest() {
+        CsatDTO dto = CsatDTO.builder().rating(0).comment("bad").build();
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void submitCsat_inProgressTicket_throwsBadRequest() {
+        CsatDTO dto = CsatDTO.builder().rating(4).comment("ok").build();
+        Ticket inProgressTicket = Ticket.builder().id(10L).customerId("customer-1").status("IN_PROGRESS").build();
+        when(ticketService.getTicketById(10L)).thenReturn(inProgressTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void submitCsat_closedTicket_savesWithoutClosingAgain() {
+        CsatDTO dto = CsatDTO.builder().rating(5).comment("great").build();
+        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status("CLOSED").build();
+        when(ticketService.getTicketById(10L)).thenReturn(closedTicket);
+        when(csatRepository.existsByTicketId(10L)).thenReturn(false);
+        when(csatRepository.save(org.mockito.ArgumentMatchers.any(Csat.class))).thenAnswer(invocation -> {
+            Csat c = invocation.getArgument(0);
+            c.setId(2L);
+            return c;
+        });
+
+        Csat saved = csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals(2L, saved.getId());
+    }
+
+    @Test
+    void submitCsat_duplicateCsat_throwsBadRequest() {
+        CsatDTO dto = CsatDTO.builder().rating(3).comment("ok").build();
+        when(ticketService.getTicketById(10L)).thenReturn(resolvedTicket);
+        when(csatRepository.existsByTicketId(10L)).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(400, ex.getStatusCode().value());
+    }
 }

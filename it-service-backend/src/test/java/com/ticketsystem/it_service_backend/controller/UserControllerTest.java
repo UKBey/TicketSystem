@@ -81,6 +81,50 @@ class UserControllerTest {
     }
 
     @Test
+    void syncCurrentUser_mapsAgentRoleAndReturnsDto() {
+        User synced = User.builder()
+                .id("agent-1")
+                .email("agent@example.com")
+                .fullName("Ada Agent")
+                .role("AGENT")
+                .build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+
+        Jwt jwt = jwtWithRoles("agent-1", List.of("AGENT"));
+        when(jwt.getClaimAsString("email")).thenReturn("agent@example.com");
+        when(jwt.getClaimAsString("given_name")).thenReturn("Ada");
+        when(jwt.getClaimAsString("family_name")).thenReturn("Agent");
+
+        ResponseEntity<UserDTO> response = userController.syncCurrentUser(jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals("AGENT", response.getBody().getRole());
+    }
+
+    @Test
+    void syncCurrentUser_mapsCustomerRoleAndReturnsDto() {
+        User synced = User.builder()
+                .id("customer-1")
+                .email("customer@example.com")
+                .fullName("Ada Customer")
+                .role("CUSTOMER")
+                .build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+
+        Jwt jwt = jwtWithRoles("customer-1", List.of("CUSTOMER"));
+        when(jwt.getClaimAsString("email")).thenReturn("customer@example.com");
+        when(jwt.getClaimAsString("given_name")).thenReturn("Ada");
+        when(jwt.getClaimAsString("family_name")).thenReturn("Customer");
+
+        ResponseEntity<UserDTO> response = userController.syncCurrentUser(jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals("CUSTOMER", response.getBody().getRole());
+    }
+
+    @Test
     void getAgents_returnsDtoList() {
         User agent = User.builder().id("agent-1").fullName("Agent One").role("AGENT").build();
         when(userService.getAgents()).thenReturn(List.of(agent));
