@@ -858,11 +858,10 @@ public class TicketService {
         }
 
         if (roles.contains("AGENT")) {
-            User agent = userRepository.findById(userId).orElseThrow();
-            boolean authorized = agent.getAuthorizedProducts().stream()
-                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-            if (!authorized) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.update.forbidden");
+            boolean hasClaim = ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId);
+            if (!hasClaim) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "error.ticket.status.requires.claim");
             }
             return;
         }
@@ -927,7 +926,17 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.assign.closed");
         }
 
-        // 2. Hedef agent'ı yükle ve ürün yetki kontrolü
+        // 2. Admin'in bu ürün üzerinde yetkisi var mı?
+        User adminUser = userRepository.findById(adminId)
+                .orElseThrow(() -> new EntityNotFoundException("Admin bulunamadı: " + adminId));
+        boolean adminAuthorized = adminUser.getAuthorizedProducts().stream()
+                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+        if (!adminAuthorized) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "error.ticket.assign.admin.not.authorized");
+        }
+
+        // 3. Hedef agent'ı yükle ve ürün yetki kontrolü
         User targetAgent = userRepository.findById(targetAgentId)
                 .orElseThrow(() -> new EntityNotFoundException("Agent bulunamadı: " + targetAgentId));
 
@@ -938,7 +947,7 @@ public class TicketService {
                     "error.ticket.assign.agent.not.authorized");
         }
 
-        // 3. Kapasite kontrolü
+        // 4. Kapasite kontrolü
         Product product = productRepository.findById(ticket.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("Ürün bulunamadı: " + ticket.getProductId()));
 
@@ -959,20 +968,20 @@ public class TicketService {
             }
         }
 
-        // 4. Zaten claim almışsa tekrar ekleme, sadece log
+        // 5. Zaten claim almışsa tekrar ekleme, sadece log
         if (ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, targetAgentId)) {
             log.warn("Hedef agent zaten bu bileti claim almış. Bilet: {}, Agent: {}", ticketId, targetAgentId);
             return ticket;
         }
 
-        // 5. Claim kaydı oluştur
+        // 6. Claim kaydı oluştur
         TicketClaim claim = TicketClaim.builder()
                 .ticket(ticket)
                 .agentId(targetAgentId)
                 .build();
         ticketClaimRepository.save(claim);
 
-        // 6. İlk claim ise statüyü IN_PROGRESS'e çek
+        // 7. İlk claim ise statüyü IN_PROGRESS'e çek
         String previousStatus = ticket.getStatus();
         if ("NEW".equals(previousStatus)) {
             ticket.setStatus("IN_PROGRESS");
@@ -980,19 +989,19 @@ public class TicketService {
             log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
         }
 
-        // 7. Audit log kaydet
+        // 8. Audit log kaydet
         recordTicketAuditLog(ticket, adminId, "ASSIGN",
                 note != null ? note : "Manuel atama yapıldı",
                 previousStatus, ticket.getStatus());
 
-        // 8. Workflow sync
+        // 9. Workflow sync
         try {
             workflowService.syncTicketAssignment(ticket, targetAgentId);
         } catch (Exception e) {
             log.error("Workflow sync hatası. TicketId={}, Hata={}", ticketId, e.getMessage());
         }
 
-        // 9. Bildirim
+        // 10. Bildirim
         notificationService.notifyTicketAssigned(ticket, targetAgentId, adminId);
 
         log.info("Bilet başarıyla atandı. Bilet: {}, Agent: {}", ticketId, targetAgentId);

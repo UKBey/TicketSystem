@@ -54,7 +54,7 @@
     <!-- 2) Baslangic log adimi -->
     <bpmn2:scriptTask id="ScriptTask_Init" name="Log Ticket Init" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_Start_To_Init</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_Init_To_SlaGateway</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_Init_To_XorMerge</bpmn2:outgoing>
       <bpmn2:script>
         System.out.println("[TICKET-WORKFLOW] Surec baslatildi - TicketId: " + ticketId + ", Priority: " + priority + ", SLA: " + slaDuration);
       </bpmn2:script>
@@ -110,7 +110,7 @@
     <!-- Spring Boot'a SLA breach bildirimi gonderen REST task'i -->
     <bpmn2:task id="RestTask_SlaCallback" name="SLA Breach Callback" drools:taskName="Rest">
       <bpmn2:incoming>Flow_BreachLog_To_RestCall</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_RestCall_To_PostBreachGw</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_RestCall_To_PostBreachClose</bpmn2:outgoing>
       <bpmn2:ioSpecification>
         <bpmn2:dataInput id="RestTask_urlInput" drools:dtype="String" name="Url"/>
         <bpmn2:dataInput id="RestTask_methodInput" drools:dtype="String" name="Method"/>
@@ -213,7 +213,7 @@
     <!-- Resume log adimi, ardindan SLA akisina donus -->
     <bpmn2:scriptTask id="ScriptTask_ResumeLog" name="Log SLA Resumed" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_ResumeSignal_To_ResumeLog</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_ResumeScript_To_SlaGateway</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_ResumeScript_To_XorMerge</bpmn2:outgoing>
       <bpmn2:script>
         System.out.println("[TICKET-WORKFLOW] SLA devam ettiriliyor. TicketId: " + ticketId + ", Kalan SLA: " + slaDuration);
       </bpmn2:script>
@@ -319,9 +319,6 @@
       <bpmndi:BPMNShape id="Shape_RestCall" bpmnElement="RestTask_SlaCallback">
         <dc:Bounds x="730.0" y="138.0" width="140.0" height="80.0"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_PostBreachGw" bpmnElement="Gateway_PostBreach">
-        <dc:Bounds x="920.0" y="155.0" width="50.0" height="50.0"/>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ClosePostBreach" bpmnElement="Signal_Close_PostBreach">
         <dc:Bounds x="1020.0" y="160.0" width="36.0" height="36.0"/>
       </bpmndi:BPMNShape>
@@ -345,12 +342,6 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_ResumeLog" bpmnElement="ScriptTask_ResumeLog">
         <dc:Bounds x="920.0" y="228.0" width="140.0" height="80.0"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseLog" bpmnElement="ScriptTask_CloseLog">
-        <dc:Bounds x="920.0" y="420.0" width="140.0" height="80.0"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndClosed" bpmnElement="EndEvent_Closed">
-        <dc:Bounds x="1120.0" y="442.0" width="36.0" height="36.0"/>
       </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
