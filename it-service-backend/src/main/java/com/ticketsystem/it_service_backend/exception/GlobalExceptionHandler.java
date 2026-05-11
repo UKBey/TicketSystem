@@ -96,6 +96,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
+    // Keycloak'ta email veya username çakışması olduğunda 409 Conflict döner.
+    // fieldErrors map'i frontend'in hangi form alanında hata göstereceğini belirler.
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+        log.warn("Kullanıcı çakışması (409 CONFLICT): field={}, value={}", ex.getField(), ex.getValue());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error("USER_ALREADY_EXISTS")
+                .message(msg("error.user.already.exists", ex.getField(), ex.getValue()))
+                .fieldErrors(Map.of(ex.getField(), msg("error.user.already.exists." + ex.getField())))
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     // Agent kapasite limiti asimlarini conflict olarak dondurur.
     @ExceptionHandler(TicketLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleTicketLimitExceededException(TicketLimitExceededException ex) {
