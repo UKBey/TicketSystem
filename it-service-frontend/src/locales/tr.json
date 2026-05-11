@@ -447,7 +447,12 @@
   "notification": {
     "title": "Bildirimler",
     "markAllRead": "Tümünü okundu işaretle",
-    "empty": "Yeni bildirim yok"
+    "empty": "Yeni bildirim yok",
+    "delete": "Sil",
+    "deleteAll": "Tümünü sil",
+    "justNow": "Az önce",
+    "minutesAgo": "{{count}} dk önce",
+    "hoursAgo": "{{count}} sa önce"
   },
   "profile": {
     "title": "Profil",

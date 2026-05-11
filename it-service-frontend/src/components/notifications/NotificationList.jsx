@@ -1,33 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Trash2 } from 'lucide-react';
 import { getNotifications } from '../../services/notificationApi';
+import { useNotifications } from '../../hooks/useNotifications';
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   if (!dateStr) return '';
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return new Date(dateStr).toLocaleDateString('en-US');
+  if (diff < 60)    return t('notification.justNow');
+  if (diff < 3600)  return t('notification.minutesAgo', { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t('notification.hoursAgo',   { count: Math.floor(diff / 3600) });
+  return new Date(dateStr).toLocaleDateString();
 }
 
-export default function NotificationList({ onMarkAllRead }) {
+export default function NotificationList({ onMarkAllRead, onClose }) {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingAll, setDeletingAll] = useState(false);
   const navigate = useNavigate();
+  const { deleteNotification, deleteAllNotifications } = useNotifications();
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     getNotifications(0, 20)
       .then((res) => setNotifications(res.data.content ?? []))
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { load(); }, [load]);
+
   const handleItemClick = (notification) => {
     if (notification.referenceType === 'TICKET' && notification.referenceId) {
       navigate(`/tickets/${notification.referenceId}`);
+      onClose?.();
+    }
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    await deleteNotification(id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      await deleteAllNotifications();
+      setNotifications([]);
+    } finally {
+      setDeletingAll(false);
     }
   };
 
@@ -44,13 +68,28 @@ export default function NotificationList({ onMarkAllRead }) {
         <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
           {t('notification.title')}
         </span>
-        <button
-          onClick={onMarkAllRead}
-          className="text-xs transition-opacity hover:opacity-70 cursor-pointer"
-          style={{ color: '#3b82f6', background: 'none', border: 'none' }}
-        >
-          {t('notification.markAllRead')}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onMarkAllRead}
+            className="text-xs transition-opacity hover:opacity-70 cursor-pointer"
+            style={{ color: '#3b82f6', background: 'none', border: 'none' }}
+          >
+            {t('notification.markAllRead')}
+          </button>
+          {notifications.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+              title={t('notification.deleteAll')}
+              className="flex items-center justify-center rounded transition-colors cursor-pointer disabled:opacity-50"
+              style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}
@@ -74,19 +113,32 @@ export default function NotificationList({ onMarkAllRead }) {
           <div
             key={n.id}
             onClick={() => handleItemClick(n)}
-            className="flex flex-col gap-0.5 px-4 py-3 border-b transition-colors"
+            className="group flex items-start gap-2 px-4 py-3 border-b transition-colors"
             style={{
               borderColor: 'var(--border-color)',
               backgroundColor: n.isRead ? 'transparent' : 'color-mix(in srgb, #3b82f6 8%, transparent)',
               cursor: n.referenceType === 'TICKET' ? 'pointer' : 'default',
             }}
           >
-            <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {n.message}
-            </span>
-            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {timeAgo(n.createdAt)}
-            </span>
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+              <span className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
+                {n.message}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                {timeAgo(n.createdAt, t)}
+              </span>
+            </div>
+            {/* Tek bildirim silme butonu — hover'da görünür */}
+            <button
+              onClick={(e) => handleDelete(e, n.id)}
+              title={t('notification.delete')}
+              className="flex-shrink-0 mt-0.5 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           </div>
         ))}
       </div>

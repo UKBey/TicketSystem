@@ -51,7 +51,7 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <NotificationList onMarkAllRead={handleMarkAllRead} />
+        <NotificationList onMarkAllRead={handleMarkAllRead} onClose={() => setIsOpen(false)} />
       )}
     </div>
   );

@@ -447,7 +447,12 @@
   "notification": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",
-    "empty": "No new notifications"
+    "empty": "No new notifications",
+    "delete": "Delete",
+    "deleteAll": "Delete all",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago"
   },
   "profile": {
     "title": "Profile",

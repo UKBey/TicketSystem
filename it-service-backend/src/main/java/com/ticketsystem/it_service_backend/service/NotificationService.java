@@ -14,10 +14,12 @@ import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -210,6 +212,38 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(String userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteNotification(Long notificationId, String userId) {
+        int deleted = notificationRepository.deleteByIdAndUserId(notificationId, userId);
+        if (deleted == 0) {
+            // Ya bulunamadı ya da başkasına ait — ikisi de 404 döner
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "error.notification.not.found");
+        }
+    }
+
+    @Transactional
+    public void deleteAllNotifications(String userId) {
+        notificationRepository.deleteAllByUserId(userId);
+    }
+
+    /**
+     * Otomatik temizlik:
+     *  - Okunmuş bildirimler: 48 saat sonra silinir
+     *  - Okunmamış bildirimler: 240 saat (10 gün) sonra silinir
+     * Her gece 02:00'de çalışır.
+     */
+    @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
+    public void purgeExpiredNotifications() {
+        ZonedDateTime readCutoff   = ZonedDateTime.now().minusHours(48);
+        ZonedDateTime unreadCutoff = ZonedDateTime.now().minusHours(240);
+        int deletedRead   = notificationRepository.deleteReadBefore(readCutoff);
+        int deletedUnread = notificationRepository.deleteUnreadBefore(unreadCutoff);
+        log.info("Bildirim temizliği tamamlandı. Silinen okunmuş: {}, okunmamış: {}",
+                deletedRead, deletedUnread);
     }
 
     @Transactional(readOnly = true)

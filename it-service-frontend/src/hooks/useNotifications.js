@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react';
-import { getUnreadCount, markAsRead as apiMarkAsRead, markAllAsRead as apiMarkAllAsRead } from '../services/notificationApi';
+import {
+  getUnreadCount,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+  deleteNotification as apiDeleteNotification,
+  deleteAllNotifications as apiDeleteAll,
+} from '../services/notificationApi';
 import { usePolling } from './usePolling';
 
 export function useNotifications() {
@@ -28,5 +34,23 @@ export function useNotifications() {
     setUnreadCount(0);
   }, []);
 
-  return { unreadCount, error, markAsRead, markAllAsRead, refresh: fetchCount };
+  const deleteNotification = useCallback(async (id) => {
+    await apiDeleteNotification(id);
+    fetchCount();
+  }, [fetchCount]);
+
+  const deleteAllNotifications = useCallback(async () => {
+    await apiDeleteAll();
+    setUnreadCount(0);
+  }, []);
+
+  return {
+    unreadCount,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    refresh: fetchCount,
+  };
 }

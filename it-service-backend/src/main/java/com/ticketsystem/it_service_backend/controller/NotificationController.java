@@ -81,4 +81,29 @@ public class NotificationController {
         notificationService.markAllAsRead(userId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Bildirimi sil", description = "Belirtilen bildirimi kalıcı olarak siler. Yalnızca bildirimin sahibi silebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Bildirim silindi"),
+            @ApiResponse(responseCode = "404", description = "Bildirim bulunamadı veya size ait değil")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNotification(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Bildirim silme isteği. Bildirim ID: {}, Kullanıcı: {}", id, userId);
+        notificationService.deleteNotification(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Tüm bildirimleri sil", description = "Kullanıcının tüm bildirimlerini kalıcı olarak siler.")
+    @ApiResponse(responseCode = "204", description = "Tüm bildirimler silindi")
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAllNotifications(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("Tüm bildirimleri silme isteği. Kullanıcı: {}", userId);
+        notificationService.deleteAllNotifications(userId);
+        return ResponseEntity.noContent().build();
+    }
 }
