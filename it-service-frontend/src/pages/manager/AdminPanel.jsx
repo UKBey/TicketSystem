@@ -313,10 +313,11 @@ export default function AdminPanel() {
 
   const roleBadgeStyle = (role) => {
     switch (role) {
-      case 'AGENT_ADMIN': return 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300';
-      case 'AGENT':       return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300';
-      case 'CUSTOMER':    return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300';
-      default:            return 'bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300';
+      case 'AGENT_ADMIN': return { backgroundColor: 'rgba(139,92,246,0.15)', color: '#7c3aed' };
+      case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
+      case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };
+      case 'CUSTOMER':    return { backgroundColor: 'rgba(16,185,129,0.15)',  color: '#047857' };
+      default:            return { backgroundColor: 'rgba(100,116,139,0.15)', color: '#475569' };
     }
   };
 
@@ -443,7 +444,10 @@ export default function AdminPanel() {
                           {user.email}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${roleBadgeStyle(user.role)}`}>
+                          <span
+                            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                            style={roleBadgeStyle(user.role)}
+                          >
                             {user.role}
                           </span>
                         </td>
