@@ -214,11 +214,10 @@ public class KeycloakAdminService {
                     try {
                         return realmResource.roles().get(roleName).toRepresentation();
                     } catch (Exception e) {
-                        log.warn("Rol bulunamadı, atlanıyor: {}", roleName);
-                        return null;
+                        log.error("Rol bulunamadı veya atanamadı: '{}' — Hata: {}", roleName, e.getMessage());
+                        throw new RuntimeException("Keycloak'ta rol bulunamadı: " + roleName, e);
                     }
                 })
-                .filter(role -> role != null)
                 .toList();
 
         if (!rolesToAssign.isEmpty()) {
