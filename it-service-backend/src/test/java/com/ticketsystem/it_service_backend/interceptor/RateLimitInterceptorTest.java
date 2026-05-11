@@ -142,7 +142,9 @@ class RateLimitInterceptorTest {
         @Test
         @DisplayName("Olmayan anahtar için NullPointerException fırlatılmaz")
         void nonExistentKey_doesNotThrow() {
-            interceptor.invalidateBuckets("NONEXISTENT_KEY");
+            assertThat(interceptor).isNotNull(); // guard
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                    () -> interceptor.invalidateBuckets("NONEXISTENT_KEY"));
         }
     }
 }
