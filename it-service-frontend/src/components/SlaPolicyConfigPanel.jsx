@@ -2,13 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSlaPolicies, updateSlaPolicy } from '../services/api';
 import { Save, Clock } from 'lucide-react';
-
-const PRIORITY_COLOR = {
-  CRITICAL: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
-  HIGH:     'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
-  MEDIUM:   'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300',
-  LOW:      'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
-};
+import { PriorityBadge } from './Badges';
 
 export default function SlaPolicyConfigPanel() {
   const { t } = useTranslation();
@@ -142,9 +136,6 @@ export default function SlaPolicyConfigPanel() {
             </thead>
             <tbody>
               {policies.map(policy => {
-                const colorClass = PRIORITY_COLOR[policy.priority] ?? '';
-                // Use translated priority label from ticket.priority namespace
-                const priorityLabel = t(`ticket.priority.${policy.priority.toLowerCase()}`, { defaultValue: policy.priority });
                 const warningHours = parseInt(policy.warningThresholdHours, 10);
                 const targetHours = parseInt(policy.targetResolutionHours, 10);
 
@@ -152,9 +143,7 @@ export default function SlaPolicyConfigPanel() {
                   <tr key={policy.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
                     {/* Priority badge */}
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${colorClass}`}>
-                        {priorityLabel}
-                      </span>
+                      <PriorityBadge priority={policy.priority} />
                     </td>
 
                     {/* Target resolution hours */}
