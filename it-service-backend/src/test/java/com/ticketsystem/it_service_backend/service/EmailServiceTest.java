@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -18,6 +19,8 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,6 +28,9 @@ class EmailServiceTest {
 
     @Mock
     private JavaMailSender mailSender;
+
+    @Mock
+    private MessageSource messageSource;
 
     @InjectMocks
     private EmailService emailService;
@@ -35,6 +41,10 @@ class EmailServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "fromAddress", "noreply@ticketsystem.local");
+
+        // MessageSource: her key için key'in kendisini döndür (test ortamında yeterli)
+        lenient().when(messageSource.getMessage(anyString(), any(), anyString(), any()))
+                .thenAnswer(inv -> inv.getArgument(2)); // defaultMessage (3. arg) = key itself
 
         customer = User.builder()
                 .id("customer-1")

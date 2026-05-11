@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -40,6 +42,8 @@ class NotificationServiceTest {
     private TicketClaimRepository ticketClaimRepository;
     @Mock
     private EmailService emailService;
+    @Mock
+    private MessageSource messageSource;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -74,6 +78,10 @@ class NotificationServiceTest {
 
         lenient().when(notificationRepository.save(any(Notification.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
+
+        // MessageSource: her key için key'in kendisini döndür
+        lenient().when(messageSource.getMessage(anyString(), any(), anyString(), any()))
+                .thenAnswer(inv -> inv.getArgument(2));
     }
 
     // -------------------------------------------------------------------------
