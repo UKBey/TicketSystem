@@ -532,9 +532,13 @@
       "email": "Email",
       "role": "Role",
       "createdAt": "Created At",
-      "noUsers": "No users found."
+      "noUsers": "No users found.",
+      "allUsers": "All Users",
+      "searchPlaceholder": "Search name or email…",
+      "username": "User ID"
     },
-    "success": "User created successfully."
+    "success": "User created successfully.",
+    "errorLoad": "An error occurred while loading users."
   },
   "common": {
     "loading": "Loading...",

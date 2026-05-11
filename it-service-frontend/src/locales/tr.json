@@ -532,9 +532,13 @@
       "email": "E-posta",
       "role": "Rol",
       "createdAt": "Oluşturulma",
-      "noUsers": "Kullanıcı bulunamadı."
+      "noUsers": "Kullanıcı bulunamadı.",
+      "allUsers": "Tüm Kullanıcılar",
+      "searchPlaceholder": "Ad veya e-posta ara…",
+      "username": "Kullanıcı ID"
     },
-    "success": "Kullanıcı başarıyla oluşturuldu."
+    "success": "Kullanıcı başarıyla oluşturuldu.",
+    "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu."
   },
   "common": {
     "loading": "Yükleniyor...",
