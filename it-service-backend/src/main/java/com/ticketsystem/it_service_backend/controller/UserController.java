@@ -1,10 +1,15 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
+import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
+import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +39,7 @@ import lombok.extern.log4j.Log4j2;
 public class UserController {
 
     private final UserService userService;
+    private final KeycloakAdminService keycloakAdminService;
 
     // UI girisinden sonra kullaniciyi yerel veritabaniyla esitlemek icin cagrilir.
     @Operation(summary = "Kullanıcı senkronizasyonu",
@@ -235,5 +241,74 @@ public class UserController {
         log.info("Ürün yetkisi ajandan başarıyla kaldırıldı. Ajan: {}", userId);
 
         return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin — Kullanıcı Oluşturma & Rol Yönetimi
+    // -------------------------------------------------------------------------
+
+    @Operation(summary = "Yeni kullanıcı oluştur (Admin)",
+            description = """
+                    Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve
+                    seçilen rolleri eşler. Başarılı Keycloak kaydının ardından yerel veritabanına
+                    senkronizasyon kaydı atılır.
+                    
+                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+                    
+                    **Geçici şifre:** Oluşturulan kullanıcı ilk girişinde şifresini değiştirmek zorunda kalır.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Kullanıcı başarıyla oluşturuldu",
+                    content = @Content(schema = @Schema(implementation = UserCreationResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Validasyon hatası — eksik veya geçersiz alan"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
+            @ApiResponse(responseCode = "409", description = "Email veya kullanıcı adı zaten kullanımda",
+                    content = @Content(schema = @Schema(example = """
+                            {
+                              "status": 409,
+                              "error": "USER_ALREADY_EXISTS",
+                              "message": "Bu email ile kayıtlı bir kullanıcı zaten mevcut",
+                              "fieldErrors": { "email": "Bu e-posta adresi zaten kullanımda." },
+                              "timestamp": 1700000000000
+                            }
+                            """)))
+    })
+    @PostMapping("/admin/create")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<UserCreationResponseDTO> createUser(
+            @Valid @RequestBody CreateUserRequest request) {
+        log.info("Admin kullanıcı oluşturma isteği. Username: {}, Email: {}",
+                request.getUsername(), request.getEmail());
+
+        UserCreationResponseDTO response = userService.createUserWithKeycloak(request);
+
+        log.info("Kullanıcı başarıyla oluşturuldu. Keycloak ID: {}", response.getKeycloakId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "Atanabilir rolleri listele (Admin)",
+            description = """
+                    Keycloak realm'indeki kullanıcıya atanabilir rolleri döner.
+                    Sistem rolleri (`offline_access`, `uma_authorization`, `default-roles-*`) filtrelenir.
+                    
+                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Rol listesi başarıyla döndü",
+                    content = @Content(schema = @Schema(example = "[\"AGENT\", \"CUSTOMER\", \"AGENT_ADMIN\", \"MANAGER\"]"))),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+    })
+    @GetMapping("/admin/roles")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<List<String>> getAssignableRoles() {
+        log.info("Atanabilir roller listesi isteği.");
+
+        List<String> roles = keycloakAdminService.getAssignableRoles()
+                .stream()
+                .map(role -> role.getName())
+                .collect(Collectors.toList());
+
+        log.info("Toplam {} atanabilir rol döndü.", roles.size());
+        return ResponseEntity.ok(roles);
     }
 }
