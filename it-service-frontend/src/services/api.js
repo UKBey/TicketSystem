@@ -75,6 +75,20 @@ export const getAgentsWithCapacity = (productId) =>
 export const assignTicket = (ticketId, targetAgentId, note) =>
   api.put(`/tickets/${ticketId}/assign`, { targetAgentId, note });
 
+// ============================================================
+// User Management API Functions (AGENT_ADMIN only)
+// ============================================================
+
+// Keycloak'ta yeni kullanıcı oluştur, geçici şifre ata ve rolleri eşle.
+// Başarılı yanıt: 201 Created + UserCreationResponseDTO
+export const createUser = (userData) =>
+  api.post('/users/admin/create', userData);
+
+// Realm'deki atanabilir rolleri listele (sistem rolleri filtrelenmiş).
+// Başarılı yanıt: 200 OK + string[]
+export const getAssignableRoles = () =>
+  api.get('/users/admin/roles');
+
 export default api;
 
 // Rate Limit API Functions
