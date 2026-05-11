@@ -66,6 +66,7 @@ public class MetricsService {
     private final WorklogRepository worklogRepository;
     private final SLAPolicyRepository slaPolicyRepository;
     private final ProductRepository productRepository;
+    private final SlaPolicyService slaPolicyService;
 
     /**
      * Dashboard özet metrikleri hesaplar.
@@ -533,12 +534,27 @@ public class MetricsService {
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
         List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
         ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime upcoming4h = now.plusHours(4);
         ZonedDateTime waitingThreshold = now.minusDays(3);
         PageRequest top10 = PageRequest.of(0, 10);
 
         List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTickets(openStatuses, top10);
-        List<Ticket> upcomingTickets = ticketRepository.findUpcomingBreachTickets(activeStatuses, upcoming4h, top10);
+
+        // Fetch upcoming-breach tickets per priority using the configured warning threshold,
+        // then merge, deduplicate, sort by deadline, and cap at 10.
+        List<String> priorities = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
+        List<Ticket> upcomingTickets = priorities.stream()
+                .flatMap(priority -> {
+                    double thresholdHours = slaPolicyService.getWarningThresholdHours(priority);
+                    ZonedDateTime window = now.plusHours((long) thresholdHours);
+                    return ticketRepository.findUpcomingBreachTicketsByPriority(
+                            activeStatuses, List.of(priority), window, top10).stream();
+                })
+                .collect(Collectors.toMap(Ticket::getId, t -> t, (a, b) -> a))
+                .values().stream()
+                .filter(t -> t.getSlaDeadline() != null)
+                .sorted(Comparator.comparing(Ticket::getSlaDeadline))
+                .limit(10)
+                .toList();
         List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
 
         // Tüm müşteri ID'lerini tek sorguda çek
