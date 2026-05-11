@@ -24,10 +24,13 @@ import com.ticketsystem.it_service_backend.util.JwtUtils;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
@@ -247,7 +250,8 @@ public class UserController {
     // Admin — Kullanıcı Oluşturma & Rol Yönetimi
     // -------------------------------------------------------------------------
 
-    @Operation(summary = "Yeni kullanıcı oluştur (Admin)",
+    @Operation(
+            summary = "Yeni kullanıcı oluştur (Admin)",
             description = """
                     Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve
                     seçilen rolleri eşler. Başarılı Keycloak kaydının ardından yerel veritabanına
@@ -256,27 +260,68 @@ public class UserController {
                     **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
                     
                     **Geçici şifre:** Oluşturulan kullanıcı ilk girişinde şifresini değiştirmek zorunda kalır.
-                    """)
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            tags = {"Kullanıcı Yönetimi"}
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Kullanıcı başarıyla oluşturuldu",
-                    content = @Content(schema = @Schema(implementation = UserCreationResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Validasyon hatası — eksik veya geçersiz alan"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
-            @ApiResponse(responseCode = "409", description = "Email veya kullanıcı adı zaten kullanımda",
-                    content = @Content(schema = @Schema(example = """
-                            {
-                              "status": 409,
-                              "error": "USER_ALREADY_EXISTS",
-                              "message": "Bu email ile kayıtlı bir kullanıcı zaten mevcut",
-                              "fieldErrors": { "email": "Bu e-posta adresi zaten kullanımda." },
-                              "timestamp": 1700000000000
-                            }
-                            """)))
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Kullanıcı başarıyla oluşturuldu",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = UserCreationResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validasyon hatası — eksik veya geçersiz alan",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(example = """
+                                    {
+                                      "status": 400,
+                                      "message": "Validation failed",
+                                      "fieldErrors": {
+                                        "username": "Bu alan boş bırakılamaz.",
+                                        "password": "Şifre en az 8 karakter olmalıdır.",
+                                        "roles": "Bu alan zorunludur."
+                                      },
+                                      "timestamp": 1700000000000
+                                    }
+                                    """)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yalnızca AGENT_ADMIN erişebilir"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Email veya kullanıcı adı zaten kullanımda",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(example = """
+                                    {
+                                      "status": 409,
+                                      "error": "USER_ALREADY_EXISTS",
+                                      "message": "Bu email ile kayıtlı bir kullanıcı zaten mevcut",
+                                      "fieldErrors": { "email": "Bu e-posta adresi zaten kullanımda." },
+                                      "timestamp": 1700000000000
+                                    }
+                                    """)
+                    )
+            )
     })
     @PostMapping("/admin/create")
     @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<UserCreationResponseDTO> createUser(
-            @Valid @RequestBody CreateUserRequest request) {
+            @RequestBody(
+                    description = "Oluşturulacak kullanıcının bilgileri ve atanacak roller",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = CreateUserRequest.class))
+            )
+            @Valid @org.springframework.web.bind.annotation.RequestBody CreateUserRequest request) {
         log.info("Admin kullanıcı oluşturma isteği. Username: {}, Email: {}",
                 request.getUsername(), request.getEmail());
 
@@ -286,17 +331,37 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "Atanabilir rolleri listele (Admin)",
+    @Operation(
+            summary = "Atanabilir rolleri listele (Admin)",
             description = """
                     Keycloak realm'indeki kullanıcıya atanabilir rolleri döner.
                     Sistem rolleri (`offline_access`, `uma_authorization`, `default-roles-*`) filtrelenir.
                     
                     **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
-                    """)
+                    
+                    **Kullanım:** `POST /api/users/admin/create` endpoint'inde `roles` alanını
+                    doldurmak için bu endpoint'ten dinamik olarak rol listesi çekilir.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            tags = {"Kullanıcı Yönetimi"}
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Rol listesi başarıyla döndü",
-                    content = @Content(schema = @Schema(example = "[\"AGENT\", \"CUSTOMER\", \"AGENT_ADMIN\", \"MANAGER\"]"))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Rol listesi başarıyla döndü",
+                    content = @Content(
+                            mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(
+                                    type = "string",
+                                    example = "AGENT",
+                                    allowableValues = {"CUSTOMER", "AGENT", "AGENT_ADMIN", "MANAGER"}
+                            ))
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Yalnızca AGENT_ADMIN erişebilir"
+            )
     })
     @GetMapping("/admin/roles")
     @PreAuthorize("hasRole('AGENT_ADMIN')")
