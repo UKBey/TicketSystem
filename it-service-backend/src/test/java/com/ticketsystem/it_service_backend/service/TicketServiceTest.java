@@ -467,7 +467,7 @@ class TicketServiceTest {
                                 .build();
 
                 when(ticketRepository.findById(304L)).thenReturn(Optional.of(existing));
-                when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+                when(ticketClaimRepository.existsByTicketIdAndAgentId(304L, "agent-1")).thenReturn(true);
                 when(resolutionNoteRepository.existsByTicketId(304L)).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -653,7 +653,7 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(601L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(601L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Ticket updated = ticketService.updateTicketStatus(601L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
@@ -676,7 +676,7 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(602L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(602L, "agent-1")).thenReturn(true);
         when(resolutionNoteRepository.existsByTicketId(602L)).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -740,7 +740,6 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketService.updateTicketStatus(605L, "NEW", "agent-1", List.of("AGENT")));
@@ -761,7 +760,7 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(606L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(606L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Ticket updated = ticketService.updateTicketStatus(606L, "NEW", "agent-1", List.of("AGENT"));
@@ -806,7 +805,7 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(608L)).thenReturn(Optional.of(existing));
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(608L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("workflow unavailable")).when(workflowService).syncTicketStatus(any(Ticket.class));
 
