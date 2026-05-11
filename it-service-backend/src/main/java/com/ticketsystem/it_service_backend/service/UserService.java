@@ -105,8 +105,20 @@ public class UserService {
     }
 
     @Transactional
-    public User removeProductFromUser(String userId, Long productId) {
-        log.info("Ürün yetki kaldırma işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
+    public User updatePreferredLanguage(String userId, String lang) {
+        if (!"en".equals(lang) && !"tr".equals(lang)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unsupported language code. Supported: en, tr");
+        }
+        User user = getUserById(userId);
+        user.setPreferredLanguage(lang);
+        log.info("Kullanıcı dil tercihi güncellendi. ID: {}, Dil: {}", userId, lang);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User removeProductFromUser(String userId, Long productId) {        log.info("Ürün yetki kaldırma işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
         User user = getUserById(userId);
 
         log.debug("Kullanıcının ürün listesinden kaldırılıyor. Ürün ID: {}", productId);

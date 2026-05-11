@@ -47,7 +47,13 @@ export function AuthProvider({ children }) {
         setInitialized(true);
         if (auth) {
           extractUserInfo();
-          api.post('/users/sync').catch(err => console.error('Sync error:', err));
+          api.post('/users/sync')
+            .then(() => {
+              // Giriş sonrası localStorage'daki dil tercihini backend'e yaz
+              const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+              api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+            })
+            .catch(err => console.error('Sync error:', err));
         }
         setLoading(false);
       })
@@ -67,7 +73,12 @@ export function AuthProvider({ children }) {
     keycloak.onAuthSuccess = () => {
       setAuthenticated(true);
       extractUserInfo();
-      api.post('/users/sync').catch(err => console.error('Sync error:', err));
+      api.post('/users/sync')
+        .then(() => {
+          const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+          api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+        })
+        .catch(err => console.error('Sync error:', err));
     };
 
     keycloak.onAuthLogout = () => {

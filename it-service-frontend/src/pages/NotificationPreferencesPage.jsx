@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getPreferences, updatePreferences } from '../services/notificationApi';
 
@@ -106,12 +106,36 @@ export default function NotificationPreferencesPage() {
                   <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
                     {t('notificationPrefs.colEvent')}
                   </span>
-                  <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
-                    {t('notificationPrefs.colEmail')}
-                  </span>
-                  <span className="text-xs font-medium uppercase tracking-wide text-center" style={{ color: 'var(--text-tertiary)' }}>
-                    {t('notificationPrefs.colInApp')}
-                  </span>
+                  <div className="flex justify-center">
+                    <div className="group relative flex items-center justify-center">
+                      <Mail className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+                      <span
+                        className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10"
+                        style={{
+                          backgroundColor: 'var(--bg-tooltip, #1e293b)',
+                          color: '#fff',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        {t('notificationPrefs.colEmail')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <div className="group relative flex items-center justify-center">
+                      <Bell className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+                      <span
+                        className="pointer-events-none absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10"
+                        style={{
+                          backgroundColor: 'var(--bg-tooltip, #1e293b)',
+                          color: '#fff',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        {t('notificationPrefs.colInApp')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">

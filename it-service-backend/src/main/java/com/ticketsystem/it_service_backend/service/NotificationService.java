@@ -10,6 +10,7 @@ import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
 
 @Log4j2
 @Service
@@ -29,6 +31,7 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final TicketClaimRepository ticketClaimRepository;
     private final EmailService emailService;
+    private final MessageSource messageSource;
 
     // -------------------------------------------------------------------------
     // Bildirim tetikleyicileri (TicketService, CommentService, Scheduler çağırır)
@@ -39,7 +42,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketCreated())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_CREATED,
-                        "Ticket #" + ticket.getId() + " has been successfully created: " + ticket.getTitle(),
+                        msg(customer, "notification.ticket.created", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketCreated())) {
@@ -56,7 +59,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        "Ticket #" + ticket.getId() + " has been assigned to you: " + ticket.getTitle(),
+                        msg(agent, "notification.ticket.assigned.agent", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
@@ -75,7 +78,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        "Ticket #" + ticket.getId() + " has been assigned to you: " + ticket.getTitle(),
+                        msg(agent, "notification.ticket.assigned.agent", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
@@ -88,7 +91,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_ASSIGNED,
-                        "Your ticket #" + ticket.getId() + " is being handled by a specialist: " + ticket.getTitle(),
+                        msg(customer, "notification.ticket.assigned.customer", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
         });
@@ -101,8 +104,8 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
-                        "Ticket #" + ticket.getId() + " status updated: "
-                                + oldStatus + " → " + ticket.getStatus(),
+                        msg(customer, "notification.ticket.status.changed",
+                                ticket.getId(), oldStatus, ticket.getStatus()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnStatusChanged())) {
@@ -123,7 +126,7 @@ public class NotificationService {
                     NotificationPreference pref = getOrDefaultPreference(agent.getId());
                     if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                         saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
-                                "New customer comment on ticket #" + ticket.getId() + ".",
+                                msg(agent, "notification.comment.added.agent", ticket.getId()),
                                 ticket.getId());
                     }
                     if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -139,7 +142,7 @@ public class NotificationService {
                 NotificationPreference pref = getOrDefaultPreference(customer.getId());
                 if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                     saveNotification(customer.getId(), NotificationType.COMMENT_ADDED,
-                            "A new reply has been added to ticket #" + ticket.getId() + ".",
+                            msg(customer, "notification.comment.added.customer", ticket.getId()),
                             ticket.getId());
                 }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -153,14 +156,12 @@ public class NotificationService {
 
     public void notifySlaWarning(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_WARNING,
-                "SLA deadline approaching for ticket #" + ticket.getId() + ": " + ticket.getTitle(),
-                true);
+                "notification.sla.warning", true);
     }
 
     public void notifySlaBreached(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_BREACHED,
-                "SLA breached for ticket #" + ticket.getId() + ": " + ticket.getTitle(),
-                false);
+                "notification.sla.breached", false);
     }
 
     public void notifyTicketResolved(Ticket ticket) {
@@ -168,7 +169,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketResolved())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_RESOLVED,
-                        "Ticket #" + ticket.getId() + " has been resolved: " + ticket.getTitle(),
+                        msg(customer, "notification.ticket.resolved", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketResolved())) {
@@ -248,7 +249,7 @@ public class NotificationService {
     // -------------------------------------------------------------------------
 
     private void notifyStaffAboutSla(Ticket ticket, NotificationType type,
-                                     String message, boolean isWarning) {
+                                     String messageKey, boolean isWarning) {
         // Tüm claim sahiplerini SLA uyarısı hakkında bilgilendir.
         ticketClaimRepository.findByTicketId(ticket.getId()).forEach(claim ->
             userRepository.findById(claim.getAgentId()).ifPresent(agent -> {
@@ -259,7 +260,8 @@ public class NotificationService {
                 boolean shouldEmail = isWarning
                         ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                         : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
-                if (shouldNotify) saveNotification(agent.getId(), type, message, ticket.getId());
+                if (shouldNotify) saveNotification(agent.getId(), type,
+                        msg(agent, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
                 if (shouldEmail) {
                     if (isWarning) emailService.sendSlaWarningEmail(agent, ticket);
                     else           emailService.sendSlaBreachedEmail(agent, ticket);
@@ -276,7 +278,8 @@ public class NotificationService {
             boolean shouldEmail = isWarning
                     ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                     : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
-            if (shouldNotify) saveNotification(manager.getId(), type, message, ticket.getId());
+            if (shouldNotify) saveNotification(manager.getId(), type,
+                    msg(manager, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
             if (shouldEmail) {
                 if (isWarning) emailService.sendSlaWarningEmail(manager, ticket);
                 else           emailService.sendSlaBreachedEmail(manager, ticket);
@@ -287,6 +290,13 @@ public class NotificationService {
     private NotificationPreference getOrDefaultPreference(String userId) {
         return preferenceRepository.findByUserId(userId)
                 .orElse(NotificationPreference.builder().userId(userId).build());
+    }
+
+    /** Resolves a message key using the user's stored language preference. */
+    private String msg(User user, String key, Object... args) {
+        String lang = user.getPreferredLanguage();
+        Locale locale = (lang == null || lang.isBlank()) ? Locale.ENGLISH : Locale.forLanguageTag(lang);
+        return messageSource.getMessage(key, args, key, locale);
     }
 
     private void saveNotification(String userId, NotificationType type,

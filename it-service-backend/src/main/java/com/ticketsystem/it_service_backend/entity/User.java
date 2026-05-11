@@ -31,6 +31,14 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
+    /**
+     * Kullanıcının tercih ettiği dil kodu (ISO 639-1).
+     * Desteklenen değerler: "en" (varsayılan), "tr"
+     */
+    @Column(name = "preferred_language", length = 5, nullable = false)
+    @Builder.Default
+    private String preferredLanguage = "en";
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

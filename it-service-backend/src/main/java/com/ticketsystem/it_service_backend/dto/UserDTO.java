@@ -32,6 +32,9 @@ public class UserDTO {
     @Schema(description = "Kullanıcı aktif mi?", example = "true")
     private Boolean isActive;
 
+    @Schema(description = "Kullanıcının tercih ettiği dil kodu (ISO 639-1)", example = "tr", allowableValues = {"en", "tr"})
+    private String preferredLanguage;
+
     @Schema(description = "Kullanıcının sisteme ilk kaydedildiği tarih", example = "2026-01-15T09:00:00+03:00")
     private ZonedDateTime createdAt;
 
@@ -46,6 +49,7 @@ public class UserDTO {
                 .role(user.getRole())
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
+                .preferredLanguage(user.getPreferredLanguage())
                 .authorizedProducts(user.getAuthorizedProducts() != null ? 
                     user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).collect(Collectors.toList()) : null)
                 .build();

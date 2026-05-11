@@ -169,7 +169,23 @@ public class UserController {
         ));
     }
 
-    
+    @Operation(summary = "Kullanıcı dil tercihini güncelle",
+            description = "Kullanıcının tercih ettiği dili günceller. Desteklenen değerler: `en`, `tr`.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dil tercihi başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Geçersiz dil kodu"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
+    @PutMapping("/me/language")
+    public ResponseEntity<UserDTO> updateLanguage(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String lang) {
+        String userId = jwt.getSubject();
+        log.info("Dil tercihi güncelleme isteği. Kullanıcı: {}, Dil: {}", userId, lang);
+        User user = userService.updatePreferredLanguage(userId, lang);
+        return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
 
     @Operation(summary = "Ajana ürün ata",
             description = "Belirtilen ajana belirtilen ürün grubunun destek taleplerini görebilme ve sahiplenme yetkisi verir. "

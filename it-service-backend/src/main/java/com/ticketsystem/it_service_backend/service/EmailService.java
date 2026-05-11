@@ -6,10 +6,13 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
 
 @Log4j2
 @Service
@@ -17,97 +20,102 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final MessageSource messageSource;
 
     @Value("${app.mail.from}")
     private String fromAddress;
 
+    // -------------------------------------------------------------------------
+    // Public send methods — each resolves messages using the recipient's locale
+    // -------------------------------------------------------------------------
+
     @Async
     public void sendTicketCreatedEmail(User customer, Ticket ticket) {
-        String subject = "Your support ticket has been created: #" + ticket.getId();
-        String body = buildHtml(
-                "Support Ticket Created",
-                "Hello " + customer.getFullName() + ",",
-                "Your support ticket has been successfully created. Our team will get back to you as soon as possible.",
-                ticket
-        );
+        Locale locale = localeOf(customer);
+        String subject = msg(locale, "email.subject.ticket.created", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.ticket.created"),
+                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, "email.body.ticket.created"),
+                ticket);
         send(customer.getEmail(), subject, body);
     }
 
     @Async
     public void sendTicketAssignedEmail(User agent, Ticket ticket) {
-        String subject = "New ticket assigned to you: #" + ticket.getId();
-        String body = buildHtml(
-                "Ticket Assigned",
-                "Hello " + agent.getFullName() + ",",
-                "The following ticket has been assigned to you. Please review it.",
-                ticket
-        );
+        Locale locale = localeOf(agent);
+        String subject = msg(locale, "email.subject.ticket.assigned", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.ticket.assigned"),
+                msg(locale, "email.greeting", agent.getFullName()),
+                msg(locale, "email.body.ticket.assigned"),
+                ticket);
         send(agent.getEmail(), subject, body);
     }
 
     @Async
     public void sendStatusChangedEmail(User customer, Ticket ticket, String oldStatus, String newStatus) {
-        String subject = "Ticket status updated: #" + ticket.getId();
-        String body = buildHtml(
-                "Ticket Status Changed",
-                "Hello " + customer.getFullName() + ",",
-                "Your ticket status has been updated from <strong>" + escapeHtml(oldStatus)
-                        + "</strong> &rarr; <strong>" + escapeHtml(newStatus) + "</strong>.",
-                ticket
-        );
+        Locale locale = localeOf(customer);
+        String subject = msg(locale, "email.subject.status.changed", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.status.changed"),
+                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, "email.body.status.changed", escapeHtml(oldStatus), escapeHtml(newStatus)),
+                ticket);
         send(customer.getEmail(), subject, body);
     }
 
     @Async
     public void sendCommentAddedEmail(User recipient, Ticket ticket, String commentMessage, String commenterName) {
-        String subject = "New comment on ticket #" + ticket.getId();
-        String body = buildHtml(
-                "New Comment",
-                "Hello " + recipient.getFullName() + ",",
-                "<strong>" + escapeHtml(commenterName) + "</strong> wrote:<br><br>"
-                        + "<blockquote style=\"border-left:4px solid #2563eb;margin:0;padding:8px 16px;color:#555;\">"
-                        + escapeHtml(commentMessage) + "</blockquote>",
-                ticket
-        );
+        Locale locale = localeOf(recipient);
+        String subject = msg(locale, "email.subject.comment.added", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.comment.added"),
+                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, "email.body.comment.added", escapeHtml(commenterName), escapeHtml(commentMessage)),
+                ticket);
         send(recipient.getEmail(), subject, body);
     }
 
     @Async
     public void sendSlaWarningEmail(User recipient, Ticket ticket) {
-        String subject = "SLA warning: Ticket #" + ticket.getId() + " approaching deadline";
-        String body = buildHtml(
-                "SLA Warning",
-                "Hello " + recipient.getFullName() + ",",
-                "The SLA deadline for the following ticket is <strong>approaching</strong>. Please take action immediately.",
-                ticket
-        );
+        Locale locale = localeOf(recipient);
+        String subject = msg(locale, "email.subject.sla.warning", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.sla.warning"),
+                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, "email.body.sla.warning"),
+                ticket);
         send(recipient.getEmail(), subject, body);
     }
 
     @Async
     public void sendSlaBreachedEmail(User recipient, Ticket ticket) {
-        String subject = "SLA breached: Ticket #" + ticket.getId();
-        String body = buildHtml(
-                "SLA Breached",
-                "Hello " + recipient.getFullName() + ",",
-                "The SLA deadline for the following ticket has <strong style=\"color:#dc2626;\">expired</strong>. "
-                        + "Immediate action is required.",
-                ticket
-        );
+        Locale locale = localeOf(recipient);
+        String subject = msg(locale, "email.subject.sla.breached", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.sla.breached"),
+                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, "email.body.sla.breached"),
+                ticket);
         send(recipient.getEmail(), subject, body);
     }
 
     @Async
     public void sendTicketResolvedEmail(User customer, Ticket ticket) {
-        String subject = "Your support ticket has been resolved: #" + ticket.getId();
-        String body = buildHtml(
-                "Ticket Resolved",
-                "Hello " + customer.getFullName() + ",",
-                "Your support ticket has been resolved. If you are not satisfied, you can reopen the ticket.",
-                ticket
-        );
+        Locale locale = localeOf(customer);
+        String subject = msg(locale, "email.subject.ticket.resolved", ticket.getId());
+        String body = buildHtml(locale,
+                msg(locale, "email.title.ticket.resolved"),
+                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, "email.body.ticket.resolved"),
+                ticket);
         send(customer.getEmail(), subject, body);
     }
+
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
 
     private void send(String to, String subject, String htmlBody) {
         try {
@@ -124,10 +132,16 @@ public class EmailService {
         }
     }
 
-    private String buildHtml(String title, String greeting, String bodyContent, Ticket ticket) {
+    private String buildHtml(Locale locale, String title, String greeting, String bodyContent, Ticket ticket) {
+        String labelTicket   = msg(locale, "email.label.ticket.number");
+        String labelTitle    = msg(locale, "email.label.title");
+        String labelPriority = msg(locale, "email.label.priority");
+        String labelStatus   = msg(locale, "email.label.status");
+        String footer        = msg(locale, "email.footer");
+
         return """
                 <!DOCTYPE html>
-                <html lang="en">
+                <html lang="%s">
                 <body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto;">
                   <div style="background:#2563eb;padding:20px;border-radius:8px 8px 0 0;">
                     <h2 style="color:#fff;margin:0;">IT Service Desk</h2>
@@ -138,33 +152,49 @@ public class EmailService {
                     <p>%s</p>
                     <table style="width:100%%;border-collapse:collapse;margin-top:16px;">
                       <tr style="background:#f3f4f6;">
-                        <td style="padding:8px;font-weight:bold;width:40%%;">Ticket #</td>
+                        <td style="padding:8px;font-weight:bold;width:40%%;">%s</td>
                         <td style="padding:8px;">%d</td>
                       </tr>
                       <tr>
-                        <td style="padding:8px;font-weight:bold;">Title</td>
+                        <td style="padding:8px;font-weight:bold;">%s</td>
                         <td style="padding:8px;">%s</td>
                       </tr>
                       <tr style="background:#f3f4f6;">
-                        <td style="padding:8px;font-weight:bold;">Priority</td>
+                        <td style="padding:8px;font-weight:bold;">%s</td>
                         <td style="padding:8px;">%s</td>
                       </tr>
                       <tr>
-                        <td style="padding:8px;font-weight:bold;">Status</td>
+                        <td style="padding:8px;font-weight:bold;">%s</td>
                         <td style="padding:8px;">%s</td>
                       </tr>
                     </table>
                     <p style="margin-top:24px;font-size:12px;color:#6b7280;">
-                      This message was automatically sent by IT Service Desk.
+                      %s
                     </p>
                   </div>
                 </body>
                 </html>
                 """.formatted(
+                locale.getLanguage(),
                 title, greeting, bodyContent,
-                ticket.getId(), escapeHtml(ticket.getTitle()),
-                ticket.getPriority(), ticket.getStatus()
+                labelTicket, ticket.getId(),
+                labelTitle, escapeHtml(ticket.getTitle()),
+                labelPriority, ticket.getPriority(),
+                labelStatus, ticket.getStatus(),
+                footer
         );
+    }
+
+    /** Resolves a message key with optional arguments for the given locale. */
+    private String msg(Locale locale, String key, Object... args) {
+        return messageSource.getMessage(key, args, key, locale);
+    }
+
+    /** Returns the Locale matching the user's stored language preference. */
+    private Locale localeOf(User user) {
+        String lang = user.getPreferredLanguage();
+        if (lang == null || lang.isBlank()) return Locale.ENGLISH;
+        return Locale.forLanguageTag(lang);
     }
 
     private String escapeHtml(String text) {
