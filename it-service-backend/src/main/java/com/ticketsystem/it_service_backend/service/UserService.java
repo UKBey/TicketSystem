@@ -1,8 +1,11 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
+import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
+import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.exception.UserAlreadyExistsException;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -30,6 +33,84 @@ public class UserService {
     private final ProductRepository productRepository;
     private final AgentProductLimitRepository agentProductLimitRepository;
     private final TicketClaimRepository ticketClaimRepository;
+    private final KeycloakAdminService keycloakAdminService;
+
+    /**
+     * Keycloak'ta yeni bir kullanıcı oluşturur ve yerel veritabanıyla senkronize eder.
+     *
+     * <p><b>İş akışı:</b>
+     * <ol>
+     *   <li>Email ve username çakışması ön kontrolü yapılır.</li>
+     *   <li>Keycloak'ta kullanıcı oluşturulur, geçici şifre atanır, roller eşlenir.</li>
+     *   <li>Yerel {@code users} tablosuna senkronizasyon kaydı atılır.</li>
+     * </ol>
+     *
+     * <p><b>Compensating transaction:</b> Keycloak kaydı başarılı olup yerel DB kaydı
+     * başarısız olursa Keycloak'taki kullanıcı silinerek tutarsız durum önlenir.
+     * Keycloak harici bir sistem olduğundan tam 2PC mümkün değildir.
+     *
+     * @param request kullanıcı bilgileri ve atanacak roller
+     * @return oluşturulan kullanıcının özet bilgileri
+     * @throws UserAlreadyExistsException email veya username zaten mevcutsa
+     */
+    public UserCreationResponseDTO createUserWithKeycloak(CreateUserRequest request) {
+        log.info("Kullanıcı oluşturma işlemi başlatıldı. Username: {}, Email: {}",
+                request.getUsername(), request.getEmail());
+
+        // 1. Ön kontrol — Keycloak çağrısından önce çakışmayı yakala
+        if (keycloakAdminService.existsByEmail(request.getEmail())) {
+            log.warn("Email çakışması tespit edildi: {}", request.getEmail());
+            throw new UserAlreadyExistsException("email", request.getEmail());
+        }
+        if (keycloakAdminService.existsByUsername(request.getUsername())) {
+            log.warn("Username çakışması tespit edildi: {}", request.getUsername());
+            throw new UserAlreadyExistsException("username", request.getUsername());
+        }
+
+        // 2. Keycloak'ta kullanıcı oluştur
+        String keycloakId = keycloakAdminService.createUser(request);
+        log.info("Keycloak kaydı başarılı. ID: {}", keycloakId);
+
+        // 3. Yerel DB'ye senkronizasyon kaydı — başarısız olursa Keycloak kaydını geri al
+        try {
+            String resolvedRole = resolveHighestRole(request.getRoles());
+
+            User userToSync = User.builder()
+                    .id(keycloakId)
+                    .email(request.getEmail())
+                    .fullName(request.getFirstName() + " " + request.getLastName())
+                    .role(resolvedRole)
+                    .build();
+
+            syncUser(userToSync);
+            log.info("Yerel DB senkronizasyonu tamamlandı. ID: {}, Rol: {}", keycloakId, resolvedRole);
+
+        } catch (Exception e) {
+            log.error("Yerel DB kaydı başarısız! Keycloak compensating action başlatılıyor. ID: {}", keycloakId);
+            keycloakAdminService.deleteUser(keycloakId);
+            throw new RuntimeException("error.user.creation.db.failed", e);
+        }
+
+        return UserCreationResponseDTO.builder()
+                .keycloakId(keycloakId)
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .fullName(request.getFirstName() + " " + request.getLastName())
+                .assignedRoles(request.getRoles())
+                .build();
+    }
+
+    /**
+     * Rol listesinden en yüksek öncelikli rolü belirler.
+     * Öncelik sırası: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER
+     */
+    private String resolveHighestRole(List<String> roles) {
+        if (roles == null || roles.isEmpty()) return "CUSTOMER";
+        if (roles.contains("AGENT_ADMIN")) return "AGENT_ADMIN";
+        if (roles.contains("MANAGER"))    return "MANAGER";
+        if (roles.contains("AGENT"))      return "AGENT";
+        return "CUSTOMER";
+    }
 
     @Transactional
     public User syncUser(User user) {
