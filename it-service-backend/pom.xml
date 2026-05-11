@@ -234,6 +234,14 @@
             <version>8.10.1</version>
         </dependency>
 
+        <!-- Keycloak Admin Client: kullanıcı oluşturma ve rol atama işlemleri için.
+             Sürüm docker-compose'daki keycloak:24.0.1 ile eşleştirilmiştir. -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-admin-client</artifactId>
+            <version>24.0.1</version>
+        </dependency>
+
         <!-- ============================================================
              Gözlemlenebilirlik (Observability) — OpenTelemetry
              Spring Boot 4 resmi yaklaşımı:

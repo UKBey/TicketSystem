@@ -238,6 +238,11 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_LOGS_EXPORTER: "otlp"
       OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
+      # Keycloak Admin Client — kullanıcı yönetimi için service account bağlantısı
+      KEYCLOAK_ADMIN_SERVER_URL: "http://keycloak-iam:8080/auth"
+      KEYCLOAK_ADMIN_REALM: "TicketSystemRealm"
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
     depends_on:
       it-service-db:
         condition: service_healthy

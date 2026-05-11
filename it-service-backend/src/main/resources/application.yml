@@ -76,6 +76,16 @@ management:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
 
+# ============================================================
+# Keycloak Admin Client — kullanıcı yönetimi (service account)
+# ============================================================
+keycloak:
+  admin:
+    server-url: ${KEYCLOAK_ADMIN_SERVER_URL:http://localhost/auth}
+    realm: ${KEYCLOAK_ADMIN_REALM:TicketSystemRealm}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:ticket-client}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+
 # jBPM KIE Server baglanti ve callback ayarlari.
 jbpm:
   kie-server:
