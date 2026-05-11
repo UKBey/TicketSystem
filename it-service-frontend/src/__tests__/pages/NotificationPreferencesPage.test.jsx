@@ -65,8 +65,9 @@ describe('NotificationPreferencesPage', () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     render(<NotificationPreferencesPage />);
     await waitFor(() => {
-      expect(screen.getByText('Email')).toBeInTheDocument();
-      expect(screen.getByText('In-App')).toBeInTheDocument();
+      // Headers are now icon-only with title attributes (text labels were removed by design)
+      expect(document.querySelector('[title="Email"]')).toBeInTheDocument();
+      expect(document.querySelector('[title="In-App"]')).toBeInTheDocument();
     });
   });
 
