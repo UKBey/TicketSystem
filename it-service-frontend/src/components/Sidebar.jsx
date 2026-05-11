@@ -7,6 +7,7 @@ import {
   Inbox,
   History,
   Users,
+  UserPlus,
   LayoutDashboard,
   Settings,
   Package,
@@ -119,6 +120,10 @@ export default function Sidebar({ collapsed = false, onToggle }) {
             <NavLink to="/admin" className={linkClassName}>
               <Settings className="h-[18px] w-[18px] flex-shrink-0" />
               {!collapsed && <span>{t('sidebar.admin')}</span>}
+            </NavLink>
+            <NavLink to="/user-management" className={linkClassName}>
+              <UserPlus className="h-[18px] w-[18px] flex-shrink-0" />
+              {!collapsed && <span>{t('sidebar.userManagement')}</span>}
             </NavLink>
             <NavLink to="/products" className={linkClassName}>
               <Package className="h-[18px] w-[18px] flex-shrink-0" />

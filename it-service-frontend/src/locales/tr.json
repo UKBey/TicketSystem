@@ -12,6 +12,7 @@
     "history": "Geçmiş",
     "dashboard": "Gösterge Paneli",
     "admin": "Yönetim Paneli",
+    "userManagement": "Kullanıcı Yönetimi",
     "products": "Ürünler",
     "profile": "Profil",
     "logout": "Çıkış Yap",
@@ -491,6 +492,11 @@
       "SlaBreached": "SLA ihlali",
       "TicketResolved": "Bilet çözüldü"
     }
+  },
+  "userManagement": {
+    "title": "Kullanıcı Yönetimi",
+    "subtitle": "Sisteme yeni kullanıcı ekle ve rol ata.",
+    "createUser": "Yeni Kullanıcı Oluştur"
   },
   "common": {
     "loading": "Yükleniyor...",

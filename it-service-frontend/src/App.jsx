@@ -16,6 +16,7 @@ import TeamTickets from './pages/agent/TeamTickets';
 import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
+import UserManagementPage from './pages/manager/UserManagementPage';
 import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
 import NoRolePage from './pages/NoRolePage';
@@ -131,6 +132,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
               <AppLayout><AdminPanel /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user-management"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
+              <AppLayout><UserManagementPage /></AppLayout>
             </ProtectedRoute>
           }
         />

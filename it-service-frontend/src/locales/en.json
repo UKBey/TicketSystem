@@ -12,6 +12,7 @@
     "history": "History",
     "dashboard": "Dashboard",
     "admin": "Admin Panel",
+    "userManagement": "User Management",
     "products": "Products",
     "profile": "Profile",
     "logout": "Logout",
@@ -491,6 +492,11 @@
       "SlaBreached": "SLA breached",
       "TicketResolved": "Ticket resolved"
     }
+  },
+  "userManagement": {
+    "title": "User Management",
+    "subtitle": "Create new users and assign roles to them.",
+    "createUser": "Create New User"
   },
   "common": {
     "loading": "Loading...",
