@@ -496,7 +496,45 @@
   "userManagement": {
     "title": "User Management",
     "subtitle": "Create new users and assign roles to them.",
-    "createUser": "Create New User"
+    "createUser": "Create New User",
+    "form": {
+      "title": "Create New User",
+      "subtitle": "The user will be registered in Keycloak with a temporary password.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "Must be at least 8 characters, include 1 uppercase letter and 1 number.",
+      "roles": "Roles",
+      "rolesHint": "At least one role must be selected.",
+      "rolesLoadError": "Could not load roles. Please try again.",
+      "tempPasswordNote": "The created user will be required to change their password on first login.",
+      "submit": "Create User",
+      "submitting": "Creating...",
+      "errorGeneral": "Could not create user. Please try again."
+    },
+    "validation": {
+      "usernameRequired": "Username is required.",
+      "usernameMinLength": "Must be at least 3 characters.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Please enter a valid email address.",
+      "firstNameRequired": "First name is required.",
+      "lastNameRequired": "Last name is required.",
+      "passwordRequired": "Password is required.",
+      "passwordWeak": "Must be at least 8 characters, include 1 uppercase letter and 1 number.",
+      "rolesRequired": "At least one role must be selected.",
+      "emailConflict": "This email address is already in use.",
+      "usernameConflict": "This username is already taken."
+    },
+    "table": {
+      "name": "Full Name",
+      "email": "Email",
+      "role": "Role",
+      "createdAt": "Created At",
+      "noUsers": "No users found."
+    },
+    "success": "User created successfully."
   },
   "common": {
     "loading": "Loading...",

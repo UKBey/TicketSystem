@@ -496,7 +496,45 @@
   "userManagement": {
     "title": "Kullanıcı Yönetimi",
     "subtitle": "Sisteme yeni kullanıcı ekle ve rol ata.",
-    "createUser": "Yeni Kullanıcı Oluştur"
+    "createUser": "Yeni Kullanıcı Oluştur",
+    "form": {
+      "title": "Yeni Kullanıcı Oluştur",
+      "subtitle": "Kullanıcı Keycloak'a kaydedilir ve geçici şifre atanır.",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "username": "Kullanıcı Adı",
+      "email": "E-posta",
+      "password": "Şifre",
+      "passwordHint": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
+      "roles": "Roller",
+      "rolesHint": "En az bir rol seçilmelidir.",
+      "rolesLoadError": "Roller yüklenemedi. Lütfen tekrar deneyin.",
+      "tempPasswordNote": "Oluşturulan kullanıcı ilk girişinde şifresini değiştirmek zorunda kalacaktır.",
+      "submit": "Kullanıcı Oluştur",
+      "submitting": "Oluşturuluyor...",
+      "errorGeneral": "Kullanıcı oluşturulamadı. Lütfen tekrar deneyin."
+    },
+    "validation": {
+      "usernameRequired": "Kullanıcı adı zorunludur.",
+      "usernameMinLength": "En az 3 karakter olmalıdır.",
+      "emailRequired": "E-posta zorunludur.",
+      "emailInvalid": "Geçerli bir e-posta adresi girin.",
+      "firstNameRequired": "Ad zorunludur.",
+      "lastNameRequired": "Soyad zorunludur.",
+      "passwordRequired": "Şifre zorunludur.",
+      "passwordWeak": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
+      "rolesRequired": "En az bir rol seçilmelidir.",
+      "emailConflict": "Bu e-posta adresi zaten kullanımda.",
+      "usernameConflict": "Bu kullanıcı adı zaten alınmış."
+    },
+    "table": {
+      "name": "Ad Soyad",
+      "email": "E-posta",
+      "role": "Rol",
+      "createdAt": "Oluşturulma",
+      "noUsers": "Kullanıcı bulunamadı."
+    },
+    "success": "Kullanıcı başarıyla oluşturuldu."
   },
   "common": {
     "loading": "Yükleniyor...",
