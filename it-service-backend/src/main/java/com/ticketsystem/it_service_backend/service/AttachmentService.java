@@ -24,7 +24,7 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final TicketService ticketService;
 
-        private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // Yukleme ust limiti.
+        private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // Yukleme ust limiti.
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "png", "jpg", "jpeg", "txt", "log");
         private static final Pattern SENSITIVE_KEYWORD_PATTERN = Pattern.compile(
             "(?i)\\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\\b");
