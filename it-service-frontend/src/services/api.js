@@ -99,6 +99,26 @@ export const updateUserRoles = (userId, roles) =>
 export const updateUserStatus = (userId, active) =>
   api.put(`/users/${userId}/status`, null, { params: { active } });
 
+// ============================================================
+// Access Request API Functions
+// ============================================================
+
+// Erişim talebi oluştur (rolsüz kullanıcı)
+export const createAccessRequest = (message) =>
+  api.post('/access-requests', { message });
+
+// Kendi taleplerimi getir
+export const getMyAccessRequests = () =>
+  api.get('/access-requests/my');
+
+// Tüm talepleri getir (AGENT_ADMIN only)
+export const getAllAccessRequests = () =>
+  api.get('/access-requests');
+
+// Talebi sil (AGENT_ADMIN only)
+export const deleteAccessRequest = (id) =>
+  api.delete(`/access-requests/${id}`);
+
 export default api;
 
 // Rate Limit API Functions

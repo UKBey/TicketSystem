@@ -29,7 +29,18 @@
   "noRole": {
     "title": "No Role Assigned",
     "description": "Your account has been created but no role has been assigned yet. Please contact an administrator to get access.",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "request": {
+      "title": "Request Access",
+      "subtitle": "Describe which role or product you need access to. An administrator will review your request.",
+      "placeholder": "E.g. I'd like to work as a support agent. Product: IT Support...",
+      "submit": "Send Request",
+      "submitting": "Sending...",
+      "successMsg": "Your request was sent successfully. An administrator will review it shortly.",
+      "errorSubmit": "Could not send request. Please try again.",
+      "myRequests": "My Sent Requests",
+      "deleteRequest": "Delete request"
+    }
   },
   "ticket": {
     "status": {
@@ -550,6 +561,15 @@
       "saving": "Saving...",
       "errorGeneral": "Could not update roles. Please try again.",
       "successMsg": "User roles updated successfully."
+    },
+    "requests": {
+      "title": "Access Requests",
+      "empty": "No pending access requests.",
+      "delete": "Delete request",
+      "quickActions": "Quick actions",
+      "roleAssigned": "Role {{role}} assigned to {{name}}.",
+      "deactivate": "Deactivate",
+      "actionError": "Action failed. Please try again."
     },
     "status": {
       "inactive": "inactive",
