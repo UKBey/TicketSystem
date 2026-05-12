@@ -376,7 +376,10 @@ public class TicketController {
                 .collect(Collectors.toList());
 
         List<TicketAuditLogDTO> auditLogs = ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId()).stream()
-                .map(TicketAuditLogDTO::fromEntity)
+                .map(log -> TicketAuditLogDTO.fromEntity(log,
+                        userRepository.findById(log.getActorId())
+                                .map(User::getFullName)
+                                .orElse(log.getActorId())))
                 .collect(Collectors.toList());
 
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, claimers);

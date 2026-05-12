@@ -22,6 +22,9 @@ public class TicketAuditLogDTO {
     @Schema(description = "İşlemi gerçekleştiren ajanın/kullanıcının Keycloak ID'si")
     private String actorId;
 
+    @Schema(description = "İşlemi gerçekleştiren ajanın/kullanıcının tam adı")
+    private String actorName;
+
     @Schema(description = "Aksiyon türü", example = "UNCLAIM",
             allowableValues = {"UNCLAIM", "CLOSE", "CLAIM"})
     private String actionType;
@@ -45,6 +48,22 @@ public class TicketAuditLogDTO {
         return TicketAuditLogDTO.builder()
                 .id(auditLog.getId())
                 .actorId(auditLog.getActorId())
+                .actionType(auditLog.getActionType())
+                .note(auditLog.getNote())
+                .previousState(auditLog.getPreviousState())
+                .newState(auditLog.getNewState())
+                .createdAt(auditLog.getCreatedAt())
+                .build();
+    }
+
+    public static TicketAuditLogDTO fromEntity(TicketAuditLog auditLog, String actorName) {
+        if (auditLog == null) {
+            return null;
+        }
+        return TicketAuditLogDTO.builder()
+                .id(auditLog.getId())
+                .actorId(auditLog.getActorId())
+                .actorName(actorName)
                 .actionType(auditLog.getActionType())
                 .note(auditLog.getNote())
                 .previousState(auditLog.getPreviousState())

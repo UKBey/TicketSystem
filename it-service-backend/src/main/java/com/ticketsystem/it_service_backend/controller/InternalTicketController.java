@@ -78,7 +78,10 @@ public class InternalTicketController {
         ticketDTO.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
         ticketDTO.setAuditLogs(
                 ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticketId).stream()
-                        .map(TicketAuditLogDTO::fromEntity)
+                        .map(log -> TicketAuditLogDTO.fromEntity(log,
+                                userRepository.findById(log.getActorId())
+                                        .map(User::getFullName)
+                                        .orElse(log.getActorId())))
                         .collect(Collectors.toList())
         );
 
