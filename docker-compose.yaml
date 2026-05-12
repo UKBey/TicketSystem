@@ -204,6 +204,7 @@ services:
   # Backend API servisi.
   it-service-backend:
     build: ./it-service-backend
+    image: ${DOCKERHUB_USERNAME:-local}/it-service-backend:${IMAGE_TAG:-latest}
     container_name: it-service-backend
     # Backend portu disariya kapali — nginx uzerinden /api/ path'i ile erisim.
     environment:
@@ -271,6 +272,7 @@ services:
   # Frontend web uygulamasi.
   it-service-frontend:
     build: ./it-service-frontend
+    image: ${DOCKERHUB_USERNAME:-local}/it-service-frontend:${IMAGE_TAG:-latest}
     container_name: it-service-frontend
     # Frontend portu disariya kapali — nginx uzerinden / path'i ile erisim.
     depends_on:
