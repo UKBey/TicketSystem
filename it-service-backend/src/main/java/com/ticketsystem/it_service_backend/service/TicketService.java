@@ -252,30 +252,9 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Page<Ticket> getPoolTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
-        if (roles.contains("AGENT_ADMIN")) {
-            if (isSortByPriority(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findAllPoolTicketsFilteredOrderByPriorityAsc(f.getPriorities(), u)
-                    : ticketRepository.findAllPoolTicketsFilteredOrderByPriorityDesc(f.getPriorities(), u);
-            }
-            if (isSortBySla(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(f.getPriorities(), u)
-                    : ticketRepository.findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(f.getPriorities(), u);
-            }
-            if (hasExtraFilters(f)) {
-                return ticketRepository.findAllPoolTicketsFullFiltered(
-                        prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                        slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
-            }
-            return ticketRepository.findAllPoolTicketsFiltered(f.getPriorities(), pageable);
-        }
         if (userId == null) return Page.empty(pageable);
 
+        // AGENT_ADMIN da kendi yetkili ürünleriyle sınırlıdır
         User agent = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
         List<Long> productIds = agent.getAuthorizedProducts().stream()
@@ -345,30 +324,9 @@ public class TicketService {
 
     @Transactional(readOnly = true)
     public Page<Ticket> getTeamTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
-        if (roles.contains("AGENT_ADMIN")) {
-            if (isSortByPriority(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findAllTeamTicketsFilteredOrderByPriorityAsc(f.getPriorities(), u)
-                    : ticketRepository.findAllTeamTicketsFilteredOrderByPriorityDesc(f.getPriorities(), u);
-            }
-            if (isSortBySla(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(f.getPriorities(), u)
-                    : ticketRepository.findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(f.getPriorities(), u);
-            }
-            if (hasExtraFilters(f)) {
-                return ticketRepository.findAllTeamTicketsFullFiltered(
-                        prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                        slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
-            }
-            return ticketRepository.findAllTeamTicketsFiltered(f.getPriorities(), pageable);
-        }
         if (userId == null) return Page.empty(pageable);
 
+        // AGENT_ADMIN da kendi yetkili ürünleriyle sınırlıdır
         User agent = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
         List<Long> productIds = agent.getAuthorizedProducts().stream()
@@ -407,7 +365,13 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductFiltered(Long productId, String userId, List<String> roles,
                                                      TicketFilterDTO f, Pageable pageable) {
-        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER") || roles.contains("AGENT")) {
+        if (roles.contains("AGENT_ADMIN") || roles.contains("AGENT")) {
+            // Ürün yetkisi kontrolü — hem AGENT hem AGENT_ADMIN için
+            User agent = userRepository.findById(userId).orElseThrow();
+            boolean authorized = agent.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(productId));
+            if (!authorized) return Page.empty(pageable);
+
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
                 Pageable u = toUnsorted(pageable);
@@ -584,7 +548,14 @@ public class TicketService {
     public Ticket getTicketWithAuth(Long id, String userId, List<String> roles) {
         Ticket ticket = getTicketById(id);
 
-        if (roles.contains("AGENT_ADMIN")) return ticket;
+        // AGENT_ADMIN: sadece yetkili olduğu ürünlerin biletlerini görebilir
+        if (roles.contains("AGENT_ADMIN")) {
+            User admin = userRepository.findById(userId).orElseThrow();
+            boolean authorized = admin.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+            if (authorized) return ticket;
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
+        }
 
         if (userId.equals(ticket.getCustomerId())) return ticket;
 
@@ -600,13 +571,25 @@ public class TicketService {
 
     /**
      * Yorum/dosya/worklog gibi mutasyon işlemleri için sıkı yetki denetimi.
-     * Çok-agentli yapıda herhangi bir claimer veya AGENT_ADMIN işlem yapabilir.
+     * AGENT_ADMIN dahil tüm ajanlar için claim kontrolü yapılır.
      */
     @Transactional(readOnly = true)
     public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
         Ticket ticket = getTicketById(id);
 
-        if (roles.contains("AGENT_ADMIN")) return ticket;
+        // AGENT_ADMIN: yetkili ürün + claim kontrolü
+        if (roles.contains("AGENT_ADMIN")) {
+            User admin = userRepository.findById(userId).orElseThrow();
+            boolean productAuthorized = admin.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+            if (!productAuthorized) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
+            }
+            boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
+            if (isClaimer) return ticket;
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "error.ticket.only.claimer.can.act");
+        }
 
         if (roles.contains("AGENT")) {
             boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
