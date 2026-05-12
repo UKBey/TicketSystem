@@ -34,7 +34,6 @@ export default function NoRolePage() {
     }
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => { fetchRequests(); }, []); // eslint-disable-line
 
   const handleSubmit = async (e) => {
