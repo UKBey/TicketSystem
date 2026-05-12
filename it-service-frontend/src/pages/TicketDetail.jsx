@@ -7,7 +7,8 @@ import { StatusBadge, PriorityBadge } from '../components/Badges';
 import ActionReasonModal from '../components/ActionReasonModal';
 import AgentSelectionModal from '../components/AgentSelectionModal';
 import api from '../services/api';
-import { closeTicket as closeTicketWithNote, unclaimTicket as unclaimTicketWithNote } from '../services/api';
+import { closeTicket as closeTicketWithNote, unclaimTicket as unclaimTicketWithNote, generateAiSummary, getLatestAiSummary } from '../services/api';
+import i18n from '../i18n';
 import {
   ArrowLeft,
   Send,
@@ -25,6 +26,9 @@ import {
   FileArchive,
   File,
   AlertTriangle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 // 60 dakikadan küçükse "Xm Ys", büyükse "Xh Ym" formatında gösterir.
@@ -86,6 +90,12 @@ export default function TicketDetail() {
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [savingResolutionNote, setSavingResolutionNote] = useState(false);
 
+  // AI Summary state
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryExpanded, setAiSummaryExpanded] = useState(true);
+  const [aiSummaryError, setAiSummaryError] = useState(null);
+
   const STATUS_OPTIONS = {
     NEW: ['IN_PROGRESS'],
     IN_PROGRESS: ['NEW', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'],
@@ -133,6 +143,38 @@ export default function TicketDetail() {
     }
   }, [id]);
 
+  const fetchLatestAiSummary = useCallback(async () => {
+    try {
+      const res = await getLatestAiSummary(id);
+      setAiSummary(res.data);
+    } catch {
+      // 404 = henüz özet yok, sessizce geç
+      setAiSummary(null);
+    }
+  }, [id]);
+
+  const handleGenerateAiSummary = async () => {
+    setAiSummaryLoading(true);
+    setAiSummaryError(null);
+    try {
+      const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+      const res = await generateAiSummary(id, lang);
+      setAiSummary(res.data);
+      setAiSummaryExpanded(true);
+    } catch (err) {
+      const status = err.response?.status;
+      const data = err.response?.data;
+      if (status === 429) {
+        const seconds = Math.ceil(data?.retryAfterSeconds ?? 10);
+        setAiSummaryError(t('ticketDetail.aiSummaryRateLimit', { seconds }));
+      } else {
+        setAiSummaryError(data?.detail || t('ticketDetail.aiSummaryError'));
+      }
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  };
+
   const fetchWorklogs = useCallback(async () => {
     try {
       const res = await api.get(`/tickets/${id}/worklogs`);
@@ -148,7 +190,10 @@ export default function TicketDetail() {
     fetchAttachments();
     fetchWorklogs();
     fetchResolutionNote();
-  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchWorklogs, fetchResolutionNote]);
+    if (hasRole('AGENT') || hasRole('AGENT_ADMIN')) {
+      fetchLatestAiSummary();
+    }
+  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchWorklogs, fetchResolutionNote, fetchLatestAiSummary, hasRole]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1037,6 +1082,92 @@ export default function TicketDetail() {
                   )}
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* AI Summary card — sadece AGENT ve AGENT_ADMIN görebilir */}
+        {isAgent && (
+          <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            {/* Kart başlığı */}
+            <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+              <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                <Sparkles className="h-4 w-4 text-violet-500" />
+                {t('ticketDetail.aiSummaryTitle')}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {aiSummary && (
+                  <button
+                    className="flex h-6 w-6 items-center justify-center rounded transition-colors cursor-pointer"
+                    style={{ color: 'var(--text-tertiary)' }}
+                    onClick={() => setAiSummaryExpanded((v) => !v)}
+                    title={aiSummaryExpanded ? t('ticketDetail.aiSummaryCollapse') : t('ticketDetail.aiSummaryExpand')}
+                  >
+                    {aiSummaryExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {/* Özet içeriği */}
+              {aiSummary && aiSummaryExpanded && (
+                <div
+                  className="rounded-lg p-3 text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#f5f3ff', color: 'var(--text-primary)', borderLeft: '3px solid #8b5cf6' }}
+                >
+                  {aiSummary.summary}
+                </div>
+              )}
+
+              {/* Meta bilgi */}
+              {aiSummary && (
+                <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                  <span>{aiSummary.model}</span>
+                  <span>{formatShortDate(aiSummary.createdAt)}</span>
+                </div>
+              )}
+
+              {/* Hata mesajı */}
+              {aiSummaryError && (
+                <div
+                  className="rounded-lg px-3 py-2 text-xs"
+                  style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}
+                >
+                  {aiSummaryError}
+                </div>
+              )}
+
+              {/* Özet yok placeholder */}
+              {!aiSummary && !aiSummaryLoading && !aiSummaryError && (
+                <div className="text-center py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  {t('ticketDetail.aiSummaryEmpty')}
+                </div>
+              )}
+
+              {/* Oluştur / Yenile butonu */}
+              <button
+                className="w-full rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={
+                  aiSummaryLoading
+                    ? { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border-color)' }
+                    : { background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }
+                }
+                onClick={handleGenerateAiSummary}
+                disabled={aiSummaryLoading}
+              >
+                {aiSummaryLoading ? (
+                  <>
+                    <div className="h-3 w-3 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
+                    {t('ticketDetail.aiSummaryGenerating')}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3 w-3" />
+                    {aiSummary ? t('ticketDetail.aiSummaryRegenerate') : t('ticketDetail.aiSummaryGenerate')}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}

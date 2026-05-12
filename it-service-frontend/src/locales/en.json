@@ -319,7 +319,16 @@
     "closeTicketLabel": "Close Ticket",
     "releaseTitle": "Release Ticket",
     "releaseDesc": "Please provide a note before releasing this ticket.",
-    "releaseLabel": "Release Ticket"
+    "releaseLabel": "Release Ticket",
+    "aiSummaryTitle": "AI Summary",
+    "aiSummaryGenerate": "Generate Summary",
+    "aiSummaryRegenerate": "Regenerate Summary",
+    "aiSummaryGenerating": "Generating...",
+    "aiSummaryEmpty": "No summary yet. Click the button to generate one.",
+    "aiSummaryError": "Could not generate summary. Please try again.",
+    "aiSummaryRateLimit": "Token limit reached. Please wait {{seconds}} seconds and try again.",
+    "aiSummaryCollapse": "Collapse",
+    "aiSummaryExpand": "Expand"
   },
   "form": {
     "save": "Save",

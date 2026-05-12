@@ -134,3 +134,19 @@ export const getSlaPolicies = () =>
 
 export const updateSlaPolicy = (id, { targetResolutionHours, warningThresholdHours }) =>
   api.put(`/admin/sla-policies/${id}`, { targetResolutionHours, warningThresholdHours });
+
+// ============================================================
+// AI Summary API Functions (llm-service — /api/ai/*)
+// ============================================================
+
+// Ticket için yeni özet oluştur (AGENT / AGENT_ADMIN only)
+export const generateAiSummary = (ticketId, language = 'tr') =>
+  api.post(`/ai/summaries/tickets/${ticketId}/generate`, null, { params: { language } });
+
+// Ticket'ın en son özetini getir
+export const getLatestAiSummary = (ticketId) =>
+  api.get(`/ai/summaries/tickets/${ticketId}/latest`);
+
+// Ticket'ın tüm özetlerini listele
+export const getAllAiSummaries = (ticketId) =>
+  api.get(`/ai/summaries/tickets/${ticketId}`);

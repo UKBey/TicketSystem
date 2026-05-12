@@ -1,8 +1,11 @@
 package com.ticketsystem.llmservice.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketsystem.llmservice.config.GroqConfig;
 import com.ticketsystem.llmservice.dto.GroqChatRequest;
 import com.ticketsystem.llmservice.dto.GroqChatResponse;
+import com.ticketsystem.llmservice.exception.GroqRateLimitException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,6 +15,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Groq API ile iletişimi yöneten servis.
@@ -25,6 +30,11 @@ public class GroqService {
     private final WebClient groqWebClient;
 
     private final GroqConfig groqConfig;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // "Please try again in 5.51s" → 5.51 çıkarmak için
+    private static final Pattern RETRY_AFTER_PATTERN =
+            Pattern.compile("try again in ([\\d.]+)s", Pattern.CASE_INSENSITIVE);
 
     /**
      * Groq API'ye chat completion isteği gönderir ve yanıtı döner.
@@ -32,12 +42,13 @@ public class GroqService {
      * @param systemPrompt LLM'e rolünü tanımlayan sistem mesajı
      * @param userPrompt   Özetlenecek ticket verisi
      * @return Groq API yanıtı
+     * @throws GroqRateLimitException token limiti aşıldığında
      */
     public GroqChatResponse complete(String systemPrompt, String userPrompt) {
         GroqChatRequest request = GroqChatRequest.builder()
                 .model(groqConfig.getModel())
                 .maxTokens(groqConfig.getMaxTokens())
-                .temperature(0.3) // Tutarlı, düşük yaratıcılıklı çıktı için
+                .temperature(0.3)
                 .messages(List.of(
                         GroqChatRequest.Message.builder()
                                 .role("system")
@@ -58,15 +69,17 @@ public class GroqService {
                     .bodyValue(request)
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
-                            clientResponse.bodyToMono(String.class).map(body -> {
-                                log.error("Groq API 4xx hatası: {}", body);
-                                return new RuntimeException("Groq API istemci hatası: " + body);
+                            clientResponse.bodyToMono(String.class).flatMap(body -> {
+                                log.warn("Groq API 4xx hatası: {}", body);
+                                RuntimeException ex = parseGroqError(body);
+                                return reactor.core.publisher.Mono.error(ex);
                             })
                     )
                     .onStatus(HttpStatusCode::is5xxServerError, clientResponse ->
-                            clientResponse.bodyToMono(String.class).map(body -> {
+                            clientResponse.bodyToMono(String.class).flatMap(body -> {
                                 log.error("Groq API 5xx hatası: {}", body);
-                                return new RuntimeException("Groq API sunucu hatası: " + body);
+                                return reactor.core.publisher.Mono.error(
+                                        new RuntimeException("Groq API sunucu hatası. Lütfen daha sonra tekrar deneyin."));
                             })
                     )
                     .bodyToMono(GroqChatResponse.class)
@@ -83,9 +96,39 @@ public class GroqService {
 
             return response;
 
+        } catch (GroqRateLimitException e) {
+            throw e; // zaten doğru tip, tekrar wrap etme
         } catch (WebClientResponseException e) {
             log.error("Groq API HTTP hatası. Status: {}, Body: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Groq API isteği başarısız: " + e.getMessage(), e);
+            throw parseGroqError(e.getResponseBodyAsString());
+        }
+    }
+
+    /**
+     * Groq hata gövdesini parse eder.
+     * rate_limit_exceeded ise GroqRateLimitException, diğerleri RuntimeException döner.
+     */
+    private RuntimeException parseGroqError(String body) {
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode error = root.path("error");
+            String code = error.path("code").asText("");
+            String message = error.path("message").asText(body);
+
+            if ("rate_limit_exceeded".equals(code) || "tokens".equals(error.path("type").asText(""))) {
+                // "Please try again in 5.51s" → retryAfterSeconds çıkar
+                double retryAfterSeconds = 10.0;
+                Matcher m = RETRY_AFTER_PATTERN.matcher(message);
+                if (m.find()) {
+                    retryAfterSeconds = Double.parseDouble(m.group(1));
+                }
+                log.warn("Groq rate limit aşıldı. Retry after: {}s", retryAfterSeconds);
+                return new GroqRateLimitException(retryAfterSeconds, message);
+            }
+
+            return new RuntimeException("Groq API hatası: " + message);
+        } catch (Exception parseEx) {
+            return new RuntimeException("Groq API hatası: " + body);
         }
     }
 }

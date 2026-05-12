@@ -13,6 +13,19 @@ import java.time.Instant;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(GroqRateLimitException.class)
+    public ProblemDetail handleRateLimit(GroqRateLimitException ex) {
+        log.warn("Groq rate limit: {}s sonra tekrar denenebilir", ex.getRetryAfterSeconds());
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Token limiti aşıldı. Lütfen birkaç saniye bekleyip tekrar deneyin."
+        );
+        pd.setType(URI.create("about:blank"));
+        pd.setProperty("timestamp", Instant.now());
+        pd.setProperty("retryAfterSeconds", Math.ceil(ex.getRetryAfterSeconds()));
+        return pd;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleNotFound(IllegalArgumentException ex) {
         log.warn("Kaynak bulunamadı: {}", ex.getMessage());

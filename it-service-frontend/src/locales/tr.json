@@ -319,7 +319,16 @@
     "closeTicketLabel": "Bileti Kapat",
     "releaseTitle": "Bileti Bırak",
     "releaseDesc": "Bu bileti bırakmadan önce lütfen bir not girin.",
-    "releaseLabel": "Bileti Bırak"
+    "releaseLabel": "Bileti Bırak",
+    "aiSummaryTitle": "AI Özeti",
+    "aiSummaryGenerate": "Özet Oluştur",
+    "aiSummaryRegenerate": "Özeti Yenile",
+    "aiSummaryGenerating": "Oluşturuluyor...",
+    "aiSummaryEmpty": "Henüz özet yok. Oluşturmak için butona tıklayın.",
+    "aiSummaryError": "Özet oluşturulamadı. Lütfen tekrar deneyin.",
+    "aiSummaryRateLimit": "Token limiti aşıldı. Lütfen {{seconds}} saniye bekleyip tekrar deneyin.",
+    "aiSummaryCollapse": "Daralt",
+    "aiSummaryExpand": "Genişlet"
   },
   "form": {
     "save": "Kaydet",
