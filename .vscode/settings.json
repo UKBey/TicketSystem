@@ -1,6 +1,0 @@
-{
-    "java.compile.nullAnalysis.mode": "automatic",
-    "github-actions.workflows.pinned.workflows": [
-        ".github/workflows/ci.yml"
-    ]
-}
