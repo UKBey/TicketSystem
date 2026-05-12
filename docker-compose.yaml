@@ -269,6 +269,37 @@ services:
       retries: 10
       start_period: 60s
 
+  # LLM servis katmanı — Groq API üzerinden ticket özetleme.
+  llm-service:
+    build: ./llm-service
+    image: ${DOCKERHUB_USERNAME:-local}/llm-service:${IMAGE_TAG:-latest}
+    container_name: llm-service
+    # Port dışarıya kapalı — nginx üzerinden /api/ai/ path'i ile erişim.
+    environment:
+      SERVER_PORT: "8082"
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-llama3-8b-8192}
+      GROQ_MAX_TOKENS: ${GROQ_MAX_TOKENS:-1024}
+      GROQ_TIMEOUT_SECONDS: ${GROQ_TIMEOUT_SECONDS:-30}
+      TICKET_SERVICE_BASE_URL: "http://it-service-backend:8081"
+      TICKET_SERVICE_INTERNAL_TOKEN: ${TICKET_SERVICE_INTERNAL_TOKEN:-internal-secret}
+    depends_on:
+      it-service-db:
+        condition: service_healthy
+      it-service-backend:
+        condition: service_started
+    networks:
+      - it-service-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
   # Frontend web uygulamasi.
   it-service-frontend:
     build: ./it-service-frontend

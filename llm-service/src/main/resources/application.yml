@@ -1,0 +1,49 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ticketdb}
+    username: ${SPRING_DATASOURCE_USERNAME:ticketadmin}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    out-of-order: true
+    # llm-service kendi migration geçmişini ayrı tabloda tutar.
+    # Böylece it-service-backend'in flyway_schema_history tablosuyla çakışmaz.
+    table: flyway_schema_history_llm
+    # public schema it-service-backend tarafından zaten dolu olduğu için
+    # baseline ile başlatılması gerekiyor.
+    baseline-on-migrate: true
+    baseline-version: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Groq API ayarları
+groq:
+  api:
+    url: https://api.groq.com/openai/v1/chat/completions
+    key: ${GROQ_API_KEY:}
+    model: ${GROQ_MODEL:llama3-8b-8192}
+    # Maksimum token sayısı (özet için yeterli)
+    max-tokens: ${GROQ_MAX_TOKENS:1024}
+    # Saniye cinsinden istek zaman aşımı
+    timeout-seconds: ${GROQ_TIMEOUT_SECONDS:30}
+
+# it-service-backend bağlantısı (ticket verisi çekmek için)
+ticket-service:
+  base-url: ${TICKET_SERVICE_BASE_URL:http://it-service-backend:8081}
+  # Backend'in internal endpoint'leri için shared secret
+  internal-token: ${TICKET_SERVICE_INTERNAL_TOKEN:internal-secret}
