@@ -535,10 +535,32 @@
       "noUsers": "Kullanıcı bulunamadı.",
       "allUsers": "Tüm Kullanıcılar",
       "searchPlaceholder": "Ad veya e-posta ara…",
-      "username": "Kullanıcı ID"
+      "username": "Kullanıcı ID",
+      "actions": "İşlemler",
+      "noRole": "Rol Yok"
     },
     "success": "Kullanıcı başarıyla oluşturuldu.",
-    "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu."
+    "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu.",
+    "editRole": {
+      "title": "Rol Düzenle",
+      "button": "Rol Düzenle",
+      "buttonTitle": "Bu kullanıcının rollerini düzenle",
+      "selectRoles": "Roller",
+      "save": "Kaydet",
+      "saving": "Kaydediliyor...",
+      "errorGeneral": "Roller güncellenemedi. Lütfen tekrar deneyin.",
+      "successMsg": "Kullanıcı rolleri başarıyla güncellendi."
+    },
+    "status": {
+      "inactive": "pasif",
+      "confirmDeactivate": "{{name}} adlı kullanıcıyı deaktive etmek istediğinizden emin misiniz? Kullanıcı sisteme giriş yapamayacak.",
+      "confirmActivate": "{{name}} adlı kullanıcıyı yeniden aktive etmek istediğinizden emin misiniz?",
+      "successDeactivate": "Kullanıcı başarıyla deaktive edildi.",
+      "successActivate": "Kullanıcı başarıyla aktive edildi.",
+      "deactivateTitle": "Kullanıcıyı deaktive et",
+      "activateTitle": "Kullanıcıyı aktive et",
+      "error": "Kullanıcı durumu güncellenemedi. Lütfen tekrar deneyin."
+    }
   },
   "common": {
     "loading": "Yükleniyor...",

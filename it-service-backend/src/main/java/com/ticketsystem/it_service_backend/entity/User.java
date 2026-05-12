@@ -24,8 +24,8 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, length = 20)
-    private String role; // CUSTOMER, AGENT, AGENT_ADMIN, MANAGER
+    @Column(nullable = true, length = 20)
+    private String role; // CUSTOMER, AGENT, AGENT_ADMIN, MANAGER — null: rol ataması henüz yapılmamış
 
     @Column(name = "is_active")
     @Builder.Default

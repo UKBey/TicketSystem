@@ -535,10 +535,32 @@
       "noUsers": "No users found.",
       "allUsers": "All Users",
       "searchPlaceholder": "Search name or email…",
-      "username": "User ID"
+      "username": "User ID",
+      "actions": "Actions",
+      "noRole": "No Role"
     },
     "success": "User created successfully.",
-    "errorLoad": "An error occurred while loading users."
+    "errorLoad": "An error occurred while loading users.",
+    "editRole": {
+      "title": "Edit Role",
+      "button": "Edit Role",
+      "buttonTitle": "Edit roles for this user",
+      "selectRoles": "Roles",
+      "save": "Save",
+      "saving": "Saving...",
+      "errorGeneral": "Could not update roles. Please try again.",
+      "successMsg": "User roles updated successfully."
+    },
+    "status": {
+      "inactive": "inactive",
+      "confirmDeactivate": "Are you sure you want to deactivate {{name}}? The user will not be able to log in.",
+      "confirmActivate": "Are you sure you want to reactivate {{name}}?",
+      "successDeactivate": "User deactivated successfully.",
+      "successActivate": "User activated successfully.",
+      "deactivateTitle": "Deactivate user",
+      "activateTitle": "Activate user",
+      "error": "Could not update user status. Please try again."
+    }
   },
   "common": {
     "loading": "Loading...",

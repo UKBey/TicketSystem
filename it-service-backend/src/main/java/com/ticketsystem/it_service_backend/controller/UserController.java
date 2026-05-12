@@ -67,21 +67,24 @@ public class UserController {
         log.info("Kullanıcı senkronizasyon isteği. Keycloak ID: {}", userId);
         log.debug("Kullanıcı rolleri: {}", roles);
 
-        String assignedRole = "CUSTOMER"; 
+        // JWT'de tanınan uygulama rolü yoksa null — "CUSTOMER" varsayılanı kullanılmaz.
+        // Rol ataması admin tarafından yapılana kadar kullanıcı no-role sayfasında kalır.
+        String assignedRole = null;
 
         if (roles.contains("AGENT_ADMIN")) {
             assignedRole = "AGENT_ADMIN";
         } else if (roles.contains("MANAGER")) {
-            // Geçiş dönemi uyumluluğu: MANAGER token'ı taşıyan eski sistem kullanıcıları
             assignedRole = "MANAGER";
         } else if (roles.contains("AGENT")) {
             assignedRole = "AGENT";
+        } else if (roles.contains("CUSTOMER")) {
+            assignedRole = "CUSTOMER";
         }
 
         User user = User.builder()
                 .id(userId)
                 .email(jwt.getClaimAsString("email"))
-                .fullName(jwt.getClaimAsString("given_name") + " " + jwt.getClaimAsString("family_name"))
+                .fullName(buildFullName(jwt))
                 .role(assignedRole) 
                 .build();
         
@@ -90,6 +93,25 @@ public class UserController {
         log.info("Kullanıcı başarıyla senkronize edildi. Uygulama İçi Roller: {}", syncedUser.getRole());
 
         return ResponseEntity.ok(UserDTO.fromEntity(syncedUser));
+    }
+
+    /**
+     * JWT'den fullName oluşturur. given_name veya family_name null ise
+     * preferred_username'i fallback olarak kullanır.
+     */
+    private String buildFullName(Jwt jwt) {
+        String given  = jwt.getClaimAsString("given_name");
+        String family = jwt.getClaimAsString("family_name");
+        if (given != null && family != null) {
+            return (given + " " + family).trim();
+        }
+        if (given != null) return given.trim();
+        if (family != null) return family.trim();
+        // Fallback: preferred_username veya email
+        String username = jwt.getClaimAsString("preferred_username");
+        if (username != null) return username;
+        String email = jwt.getClaimAsString("email");
+        return email != null ? email : "Unknown";
     }
 
     @Operation(summary = "Tüm ajanları listele",
@@ -249,6 +271,80 @@ public class UserController {
     // -------------------------------------------------------------------------
     // Admin — Kullanıcı Oluşturma & Rol Yönetimi
     // -------------------------------------------------------------------------
+
+    @Operation(
+            summary = "Kullanıcı aktif/pasif durumunu güncelle (Admin)",
+            description = """
+                    Kullanıcıyı soft-delete ile deaktive eder veya yeniden aktive eder.
+                    Deaktive edilen kullanıcı Keycloak'ta disabled olur (login yapamaz).
+                    Ticket'lara dokunulmaz.
+                    
+                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            tags = {"Kullanıcı Yönetimi"}
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Durum başarıyla güncellendi",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
+            @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
+    })
+    @PutMapping("/{userId}/status")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<UserDTO> updateUserStatus(
+            @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", required = true)
+            @PathVariable String userId,
+            @RequestParam boolean active,
+            @AuthenticationPrincipal Jwt jwt) {
+        // Admin kendini deaktive edemez
+        if (userId.equals(jwt.getSubject())) {
+            return ResponseEntity.badRequest().build();
+        }
+        log.info("Kullanıcı durum güncelleme isteği. ID: {}, active: {}", userId, active);
+        User updated = active
+                ? userService.reactivateUser(userId)
+                : userService.deactivateUser(userId);
+        return ResponseEntity.ok(UserDTO.fromEntity(updated));
+    }
+
+    @Operation(
+            summary = "Kullanıcı rollerini güncelle (Admin)",
+            description = """
+                    Belirtilen kullanıcının Keycloak realm rollerini günceller ve yerel veritabanını senkronize eder.
+                    Mevcut roller kaldırılır, yeni roller atanır.
+                    
+                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"),
+            tags = {"Kullanıcı Yönetimi"}
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Roller başarıyla güncellendi",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Geçersiz istek — roller listesi boş olamaz"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
+            @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
+    })
+    @PutMapping("/{userId}/roles")
+    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    public ResponseEntity<UserDTO> updateUserRoles(
+            @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", required = true)
+            @PathVariable String userId,
+            @org.springframework.web.bind.annotation.RequestBody List<String> roles) {
+        log.info("Kullanıcı rol güncelleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
+
+        if (roles == null || roles.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        User updatedUser = userService.updateUserRoles(userId, roles);
+
+        log.info("Kullanıcı rolleri başarıyla güncellendi. ID: {}", userId);
+        return ResponseEntity.ok(UserDTO.fromEntity(updatedUser));
+    }
 
     @Operation(
             summary = "Yeni kullanıcı oluştur (Admin)",

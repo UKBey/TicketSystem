@@ -97,9 +97,16 @@ public class KeycloakAdminService {
         // 3. Geçici şifre ata (kullanıcı ilk girişte değiştirmek zorunda kalır)
         setTemporaryPassword(usersResource, keycloakId, request.getPassword());
 
-        // 4. Realm rollerini ata
+        // 4. Realm rollerini ata — başarısız olursa kullanıcı rollsuz kalır, DB kaydı yine yapılır
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
-            assignRealmRoles(realmResource, keycloakId, request.getRoles());
+            try {
+                assignRealmRoles(realmResource, keycloakId, request.getRoles());
+            } catch (Exception e) {
+                log.error("Rol ataması başarısız. Kullanıcı Keycloak'ta oluşturuldu ancak rol atanamadı. ID: {}, Hata: {}",
+                        keycloakId, e.getMessage());
+                // Exception yutulur; kullanıcı null role ile DB'ye kaydedilir.
+                // Admin daha sonra Edit Role ile düzeltebilir.
+            }
         }
 
         return keycloakId;
@@ -159,6 +166,69 @@ public class KeycloakAdminService {
                 .isEmpty();
         log.debug("Username çakışma kontrolü. Username: {}, Mevcut: {}", username, exists);
         return exists;
+    }
+
+    // -------------------------------------------------------------------------
+    // Rol güncelleme
+    // -------------------------------------------------------------------------
+
+    /**
+     * Kullanıcının Keycloak realm rollerini günceller.
+     *
+     * <p>Mevcut tüm atanabilir roller önce kaldırılır, ardından yeni roller atanır.
+     * Bu yaklaşım idempotent bir güncelleme sağlar.
+     *
+     * @param keycloakId güncellenecek kullanıcının Keycloak UUID'si
+     * @param newRoles   atanacak yeni rol isimleri listesi
+     */
+    public void updateUserRoles(String keycloakId, List<String> newRoles) {
+        log.info("Kullanıcı rolleri güncelleniyor. ID: {}, Yeni roller: {}", keycloakId, newRoles);
+
+        RealmResource realmResource = keycloakAdminClient.realm(realm);
+
+        // 1. Mevcut realm rollerini çek
+        List<RoleRepresentation> currentRoles = realmResource
+                .users().get(keycloakId)
+                .roles().realmLevel().listAll();
+
+        // 2. Sistem rolleri hariç mevcut rolleri kaldır
+        List<RoleRepresentation> rolesToRemove = currentRoles.stream()
+                .filter(role -> !SYSTEM_ROLES.contains(role.getName()))
+                .filter(role -> !role.getName().startsWith("default-roles-"))
+                .toList();
+
+        if (!rolesToRemove.isEmpty()) {
+            realmResource.users().get(keycloakId).roles().realmLevel().remove(rolesToRemove);
+            log.debug("Mevcut roller kaldırıldı. ID: {}, Kaldırılan: {}",
+                    keycloakId, rolesToRemove.stream().map(RoleRepresentation::getName).toList());
+        }
+
+        // 3. Yeni rolleri ata
+        if (newRoles != null && !newRoles.isEmpty()) {
+            assignRealmRoles(realmResource, keycloakId, newRoles);
+        }
+
+        log.info("Kullanıcı rolleri başarıyla güncellendi. ID: {}", keycloakId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Kullanıcı aktif/pasif durumu
+    // -------------------------------------------------------------------------
+
+    /**
+     * Keycloak'ta kullanıcının {@code enabled} durumunu günceller.
+     * Disabled kullanıcı login yapamaz; mevcut oturumları sonraki token
+     * yenilemesinde geçersiz kalır.
+     *
+     * @param keycloakId güncellenecek kullanıcının Keycloak UUID'si
+     * @param enabled    {@code true} → aktif, {@code false} → pasif
+     */
+    public void setUserEnabled(String keycloakId, boolean enabled) {
+        log.info("Keycloak kullanıcı durumu güncelleniyor. ID: {}, enabled: {}", keycloakId, enabled);
+        UserRepresentation userRep = new UserRepresentation();
+        userRep.setEnabled(enabled);
+        keycloakAdminClient.realm(realm).users().get(keycloakId).update(userRep);
+        log.info("Keycloak kullanıcı durumu güncellendi. ID: {}, enabled: {}", keycloakId, enabled);
     }
 
     // -------------------------------------------------------------------------

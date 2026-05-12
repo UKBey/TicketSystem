@@ -67,13 +67,14 @@ public class UserService {
             throw new UserAlreadyExistsException("username", request.getUsername());
         }
 
-        // 2. Keycloak'ta kullanıcı oluştur
+        // 2. Keycloak'ta kullanıcı oluştur (rol ataması ayrı adımda yapılır)
         String keycloakId = keycloakAdminService.createUser(request);
         log.info("Keycloak kaydı başarılı. ID: {}", keycloakId);
 
         // 3. Yerel DB'ye senkronizasyon kaydı — başarısız olursa Keycloak kaydını geri al
+        String resolvedRole = null;
         try {
-            String resolvedRole = resolveHighestRole(request.getRoles());
+            resolvedRole = resolveHighestRole(request.getRoles());
 
             User userToSync = User.builder()
                     .id(keycloakId)
@@ -103,13 +104,15 @@ public class UserService {
     /**
      * Rol listesinden en yüksek öncelikli rolü belirler.
      * Öncelik sırası: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER
+     * Liste boş veya null ise null döner — varsayılan olarak CUSTOMER atanmaz.
      */
     private String resolveHighestRole(List<String> roles) {
-        if (roles == null || roles.isEmpty()) return "CUSTOMER";
+        if (roles == null || roles.isEmpty()) return null;
         if (roles.contains("AGENT_ADMIN")) return "AGENT_ADMIN";
         if (roles.contains("MANAGER"))    return "MANAGER";
         if (roles.contains("AGENT"))      return "AGENT";
-        return "CUSTOMER";
+        if (roles.contains("CUSTOMER"))   return "CUSTOMER";
+        return null;
     }
 
     @Transactional
@@ -119,6 +122,8 @@ public class UserService {
         return userRepository.findById(user.getId()).map(existingUser -> {
             existingUser.setEmail(user.getEmail());
             existingUser.setFullName(user.getFullName());
+            // Rol her zaman JWT'deki gerçek durumu yansıtır.
+            // null gelirse DB'de de null yazılır — Keycloak'ta rol atanmamış demektir.
             existingUser.setRole(user.getRole());
             log.debug("Mevcut kullanıcı güncellendi. Rol: {}", existingUser.getRole());
             return userRepository.save(existingUser);
@@ -207,6 +212,69 @@ public class UserService {
         User savedUser = userRepository.save(user);
         
         log.info("Ürün yetkisi başarıyla kaldırıldı. Kullanıcı ID: {}", userId);
+        return savedUser;
+    }
+
+    /**
+     * Kullanıcıyı soft-delete ile deaktive eder.
+     * Keycloak'ta {@code enabled=false} yapılır, yerel DB'de {@code is_active=false} yazılır.
+     * Ticket'lara dokunulmaz.
+     *
+     * @param userId deaktive edilecek kullanıcının Keycloak UUID'si
+     * @return güncellenmiş kullanıcı
+     */
+    @Transactional
+    public User deactivateUser(String userId) {
+        log.info("Kullanıcı deaktivasyonu başlatıldı. ID: {}", userId);
+        User user = getUserById(userId);
+        keycloakAdminService.setUserEnabled(userId, false);
+        user.setIsActive(false);
+        User saved = userRepository.save(user);
+        log.info("Kullanıcı deaktive edildi. ID: {}", userId);
+        return saved;
+    }
+
+    /**
+     * Deaktive edilmiş kullanıcıyı yeniden aktive eder.
+     * Keycloak'ta {@code enabled=true} yapılır, yerel DB'de {@code is_active=true} yazılır.
+     *
+     * @param userId aktive edilecek kullanıcının Keycloak UUID'si
+     * @return güncellenmiş kullanıcı
+     */
+    @Transactional
+    public User reactivateUser(String userId) {
+        log.info("Kullanıcı reaktivasyonu başlatıldı. ID: {}", userId);
+        User user = getUserById(userId);
+        keycloakAdminService.setUserEnabled(userId, true);
+        user.setIsActive(true);
+        User saved = userRepository.save(user);
+        log.info("Kullanıcı reaktive edildi. ID: {}", userId);
+        return saved;
+    }
+
+    /**
+     * Kullanıcının rollerini Keycloak'ta günceller ve yerel veritabanını senkronize eder.
+     *
+     * @param userId   güncellenecek kullanıcının Keycloak UUID'si
+     * @param newRoles atanacak yeni rol isimleri listesi
+     * @return güncellenmiş kullanıcı bilgileri
+     */
+    @Transactional
+    public User updateUserRoles(String userId, List<String> newRoles) {
+        log.info("Kullanıcı rol güncelleme işlemi başlatıldı. ID: {}, Yeni roller: {}", userId, newRoles);
+
+        // 1. Kullanıcının yerel DB'de var olduğunu doğrula
+        User user = getUserById(userId);
+
+        // 2. Keycloak'ta rolleri güncelle
+        keycloakAdminService.updateUserRoles(userId, newRoles);
+
+        // 3. Yerel DB'deki rolü en yüksek öncelikli rolle güncelle
+        String resolvedRole = resolveHighestRole(newRoles);
+        user.setRole(resolvedRole);
+        User savedUser = userRepository.save(user);
+
+        log.info("Kullanıcı rolleri başarıyla güncellendi. ID: {}, Yeni rol: {}", userId, resolvedRole);
         return savedUser;
     }
 

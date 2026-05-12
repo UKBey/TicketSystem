@@ -444,12 +444,21 @@ export default function AdminPanel() {
                           {user.email}
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                            style={roleBadgeStyle(user.role)}
-                          >
-                            {user.role}
-                          </span>
+                          {user.role ? (
+                            <span
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                              style={roleBadgeStyle(user.role)}
+                            >
+                              {user.role}
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                              style={{ backgroundColor: 'rgba(100,116,139,0.1)', color: 'var(--text-tertiary)', border: '1px dashed var(--border-color)' }}
+                            >
+                              —
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <ProductChips

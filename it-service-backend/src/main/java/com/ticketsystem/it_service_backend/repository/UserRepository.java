@@ -28,8 +28,7 @@ public interface UserRepository extends JpaRepository<User, String> {
      */
     @Query(value = """
             SELECT * FROM users u
-            WHERE u.role != 'MANAGER'
-              AND (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
+            WHERE (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -37,8 +36,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             """,
             countQuery = """
             SELECT COUNT(*) FROM users u
-            WHERE u.role != 'MANAGER'
-              AND (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
+            WHERE (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))

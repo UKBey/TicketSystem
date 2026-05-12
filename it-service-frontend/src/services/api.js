@@ -89,6 +89,16 @@ export const createUser = (userData) =>
 export const getAssignableRoles = () =>
   api.get('/users/admin/roles');
 
+// Kullanıcının rollerini güncelle (AGENT_ADMIN only).
+// Başarılı yanıt: 200 OK + UserDTO
+export const updateUserRoles = (userId, roles) =>
+  api.put(`/users/${userId}/roles`, roles);
+
+// Kullanıcıyı deaktive et veya reaktive et (AGENT_ADMIN only).
+// active=true → reaktive, active=false → soft-delete (Keycloak disabled + is_active=false)
+export const updateUserStatus = (userId, active) =>
+  api.put(`/users/${userId}/status`, null, { params: { active } });
+
 export default api;
 
 // Rate Limit API Functions

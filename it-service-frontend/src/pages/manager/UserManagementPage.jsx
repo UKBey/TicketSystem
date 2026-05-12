@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Search, X } from 'lucide-react';
-import api from '../../services/api';
+import { UserPlus, Search, X, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import api, { updateUserStatus } from '../../services/api';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
+import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
 
 const ROLES = ['', 'CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'];
@@ -48,6 +49,13 @@ export default function UserManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [successMsg, setSuccessMsg]   = useState('');
 
+  // Edit Role modal state
+  const [editRoleUser, setEditRoleUser]               = useState(null);
+  const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
+
+  // Status toggle state
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
+
   // -------------------------------------------------------------------------
   // Debounce — arama 300ms bekler
   // -------------------------------------------------------------------------
@@ -86,12 +94,51 @@ export default function UserManagementPage() {
   // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
-  const handleUserCreated = (newUser) => {
+  const handleUserCreated = (_newUser) => {
     setSuccessMsg(t('userManagement.success'));
     setTimeout(() => setSuccessMsg(''), 4000);
     // Listeyi yenile — yeni kullanıcı ilk sayfada görünsün
     setPage(0);
     fetchUsers();
+  };
+
+  const handleOpenEditRole = (user) => {
+    setEditRoleUser(user);
+    setIsEditRoleModalOpen(true);
+  };
+
+  const handleRoleUpdated = (updatedUser) => {
+    setSuccessMsg(t('userManagement.editRole.successMsg'));
+    setTimeout(() => setSuccessMsg(''), 4000);
+    setUsers((prev) =>
+      prev.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role } : u))
+    );
+  };
+
+  const handleToggleStatus = async (user) => {
+    const newActive = !user.isActive;
+    const confirmKey = newActive
+      ? 'userManagement.status.confirmActivate'
+      : 'userManagement.status.confirmDeactivate';
+    if (!window.confirm(t(confirmKey, { name: user.fullName }))) return;
+
+    setStatusLoadingId(user.id);
+    try {
+      const res = await updateUserStatus(user.id, newActive);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isActive: res.data.isActive } : u))
+      );
+      setSuccessMsg(t(newActive
+        ? 'userManagement.status.successActivate'
+        : 'userManagement.status.successDeactivate'));
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      const msg = err.response?.data?.message;
+      setError(msg || t('userManagement.status.error'));
+      setTimeout(() => setError(''), 4000);
+    } finally {
+      setStatusLoadingId(null);
+    }
   };
 
   const handleClearFilters = () => {
@@ -109,6 +156,14 @@ export default function UserManagementPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUserCreated={handleUserCreated}
+      />
+
+      {/* Edit Role Modal */}
+      <EditRoleModal
+        isOpen={isEditRoleModalOpen}
+        onClose={() => { setIsEditRoleModalOpen(false); setEditRoleUser(null); }}
+        user={editRoleUser}
+        onRoleUpdated={handleRoleUpdated}
       />
 
       {/* Sayfa başlığı */}
@@ -242,11 +297,12 @@ export default function UserManagementPage() {
           ) : (
             <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '22%' }} />
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '15%' }} />
                 <col style={{ width: '20%' }} />
-                <col style={{ width: '15%' }} />
+                <col style={{ width: '26%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '10%' }} />
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
@@ -256,6 +312,7 @@ export default function UserManagementPage() {
                     t('userManagement.table.role'),
                     t('userManagement.table.username'),
                     t('userManagement.table.createdAt'),
+                    t('userManagement.table.actions'),
                   ].map((h) => (
                     <th
                       key={h}
@@ -268,10 +325,16 @@ export default function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {users.map((user) => {
+                  const isInactive = user.isActive === false;
+                  const isStatusLoading = statusLoadingId === user.id;
+                  return (
                   <tr
                     key={user.id}
-                    style={{ borderBottom: '1px solid var(--border-color-light)' }}
+                    style={{
+                      borderBottom: '1px solid var(--border-color-light)',
+                      opacity: isInactive ? 0.5 : 1,
+                    }}
                   >
                     {/* Ad Soyad */}
                     <td
@@ -279,6 +342,11 @@ export default function UserManagementPage() {
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {user.fullName}
+                      {isInactive && (
+                        <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                          ({t('userManagement.status.inactive')})
+                        </span>
+                      )}
                     </td>
 
                     {/* E-posta */}
@@ -291,12 +359,21 @@ export default function UserManagementPage() {
 
                     {/* Rol badge */}
                     <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                        style={roleBadgeStyle(user.role)}
-                      >
-                        {user.role}
-                      </span>
+                      {user.role ? (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                          style={roleBadgeStyle(user.role)}
+                        >
+                          {user.role}
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: 'rgba(100,116,139,0.1)', color: 'var(--text-tertiary)', border: '1px dashed var(--border-color)' }}
+                        >
+                          {t('userManagement.table.noRole')}
+                        </span>
+                      )}
                     </td>
 
                     {/* Kullanıcı ID (Keycloak UUID kısaltılmış) */}
@@ -315,13 +392,54 @@ export default function UserManagementPage() {
                     >
                       {formatDate(user.createdAt)}
                     </td>
+
+                    {/* İşlemler */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {/* Rol düzenle */}
+                        <button
+                          onClick={() => handleOpenEditRole(user)}
+                          disabled={isInactive}
+                          className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                          title={t('userManagement.editRole.buttonTitle')}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* Aktif/Pasif toggle */}
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          disabled={isStatusLoading}
+                          className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{
+                            borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                            color: isInactive ? '#16a34a' : '#dc2626',
+                            backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                          }}
+                          title={t(isInactive
+                            ? 'userManagement.status.activateTitle'
+                            : 'userManagement.status.deactivateTitle')}
+                        >
+                          {isStatusLoading ? (
+                            <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
+                              style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
+                          ) : isInactive ? (
+                            <UserCheck className="h-3.5 w-3.5" />
+                          ) : (
+                            <UserX className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
 
                 {users.length === 0 && (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center py-12 text-sm"
                       style={{ color: 'var(--text-tertiary)' }}
                     >
