@@ -104,7 +104,15 @@ export default function TicketTimeline({
                   </button>
                 </div>
               ) : (
-                <div style={!isRight || isInternal ? { color: 'var(--text-primary)' } : {}}>{item.message}</div>
+                <div
+                  style={
+                    !isRight || isInternal
+                      ? { color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }
+                      : { whiteSpace: 'pre-wrap' }
+                  }
+                >
+                  {item.message}
+                </div>
               )}
 
               <div
@@ -153,7 +161,7 @@ export default function TicketTimeline({
               onKeyDown={handleKeyDown}
               disabled={sending || cooldown > 0}
               rows={2}
-              className="flex-1 resize-y rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
+              className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
             />
             <input
