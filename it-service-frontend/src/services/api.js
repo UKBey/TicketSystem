@@ -67,6 +67,9 @@ export const unclaimTicket = (ticketId, note) =>
 export const closeTicket = (ticketId, note) =>
   api.put(`/tickets/${ticketId}/close`, { note });
 
+export const updateTicketPriority = (ticketId, priority) =>
+  api.put(`/tickets/${ticketId}/priority`, { priority });
+
 // Agent kapasite listesini çek (atama UI'ı için)
 export const getAgentsWithCapacity = (productId) =>
   api.get('/users/agents/capacity', { params: { productId } });

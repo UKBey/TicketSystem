@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   FileText, UserCheck, UserMinus, UserPlus, CheckCircle2,
-  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, ChevronUp,
+  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, ChevronUp, Flag,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 
@@ -19,7 +19,8 @@ const ACTION_CONFIG = {
   WAITING:       { icon: Clock,       color: '#eab308', bg: 'rgba(234,179,8,0.12)',  labelKey: 'auditWaiting'     },
   RESUME:        { icon: Play,        color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', labelKey: 'auditResumed'     },
   CLOSE:         { icon: XCircle,     color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  labelKey: 'auditClosed'      },
-  STATUS_CHANGE: { icon: ArrowRight,  color: '#6b7280', bg: 'rgba(107,114,128,0.12)',labelKey: 'auditStatusChange'},
+  STATUS_CHANGE:   { icon: ArrowRight,  color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditStatusChange'   },
+  PRIORITY_CHANGE: { icon: Flag,        color: '#ec4899', bg: 'rgba(236,72,153,0.12)',  labelKey: 'auditPriorityChange' },
 };
 
 const DEFAULT_CONFIG = { icon: ArrowRight, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditUpdated' };
@@ -49,6 +50,28 @@ function StatusPill({ status, isDark }) {
       style={{ backgroundColor: bg, color: text }}
     >
       {label}
+    </span>
+  );
+}
+
+// ---- PriorityPill ------------------------------------------------------------
+
+const PRIORITY_PILL_STYLES = {
+  LOW:      { bg: 'rgba(34,197,94,0.15)',   text: '#22c55e'  },
+  MEDIUM:   { bg: 'rgba(245,158,11,0.15)',  text: '#f59e0b'  },
+  HIGH:     { bg: 'rgba(239,68,68,0.15)',   text: '#ef4444'  },
+  CRITICAL: { bg: 'rgba(124,58,237,0.15)',  text: '#7c3aed'  },
+};
+
+function PriorityPill({ priority }) {
+  if (!priority) return null;
+  const style = PRIORITY_PILL_STYLES[priority] || { bg: 'rgba(107,114,128,0.15)', text: '#6b7280' };
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
+      style={{ backgroundColor: style.bg, color: style.text }}
+    >
+      {priority}
     </span>
   );
 }
@@ -152,17 +175,29 @@ export default function AuditTimeline({ auditLogs }) {
                       </div>
 
                       {/* State transition */}
-                      {entry.previousState && entry.newState && (
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <StatusPill status={entry.previousState} isDark={isDark} />
-                          <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                          <StatusPill status={entry.newState} isDark={isDark} />
-                        </div>
-                      )}
-                      {!entry.previousState && entry.newState && (
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <StatusPill status={entry.newState} isDark={isDark} />
-                        </div>
+                      {entry.actionType === 'PRIORITY_CHANGE' ? (
+                        entry.previousState && entry.newState && (
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <PriorityPill priority={entry.previousState} />
+                            <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            <PriorityPill priority={entry.newState} />
+                          </div>
+                        )
+                      ) : (
+                        <>
+                          {entry.previousState && entry.newState && (
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <StatusPill status={entry.previousState} isDark={isDark} />
+                              <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                              <StatusPill status={entry.newState} isDark={isDark} />
+                            </div>
+                          )}
+                          {!entry.previousState && entry.newState && (
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <StatusPill status={entry.newState} isDark={isDark} />
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Note */}

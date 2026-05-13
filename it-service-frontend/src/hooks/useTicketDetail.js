@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api, {
   closeTicket as closeTicketWithNote,
   unclaimTicket as unclaimTicketWithNote,
+  updateTicketPriority as updateTicketPriorityApi,
 } from '../services/api';
 
 export function useTicketDetail(id, hasRole) {
@@ -227,6 +228,15 @@ export function useTicketDetail(id, hasRole) {
 
   const handleAssignSuccess = () => fetchTicket();
 
+  const handlePriorityChange = async (newPriority) => {
+    try {
+      const res = await updateTicketPriorityApi(id, newPriority);
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not update priority.');
+    }
+  };
+
   const openReasonModal = (action) => {
     setReasonModal({ isOpen: true, action });
     setExtraActionsOpen(false);
@@ -273,7 +283,7 @@ export function useTicketDetail(id, hasRole) {
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,
     handleResolveClick, handleSubmitResolve,
-    handleSubmitCsat, handleAssignSuccess,
+    handleSubmitCsat, handleAssignSuccess, handlePriorityChange,
     openReasonModal, closeReasonModal, handleReasonConfirm,
   };
 }

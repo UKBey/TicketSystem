@@ -40,7 +40,7 @@ export default function TicketDetail() {
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,
     handleResolveClick, handleSubmitResolve,
-    handleSubmitCsat, handleAssignSuccess,
+    handleSubmitCsat, handleAssignSuccess, handlePriorityChange,
     openReasonModal, closeReasonModal, handleReasonConfirm,
   } = useTicketDetail(id, hasRole);
 
@@ -146,7 +146,9 @@ export default function TicketDetail() {
           currentDate={currentDate}
           resolutionNote={resolutionNote}
           isCustomer={isCustomer}
+          isAgent={isAgent}
           isDark={isDark}
+          onPriorityChange={handlePriorityChange}
         />
 
         <WorklogCard

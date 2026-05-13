@@ -798,6 +798,30 @@ public class TicketService {
         return saved;
     }
 
+    @Transactional
+    public Ticket updateTicketPriority(Long id, String newPriority, String userId, List<String> roles) {
+        log.info("Öncelik güncelleme. Bilet: {}, Yeni Öncelik: {}, Kullanıcı: {}", id, newPriority, userId);
+        List<String> valid = List.of("LOW", "MEDIUM", "HIGH", "CRITICAL");
+        if (!valid.contains(newPriority)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.priority");
+        }
+
+        Ticket ticket = getTicketWithAuth(id, userId, roles);
+
+        boolean isAgent = roles.contains("ROLE_AGENT") || roles.contains("ROLE_AGENT_ADMIN");
+        if (!isAgent) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.priority.forbidden");
+        }
+
+        String oldPriority = ticket.getPriority();
+        if (oldPriority.equals(newPriority)) return ticket;
+
+        ticket.setPriority(newPriority);
+        Ticket saved = ticketRepository.save(ticket);
+        recordTicketAuditLog(saved, userId, "PRIORITY_CHANGE", null, oldPriority, newPriority);
+        return saved;
+    }
+
     private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String note,
                                       String previousState, String newState) {
         TicketAuditLog auditLog = TicketAuditLog.builder()

@@ -302,6 +302,22 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    @Operation(summary = "Bilet önceliği güncelle")
+    @PutMapping("/{id}/priority")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    public ResponseEntity<TicketResponseDTO> updatePriority(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String newPriority = body.get("priority");
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet önceliği güncelleme isteği. Bilet ID: {}, Yeni Öncelik: {}, Kullanıcı: {}", id, newPriority, userId);
+        Ticket ticket = ticketService.updateTicketPriority(id, newPriority, userId, roles);
+        log.info("Bilet önceliği güncellendi. Bilet ID: {}, Öncelik: {}", id, newPriority);
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
     @Operation(summary = "Bileti sil (AGENT_ADMIN yetkisi gerekir)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('AGENT_ADMIN')")

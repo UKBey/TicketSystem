@@ -280,6 +280,7 @@
     "auditResumed": "Resumed",
     "auditAssigned": "Assigned",
     "auditStatusChange": "Status Changed",
+    "auditPriorityChange": "Priority Changed",
     "statusNew": "New",
     "statusInProgress": "In Progress",
     "statusWaiting": "Waiting for Customer Response",

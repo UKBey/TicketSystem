@@ -12,9 +12,18 @@ function DetailRow({ label, value }) {
   );
 }
 
+const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+const PRIORITY_STYLES = {
+  LOW:      { color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+  HIGH:     { color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  CRITICAL: { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)'  },
+};
+
 export default function TicketDetailsCard({
   ticket, slaInfo, currentDate, resolutionNote,
-  isCustomer, isDark,
+  isCustomer, isAgent, isDark, onPriorityChange,
 }) {
   const { t } = useTranslation();
 
@@ -92,7 +101,31 @@ export default function TicketDetailsCard({
 
         <div>
           <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('ticketDetail.priority')}</div>
-          <PriorityBadge priority={ticket.priority} />
+          {isAgent && ticket.status !== 'CLOSED' ? (
+            <div className="flex flex-wrap gap-1.5">
+              {PRIORITY_OPTIONS.map((p) => {
+                const { color, bg } = PRIORITY_STYLES[p];
+                const isActive = ticket.priority === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => !isActive && onPriorityChange(p)}
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: isActive ? bg : 'transparent',
+                      color: isActive ? color : 'var(--text-tertiary)',
+                      border: `1.5px solid ${isActive ? color : 'var(--border-color)'}`,
+                      opacity: isActive ? 1 : 0.65,
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <PriorityBadge priority={ticket.priority} />
+          )}
         </div>
 
         {slaInfo && (

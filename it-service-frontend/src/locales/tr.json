@@ -280,6 +280,7 @@
     "auditResumed": "Devam Ediyor",
     "auditAssigned": "Atandı",
     "auditStatusChange": "Durum Değişti",
+    "auditPriorityChange": "Öncelik Değişti",
     "statusNew": "Yeni",
     "statusInProgress": "İşlemde",
     "statusWaiting": "Müşteri Yanıtı Bekleniyor",
