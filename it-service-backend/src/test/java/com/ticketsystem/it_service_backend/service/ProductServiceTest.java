@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -42,6 +43,8 @@ class ProductServiceTest {
     private TicketService ticketService;
     @Mock
     private TicketRepository ticketRepository;
+    @Mock
+    private AgentProductLimitRepository agentProductLimitRepository;
 
     @InjectMocks
     private ProductService productService;
