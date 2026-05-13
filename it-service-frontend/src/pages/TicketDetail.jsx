@@ -122,7 +122,6 @@ export default function TicketDetail() {
 
         <AuditTimeline
           auditLogs={ticket.auditLogs ?? ticket.ticketAuditLogs ?? []}
-          isCustomer={isCustomer}
         />
       </div>
 

@@ -55,13 +55,13 @@ function StatusPill({ status, isDark }) {
 
 // ---- AuditTimeline -----------------------------------------------------------
 
-export default function AuditTimeline({ auditLogs, isCustomer }) {
+export default function AuditTimeline({ auditLogs }) {
   const { t }        = useTranslation();
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [expanded, setExpanded] = useState(true);
 
-  if (isCustomer || !auditLogs || auditLogs.length === 0) return null;
+  if (!auditLogs || auditLogs.length === 0) return null;
 
   // Chronological order (oldest first)
   const sorted = [...auditLogs].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
