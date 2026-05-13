@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -5,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
 import ActionReasonModal from '../components/ActionReasonModal';
 import AgentSelectionModal from '../components/AgentSelectionModal';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { STATUS_OPTIONS } from '../utils/ticketFormatters';
@@ -13,7 +14,7 @@ import TicketTimeline from '../components/ticket/TicketTimeline';
 import StatusActionsCard from '../components/ticket/StatusActionsCard';
 import TicketDetailsCard from '../components/ticket/TicketDetailsCard';
 import WorklogCard from '../components/ticket/WorklogCard';
-import AiSummaryCard from '../components/ticket/AiSummaryCard';
+import AiSummaryModal from '../components/ticket/AiSummaryModal';
 import CsatModal from '../components/ticket/CsatModal';
 import ResolveModal from '../components/ticket/ResolveModal';
 import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
@@ -26,6 +27,7 @@ export default function TicketDetail() {
   const { user, hasRole } = useAuth();
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
+  const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
 
   const {
     ticket, loading, timeline, slaInfo, currentDate, resolutionNote,
@@ -79,10 +81,23 @@ export default function TicketDetail() {
         </button>
 
         <div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{ticketCode}</h1>
-            <PriorityBadge priority={ticket.priority} />
-            <StatusBadge status={ticket.status} />
+          <div className="flex items-center gap-3 flex-wrap justify-between">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{ticketCode}</h1>
+              <PriorityBadge priority={ticket.priority} />
+              <StatusBadge status={ticket.status} />
+            </div>
+            {(isAgent || isAgentAdmin) && (
+              <button
+                onClick={() => setAiSummaryModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }}
+                title={t('ticketDetail.aiSummaryTitle')}
+              >
+                <Sparkles className="h-4 w-4" />
+                {t('ticketDetail.aiSummary')}
+              </button>
+            )}
           </div>
           <div className="text-lg font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>
             {ticket.title}
@@ -152,12 +167,6 @@ export default function TicketDetail() {
           isAgent={isAgent}
         />
 
-        <AiSummaryCard
-          ticketId={id}
-          hasRole={hasRole}
-          isDark={isDark}
-        />
-
         {isCustomer && ticket.status === 'RESOLVED' && (
           <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
@@ -200,6 +209,13 @@ export default function TicketDetail() {
         isOpen={csatModalOpen}
         onClose={() => setCsatModalOpen(false)}
         onSubmit={handleSubmitCsat}
+      />
+
+      <AiSummaryModal
+        isOpen={aiSummaryModalOpen}
+        onClose={() => setAiSummaryModalOpen(false)}
+        ticketId={id}
+        hasRole={hasRole}
       />
 
       <ActionReasonModal
