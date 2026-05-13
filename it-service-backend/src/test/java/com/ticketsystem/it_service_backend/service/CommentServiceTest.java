@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -168,6 +170,19 @@ class CommentServiceTest {
 
         assertNotNull(saved);
         verify(ticketService, never()).updateTicketStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    void addComment_whenMessageExceeds500Chars_throwsBadRequest() {
+        String longMessage = IntStream.range(0, 501)
+                .mapToObj(i -> "a")
+                .collect(Collectors.joining());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> commentService.addComment(100L, longMessage, "EXTERNAL", "customer-1", List.of("CUSTOMER")));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(commentRepository, never()).save(any(Comment.class));
     }
 
     @Test

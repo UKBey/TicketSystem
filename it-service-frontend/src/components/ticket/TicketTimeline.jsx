@@ -25,6 +25,7 @@ export default function TicketTimeline({
   handleSendComment, handleFileUpload, handleDownloadAttachment,
 }) {
   const { t } = useTranslation();
+  const COMMENT_MESSAGE_MAX_LENGTH = 500;
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -161,6 +162,7 @@ export default function TicketTimeline({
               onKeyDown={handleKeyDown}
               disabled={sending || cooldown > 0}
               rows={2}
+              maxLength={COMMENT_MESSAGE_MAX_LENGTH}
               className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
             />
@@ -185,7 +187,7 @@ export default function TicketTimeline({
             <button
               className="flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               onClick={handleSendComment}
-              disabled={sending || !message.trim() || cooldown > 0}
+              disabled={sending || !message.trim() || message.length > COMMENT_MESSAGE_MAX_LENGTH || cooldown > 0}
             >
               <Send className="h-4 w-4" />
               {cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}

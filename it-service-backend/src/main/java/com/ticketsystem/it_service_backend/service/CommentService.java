@@ -35,10 +35,15 @@ public class CommentService {
 
     private final ConcurrentHashMap<String, Instant> lastCommentTime = new ConcurrentHashMap<>();
     private static final long COMMENT_COOLDOWN_SECONDS = 5;
+    private static final int COMMENT_MESSAGE_MAX_LENGTH = 500;
 
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
         log.info("Yorum ekleme işlemi. Bilet ID: {}, Kullanıcı: {}, Tip: {}", ticketId, userId, type);
+
+        if (message != null && message.length() > COMMENT_MESSAGE_MAX_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.comment.message.too.long");
+        }
 
         Instant last = lastCommentTime.get(userId);
         if (last != null && Instant.now().isBefore(last.plusSeconds(COMMENT_COOLDOWN_SECONDS))) {
