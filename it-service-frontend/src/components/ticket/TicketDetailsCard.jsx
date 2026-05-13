@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { PriorityBadge } from '../Badges';
-import { Clock, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
-import { formatDate, formatShortDate, formatSlaTime, getAuditActionStyles } from '../../utils/ticketFormatters';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { formatDate, formatShortDate, formatSlaTime } from '../../utils/ticketFormatters';
 
 function DetailRow({ label, value }) {
   return (
@@ -15,31 +15,8 @@ function DetailRow({ label, value }) {
 export default function TicketDetailsCard({
   ticket, slaInfo, currentDate, resolutionNote,
   isCustomer, isDark,
-  auditHistoryExpanded, setAuditHistoryExpanded,
 }) {
   const { t } = useTranslation();
-
-  const auditLogs = Array.isArray(ticket.auditLogs)
-    ? ticket.auditLogs
-    : Array.isArray(ticket.ticketAuditLogs)
-      ? ticket.ticketAuditLogs
-      : [];
-
-  const getAuditActionLabel = (actionType) => {
-    const labels = {
-      CREATE:        t('ticketDetail.auditCreated'),
-      CLAIM:         t('ticketDetail.auditClaimed'),
-      UNCLAIM:       t('ticketDetail.auditReleased'),
-      ASSIGN:        t('ticketDetail.auditAssigned'),
-      RESOLVE:       t('ticketDetail.auditResolved'),
-      REOPEN:        t('ticketDetail.auditReopened'),
-      WAITING:       t('ticketDetail.auditWaiting'),
-      RESUME:        t('ticketDetail.auditResumed'),
-      CLOSE:         t('ticketDetail.auditClosed'),
-      STATUS_CHANGE: t('ticketDetail.auditStatusChange'),
-    };
-    return labels[actionType] || actionType || t('ticketDetail.auditUpdated');
-  };
 
   const statusLabel = (status) => {
     const map = {
@@ -143,64 +120,6 @@ export default function TicketDetailsCard({
           </div>
         )}
 
-        {!isCustomer && (
-          <div className="pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
-            <button
-              className="w-full flex items-center justify-between mb-2 cursor-pointer group"
-              onClick={() => setAuditHistoryExpanded((v) => !v)}
-            >
-              <div className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
-                <Clock className="h-3 w-3" />
-                {t('ticketDetail.auditHistory')}
-                {auditLogs.length > 0 && (
-                  <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)' }}>
-                    {auditLogs.length}
-                  </span>
-                )}
-              </div>
-              {auditHistoryExpanded
-                ? <ChevronUp className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                : <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
-            </button>
-            {auditHistoryExpanded && (
-              auditLogs.length > 0 ? (
-                <div className="space-y-2">
-                  {auditLogs.map((entry) => (
-                    <div key={entry.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--border-color-light)', backgroundColor: 'var(--bg-surface-secondary)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold" style={getAuditActionStyles(entry.actionType, isDark)}>
-                              {getAuditActionLabel(entry.actionType)}
-                            </span>
-                            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                              {entry.actorName || entry.actorId || 'Unknown actor'}
-                            </span>
-                          </div>
-                          <div className="text-xs mt-1 leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
-                            {entry.note || t('ticketDetail.noNote')}
-                          </div>
-                        </div>
-                        <div className="text-[11px] shrink-0 text-right" style={{ color: 'var(--text-tertiary)' }}>
-                          {formatShortDate(entry.createdAt)}
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        <span>{entry.previousState || '—'}</span>
-                        <span>→</span>
-                        <span>{entry.newState || '—'}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed px-3 py-3 text-xs leading-relaxed" style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}>
-                  {t('ticketDetail.auditHistoryPlaceholder')}
-                </div>
-              )
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

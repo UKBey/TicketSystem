@@ -30,7 +30,6 @@ export function useTicketDetail(id, hasRole) {
   const [extraActionsOpen, setExtraActionsOpen] = useState(false);
   const [reasonModal, setReasonModal]           = useState({ isOpen: false, action: null });
   const [assignModal, setAssignModal]           = useState(false);
-  const [auditHistoryExpanded, setAuditHistoryExpanded] = useState(false);
 
   const fileInputRef = useRef(null);
   const chatEndRef   = useRef(null);
@@ -270,7 +269,6 @@ export function useTicketDetail(id, hasRole) {
     extraActionsOpen, setExtraActionsOpen,
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
-    auditHistoryExpanded, setAuditHistoryExpanded,
     // handlers
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,

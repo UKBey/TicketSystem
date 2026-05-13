@@ -18,6 +18,7 @@ import AiSummaryCard from '../components/ticket/AiSummaryCard';
 import CsatModal from '../components/ticket/CsatModal';
 import ResolveModal from '../components/ticket/ResolveModal';
 import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
+import AuditTimeline from '../components/ticket/AuditTimeline';
 
 export default function TicketDetail() {
   const { t }        = useTranslation();
@@ -36,7 +37,6 @@ export default function TicketDetail() {
     extraActionsOpen, setExtraActionsOpen,
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
-    auditHistoryExpanded, setAuditHistoryExpanded,
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,
     handleResolveClick, handleSubmitResolve,
@@ -119,6 +119,11 @@ export default function TicketDetail() {
           handleFileUpload={handleFileUpload}
           handleDownloadAttachment={handleDownloadAttachment}
         />
+
+        <AuditTimeline
+          auditLogs={ticket.auditLogs ?? ticket.ticketAuditLogs ?? []}
+          isCustomer={isCustomer}
+        />
       </div>
 
       {/* Right column */}
@@ -143,8 +148,6 @@ export default function TicketDetail() {
           resolutionNote={resolutionNote}
           isCustomer={isCustomer}
           isDark={isDark}
-          auditHistoryExpanded={auditHistoryExpanded}
-          setAuditHistoryExpanded={setAuditHistoryExpanded}
         />
 
         <WorklogCard
