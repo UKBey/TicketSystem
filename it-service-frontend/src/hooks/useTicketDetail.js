@@ -1,0 +1,281 @@
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import api, {
+  closeTicket as closeTicketWithNote,
+  unclaimTicket as unclaimTicketWithNote,
+} from '../services/api';
+
+export function useTicketDetail(id, hasRole) {
+  const { t } = useTranslation();
+
+  const [ticket, setTicket]       = useState(null);
+  const [comments, setComments]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  const [message, setMessage]         = useState('');
+  const [commentType, setCommentType] = useState('EXTERNAL');
+  const [sending, setSending]         = useState(false);
+  const [cooldown, setCooldown]       = useState(0);
+
+  const [slaInfo, setSlaInfo]         = useState(null);
+  const [currentDate, setCurrentDate] = useState(Date.now());
+
+  const [resolutionNote, setResolutionNote]       = useState(null);
+  const [resolveModalOpen, setResolveModalOpen]   = useState(false);
+
+  const [csatModalOpen, setCsatModalOpen] = useState(false);
+
+  const [extraActionsOpen, setExtraActionsOpen] = useState(false);
+  const [reasonModal, setReasonModal]           = useState({ isOpen: false, action: null });
+  const [assignModal, setAssignModal]           = useState(false);
+  const [auditHistoryExpanded, setAuditHistoryExpanded] = useState(false);
+
+  const fileInputRef = useRef(null);
+  const chatEndRef   = useRef(null);
+
+  // ---- fetch ----------------------------------------------------------------
+
+  const fetchTicket = useCallback(async () => {
+    try {
+      const res = await api.get(`/tickets/${id}`);
+      setTicket(res.data);
+    } catch (err) {
+      console.error('Could not load ticket:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const fetchComments = useCallback(async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/comments`);
+      setComments(res.data);
+    } catch (err) {
+      console.error('Could not load comments:', err);
+    }
+  }, [id]);
+
+  const fetchAttachments = useCallback(async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/attachments`);
+      setAttachments(res.data);
+    } catch (err) {
+      console.error('Could not load attachments:', err);
+    }
+  }, [id]);
+
+  const fetchResolutionNote = useCallback(async () => {
+    try {
+      const res = await api.get(`/tickets/${id}/resolution-note`);
+      setResolutionNote(res.data);
+    } catch {
+      setResolutionNote(null);
+    }
+  }, [id]);
+
+  // ---- effects --------------------------------------------------------------
+
+  useEffect(() => {
+    fetchTicket();
+    fetchComments();
+    fetchAttachments();
+    fetchResolutionNote();
+  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchResolutionNote]);
+
+  useEffect(() => {
+    if (!ticket) return;
+    api.get(`/tickets/${id}/sla-timer`)
+      .then((res) => { setSlaInfo({ ...res.data, fetchTime: Date.now() }); })
+      .catch((e) => console.error('SLA fetch error', e));
+  }, [ticket?.status, id, ticket]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ---- derived --------------------------------------------------------------
+
+  const timeline = useMemo(() => {
+    const items = [
+      ...comments.map((c) => ({ ...c, _type: 'comment' })),
+      ...attachments.map((a) => ({ ...a, _type: 'attachment' })),
+    ];
+    items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    return items;
+  }, [comments, attachments]);
+
+  // ---- handlers -------------------------------------------------------------
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post(`/tickets/${id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setAttachments((prev) => [...prev, res.data]);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not upload file.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      const res = await api.get(`/attachments/${attachment.id}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', attachment.fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Could not download file.');
+    }
+  };
+
+  const handleSendComment = async () => {
+    if (!message.trim() || cooldown > 0) return;
+    setSending(true);
+    try {
+      const res = await api.post(`/tickets/${id}/comments`, { message, type: commentType });
+      setComments((prev) => [...prev, res.data]);
+      setMessage('');
+      setCooldown(5);
+      const timer = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+      const ticketRes = await api.get(`/tickets/${id}`);
+      setTicket(ticketRes.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not send comment.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not update status.');
+    }
+  };
+
+  const handleClaim = async () => {
+    try {
+      const res = await api.put(`/tickets/${id}/claim`);
+      setTicket(res.data);
+    } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
+        alert(`Limit exceeded: ${err.response.data.message}`);
+      } else {
+        alert(err.response?.data?.message || 'Could not claim ticket.');
+      }
+    }
+  };
+
+  const handleUnclaim = async (note) => {
+    try {
+      const res = await unclaimTicketWithNote(id, note);
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not release ticket.');
+    }
+  };
+
+  const handleCloseTicket = async (note) => {
+    try {
+      const res = await closeTicketWithNote(id, note);
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Could not close ticket.');
+    }
+  };
+
+  const handleSubmitResolve = async (noteText) => {
+    if (!noteText.trim()) return;
+    if (resolutionNote) {
+      await api.put(`/tickets/${id}/resolution-note`, { note: noteText.trim() });
+    } else {
+      await api.post(`/tickets/${id}/resolution-note`, { note: noteText.trim() });
+    }
+    const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED' });
+    setTicket(res.data);
+    setResolveModalOpen(false);
+    fetchResolutionNote();
+  };
+
+  const handleResolveClick = () => setResolveModalOpen(true);
+
+  const handleSubmitCsat = async (rating, comment) => {
+    await api.post(`/tickets/${id}/csat`, { rating, comment });
+    fetchTicket();
+  };
+
+  const handleAssignSuccess = () => fetchTicket();
+
+  const openReasonModal = (action) => {
+    setReasonModal({ isOpen: true, action });
+    setExtraActionsOpen(false);
+  };
+
+  const closeReasonModal = () => setReasonModal({ isOpen: false, action: null });
+
+  const handleReasonConfirm = async (note) => {
+    if (reasonModal.action === 'UNCLAIM') await handleUnclaim(note);
+    else if (reasonModal.action === 'CLOSE') await handleCloseTicket(note);
+    closeReasonModal();
+  };
+
+  const reasonModalConfig = (() => {
+    if (reasonModal.action === 'CLOSE') return {
+      title: t('ticketDetail.closeTicketTitle'),
+      description: t('ticketDetail.closeTicketDesc'),
+      confirmLabel: t('ticketDetail.closeTicketLabel'),
+      confirmVariant: 'danger',
+    };
+    if (reasonModal.action === 'UNCLAIM') return {
+      title: t('ticketDetail.releaseTitle'),
+      description: t('ticketDetail.releaseDesc'),
+      confirmLabel: t('ticketDetail.releaseLabel'),
+      confirmVariant: 'warning',
+    };
+    return { title: '', description: '', confirmLabel: '', confirmVariant: 'primary' };
+  })();
+
+  return {
+    // data
+    ticket, loading, timeline, slaInfo, currentDate, resolutionNote,
+    // comment form
+    message, setMessage, commentType, setCommentType, sending, cooldown,
+    // file
+    uploading, fileInputRef, chatEndRef,
+    // modals
+    resolveModalOpen, setResolveModalOpen,
+    csatModalOpen, setCsatModalOpen,
+    extraActionsOpen, setExtraActionsOpen,
+    reasonModal, reasonModalConfig,
+    assignModal, setAssignModal,
+    auditHistoryExpanded, setAuditHistoryExpanded,
+    // handlers
+    handleFileUpload, handleDownloadAttachment,
+    handleSendComment, handleStatusChange, handleClaim,
+    handleResolveClick, handleSubmitResolve,
+    handleSubmitCsat, handleAssignSuccess,
+    openReasonModal, closeReasonModal, handleReasonConfirm,
+  };
+}
