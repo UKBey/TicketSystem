@@ -136,7 +136,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await api.post(`/tickets/${id}/attachments`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setAttachments((prev) => [...prev, res.data]);
+      setAttachments((prev) => (prev.some((a) => a.id === res.data.id) ? prev : [...prev, res.data]));
     } catch (err) {
       alert(err.response?.data?.message || 'Could not upload file.');
     } finally {
@@ -166,7 +166,7 @@ export function useTicketDetail(id, hasRole) {
     setSending(true);
     try {
       const res = await api.post(`/tickets/${id}/comments`, { message, type: commentType });
-      setComments((prev) => [...prev, res.data]);
+      setComments((prev) => (prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data]));
       setMessage('');
       setCooldown(5);
       const timer = setInterval(() => {
