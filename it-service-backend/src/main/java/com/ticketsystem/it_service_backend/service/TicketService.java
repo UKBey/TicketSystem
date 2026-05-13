@@ -115,6 +115,7 @@ public class TicketService {
 
         notificationService.notifyTicketCreated(savedTicket);
         eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
+        recordTicketAuditLog(savedTicket, customerId, "CREATE", null, null, "NEW");
 
         return savedTicket;
     }
@@ -682,6 +683,7 @@ public class TicketService {
         }
 
         notificationService.notifyTicketClaimed(ticket, agentId);
+        recordTicketAuditLog(ticket, agentId, "CLAIM", null, currentStatus, ticket.getStatus());
         return ticket;
     }
 
@@ -784,6 +786,14 @@ public class TicketService {
 
         if ("RESOLVED".equals(newStatus)) notificationService.notifyTicketResolved(saved);
         else                               notificationService.notifyStatusChanged(saved, oldStatus);
+
+        String actionType;
+        if ("RESOLVED".equals(newStatus)) actionType = "RESOLVE";
+        else if ("IN_PROGRESS".equals(newStatus) && "RESOLVED".equals(oldStatus)) actionType = "REOPEN";
+        else if ("WAITING_FOR_CUSTOMER".equals(newStatus)) actionType = "WAITING";
+        else if ("IN_PROGRESS".equals(newStatus) && "WAITING_FOR_CUSTOMER".equals(oldStatus)) actionType = "RESUME";
+        else actionType = "STATUS_CHANGE";
+        recordTicketAuditLog(saved, userId, actionType, null, oldStatus, newStatus);
 
         return saved;
     }

@@ -27,9 +27,16 @@ export default function TicketDetailsCard({
 
   const getAuditActionLabel = (actionType) => {
     const labels = {
-      UNCLAIM: t('ticketDetail.auditReleased'),
-      CLOSE:   t('ticketDetail.auditClosed'),
-      CLAIM:   t('ticketDetail.auditClaimed'),
+      CREATE:        t('ticketDetail.auditCreated'),
+      CLAIM:         t('ticketDetail.auditClaimed'),
+      UNCLAIM:       t('ticketDetail.auditReleased'),
+      ASSIGN:        t('ticketDetail.auditAssigned'),
+      RESOLVE:       t('ticketDetail.auditResolved'),
+      REOPEN:        t('ticketDetail.auditReopened'),
+      WAITING:       t('ticketDetail.auditWaiting'),
+      RESUME:        t('ticketDetail.auditResumed'),
+      CLOSE:         t('ticketDetail.auditClosed'),
+      STATUS_CHANGE: t('ticketDetail.auditStatusChange'),
     };
     return labels[actionType] || actionType || t('ticketDetail.auditUpdated');
   };
