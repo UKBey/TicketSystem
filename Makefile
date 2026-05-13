@@ -25,13 +25,14 @@ help:
 	@echo Kullanim: make [komut]
 	@echo.
 	@echo  Docker (tam stack):
-	@echo    up               - Tum stack'i Docker ile baslar  (eskiden: docker compose up)
-	@echo    rebuild          - Image'lari yeniden build edip baslar (kod degisince)
-	@echo    down             - Tum stack'i durdurur
-	@echo    logs             - Tum servislerin loglarini izler
-	@echo    logs s=servis    - Tek servisin loglarini izler    (ornek: make logs s=keycloak-iam)
-	@echo    ps               - Calisan container'lari listeler
-	@echo    restart s=servis - Tek servisi yeniden baslatir    (ornek: make restart s=it-service-db)
+	@echo    up               		- Tum stack'i Docker ile baslar  (eskiden: docker compose up)
+	@echo    rebuild          		- Image'lari yeniden build edip baslar (kod degisince)
+	@echo    build-only s=servis  	- Sadece belirtilen servisin image'ini build eder
+	@echo    down             		- Tum stack'i durdurur
+	@echo    logs             		- Tum servislerin loglarini izler
+	@echo    logs s=servis    		- Tek servisin loglarini izler    (ornek: make logs s=keycloak-iam)
+	@echo    ps               		- Calisan container'lari listeler
+	@echo    restart s=servis 		- Tek servisi yeniden baslatir    (ornek: make restart s=it-service-db)
 	@echo.
 	@echo  Lokal Gelistirme (hot-reload):
 	@echo    infra            - Sadece altyapi container'larini baslar (DB, Keycloak, jBPM...)
@@ -76,6 +77,9 @@ up:
 
 rebuild:
 	docker compose up -d --build
+
+build-only:
+	docker compose up --build -d --no-deps $(s)
 
 down:
 	docker compose down
