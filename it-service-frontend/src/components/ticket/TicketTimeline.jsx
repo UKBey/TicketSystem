@@ -145,15 +145,15 @@ export default function TicketTimeline({
               </button>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
+          <div className="flex items-end gap-2">
+            <textarea
               placeholder={t('ticketDetail.messagePlaceholder')}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={sending || cooldown > 0}
-              className="flex-1 rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
+              rows={2}
+              className="flex-1 resize-y rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
             />
             <input
