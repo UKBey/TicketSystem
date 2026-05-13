@@ -29,18 +29,7 @@
   "noRole": {
     "title": "Rol Atanmadı",
     "description": "Hesabınız oluşturuldu ancak henüz bir rol atanmamış. Erişim sağlamak için bir yöneticiye başvurun.",
-    "signOut": "Çıkış Yap",
-    "request": {
-      "title": "Erişim Talebi Gönder",
-      "subtitle": "Hangi role veya ürüne erişmek istediğinizi açıklayın. Yönetici talebinizi inceleyecektir.",
-      "placeholder": "Örn: Destek ekibinde ajan olarak çalışmak istiyorum. Ürün: IT Destek...",
-      "submit": "Talep Gönder",
-      "submitting": "Gönderiliyor...",
-      "successMsg": "Talebiniz başarıyla gönderildi. Yönetici en kısa sürede inceleyecektir.",
-      "errorSubmit": "Talep gönderilemedi. Lütfen tekrar deneyin.",
-      "myRequests": "Gönderilen Taleplerim",
-      "deleteRequest": "Talebi sil"
-    }
+    "signOut": "Çıkış Yap"
   },
   "ticket": {
     "status": {
@@ -570,15 +559,6 @@
       "saving": "Kaydediliyor...",
       "errorGeneral": "Roller güncellenemedi. Lütfen tekrar deneyin.",
       "successMsg": "Kullanıcı rolleri başarıyla güncellendi."
-    },
-    "requests": {
-      "title": "Erişim Talepleri",
-      "empty": "Bekleyen erişim talebi yok.",
-      "delete": "Talebi sil",
-      "quickActions": "Hızlı işlemler",
-      "roleAssigned": "{{name}} kullanıcısına {{role}} rolü atandı.",
-      "deactivate": "Deaktive Et",
-      "actionError": "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin."
     },
     "status": {
       "inactive": "pasif",

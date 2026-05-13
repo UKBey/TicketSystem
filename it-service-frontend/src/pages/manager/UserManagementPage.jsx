@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Search, X, ShieldCheck, UserCheck, UserX, Inbox, Trash2, Loader2 } from 'lucide-react';
-import api, { updateUserStatus, getAllAccessRequests, deleteAccessRequest, updateUserRoles } from '../../services/api';
+import { UserPlus, Search, X, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import api, { updateUserStatus } from '../../services/api';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
@@ -56,13 +56,6 @@ export default function UserManagementPage() {
   // Status toggle state
   const [statusLoadingId, setStatusLoadingId] = useState(null);
 
-  // Access requests state
-  const [accessRequests, setAccessRequests]         = useState([]);
-  const [requestsLoading, setRequestsLoading]       = useState(true);
-  const [deletingRequestId, setDeletingRequestId]   = useState(null);
-  // Inline action state per request: { [requestId]: { roleLoading, productLoading } }
-  const [requestActionState, setRequestActionState] = useState({});
-
   // -------------------------------------------------------------------------
   // Debounce — arama 300ms bekler
   // -------------------------------------------------------------------------
@@ -97,20 +90,6 @@ export default function UserManagementPage() {
   }, [page, size, debouncedSearch, roleFilter, t]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
-
-  const fetchAccessRequests = useCallback(async () => {
-    try {
-      setRequestsLoading(true);
-      const res = await getAllAccessRequests();
-      setAccessRequests(res.data);
-    } catch {
-      // sessizce geç
-    } finally {
-      setRequestsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchAccessRequests(); }, [fetchAccessRequests]);
 
   // -------------------------------------------------------------------------
   // Handlers
@@ -159,53 +138,6 @@ export default function UserManagementPage() {
       setTimeout(() => setError(''), 4000);
     } finally {
       setStatusLoadingId(null);
-    }
-  };
-
-  const handleDeleteRequest = async (id) => {
-    setDeletingRequestId(id);
-    try {
-      await deleteAccessRequest(id);
-      setAccessRequests((prev) => prev.filter((r) => r.id !== id));
-    } catch {
-      // sessizce geç
-    } finally {
-      setDeletingRequestId(null);
-    }
-  };
-
-  const handleRequestRoleAssign = async (req, role) => {
-    setRequestActionState((prev) => ({ ...prev, [req.id]: { ...prev[req.id], roleLoading: true } }));
-    try {
-      await updateUserRoles(req.userId, [role]);
-      await deleteAccessRequest(req.id);
-      setAccessRequests((prev) => prev.filter((r) => r.id !== req.id));
-      setSuccessMsg(t('userManagement.requests.roleAssigned', { role, name: req.userFullName }));
-      setTimeout(() => setSuccessMsg(''), 4000);
-      fetchUsers();
-    } catch {
-      setError(t('userManagement.requests.actionError'));
-      setTimeout(() => setError(''), 4000);
-    } finally {
-      setRequestActionState((prev) => ({ ...prev, [req.id]: { ...prev[req.id], roleLoading: false } }));
-    }
-  };
-
-  const handleRequestDeactivate = async (req) => {
-    if (!window.confirm(t('userManagement.status.confirmDeactivate', { name: req.userFullName }))) return;
-    setRequestActionState((prev) => ({ ...prev, [req.id]: { ...prev[req.id], statusLoading: true } }));
-    try {
-      await updateUserStatus(req.userId, false);
-      await deleteAccessRequest(req.id);
-      setAccessRequests((prev) => prev.filter((r) => r.id !== req.id));
-      setSuccessMsg(t('userManagement.status.successDeactivate'));
-      setTimeout(() => setSuccessMsg(''), 4000);
-      fetchUsers();
-    } catch {
-      setError(t('userManagement.status.error'));
-      setTimeout(() => setError(''), 4000);
-    } finally {
-      setRequestActionState((prev) => ({ ...prev, [req.id]: { ...prev[req.id], statusLoading: false } }));
     }
   };
 
@@ -533,133 +465,6 @@ export default function UserManagementPage() {
         />
       </div>
 
-      {/* Erişim Talepleri */}
-      <div
-        className="mt-8 rounded-xl border overflow-hidden"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderColor: 'var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div
-          className="px-6 py-4 border-b flex items-center gap-3"
-          style={{ borderColor: 'var(--border-color)' }}
-        >
-          <Inbox className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-          <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            {t('userManagement.requests.title')}
-          </span>
-          {accessRequests.length > 0 && (
-            <span
-              className="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-              style={{ backgroundColor: '#f59e0b', minWidth: '1.25rem' }}
-            >
-              {accessRequests.length}
-            </span>
-          )}
-        </div>
-
-        {requestsLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 rounded-full border-[3px] animate-spin"
-              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-          </div>
-        ) : accessRequests.length === 0 ? (
-          <div className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-            {t('userManagement.requests.empty')}
-          </div>
-        ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border-color-light)' }}>
-            {accessRequests.map((req) => {
-              const state = requestActionState[req.id] || {};
-              return (
-                <div key={req.id} className="px-6 py-4">
-                  {/* Üst satır: kullanıcı bilgisi + tarih + sil */}
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div>
-                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {req.userFullName}
-                      </span>
-                      <span className="mx-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>·</span>
-                      <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        {req.userEmail}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        {new Date(req.createdAt).toLocaleString(undefined, {
-                          month: 'short', day: 'numeric',
-                          hour: '2-digit', minute: '2-digit',
-                        })}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteRequest(req.id)}
-                        disabled={deletingRequestId === req.id}
-                        className="rounded p-1 transition-colors cursor-pointer hover:text-red-500 disabled:opacity-40"
-                        style={{ color: 'var(--text-tertiary)' }}
-                        title={t('userManagement.requests.delete')}
-                      >
-                        {deletingRequestId === req.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Trash2 className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Talep metni */}
-                  <p
-                    className="text-sm whitespace-pre-wrap mb-3 rounded-lg px-3 py-2.5"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-secondary)',
-                      color: 'var(--text-primary)',
-                      borderLeft: '3px solid var(--border-color)',
-                    }}
-                  >
-                    {req.message}
-                  </p>
-
-                  {/* Aksiyon butonları */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
-                      {t('userManagement.requests.quickActions')}:
-                    </span>
-                    {['AGENT', 'AGENT_ADMIN', 'CUSTOMER', 'MANAGER'].map((role) => (
-                      <button
-                        key={role}
-                        onClick={() => handleRequestRoleAssign(req, role)}
-                        disabled={state.roleLoading}
-                        className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                      >
-                        {state.roleLoading
-                          ? <Loader2 className="h-3 w-3 animate-spin" />
-                          : <ShieldCheck className="h-3 w-3" />}
-                        {role}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => handleRequestDeactivate(req)}
-                      disabled={state.statusLoading}
-                      className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40"
-                      style={{
-                        borderColor: 'rgba(239,68,68,0.4)',
-                        color: '#dc2626',
-                        backgroundColor: 'rgba(239,68,68,0.06)',
-                      }}
-                    >
-                      {state.statusLoading
-                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                        : <UserX className="h-3 w-3" />}
-                      {t('userManagement.requests.deactivate')}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </>
   );
 }
