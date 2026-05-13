@@ -1,4 +1,3 @@
-import { useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -43,15 +42,6 @@ export default function TicketDetail() {
     handleSubmitCsat, handleAssignSuccess, handlePriorityChange,
     openReasonModal, closeReasonModal, handleReasonConfirm,
   } = useTicketDetail(id, hasRole);
-
-  // Sadece chat container icinde scroll yap; sayfa kaydirilmamali.
-  // useLayoutEffect kullaniyoruz: loading=true iken ref attach degil; loading false
-  // olunca paint oncesi scrollTop set edilir, "ust"-->"alt" flicker'i olmaz.
-  useLayoutEffect(() => {
-    if (loading) return;
-    const container = chatEndRef.current?.parentElement;
-    if (container) container.scrollTop = container.scrollHeight;
-  }, [loading, timeline, chatEndRef]);
 
   if (loading) {
     return (
