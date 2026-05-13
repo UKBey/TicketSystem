@@ -1,11 +1,16 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,6 +30,8 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final TicketService ticketService;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     private final ConcurrentHashMap<String, Instant> lastCommentTime = new ConcurrentHashMap<>();
     private static final long COMMENT_COOLDOWN_SECONDS = 5;
@@ -61,6 +68,8 @@ public class CommentService {
 
         notificationService.notifyCommentAdded(ticket, savedComment);
 
+        broadcastComment(ticketId, savedComment);
+
         // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
         if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
             log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
@@ -68,6 +77,18 @@ public class CommentService {
         }
 
         return savedComment;
+    }
+
+    // INTERNAL yorumlar agent-only topic'e gider; EXTERNAL'lar genel ticket topic'ine.
+    private void broadcastComment(Long ticketId, Comment comment) {
+        String authorName = comment.getAuthorId() != null
+                ? userRepository.findById(comment.getAuthorId()).map(User::getFullName).orElse("Unknown")
+                : "Unknown";
+        CommentDTO dto = CommentDTO.fromEntity(comment, authorName);
+        String destination = "INTERNAL".equals(comment.getType())
+                ? "/topic/tickets/" + ticketId + "/internal"
+                : "/topic/tickets/" + ticketId;
+        messagingTemplate.convertAndSend(destination, TicketWebSocketEvent.commentAdded(dto));
     }
 
     public List<Comment> getCommentsByTicketId(Long ticketId, String userId, List<String> roles) {

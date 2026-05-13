@@ -1,9 +1,12 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AttachmentDTO;
 import com.ticketsystem.it_service_backend.entity.Attachment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
+import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +26,7 @@ public class AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
     private final TicketService ticketService;
+    private final SimpMessagingTemplate messagingTemplate;
 
         private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // Yukleme ust limiti.
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "png", "jpg", "jpeg", "txt", "log");
@@ -79,6 +83,11 @@ public class AttachmentService {
 
         Attachment savedAttachment = attachmentRepository.save(attachment);
         log.info("Dosya başarıyla veritabanına kaydedildi. ID: {}", savedAttachment.getId());
+
+        messagingTemplate.convertAndSend(
+                "/topic/tickets/" + ticketId,
+                TicketWebSocketEvent.attachmentAdded(AttachmentDTO.fromEntity(savedAttachment)));
+
         return savedAttachment;
     }
 

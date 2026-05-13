@@ -21,10 +21,12 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
 import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
+import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -61,6 +63,7 @@ public class TicketService {
     private final AttachmentRepository attachmentRepository;
     private final TicketAuditLogRepository ticketAuditLogRepository;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
     private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
@@ -859,6 +862,16 @@ public class TicketService {
                 .newState(newState)
                 .build();
         ticketAuditLogRepository.save(auditLog);
+        broadcastTicketUpdated(ticket.getId());
+    }
+
+    // Audit log her ticket mutation'unda kaydedildigi icin broadcast'i da buradan tetikliyoruz.
+    private void broadcastTicketUpdated(Long ticketId) {
+        try {
+            messagingTemplate.convertAndSend("/topic/tickets/" + ticketId, TicketWebSocketEvent.ticketUpdated());
+        } catch (Exception e) {
+            log.warn("WebSocket broadcast hatasi (ticket {}): {}", ticketId, e.getMessage());
+        }
     }
 
     private void validateStateTransition(String current, String next) {

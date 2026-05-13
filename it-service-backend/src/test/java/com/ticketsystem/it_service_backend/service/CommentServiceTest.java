@@ -3,6 +3,8 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,10 @@ class CommentServiceTest {
     private TicketService ticketService;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private CommentService commentService;

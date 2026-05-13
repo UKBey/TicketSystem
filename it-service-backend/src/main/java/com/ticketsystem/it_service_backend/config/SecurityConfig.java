@@ -43,7 +43,8 @@ public class SecurityConfig {
                 "/actuator/metrics",
                 "/actuator/metrics/**",
                 "/api/auth/login",
-                "/api/auth/register")
+                "/api/auth/register",
+                "/ws/**")
             .permitAll()
 
             // Internal endpoint'ler sadece servisler arasi token ile erisilebilir.

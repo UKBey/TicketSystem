@@ -5,6 +5,7 @@ import api, {
   unclaimTicket as unclaimTicketWithNote,
   updateTicketPriority as updateTicketPriorityApi,
 } from '../services/api';
+import { useTicketWebSocket } from './useTicketWebSocket';
 
 export function useTicketDetail(id, hasRole) {
   const { t } = useTranslation();
@@ -83,6 +84,23 @@ export function useTicketDetail(id, hasRole) {
     fetchAttachments();
     fetchResolutionNote();
   }, [id, fetchTicket, fetchComments, fetchAttachments, fetchResolutionNote]);
+
+  // Gercek zamanli guncellemeler: backend ticket mutation'larinda
+  // /topic/tickets/{id} kanalina event yayinlar. Agent/admin ek olarak
+  // /internal alt kanaliyla INTERNAL yorumlari da alir.
+  const canSeeInternal = !!(hasRole && (hasRole('AGENT') || hasRole('AGENT_ADMIN')));
+  const handleWsComment = useCallback((comment) => {
+    setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
+  }, []);
+  const handleWsAttachment = useCallback((att) => {
+    setAttachments((prev) => (prev.some((a) => a.id === att.id) ? prev : [...prev, att]));
+  }, []);
+  useTicketWebSocket(id, {
+    onComment: handleWsComment,
+    onAttachment: handleWsAttachment,
+    onTicketUpdated: fetchTicket,
+    includeInternal: canSeeInternal,
+  });
 
   useEffect(() => {
     if (!ticket) return;
