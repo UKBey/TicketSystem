@@ -104,13 +104,6 @@ export const updateUserStatus = (userId, active) =>
 
 export default api;
 
-// Rate Limit API Functions
-export const getRateLimitConfigs = () =>
-  api.get('/admin/rate-limits');
-
-export const updateRateLimitConfig = (id, { maxRequests, durationSeconds, enabled }) =>
-  api.put(`/admin/rate-limits/${id}`, { maxRequests, durationSeconds, enabled });
-
 // SLA Policy API Functions
 // ============================================================
 // AI Summary API Functions (llm-service — /api/ai/*)

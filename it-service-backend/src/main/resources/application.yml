@@ -48,6 +48,11 @@ spring:
 app:
   mail:
     from: ${MAIL_FROM:noreply@ticketsystem.local}
+  rate-limit:
+    global-api:
+      max-requests: ${RATE_LIMIT_GLOBAL_MAX_REQUESTS:100}
+      duration-seconds: ${RATE_LIMIT_GLOBAL_DURATION_SECONDS:60}
+      enabled: ${RATE_LIMIT_GLOBAL_ENABLED:true}
   sla:
     policies:
       LOW:
