@@ -11,4 +11,6 @@ public interface AgentProductLimitRepository extends JpaRepository<AgentProductL
     Optional<AgentProductLimit> findByAgentIdAndProductId(String agentId, Long productId);
 
     List<AgentProductLimit> findByAgentId(String agentId);
+
+    void deleteByProductId(Long productId);
 }

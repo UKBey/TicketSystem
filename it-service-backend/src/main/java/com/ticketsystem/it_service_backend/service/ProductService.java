@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -25,6 +26,7 @@ public class ProductService {
     private final UserRepository userRepository;
     private final TicketService ticketService;
     private final TicketRepository ticketRepository;
+    private final AgentProductLimitRepository agentProductLimitRepository;
 
     @Transactional(readOnly = true)
     public Product getProductById(Long id, String userId, List<String> roles) {
@@ -95,6 +97,7 @@ public class ProductService {
             }
         }
 
+        agentProductLimitRepository.deleteByProductId(id);
         productRepository.deleteById(id);
         log.info("Ürün başarıyla silindi. ID: {}", id);
     }
