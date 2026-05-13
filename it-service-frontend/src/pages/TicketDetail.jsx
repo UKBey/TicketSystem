@@ -44,8 +44,10 @@ export default function TicketDetail() {
     openReasonModal, closeReasonModal, handleReasonConfirm,
   } = useTicketDetail(id, hasRole);
 
+  // Sadece chat container icinde scroll yap; sayfa kaydirilmamali.
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = chatEndRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
   }, [timeline, chatEndRef]);
 
   if (loading) {
