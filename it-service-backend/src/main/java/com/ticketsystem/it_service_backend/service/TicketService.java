@@ -807,16 +807,42 @@ public class TicketService {
         }
 
         Ticket ticket = getTicketWithAuth(id, userId, roles);
-
-        boolean isAgent = roles.contains("ROLE_AGENT") || roles.contains("ROLE_AGENT_ADMIN");
-        if (!isAgent) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.priority.forbidden");
-        }
-
         String oldPriority = ticket.getPriority();
         if (oldPriority.equals(newPriority)) return ticket;
 
+        boolean isSlaActive = !Boolean.TRUE.equals(ticket.getSlaBreached())
+                && !"CLOSED".equals(ticket.getStatus());
+        boolean isPaused    = ticket.getSlaPausedAt() != null
+                || "WAITING_FOR_CUSTOMER".equals(ticket.getStatus())
+                || "RESOLVED".equals(ticket.getStatus());
+
+        // Aktif sayaç varsa önce dondur; elapsed süre doğru biriksin.
+        if (isSlaActive && !isPaused) {
+            workflowService.pauseSla(ticket);
+        }
+
         ticket.setPriority(newPriority);
+
+        if (isSlaActive) {
+            long newDurationMs = slaPolicyService.getSlaDurationMs(newPriority);
+            long accumulated   = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
+
+            if (!isPaused) {
+                // resumeSla ticket.getPriority() okur — priority zaten güncellendi.
+                // Kalan süreyi jBPM timer'ına resume_sla sinyaliyle iletir.
+                workflowService.resumeSla(ticket);
+                long remaining = Math.max(60_000L, newDurationMs - accumulated);
+                ticket.setSlaDeadline(ZonedDateTime.now().plusSeconds(remaining / 1000));
+            } else {
+                // Duraklatılmış: jBPM timer zaten durmuş.
+                // DB'deki deadline'ı yeni süreye göre ayarla; resumeSla
+                // normal akışta yeni priority'yi zaten okuyacak.
+                if (ticket.getCreatedAt() != null) {
+                    ticket.setSlaDeadline(ticket.getCreatedAt().plusSeconds(newDurationMs / 1000));
+                }
+            }
+        }
+
         Ticket saved = ticketRepository.save(ticket);
         recordTicketAuditLog(saved, userId, "PRIORITY_CHANGE", null, oldPriority, newPriority);
         return saved;
