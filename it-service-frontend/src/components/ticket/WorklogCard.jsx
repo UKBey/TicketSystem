@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, Plus, Trash2 } from 'lucide-react';
+import { Clock, Plus, Trash2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import { formatMinutes, formatShortDate } from '../../utils/ticketFormatters';
 
@@ -8,6 +8,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
   const { t } = useTranslation();
 
   const [worklogs, setWorklogs]               = useState([]);
+  const [isOpen, setIsOpen]                   = useState(true);
   const [formOpen, setFormOpen]               = useState(false);
   const [minutes, setMinutes]                 = useState('');
   const [description, setDescription]         = useState('');
@@ -60,18 +61,29 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
 
   return (
     <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-      <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-5 py-3 border-b hover:opacity-80 transition-opacity cursor-pointer"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
           <Clock className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
           {t('ticketDetail.worklogs', { count: worklogs.length })}
         </span>
-        {worklogs.length > 0 && (
-          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
-            {t('ticketDetail.worklogTotal', { value: formatMinutes(total) })}
-          </span>
-        )}
-      </div>
+        <div className="flex items-center gap-2">
+          {worklogs.length > 0 && (
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
+              {t('ticketDetail.worklogTotal', { value: formatMinutes(total) })}
+            </span>
+          )}
+          <ChevronDown
+            className="h-4 w-4 transition-transform"
+            style={{ color: 'var(--text-tertiary)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-180deg)' }}
+          />
+        </div>
+      </button>
 
+      {isOpen && (
       <div className="p-4">
         {worklogs.length === 0 && !formOpen && (
           <div className="text-center py-3 text-xs" style={{ color: 'var(--text-tertiary)' }}>
@@ -160,6 +172,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
           )
         )}
       </div>
+      )}
     </div>
   );
 }
