@@ -112,12 +112,6 @@ export const updateRateLimitConfig = (id, { maxRequests, durationSeconds, enable
   api.put(`/admin/rate-limits/${id}`, { maxRequests, durationSeconds, enabled });
 
 // SLA Policy API Functions
-export const getSlaPolicies = () =>
-  api.get('/admin/sla-policies');
-
-export const updateSlaPolicy = (id, { targetResolutionHours, warningThresholdHours }) =>
-  api.put(`/admin/sla-policies/${id}`, { targetResolutionHours, warningThresholdHours });
-
 // ============================================================
 // AI Summary API Functions (llm-service — /api/ai/*)
 // ============================================================

@@ -48,6 +48,20 @@ spring:
 app:
   mail:
     from: ${MAIL_FROM:noreply@ticketsystem.local}
+  sla:
+    policies:
+      LOW:
+        resolution-hours: ${SLA_LOW_RESOLUTION_HOURS:72}
+        warning-threshold-hours: ${SLA_LOW_WARNING_HOURS:2}
+      MEDIUM:
+        resolution-hours: ${SLA_MEDIUM_RESOLUTION_HOURS:24}
+        warning-threshold-hours: ${SLA_MEDIUM_WARNING_HOURS:2}
+      HIGH:
+        resolution-hours: ${SLA_HIGH_RESOLUTION_HOURS:4}
+        warning-threshold-hours: ${SLA_HIGH_WARNING_HOURS:1}
+      CRITICAL:
+        resolution-hours: ${SLA_CRITICAL_RESOLUTION_HOURS:1}
+        warning-threshold-hours: ${SLA_CRITICAL_WARNING_HOURS:0}
 
 # ============================================================
 # Gözlemlenebilirlik (Observability) — OpenTelemetry

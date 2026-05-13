@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Plus, X, ChevronDown, ChevronUp, Search, Settings2, Check } from 'lucide-react';
 import api, { getAgentLimits, setAgentLimit } from '../../services/api';
 import RateLimitConfigPanel from '../../components/RateLimitConfigPanel';
-import SlaPolicyConfigPanel from '../../components/SlaPolicyConfigPanel';
 import PaginationBar from '../../components/PaginationBar';
 
 const VISIBLE_LIMIT = 3;
@@ -568,7 +567,6 @@ export default function AdminPanel() {
       </div>
 
       <RateLimitConfigPanel />
-      <SlaPolicyConfigPanel />
     </>
   );
 }

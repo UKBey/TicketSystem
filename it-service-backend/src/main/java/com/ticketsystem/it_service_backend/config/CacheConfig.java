@@ -26,10 +26,6 @@ public class CacheConfig {
     // @CacheEvict admin güncellemesinde anında geçersiz kılar; TTL sadece fallback.
     public static final String RATE_LIMIT_CONFIGS     = "rateLimitConfigs";
 
-    // SLA politikaları; WorkflowService ve SlaNotificationScheduler tarafından okunur.
-    // @CacheEvict admin güncellemesinde anında geçersiz kılar.
-    public static final String SLA_POLICIES           = "slaPolicies";
-
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(
@@ -42,7 +38,6 @@ public class CacheConfig {
                 CSAT_METRICS,
                 WORKLOG_COMPLETION,
                 RATE_LIMIT_CONFIGS,
-                SLA_POLICIES,
                 "metrics"
         );
         manager.setCaffeine(Caffeine.newBuilder()
