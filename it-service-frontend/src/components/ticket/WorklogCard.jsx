@@ -78,7 +78,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
           )}
           <ChevronDown
             className="h-4 w-4 transition-transform"
-            style={{ color: 'var(--text-tertiary)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-180deg)' }}
+            style={{ color: 'var(--text-tertiary)', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
           />
         </div>
       </button>

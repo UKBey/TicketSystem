@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   FileText, UserCheck, UserMinus, UserPlus, CheckCircle2,
-  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, ChevronUp, Flag,
+  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 
@@ -117,13 +117,21 @@ export default function AuditTimeline({ auditLogs }) {
             {sorted.length}
           </span>
         </div>
-        {expanded
-          ? <ChevronUp  className="h-4 w-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-          : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
+        <ChevronDown
+          className="h-4 w-4 shrink-0 transition-transform"
+          style={{ color: 'var(--text-tertiary)', transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
       </button>
 
-      {/* Timeline body */}
-      {expanded && (
+      {/* Timeline body with smooth open/close animation */}
+      <div
+        style={{
+          maxHeight: expanded ? '1000px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out',
+          opacity: expanded ? 1 : 0,
+        }}
+      >
         <div className="px-5 py-4">
           <div className="relative">
             {/* Vertical connector line */}
@@ -216,7 +224,7 @@ export default function AuditTimeline({ auditLogs }) {
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
