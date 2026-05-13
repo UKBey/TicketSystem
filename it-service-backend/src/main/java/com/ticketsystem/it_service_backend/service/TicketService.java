@@ -831,7 +831,7 @@ public class TicketService {
                 // resumeSla ticket.getPriority() okur — priority zaten güncellendi.
                 // Kalan süreyi jBPM timer'ına resume_sla sinyaliyle iletir.
                 workflowService.resumeSla(ticket);
-                long remaining = Math.max(60_000L, newDurationMs - accumulated);
+                long remaining = Math.max(0L, newDurationMs - accumulated);
                 ticket.setSlaDeadline(ZonedDateTime.now().plusSeconds(remaining / 1000));
             } else {
                 // Duraklatılmış: jBPM timer zaten durmuş.

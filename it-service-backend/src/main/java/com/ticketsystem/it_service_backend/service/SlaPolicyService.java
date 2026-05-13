@@ -38,6 +38,7 @@ public class SlaPolicyService {
     public long getSlaDurationMs(String priority) {
         if (priority == null) return defaultMs("MEDIUM");
         return slaPolicyJpaRepository.findByPriority(priority.toUpperCase())
+                .filter(p -> p.getTargetResolutionHours() > 0)
                 .map(p -> (long) p.getTargetResolutionHours() * 3_600_000L)
                 .orElseGet(() -> defaultMs(priority.toUpperCase()));
     }
