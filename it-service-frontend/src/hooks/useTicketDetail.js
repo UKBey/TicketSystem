@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import api, {
   closeTicket as closeTicketWithNote,
@@ -107,7 +107,7 @@ export function useTicketDetail(id, hasRole) {
     api.get(`/tickets/${id}/sla-timer`)
       .then((res) => { setSlaInfo({ ...res.data, fetchTime: Date.now() }); })
       .catch((e) => console.error('SLA fetch error', e));
-  }, [ticket?.status, id, ticket]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ticket?.status, id, ticket]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
@@ -124,6 +124,12 @@ export function useTicketDetail(id, hasRole) {
     items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     return items;
   }, [comments, attachments]);
+
+  useLayoutEffect(() => {
+    if (loading) return;
+    const container = chatEndRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [loading, timeline]);
 
   // ---- handlers -------------------------------------------------------------
 
