@@ -205,8 +205,13 @@ export default function Dashboard() {
               type="button"
               onClick={() => loadSummary({ silent: true })}
               disabled={refreshing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ backgroundColor: 'var(--bg-sidebar)', color: 'var(--text-inverse)' }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
