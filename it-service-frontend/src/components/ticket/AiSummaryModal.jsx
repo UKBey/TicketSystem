@@ -1,10 +1,40 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
-import { Sparkles, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { generateAiSummary, getLatestAiSummary } from '../../services/api';
 import { formatShortDate } from '../../utils/ticketFormatters';
 import i18n from '../../i18n';
+
+const modalStyles = `
+  @keyframes modalFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modalSlideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .ai-modal-overlay {
+    animation: modalFadeIn 0.3s ease-out;
+  }
+
+  .ai-modal-content {
+    animation: modalSlideUp 0.4s ease-out;
+  }
+`;
 
 export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
   const { t } = useTranslation();
@@ -13,7 +43,6 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
 
   const [summary, setSummary]     = useState(null);
   const [loading, setLoading]     = useState(false);
-  const [expanded, setExpanded]   = useState(true);
   const [error, setError]         = useState(null);
 
   const fetchLatest = useCallback(async () => {
@@ -38,7 +67,6 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
       const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
       const res = await generateAiSummary(ticketId, lang);
       setSummary(res.data);
-      setExpanded(true);
     } catch (err) {
       const status = err.response?.status;
       const data   = err.response?.data;
@@ -56,27 +84,18 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div
-        className="w-full max-w-2xl rounded-xl border mx-4 max-h-[80vh] flex flex-col overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
-          <span className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <Sparkles className="h-5 w-5 text-violet-500" />
-            {t('ticketDetail.aiSummaryTitle')}
-          </span>
-          <div className="flex items-center gap-2">
-            {summary && (
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded transition-colors cursor-pointer hover:opacity-70"
-                style={{ color: 'var(--text-tertiary)' }}
-                onClick={() => setExpanded((v) => !v)}
-                title={expanded ? t('ticketDetail.aiSummaryCollapse') : t('ticketDetail.aiSummaryExpand')}
-              >
-                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-            )}
+    <>
+      <style>{modalStyles}</style>
+      <div className="ai-modal-overlay fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div
+          className="ai-modal-content w-full max-w-2xl rounded-xl border mx-4 max-h-[80vh] flex flex-col overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
+        >
+          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+            <span className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              {t('ticketDetail.aiSummaryTitle')}
+            </span>
             <button
               className="flex h-8 w-8 items-center justify-center rounded transition-colors cursor-pointer hover:opacity-70"
               style={{ color: 'var(--text-tertiary)' }}
@@ -86,60 +105,60 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
               <X className="h-4 w-4" />
             </button>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {summary && expanded && (
-            <div
-              className="rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap"
-              style={{ backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#f5f3ff', color: 'var(--text-primary)', borderLeft: '4px solid #8b5cf6' }}
-            >
-              {summary.summary}
-            </div>
-          )}
-          {summary && (
-            <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              <span>{summary.model}</span>
-              <span>{formatShortDate(summary.createdAt)}</span>
-            </div>
-          )}
-          {error && (
-            <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}>
-              {error}
-            </div>
-          )}
-          {!summary && !loading && !error && (
-            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
-              {t('ticketDetail.aiSummaryEmpty')}
-            </div>
-          )}
-        </div>
-
-        <div className="border-t px-6 py-4" style={{ borderColor: 'var(--border-color)' }}>
-          <button
-            className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={
-              loading
-                ? { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border-color)' }
-                : { background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }
-            }
-            onClick={handleGenerate}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
-                {t('ticketDetail.aiSummaryGenerating')}
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                {summary ? t('ticketDetail.aiSummaryRegenerate') : t('ticketDetail.aiSummaryGenerate')}
-              </>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {summary && (
+              <div
+                className="rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap"
+                style={{ backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#f5f3ff', color: 'var(--text-primary)', borderLeft: '4px solid #8b5cf6' }}
+              >
+                {summary.summary}
+              </div>
             )}
-          </button>
+            {summary && (
+              <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span>{summary.model}</span>
+                <span>{formatShortDate(summary.createdAt)}</span>
+              </div>
+            )}
+            {error && (
+              <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}>
+                {error}
+              </div>
+            )}
+            {!summary && !loading && !error && (
+              <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                {t('ticketDetail.aiSummaryEmpty')}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t px-6 py-4" style={{ borderColor: 'var(--border-color)' }}>
+            <button
+              className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={
+                loading
+                  ? { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)', border: '1px solid var(--border-color)' }
+                  : { background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }
+              }
+              onClick={handleGenerate}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />
+                  {t('ticketDetail.aiSummaryGenerating')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  {summary ? t('ticketDetail.aiSummaryRegenerate') : t('ticketDetail.aiSummaryGenerate')}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
