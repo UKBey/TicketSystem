@@ -35,6 +35,12 @@ public class Ticket {
     @Column(name = "product_id")
     private Long productId;
 
+    @Column(name = "topic_id")
+    private Long topicId;
+
+    @Column(name = "topic_name_snapshot")
+    private String topicNameSnapshot;
+
     @Column(name = "customer_id", nullable = false, length = 36)
     private String customerId;
 

@@ -69,6 +69,7 @@ public class TicketController {
                 .description(dto.getDescription())
                 .priority(dto.getPriority())
                 .productId(dto.getProductId())
+                .topicId(dto.getTopicId())
                 .build();
 
         Ticket saved = ticketService.createTicket(ticket, customerId);

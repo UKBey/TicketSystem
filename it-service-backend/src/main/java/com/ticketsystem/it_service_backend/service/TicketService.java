@@ -6,6 +6,8 @@ import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
+import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
@@ -51,6 +53,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
     private final ProductRepository productRepository;
+    private final TicketTopicRepository ticketTopicRepository;
     private final AgentProductLimitRepository agentProductLimitRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
@@ -97,6 +100,19 @@ public class TicketService {
         if (!Boolean.TRUE.equals(product.getIsActive())) {
             throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.product.inactive");
         }
+
+        if (ticket.getTopicId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.required");
+        }
+        TicketTopic topic = ticketTopicRepository.findById(ticket.getTopicId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.topic.not.found"));
+        if (!topic.getProductId().equals(product.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.product.mismatch");
+        }
+        if (!Boolean.TRUE.equals(topic.getIsActive())) {
+            throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.ticket.topic.inactive");
+        }
+        ticket.setTopicNameSnapshot(topic.getName());
 
         ticket.setCustomerId(customerId);
         ticket.setStatus("NEW");

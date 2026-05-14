@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
@@ -17,6 +18,7 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,11 +93,14 @@ class TicketServiceTest {
     private SlaPolicyService slaPolicyService;
     @Mock
     private SimpMessagingTemplate messagingTemplate;
+    @Mock
+    private TicketTopicRepository ticketTopicRepository;
 
     @InjectMocks
     private TicketService ticketService;
 
     private Product product;
+    private TicketTopic topic;
     private User customer;
     private User agent;
     private User agentAdmin;
@@ -103,6 +108,7 @@ class TicketServiceTest {
     @BeforeEach
     void setUp() {
         product = Product.builder().id(10L).name("CRM").build();
+        topic = TicketTopic.builder().id(50L).productId(10L).name("Diğer").isActive(true).build();
 
         customer = User.builder()
                 .id("customer-1")
@@ -136,9 +142,11 @@ class TicketServiceTest {
                 .description("Login fails with 500")
                 .priority("HIGH")
                 .productId(10L)
+                .topicId(50L)
                 .build();
 
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
             Ticket toSave = invocation.getArgument(0);

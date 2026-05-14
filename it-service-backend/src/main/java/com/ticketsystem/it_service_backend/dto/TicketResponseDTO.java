@@ -39,6 +39,12 @@ public class TicketResponseDTO {
     @Schema(description = "Ürün/kategori adı", example = "CRM")
     private String productName;
 
+    @Schema(description = "Seçilen talep konusunun ID'si", example = "12")
+    private Long topicId;
+
+    @Schema(description = "Konu adının bilet oluşturulduğu andaki anlık görüntüsü", example = "Şifre sıfırlama")
+    private String topicName;
+
     @Schema(description = "Bileti oluşturan müşterinin Keycloak ID'si")
     private String customerId;
 
@@ -89,6 +95,8 @@ public class TicketResponseDTO {
                 .priority(ticket.getPriority())
                 .productId(ticket.getProductId())
                 .productName(productName)
+                .topicId(ticket.getTopicId())
+                .topicName(ticket.getTopicNameSnapshot())
                 .customerId(ticket.getCustomerId())
                 .customerName(customerName)
                 .claimers(claimers)
