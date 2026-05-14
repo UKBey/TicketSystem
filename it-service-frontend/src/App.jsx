@@ -40,9 +40,12 @@ function AppLayout({ children }) {
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
-      <div className={`flex flex-1 flex-col transition-[margin] duration-300 ${desktopMarginClass}`}>
+      {/* min-w-0: flex-1 child'i icindeki overflow-x-auto'lar (TicketTable gibi)
+          calissin diye varsayilan min-width:auto'yu kiriyoruz — aksi halde icerik
+          wrapper'i kendisi geniyleyip body-level scroll yaratiyor. */}
+      <div className={`flex flex-1 flex-col min-w-0 transition-[margin] duration-300 ${desktopMarginClass}`}>
         <Navbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
