@@ -211,4 +211,56 @@ class WorklogServiceTest {
         assertEquals("new", updated.getDescription());
         verify(worklogRepository).save(worklog);
     }
+
+    @Test
+    void getAllWorklogs_returnsAllRecords() {
+        TicketWorklog wl = TicketWorklog.builder().id(1L).build();
+        when(worklogRepository.findAll()).thenReturn(List.of(wl));
+
+        List<TicketWorklog> result = worklogService.getAllWorklogs();
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void deleteWorklog_missing_throwsNotFound() {
+        when(worklogRepository.findById(999L)).thenReturn(Optional.empty());
+
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> worklogService.deleteWorklog(999L, "agent-1", List.of("AGENT")));
+        assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void deleteWorklog_agentNotOwner_throwsForbidden() {
+        TicketWorklog worklog = TicketWorklog.builder().id(50L).ticketId(20L).agentId("owner").minutes(10).build();
+        when(worklogRepository.findById(50L)).thenReturn(Optional.of(worklog));
+
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> worklogService.deleteWorklog(50L, "intruder", List.of("AGENT")));
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(worklogRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteWorklog_noRole_throwsForbidden() {
+        TicketWorklog worklog = TicketWorklog.builder().id(51L).ticketId(20L).agentId("a").build();
+        when(worklogRepository.findById(51L)).thenReturn(Optional.of(worklog));
+
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> worklogService.deleteWorklog(51L, "customer-1", List.of("CUSTOMER")));
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void updateWorklog_missing_throwsNotFound() {
+        when(worklogRepository.findById(900L)).thenReturn(Optional.empty());
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> worklogService.updateWorklog(20L, 900L,
+                        WorklogRequestDTO.builder().description("x").build(), "agent-1"));
+    }
 }

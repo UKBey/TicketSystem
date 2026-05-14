@@ -122,4 +122,89 @@ class AttachmentServiceTest {
 
         verify(attachmentRepository).delete(attachment);
     }
+
+    @Test
+    void deleteAttachment_owner_canDelete() {
+        Attachment attachment = Attachment.builder().id(7L).uploaderId("uploader").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
+        when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+
+        attachmentService.deleteAttachment(7L, "uploader", List.of("AGENT"));
+
+        verify(attachmentRepository).delete(attachment);
+    }
+
+    @Test
+    void getAttachment_missing_throws() {
+        when(attachmentRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> attachmentService.getAttachment(99L));
+    }
+
+    @Test
+    void getTicketAttachments_returnsList() {
+        when(attachmentRepository.findByTicketId(10L)).thenReturn(List.of(
+                Attachment.builder().id(1L).fileName("a.log").build()
+        ));
+
+        List<Attachment> result = attachmentService.getTicketAttachments(10L);
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void uploadAttachment_unsupportedExtension_throws() {
+        MockMultipartFile file = new MockMultipartFile("file", "evil.exe", "application/x-msdownload", "x".getBytes());
+        when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+        assertEquals("error.attachment.unsupported.type", ex.getMessage());
+    }
+
+    @Test
+    void uploadAttachment_fileWithNoExtension_throwsUnsupported() {
+        MockMultipartFile file = new MockMultipartFile("file", "noext", "application/octet-stream", "x".getBytes());
+        when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+        assertEquals("error.attachment.unsupported.type", ex.getMessage());
+    }
+
+    @Test
+    void uploadAttachment_pdfBinaryFile_savesWithoutTextChecks() throws Exception {
+        // PDF is binary — not text-based, so no keyword/sensitivity checks fire
+        MockMultipartFile file = new MockMultipartFile("file", "report.pdf", "application/pdf", "binary-pdf-data".getBytes());
+        when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+        when(attachmentRepository.save(any(Attachment.class))).thenAnswer(i -> {
+            Attachment a = i.getArgument(0); a.setId(99L); return a;
+        });
+
+        Attachment saved = attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file);
+
+        assertEquals(99L, saved.getId());
+    }
+
+    @Test
+    void uploadAttachment_textWithBearerToken_throwsSensitive() {
+        MockMultipartFile file = new MockMultipartFile("file", "trace.log", "text/plain",
+                ("ERROR auth failed; Bearer abcdefghijklmnop12345").getBytes());
+        when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+        assertEquals("error.attachment.sensitive.data", ex.getMessage());
+    }
+
+    @Test
+    void uploadAttachment_textWithPrivateKeyBlock_throwsSensitive() {
+        String content = "ERROR\n-----BEGIN RSA PRIVATE KEY-----\nAAAA\n-----END RSA PRIVATE KEY-----";
+        MockMultipartFile file = new MockMultipartFile("file", "leak.log", "text/plain", content.getBytes());
+        when(ticketService.validateMutationAccess(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> attachmentService.uploadAttachment(10L, "agent-1", List.of("AGENT"), file));
+        assertEquals("error.attachment.sensitive.data", ex.getMessage());
+    }
 }
