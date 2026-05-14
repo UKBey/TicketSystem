@@ -15,6 +15,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
   const { theme, applyServerTheme, setTheme } = useTheme();
+  // useEffect tek-seferlik calistigi icin theme'i closure'a hapsetmek istemiyoruz —
+  // sync sirasinda guncel degeri okuyabilelim diye ref'te tutuyoruz.
+  const themeRef = useRef(theme);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
 
   const extractUserInfo = useCallback(() => {
     if (keycloak.tokenParsed) {
@@ -59,7 +63,7 @@ export function AuthProvider({ children }) {
                 applyServerTheme(serverTheme);
               } else {
                 // Henüz kayıt yoksa localStorage'daki mevcut temayı backend'e yaz.
-                setTheme(theme);
+                setTheme(themeRef.current);
               }
             })
             .catch(err => console.error('Sync error:', err));
@@ -90,7 +94,7 @@ export function AuthProvider({ children }) {
           if (serverTheme === 'light' || serverTheme === 'dark') {
             applyServerTheme(serverTheme);
           } else {
-            setTheme(theme);
+            setTheme(themeRef.current);
           }
         })
         .catch(err => console.error('Sync error:', err));
@@ -101,7 +105,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
     };
-  }, [extractUserInfo]);
+  }, [extractUserInfo, applyServerTheme, setTheme]);
 
   const login = useCallback(() => {
     const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
