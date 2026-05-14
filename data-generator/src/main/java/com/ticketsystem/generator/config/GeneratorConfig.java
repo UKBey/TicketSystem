@@ -29,6 +29,14 @@ public class GeneratorConfig {
     public static final String ADMIN_AGENT_PASSWORD = "321654";
 
     // ---------------------------------------------------------------
+    // Keycloak master realm admin — yalnızca kullanıcıların required-actions
+    // alanını temizlemek için kullanılır (data-generator/ dışı bir şeye dokunmaz).
+    // ---------------------------------------------------------------
+    public static final String MASTER_ADMIN_USERNAME = "admin";
+    public static final String MASTER_ADMIN_PASSWORD = "321654";
+    public static final String MASTER_ADMIN_CLIENT   = "admin-cli";
+
+    // ---------------------------------------------------------------
     // İstek temposu
     // ---------------------------------------------------------------
     /** İki API isteği arasındaki bekleme (ms). */

@@ -3,6 +3,7 @@ package com.ticketsystem.generator.generator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketsystem.generator.client.ApiClient;
+import com.ticketsystem.generator.client.KeycloakAdminApi;
 import com.ticketsystem.generator.client.KeycloakTokenClient;
 import com.ticketsystem.generator.config.GeneratorConfig;
 import com.ticketsystem.generator.model.SetupResult;
@@ -39,12 +40,14 @@ public class SetupGenerator {
     private final ObjectMapper mapper;
     private final OkHttpClient http;
     private final UserSession adminAgent;
+    private final KeycloakAdminApi keycloakAdmin;
 
     public SetupGenerator(ApiClient api, ObjectMapper mapper, OkHttpClient http, UserSession adminAgent) {
-        this.api        = api;
-        this.mapper     = mapper;
-        this.http       = http;
-        this.adminAgent = adminAgent;
+        this.api           = api;
+        this.mapper        = mapper;
+        this.http          = http;
+        this.adminAgent    = adminAgent;
+        this.keycloakAdmin = new KeycloakAdminApi(http, mapper);
     }
 
     public SetupResult setup() throws IOException, InterruptedException {
@@ -104,7 +107,7 @@ public class SetupGenerator {
             String username = u.path("username").asText();
             String password = u.path("password").asText();
 
-            UserSession session = tryLogin(username, password, role);
+            UserSession session = loginWithRecovery(username, password, role);
             if (session == null) continue;
             log.info("Oturum açıldı: {} ({})", username, role);
             syncUser(session);
@@ -114,20 +117,45 @@ public class SetupGenerator {
     }
 
     /**
-     * Login dener. Başarısızsa Keycloak'ın döndürdüğü gerçek hata mesajını WARN ile
-     * logger; "invalid_grant"/"Account is not fully set up"/şifre uyuşmazlığı ayrımı
-     * bu mesajdan okunabilir.
+     * Login dener; "Account is not fully set up" hatası gelirse master admin REST ile
+     * kullanıcının required-actions listesini temizleyip login'i tek sefer tekrar dener.
+     * Diğer hatalarda (şifre yanlış, kullanıcı yok) sessizce atlanır — yalnızca WARN basar.
      */
-    private UserSession tryLogin(String username, String password, String role) {
+    private UserSession loginWithRecovery(String username, String password, String role) {
+        LoginAttempt first = tryLoginOnce(username, password, role);
+        if (first.session != null) return first.session;
+
+        if (first.notFullySetUp) {
+            log.info("'{}' kullanıcısı required-action nedeniyle login olamadı, temizleniyor...", username);
+            if (keycloakAdmin.clearRequiredActions(username)) {
+                LoginAttempt second = tryLoginOnce(username, password, role);
+                if (second.session != null) return second.session;
+                log.warn("Required-action temizlendikten sonra hala login olunamadı: {} — Keycloak: {}",
+                        username, second.errorMessage);
+            }
+            return null;
+        }
+
+        log.warn("Login başarısız → kullanıcı atlanıyor: {} ({}) — Keycloak hatası: {}",
+                username, role, first.errorMessage);
+        return null;
+    }
+
+    private LoginAttempt tryLoginOnce(String username, String password, String role) {
         try {
             KeycloakTokenClient tokenClient = new KeycloakTokenClient(http, mapper);
             tokenClient.login(username, password);
-            return new UserSession(username, role, tokenClient);
+            return LoginAttempt.success(new UserSession(username, role, tokenClient));
         } catch (Exception e) {
-            log.warn("Login başarısız → kullanıcı atlanıyor: {} ({}) — Keycloak hatası: {}",
-                    username, role, e.getMessage());
-            return null;
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            boolean notFullySetUp = msg.contains("Account is not fully set up");
+            return LoginAttempt.failure(msg, notFullySetUp);
         }
+    }
+
+    private record LoginAttempt(UserSession session, String errorMessage, boolean notFullySetUp) {
+        static LoginAttempt success(UserSession s) { return new LoginAttempt(s, null, false); }
+        static LoginAttempt failure(String msg, boolean nfsu) { return new LoginAttempt(null, msg, nfsu); }
     }
 
     private void syncUser(UserSession session) {
