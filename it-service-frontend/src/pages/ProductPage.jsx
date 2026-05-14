@@ -8,6 +8,7 @@ import { StatusBadge, PriorityBadge } from '../components/Badges';
 import SlaTimerBadge from '../components/SlaTimerBadge';
 import TicketFilters from '../components/TicketFilters';
 import PaginationBar from '../components/PaginationBar';
+import ProductTopicsSection from '../components/ProductTopicsSection';
 import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort }) {
@@ -143,6 +144,8 @@ export default function ProductPage() {
         <StatCard label={t('product.statSlaBreached')} value={tickets.filter(tk => tk.slaBreached).length}                                                   icon={AlertTriangle}  color="#ef4444" />
         <StatCard label={t('product.statResolved')}   value={tickets.filter(tk => tk.status === 'RESOLVED').length}                                          icon={CheckCircle}   color="#10b981" />
       </div>
+
+      <ProductTopicsSection productId={id} isAdmin={isAdmin} />
 
       {error && (
         <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
