@@ -398,7 +398,8 @@
     "aiSummaryGenerating": "Oluşturuluyor...",
     "aiSummaryEmpty": "Henüz özet yok. Oluşturmak için butona tıklayın.",
     "aiSummaryError": "Özet oluşturulamadı. Lütfen tekrar deneyin.",
-    "aiSummaryRateLimit": "Token limiti aşıldı. Lütfen {{seconds}} saniye bekleyip tekrar deneyin."
+    "aiSummaryRateLimit": "Token limiti aşıldı. Lütfen {{seconds}} saniye bekleyip tekrar deneyin.",
+    "aiSummaryThrottle": "Çok hızlı istek attınız. Lütfen {{seconds}} saniye bekleyip tekrar deneyin."
   },
   "form": {
     "save": "Kaydet",

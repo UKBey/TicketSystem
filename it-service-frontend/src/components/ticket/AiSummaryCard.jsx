@@ -44,7 +44,12 @@ export default function AiSummaryCard({ ticketId, hasRole }) {
       const data   = err.response?.data;
       if (status === 429) {
         const seconds = Math.ceil(data?.retryAfterSeconds ?? 10);
-        setError(t('ticketDetail.aiSummaryRateLimit', { seconds }));
+        // Bizim per-IP rate limit interceptor'umuz body'de error: "RATE_LIMIT_EXCEEDED" doner.
+        // Groq token kotasi ise ProblemDetail (detail) gonderir — ayri mesaj.
+        const key = data?.error === 'RATE_LIMIT_EXCEEDED'
+          ? 'ticketDetail.aiSummaryThrottle'
+          : 'ticketDetail.aiSummaryRateLimit';
+        setError(t(key, { seconds }));
       } else {
         setError(data?.detail || t('ticketDetail.aiSummaryError'));
       }

@@ -398,7 +398,8 @@
     "aiSummaryGenerating": "Generating...",
     "aiSummaryEmpty": "No summary yet. Click the button to generate one.",
     "aiSummaryError": "Could not generate summary. Please try again.",
-    "aiSummaryRateLimit": "Token limit reached. Please wait {{seconds}} seconds and try again."
+    "aiSummaryRateLimit": "Token limit reached. Please wait {{seconds}} seconds and try again.",
+    "aiSummaryThrottle": "Too many requests. Please wait {{seconds}} seconds and try again."
   },
   "form": {
     "save": "Save",
