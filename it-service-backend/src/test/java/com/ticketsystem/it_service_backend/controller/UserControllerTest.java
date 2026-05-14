@@ -331,6 +331,106 @@ class UserControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
+    void syncCurrentUser_onlyGivenName_buildsFromIt() {
+        User synced = User.builder().id("u").fullName("OnlyGiven").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn("OnlyGiven");
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
+
+        ResponseEntity<UserDTO> response = userController.syncCurrentUser(jwt);
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    void syncCurrentUser_onlyFamilyName_buildsFromIt() {
+        User synced = User.builder().id("u").fullName("OnlyFam").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn("OnlyFam");
+        lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_fallsBackToPreferredUsername() {
+        User synced = User.builder().id("u").fullName("preferred").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("preferred_username")).thenReturn("preferred");
+        lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_fallsBackToEmail() {
+        User synced = User.builder().id("u").fullName("x@y").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("preferred_username")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("email")).thenReturn("x@y");
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_unknownFallback() {
+        User synced = User.builder().id("u").fullName("Unknown").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("preferred_username")).thenReturn(null);
+        lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_agentRoleMapping() {
+        User synced = User.builder().id("u").fullName("Agent").role("AGENT").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("AGENT"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn("A");
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn("B");
+        lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_customerRoleMapping() {
+        User synced = User.builder().id("u").fullName("Customer").role("CUSTOMER").build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("CUSTOMER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn("A");
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn("B");
+        lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
+    void syncCurrentUser_noRecognizedRole_assignsNull() {
+        User synced = User.builder().id("u").fullName("Null").role(null).build();
+        when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
+        Jwt jwt = jwtWithRoles("u", List.of("RANDOM_OTHER"));
+        lenient().when(jwt.getClaimAsString("given_name")).thenReturn("A");
+        lenient().when(jwt.getClaimAsString("family_name")).thenReturn("B");
+        lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
+
+        userController.syncCurrentUser(jwt);
+    }
+
+    @Test
     void createUser_returnsCreatedDto() {
         com.ticketsystem.it_service_backend.dto.CreateUserRequest req =
                 new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
