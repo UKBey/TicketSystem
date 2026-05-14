@@ -4,354 +4,213 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketsystem.generator.client.ApiClient;
 import com.ticketsystem.generator.config.GeneratorConfig;
+import com.ticketsystem.generator.model.SetupResult;
 import com.ticketsystem.generator.model.UserSession;
-import com.ticketsystem.generator.util.FakeData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
- * Bilet yaşam döngüsünü simüle eder.
+ * Bilet üretimini setup.json'dan değil, classpath'teki <code>tickets/ticket-*.json</code>
+ * dosyalarından okur. Her dosya bir biletin tüm yaşam döngüsünü deklaratif olarak tanımlar:
  *
- * Yorum rate limit optimizasyonu:
- *   Rate limit kullanıcı başına uygulandığından, yorumlar kullanıcı bazında
- *   gruplandırılır. Her kullanıcı kendi sırasında yorum atar; farklı
- *   kullanıcılar paralel olarak ilerler (round-robin).
- *   Bu sayede N kullanıcı varsa bekleme süresi N kat azalır.
+ * <pre>
+ * {
+ *   "title": "...",                 // zorunlu
+ *   "description": "...",           // zorunlu
+ *   "priority": "LOW|MEDIUM|HIGH|CRITICAL",
+ *   "productName": "VPN ve Ağ",
+ *   "topicName": "VPN Bağlantısı",
+ *   "status": "NEW|IN_PROGRESS|WAITING_FOR_CUSTOMER|RESOLVED|CLOSED",
+ *   "worklogs":  [{ "minutes": 30, "description": "..." }],
+ *   "comments":  [{ "author": "agent|customer", "type": "INTERNAL|EXTERNAL", "message": "..." }],
+ *   "resolutionNote": "...",        // RESOLVED/CLOSED için
+ *   "csat":     { "rating": 5, "comment": "..." }  // CLOSED için
+ * }
+ * </pre>
+ *
+ * Customer/agent atamaları setup.json'daki kullanıcı listesinden round-robin alınır.
+ * Yorumlar rate-limit dostu olması için aşama sonunda round-robin kuyrukla gönderilir.
  */
 public class TicketGenerator {
 
     private static final Logger log = LoggerFactory.getLogger(TicketGenerator.class);
+    private static final int    TICKET_FILE_LIMIT = 200; // 50 ticket için fazlasıyla yeterli
 
     private final ApiClient api;
     private final ObjectMapper mapper;
-    private final List<UserSession> customers;
-    private final List<UserSession> agents;
-    private final List<Long> productIds;
+    private final SetupResult setup;
 
-    // Kullanıcı başına yorum kuyruğu: userId → [(ticketId, type, session)]
     private final Map<String, Queue<CommentTask>> commentQueues = new LinkedHashMap<>();
 
-    public TicketGenerator(ApiClient api, ObjectMapper mapper,
-                           List<UserSession> customers,
-                           List<UserSession> agents,
-                           List<Long> productIds) {
-        this.api        = api;
-        this.mapper     = mapper;
-        this.customers  = customers;
-        this.agents     = agents;
-        this.productIds = productIds;
+    public TicketGenerator(ApiClient api, ObjectMapper mapper, SetupResult setup) {
+        this.api     = api;
+        this.mapper  = mapper;
+        this.setup   = setup;
 
-        // Her kullanıcı için boş kuyruk oluştur
-        for (UserSession u : customers) commentQueues.put(u.getUsername(), new LinkedList<>());
-        for (UserSession u : agents)    commentQueues.put(u.getUsername(), new LinkedList<>());
+        // Kullanıcı bazlı yorum kuyrukları — round-robin için
+        for (UserSession u : setup.customers()) commentQueues.put(u.getUsername(), new LinkedList<>());
+        for (UserSession u : setup.agents())    commentQueues.put(u.getUsername(), new LinkedList<>());
     }
 
     public List<Long> generate() throws IOException, InterruptedException {
-        int total       = GeneratorConfig.TICKET_COUNT;
-        int cntNew      = (int) Math.round(total * GeneratorConfig.PCT_NEW              / 100.0);
-        int cntProgress = (int) Math.round(total * GeneratorConfig.PCT_IN_PROGRESS      / 100.0);
-        int cntWaiting  = (int) Math.round(total * GeneratorConfig.PCT_WAITING          / 100.0);
-        int cntResolved = (int) Math.round(total * GeneratorConfig.PCT_RESOLVED         / 100.0);
-        int cntClosed   = total - cntNew - cntProgress - cntWaiting - cntResolved;
+        log.info("=== Bilet üretimi başlıyor (JSON şablon tabanlı) ===");
 
-        log.info("=== Bilet üretimi başlıyor ===");
-        log.info("Toplam: {} | NEW: {} | IN_PROGRESS: {} | WAITING: {} | RESOLVED: {} | CLOSED: {}",
-                total, cntNew, cntProgress, cntWaiting, cntResolved, cntClosed);
+        List<JsonNode> specs = loadTicketSpecs();
+        log.info("Okunan ticket şablonu: {}", specs.size());
 
-        List<Long> allIds = new ArrayList<>();
+        // Önce CLOSED ve RESOLVED'ler oluşturulur ki claim limiti dolmasın
+        specs.sort(Comparator.comparingInt(this::statusPriority));
 
-        // ---------------------------------------------------------------
-        // Aşama 1: Tüm biletleri oluştur + claim + worklog + çözüm notu + statü
-        //          (yorumlar kuyruğa alınır)
-        //
-        // Sıralama önemli: CLOSED ve RESOLVED biletler önce oluşturulur.
-        // Bu biletler tamamlandıktan sonra agent limiti serbest kalır,
-        // böylece IN_PROGRESS ve WAITING biletler için claim alınabilir.
-        // ---------------------------------------------------------------
-        allIds.addAll(createClosedTickets(cntClosed));
-        allIds.addAll(createResolvedTickets(cntResolved));
-        allIds.addAll(createWaitingTickets(cntWaiting));
-        allIds.addAll(createInProgressTickets(cntProgress));
-        allIds.addAll(createNewTickets(cntNew));
+        List<Long> ticketIds = new ArrayList<>();
+        int customerIdx = 0;
+        int agentIdx    = 0;
 
-        // ---------------------------------------------------------------
-        // Aşama 2: Yorumları kullanıcı bazında round-robin ile gönder
-        // ---------------------------------------------------------------
+        for (int i = 0; i < specs.size(); i++) {
+            JsonNode spec = specs.get(i);
+            UserSession customer = setup.customers().get(customerIdx++ % setup.customers().size());
+            UserSession agent    = setup.agents().get(agentIdx++ % setup.agents().size());
+
+            try {
+                Long id = runLifecycle(spec, customer, agent);
+                if (id != null) ticketIds.add(id);
+            } catch (Exception e) {
+                log.warn("Şablon işlenirken hata (#{}, başlık: {}): {}",
+                        i, spec.path("title").asText(), e.getMessage());
+            }
+            sleep();
+        }
+
+        // Aşama 2: round-robin yorum gönderimi
         flushCommentQueues();
 
-        log.info("=== Bilet üretimi tamamlandı. Toplam: {} bilet ===", allIds.size());
-        return allIds;
+        log.info("=== Bilet üretimi tamamlandı. Üretilen bilet: {} ===", ticketIds.size());
+        return ticketIds;
     }
 
-    // ---------------------------------------------------------------
-    // Bilet oluşturma metodları (yorum yok, sadece kuyruğa ekle)
-    // ---------------------------------------------------------------
+    // -----------------------------------------------------------------
+    // Yaşam döngüsü orchestrasyonu
+    // -----------------------------------------------------------------
 
-    private List<Long> createNewTickets(int count) throws IOException, InterruptedException {
-        log.info("NEW biletler oluşturuluyor: {}", count);
-        List<Long> ids = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            Long id = createTicket(FakeData.pick(customers));
-            if (id != null) ids.add(id);
-            sleep();
+    private Long runLifecycle(JsonNode spec, UserSession customer, UserSession agent)
+            throws IOException, InterruptedException {
+
+        String status      = spec.path("status").asText("NEW").toUpperCase();
+        String productName = spec.path("productName").asText();
+        String topicName   = spec.path("topicName").asText("");
+
+        Long productId = setup.productByName().get(productName);
+        if (productId == null) {
+            log.warn("Şablonda geçen ürün bulunamadı: '{}'. Şablon atlanıyor.", productName);
+            return null;
         }
-        return ids;
-    }
+        Long topicId = setup.topicByProductAndName().get(SetupResult.topicKey(productName, topicName));
 
-    private List<Long> createInProgressTickets(int count) throws IOException, InterruptedException {
-        log.info("IN_PROGRESS biletler oluşturuluyor: {}", count);
-        List<Long> ids = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            UserSession customer = FakeData.pick(customers);
-            UserSession agent    = FakeData.pick(agents);
+        // 1. Bilet oluştur (customer)
+        Long ticketId = createTicket(spec, customer, productId, topicId);
+        if (ticketId == null) return null;
+        sleep();
 
-            Long ticketId = createTicket(customer);
-            if (ticketId == null) continue;
-            ids.add(ticketId);
-            sleep();
-
-            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
-            if (!claimTicket(ticketId, agent)) continue;
-            sleep();
-
-            // Worklog: agent üzerinde aktif çalışma kaydı
-            int worklogCount = 1 + FakeData.nextInt(2);
-            addWorklogsForTicket(ticketId, agent, worklogCount);
-
-            // Yorumları kuyruğa ekle (hemen gönderme)
-            enqueueComment(ticketId, agent,    "INTERNAL");
-            enqueueComment(ticketId, customer, "EXTERNAL");
+        if ("NEW".equals(status)) {
+            return ticketId; // Yorum/worklog/state değişikliği yok
         }
-        return ids;
-    }
 
-    private List<Long> createWaitingTickets(int count) throws IOException, InterruptedException {
-        log.info("WAITING_FOR_CUSTOMER biletler oluşturuluyor: {}", count);
-        List<Long> ids = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            UserSession customer = FakeData.pick(customers);
-            UserSession agent    = FakeData.pick(agents);
+        // 2. Agent claim alır → bilet IN_PROGRESS'e geçer
+        if (!claimTicket(ticketId, agent)) return ticketId;
+        sleep();
 
-            Long ticketId = createTicket(customer);
-            if (ticketId == null) continue;
-            ids.add(ticketId);
-            sleep();
+        // 3. Worklog kayıtları
+        addWorklogs(ticketId, agent, spec.path("worklogs"));
 
-            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
-            if (!claimTicket(ticketId, agent)) continue;
-            sleep();
+        // 4. Yorumlar kuyruğa eklenir (round-robin'de gönderilecek)
+        enqueueComments(ticketId, customer, agent, spec.path("comments"));
 
-            // Agent inceleme yaptı, worklog ekledi
-            addWorklogsForTicket(ticketId, agent, 1 + FakeData.nextInt(2));
-
-            // Agent müşteriden bilgi bekliyor — içeride not bırakıyor
-            enqueueComment(ticketId, agent, "INTERNAL");
-
-            // Müşteriden yanıt/aksiyon bekleniyor
-            updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent);
-            sleep();
+        // 5. Status hedefe göre ilerlet
+        switch (status) {
+            case "IN_PROGRESS" -> { /* zaten IN_PROGRESS */ }
+            case "WAITING_FOR_CUSTOMER" -> {
+                updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent);
+                sleep();
+            }
+            case "RESOLVED" -> {
+                createResolutionNote(ticketId, agent, spec.path("resolutionNote"));
+                sleep();
+                updateStatus(ticketId, "RESOLVED", agent);
+                sleep();
+            }
+            case "CLOSED" -> {
+                createResolutionNote(ticketId, agent, spec.path("resolutionNote"));
+                sleep();
+                updateStatus(ticketId, "RESOLVED", agent);
+                sleep();
+                submitCsat(ticketId, customer, spec.path("csat"));
+                sleep();
+            }
+            default -> log.warn("Bilinmeyen status: {}", status);
         }
-        return ids;
-    }
-
-    private List<Long> createResolvedTickets(int count) throws IOException, InterruptedException {
-        log.info("RESOLVED biletler oluşturuluyor: {}", count);
-        List<Long> ids = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            UserSession customer = FakeData.pick(customers);
-            UserSession agent    = FakeData.pick(agents);
-
-            Long ticketId = createTicket(customer);
-            if (ticketId == null) continue;
-            ids.add(ticketId);
-            sleep();
-
-            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
-            if (!claimTicket(ticketId, agent)) continue;
-            sleep();
-
-            // Worklog: araştırma ve çözüm çalışması
-            int worklogCount = 1 + FakeData.nextInt(3);
-            addWorklogsForTicket(ticketId, agent, worklogCount);
-
-            enqueueComment(ticketId, agent, "EXTERNAL");
-
-            createResolutionNote(ticketId, agent);
-            sleep();
-
-            if (!updateStatus(ticketId, "RESOLVED", agent)) continue;
-            sleep();
-        }
-        return ids;
-    }
-
-    private List<Long> createClosedTickets(int count) throws IOException, InterruptedException {
-        log.info("CLOSED biletler oluşturuluyor: {}", count);
-        List<Long> ids = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            UserSession customer = FakeData.pick(customers);
-            UserSession agent    = FakeData.pick(agents);
-
-            Long ticketId = createTicket(customer);
-            if (ticketId == null) continue;
-            ids.add(ticketId);
-            sleep();
-
-            // Claim işlemi bileti otomatik olarak IN_PROGRESS'e geçirir
-            if (!claimTicket(ticketId, agent)) continue;
-            sleep();
-
-            // Worklog: CLOSED öncesinde eklenebilir (CLOSED sonrası yasak)
-            int worklogCount = 1 + FakeData.nextInt(3);
-            addWorklogsForTicket(ticketId, agent, worklogCount);
-
-            enqueueComment(ticketId, agent,    "EXTERNAL");
-            enqueueComment(ticketId, customer, "EXTERNAL");
-
-            createResolutionNote(ticketId, agent);
-            sleep();
-
-            if (!updateStatus(ticketId, "RESOLVED", agent)) continue;
-            sleep();
-
-            // CSAT submit edilince CsatService bileti otomatik olarak CLOSED'a geçirir.
-            // Ayrıca updateStatus("CLOSED") çağrısına gerek yok.
-            submitCsat(ticketId, customer);
-            sleep();
-        }
-        return ids;
-    }
-
-    // ---------------------------------------------------------------
-    // Yorum kuyruğu — round-robin ile gönder
-    // ---------------------------------------------------------------
-
-    private void enqueueComment(Long ticketId, UserSession user, String type) {
-        commentQueues
-            .computeIfAbsent(user.getUsername(), k -> new LinkedList<>())
-            .add(new CommentTask(ticketId, type, user));
+        return ticketId;
     }
 
     /**
-     * Tüm kullanıcıların yorum kuyruklarını round-robin ile boşaltır.
-     *
-     * Her turda her kullanıcıdan bir yorum gönderilir.
-     * Tur sonunda 5.5 saniye beklenir (rate limit: kullanıcı başına 5 sn).
-     * Böylece N kullanıcı varsa her turda N yorum gönderilir, toplam süre
-     * (toplam_yorum / N) * 5.5 saniyeye düşer.
+     * Status'ler için işlem sırası — kapanan biletler önce, böylece agent limiti
+     * dolmaz ve sonradan açılacak biletler için claim alınabilir.
      */
-    private void flushCommentQueues() throws IOException, InterruptedException {
-        int totalComments = commentQueues.values().stream()
-                .mapToInt(Queue::size).sum();
-
-        if (totalComments == 0) return;
-
-        log.info("Yorumlar gönderiliyor: {} yorum, {} kullanıcı (round-robin)",
-                totalComments, commentQueues.size());
-
-        int sent = 0;
-        while (true) {
-            boolean anyLeft = false;
-
-            for (Queue<CommentTask> queue : commentQueues.values()) {
-                CommentTask task = queue.poll();
-                if (task == null) continue;
-                anyLeft = true;
-
-                sendComment(task.ticketId, task.user, task.type);
-                sent++;
-            }
-
-            if (!anyLeft) break;
-
-            // Bir tur tamamlandı — rate limit için bekle
-            log.debug("Yorum turu tamamlandı ({} gönderildi), {}ms bekleniyor...",
-                    sent, GeneratorConfig.COMMENT_DELAY_MS);
-            Thread.sleep(GeneratorConfig.COMMENT_DELAY_MS);
-        }
-
-        log.info("Tüm yorumlar gönderildi: {} yorum.", sent);
+    private int statusPriority(JsonNode spec) {
+        return switch (spec.path("status").asText("NEW").toUpperCase()) {
+            case "CLOSED"   -> 0;
+            case "RESOLVED" -> 1;
+            case "WAITING_FOR_CUSTOMER" -> 2;
+            case "IN_PROGRESS" -> 3;
+            case "NEW"      -> 4;
+            default          -> 5;
+        };
     }
 
-    private void sendComment(Long ticketId, UserSession user, String type)
-            throws IOException, InterruptedException {
-        Map<String, String> body = Map.of(
-            "message", FakeData.randomComment(),
-            "type",    type
-        );
-        for (int attempt = 1; attempt <= GeneratorConfig.RATE_LIMIT_RETRY_COUNT; attempt++) {
-            try {
-                api.post("/tickets/" + ticketId + "/comments", body, user.getToken());
-                log.debug("Yorum eklendi: #{} ({} / {})", ticketId, user.getUsername(), type);
-                return;
-            } catch (ApiClient.ApiException e) {
-                if (e.getStatusCode() == 429 && attempt < GeneratorConfig.RATE_LIMIT_RETRY_COUNT) {
-                    log.debug("Rate limit, {}ms bekleniyor (deneme {}/{})",
-                        GeneratorConfig.RATE_LIMIT_BACKOFF_MS, attempt, GeneratorConfig.RATE_LIMIT_RETRY_COUNT);
-                    Thread.sleep(GeneratorConfig.RATE_LIMIT_BACKOFF_MS);
-                } else {
-                    log.warn("Yorum eklenemedi #{}: {}", ticketId, e.getMessage());
-                    return;
-                }
+    // -----------------------------------------------------------------
+    // Şablon yükleme
+    // -----------------------------------------------------------------
+
+    private List<JsonNode> loadTicketSpecs() throws IOException {
+        List<JsonNode> specs = new ArrayList<>();
+        ClassLoader cl = getClass().getClassLoader();
+        // Sıralı 001..200 sırasıyla taranır; bulunmayan numaralar atlanır.
+        for (int i = 1; i <= TICKET_FILE_LIMIT; i++) {
+            String name = String.format("tickets/ticket-%03d.json", i);
+            try (InputStream in = cl.getResourceAsStream(name)) {
+                if (in == null) continue;
+                specs.add(mapper.readTree(in));
             }
         }
+        return specs;
     }
 
-    // ---------------------------------------------------------------
-    // Worklog metodları
-    // ---------------------------------------------------------------
+    // -----------------------------------------------------------------
+    // Atomik API çağrıları
+    // -----------------------------------------------------------------
 
-    private void addWorklogsForTicket(Long ticketId, UserSession agent, int count)
-            throws IOException, InterruptedException {
-        for (int i = 0; i < count; i++) {
-            addWorklog(ticketId, agent);
-            sleep();
-        }
-    }
-
-    private void addWorklog(Long ticketId, UserSession agent) throws IOException {
-        Map<String, Object> body = new HashMap<>();
-        body.put("minutes",     FakeData.randomWorklogMinutes());
-        body.put("description", FakeData.randomWorklogDescription());
-        try {
-            api.post("/tickets/" + ticketId + "/worklogs", body, agent.getToken());
-            log.debug("Worklog eklendi: #{} → {} dk ({})", ticketId,
-                    body.get("minutes"), agent.getUsername());
-        } catch (Exception e) {
-            log.warn("Worklog eklenemedi #{}: {}", ticketId, e.getMessage());
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // Atomik işlemler
-    // ---------------------------------------------------------------
-
-    private Long createTicket(UserSession customer) throws IOException {
-        Long productId = FakeData.pick(productIds);
-        Map<String, Object> body = Map.of(
-            "title",       FakeData.randomTitle(),
-            "description", FakeData.randomDescription(),
-            "priority",    FakeData.randomPriority(),
-            "productId",   productId
-        );
+    private Long createTicket(JsonNode spec, UserSession customer, Long productId, Long topicId)
+            throws IOException {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("title",       spec.path("title").asText());
+        body.put("description", spec.path("description").asText());
+        body.put("priority",    spec.path("priority").asText("MEDIUM"));
+        body.put("productId",   productId);
+        if (topicId != null) body.put("topicId", topicId);
         try {
             JsonNode resp = api.post("/tickets", body, customer.getToken());
-            long id = resp.get("id").asLong();
-            log.debug("Bilet oluşturuldu: #{} ({})", id, customer.getUsername());
-            return id;
+            return resp.path("id").asLong();
         } catch (Exception e) {
-            log.warn("Bilet oluşturulamadı ({}): {}", customer.getUsername(), e.getMessage());
+            log.warn("Bilet oluşturulamadı (başlık: {}): {}", spec.path("title").asText(), e.getMessage());
             return null;
         }
     }
 
-    private boolean claimTicket(Long ticketId, UserSession agent) throws IOException {
+    private boolean claimTicket(Long ticketId, UserSession agent) {
         try {
             api.put("/tickets/" + ticketId + "/claim", Map.of(), agent.getToken());
-            log.debug("Claim alındı: #{} → {}", ticketId, agent.getUsername());
             return true;
         } catch (Exception e) {
             log.warn("Claim alınamadı #{}: {}", ticketId, e.getMessage());
@@ -359,38 +218,110 @@ public class TicketGenerator {
         }
     }
 
-    private void createResolutionNote(Long ticketId, UserSession agent) throws IOException {
-        Map<String, String> body = Map.of("note", FakeData.randomResolutionNote());
+    private void addWorklogs(Long ticketId, UserSession agent, JsonNode worklogs) throws InterruptedException {
+        if (!worklogs.isArray()) return;
+        for (JsonNode w : worklogs) {
+            Map<String, Object> body = Map.of(
+                    "minutes",     w.path("minutes").asInt(30),
+                    "description", w.path("description").asText("İnceleme ve müdahale."));
+            try {
+                api.post("/tickets/" + ticketId + "/worklogs", body, agent.getToken());
+            } catch (Exception e) {
+                log.warn("Worklog eklenemedi #{}: {}", ticketId, e.getMessage());
+            }
+            sleep();
+        }
+    }
+
+    private void enqueueComments(Long ticketId, UserSession customer, UserSession agent, JsonNode comments) {
+        if (!comments.isArray()) return;
+        for (JsonNode c : comments) {
+            String author = c.path("author").asText("agent");
+            UserSession sender = "customer".equalsIgnoreCase(author) ? customer : agent;
+            String type    = c.path("type").asText("EXTERNAL").toUpperCase();
+            String message = c.path("message").asText();
+            commentQueues.computeIfAbsent(sender.getUsername(), k -> new LinkedList<>())
+                    .add(new CommentTask(ticketId, type, message, sender));
+        }
+    }
+
+    private void createResolutionNote(Long ticketId, UserSession agent, JsonNode resolutionNote) {
+        String note = resolutionNote.isMissingNode() || resolutionNote.asText().isBlank()
+                ? "Sorun çözüldü."
+                : resolutionNote.asText();
         try {
-            api.post("/tickets/" + ticketId + "/resolution-note", body, agent.getToken());
-            log.debug("Çözüm notu eklendi: #{}", ticketId);
+            api.post("/tickets/" + ticketId + "/resolution-note",
+                    Map.of("note", note), agent.getToken());
         } catch (Exception e) {
             log.warn("Çözüm notu eklenemedi #{}: {}", ticketId, e.getMessage());
         }
     }
 
-    private boolean updateStatus(Long ticketId, String status, UserSession user) throws IOException {
-        Map<String, String> body = Map.of("status", status);
+    private boolean updateStatus(Long ticketId, String status, UserSession user) {
         try {
-            api.put("/tickets/" + ticketId + "/status", body, user.getToken());
-            log.debug("Statü güncellendi: #{} → {}", ticketId, status);
+            api.put("/tickets/" + ticketId + "/status", Map.of("status", status), user.getToken());
             return true;
         } catch (Exception e) {
-            log.warn("Statü güncellenemedi #{}: {}", ticketId, e.getMessage());
+            log.warn("Statü güncellenemedi #{} ({}): {}", ticketId, status, e.getMessage());
             return false;
         }
     }
 
-    private void submitCsat(Long ticketId, UserSession customer) throws IOException {
-        Map<String, Object> body = Map.of(
-            "rating",  FakeData.randomCsatRating(),
-            "comment", FakeData.randomCsatComment()
-        );
+    private void submitCsat(Long ticketId, UserSession customer, JsonNode csat) {
+        int rating = csat.path("rating").asInt(5);
+        String comment = csat.path("comment").asText("Sorun çözüldü, teşekkürler.");
         try {
-            api.post("/tickets/" + ticketId + "/csat", body, customer.getToken());
-            log.debug("CSAT gönderildi: #{}", ticketId);
+            api.post("/tickets/" + ticketId + "/csat",
+                    Map.of("rating", rating, "comment", comment), customer.getToken());
         } catch (Exception e) {
             log.warn("CSAT gönderilemedi #{}: {}", ticketId, e.getMessage());
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Yorum kuyruğu — round-robin
+    // -----------------------------------------------------------------
+
+    private void flushCommentQueues() throws InterruptedException {
+        int total = commentQueues.values().stream().mapToInt(Queue::size).sum();
+        if (total == 0) return;
+
+        log.info("Yorumlar gönderiliyor: {} adet, {} kullanıcı (round-robin)",
+                total, commentQueues.size());
+
+        int sent = 0;
+        while (true) {
+            boolean anyLeft = false;
+            for (Queue<CommentTask> queue : commentQueues.values()) {
+                CommentTask task = queue.poll();
+                if (task == null) continue;
+                anyLeft = true;
+                sendComment(task);
+                sent++;
+            }
+            if (!anyLeft) break;
+            Thread.sleep(GeneratorConfig.COMMENT_DELAY_MS);
+        }
+        log.info("Tüm yorumlar gönderildi: {}", sent);
+    }
+
+    private void sendComment(CommentTask task) throws InterruptedException {
+        Map<String, String> body = Map.of("message", task.message, "type", task.type);
+        for (int attempt = 1; attempt <= GeneratorConfig.RATE_LIMIT_RETRY_COUNT; attempt++) {
+            try {
+                api.post("/tickets/" + task.ticketId + "/comments", body, task.user.getToken());
+                return;
+            } catch (ApiClient.ApiException e) {
+                if (e.getStatusCode() == 429 && attempt < GeneratorConfig.RATE_LIMIT_RETRY_COUNT) {
+                    Thread.sleep(GeneratorConfig.RATE_LIMIT_BACKOFF_MS);
+                } else {
+                    log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
+                    return;
+                }
+            } catch (Exception e) {
+                log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
+                return;
+            }
         }
     }
 
@@ -398,9 +329,5 @@ public class TicketGenerator {
         Thread.sleep(GeneratorConfig.DELAY_MS);
     }
 
-    // ---------------------------------------------------------------
-    // Yardımcı sınıf
-    // ---------------------------------------------------------------
-
-    private record CommentTask(Long ticketId, String type, UserSession user) {}
+    private record CommentTask(Long ticketId, String type, String message, UserSession user) {}
 }

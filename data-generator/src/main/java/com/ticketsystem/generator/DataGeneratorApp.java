@@ -8,23 +8,30 @@ import com.ticketsystem.generator.config.GeneratorConfig;
 import com.ticketsystem.generator.generator.DateBackfiller;
 import com.ticketsystem.generator.generator.SetupGenerator;
 import com.ticketsystem.generator.generator.TicketGenerator;
+import com.ticketsystem.generator.model.SetupResult;
 import com.ticketsystem.generator.model.UserSession;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Giriş noktası.
  *
+ * <p>Tek bir agent_admin hesabı ile aşağıdaki adımlar uygulanır:
+ * <ol>
+ *   <li>setup.json'daki agent + customer kullanıcıları yoksa oluşturulur (varsa atlanır).</li>
+ *   <li>5 ürün × 5 topic × 2+ sıkça karşılaşılan sorun ekosistemi idempotent şekilde kurulur.</li>
+ *   <li>tickets/*.json dosyalarından 50 bilet deklaratif olarak üretilir; her şablonun
+ *       statüsüne göre tam yaşam döngüsü oynatılır (claim/comment/worklog/resolve/csat).</li>
+ *   <li>Bilet tarihleri ve SLA alanları doğrudan DB'ye yazılarak son N gün içine dağıtılır.</li>
+ * </ol>
+ *
  * Çalıştırma:
  *   mvn package -q
  *   java -jar target/data-generator-1.0.0.jar
- *
- * Ayarlar için: src/main/java/com/ticketsystem/generator/config/GeneratorConfig.java
  */
 public class DataGeneratorApp {
 
@@ -48,71 +55,30 @@ public class DataGeneratorApp {
         ApiClient api = new ApiClient(http, mapper);
 
         // ---------------------------------------------------------------
-        // 1. Kullanıcı oturumlarını başlat
+        // 1. Sadece agent_admin oturumu — diğer her şeyi setup üstlenir
         // ---------------------------------------------------------------
-        log.info("Kullanıcı oturumları başlatılıyor...");
-
-        List<UserSession> customers   = new ArrayList<>();
-        List<UserSession> agents      = new ArrayList<>();
-        List<UserSession> agentAdmins = new ArrayList<>();
-
-        for (String[] creds : GeneratorConfig.CUSTOMERS) {
-            UserSession session = createSession(http, mapper, creds[0], creds[1], "CUSTOMER");
-            if (session != null) {
-                syncUser(api, session);
-                customers.add(session);
-            }
-        }
-
-        for (String[] creds : GeneratorConfig.AGENTS) {
-            UserSession session = createSession(http, mapper, creds[0], creds[1], "AGENT");
-            if (session != null) {
-                syncUser(api, session);
-                agents.add(session);
-            }
-        }
-
-        for (String[] creds : GeneratorConfig.AGENT_ADMINS) {
-            UserSession session = createSession(http, mapper, creds[0], creds[1], "AGENT_ADMIN");
-            if (session != null) {
-                syncUser(api, session);
-                agentAdmins.add(session);
-            }
-        }
-
-        if (customers.isEmpty() || agents.isEmpty()) {
-            log.error("En az bir CUSTOMER ve bir AGENT oturumu gerekli. Çıkılıyor.");
+        UserSession adminAgent = loginAdmin(http, mapper);
+        if (adminAgent == null) {
+            log.error("agent_admin oturumu açılamadı. Kullanıcı/şifre ve Keycloak ayarlarını kontrol et.");
             System.exit(1);
         }
-
-        log.info("Oturumlar: {} customer, {} agent, {} agent_admin",
-                customers.size(), agents.size(), agentAdmins.size());
-
-        // ---------------------------------------------------------------
-        // 2. Setup: ürünleri oluştur, yetkileri ata
-        // ---------------------------------------------------------------
-        UserSession adminSession = agentAdmins.isEmpty() ? null : agentAdmins.get(0);
-        if (adminSession == null) {
-            log.error("En az bir AGENT_ADMIN gerekli. Çıkılıyor.");
-            System.exit(1);
-        }
-
-        SetupGenerator setup = new SetupGenerator(api, adminSession, agents, customers);
-        List<Long> productIds = setup.setup();
-
-        if (productIds.isEmpty()) {
-            log.error("Hiç ürün bulunamadı veya oluşturulamadı. Çıkılıyor.");
-            System.exit(1);
-        }
+        syncUser(api, adminAgent);
+        log.info("agent_admin oturum açıldı: {}", adminAgent.getUsername());
 
         // ---------------------------------------------------------------
-        // 3. Biletleri üret
+        // 2. Setup — kullanıcılar, ürünler, topic'ler, sıkça karşılaşılan sorunlar
         // ---------------------------------------------------------------
-        TicketGenerator generator = new TicketGenerator(api, mapper, customers, agents, productIds);
+        SetupGenerator setup = new SetupGenerator(api, mapper, http, adminAgent);
+        SetupResult result = setup.setup();
+
+        // ---------------------------------------------------------------
+        // 3. JSON şablonlarından bilet üretimi
+        // ---------------------------------------------------------------
+        TicketGenerator generator = new TicketGenerator(api, mapper, result);
         List<Long> ticketIds = generator.generate();
 
         // ---------------------------------------------------------------
-        // 4. Tarihleri geriye çek (doğrudan DB üzerinden)
+        // 4. Tarihleri geriye çek — generator'un çalıştığı saate göre
         // ---------------------------------------------------------------
         new DateBackfiller().backfill(ticketIds);
 
@@ -127,18 +93,13 @@ public class DataGeneratorApp {
         log.info("╚══════════════════════════════════════╝");
     }
 
-    // ---------------------------------------------------------------
-    // Yardımcı metodlar
-    // ---------------------------------------------------------------
-
-    private static UserSession createSession(OkHttpClient http, ObjectMapper mapper,
-                                              String username, String password, String role) {
+    private static UserSession loginAdmin(OkHttpClient http, ObjectMapper mapper) {
         try {
             KeycloakTokenClient tokenClient = new KeycloakTokenClient(http, mapper);
-            tokenClient.login(username, password);
-            return new UserSession(username, role, tokenClient);
+            tokenClient.login(GeneratorConfig.ADMIN_AGENT_USERNAME, GeneratorConfig.ADMIN_AGENT_PASSWORD);
+            return new UserSession(GeneratorConfig.ADMIN_AGENT_USERNAME, "AGENT_ADMIN", tokenClient);
         } catch (Exception e) {
-            log.warn("Oturum açılamadı ({} / {}): {}", username, role, e.getMessage());
+            log.error("agent_admin login hatası: {}", e.getMessage());
             return null;
         }
     }
@@ -146,13 +107,9 @@ public class DataGeneratorApp {
     private static void syncUser(ApiClient api, UserSession session) {
         try {
             JsonNode resp = api.post("/users/sync", null, session.getToken());
-            if (resp.has("id")) {
-                session.setUserId(resp.get("id").asText());
-                log.debug("Kullanıcı senkronize edildi: {} → {}", session.getUsername(), session.getUserId());
-            }
+            if (resp.has("id")) session.setUserId(resp.get("id").asText());
         } catch (Exception e) {
-            log.warn("Kullanıcı senkronize edilemedi ({}): {}", session.getUsername(), e.getMessage());
+            log.warn("Sync edilemedi ({}): {}", session.getUsername(), e.getMessage());
         }
     }
-
 }
