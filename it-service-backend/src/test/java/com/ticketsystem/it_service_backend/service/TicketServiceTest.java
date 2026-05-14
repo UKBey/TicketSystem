@@ -13,7 +13,6 @@ import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
-import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -77,8 +76,6 @@ class TicketServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private CsatRepository csatRepository;
-    @Mock
-    private ResolutionNoteRepository resolutionNoteRepository;
     @Mock
     private WorklogRepository worklogRepository;
     @Mock
@@ -504,7 +501,6 @@ class TicketServiceTest {
 
                 when(ticketRepository.findById(304L)).thenReturn(Optional.of(existing));
                 when(ticketClaimRepository.existsByTicketIdAndAgentId(304L, "agent-1")).thenReturn(true);
-                when(resolutionNoteRepository.existsByTicketId(304L)).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
                 Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "agent-1", List.of("AGENT"));
@@ -659,7 +655,6 @@ class TicketServiceTest {
 
         verify(commentRepository).deleteByTicketId(401L);
         verify(csatRepository).deleteByTicketId(401L);
-        verify(resolutionNoteRepository).deleteByTicketId(401L);
         verify(worklogRepository).deleteByTicketId(401L);
         verify(attachmentRepository).deleteByTicketId(401L);
         verify(ticketRepository).deleteById(401L);
@@ -697,29 +692,6 @@ class TicketServiceTest {
         assertEquals("IN_PROGRESS", updated.getStatus());
         assertNull(updated.getResolvedAt());
         verify(workflowService).syncTicketStatus(updated);
-    }
-
-    @Test
-    void updateTicketStatus_whenResolvedWithoutResolutionNote_throwsBadRequest() {
-        Ticket existing = Ticket.builder()
-                .id(602L)
-                .title("Ticket")
-                .description("desc")
-                .priority("HIGH")
-                .status("IN_PROGRESS")
-                .productId(10L)
-                .customerId("customer-1")
-                .build();
-
-        when(ticketRepository.findById(602L)).thenReturn(Optional.of(existing));
-        when(ticketClaimRepository.existsByTicketIdAndAgentId(602L, "agent-1")).thenReturn(true);
-        when(resolutionNoteRepository.existsByTicketId(602L)).thenReturn(false);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(602L, "RESOLVED", "agent-1", List.of("AGENT")));
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
     @Test

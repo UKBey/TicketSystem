@@ -4,13 +4,11 @@ import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
-import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
-import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -42,7 +40,6 @@ public class InternalTicketController {
     private final TicketService ticketService;
     private final CommentRepository commentRepository;
     private final WorklogRepository worklogRepository;
-    private final ResolutionNoteRepository resolutionNoteRepository;
     private final TicketAuditLogRepository ticketAuditLogRepository;
     private final TicketClaimRepository ticketClaimRepository;
     private final UserRepository userRepository;
@@ -94,15 +91,10 @@ public class InternalTicketController {
                 .map(WorklogResponseDTO::fromEntity)
                 .collect(Collectors.toList());
 
-        ResolutionNote resolutionNote = resolutionNoteRepository.findByTicketId(ticketId).orElse(null);
-
         Map<String, Object> response = Map.of(
                 "ticket", ticketDTO,
                 "comments", comments,
-                "worklogs", worklogs,
-                "resolutionNote", resolutionNote != null
-                        ? Map.of("note", resolutionNote.getNote(), "createdAt", resolutionNote.getCreatedAt())
-                        : Map.of()
+                "worklogs", worklogs
         );
 
         return ResponseEntity.ok(response);

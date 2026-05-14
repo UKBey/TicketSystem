@@ -15,7 +15,6 @@ import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
-import com.ticketsystem.it_service_backend.repository.ResolutionNoteRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
@@ -61,7 +60,6 @@ public class TicketService {
     private final SlaPolicyService slaPolicyService;
     private final ApplicationEventPublisher eventPublisher;
     private final CsatRepository csatRepository;
-    private final ResolutionNoteRepository resolutionNoteRepository;
     private final WorklogRepository worklogRepository;
     private final AttachmentRepository attachmentRepository;
     private final TicketAuditLogRepository ticketAuditLogRepository;
@@ -789,11 +787,6 @@ public class TicketService {
         validateStateTransition(oldStatus, newStatus);
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
 
-        if ("RESOLVED".equals(newStatus) && !resolutionNoteRepository.existsByTicketId(id)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "error.ticket.resolve.requires.note");
-        }
-
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
         ticket.setStatus(newStatus);
@@ -1098,7 +1091,6 @@ public class TicketService {
         ticketClaimRepository.deleteByTicketId(id);
         commentRepository.deleteByTicketId(id);
         csatRepository.deleteByTicketId(id);
-        resolutionNoteRepository.deleteByTicketId(id);
         worklogRepository.deleteByTicketId(id);
         attachmentRepository.deleteByTicketId(id);
         ticketRepository.deleteById(id);
