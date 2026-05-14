@@ -132,26 +132,36 @@ public class TicketGenerator {
         switch (status) {
             case "IN_PROGRESS" -> { /* zaten IN_PROGRESS */ }
             case "WAITING_FOR_CUSTOMER" -> {
-                updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent);
+                // WAITING'e geçişte reasonCode zorunlu değil; göndersek de backend yok sayıyor.
+                updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent, null, null);
                 sleep();
             }
             case "RESOLVED" -> {
-                createResolutionNote(ticketId, agent, spec.path("resolutionNote"));
-                sleep();
-                updateStatus(ticketId, "RESOLVED", agent);
+                // Backend RESOLVED'e geçişte reasonCode zorunlu kılıyor; resolutionNote artık
+                // ayrı bir endpoint değil, status update body'sinde 'note' alanı olarak gider.
+                String reasonCode = spec.path("reasonCode").asText("SOLUTION_PROVIDED");
+                String note       = noteOrNull(spec.path("resolutionNote"));
+                updateStatus(ticketId, "RESOLVED", agent, reasonCode, note);
                 sleep();
             }
             case "CLOSED" -> {
-                createResolutionNote(ticketId, agent, spec.path("resolutionNote"));
+                String reasonCode = spec.path("reasonCode").asText("SOLUTION_PROVIDED");
+                String note       = noteOrNull(spec.path("resolutionNote"));
+                updateStatus(ticketId, "RESOLVED", agent, reasonCode, note);
                 sleep();
-                updateStatus(ticketId, "RESOLVED", agent);
-                sleep();
+                // CSAT'ı customer gönderir; CsatService RESOLVED → CLOSED'a otomatik geçirir.
                 submitCsat(ticketId, customer, spec.path("csat"));
                 sleep();
             }
             default -> log.warn("Bilinmeyen status: {}", status);
         }
         return ticketId;
+    }
+
+    private String noteOrNull(JsonNode node) {
+        if (node == null || node.isMissingNode()) return null;
+        String txt = node.asText("");
+        return txt.isBlank() ? null : txt;
     }
 
     /**
@@ -245,21 +255,19 @@ public class TicketGenerator {
         }
     }
 
-    private void createResolutionNote(Long ticketId, UserSession agent, JsonNode resolutionNote) {
-        String note = resolutionNote.isMissingNode() || resolutionNote.asText().isBlank()
-                ? "Sorun çözüldü."
-                : resolutionNote.asText();
+    /**
+     * Bilet statüsünü günceller. Backend RESOLVED'e geçişte reasonCode zorunluyor,
+     * CLOSED için ise ayrı endpoint var (CSAT akışında auto-CLOSE olduğu için burada
+     * doğrudan CLOSED göndermiyoruz).
+     */
+    private boolean updateStatus(Long ticketId, String status, UserSession user,
+                                  String reasonCode, String note) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", status);
+        if (reasonCode != null) body.put("reasonCode", reasonCode);
+        if (note != null)       body.put("note",       note);
         try {
-            api.post("/tickets/" + ticketId + "/resolution-note",
-                    Map.of("note", note), agent.getToken());
-        } catch (Exception e) {
-            log.warn("Çözüm notu eklenemedi #{}: {}", ticketId, e.getMessage());
-        }
-    }
-
-    private boolean updateStatus(Long ticketId, String status, UserSession user) {
-        try {
-            api.put("/tickets/" + ticketId + "/status", Map.of("status", status), user.getToken());
+            api.put("/tickets/" + ticketId + "/status", body, user.getToken());
             return true;
         } catch (Exception e) {
             log.warn("Statü güncellenemedi #{} ({}): {}", ticketId, status, e.getMessage());
