@@ -134,13 +134,11 @@ export default function TicketFilters({
           />
         )}
 
-        {onTopicIds && (
+        {onTopicIds && topicFilterAvailable && (
           <MultiSelectFilter
             values={topicIds}
             onChange={onTopicIds}
             placeholder={t('ticket.filters.allTopics')}
-            disabled={!topicFilterAvailable}
-            disabledHint={t('ticket.filters.selectProductFirst')}
             options={topics.map((tp) => ({ value: String(tp.id), label: tp.name }))}
           />
         )}

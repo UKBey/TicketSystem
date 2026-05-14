@@ -25,7 +25,9 @@ export default function MultiSelectFilter({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(false);
   const ref = useRef(null);
+  const buttonRef = useRef(null);
   const hasValue = values.length > 0;
 
   useEffect(() => {
@@ -35,6 +37,14 @@ export default function MultiSelectFilter({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Dropdown açıldığında ekrana sığmıyorsa otomatik sağa hizala.
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const DROPDOWN_MIN_WIDTH = 200;
+    setAlignRight(rect.left + DROPDOWN_MIN_WIDTH > window.innerWidth - 8);
+  }, [open]);
 
   const toggle = (val) => {
     if (values.includes(val)) {
@@ -51,6 +61,7 @@ export default function MultiSelectFilter({
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -68,7 +79,7 @@ export default function MultiSelectFilter({
 
       {open && !disabled && (
         <div
-          className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[180px] max-h-[300px] overflow-y-auto"
+          className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[180px] max-h-[300px] overflow-y-auto`}
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
           {options.length === 0 && (
