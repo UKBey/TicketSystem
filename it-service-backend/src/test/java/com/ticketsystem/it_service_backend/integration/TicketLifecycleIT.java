@@ -3,10 +3,12 @@ package com.ticketsystem.it_service_backend.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,6 +67,9 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     private ProductRepository productRepository;
 
     @Autowired
+    private TicketTopicRepository ticketTopicRepository;
+
+    @Autowired
     private CommentRepository commentRepository;
 
     @Autowired
@@ -78,6 +83,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     private static final String AGENT_ID = UUID.randomUUID().toString();
 
     private Product testProduct;
+    private TicketTopic testTopic;
 
     // =========================================================================
     // Test Yapilandirmasi — Temizlik ve Tohum Veri Olusturma
@@ -97,6 +103,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         jdbcTemplate.execute("""
                 TRUNCATE TABLE
                     ticket_comments,
+                    ticket_topics,
                     ticket_worklogs,
                     ticket_attachments,
                     csat_surveys,
@@ -113,6 +120,15 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         testProduct = productRepository.save(
                 Product.builder()
                         .name("IT Support")
+                        .isActive(true)
+                        .build()
+        );
+
+        // 2b. Urune bagli aktif bir talep konusu olustur (bilet olusturma artik konu gerektiriyor)
+        testTopic = ticketTopicRepository.save(
+                TicketTopic.builder()
+                        .productId(testProduct.getId())
+                        .name("Diğer")
                         .isActive(true)
                         .build()
         );
@@ -154,7 +170,8 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 "title", "VPN baglantisi kurulamiyor",
                 "description", "Sabahtan beri kurumsal VPN'e baglanamiyorum. Hata kodu: ERR_TIMEOUT",
                 "priority", "HIGH",
-                "productId", testProduct.getId()
+                "productId", testProduct.getId(),
+                "topicId", testTopic.getId()
         ));
 
         MvcResult createResult = mockMvc.perform(
