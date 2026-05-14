@@ -136,7 +136,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><AdminPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -144,7 +144,7 @@ export default function App() {
         <Route
           path="/user-management"
           element={
-            <ProtectedRoute allowedRoles={['AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><UserManagementPage /></AppLayout>
             </ProtectedRoute>
           }
@@ -152,7 +152,7 @@ export default function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><ProductPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -160,7 +160,7 @@ export default function App() {
         <Route
           path="/products/:id"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><ProductPage /></AppLayout>
             </ProtectedRoute>
           }

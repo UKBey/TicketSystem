@@ -12,7 +12,8 @@ export default function ProductPanel() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { getPrimaryRole } = useAuth();
-  const isAdmin = getPrimaryRole() === 'AGENT_ADMIN';
+  const role = getPrimaryRole();
+  const isAdmin = role === 'AGENT_ADMIN' || role === 'MANAGER';
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -36,7 +36,8 @@ export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getPrimaryRole } = useAuth();
-  const isAdmin = getPrimaryRole() === 'AGENT_ADMIN';
+  const primaryRole = getPrimaryRole();
+  const isAdmin = primaryRole === 'AGENT_ADMIN' || primaryRole === 'MANAGER';
 
   const [product, setProduct] = useState(null);
   const [productLoading, setProductLoading] = useState(true);

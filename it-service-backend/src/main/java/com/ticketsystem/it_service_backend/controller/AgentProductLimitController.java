@@ -25,7 +25,7 @@ public class AgentProductLimitController {
 
     @Operation(summary = "Agent limitlerini listele", description = "Belirtilen agent için tüm ürün limit override'larını döner.")
     @GetMapping
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<List<AgentProductLimitResponseDTO>> getAgentLimits(
             @Parameter(description = "Agent kimliği", required = true)
             @PathVariable String agentId) {
@@ -35,7 +35,7 @@ public class AgentProductLimitController {
 
     @Operation(summary = "Agent limitini ayarla", description = "Belirli bir ürün için agent override limitini oluşturur veya günceller.")
     @PutMapping("/{productId}")
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<AgentProductLimitResponseDTO> setAgentLimit(
             @Parameter(description = "Agent kimliği", required = true)
             @PathVariable String agentId,
@@ -52,7 +52,7 @@ public class AgentProductLimitController {
 
     @Operation(summary = "Agent limitini sil", description = "Belirtilen agent/product override kaydını siler.")
     @DeleteMapping("/{productId}")
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<Void> deleteAgentLimit(
             @Parameter(description = "Agent kimliği", required = true)
             @PathVariable String agentId,
