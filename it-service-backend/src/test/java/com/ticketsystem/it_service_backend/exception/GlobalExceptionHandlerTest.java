@@ -116,6 +116,76 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handlesResponseStatusException_withNullReason() {
+        ResponseStatusException exception = new ResponseStatusException(HttpStatus.BAD_REQUEST);
+
+        var response = handler.handleResponseStatusException(exception);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("", response.getBody().getMessage());
+    }
+
+    @Test
+    void handlesIllegalArgumentException_withNullMessage() {
+        when(messageSource.getMessage(eq("error.unexpected"), any(), any(Locale.class)))
+                .thenReturn("default error");
+
+        IllegalArgumentException exception = new IllegalArgumentException();
+
+        var response = handler.handleIllegalArgumentException(exception);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("default error", response.getBody().getMessage());
+    }
+
+    @Test
+    void handlesUserAlreadyExistsException_email() {
+        when(messageSource.getMessage(eq("error.user.already.exists"), any(), any(Locale.class)))
+                .thenReturn("user exists");
+        when(messageSource.getMessage(eq("error.user.already.exists.email"), any(), any(Locale.class)))
+                .thenReturn("email already used");
+
+        UserAlreadyExistsException exception = new UserAlreadyExistsException("email", "x@y");
+
+        var response = handler.handleUserAlreadyExistsException(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("USER_ALREADY_EXISTS", response.getBody().getError());
+        assertEquals("user exists", response.getBody().getMessage());
+        assertTrue(response.getBody().getFieldErrors().containsKey("email"));
+    }
+
+    @Test
+    void handlesUserAlreadyExistsException_username() {
+        when(messageSource.getMessage(eq("error.user.already.exists"), any(), any(Locale.class)))
+                .thenReturn("user exists");
+        when(messageSource.getMessage(eq("error.user.already.exists.username"), any(), any(Locale.class)))
+                .thenReturn("username taken");
+
+        UserAlreadyExistsException exception = new UserAlreadyExistsException("username", "john");
+
+        var response = handler.handleUserAlreadyExistsException(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertTrue(response.getBody().getFieldErrors().containsKey("username"));
+    }
+
+    @Test
+    void handlesTicketLimitExceededException() {
+        when(messageSource.getMessage(eq("error.limit.exceeded"), any(), any(Locale.class)))
+                .thenReturn("limit reached");
+
+        TicketLimitExceededException exception =
+                new TicketLimitExceededException("error.limit.exceeded", 5);
+
+        var response = handler.handleTicketLimitExceededException(exception);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("TICKET_LIMIT_EXCEEDED", response.getBody().getError());
+        assertEquals("limit reached", response.getBody().getMessage());
+    }
+
+    @Test
     void handlesMethodArgumentNotValidException() {
         // error.validation.failed key'i için çeviri simüle et
         when(messageSource.getMessage(eq("error.validation.failed"), any(), any(Locale.class)))
