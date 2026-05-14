@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { OTHER_REASON_CODE } from '../utils/reasonCodes';
 
 const VARIANT_STYLES = {
   primary: 'bg-primary-500 hover:bg-primary-600 focus:ring-primary-500/30',
@@ -17,40 +18,42 @@ export default function ActionReasonModal({
   description,
   confirmLabel,
   confirmVariant,
+  reasonCodes,
+  reasonTranslationPrefix,
 }) {
   const { t } = useTranslation();
+  const [reasonCode, setReasonCode] = useState('');
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
+    if (!isOpen) return undefined;
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+      if (event.key === 'Escape') onClose();
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const isSubmitDisabled = noteText.trim().length === 0;
-  const characterCount = noteText.trim().length;
-  const actionButtonClass = useMemo(() => {
-    return VARIANT_STYLES[confirmVariant] ?? VARIANT_STYLES.primary;
-  }, [confirmVariant]);
+  const resetAndClose = () => {
+    setReasonCode('');
+    setNoteText('');
+    onClose();
+  };
+
+  const isOther = reasonCode === OTHER_REASON_CODE;
+  const trimmedNote = noteText.trim();
+  const isSubmitDisabled = !reasonCode || (isOther && trimmedNote.length === 0);
+  const actionButtonClass = useMemo(
+    () => VARIANT_STYLES[confirmVariant] ?? VARIANT_STYLES.primary,
+    [confirmVariant],
+  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const trimmedNote = noteText.trim();
-
-    if (!trimmedNote) {
-      return;
-    }
-
-    onConfirm(trimmedNote);
+    if (isSubmitDisabled) return;
+    onConfirm({ reasonCode, note: trimmedNote || null });
+    setReasonCode('');
+    setNoteText('');
   };
 
   if (!isOpen) return null;
@@ -59,7 +62,7 @@ export default function ActionReasonModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
+      onClick={resetAndClose}
     >
       <div
         className="w-full max-w-md rounded-xl border animate-slide-up"
@@ -73,7 +76,7 @@ export default function ActionReasonModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={resetAndClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
             style={{ color: 'var(--text-tertiary)' }}
             aria-label={t('ticket.actionModal.closeModal')}
@@ -88,12 +91,35 @@ export default function ActionReasonModal({
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
                 {t('ticket.actionModal.labelReason')} *
               </label>
+              <select
+                value={reasonCode}
+                onChange={(event) => setReasonCode(event.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-input)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  '--tw-ring-color': 'var(--ring-color)',
+                }}
+              >
+                <option value="">{t('ticket.actionModal.selectReason')}</option>
+                {reasonCodes?.map((code) => (
+                  <option key={code} value={code}>
+                    {t(`${reasonTranslationPrefix}.${code}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                {t('ticket.actionModal.labelNote')} {isOther && '*'}
+              </label>
               <textarea
                 value={noteText}
                 onChange={(event) => setNoteText(event.target.value)}
-                rows={4}
-                placeholder={t('ticket.actionModal.placeholderReason')}
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[110px]"
+                rows={3}
+                placeholder={isOther ? t('ticket.actionModal.placeholderNoteOther') : t('ticket.actionModal.placeholderNoteOptional')}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[90px]"
                 style={{
                   backgroundColor: 'var(--bg-input)',
                   borderColor: 'var(--border-color)',
@@ -101,9 +127,8 @@ export default function ActionReasonModal({
                   '--tw-ring-color': 'var(--ring-color)',
                 }}
               />
-              <div className="mt-2 flex items-center justify-between text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <span>{t('ticket.actionModal.hint')}</span>
-                <span>{t('ticket.actionModal.characters', { count: characterCount })}</span>
+              <div className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                {isOther ? t('ticket.actionModal.hintOther') : t('ticket.actionModal.hintOptional')}
               </div>
             </div>
           </div>
@@ -111,7 +136,7 @@ export default function ActionReasonModal({
           <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
             <button
               type="button"
-              onClick={onClose}
+              onClick={resetAndClose}
               className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
             >

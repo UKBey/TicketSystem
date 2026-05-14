@@ -6,6 +6,7 @@ import api, {
   updateTicketPriority as updateTicketPriorityApi,
 } from '../services/api';
 import { useTicketWebSocket } from './useTicketWebSocket';
+import { REASON_CODES } from '../utils/reasonCodes';
 
 export function useTicketDetail(id, hasRole) {
   const { t } = useTranslation();
@@ -212,35 +213,29 @@ export function useTicketDetail(id, hasRole) {
     }
   };
 
-  const handleUnclaim = async (note) => {
+  const handleUnclaim = async (payload) => {
     try {
-      const res = await unclaimTicketWithNote(id, note);
+      const res = await unclaimTicketWithNote(id, payload);
       setTicket(res.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not release ticket.');
     }
   };
 
-  const handleCloseTicket = async (note) => {
+  const handleCloseTicket = async (payload) => {
     try {
-      const res = await closeTicketWithNote(id, note);
+      const res = await closeTicketWithNote(id, payload);
       setTicket(res.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not close ticket.');
     }
   };
 
-  const handleSubmitResolve = async (noteText) => {
-    if (!noteText.trim()) return;
-    if (resolutionNote) {
-      await api.put(`/tickets/${id}/resolution-note`, { note: noteText.trim() });
-    } else {
-      await api.post(`/tickets/${id}/resolution-note`, { note: noteText.trim() });
-    }
-    const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED' });
+  const handleSubmitResolve = async ({ reasonCode, note }) => {
+    if (!reasonCode) return;
+    const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED', reasonCode, note });
     setTicket(res.data);
     setResolveModalOpen(false);
-    fetchResolutionNote();
   };
 
   const handleResolveClick = () => setResolveModalOpen(true);
@@ -268,9 +263,9 @@ export function useTicketDetail(id, hasRole) {
 
   const closeReasonModal = () => setReasonModal({ isOpen: false, action: null });
 
-  const handleReasonConfirm = async (note) => {
-    if (reasonModal.action === 'UNCLAIM') await handleUnclaim(note);
-    else if (reasonModal.action === 'CLOSE') await handleCloseTicket(note);
+  const handleReasonConfirm = async (payload) => {
+    if (reasonModal.action === 'UNCLAIM') await handleUnclaim(payload);
+    else if (reasonModal.action === 'CLOSE') await handleCloseTicket(payload);
     closeReasonModal();
   };
 
@@ -280,14 +275,18 @@ export function useTicketDetail(id, hasRole) {
       description: t('ticketDetail.closeTicketDesc'),
       confirmLabel: t('ticketDetail.closeTicketLabel'),
       confirmVariant: 'danger',
+      reasonCodes: REASON_CODES.CLOSE,
+      reasonTranslationPrefix: 'reasonCode.CLOSE',
     };
     if (reasonModal.action === 'UNCLAIM') return {
       title: t('ticketDetail.releaseTitle'),
       description: t('ticketDetail.releaseDesc'),
       confirmLabel: t('ticketDetail.releaseLabel'),
       confirmVariant: 'warning',
+      reasonCodes: REASON_CODES.UNCLAIM,
+      reasonTranslationPrefix: 'reasonCode.UNCLAIM',
     };
-    return { title: '', description: '', confirmLabel: '', confirmVariant: 'primary' };
+    return { title: '', description: '', confirmLabel: '', confirmVariant: 'primary', reasonCodes: [], reasonTranslationPrefix: '' };
   })();
 
   return {

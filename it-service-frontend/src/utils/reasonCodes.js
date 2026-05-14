@@ -1,0 +1,10 @@
+// Aksiyon türü → seçilebilir sebep kodlarının listesi.
+// Etiketler i18next üzerinden okunur: t(`reasonCode.${ACTION}.${CODE}`).
+
+export const REASON_CODES = {
+  UNCLAIM: ['INSUFFICIENT_KNOWLEDGE', 'WORKLOAD', 'OUT_OF_SCOPE', 'REASSIGNMENT_NEEDED', 'OTHER'],
+  RESOLVE: ['SOLUTION_PROVIDED', 'INFORMATION_GIVEN', 'WORKAROUND_PROVIDED', 'CONFIGURATION_CHANGE', 'ROOT_CAUSE_FIXED', 'OTHER'],
+  CLOSE:   ['RESOLVED_CONFIRMED', 'NO_RESPONSE', 'DUPLICATE', 'INVALID', 'CUSTOMER_REQUEST', 'OTHER'],
+};
+
+export const OTHER_REASON_CODE = 'OTHER';

@@ -232,6 +232,8 @@ export default function TicketDetail() {
         description={reasonModalConfig.description}
         confirmLabel={reasonModalConfig.confirmLabel}
         confirmVariant={reasonModalConfig.confirmVariant}
+        reasonCodes={reasonModalConfig.reasonCodes}
+        reasonTranslationPrefix={reasonModalConfig.reasonTranslationPrefix}
       />
 
       <AgentSelectionModal
@@ -245,7 +247,6 @@ export default function TicketDetail() {
       <ResolveModal
         isOpen={resolveModalOpen}
         onClose={() => setResolveModalOpen(false)}
-        existingNote={resolutionNote}
         onSave={handleSubmitResolve}
       />
     </div>

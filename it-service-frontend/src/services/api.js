@@ -96,11 +96,11 @@ export const setAgentLimit = (agentId, productId, useCustomLimit, maxActiveTicke
 export const deleteAgentLimit = (agentId, productId) =>
   api.delete(`/agents/${agentId}/limits/${productId}`);
 
-export const unclaimTicket = (ticketId, note) =>
-  api.delete(`/tickets/${ticketId}/claim`, { data: { note } });
+export const unclaimTicket = (ticketId, payload) =>
+  api.delete(`/tickets/${ticketId}/claim`, { data: payload });
 
-export const closeTicket = (ticketId, note) =>
-  api.put(`/tickets/${ticketId}/close`, { note });
+export const closeTicket = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/close`, payload);
 
 export const updateTicketPriority = (ticketId, priority) =>
   api.put(`/tickets/${ticketId}/priority`, { priority });
