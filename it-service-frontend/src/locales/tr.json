@@ -136,7 +136,13 @@
       "errorCreate": "Bilet oluşturulamadı."
     },
     "actionModal": {
-      "labelReason": "Neden / Not",
+      "labelReason": "Neden",
+      "labelNote": "Açıklama",
+      "selectReason": "Bir neden seçin...",
+      "placeholderNoteOptional": "Detay ekleyin (opsiyonel)...",
+      "placeholderNoteOther": "Lütfen nedeni kısaca açıklayın...",
+      "hintOptional": "İstersen kısa bir açıklama ekleyebilirsin.",
+      "hintOther": "\"Diğer\" seçildi — açıklama zorunlu.",
       "placeholderReason": "Bu işlemi neden yaptığınızı açıklayın...",
       "hint": "Bu not zorunludur ve denetim geçmişine kaydedilecektir.",
       "characters": "{{count}} karakter",
@@ -262,6 +268,32 @@
     "errorSave": "Talep konusu kaydedilemedi.",
     "errorDelete": "Talep konusu silinemedi.",
     "confirmDelete": "\"{{name}}\" konusunu silmek istediğinize emin misiniz?"
+  },
+  "reasonCode": {
+    "UNCLAIM": {
+      "INSUFFICIENT_KNOWLEDGE": "Yeterli bilgim/uzmanlığım yok",
+      "WORKLOAD": "İş yüküm fazla",
+      "OUT_OF_SCOPE": "Sorumluluk alanım dışında",
+      "REASSIGNMENT_NEEDED": "Başka ajan daha uygun",
+      "OTHER": "Diğer"
+    },
+    "RESOLVE": {
+      "SOLUTION_PROVIDED": "Çözüm sağlandı",
+      "INFORMATION_GIVEN": "Bilgi verildi",
+      "WORKAROUND_PROVIDED": "Geçici çözüm uygulandı",
+      "CONFIGURATION_CHANGE": "Konfigürasyon güncellendi",
+      "ROOT_CAUSE_FIXED": "Kök neden giderildi",
+      "OTHER": "Diğer"
+    },
+    "CLOSE": {
+      "RESOLVED_CONFIRMED": "Müşteri çözümü onayladı",
+      "NO_RESPONSE": "Müşteriden yanıt yok",
+      "DUPLICATE": "Mükerrer kayıt",
+      "INVALID": "Geçersiz / gerçek bir sorun değil",
+      "CUSTOMER_REQUEST": "Müşteri kapatılmasını istedi",
+      "OTHER": "Diğer",
+      "CSAT_SUBMITTED": "Müşteri anketi gönderdi"
+    }
   },
   "ticketDetail": {
     "back": "Geri",

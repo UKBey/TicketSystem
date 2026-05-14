@@ -136,7 +136,13 @@
       "errorCreate": "Could not create ticket."
     },
     "actionModal": {
-      "labelReason": "Reason / Note",
+      "labelReason": "Reason",
+      "labelNote": "Note",
+      "selectReason": "Select a reason...",
+      "placeholderNoteOptional": "Add details (optional)...",
+      "placeholderNoteOther": "Please briefly describe the reason...",
+      "hintOptional": "You may add a short note if helpful.",
+      "hintOther": "\"Other\" selected — note is required.",
       "placeholderReason": "Explain why you are taking this action...",
       "hint": "This note is required and will be saved to the audit history.",
       "characters": "{{count}} characters",
@@ -262,6 +268,32 @@
     "errorSave": "Could not save request topic.",
     "errorDelete": "Could not delete request topic.",
     "confirmDelete": "Are you sure you want to delete the topic \"{{name}}\"?"
+  },
+  "reasonCode": {
+    "UNCLAIM": {
+      "INSUFFICIENT_KNOWLEDGE": "Insufficient expertise",
+      "WORKLOAD": "Workload too high",
+      "OUT_OF_SCOPE": "Out of scope",
+      "REASSIGNMENT_NEEDED": "Better suited for another agent",
+      "OTHER": "Other"
+    },
+    "RESOLVE": {
+      "SOLUTION_PROVIDED": "Solution provided",
+      "INFORMATION_GIVEN": "Information provided",
+      "WORKAROUND_PROVIDED": "Workaround applied",
+      "CONFIGURATION_CHANGE": "Configuration updated",
+      "ROOT_CAUSE_FIXED": "Root cause fixed",
+      "OTHER": "Other"
+    },
+    "CLOSE": {
+      "RESOLVED_CONFIRMED": "Customer confirmed resolution",
+      "NO_RESPONSE": "No customer response",
+      "DUPLICATE": "Duplicate",
+      "INVALID": "Invalid",
+      "CUSTOMER_REQUEST": "Customer requested closure",
+      "OTHER": "Other",
+      "CSAT_SUBMITTED": "Customer submitted CSAT"
+    }
   },
   "ticketDetail": {
     "back": "Back",
