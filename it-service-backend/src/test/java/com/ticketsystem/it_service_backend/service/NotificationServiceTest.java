@@ -657,6 +657,32 @@ class NotificationServiceTest {
         verify(notificationRepository).deleteUnreadBefore(any());
     }
 
+    @Test
+    void notifyTicketCreated_userWithTurkishLang_usesTrLocale() {
+        User trCustomer = User.builder().id("c-tr").email("a@b").fullName("Ali").role("CUSTOMER")
+                .preferredLanguage("tr").build();
+        Ticket t = Ticket.builder().id(99L).customerId("c-tr").title("x").build();
+        when(userRepository.findById("c-tr")).thenReturn(Optional.of(trCustomer));
+        when(preferenceRepository.findByUserId("c-tr")).thenReturn(Optional.empty());
+
+        notificationService.notifyTicketCreated(t);
+
+        verify(notificationRepository).save(any(Notification.class));
+    }
+
+    @Test
+    void notifyTicketCreated_userWithBlankLang_usesEnglishLocale() {
+        User blankLang = User.builder().id("c-blank").email("a@b").fullName("Ali").role("CUSTOMER")
+                .preferredLanguage("  ").build();
+        Ticket t = Ticket.builder().id(98L).customerId("c-blank").title("x").build();
+        when(userRepository.findById("c-blank")).thenReturn(Optional.of(blankLang));
+        when(preferenceRepository.findByUserId("c-blank")).thenReturn(Optional.empty());
+
+        notificationService.notifyTicketCreated(t);
+
+        verify(notificationRepository).save(any(Notification.class));
+    }
+
     // -------------------------------------------------------------------------
     // updatePreferences — full coverage of every field branch
     // -------------------------------------------------------------------------
