@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketsystem.it_service_backend.entity.RateLimitConfig;
 import com.ticketsystem.it_service_backend.service.RateLimitConfigService;
 import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
+import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
+import io.github.bucket4j.distributed.BucketProxy;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.lettuce.core.api.StatefulRedisConnection;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,20 +24,18 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
- * Spring MVC interceptor that enforces per-agent token-bucket rate limits.
+ * Spring MVC interceptor — per-agent token-bucket rate limit, Redis-backed.
  *
- * <p>Runs <em>after</em> the Security Filter Chain, so the JWT is already validated
- * and the agent's identity is available via {@link SecurityContextHolder}.
+ * <p>State is held in Redis via Bucket4j's {@link ProxyManager}. Buckets are
+ * shared across replicas; a saturated bucket for one agent doesn't affect others.
+ * Bucket-per-agent keys live under {@code endpointKey:agentId}; Bucket4j applies
+ * a TTL based on the refill window so abandoned buckets are evicted automatically.
  *
- * <p>Bucket granularity: {@code endpointKey + agentId} -- one bucket per agent
- * per endpoint. A saturated bucket for one agent does not affect others.
- *
- * <p>Config is read from {@link RateLimitConfigService} (Caffeine-cached).
- * When an admin updates a config, {@link #invalidateBuckets(String)} must be called
- * to flush the in-process buckets so the new limits take effect immediately.
+ * <p>Runs after the Security Filter Chain, so JWT is already validated and the
+ * agent identity is available via {@link SecurityContextHolder}.
  */
 @Log4j2
 @Component
@@ -42,17 +43,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final RateLimitConfigService rateLimitConfigService;
+    private final ProxyManager<String> bucketProxyManager;
+    private final StatefulRedisConnection<String, byte[]> bucketRedisConnection;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Two-level map: endpointKey -> (agentId -> Bucket).
-     * ConcurrentHashMap is thread-safe for concurrent request handling.
-     * Buckets are created lazily on first request.
-     */
-    private final ConcurrentHashMap<String, ConcurrentHashMap<String, Bucket>> buckets =
-            new ConcurrentHashMap<>();
-
-    // Global API key used for all endpoints
     private static final String GLOBAL_ENDPOINT_KEY = "GLOBAL_API";
 
     @Override
@@ -60,30 +54,25 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) throws IOException {
 
-        // 1. Use the global endpoint key
         String endpointKey = GLOBAL_ENDPOINT_KEY;
 
-        // 2. Load config (Caffeine-cached); pass through if missing or disabled
         Optional<RateLimitConfig> configOpt = rateLimitConfigService.getConfig(endpointKey);
         if (configOpt.isEmpty() || !configOpt.get().isEnabled()) {
             return true;
         }
         RateLimitConfig config = configOpt.get();
 
-        // 3. Extract agentId from the validated JWT (Security Filter Chain has already run)
         String agentId = extractAgentId();
         if (agentId == null) {
-            // Should not happen -- endpoint is secured; treat as anonymous and pass
+            // Endpoint should be authenticated; treat as anonymous and pass through.
             log.warn("RateLimitInterceptor: could not extract agentId for endpoint {}", endpointKey);
             return true;
         }
 
-        // 4. Get or create bucket for this agent + endpoint combination
-        Bucket bucket = buckets
-                .computeIfAbsent(endpointKey, k -> new ConcurrentHashMap<>())
-                .computeIfAbsent(agentId, k -> buildBucket(config));
+        String bucketKey = endpointKey + ":" + agentId;
+        Supplier<BucketConfiguration> configSupplier = () -> bucketConfigurationOf(config);
+        BucketProxy bucket = bucketProxyManager.builder().build(bucketKey, configSupplier);
 
-        // 5. Attempt to consume one token
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
 
         if (probe.isConsumed()) {
@@ -92,7 +81,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 6. Limit exceeded -- return 429 with Retry-After
         long retryAfterSeconds = probe.getNanosToWaitForRefill() / 1_000_000_000L;
         log.warn("Rate limit EXCEEDED -- agent={} endpoint={} retryAfter={}s",
                 agentId, endpointKey, retryAfterSeconds);
@@ -109,28 +97,39 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * Clears all in-process buckets for the given endpoint key.
-     * Must be called whenever the DB config for that key is updated so
-     * the new limits are picked up on the next request.
+     * Drops every Redis bucket key that belongs to the given endpoint. Call this
+     * when an admin updates a config so the new limits take effect immediately
+     * for everyone — otherwise old buckets keep their old capacity until they expire.
      *
-     * @param endpointKey the logical key (e.g. "CLAIM_TICKET")
+     * <p>SCAN is used instead of KEYS to avoid blocking the Redis event loop
+     * when there are many active buckets.
      */
     public void invalidateBuckets(String endpointKey) {
-        ConcurrentHashMap<String, Bucket> removed = buckets.remove(endpointKey);
-        int count = removed != null ? removed.size() : 0;
-        log.info("Invalidated {} bucket(s) for endpoint '{}'", count, endpointKey);
+        String pattern = endpointKey + ":*";
+        long deleted = 0;
+        try {
+            var commands = bucketRedisConnection.sync();
+            var cursor = io.lettuce.core.ScanCursor.INITIAL;
+            io.lettuce.core.ScanArgs args = io.lettuce.core.ScanArgs.Builder.matches(pattern).limit(100);
+            while (true) {
+                var result = commands.scan(cursor, args);
+                if (!result.getKeys().isEmpty()) {
+                    deleted += commands.del(result.getKeys().toArray(new String[0]));
+                }
+                if (result.isFinished()) break;
+                cursor = io.lettuce.core.ScanCursor.of(result.getCursor());
+            }
+        } catch (Exception e) {
+            log.error("invalidateBuckets failed for pattern={}: {}", pattern, e.getMessage());
+            return;
+        }
+        log.info("Invalidated {} bucket key(s) for endpoint '{}'", deleted, endpointKey);
     }
 
     // ------------------------------------------------------------------
     // Private helpers
     // ------------------------------------------------------------------
 
-    // ------------------------------------------------------------------
-
-    /**
-     * Extracts the subject (Keycloak user UUID) from the JWT stored in the
-     * security context. Returns null if the principal is not a {@link Jwt}.
-     */
     private String extractAgentId() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
@@ -140,12 +139,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * Builds a new {@link Bucket} with a classic token-bucket algorithm.
-     * Refill#intervally refills the full capacity at once after
-     * durationSeconds -- not drip-by-drip -- which matches the
-     * "N requests per window" semantics expected by the admin configuration.
+     * Token-bucket configuration matching the legacy semantics:
+     * {@code Refill.intervally} refills the full capacity in one shot every
+     * {@code durationSeconds} — i.e. a fixed-window "N requests per period".
      */
-    private Bucket buildBucket(RateLimitConfig config) {
+    private BucketConfiguration bucketConfigurationOf(RateLimitConfig config) {
         Bandwidth limit = Bandwidth.classic(
                 config.getMaxRequests(),
                 Refill.intervally(
@@ -153,6 +151,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                         Duration.ofSeconds(config.getDurationSeconds())
                 )
         );
-        return Bucket.builder().addLimit(limit).build();
+        return BucketConfiguration.builder().addLimit(limit).build();
     }
 }
