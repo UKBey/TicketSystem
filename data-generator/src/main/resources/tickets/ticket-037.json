@@ -5,15 +5,27 @@
   "productName": "VPN ve Ağ",
   "topicName": "VPN Bağlantısı",
   "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
-    { "minutes": 20, "description": "Olay etkilenen kullanıcı sayısıyla birlikte network ekibine yükseltildi." },
-    { "minutes": 45, "description": "RADIUS sunucusunda token doğrulama hatası tespit edildi, restart yapıldı." },
-    { "minutes": 15, "description": "Etkilenen kullanıcılar yeniden bağlandı, ekran görüntüleri arşivlendi." }
+    { "minutes": 10, "description": "Etkilenen kullanıcı listesi çıkarıldı: 12 finans + 3 muhasebe = 15 kişi." },
+    { "minutes": 15, "description": "VPN gateway monitoring panelinde anormal failed-auth artışı görüldü." },
+    { "minutes": 30, "description": "RADIUS sunucusu loglarında 'token cache invalidation' hatası tespit edildi." },
+    { "minutes": 20, "description": "RADIUS servisi controlled-restart yapıldı, cache temizlendi." },
+    { "minutes": 15, "description": "Etkilenen 15 kullanıcının bağlantısı tek tek doğrulandı." },
+    { "minutes": 30, "description": "Post-mortem dokümanı hazırlandı, root cause + prevention adımları kaydedildi." }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "RADIUS yeniden başlatıldı, bağlantılar normale döndü. Lütfen tekrar bağlanıp doğrulayın." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Şu an VPN bağlandı, ekibimiz çalışmaya devam ediyor. Çok hızlı çözüm için teşekkürler." }
+    { "author": "customer", "type": "EXTERNAL", "message": "Acil! Tüm ekip 30 dakikadır bağlanamıyor, bütçe revizyonu için CFO ile 11:00 toplantımız var, lütfen müdahale edin." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, durumu hemen ele aldım. Önceliklendiriyorum. İlk olarak: kaç kişi etkileniyor, hepsi aynı hata mesajını mı alıyor? Bir-iki kullanıcının ekran görüntüsünü yollayabilir misiniz?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "15 kişi civarı, hepsi 'Authentication failed' alıyor. 3 ekran görüntüsü ekledim." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Sağ olun. Hata net — kimlik doğrulama altyapısında sorun var, tek bir kullanıcı kaynaklı değil. Hemen network ve security ekipleriyle eskalasyon başlattım. Bu major bir olay, P1 olarak işliyorum. Tahmini düzelme: 30 dakika içinde. Ben de canlı takip ediyorum, gelişme oldukça buradan bilgi vereceğim." },
+    { "author": "agent",    "type": "INTERNAL", "message": "RADIUS dashboard'da auth failed grafiği 09:25 itibarıyla fırlamış. Network ekibi (Murat) ile birlikte bakıyoruz. Token cache invalidation bug'ı şüphesi var — son hafta upgrade yapılmıştı." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Update: Root cause tespit edildi — RADIUS sunucusunda kimlik doğrulama token cache'i bozulmuş (geçen hafta yapılan upgrade sonrası bir bug). Cache temizleme için servis 5 dakika içinde controlled-restart edilecek. Restart sırasında mevcut bağlantılar etkilenmez, ama yeni bağlanmaya çalışanlar 2-3 dakika gecikme görebilir." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "RADIUS yeniden başlatıldı. Lütfen bir kullanıcının VPN bağlantısını test edip dönün. Tüm 15 kişi içinde 1 kişi yeterli — başarılıysa diğerleri için de geçerli olur." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Ali test etti, bağlandı! Bir-iki kişi daha denedi, çalışıyor. CFO toplantısına yetiştik. Çok teşekkür ederim, sizinle bu kadar hızlı olabileceği aklımıza gelmemişti." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Sevindim. Tüm ekip 11:00 toplantısına yetişti, asıl önemli olan o. Bu konuda detaylı bir post-mortem hazırlıyorum, prevention adımları için. Önümüzdeki günlerde paylaşacağım — RADIUS upgrade'lerinde otomatik smoke-test eklemeyi öneriyorum. Sizden gelen acil yanıt ve net iletişim de süreci hızlandırdı, teşekkürler." },
+    { "author": "agent",    "type": "INTERNAL", "message": "Post-mortem: token-cache bug, vendor knowledge base'de açıkmış (workaround: restart). Kalıcı çözüm için 8.5.2 patch'ine geçiş planlanacak — RFC-1142 olarak takip." }
   ],
-  "resolutionNote": "RADIUS sunucusunda token önbelleği bozulmuştu. Servis yeniden başlatıldı, tüm bağlantılar normale döndü. Post-mortem hazırlandı.",
-  "csat": { "rating": 5, "comment": "Kriz anında çok hızlı ve net bir destek aldık. Teşekkürler." }
+  "resolutionNote": "RADIUS auth sunucusunda token cache invalidation bug'ı (post-upgrade) tespit edildi. Servis controlled-restart ile cache temizlendi, 15 etkilenen kullanıcının bağlantısı normale döndü. Toplam etki süresi ~50 dakika. Post-mortem dokümanı hazırlandı, 8.5.2 patch'ine geçiş planlandı.",
+  "csat": { "rating": 5, "comment": "Kriz anında çok hızlı ve net bir destek aldık. İletişim mükemmeldi — her aşamada bilgilendirildik. Teşekkürler." }
 }

@@ -6,9 +6,12 @@
   "topicName": "Yazıcı",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 25, "description": "Driver Device Settings altında Duplex Unit = Installed olarak güncellendi." }
+    { "minutes": 25, "description": "Driver Device Settings altında Duplex Unit = Installed olarak güncellendi." },
+    { "minutes": 10, "description": "Kullanıcının workstation'ında driver versiyonu doğrulandı: 7.83 (güncel)." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcıdan yeniden duplex baskı testi yapması istendi, sonuç bekleniyor." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Driver tarafında Duplex Unit'i 'Installed' olarak işaretledim. Şimdi bir test denemesi yapar mısınız? Yazdır dialog'unda 'Print on both sides' veya 'Two-sided' seçeneği gözüküyor mu? Ekran görüntüsü gönderir misiniz?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "Seçenek geldi, 'Long edge' olarak seçtim ama yine tek tarafa bastı. Ekran görüntüsünü ekledim." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Görüntü için teşekkürler. Seçeneklerin doğru ayarlandığını görüyorum. Şimdi yazıcı tarafında bir kontrol gerekiyor: yazıcının panelinde Menu > Settings > Default Print Settings altında 'Default Duplex' aktif mi? Bir de duplex modül takılı mı fiziksel olarak (yazıcı arka kapağını açıp kontrol edebilirsiniz)?" }
   ]
 }

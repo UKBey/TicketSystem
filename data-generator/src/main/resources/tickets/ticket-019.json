@@ -6,9 +6,13 @@
   "topicName": "DNS Sorunları",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 20, "description": "DNS önbelleği temizlendi (ipconfig /flushdns), nslookup ile farklı kayıtlar test edildi." }
+    { "minutes": 20, "description": "DNS önbelleği temizlendi (ipconfig /flushdns), nslookup ile farklı kayıtlar test edildi." },
+    { "minutes": 15, "description": "Network ekibiyle DNS sunucusu logları incelendi — kullanıcının istekleri sunucuya ulaşıyor." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Hangi servislerin erişilemediğini netleştirmek için kullanıcıdan tam liste ve ekran görüntüsü istendi." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, hangi servislere erişemediğinizi tam liste halinde paylaşır mısınız (örn. wiki.corp.local, files.corp.local)? Ayrıca cmd üzerinde 'nslookup wiki.corp.local' çalıştırıp sonucun ekran görüntüsünü gönderebilir misiniz?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "wiki.corp.local ve files.corp.local açılmıyor. Ama portal.corp.local açılıyor garip." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Teşekkürler. Bir de 'ipconfig /all' çıktısını paylaşır mısınız? DNS sunucusu olarak hangi IP'leri kullandığınızı görmek istiyorum. Bu arada VPN bağlı mı şu an?" },
+    { "author": "agent",    "type": "INTERNAL", "message": "Müşteriden ipconfig çıktısı ve VPN durumu bekleniyor. Tahminim split-DNS yapılandırması yanlış — wiki/files başka subnet'te." }
   ]
 }

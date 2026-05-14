@@ -9,6 +9,8 @@
     { "minutes": 20, "description": "Yazıcı VLAN 30'da olduğu tespit edildi, kullanıcının VLAN 10 olduğu doğrulandı." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "ACL kuralının VLAN 10'dan 30'a 9100/UDP izninin olup olmadığı network ekibine soruldu, kullanıcıdan bilgi bekliyoruz." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, yazıcı IK departmanının VLAN'ında. Network ekibinden VLAN 10 → VLAN 30 yazıcı portu için ACL kuralı eklemesini istedim. Bu arada onaylamam için yazıcı IP'sini (10.0.30.x gibi) ve marka/model bilgisini paylaşır mısınız?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "IP 10.0.30.45, model HP LaserJet Pro M404dn. Bu arada Aslı da aynı sorunu yaşıyor diye duydum." },
+    { "author": "agent",    "type": "INTERNAL", "message": "VLAN 10'dan 30'a yazdırma trafiği için ACL change request açıldı (CR-2841). Aslı için ayrı ticket açmasını istedim — etki kapsamını netleştirmem gerekiyor." }
   ]
 }

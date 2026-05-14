@@ -6,9 +6,11 @@
   "topicName": "Calendar ve Toplantı",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 15, "description": "Oda kaynağında 'Reviewer' yetkisi olduğu doğrulandı." }
+    { "minutes": 15, "description": "Oda kaynağında 'Reviewer' yetkisi olduğu doğrulandı (room-bigblue@corp.local için)." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcının hangi odaları aradığını ekran görüntüsüyle göndermesi istendi." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Hangi toplantı odalarını arıyorsunuz? Ekran görüntüsü paylaşabilir misiniz — 'Add Room' dialog'unun nasıl göründüğünü görmek istiyorum." },
+    { "author": "customer", "type": "EXTERNAL", "message": "BigBlue ve SmallRed odalarını eskiden görebiliyordum. Ekran görüntüsü ekledim. Lokasyon listesi tamamen boş geliyor." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Lokasyon listesi boş — bu Outlook'un Address Book cache'i ile alakalı. Outlook'u kapatıp /resetnavpane parametresiyle açar mısınız? (Çalıştır → outlook.exe /resetnavpane). Çalışmazsa /cleanviews da deneyelim." }
   ]
 }

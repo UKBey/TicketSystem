@@ -6,9 +6,13 @@
   "topicName": "Mail Gönderim",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 30, "description": "SPF/DKIM/DMARC kayıtları MX Toolbox üzerinden doğrulandı, hepsi geçerli." }
+    { "minutes": 30, "description": "SPF/DKIM/DMARC kayıtları MX Toolbox üzerinden doğrulandı, hepsi geçerli." },
+    { "minutes": 10, "description": "Mailtrap üzerinden test gönderim yapıldı, scoreboard temiz çıktı." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Karşı tarafın mail header'larına ihtiyacımız var; kullanıcıdan müşterisinden alıp paylaşmasını istedim." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, sorunu çözebilmem için karşı tarafın mail header'larını paylaşmanız gerekiyor. Müşterinizden spam klasöründeki bir mailinizi açıp 'Show original' veya 'Mail kaynağını görüntüle' diyerek tam header bloğunu kopyalayıp size iletmesini rica edebilir misiniz?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "Müşteriden istedim, ancak teknik kişi değil — 'Show original' menüsünü bulamıyor. Ekran görüntüsü olur mu?" },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Anlıyorum. Outlook web kullanıyorsa: mail aç → sağ üstte '...' (More actions) → 'View message source'. Gmail ise: mail aç → '...' (üst sağ) → 'Show original'. Adımları içeren bir görsel hazırladım, ekte. Müşteriye iletip dönüş yapabilir misiniz?" },
+    { "author": "agent",    "type": "INTERNAL", "message": "Müşteri tarafından header bekleniyor. Header'da Authentication-Results ve Received-SPF değerlerini görmem lazım — büyük ihtimalle karşı tarafın gateway'i bizim IP'yi tanımıyor." }
   ]
 }

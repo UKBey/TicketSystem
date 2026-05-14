@@ -6,10 +6,14 @@
   "topicName": "AWS",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 25, "description": "Security Group inbound kuralları kontrol edildi, 22 portu sadece bastion için açık." },
-    { "minutes": 20, "description": "Bastion host /var/log/auth.log incelendi — bağlantı bastion'a ulaşıyor ama EC2 reddediyor." }
+    { "minutes": 25, "description": "Security Group inbound kuralları kontrol edildi, 22 portu sadece bastion için açık — değişiklik yok." },
+    { "minutes": 20, "description": "Bastion host /var/log/auth.log incelendi — bağlantı bastion'a ulaşıyor ama EC2 reddediyor." },
+    { "minutes": 15, "description": "CloudTrail üzerinde son 24 saatte KeyRotation eventi arandı — bulunamadı." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "SSH key rotation yapılmış olabilir; kullanıcıdan kullandığı pem dosyasının fingerprint'i istendi." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Bastion ulaşılabiliyor ama backend EC2'ler reject ediyor. Birkaç şey kontrol etmem gerekiyor: (1) hangi pem dosyasını kullanıyorsunuz, dosya adı/parmak izi? Komut: ssh-keygen -lf <key.pem>. (2) Son SSH komutunuzun '-v' ile çıktısını paylaşır mısınız? 'ssh -v -i key.pem ec2-user@10.0.5.x' gibi." },
+    { "author": "customer", "type": "EXTERNAL", "message": "prod-eu-2024.pem kullanıyorum. ssh-keygen çıktısı: SHA256:abc123def456... Verbose çıktıyı ekledim." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Verbose çıktıyı inceledim — sunucu 'Permission denied (publickey)' atıyor. Bu da pem dosyanızın o instance'ın authorized_keys listesinde olmadığını gösteriyor. Son hafta içinde key rotation yaptık mı, biliyor musunuz? Eğer evetse muhtemelen yeni pem dosyası verilmiştir." },
+    { "author": "agent",    "type": "INTERNAL", "message": "CloudTrail'de eventi göremedim ama belki manuel SSH'la yapılmış. Kullanıcının takım liderine sordum, dönüş bekliyorum." }
   ]
 }

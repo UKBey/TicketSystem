@@ -5,13 +5,21 @@
   "productName": "VPN ve Ağ",
   "topicName": "VPN Bağlantısı",
   "status": "RESOLVED",
+  "reasonCode": "CONFIGURATION_CHANGE",
   "worklogs": [
-    { "minutes": 20, "description": "Profilde 'Use default gateway on remote network' işaretli görüldü." },
-    { "minutes": 25, "description": "Split tunneling aktif edildi, route tablosu temizlendi, kullanıcıyla test edildi." }
+    { "minutes": 15, "description": "VPN profil dosyası incelendi — 'Use default gateway on remote network' işaretli." },
+    { "minutes": 20, "description": "Route tablosu before/after karşılaştırıldı; VPN bağlanınca 0.0.0.0/0 VPN gateway'e gidiyor." },
+    { "minutes": 25, "description": "Split tunneling profili güncellendi, sadece corp.local subnet'leri VPN üzerinden." },
+    { "minutes": 15, "description": "Kullanıcıyla 5 dakikalık test seansı: hem internet hem corp servisleri eş zamanlı çalışıyor." }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Split tunneling açtık, artık sadece corp.local trafiği VPN üzerinden gidecek. Test edip geri dönün lütfen." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Düzeldi, internet çalışıyor ve corp servislerine de erişiyorum. Teşekkürler." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, bu VPN istemcisinin 'full tunnel' modunda çalıştığının tipik göstergesi — yani tüm trafiğiniz VPN üzerinden gidiyor ve dış internete çıkış kapanıyor. VPN bağlantınızı keser misiniz ki bir profil güncellemesi yapayım?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "Tamam, kestim. Yarım saat kadar internetsiz kalsam sorun değil, deneme yapın." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Teşekkürler. Profilinizi 'split tunneling' moduna çevirdim — artık sadece corp.local subnet'leri (10.10.0.0/16, 192.168.50.0/24) VPN üzerinden, kalan tüm trafik direkt internetten gidecek. Yeni profili indirip yükler misiniz? Aşağıdaki linkten erişebilirsiniz: [vpn-profile-v2.ovpn]" },
+    { "author": "customer", "type": "EXTERNAL", "message": "Yeni profili kurdum, bağlandım. İnternet açılıyor 👍 Ama corp wiki'ye erişebilir miyim diye merak ediyorum, deneyebilir misiniz?" },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Wiki için url 'wiki.corp.local'. Lütfen tarayıcıdan açıp 'çalışıyor' veya 'açılmıyor' diye geri dönün. Bir de 'fileshare.corp.local' adresini deneyin." },
+    { "author": "customer", "type": "EXTERNAL", "message": "İkisi de açıldı! Hem internet hem corp servisleri eş zamanlı çalışıyor. Mükemmel. Çok teşekkür ederim." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Süper. Sorun çözüldü. Profili kaydettim, artık her bağlanışta otomatik olarak bu yapı geçerli olacak. Herhangi bir aksilik olursa yine bana yazın." }
   ],
-  "resolutionNote": "Profilde 'Use default gateway on remote network' kapatıldı ve split tunneling devreye alındı. İstemci yeniden başlatıldı; her iki trafik (corp + internet) sorunsuz."
+  "resolutionNote": "VPN profili 'full tunnel'dan 'split tunneling'e güncellendi. Yalnızca corp.local subnet'leri (10.10.0.0/16, 192.168.50.0/24) VPN üzerinden geçer; kalan trafik kullanıcının yerel internet bağlantısı üzerinden gider. Kullanıcı ile birlikte canlı test edildi."
 }

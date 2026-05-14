@@ -6,9 +6,13 @@
   "topicName": "Klavye ve Mouse",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 15, "description": "2.4 GHz spektrum analizi yapıldı, parazitli kanal tespit edildi (kanal 6)." }
+    { "minutes": 15, "description": "2.4 GHz spektrum analizi yapıldı, parazitli kanal tespit edildi (kanal 6)." },
+    { "minutes": 20, "description": "Logi Options+ üzerinden firmware sürümü ve bağlantı tipi (Bluetooth vs Logi Bolt) kontrol edildi." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Unifying USB receiver ile test etmesi için kullanıcıya alıcı gönderildi, sonuç bekleniyor." }
+    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, sorununuz büyük ihtimalle 2.4 GHz parazitinden kaynaklanıyor — özellikle öğleden sonra ofis Wi-Fi kullanımının yoğunlaştığı saatlerde. Logitech'in 'Logi Bolt' alıcısıyla USB üzerinden bağlamak Bluetooth'a göre çok daha stabil. Bir alıcı sağlayabilirim, ofise gelmenize gerek yok. Çalıştığınız bina ve kat bilgisi paylaşır mısınız?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "A binası 3. kat, kapı 312. Yarın ofise gelmiyorum, perşembe gelirim, o güne kadar idare ederim." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Anlaşıldı. Perşembe sabahı masanıza Logi Bolt alıcısı bırakacağım. Kurulumu otomatik tanır, sadece USB'ye takmanız yeterli olacak. Bu arada şu an Bluetooth bağlantısını biraz daha stabil tutabilmek için: Logi Options+ uygulamasından 'Smart shift' özelliğini kapatmayı dener misiniz?" },
+    { "author": "agent",    "type": "INTERNAL", "message": "Perşembe için Bolt alıcısı stoktan ayrıldı (envanter #LB-2024-058). Kullanıcıdan onay bekliyorum — kuruluma kadar bekleyecek." }
   ]
 }

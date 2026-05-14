@@ -7,9 +7,17 @@
   "status": "IN_PROGRESS",
   "worklogs": [
     { "minutes": 20, "description": "Windows Gizlilik > Mikrofon ayarları kontrol edildi, Teams 'Allow' durumdaydı." },
-    { "minutes": 30, "description": "Teams Modern Auth önbelleği temizlendi, kullanıcı tekrar oturum açtı." }
+    { "minutes": 25, "description": "Teams Modern Auth önbelleği temizlendi (%appdata%\\Microsoft\\Teams\\Cache), kullanıcı tekrar oturum açtı." },
+    { "minutes": 15, "description": "Cihaz yöneticisi: USB Audio driver 'up to date' olarak görüldü; ses paneli enumeration yapıldı." }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Headset Bluetooth, hardware acceleration kapatıldı; deneme toplantısı kuracağız." }
+    { "author": "customer", "type": "EXTERNAL", "message": "Şu an saat 14'te kritik bir müşteri toplantım var, lütfen hızlı bir çözüm bulalım." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Anladım, hemen başlıyorum. Önce hızlı kontroller: Teams > Settings > Devices > Microphone bölümünden hangi cihaz seçili? 'Make a test call' butonu çalışıyor mu?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "'Headset Microphone (Jabra Evolve 65)' seçili. Test call'da 'Hi, this is Test Call' diyor ama sonra benim sesimi tekrar etmiyor — sessizlik." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Tamam, mikrofon Teams'e ulaşmıyor demek. Headset'i USB'den çıkarıp tekrar takar mısınız? Bir de bilgisayardaki ses simgesine sağ tıklayıp 'Sound settings > Input' bölümünde Jabra'nın 'progress bar'ı konuşunca hareket ediyor mu görmek istiyorum." },
+    { "author": "customer", "type": "EXTERNAL", "message": "USB çıkar-tak yaptım. Sound settings'te konuşunca bar TEPKi VERİYOR — yani Windows duyuyor. Ama Teams duymuyor." },
+    { "author": "agent",    "type": "EXTERNAL", "message": "Mükemmel teşhis. Sorun spesifik olarak Teams ile cihaz arasında. Şu adımları sırayla uygulayalım: 1) Teams'i tamamen kapat (Task Manager → Teams sürecini End Task), 2) %appdata%\\Microsoft\\Teams klasörünü açın, 3) 'Cache', 'GPUCache', 'IndexedDB' alt klasörlerini SİL (uygulama datası kaybolmaz), 4) Teams'i tekrar aç. Bu yöntem benim deneyimimde %90 başarı veriyor." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Yaptım! Teams yeniden açıldı, test call'da artık sesimi duyuyor 🎉 14:00 toplantıya yetişeceğim. Çok teşekkür ederim." },
+    { "author": "agent",    "type": "INTERNAL", "message": "Teams cache corruption — son 1 ayda 3. vaka bende. Endpoint yönetim ekibine bildirim göndereceğim, Teams auto-update sonrası bu tarz sorunlar yaşanıyor. Toplantı sonrası kullanıcıdan onay alıp resolve edeceğim." }
   ]
 }
