@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import i18n from '../i18n';
+import keycloak from '../keycloak';
 
 /* ── Role meta ─────────────────────────────────────────────── */
 const ROLE_META = {
@@ -243,8 +244,12 @@ export default function ProfilePage() {
                 title={t('profile.twoFactor')}
                 description={t('profile.manageTwoFactor')}
                 onClick={() => {
-                  const url = `${window.location.origin}/auth/realms/TicketSystemRealm/account/#/account-security/signing-in`;
-                  window.open(url, '_blank', 'noopener,noreferrer');
+                  // Keycloak'un CONFIGURE_TOTP required action'ını tetikler — kullanıcı doğrudan
+                  // QR kod + uygulamadan kod giriş ekranına düşer; bitince /profile'a geri döner.
+                  keycloak.login({
+                    action: 'CONFIGURE_TOTP',
+                    redirectUri: window.location.origin + '/profile',
+                  });
                 }}
               />
             </div>
