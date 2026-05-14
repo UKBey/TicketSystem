@@ -217,6 +217,22 @@ class UserControllerTest {
     }
 
     // -------------------------------------------------------------------------
+    // updateTheme
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateTheme_returnsUpdatedDto() {
+        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredTheme("dark").build();
+        when(userService.updatePreferredTheme("u-1", "dark")).thenReturn(updated);
+        Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
+
+        ResponseEntity<UserDTO> response = userController.updateTheme(jwt, "dark");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("dark", response.getBody().getPreferredTheme());
+    }
+
+    // -------------------------------------------------------------------------
     // getAgents / getAgentsWithCapacity / getUser
     // -------------------------------------------------------------------------
 

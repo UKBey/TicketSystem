@@ -114,4 +114,32 @@ class EmailServiceTest {
 
         assertDoesNotThrow(() -> emailService.sendTicketCreatedEmail(customer, ticket));
     }
+
+    @Test
+    void sendTicketCreatedEmail_darkThemeUser_stillSends() {
+        User darkUser = User.builder()
+                .id("dark-1")
+                .email("dark@example.com")
+                .fullName("Dark Mode User")
+                .preferredTheme("dark")
+                .build();
+
+        emailService.sendTicketCreatedEmail(darkUser, ticket);
+
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void sendTicketCreatedEmail_nullThemeFallsBackToLight() {
+        User noThemeUser = User.builder()
+                .id("nt-1")
+                .email("nt@example.com")
+                .fullName("No Theme User")
+                .preferredTheme(null)
+                .build();
+
+        emailService.sendTicketCreatedEmail(noThemeUser, ticket);
+
+        verify(mailSender).send(any(MimeMessage.class));
+    }
 }

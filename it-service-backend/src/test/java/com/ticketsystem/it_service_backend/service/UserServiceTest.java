@@ -511,6 +511,40 @@ class UserServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    // updatePreferredTheme
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updatePreferredTheme → dark → user.preferredTheme=dark")
+    void updatePreferredTheme_dark_saves() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updatePreferredTheme("agent-1", "dark");
+
+        assertThat(result.getPreferredTheme()).isEqualTo("dark");
+    }
+
+    @Test
+    @DisplayName("updatePreferredTheme → light → user.preferredTheme=light")
+    void updatePreferredTheme_light_saves() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updatePreferredTheme("agent-1", "light");
+
+        assertThat(result.getPreferredTheme()).isEqualTo("light");
+    }
+
+    @Test
+    @DisplayName("updatePreferredTheme → geçersiz değer → ResponseStatusException 400")
+    void updatePreferredTheme_invalidTheme_throws() {
+        assertThatThrownBy(() -> userService.updatePreferredTheme("agent-1", "neon"))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
+    }
+
+    // -------------------------------------------------------------------------
     // deactivate / reactivate
     // -------------------------------------------------------------------------
 
