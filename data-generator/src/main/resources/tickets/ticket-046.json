@@ -1,0 +1,19 @@
+{
+  "title": "Gece yedeği 'Repository Full' hatası ile düştü",
+  "description": "Bu sabah 03:00'taki SQL backup job 'failed' durumunda, repository dolu olduğu yazıyor.",
+  "priority": "HIGH",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "Yedekleme",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 30, "description": "Retention policy dışına çıkmış 4 ay öncesinden eski yedekler temizlendi (~800 GB)." },
+    { "minutes": 25, "description": "Veeam job manuel olarak yeniden tetiklendi, başarıyla tamamlandı." },
+    { "minutes": 20, "description": "Uzun vadeli retention için S3 Glacier hedefi tasarımı başlatıldı." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Eski yedekler temizlendi, gece job'u başarıyla çalıştı. Uzun vadeli için Glacier hedefini sürece aldık." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Çok teşekkürler, raporu sabah aldım." }
+  ],
+  "resolutionNote": "Retention policy dışı 800 GB yedek temizlendi, ana job manuel tetiklenip tamamlandı. Glacier kapasite planlama başladı.",
+  "csat": { "rating": 5, "comment": "Sorunsuz çözüldü." }
+}

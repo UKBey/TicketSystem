@@ -1,0 +1,17 @@
+{
+  "title": "VPN bağlandıktan sonra internetim kesiliyor",
+  "description": "VPN'e bağlanır bağlanmaz internetim çalışmıyor, sadece şirket içi servisler açılıyor.",
+  "priority": "HIGH",
+  "productName": "VPN ve Ağ",
+  "topicName": "VPN Bağlantısı",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 20, "description": "Profilde 'Use default gateway on remote network' işaretli görüldü." },
+    { "minutes": 25, "description": "Split tunneling aktif edildi, route tablosu temizlendi, kullanıcıyla test edildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Split tunneling açtık, artık sadece corp.local trafiği VPN üzerinden gidecek. Test edip geri dönün lütfen." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Düzeldi, internet çalışıyor ve corp servislerine de erişiyorum. Teşekkürler." }
+  ],
+  "resolutionNote": "Profilde 'Use default gateway on remote network' kapatıldı ve split tunneling devreye alındı. İstemci yeniden başlatıldı; her iki trafik (corp + internet) sorunsuz."
+}

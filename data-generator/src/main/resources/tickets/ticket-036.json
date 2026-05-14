@@ -1,0 +1,16 @@
+{
+  "title": "MFA için telefona Authenticator push bildirimi gelmiyor",
+  "description": "Bugün giriş yaparken kodları cihazıma bildirim olarak alamıyorum, manuel kod gerekiyor.",
+  "priority": "MEDIUM",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "Azure",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 20, "description": "Telefon push servisi engelliydi, Authenticator app yeniden kuruldu." },
+    { "minutes": 15, "description": "MFA cihazı yeniden kaydedildi, push bildirimi geldi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "MFA yeniden kuruldu, telefonda 'Approve' bildirimi geldiğini gördüm. Lütfen tekrar test edin." }
+  ],
+  "resolutionNote": "Authenticator app yeniden kurulup MFA cihazı yeniden kaydedildi. Push bildirimleri normale döndü."
+}

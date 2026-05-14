@@ -1,0 +1,14 @@
+{
+  "title": "Toplantı odası takvimini Outlook'tan göremiyorum",
+  "description": "Toplantı kurarken oda kaynaklarını seçemiyorum, eski takvim görünümü gelmiyor.",
+  "priority": "MEDIUM",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Calendar ve Toplantı",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 15, "description": "Oda kaynağında 'Reviewer' yetkisi olduğu doğrulandı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcının hangi odaları aradığını ekran görüntüsüyle göndermesi istendi." }
+  ]
+}

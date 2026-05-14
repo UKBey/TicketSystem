@@ -1,0 +1,18 @@
+{
+  "title": "Yeni başlayan personel ERP fatura modülüne erişemiyor",
+  "description": "Maaş bordrosu için ERP'ye girmesi gerekiyor ama 'fatura' menüsünü göremiyor. Diğer modüller normal.",
+  "priority": "MEDIUM",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "ERP",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 20, "description": "Kullanıcının ERP role assignment'ı kontrol edildi, fatura modülü eksik." },
+    { "minutes": 15, "description": "ERP-Admin > Authorized Modules > 'Invoicing' eklendi, cache yenilendi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Fatura modülü yetkisi atandı, 5 dakika içinde menüde görüneceksiniz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Görüyorum, yetkilendirme başarılı. Teşekkürler." }
+  ],
+  "resolutionNote": "Kullanıcıya 'Invoicing' modül yetkisi atandı. ERP cache 5 dakika içinde yenilendi.",
+  "csat": { "rating": 5, "comment": "Sorunum çok hızlı çözüldü." }
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Yeni müşteri eklerken 'duplicate vergi numarası' hatası alıyorum",
+  "description": "Yeni müşteri kaydı oluşturuyorum ama 'Vergi numarası başka bir kayıtta mevcut' diyor. Halbuki o numarayla kayıt görmüyorum.",
+  "priority": "MEDIUM",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "CRM",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 15, "description": "Eski (deaktif edilmiş) bir müşteri kaydında aynı vergi numarası bulundu." },
+    { "minutes": 20, "description": "Müşteri Birleştirme aracıyla iki kayıt birleştirildi, yeni iletişim bilgileri eklendi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Eski deaktif kayıt birleştirildi, yeni kayıt üstüne tüm geçmiş aktarıldı. Şimdi CRM'de görebilirsiniz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Müşterim görünüyor, geçmiş ticari kayıtlar da burada. Teşekkürler." }
+  ],
+  "resolutionNote": "İki müşteri kaydı (eski + yeni) Müşteri Birleştirme aracıyla tek kayıtta birleştirildi.",
+  "csat": { "rating": 5, "comment": "Geçmiş veriyi de kaybetmemem önemliydi, teşekkürler." }
+}

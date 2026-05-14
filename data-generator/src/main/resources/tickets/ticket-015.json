@@ -1,0 +1,15 @@
+{
+  "title": "Teams toplantısında ses gitmiyor, karşı taraf duyamıyor",
+  "description": "Bugün 3 ayrı toplantıda mikrofonum çalışmadı. Headset Windows'ta diğer uygulamalarda sorunsuz.",
+  "priority": "CRITICAL",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Teams",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 20, "description": "Windows Gizlilik > Mikrofon ayarları kontrol edildi, Teams 'Allow' durumdaydı." },
+    { "minutes": 30, "description": "Teams Modern Auth önbelleği temizlendi, kullanıcı tekrar oturum açtı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Headset Bluetooth, hardware acceleration kapatıldı; deneme toplantısı kuracağız." }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Yeni monitörümde sağ alt köşede sürekli yanan kırmızı nokta var",
+  "description": "Bana 2 hafta önce verilen monitörde dead pixel var, çok rahatsız edici.",
+  "priority": "LOW",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Monitör",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 15, "description": "Pixel test programı çalıştırıldı, 1 dead pixel doğrulandı." },
+    { "minutes": 20, "description": "Dell garanti hattı arandı, replacement onaylandı, kargo açıldı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Dead pixel tolerans dışı, Dell yeni monitör gönderiyor. Eski monitörü kargo geldiğinde teslim alacaklar." }
+  ],
+  "resolutionNote": "Garanti kapsamında monitör değişimi onaylandı; replacement ürünü kullanıcıya teslim edildi."
+}

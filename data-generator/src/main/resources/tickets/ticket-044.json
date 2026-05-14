@@ -1,0 +1,19 @@
+{
+  "title": "C: sürücü dolu, sürekli temizlesem de doluyor",
+  "description": "C: sürücüde 5 GB kaldı. Disk Cleanup yapıyorum, 2-3 gün sonra yine dolu.",
+  "priority": "MEDIUM",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Disk ve Depolama",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 30, "description": "WinDirStat ile analiz yapıldı, %temp% ve .iso yedekleri tespit edildi." },
+    { "minutes": 20, "description": "OneDrive Files On-Demand aktif edildi, 80 GB serbest bırakıldı." },
+    { "minutes": 60, "description": "Servis 256GB->512GB SSD upgrade onayı verildi, planlanan tarih önümüzdeki hafta." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Geçici olarak OneDrive Files On-Demand açtım, 80 GB boş alan kazandık. Önümüzdeki hafta SSD'yi 512'ye yükselteceğiz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Şu an rahatım. Upgrade için minnettarım." }
+  ],
+  "resolutionNote": "OneDrive Files On-Demand aktif edildi (kısa vadeli), SSD upgrade için servis randevusu oluşturuldu.",
+  "csat": { "rating": 5, "comment": "Hem geçici hem kalıcı çözüm sundular." }
+}

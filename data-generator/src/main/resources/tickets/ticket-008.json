@@ -1,0 +1,8 @@
+{
+  "title": "Gece yedekleme tamamlanmadı, sabah rapor maili gelmedi",
+  "description": "Her sabah 06:00'da gelen Veeam yedek raporu gelmedi. Konsoldan baktığımda dün gece job 'failed' durumunda.",
+  "priority": "CRITICAL",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "Yedekleme",
+  "status": "NEW"
+}

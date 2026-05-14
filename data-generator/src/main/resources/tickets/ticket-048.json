@@ -1,0 +1,19 @@
+{
+  "title": "Phishing maile tıklamış olabilirim, ne yapmalıyım?",
+  "description": "Bankamdan geldiğini sandığım bir maile tıklayıp şifremi girdim, sonradan sahte olduğunu fark ettim.",
+  "priority": "HIGH",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Spam ve Güvenlik",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 10, "description": "Kullanıcı hemen şifresini sıfırladı, IT Güvenlik ekibine olay bildirildi." },
+    { "minutes": 30, "description": "EDR taraması başlatıldı (CrowdStrike), tehdit bulunmadı." },
+    { "minutes": 20, "description": "MFA cihazları yeniden kaydedildi, oturumlar revoke edildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Şifreyi değiştirdik, MFA cihazlarınızı sıfırladık. Hesabınızda anormal aktivite yok. Phishing örneklerini IT Güvenlik bültenine ekledik." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Çok teşekkürler, bir daha dikkat edeceğim." }
+  ],
+  "resolutionNote": "Kullanıcı şifresi değiştirildi, MFA yeniden kaydedildi, mevcut oturumlar sonlandırıldı, EDR taraması temiz.",
+  "csat": { "rating": 5, "comment": "Hızlı ve profesyonel tepki, çok güven verici." }
+}

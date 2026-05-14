@@ -1,0 +1,8 @@
+{
+  "title": "OneDrive senkronizasyonu 'paused' durumda kalıyor",
+  "description": "Her açtığımda OneDrive durduruluyor uyarısı geliyor. 'Resume' tıkladığımda 1-2 dakika sonra tekrar duraklatıyor.",
+  "priority": "MEDIUM",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "OneDrive",
+  "status": "NEW"
+}

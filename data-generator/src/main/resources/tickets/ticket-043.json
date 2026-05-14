@@ -1,0 +1,18 @@
+{
+  "title": "40 MB ekli sözleşmeyi göndermeye çalışınca reddediliyor",
+  "description": "Müşteriye sözleşme göndermem gerekiyor, ek 40 MB. Exchange 'size exceeded' veriyor.",
+  "priority": "MEDIUM",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Mail Gönderim",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 10, "description": "Dosya OneDrive'a yüklendi, paylaşım linki oluşturuldu." },
+    { "minutes": 10, "description": "Kullanıcıya linkin nasıl ekleneceği detaylı anlatıldı." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Exchange limiti 25 MB. Dosyanızı OneDrive'a yükleyip 'Share' butonu ile link oluşturup mailinize ekleyin. Adım adım anlatım için arayabilirsin." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Linki gönderdim, müşteri indirdi. Teşekkürler." }
+  ],
+  "resolutionNote": "Büyük ek yerine OneDrive paylaşım linki kullanımı önerildi, kullanıcı süreci tamamladı.",
+  "csat": { "rating": 4, "comment": "İyi öneri ama Exchange limiti artırılırsa daha pratik olur." }
+}

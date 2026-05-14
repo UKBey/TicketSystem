@@ -1,0 +1,8 @@
+{
+  "title": "VPN bağlantısı 'authentication failed' hatası veriyor",
+  "description": "Sabah ofis dışından bağlanmaya çalışıyorum, kullanıcı adı/şifre doğru olduğu halde 'authentication failed' alıyorum. SSO oturumu açıkken bile VPN istemcisi kabul etmiyor.",
+  "priority": "HIGH",
+  "productName": "VPN ve Ağ",
+  "topicName": "VPN Bağlantısı",
+  "status": "NEW"
+}

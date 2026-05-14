@@ -1,0 +1,14 @@
+{
+  "title": "Ağ yazıcısına ping bile gitmiyor",
+  "description": "İK yazıcısına bağlanamıyorum, ping cevap dahi vermiyor. Daha önce sorunsuz çalışıyordu.",
+  "priority": "LOW",
+  "productName": "VPN ve Ağ",
+  "topicName": "Ofis Ağı",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 20, "description": "Yazıcı VLAN 30'da olduğu tespit edildi, kullanıcının VLAN 10 olduğu doğrulandı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "ACL kuralının VLAN 10'dan 30'a 9100/UDP izninin olup olmadığı network ekibine soruldu, kullanıcıdan bilgi bekliyoruz." }
+  ]
+}

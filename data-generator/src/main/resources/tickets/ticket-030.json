@@ -1,0 +1,16 @@
+{
+  "title": "Office 'Lisansınızla ilgili bir sorun var' uyarısı veriyor",
+  "description": "Bu sabah Excel açtığımda lisans uyarısı geldi ve dosyaları kaydedemiyorum.",
+  "priority": "MEDIUM",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "Lisanslama",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 15, "description": "Microsoft 365 Admin Center'da kullanıcıya lisans atanmadığı tespit edildi." },
+    { "minutes": 10, "description": "Office365 E3 lisansı atandı, kullanıcıdan Sign-out/Sign-in istendi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Lisansınız atandı. Office uygulamalarında File > Account > Sign Out yapıp tekrar oturum açın." }
+  ],
+  "resolutionNote": "Eski cihazdan lisans unbind edildi, kullanıcıya yeni lisans atandı. Sign out/in sonrası tüm Office uygulamaları aktif."
+}

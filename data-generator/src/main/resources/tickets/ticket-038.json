@@ -1,0 +1,18 @@
+{
+  "title": "Outlook açıldığında 'Profile cannot be loaded' hatası",
+  "description": "Bilgisayarımı yeniden başlattım, Outlook artık açılmıyor. Hata: 'The set of folders cannot be opened'.",
+  "priority": "MEDIUM",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Outlook",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 25, "description": "Profil bozulmuş, Control Panel > Mail üzerinden yeni profil oluşturuldu." },
+    { "minutes": 50, "description": "Cached Mode senkronu beklendi, posta kutusu (3.5 GB) tamamen indirildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Yeni profil hazır. Senkron tamamlandığında tüm maillerinizi göreceksiniz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Tüm mailler geri geldi, takvim de senkronize. Teşekkür ederim." }
+  ],
+  "resolutionNote": "Yeni Outlook profili oluşturuldu, Cached Mode tüm verileri yeniden senkronize etti. Veri kaybı yok.",
+  "csat": { "rating": 5, "comment": "Hızlı çözüm, kayıp olmadı, çok memnunum." }
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Production EC2 instance'a SSH yapamıyorum",
+  "description": "Production load-balancer arkasındaki EC2'lere bastion üzerinden SSH yapıyorum, hepsi timeout veriyor.",
+  "priority": "MEDIUM",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "AWS",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 25, "description": "Security Group inbound kuralları kontrol edildi, 22 portu sadece bastion için açık." },
+    { "minutes": 20, "description": "Bastion host /var/log/auth.log incelendi — bağlantı bastion'a ulaşıyor ama EC2 reddediyor." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "SSH key rotation yapılmış olabilir; kullanıcıdan kullandığı pem dosyasının fingerprint'i istendi." }
+  ]
+}

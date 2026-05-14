@@ -1,0 +1,18 @@
+{
+  "title": "Klavyemin 'E' ve 'D' tuşları çalışmıyor",
+  "description": "Hızlıca yazmaya çalışırken bu iki tuş takılı kalıyor veya hiç çalışmıyor.",
+  "priority": "LOW",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Klavye ve Mouse",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 10, "description": "Basınçlı hava ile temizleme yapıldı, kısmen düzeldi." },
+    { "minutes": 5, "description": "Yedek klavye verildi, kullanıcı tüm tuşları test etti." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Yedek klavye kullanım için verildi. Eski klavyenizi servise gönderdik." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Yeni klavye sorunsuz çalışıyor, çok teşekkür ederim." }
+  ],
+  "resolutionNote": "Yedek klavye teslim edildi, bozulan klavye onarım için servise gönderildi.",
+  "csat": { "rating": 4, "comment": "Hızlıydı." }
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Word açılırken 'Normal.dotm bulunamadı' hatası",
+  "description": "Bu sabah Word açıldığında bir hata penceresi geldi ve sonra hiçbir belge düzenleyemiyorum.",
+  "priority": "LOW",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "Office Paketi",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 15, "description": "%appdata%\\Microsoft\\Templates\\Normal.dotm yedeklenip silindi, Word yeniden açıldı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Word'ü kapatıp tekrar açar mısın? Şablon yeniden oluşmuş olmalı." }
+  ]
+}

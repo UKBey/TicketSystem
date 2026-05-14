@@ -1,0 +1,14 @@
+{
+  "title": "ERP yıllık satış raporu 'Out of Memory' ile düşüyor",
+  "description": "2023-2024 satış raporunu çekmeye çalışıyorum, %85'te 'out of memory' veriyor ve düşüyor.",
+  "priority": "HIGH",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "ERP",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 40, "description": "Rapor sorgusu DB'de incelendi, 3 milyon satır + join'ler nedeniyle 4GB üzeri RAM tüketiyor." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Tarih aralığını 3 aylık dilimlere bölmesini istedim; pivot alternatifi de önerildi." }
+  ]
+}

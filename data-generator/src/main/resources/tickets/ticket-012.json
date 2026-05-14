@@ -1,0 +1,15 @@
+{
+  "title": "CRM mobil uygulaması müşteri listesini güncellemiyor",
+  "description": "Telefondaki CRM uygulamasında müşteri listem 3 gün öncesinde takılı kalmış. Bilgisayardan girdiğimde güncel kayıtlar görünüyor.",
+  "priority": "MEDIUM",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "CRM",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 20, "description": "Mobil app cache temizletildi, kullanıcıya yeniden login adımları gönderildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Lütfen aşağıdaki adımları uygulayın: Ayarlar > Uygulamalar > CRM > Önbelleği temizle, ardından yeniden giriş yapın." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Uyguladım, ilk sync 100 müşteri çekti ama hala bugünkü kayıt yok." }
+  ]
+}

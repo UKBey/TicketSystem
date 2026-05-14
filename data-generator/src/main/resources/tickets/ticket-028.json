@@ -1,0 +1,16 @@
+{
+  "title": "Müşteriden gelen kritik mail karantinaya düşmüş",
+  "description": "Müşteri sözleşme dosyası gönderdiğini söyledi ama gelen kutumda yok, karantinaya düşmüş olabilir.",
+  "priority": "MEDIUM",
+  "productName": "E-posta ve İletişim",
+  "topicName": "Spam ve Güvenlik",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 15, "description": "Mimecast karantina arayüzünden mail bulundu ve serbest bırakıldı." },
+    { "minutes": 10, "description": "Gönderici 'permitted senders' listesine eklendi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Maili gelen kutunuza release ettik, göndereni güvenli listeye ekledim. Tekrar bakmanızı rica ederim." }
+  ],
+  "resolutionNote": "Mail Mimecast karantinadan release edildi, gönderici domain whitelist'e eklendi. Kullanıcı geleni doğruladı."
+}

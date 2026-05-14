@@ -1,0 +1,15 @@
+{
+  "title": "Yeni SaaS uygulamamız Figma firewall tarafından engelleniyor",
+  "description": "Tasarım ekibi Figma'ya erişemiyor; 'Connection refused' alıyorlar. Dış ağda sorun yok.",
+  "priority": "HIGH",
+  "productName": "VPN ve Ağ",
+  "topicName": "Firewall",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 15, "description": "Figma'nın resmi IP/DNS listesi alındı, vendor dokümantasyonu eklendi." },
+    { "minutes": 30, "description": "Firewall change request CR-2826 açıldı, onay bekliyor." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "CR onay süresi 4 saat, takip ediyorum. Onaylanır onaylanmaz outbound 443 açılacak." }
+  ]
+}

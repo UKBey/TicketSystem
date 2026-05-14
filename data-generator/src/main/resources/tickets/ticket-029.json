@@ -1,0 +1,16 @@
+{
+  "title": "Dizüstüm şarja takılı olduğu halde dolmuyor",
+  "description": "Cihazım şarj cihazına takılı durumda fakat batarya yüzdesi düşmeye devam ediyor.",
+  "priority": "LOW",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Dizüstü Bilgisayar",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 20, "description": "Şarj adaptörünün 65W değil 45W olduğu tespit edildi, yetersiz." },
+    { "minutes": 10, "description": "Yedek 90W adaptör verildi, batarya dolmaya başladı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Eski 45W adaptör cihazınız için yetersizdi, 90W ile değiştirdim. Şu an doluyor, kontrol edebilirsin." }
+  ],
+  "resolutionNote": "Adaptör 45W'tan 90W'a yükseltildi. Cihaz dolma hızı normal, 1 saat içinde %100'e ulaştı."
+}

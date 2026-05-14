@@ -1,0 +1,18 @@
+{
+  "title": "FTP üzerinden dosya transferi sürekli timeout veriyor",
+  "description": "Yedekleme için FTP sunucusuna bağlanıyorum, listing geliyor ama transfer başlayınca takılıyor.",
+  "priority": "HIGH",
+  "productName": "VPN ve Ağ",
+  "topicName": "Firewall",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 25, "description": "Pasif FTP için 49152-65535 outbound port aralığının kapalı olduğu görüldü." },
+    { "minutes": 20, "description": "Firewall'da PASV-RANGE kuralı eklendi, transfer testi başarılı." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Pasif FTP port aralığı açıldı. Tekrar deneyip dönüş yapabilir misin?" },
+    { "author": "customer", "type": "EXTERNAL", "message": "Test ettim, 500MB dosya sorunsuz aktarıldı. Teşekkürler." }
+  ],
+  "resolutionNote": "Firewall'a pasif FTP için 49152-65535 outbound izin kuralı eklendi. Transfer başarılı.",
+  "csat": { "rating": 5, "comment": "Detaylı ve net çözüm." }
+}

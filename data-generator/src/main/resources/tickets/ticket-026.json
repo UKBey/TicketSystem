@@ -1,0 +1,14 @@
+{
+  "title": "Yazıcı çift taraflı baskı (duplex) yapmıyor",
+  "description": "İK formları için duplex çıktı alıyorum ama yazıcı her zaman tek tarafa basıyor.",
+  "priority": "MEDIUM",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Yazıcı",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 25, "description": "Driver Device Settings altında Duplex Unit = Installed olarak güncellendi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcıdan yeniden duplex baskı testi yapması istendi, sonuç bekleniyor." }
+  ]
+}

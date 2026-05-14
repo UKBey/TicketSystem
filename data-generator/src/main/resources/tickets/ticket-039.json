@@ -1,0 +1,18 @@
+{
+  "title": "Yazıcı kuyruğa yazdırma alıyor ama basmıyor",
+  "description": "Print kuyruğunda 5 belgem birikti, hiçbiri basılmıyor. Yazıcıda hata gözükmüyor.",
+  "priority": "LOW",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Yazıcı",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 15, "description": "Print Spooler servisi restart edildi, kuyruk temizlendi." },
+    { "minutes": 10, "description": "Test sayfası basıldı, çalışıyor." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Print spooler restart ettim, kuyruğunu temizledim. Belgelerinizi tekrar gönderebilirsiniz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Çalıştı, teşekkürler." }
+  ],
+  "resolutionNote": "Windows Print Spooler servisi yeniden başlatıldı, kuyruk açıldı. Yazdırma normal.",
+  "csat": { "rating": 4, "comment": "Hızlıydı ama bu sorun yine olabilir." }
+}

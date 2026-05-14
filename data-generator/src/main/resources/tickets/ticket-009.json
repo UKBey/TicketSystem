@@ -1,0 +1,16 @@
+{
+  "title": "Konuk Wi-Fi 5-10 dakikada bir bağlantıyı düşürüyor",
+  "description": "Misafir kullanıcılar Konuk Wi-Fi'a bağlanıyor ama belli aralıklarla otomatik kopuyor. Bugün 3 farklı kişi şikayet etti.",
+  "priority": "MEDIUM",
+  "productName": "VPN ve Ağ",
+  "topicName": "Wi-Fi",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 30, "description": "DHCP havuzu kullanımı kontrol edildi — kotanın yaklaşık %90'ı dolu görünüyor." },
+    { "minutes": 20, "description": "Network ekibine kira süresi kısaltma ile geçici çözüm önerisi iletildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "INTERNAL", "message": "DHCP lease süresi 1 saatten 30 dakikaya indirildi, izliyorum." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Müsteri yine kopmadan önce 5 dakika bağlı kalabildi." }
+  ]
+}

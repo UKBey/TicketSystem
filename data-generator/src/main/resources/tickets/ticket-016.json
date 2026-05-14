@@ -1,0 +1,15 @@
+{
+  "title": "Dizüstü cihaz aşırı ısınıyor ve yavaşlıyor",
+  "description": "Cihazım yaklaşık bir haftadır ısınıyor, sıcaklık 90°C üzerine çıkıyor. CPU kullanımı boştayken bile yüksek.",
+  "priority": "MEDIUM",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Dizüstü Bilgisayar",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 25, "description": "HWiNFO ile CPU sıcaklığı izlendi, fan profili Dell PowerManager'da 'Cool' seçildi." },
+    { "minutes": 40, "description": "Servis randevusu oluşturuldu, termal pasta yenilenecek." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcı 3 yaşındaki bir Latitude kullanıyor, periyodik bakım yapılacak." }
+  ]
+}

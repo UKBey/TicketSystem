@@ -1,0 +1,16 @@
+{
+  "title": "CORP-SECURE Wi-Fi'a bağlanamıyorum",
+  "description": "Yeni cihazımı kurumsal Wi-Fi'a bağlamaya çalıştığımda kullanıcı adı/şifreyi giriyorum ama 'cannot connect' alıyorum.",
+  "priority": "HIGH",
+  "productName": "VPN ve Ağ",
+  "topicName": "Wi-Fi",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 30, "description": "Cihazda PEAP-MSCHAPv2 yerine PEAP-TLS gerekiyordu, ayar düzeltildi." },
+    { "minutes": 15, "description": "Sertifika onayı kapalıydı, açıldı. Bağlantı kuruldu." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Ağ ayarlarınızı PEAP-TLS olarak güncelledim, şu an bağlanıyor. Test edebilirsiniz." }
+  ],
+  "resolutionNote": "WPA2-Enterprise için PEAP-TLS doğrulama yöntemi aktif edildi ve sunucu sertifikası doğrulaması açıldı."
+}

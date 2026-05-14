@@ -1,0 +1,18 @@
+{
+  "title": "SharePoint sitemiz 'Access Denied' veriyor",
+  "description": "İK departmanının SharePoint sitesine erişemiyorum, 'Sorry, you don't have access' uyarısı geliyor.",
+  "priority": "MEDIUM",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "SharePoint",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 15, "description": "Site permissions listesinde kullanıcı bulunamadı." },
+    { "minutes": 10, "description": "Site sahibinden onay alındı, kullanıcı 'Members' grubuna eklendi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Site Members'a eklendiniz. 5-10 dakika içinde erişim sağlanacak." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Açıldı, dosyalara erişebiliyorum, teşekkürler." }
+  ],
+  "resolutionNote": "Kullanıcı IK SharePoint site Members grubuna eklendi. Erişim onaylandı.",
+  "csat": { "rating": 5, "comment": "Çok iyi destek." }
+}

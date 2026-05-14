@@ -1,0 +1,372 @@
+{
+  "users": {
+    "agents": [
+      { "username": "agent1.gen", "email": "agent1.gen@ticketsystem.local", "firstName": "Aylin",  "lastName": "Demir",  "password": "321654" },
+      { "username": "agent2.gen", "email": "agent2.gen@ticketsystem.local", "firstName": "Kerem",  "lastName": "Yıldız", "password": "321654" },
+      { "username": "agent3.gen", "email": "agent3.gen@ticketsystem.local", "firstName": "Zeynep", "lastName": "Aksoy",  "password": "321654" }
+    ],
+    "customers": [
+      { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local", "firstName": "Mehmet", "lastName": "Şahin",  "password": "321654" },
+      { "username": "customer2.gen", "email": "customer2.gen@ticketsystem.local", "firstName": "Elif",   "lastName": "Koç",    "password": "321654" },
+      { "username": "customer3.gen", "email": "customer3.gen@ticketsystem.local", "firstName": "Burak",  "lastName": "Polat",  "password": "321654" },
+      { "username": "customer4.gen", "email": "customer4.gen@ticketsystem.local", "firstName": "Selin",  "lastName": "Çelik",  "password": "321654" }
+    ]
+  },
+
+  "products": [
+    {
+      "name": "VPN ve Ağ",
+      "topics": [
+        {
+          "name": "VPN Bağlantısı",
+          "knownIssues": [
+            {
+              "title": "VPN istemcisi 'Authentication failed' hatası veriyor",
+              "content": "Genellikle Keycloak SSO oturum zaman aşımı veya yanlış sertifika sebebiyle oluşur. Çözüm: 1) İstemciden VPN profili silinip yeniden indirilir. 2) Sertifika 'C:\\Program Files\\VPN Client\\certs' altına manuel kopyalanır. 3) Sunucu adı 'vpn.corp.local' olarak yazılır."
+            },
+            {
+              "title": "VPN bağlandıktan sonra internet kesiliyor",
+              "content": "Split tunneling kapalıyken DNS routing'i yanlış kuruluyor olabilir. Çözüm: VPN profilinde 'Use default gateway on remote network' seçeneğini kapat ve route tablosunu temizle (route /f)."
+            }
+          ]
+        },
+        {
+          "name": "Wi-Fi",
+          "knownIssues": [
+            {
+              "title": "Kurumsal Wi-Fi'a (CORP-SECURE) bağlanılamıyor",
+              "content": "WPA2-Enterprise üzerinde MSCHAPv2 yerine PEAP-TLS gerekiyor. Çözüm: Ağ ayarlarından 'Doğrulama: PEAP', 'İç doğrulama: EAP-MSCHAPv2', 'Sunucu sertifikası doğrula: Aç' seçilir ve domain hesabı girilir."
+            },
+            {
+              "title": "Konuk Wi-Fi sürekli koparıyor",
+              "content": "DHCP havuzu tükendiği için kira süresi dolduktan sonra IP alınamıyor. Geçici çözüm: Statik IP atanır (10.10.20.50-100 aralığı). Kalıcı çözüm: Network ekibi havuzu /23'e genişletir."
+            }
+          ]
+        },
+        {
+          "name": "Ofis Ağı",
+          "knownIssues": [
+            {
+              "title": "Belirli portlar (445, 3389) ofis ağında bloklu",
+              "content": "Güvenlik politikası gereği SMB ve RDP iç ağdaki dosya/uzak masaüstü trafiği için ofise dışarıdan kapalı tutulur. VPN üzerinden bağlanılması gerekir."
+            },
+            {
+              "title": "Ağ yazıcısına ping geçmiyor",
+              "content": "Yazıcı VLAN 30'da, kullanıcı bilgisayarları VLAN 10'da. ACL kontrol edilir; eksikse network ekibi 10→30 yazıcı portları için kural ekler."
+            }
+          ]
+        },
+        {
+          "name": "Firewall",
+          "knownIssues": [
+            {
+              "title": "Yeni SaaS uygulama firewall tarafından engelleniyor",
+              "content": "İlgili SaaS sağlayıcısının IP listesi 'allowed-destinations' kuralına eklenmeli. Genellikle vendor dokümantasyonunda 'IP ranges' başlığı altında listelenir."
+            },
+            {
+              "title": "FTP transferleri timeout veriyor",
+              "content": "Pasif FTP için 49152-65535 port aralığı outbound olarak izinli olmalı. Aktif mod artık desteklenmiyor, istemci tarafında pasif mod açılır."
+            }
+          ]
+        },
+        {
+          "name": "DNS Sorunları",
+          "knownIssues": [
+            {
+              "title": "İç servislere (corp.local) erişim sağlanamıyor",
+              "content": "DNS sunucusu ofiste 10.0.0.10/11. İstemcide DNS yanlış konfigüre edilmiş olabilir. ipconfig /flushdns ardından nslookup corp.local çalıştırılır."
+            },
+            {
+              "title": "Bazı dış siteler 'DNS_PROBE_FINISHED_NXDOMAIN' veriyor",
+              "content": "Caching DNS önbelleği bozulmuş olabilir. Çözüm: 'ipconfig /flushdns' + tarayıcı önbelleği temizleme. Devam ederse içerideki resolver yeniden başlatılır."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "E-posta ve İletişim",
+      "topics": [
+        {
+          "name": "Outlook",
+          "knownIssues": [
+            {
+              "title": "Outlook 'Bağlanmaya çalışılıyor' uyarısıyla takılıyor",
+              "content": "Cached Exchange Mode'da OST dosyası bozulmuş olabilir. Çözüm: Outlook kapalıyken %localappdata%\\Microsoft\\Outlook altındaki .ost yeniden adlandırılır, sonra yeniden açılır."
+            },
+            {
+              "title": "Profil silindikten sonra mailler kayboldu",
+              "content": "Sunucu tarafında veri kayboluyor değil; profili yeniden ekleyince Cached Mode tüm verileri tekrar senkronize eder. Süre kutu boyutuna göre 15dk-2 saat arası sürer."
+            }
+          ]
+        },
+        {
+          "name": "Mail Gönderim",
+          "knownIssues": [
+            {
+              "title": "Büyük ek (>25MB) gönderimi reddediliyor",
+              "content": "Exchange politikası 25MB üst sınır koyuyor. Çözüm: SharePoint/OneDrive üzerinden paylaşım linki ile gönderilir."
+            },
+            {
+              "title": "DMARC nedeniyle mailler spam'e düşüyor",
+              "content": "Gönderici domaininin SPF/DKIM/DMARC kayıtları kontrol edilir. Eksikse DNS ekibine kayıt eklemesi için talep açılır."
+            }
+          ]
+        },
+        {
+          "name": "Spam ve Güvenlik",
+          "knownIssues": [
+            {
+              "title": "Yanlışlıkla karantinaya düşen mailler",
+              "content": "Mimecast karantina arayüzünden mesajlar serbest bırakılır ve gönderici 'permitted senders' listesine eklenir. Tekrar etmemesi için."
+            },
+            {
+              "title": "Phishing maillere tıklanması durumunda yapılacaklar",
+              "content": "1) Tarayıcı kapatılır. 2) Şifre derhal değiştirilir. 3) Olay IT Güvenlik'e bildirilir (security@corp.local). 4) Endpoint EDR taraması başlatılır."
+            }
+          ]
+        },
+        {
+          "name": "Calendar ve Toplantı",
+          "knownIssues": [
+            {
+              "title": "Toplantı odası rezervasyonu gözükmüyor",
+              "content": "Oda kaynak posta kutusu olarak tanımlı; takvim paylaşımı kullanıcıya açılmalı. IT, oda kaynağına 'Reviewer' yetkisi ekler."
+            },
+            {
+              "title": "Tekrar eden toplantı serisinde tek bir gün değişmiyor",
+              "content": "Outlook web sürümünde 'Bu olay' seçeneği eski seriden devraldığı için bazen kaydetmez. Çözüm: masaüstü Outlook'tan ilgili tek toplantı açılır, kaydedilir."
+            }
+          ]
+        },
+        {
+          "name": "Teams",
+          "knownIssues": [
+            {
+              "title": "Teams araması sırasında ses gitmiyor",
+              "content": "Genellikle Windows Sound mixer'da Teams'in mikrofonu disabled. Ayarlar > Gizlilik > Mikrofon > Teams aç. Devam ederse 'Teams Modern Auth' önbelleği silinir."
+            },
+            {
+              "title": "Teams ekran paylaşımı siyah ekran gösteriyor",
+              "content": "GPU hızlandırma + Citrix VDI çakışıyor olabilir. Çözüm: Ayarlar > Genel > 'Disable GPU hardware acceleration' aktif edilir, uygulama yeniden başlatılır."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Donanım ve Altyapı",
+      "topics": [
+        {
+          "name": "Dizüstü Bilgisayar",
+          "knownIssues": [
+            {
+              "title": "Cihaz şarja takılı olduğu halde dolmuyor",
+              "content": "1) Şarj adaptörünün 65W+ olduğundan emin ol. 2) Battery driver Device Manager'dan yeniden yüklenir. 3) Devam ederse pil sağlık raporu için 'powercfg /batteryreport' çalıştırılır."
+            },
+            {
+              "title": "Cihaz aşırı ısınıyor ve yavaşlıyor",
+              "content": "Termal pasta kuruması veya fan tıkanması olası nedendir. Geçici: Dell PowerManager üzerinden 'Cool' profil seçilir. Kalıcı: donanım servise alınır."
+            }
+          ]
+        },
+        {
+          "name": "Monitör",
+          "knownIssues": [
+            {
+              "title": "Harici monitör bağlanıyor ama görüntü gelmiyor",
+              "content": "DisplayPort kablo doğru takılı mı kontrol edilir. Win+P ile 'Extend' seçilir. Devam ederse driver güncellenir (Intel/NVIDIA) ve docking station firmware'i kontrol edilir."
+            },
+            {
+              "title": "İkinci monitörde tek nokta titriyor (dead pixel)",
+              "content": "1 piksel kabul edilebilir tolerans içinde. 3+ pikselde garanti kapsamında değiştirme yapılır."
+            }
+          ]
+        },
+        {
+          "name": "Yazıcı",
+          "knownIssues": [
+            {
+              "title": "Ağ yazıcısı kuyruğa düşüyor ama yazdırmıyor",
+              "content": "Print Spooler servisi yeniden başlatılır (Services.msc → Print Spooler → Restart). Devam ederse driver yeniden yüklenir."
+            },
+            {
+              "title": "Yazıcı çift taraflı baskı (duplex) yapmıyor",
+              "content": "Driver ayarlarında 'Two-sided printing' kapalı olabilir. Yazıcı özellikleri > Device Settings > Duplex Unit = Installed yapılır."
+            }
+          ]
+        },
+        {
+          "name": "Klavye ve Mouse",
+          "knownIssues": [
+            {
+              "title": "Bluetooth mouse'un bağlantısı sürekli kopuyor",
+              "content": "Pil seviyesi düşük veya 2.4 GHz dolu olabilir. Çözüm: pil değiştir; sorun sürerse mouse 'unpair' edilip yeniden eşlenir."
+            },
+            {
+              "title": "Klavyenin bazı tuşları çalışmıyor",
+              "content": "Tuş takımı altına yabancı madde girmiş olabilir; basınçlı hava ile temizleme yapılır. Çözmezse klavye servise alınır."
+            }
+          ]
+        },
+        {
+          "name": "Disk ve Depolama",
+          "knownIssues": [
+            {
+              "title": "C: sürücüsü dolu uyarısı",
+              "content": "1) Disk Cleanup ile temizlik. 2) %temp%, %appdata%\\Local\\Temp temizlenir. 3) OneDrive 'Files On-Demand' aktif edilir. 4) Hala sorun varsa servis tarafından SSD upgrade değerlendirilir."
+            },
+            {
+              "title": "Harici diski Windows tanımıyor",
+              "content": "Disk Management üzerinden disk gözüküyor mu kontrol edilir. Mount edilmemişse harf atanır. Bozulmuşsa chkdsk /f çalıştırılır."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Kurumsal Yazılım",
+      "topics": [
+        {
+          "name": "ERP",
+          "knownIssues": [
+            {
+              "title": "ERP raporu 'Out of memory' hatasıyla düşüyor",
+              "content": "Tarih aralığı çok geniş (>1 yıl) olabilir. Çözüm: rapor 3 aylık dilimlerde çekilir. Çözmezse raporun zamanlanmış göreve dönüştürülmesi önerilir."
+            },
+            {
+              "title": "Yeni kullanıcıya ERP'de modül atanmıyor",
+              "content": "Önce realm rolünün doğru olduğu doğrulanır. Sonra ERP-Admin üzerinden 'Authorized Modules' listesine ekleme yapılır; cache 5 dk sonra yenilenir."
+            }
+          ]
+        },
+        {
+          "name": "CRM",
+          "knownIssues": [
+            {
+              "title": "Müşteri kaydı kaydedilirken duplicate hatası",
+              "content": "Vergi numarası unique alan, başka kayıtta zaten var demektir. Duplicate kayıt 'Müşteri Birleştirme' aracıyla birleştirilir."
+            },
+            {
+              "title": "CRM mobile uygulaması senkronize olmuyor",
+              "content": "İlk olarak hesabın çıkış-giriş yapılır. Sonrasında uygulama cache temizlenir. Sorun sürerse SSO token süresi (60dk) dolmuş olabilir; manuel yeniden login."
+            }
+          ]
+        },
+        {
+          "name": "Office Paketi",
+          "knownIssues": [
+            {
+              "title": "Excel makro çalıştırırken 'Trust Center' uyarısı",
+              "content": "Dosya henüz güvenilir konum dışında. Dosyayı kaydet > File > Info > Enable Content veya makro digital signature ile imzalanır."
+            },
+            {
+              "title": "Word şablonları açılmıyor",
+              "content": "Normal.dotm bozulmuş olabilir. %appdata%\\Microsoft\\Templates\\Normal.dotm silinir, Word yeniden açıldığında yeniden oluşur."
+            }
+          ]
+        },
+        {
+          "name": "Tarayıcı",
+          "knownIssues": [
+            {
+              "title": "Chrome eklentisi kurumsal politika nedeniyle yüklenmiyor",
+              "content": "GPO ile yalnızca allow-list'tekiler yüklenebilir. Talep yapan kullanıcı 'Browser Extension Request' formunu doldurur, Bilgi Güvenliği onayından sonra eklenir."
+            },
+            {
+              "title": "Edge 'Inprivate' modu açılmıyor",
+              "content": "Kurumsal Edge politikası inprivate'i kapatabilir. GPO 'InPrivateModeAvailability = 1' aktiftir; iş gereği ise IT Security istisna ekler."
+            }
+          ]
+        },
+        {
+          "name": "Lisanslama",
+          "knownIssues": [
+            {
+              "title": "Office 'Lisansınızla ilgili bir sorun var' uyarısı",
+              "content": "Lisans havuzu dolu olabilir. Eski cihazlardan license unbind yapılır (Microsoft 365 Admin > Active users). Kullanıcıya yeni lisans atandığında 24 saat içinde Office yeniden aktif olur."
+            },
+            {
+              "title": "Adobe Acrobat Pro 'Subscription expired' diyor",
+              "content": "Lisans entitlement Adobe Admin Console'dan yenilenir. Kullanıcı 'Help > Sign Out' > tekrar oturum açar."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Bulut Hizmetleri",
+      "topics": [
+        {
+          "name": "OneDrive",
+          "knownIssues": [
+            {
+              "title": "OneDrive 'You're up to date' diyor ama dosya senkronize olmuyor",
+              "content": "Path 400 karakter üstündeyse senkron başarısız. Klasör adı kısaltılır veya 'Files On-Demand' kapatılıp tekrar açılır."
+            },
+            {
+              "title": "OneDrive senkronizasyonu çakışma dosyaları üretiyor",
+              "content": "İki cihaz aynı anda düzenliyor olabilir. Bir cihazda OneDrive 'pause' yapılır, sorunu çözen sürüm seçilir, sonra senkronize edilir."
+            }
+          ]
+        },
+        {
+          "name": "SharePoint",
+          "knownIssues": [
+            {
+              "title": "SharePoint site yüklenirken 'Sorry, you don't have access'",
+              "content": "Site permission listesinde kullanıcı eksik. Site sahibinden 'Members' grubuna eklenmesi talep edilir."
+            },
+            {
+              "title": "Toplu dosya silme limitle (5000 öğe) takılıyor",
+              "content": "Bir kerede 5000+ dosya silinemiyor. PowerShell ile batch script çalıştırılır veya Recycle Bin Powershell modülü kullanılır."
+            }
+          ]
+        },
+        {
+          "name": "Azure",
+          "knownIssues": [
+            {
+              "title": "Azure VM 'Allocation failed' hatasıyla başlamıyor",
+              "content": "Bölgede ilgili SKU stok yok. Çözüm: alternatif region veya farklı VM size denenir. Tier-1 production için kapasite rezervasyonu açılır."
+            },
+            {
+              "title": "MFA Microsoft Authenticator bildirimi gelmiyor",
+              "content": "Cihazda push servisi bloklu olabilir. Uygulama içi 'check for approvals' tıklatılır; çalışmazsa MFA cihazı yeniden kaydedilir."
+            }
+          ]
+        },
+        {
+          "name": "AWS",
+          "knownIssues": [
+            {
+              "title": "S3 bucket public erişime kapalı ama URL açık",
+              "content": "Bucket policy ve CORS ayrı kontrol edilmeli. Block Public Access ON olsa bile signed URL ile erişim sağlanabilir; gerçek public access açık değildir."
+            },
+            {
+              "title": "EC2 SSH 'Connection timeout' veriyor",
+              "content": "Security Group inbound 22 portu eksik. VPC route table'da Internet Gateway yoksa public erişim mümkün değildir; bastion host kullanılır."
+            }
+          ]
+        },
+        {
+          "name": "Yedekleme",
+          "knownIssues": [
+            {
+              "title": "Veeam yedeği 'Backup repository full' hatası veriyor",
+              "content": "Retention politikası dışına çıkmış eski yedekler manuel temizlenir. Long-term storage S3 Glacier'a taşınması önerilir."
+            },
+            {
+              "title": "Geri yükleme sırasında dosya checksum uyumsuzluğu",
+              "content": "Repository üzerinde bozulma olabilir. 'Health Check' job tetiklenir; corrupted block'lar bir sonraki yedekte düzeltilir."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

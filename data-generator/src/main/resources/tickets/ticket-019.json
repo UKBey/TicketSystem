@@ -1,0 +1,14 @@
+{
+  "title": "corp.local üzerinden bazı iç servislere erişemiyorum",
+  "description": "Wiki ve fileshare gibi corp.local altındaki bazı servislere erişim sağlayamıyorum. DNS resolution başarısız oluyor.",
+  "priority": "MEDIUM",
+  "productName": "VPN ve Ağ",
+  "topicName": "DNS Sorunları",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 20, "description": "DNS önbelleği temizlendi (ipconfig /flushdns), nslookup ile farklı kayıtlar test edildi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Hangi servislerin erişilemediğini netleştirmek için kullanıcıdan tam liste ve ekran görüntüsü istendi." }
+  ]
+}

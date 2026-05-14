@@ -1,0 +1,18 @@
+{
+  "title": "Excel makrolu raporum 'Trust Center' uyarısıyla açılmıyor",
+  "description": "Finansal model dosyam makro içeriyor ve her açılışta makrolar bloklanıyor.",
+  "priority": "LOW",
+  "productName": "Kurumsal Yazılım",
+  "topicName": "Office Paketi",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 15, "description": "Dosyanın 'Mark of the Web' özniteliği vardı, Properties > Unblock yapıldı." },
+    { "minutes": 10, "description": "Kullanıcının Trusted Locations listesi gözden geçirildi, OneDrive klasörü eklendi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "Dosyanın internetten geldiği için MOTW vardı. Kaldırdım, Trusted Location ekledim — şimdi makro çalışacak." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Makrolar çalıştı, modelim tekrar kullanılabilir. Teşekkürler." }
+  ],
+  "resolutionNote": "Dosya 'Mark of the Web' kaldırıldı ve Excel Trusted Locations'a kullanıcı klasörü eklendi.",
+  "csat": { "rating": 5, "comment": "Sorunu detayıyla anlattılar, gelecekte de bilebiliyorum." }
+}

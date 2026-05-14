@@ -1,0 +1,14 @@
+{
+  "title": "Bluetooth mouse her gün öğleden sonra kopuyor",
+  "description": "Logitech MX Master 3'üm öğleden sonra bağlantısı kopuyor. Pil dolu, yeni eşledim hala devam ediyor.",
+  "priority": "LOW",
+  "productName": "Donanım ve Altyapı",
+  "topicName": "Klavye ve Mouse",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    { "minutes": 15, "description": "2.4 GHz spektrum analizi yapıldı, parazitli kanal tespit edildi (kanal 6)." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Unifying USB receiver ile test etmesi için kullanıcıya alıcı gönderildi, sonuç bekleniyor." }
+  ]
+}

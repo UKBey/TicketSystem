@@ -1,0 +1,16 @@
+{
+  "title": "OneDrive bir sürü 'çakışma' dosyası oluşturuyor",
+  "description": "İki cihazdan aynı belgeyi düzenledim, sonra her klasörde '-conflict' eki olan dosyalar görüyorum.",
+  "priority": "LOW",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "OneDrive",
+  "status": "RESOLVED",
+  "worklogs": [
+    { "minutes": 25, "description": "Çakışan dosyaların version history'si incelendi, en güncel sürüm seçildi." },
+    { "minutes": 15, "description": "Conflict dosyaları manuel olarak temizlendi, kullanıcıya iş akışı önerisi verildi." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "EXTERNAL", "message": "Bir cihazda OneDrive'ı pause ettim, çakışmalar temizlendi. İki cihazdan eş zamanlı düzenleme yerine birinden çıkış öneriyorum." }
+  ],
+  "resolutionNote": "Çakışma dosyaları en güncel sürüm tutularak temizlendi. Kullanıcıya 'Files On-Demand' kullanımı önerildi."
+}

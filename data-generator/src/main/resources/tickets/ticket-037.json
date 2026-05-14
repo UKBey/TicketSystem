@@ -1,0 +1,19 @@
+{
+  "title": "Toplu VPN kesintisi — finans ekibi çalışamıyor",
+  "description": "Sabah saat 09:30'dan beri finans ekibinin yarısı VPN'e bağlanamıyor. Bütçe süreçlerini etkiliyor.",
+  "priority": "CRITICAL",
+  "productName": "VPN ve Ağ",
+  "topicName": "VPN Bağlantısı",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 20, "description": "Olay etkilenen kullanıcı sayısıyla birlikte network ekibine yükseltildi." },
+    { "minutes": 45, "description": "RADIUS sunucusunda token doğrulama hatası tespit edildi, restart yapıldı." },
+    { "minutes": 15, "description": "Etkilenen kullanıcılar yeniden bağlandı, ekran görüntüleri arşivlendi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "RADIUS yeniden başlatıldı, bağlantılar normale döndü. Lütfen tekrar bağlanıp doğrulayın." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Şu an VPN bağlandı, ekibimiz çalışmaya devam ediyor. Çok hızlı çözüm için teşekkürler." }
+  ],
+  "resolutionNote": "RADIUS sunucusunda token önbelleği bozulmuştu. Servis yeniden başlatıldı, tüm bağlantılar normale döndü. Post-mortem hazırlandı.",
+  "csat": { "rating": 5, "comment": "Kriz anında çok hızlı ve net bir destek aldık. Teşekkürler." }
+}

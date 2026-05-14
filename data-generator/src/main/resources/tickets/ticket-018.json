@@ -1,0 +1,15 @@
+{
+  "title": "Azure VM başlatılırken 'AllocationFailed' hatası",
+  "description": "West Europe bölgesinde D8s_v5 VM'imiz 30 dakikadır stop->start ile başlatılamıyor. Tüm SKU stoğu kalmamış görünüyor.",
+  "priority": "HIGH",
+  "productName": "Bulut Hizmetleri",
+  "topicName": "Azure",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    { "minutes": 20, "description": "North Europe bölgesinde aynı SKU denendi, başarıyla ayağa kalktı." },
+    { "minutes": 30, "description": "Geçici failover olarak North Europe replica devreye alındı." }
+  ],
+  "comments": [
+    { "author": "agent", "type": "INTERNAL", "message": "Tier-1 prod için 1 yıllık reserved capacity satın alma süreci başlatılacak." }
+  ]
+}

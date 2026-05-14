@@ -1,0 +1,18 @@
+{
+  "title": "Bazı dış web siteleri 'DNS_PROBE_FINISHED_NXDOMAIN' veriyor",
+  "description": "Chrome'da bazı haber siteleri açılmıyor, mobilde aynı bağlantıda sorunsuz açılıyor.",
+  "priority": "LOW",
+  "productName": "VPN ve Ağ",
+  "topicName": "DNS Sorunları",
+  "status": "CLOSED",
+  "worklogs": [
+    { "minutes": 10, "description": "ipconfig /flushdns + tarayıcı DNS cache temizlendi, sorun sürdü." },
+    { "minutes": 15, "description": "İçerideki resolver'da kötü-cache'lenmiş kayıt tespit edildi, manuel purge edildi." }
+  ],
+  "comments": [
+    { "author": "agent",    "type": "EXTERNAL", "message": "İç resolver'da bozuk cache vardı, temizledim. Şimdi tekrar açabilirsiniz." },
+    { "author": "customer", "type": "EXTERNAL", "message": "Açıldı, teşekkürler." }
+  ],
+  "resolutionNote": "İç DNS resolver'da bozulmuş cache kayıtları temizlendi, etkilenen domain'ler tekrar çözülüyor.",
+  "csat": { "rating": 4, "comment": "Çözüldü, biraz daha hızlı olabilirdi." }
+}
