@@ -19,6 +19,8 @@ volumes:
   sonarqube_db_data:
     # SonarQube veritabani verileri.
   grafana_data:
+  redis_data:
+    # Rate-limit bucket'lari ve gelecekte eklenecek cache/queue verisi.
 
 services:
   # Uygulama veritabani servisi.
@@ -108,6 +110,24 @@ services:
         condition: service_healthy
     networks:
       - it-service-net
+
+  # Dagitik rate-limit bucket'lari ve gelecekteki cache/queue ihtiyaclari icin Redis.
+  # Lokal gelistirmede 6379 portu host'a aciktir — uretimde kaldirilabilir.
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - it-service-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
   mailpit:
@@ -252,6 +272,11 @@ services:
       RATE_LIMIT_GLOBAL_DURATION_SECONDS: ${RATE_LIMIT_GLOBAL_DURATION_SECONDS:-60}
       RATE_LIMIT_GLOBAL_ENABLED: ${RATE_LIMIT_GLOBAL_ENABLED:-true}
 
+      # Redis baglanti ayarlari — rate-limit bucket'lari ve gelecekteki cache/queue kullanimi.
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD:-}
+
       # SLA policy ayarlari
       SLA_LOW_RESOLUTION_HOURS: ${SLA_LOW_RESOLUTION_HOURS:-72}
       SLA_LOW_WARNING_HOURS: ${SLA_LOW_WARNING_HOURS:-2}
@@ -275,6 +300,8 @@ services:
       otel-collector:
         # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
         condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - it-service-net
     extra_hosts:

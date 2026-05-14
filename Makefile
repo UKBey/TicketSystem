@@ -19,7 +19,7 @@ export
 # Sadece altyapı servisleri (backend/frontend hariç) — local dev için
 INFRA_SERVICES := it-service-db openldap-server phpldapadmin keycloak-iam \
                   mailpit opensearch opensearch-dashboards otel-collector \
-                  kafka logstash jbpm-db kie-server
+                  kafka logstash jbpm-db kie-server redis
 
 help:
 	@echo Kullanim: make [komut]
