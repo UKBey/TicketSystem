@@ -10,6 +10,9 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const [priority, setPriority] = useState('MEDIUM');
   const [productId, setProductId] = useState('');
   const [products, setProducts] = useState([]);
+  const [topicId, setTopicId] = useState('');
+  const [topics, setTopics] = useState([]);
+  const [topicsLoading, setTopicsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,9 +22,24 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!productId) {
+      setTopics([]);
+      setTopicId('');
+      return;
+    }
+    setTopicsLoading(true);
+    setTopicId('');
+    api
+      .get(`/products/${productId}/topics`)
+      .then((res) => setTopics(res.data))
+      .catch(() => setTopics([]))
+      .finally(() => setTopicsLoading(false));
+  }, [productId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !productId) {
+    if (!title.trim() || !productId || !topicId) {
       setError(t('ticket.createModal.errorRequired'));
       return;
     }
@@ -35,6 +53,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         description,
         priority,
         productId: Number(productId),
+        topicId: Number(topicId),
       });
       onCreated(res.data);
       resetForm();
@@ -51,6 +70,8 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     setDescription('');
     setPriority('MEDIUM');
     setProductId('');
+    setTopicId('');
+    setTopics([]);
     setError('');
   };
 
@@ -126,6 +147,29 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                 <option value="">{t('ticket.createModal.selectProduct')}</option>
                 {products.filter((p) => p.isActive).map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelTopic')} *</label>
+              <select
+                value={topicId}
+                onChange={(e) => setTopicId(e.target.value)}
+                disabled={!productId || topicsLoading}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+              >
+                <option value="">
+                  {!productId
+                    ? t('ticket.createModal.selectProductFirst')
+                    : topicsLoading
+                    ? t('ticket.createModal.topicsLoading')
+                    : topics.length === 0
+                    ? t('ticket.createModal.noTopics')
+                    : t('ticket.createModal.selectTopic')}
+                </option>
+                {topics.map((tp) => (
+                  <option key={tp.id} value={tp.id}>{tp.name}</option>
                 ))}
               </select>
             </div>
