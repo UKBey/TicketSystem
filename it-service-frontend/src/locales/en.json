@@ -1,4 +1,9 @@
 {
+  "filters": {
+    "clear": "Clear",
+    "clearAll": "Clear all",
+    "noOptions": "No options"
+  },
   "nav": {
     "theme": { "toDark": "Switch to dark mode", "toLight": "Switch to light mode" },
     "language": { "label": "Language", "en": "English", "tr": "Turkish" }
@@ -73,6 +78,8 @@
       "allSla": "All SLA",
       "allProducts": "All products",
       "allAgents": "All agents",
+      "allTopics": "All topics",
+      "selectProductFirst": "Select a product first",
       "clearAll": "Clear all",
       "dateRange": "Date range",
       "quickSelect": "Quick select",
@@ -92,7 +99,8 @@
       "chipSearch": "Search: \"{{value}}\"",
       "chipSla": "SLA: {{value}}",
       "chipProduct": "Product: {{value}}",
-      "chipAgent": "Agent: {{value}}"
+      "chipAgent": "Agent: {{value}}",
+      "chipTopic": "Topic: {{value}}"
     },
     "actions": {
       "claim": "Claim",

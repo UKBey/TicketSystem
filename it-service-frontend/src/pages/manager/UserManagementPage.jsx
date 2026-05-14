@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Search, X, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import { UserPlus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import api, { updateUserStatus } from '../../services/api';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
+import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
+import FilterSearchInput from '../../components/filters/FilterSearchInput';
+import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 
-const ROLES = ['', 'CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'];
+const ROLES = ['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'];
 
 /** Rol badge renkleri — AdminPanel ile tutarlı */
 const roleBadgeStyle = (role) => {
@@ -39,7 +42,7 @@ export default function UserManagementPage() {
 
   const [search, setSearch]           = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [roleFilter, setRoleFilter]   = useState('');
+  const [roleFilter, setRoleFilter]   = useState([]);
 
   const [page, setPage]               = useState(0);
   const [size, setSize]               = useState(20);
@@ -76,7 +79,7 @@ export default function UserManagementPage() {
       setError('');
       const params = new URLSearchParams({ page, size });
       if (debouncedSearch) params.set('search', debouncedSearch);
-      if (roleFilter)      params.set('role',   roleFilter);
+      roleFilter.forEach((r) => params.append('role', r));
 
       const res = await api.get(`/users?${params}`);
       setUsers(res.data.content);
@@ -143,7 +146,7 @@ export default function UserManagementPage() {
 
   const handleClearFilters = () => {
     setSearch('');
-    setRoleFilter('');
+    setRoleFilter([]);
   };
 
   // -------------------------------------------------------------------------
@@ -224,63 +227,21 @@ export default function UserManagementPage() {
           </span>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Arama */}
-            <div className="relative">
-              <Search
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
-                style={{ color: 'var(--text-tertiary)' }}
-              />
-              <input
-                type="text"
-                placeholder={t('userManagement.table.searchPlaceholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="rounded-lg border pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-2 w-52"
-                style={{
-                  backgroundColor: 'var(--bg-input)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                  '--tw-ring-color': 'var(--ring-color)',
-                }}
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Rol filtresi */}
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="rounded-lg border px-2.5 py-1.5 text-xs outline-none focus:ring-2 cursor-pointer"
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-                '--tw-ring-color': 'var(--ring-color)',
-              }}
-            >
-              <option value="">{t('admin.panel.allRoles')}</option>
-              {ROLES.filter((r) => r).map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-
-            {/* Filtreleri temizle */}
-            {(search || roleFilter) && (
-              <button
-                onClick={handleClearFilters}
-                className="rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-              >
-                {t('admin.panel.clear')}
-              </button>
+            <FilterSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t('userManagement.table.searchPlaceholder')}
+              width="13rem"
+              debounceMs={0}
+            />
+            <MultiSelectFilter
+              values={roleFilter}
+              onChange={setRoleFilter}
+              placeholder={t('admin.panel.allRoles')}
+              options={ROLES.map((r) => ({ value: r, label: r }))}
+            />
+            {(search || roleFilter.length > 0) && (
+              <ClearFiltersButton onClick={handleClearFilters} />
             )}
           </div>
         </div>
@@ -443,7 +404,7 @@ export default function UserManagementPage() {
                       className="text-center py-12 text-sm"
                       style={{ color: 'var(--text-tertiary)' }}
                     >
-                      {search || roleFilter
+                      {search || roleFilter.length > 0
                         ? t('admin.panel.noUsersFiltered')
                         : t('userManagement.table.noUsers')}
                     </td>

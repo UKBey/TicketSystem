@@ -3,6 +3,11 @@
     "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },
     "language": { "label": "Dil", "en": "İngilizce", "tr": "Türkçe" }
   },
+  "filters": {
+    "clear": "Temizle",
+    "clearAll": "Tümünü temizle",
+    "noOptions": "Seçenek yok"
+  },
   "sidebar": {
     "myTickets": "Biletlerim",
     "createTicket": "Bilet Oluştur",
@@ -73,6 +78,8 @@
       "allSla": "Tüm SLA",
       "allProducts": "Tüm ürünler",
       "allAgents": "Tüm ajanlar",
+      "allTopics": "Tüm konular",
+      "selectProductFirst": "Önce ürün seçin",
       "clearAll": "Tümünü temizle",
       "dateRange": "Tarih aralığı",
       "quickSelect": "Hızlı seçim",
@@ -92,7 +99,8 @@
       "chipSearch": "Arama: \"{{value}}\"",
       "chipSla": "SLA: {{value}}",
       "chipProduct": "Ürün: {{value}}",
-      "chipAgent": "Ajan: {{value}}"
+      "chipAgent": "Ajan: {{value}}",
+      "chipTopic": "Konu: {{value}}"
     },
     "actions": {
       "claim": "Üstlen",
