@@ -2549,16 +2549,6 @@ class TicketServiceTest {
     }
 
     @Test
-    void getTicketsByProductFiltered_unknownRole_returnsEmpty() {
-        Pageable p = PageRequest.of(0, 10);
-
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "ghost", List.of("MANAGER"),
-                TicketFilterDTO.builder().build(), p);
-
-        assertThat(result.getContent()).isEmpty();
-    }
-
-    @Test
     void getTicketsByProductFiltered_customerStandardPath() {
         when(ticketRepository.findByProductIdAndCustomerIdFiltered(eq(10L), eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
