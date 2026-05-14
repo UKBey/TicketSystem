@@ -104,6 +104,7 @@ public class SetupGenerator {
             String lastName  = u.path("lastName").asText();
             String password  = u.path("password").asText();
 
+            // 1) Login dene — çalışıyorsa kullanıcı setup.json'daki kredensiyellerle hazır
             UserSession existing = tryLogin(username, password, role);
             if (existing != null) {
                 log.info("Kullanıcı zaten mevcut, oturum açıldı: {} ({})", username, role);
@@ -112,10 +113,25 @@ public class SetupGenerator {
                 continue;
             }
 
-            // Kullanıcı yok veya şifresi eşleşmiyor — admin ile oluştur (kalıcı şifre)
+            // 2) Login başarısız. Admin'in görebileceği user listesinde bu username var mı?
+            //    Varsa kullanıcının başka şifresi var demektir — yeniden kurmayız, mevcut kabul ederiz.
+            if (userExistsInBackend(username, email)) {
+                log.info("Kullanıcı backend'de mevcut ama setup.json kredensiyelleriyle oturum açılamadı: {} — yeniden oluşturulmuyor, atlanıyor.", username);
+                continue;
+            }
+
+            // 3) Kullanıcı gerçekten yok — admin ile oluştur (kalıcı şifre)
             try {
                 createUserViaAdmin(username, email, firstName, lastName, password, role);
                 Thread.sleep(GeneratorConfig.DELAY_MS);
+            } catch (ApiClient.ApiException e) {
+                if (e.getStatusCode() == 409) {
+                    // Race / pre-check kaçırdı — backend "zaten var" diyor. Yeniden kurma, atla.
+                    log.info("Backend kullanıcının zaten var olduğunu bildirdi (409): {} — atlanıyor.", username);
+                    continue;
+                }
+                log.warn("Kullanıcı oluşturulamadı ({}): {}", username, e.getMessage());
+                continue;
             } catch (Exception e) {
                 log.warn("Kullanıcı oluşturulamadı ({}): {}", username, e.getMessage());
                 continue;
@@ -131,6 +147,41 @@ public class SetupGenerator {
             log.info("Yeni kullanıcı oluşturuldu ve giriş yapıldı: {} ({})", username, role);
         }
         return sessions;
+    }
+
+    /**
+     * Admin search endpoint'i ile kullanıcının backend'de olup olmadığını kontrol eder.
+     * username veya email birebir eşleşirse 'var' kabul eder.
+     */
+    private boolean userExistsInBackend(String username, String email) {
+        try {
+            JsonNode resp = api.get("/users?search=" + url(username), adminAgent.getToken());
+            if (matchesAny(resp.path("content"), username, email)) return true;
+            // Email farklı görünüyorsa email ile ikinci bir arama dene
+            if (!email.isBlank() && !email.equalsIgnoreCase(username)) {
+                JsonNode resp2 = api.get("/users?search=" + url(email), adminAgent.getToken());
+                if (matchesAny(resp2.path("content"), username, email)) return true;
+            }
+        } catch (Exception e) {
+            log.debug("User existence check başarısız ({}): {}", username, e.getMessage());
+        }
+        return false;
+    }
+
+    private static boolean matchesAny(JsonNode contentArray, String username, String email) {
+        if (!contentArray.isArray()) return false;
+        for (JsonNode user : contentArray) {
+            String userEmail = user.path("email").asText("");
+            String userName  = user.path("fullName").asText("");
+            // /users endpoint username dönmüyor; email veya fullName eşleşmesi makul bir signal.
+            if (!email.isBlank() && email.equalsIgnoreCase(userEmail)) return true;
+            if (!username.isBlank() && userName.toLowerCase().contains(username.toLowerCase())) return true;
+        }
+        return false;
+    }
+
+    private static String url(String raw) {
+        return java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private UserSession tryLogin(String username, String password, String role) {
