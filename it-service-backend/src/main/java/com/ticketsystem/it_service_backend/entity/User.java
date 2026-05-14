@@ -39,6 +39,14 @@ public class User {
     @Builder.Default
     private String preferredLanguage = "en";
 
+    /**
+     * Kullanıcının tercih ettiği tema. Desteklenen değerler: "light" (varsayılan), "dark".
+     * Mail şablonları bu değere göre açık/koyu renk paleti seçer.
+     */
+    @Column(name = "preferred_theme", length = 10, nullable = false)
+    @Builder.Default
+    private String preferredTheme = "light";
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 
