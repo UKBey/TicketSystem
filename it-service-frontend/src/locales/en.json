@@ -232,6 +232,8 @@
     "statusInactive": "Inactive",
     "unlimited": "Unlimited",
     "view": "View",
+    "topics": "Topics",
+    "manageTopics": "Manage this product's request topics",
     "edit": "Edit",
     "delete": "Delete",
     "noProductsFiltered": "No products match your search.",

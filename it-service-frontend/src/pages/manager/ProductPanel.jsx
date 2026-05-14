@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, X, Eye, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, Search, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PaginationBar from '../../components/PaginationBar';
+import ProductTopicsSection from '../../components/ProductTopicsSection';
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +27,7 @@ export default function ProductPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', isActive: true, maxActiveTickets: '' });
+  const [expandedTopicsProductId, setExpandedTopicsProductId] = useState(null);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -181,12 +183,15 @@ export default function ProductPanel() {
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colName')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colStatus')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colMaxTickets')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '150px' }}>{t('productPanel.colActions')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '220px' }}>{t('productPanel.colActions')}</th>
               </tr>
             </thead>
             <tbody>
-              {paginated.map(product => (
-                <tr key={product.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+              {paginated.map(product => {
+                const topicsOpen = expandedTopicsProductId === product.id;
+                return (
+                <React.Fragment key={product.id}>
+                <tr style={{ borderBottom: topicsOpen ? 'none' : '1px solid var(--border-color-light)' }}>
                   <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{product.id}</td>
                   <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{product.name}</td>
                   <td className="px-4 py-3">
@@ -210,7 +215,21 @@ export default function ProductPanel() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
+                      <button
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                        style={{
+                          borderColor: topicsOpen ? '#3b82f6' : 'var(--border-color)',
+                          backgroundColor: topicsOpen ? 'rgba(59,130,246,0.08)' : 'transparent',
+                          color: topicsOpen ? '#2563eb' : 'var(--text-secondary)',
+                        }}
+                        onClick={() => setExpandedTopicsProductId(topicsOpen ? null : product.id)}
+                        title={t('productPanel.manageTopics')}
+                      >
+                        <Tag className="h-3 w-3" />
+                        {t('productPanel.topics')}
+                        {topicsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
                       <button
                         className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
                         style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
@@ -241,7 +260,16 @@ export default function ProductPanel() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                {topicsOpen && (
+                  <tr style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+                    <td colSpan="5" className="px-6 pb-4 pt-0">
+                      <ProductTopicsSection productId={product.id} isAdmin={isAdmin} />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
+                );
+              })}
               {paginated.length === 0 && (
                 <tr>
                   <td colSpan="5" className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>

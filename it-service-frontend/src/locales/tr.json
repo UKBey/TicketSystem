@@ -232,6 +232,8 @@
     "statusInactive": "Pasif",
     "unlimited": "Limitsiz",
     "view": "Görüntüle",
+    "topics": "Konular",
+    "manageTopics": "Bu ürünün talep konularını yönet",
     "edit": "Düzenle",
     "delete": "Sil",
     "noProductsFiltered": "Aramanızla eşleşen ürün bulunamadı.",
