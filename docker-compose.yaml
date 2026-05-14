@@ -330,11 +330,24 @@ services:
       GROQ_TIMEOUT_SECONDS: ${GROQ_TIMEOUT_SECONDS:-30}
       TICKET_SERVICE_BASE_URL: "http://it-service-backend:8081"
       TICKET_SERVICE_INTERNAL_TOKEN: ${TICKET_SERVICE_INTERNAL_TOKEN:-internal-secret}
+
+      # Redis baglanti ayarlari — rate-limit ve gelecekteki cache/queue ihtiyaclari.
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD:-}
+
+      # LLM-service rate-limit (per-IP, configlenebilir; varsayilan: 10 saniyede 1).
+      LLM_RATE_LIMIT_ENABLED: ${LLM_RATE_LIMIT_ENABLED:-true}
+      LLM_RATE_LIMIT_MAX_REQUESTS: ${LLM_RATE_LIMIT_MAX_REQUESTS:-1}
+      LLM_RATE_LIMIT_DURATION_SECONDS: ${LLM_RATE_LIMIT_DURATION_SECONDS:-10}
+      LLM_RATE_LIMIT_PATH_PATTERNS: ${LLM_RATE_LIMIT_PATH_PATTERNS:-/api/ai/**}
     depends_on:
       it-service-db:
         condition: service_healthy
       it-service-backend:
         condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - it-service-net
     healthcheck:
