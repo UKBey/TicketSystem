@@ -205,6 +205,19 @@ public class UserService {
     }
 
     @Transactional
+    public User updatePreferredTheme(String userId, String theme) {
+        if (!"light".equals(theme) && !"dark".equals(theme)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unsupported theme. Supported: light, dark");
+        }
+        User user = getUserById(userId);
+        user.setPreferredTheme(theme);
+        log.info("Kullanıcı tema tercihi güncellendi. ID: {}, Tema: {}", userId, theme);
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public User removeProductFromUser(String userId, Long productId) {        log.info("Ürün yetki kaldırma işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
         User user = getUserById(userId);
 

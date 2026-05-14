@@ -218,6 +218,24 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    @Operation(summary = "Kullanıcı tema tercihini güncelle",
+            description = "Kullanıcının arayüz ve mail temasını günceller. Desteklenen değerler: `light`, `dark`.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tema tercihi başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Geçersiz tema değeri"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
+    @PutMapping("/me/theme")
+    public ResponseEntity<UserDTO> updateTheme(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String theme) {
+        String userId = jwt.getSubject();
+        log.info("Tema tercihi güncelleme isteği. Kullanıcı: {}, Tema: {}", userId, theme);
+        User user = userService.updatePreferredTheme(userId, theme);
+        return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
+
     @Operation(summary = "Ajana ürün ata",
             description = "Belirtilen ajana belirtilen ürün grubunun destek taleplerini görebilme ve sahiplenme yetkisi verir. "
                     + "Atama sonrası ajanın `authorizedProducts` listesi güncellenir.")
