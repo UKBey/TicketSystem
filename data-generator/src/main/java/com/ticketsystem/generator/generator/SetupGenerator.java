@@ -22,12 +22,14 @@ import java.util.Map;
  * Sistemi setup.json'daki şablona göre hazırlar.
  *
  * <ul>
- *   <li>Setup.json'daki agent ve customer kullanıcılarını oluşturur (varsa dokunmaz).</li>
+ *   <li>setup.json'daki agent ve customer kullanıcılarına yalnızca <em>login dener</em>;
+ *       kullanıcı oluşturma adımı yoktur. Hesapların Keycloak'ta önceden hazır olması
+ *       beklenir. Login başarısız olan kullanıcılar uyarıyla atlanır.</li>
  *   <li>Ürünleri / topic'leri / sıkça karşılaşılan sorunları idempotent şekilde oluşturur.</li>
- *   <li>Yetkilerini (authorizedProducts) tüm agent ve customer'lara dağıtır.</li>
+ *   <li>Yetkilerini (authorizedProducts) login olabilen tüm agent ve customer'lara dağıtır.</li>
  * </ul>
  *
- * Re-run güvenli: ürün/topic/issue ve user varlıkları varsa atlanır, eklemez.
+ * Re-run güvenli: ürün/topic/issue varsa atlanır.
  */
 public class SetupGenerator {
 
@@ -50,21 +52,22 @@ public class SetupGenerator {
 
         JsonNode spec = loadSetupSpec();
 
-        // 1. Kullanıcılar — yoksa oluştur, varsa atla; tüm hesaplara giriş yap
+        // 1. Kullanıcı oturumları — login dene, başarısız olanları atla
         List<UserSession> agents    = ensureUsers(spec.path("users").path("agents"),    "AGENT");
         List<UserSession> customers = ensureUsers(spec.path("users").path("customers"), "CUSTOMER");
 
         if (agents.isEmpty() || customers.isEmpty()) {
-            throw new IllegalStateException("Setup başarısız: en az bir agent ve bir customer oturumu gerekli.");
+            throw new IllegalStateException("Setup başarısız: en az bir agent ve bir customer oturumu gerekli. " +
+                    "Keycloak'ta setup.json'daki kullanıcıların önceden tanımlı ve şifresinin eşleştiğinden emin ol.");
         }
 
-        // 2. Ürünleri oluştur (idempotent — name eşleşmesine göre)
+        // 2. Ürünler — idempotent (name eşleşmesiyle)
         Map<String, Long> productByName = ensureProducts(spec.path("products"));
 
-        // 3. Topic'leri oluştur (idempotent — product+name eşleşmesine göre)
+        // 3. Topic'ler — idempotent (product + name eşleşmesiyle)
         Map<String, Long> topicByProductAndName = ensureTopics(spec.path("products"), productByName);
 
-        // 4. Sıkça karşılaşılan sorunları oluştur (idempotent — title eşleşmesine göre)
+        // 4. Sıkça karşılaşılan sorunlar — idempotent (title eşleşmesiyle)
         ensureKnownIssues(spec.path("products"), productByName, topicByProductAndName);
 
         // 5. Ürün yetkilerini agent ve customer'lara dağıt
@@ -90,98 +93,28 @@ public class SetupGenerator {
     }
 
     // -----------------------------------------------------------------
-    // Users — idempotent: önce login dene, başarısızsa admin endpoint ile oluştur
+    // Users — sadece login; oluşturma yok
     // -----------------------------------------------------------------
 
-    private List<UserSession> ensureUsers(JsonNode userArray, String role) throws IOException, InterruptedException {
+    private List<UserSession> ensureUsers(JsonNode userArray, String role) {
         List<UserSession> sessions = new ArrayList<>();
         if (userArray == null || !userArray.isArray()) return sessions;
 
         for (JsonNode u : userArray) {
-            String username  = u.path("username").asText();
-            String email     = u.path("email").asText();
-            String firstName = u.path("firstName").asText();
-            String lastName  = u.path("lastName").asText();
-            String password  = u.path("password").asText();
+            String username = u.path("username").asText();
+            String password = u.path("password").asText();
 
-            // 1) Login dene — çalışıyorsa kullanıcı setup.json'daki kredensiyellerle hazır
-            UserSession existing = tryLogin(username, password, role);
-            if (existing != null) {
-                log.info("Kullanıcı zaten mevcut, oturum açıldı: {} ({})", username, role);
-                syncUser(existing);
-                sessions.add(existing);
+            UserSession session = tryLogin(username, password, role);
+            if (session == null) {
+                log.warn("Kullanıcı atlanıyor: {} ({}) — login başarısız. Keycloak'ta kullanıcı yok ya da şifre eşleşmiyor.",
+                        username, role);
                 continue;
             }
-
-            // 2) Login başarısız. Admin'in görebileceği user listesinde bu username var mı?
-            //    Varsa kullanıcının başka şifresi var demektir — yeniden kurmayız, mevcut kabul ederiz.
-            if (userExistsInBackend(username, email)) {
-                log.info("Kullanıcı backend'de mevcut ama setup.json kredensiyelleriyle oturum açılamadı: {} — yeniden oluşturulmuyor, atlanıyor.", username);
-                continue;
-            }
-
-            // 3) Kullanıcı gerçekten yok — admin ile oluştur (kalıcı şifre)
-            try {
-                createUserViaAdmin(username, email, firstName, lastName, password, role);
-                Thread.sleep(GeneratorConfig.DELAY_MS);
-            } catch (ApiClient.ApiException e) {
-                if (e.getStatusCode() == 409) {
-                    // Race / pre-check kaçırdı — backend "zaten var" diyor. Yeniden kurma, atla.
-                    log.info("Backend kullanıcının zaten var olduğunu bildirdi (409): {} — atlanıyor.", username);
-                    continue;
-                }
-                log.warn("Kullanıcı oluşturulamadı ({}): {}", username, e.getMessage());
-                continue;
-            } catch (Exception e) {
-                log.warn("Kullanıcı oluşturulamadı ({}): {}", username, e.getMessage());
-                continue;
-            }
-
-            UserSession created = tryLogin(username, password, role);
-            if (created == null) {
-                log.warn("Kullanıcı oluşturuldu ama oturum açılamadı: {}", username);
-                continue;
-            }
-            syncUser(created);
-            sessions.add(created);
-            log.info("Yeni kullanıcı oluşturuldu ve giriş yapıldı: {} ({})", username, role);
+            log.info("Oturum açıldı: {} ({})", username, role);
+            syncUser(session);
+            sessions.add(session);
         }
         return sessions;
-    }
-
-    /**
-     * Admin search endpoint'i ile kullanıcının backend'de olup olmadığını kontrol eder.
-     * username veya email birebir eşleşirse 'var' kabul eder.
-     */
-    private boolean userExistsInBackend(String username, String email) {
-        try {
-            JsonNode resp = api.get("/users?search=" + url(username), adminAgent.getToken());
-            if (matchesAny(resp.path("content"), username, email)) return true;
-            // Email farklı görünüyorsa email ile ikinci bir arama dene
-            if (!email.isBlank() && !email.equalsIgnoreCase(username)) {
-                JsonNode resp2 = api.get("/users?search=" + url(email), adminAgent.getToken());
-                if (matchesAny(resp2.path("content"), username, email)) return true;
-            }
-        } catch (Exception e) {
-            log.debug("User existence check başarısız ({}): {}", username, e.getMessage());
-        }
-        return false;
-    }
-
-    private static boolean matchesAny(JsonNode contentArray, String username, String email) {
-        if (!contentArray.isArray()) return false;
-        for (JsonNode user : contentArray) {
-            String userEmail = user.path("email").asText("");
-            String userName  = user.path("fullName").asText("");
-            // /users endpoint username dönmüyor; email veya fullName eşleşmesi makul bir signal.
-            if (!email.isBlank() && email.equalsIgnoreCase(userEmail)) return true;
-            if (!username.isBlank() && userName.toLowerCase().contains(username.toLowerCase())) return true;
-        }
-        return false;
-    }
-
-    private static String url(String raw) {
-        return java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     private UserSession tryLogin(String username, String password, String role) {
@@ -193,19 +126,6 @@ public class SetupGenerator {
             log.debug("Login başarısız ({}): {}", username, e.getMessage());
             return null;
         }
-    }
-
-    private void createUserViaAdmin(String username, String email, String firstName, String lastName,
-                                     String password, String role) throws IOException {
-        Map<String, Object> body = new HashMap<>();
-        body.put("username",          username);
-        body.put("email",             email);
-        body.put("firstName",         firstName);
-        body.put("lastName",          lastName);
-        body.put("password",          password);
-        body.put("roles",             List.of(role));
-        body.put("temporaryPassword", false);
-        api.post("/users/admin/create", body, adminAgent.getToken());
     }
 
     private void syncUser(UserSession session) {
@@ -224,7 +144,6 @@ public class SetupGenerator {
     private Map<String, Long> ensureProducts(JsonNode productArray) throws IOException, InterruptedException {
         Map<String, Long> result = new HashMap<>();
 
-        // Mevcut ürünleri çek
         Map<String, Long> existing = new HashMap<>();
         try {
             JsonNode resp = api.get("/products", adminAgent.getToken());
@@ -273,7 +192,6 @@ public class SetupGenerator {
             Long productId = productByName.get(productName);
             if (productId == null) continue;
 
-            // Mevcut topic'leri çek
             Map<String, Long> existingTopics = new HashMap<>();
             try {
                 JsonNode resp = api.get("/products/" + productId + "/topics?includeInactive=true",
@@ -325,7 +243,6 @@ public class SetupGenerator {
             Long productId = productByName.get(productName);
             if (productId == null) continue;
 
-            // Mevcut known-issues'leri tek seferde çek (tüm topic'ler dahil)
             List<String> existingTitles = new ArrayList<>();
             try {
                 JsonNode resp = api.get("/products/" + productId + "/known-issues?includeInactive=true",
@@ -379,7 +296,6 @@ public class SetupGenerator {
                     api.post("/users/" + user.getUserId() + "/products/" + productId,
                             Map.of(), adminAgent.getToken());
                 } catch (ApiClient.ApiException e) {
-                    // 409 = zaten atanmış, normal
                     if (e.getStatusCode() != 409) {
                         log.warn("Ürün atanamadı (user={}, product={}): {}",
                                 user.getUsername(), productId, e.getMessage());
