@@ -25,7 +25,6 @@ export function useTicketDetail(id, hasRole) {
   const [slaInfo, setSlaInfo]         = useState(null);
   const [currentDate, setCurrentDate] = useState(Date.now());
 
-  const [resolutionNote, setResolutionNote]       = useState(null);
   const [resolveModalOpen, setResolveModalOpen]   = useState(false);
 
   const [csatModalOpen, setCsatModalOpen] = useState(false);
@@ -68,23 +67,30 @@ export function useTicketDetail(id, hasRole) {
     }
   }, [id]);
 
-  const fetchResolutionNote = useCallback(async () => {
-    try {
-      const res = await api.get(`/tickets/${id}/resolution-note`);
-      setResolutionNote(res.data);
-    } catch {
-      setResolutionNote(null);
-    }
-  }, [id]);
-
   // ---- effects --------------------------------------------------------------
 
   useEffect(() => {
     fetchTicket();
     fetchComments();
     fetchAttachments();
-    fetchResolutionNote();
-  }, [id, fetchTicket, fetchComments, fetchAttachments, fetchResolutionNote]);
+  }, [id, fetchTicket, fetchComments, fetchAttachments]);
+
+  // ResolutionNote tablosu kaldırıldı; çözüm bilgisi audit log'un son RESOLVE kaydından okunuyor.
+  const resolutionNote = useMemo(() => {
+    const logs = ticket?.auditLogs;
+    if (!logs || logs.length === 0) return null;
+    const resolveEntry = [...logs]
+      .filter((entry) => entry.actionType === 'RESOLVE')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    if (!resolveEntry) return null;
+    return {
+      reasonCode: resolveEntry.reasonCode,
+      note: resolveEntry.note,
+      agentId: resolveEntry.actorId,
+      agentName: resolveEntry.actorName,
+      createdAt: resolveEntry.createdAt,
+    };
+  }, [ticket?.auditLogs]);
 
   // Gercek zamanli guncellemeler: backend ticket mutation'larinda
   // /topic/tickets/{id} kanalina event yayinlar. Agent/admin ek olarak

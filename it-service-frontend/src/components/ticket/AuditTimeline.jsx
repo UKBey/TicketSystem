@@ -208,13 +208,25 @@ export default function AuditTimeline({ auditLogs }) {
                         </>
                       )}
 
+                      {/* Reason chip */}
+                      {entry.reasonCode && (
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-1"
+                          style={{ backgroundColor: cfg.bg, color: cfg.color }}
+                        >
+                          {t(`reasonCode.${entry.actionType}.${entry.reasonCode}`, {
+                            defaultValue: entry.reasonCode,
+                          })}
+                        </span>
+                      )}
+
                       {/* Note */}
                       {entry.note && (
                         <p
                           className="text-xs leading-relaxed mt-1.5 italic"
                           style={{ color: 'var(--text-secondary)' }}
                         >
-                          "{entry.note}"
+                          &ldquo;{entry.note}&rdquo;
                         </p>
                       )}
                     </div>

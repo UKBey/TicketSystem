@@ -144,11 +144,19 @@ export default function TicketDetailsCard({
               <CheckCircle2 className="h-3 w-3 text-accent-500" />
               {t('ticketDetail.resolutionNote')}
             </div>
-            <div className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
-              {resolutionNote.note}
-            </div>
+            {resolutionNote.reasonCode && (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mb-1"
+                style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }}>
+                {t(`reasonCode.RESOLVE.${resolutionNote.reasonCode}`, { defaultValue: resolutionNote.reasonCode })}
+              </span>
+            )}
+            {resolutionNote.note && (
+              <div className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+                {resolutionNote.note}
+              </div>
+            )}
             <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-              {resolutionNote.agentId} · {formatShortDate(resolutionNote.updatedAt || resolutionNote.createdAt)}
+              {resolutionNote.agentName || resolutionNote.agentId} · {formatShortDate(resolutionNote.createdAt)}
             </div>
           </div>
         )}
