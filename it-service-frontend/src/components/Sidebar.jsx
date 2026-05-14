@@ -179,5 +179,6 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
         </button>
       </div>
     </aside>
+    </>
   );
 }
