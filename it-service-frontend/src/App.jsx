@@ -21,6 +21,7 @@ import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
+import NoRolePage from './pages/NoRolePage';
 
 function AppLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -56,7 +57,7 @@ function HomeRedirect() {
     case 'CUSTOMER':
       return <Navigate to="/my-tickets" replace />;
     default:
-      return <Navigate to="/profile" replace />;
+      return <Navigate to="/no-role" replace />;
   }
 }
 
@@ -71,6 +72,12 @@ export default function App() {
         <Route
           path="/"
           element={authenticated ? <HomeRedirect /> : <LoginPage />}
+        />
+
+        {/* Yetkili rol atanmamis kullanicilar icin bilgilendirme sayfasi. */}
+        <Route
+          path="/no-role"
+          element={authenticated ? <NoRolePage /> : <Navigate to="/" replace />}
         />
 
         {/* Musteri rolune acik alanlar. */}

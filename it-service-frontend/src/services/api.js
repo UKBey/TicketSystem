@@ -9,6 +9,22 @@ const api = axios.create({
   },
 });
 
+let loginRedirectInProgress = false;
+
+function redirectToLoginOnce() {
+  if (loginRedirectInProgress) return;
+  loginRedirectInProgress = true;
+
+  const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+  keycloak.login({
+    redirectUri: window.location.href,
+    locale,
+  }).catch(() => {
+    // If redirect fails, release the guard so the user can retry manually.
+    loginRedirectInProgress = false;
+  });
+}
+
 // Her istekte varsa guncel Keycloak token'ini Authorization header'ina ekler.
 api.interceptors.request.use(
   (config) => {
@@ -25,10 +41,29 @@ api.interceptors.request.use(
 // 429 Too Many Requests durumunda global event firlatilir.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        keycloak.login();
+        const originalRequest = error.config;
+
+        // Retry once after a silent token refresh before redirecting.
+        if (originalRequest && !originalRequest._retry401) {
+          originalRequest._retry401 = true;
+          try {
+            await keycloak.updateToken(30);
+            if (keycloak.token) {
+              originalRequest.headers = {
+                ...(originalRequest.headers || {}),
+                Authorization: `Bearer ${keycloak.token}`,
+              };
+            }
+            return api(originalRequest);
+          } catch {
+            // Fall through to login redirect.
+          }
+        }
+
+        redirectToLoginOnce();
       } else if (error.response.status === 429) {
         const retryAfter =
           error.response.data?.retryAfterSeconds ??
