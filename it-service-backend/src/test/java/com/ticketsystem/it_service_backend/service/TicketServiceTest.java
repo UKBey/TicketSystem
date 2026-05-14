@@ -2182,5 +2182,147 @@ class TicketServiceTest {
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("c-1", f, p);
         assertNotNull(result);
     }
+
+    // ------------------------------------------------------------------------
+    // hasExtraFilters individual flags
+    // ------------------------------------------------------------------------
+
+    @Test
+    void hasExtraFilters_dateFrom_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().createdAtFrom(ZonedDateTime.now()).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_dateTo_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().createdAtTo(ZonedDateTime.now()).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_slaStatuses_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().slaStatuses(List.of("BREACHED")).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_agentIds_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().agentIds(List.of("a-1")).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_topicIds_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().topicIds(List.of(5L)).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_productIds_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().productIds(List.of(10L)).build();
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    @Test
+    void hasExtraFilters_multipleStatuses_triggersFull() {
+        TicketFilterDTO f = TicketFilterDTO.builder().statuses(List.of("NEW", "IN_PROGRESS")).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+    }
+
+    // ------------------------------------------------------------------------
+    // validateReasonInput edge cases through closeTicket
+    // ------------------------------------------------------------------------
+
+    @Test
+    void closeTicket_otherReasonNoNote_throwsBadRequest() {
+        Ticket existing = Ticket.builder().id(1900L).status("IN_PROGRESS").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(1900L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(1900L, "agent-1")).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.closeTicket(1900L, "OTHER", "  ", "agent-1", List.of("AGENT")));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void closeTicket_otherReasonWithNote_proceedsToClose() {
+        Ticket existing = Ticket.builder().id(1901L).status("IN_PROGRESS").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(1901L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(1901L, "agent-1")).thenReturn(true);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.closeTicket(1901L, "OTHER", "explanation", "agent-1", List.of("AGENT"));
+        assertEquals("CLOSED", result.getStatus());
+    }
+
+    // ------------------------------------------------------------------------
+    // getTicketWithAuth / validateMutationAccess extra paths
+    // ------------------------------------------------------------------------
+
+    @Test
+    void getTicketWithAuth_customerOwnsTicket_returns() {
+        Ticket existing = Ticket.builder().id(2000L).status("NEW").customerId("customer-1").productId(10L).build();
+        when(ticketRepository.findById(2000L)).thenReturn(Optional.of(existing));
+
+        Ticket result = ticketService.getTicketWithAuth(2000L, "customer-1", List.of("CUSTOMER"));
+        assertEquals(2000L, result.getId());
+    }
+
+    @Test
+    void getTicketWithAuth_anonymous_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2001L).status("NEW").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2001L)).thenReturn(Optional.of(existing));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.getTicketWithAuth(2001L, "stranger", List.of()));
+    }
+
+    @Test
+    void validateMutationAccess_customerOwnsTicket_returns() {
+        Ticket existing = Ticket.builder().id(2100L).status("NEW").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2100L)).thenReturn(Optional.of(existing));
+
+        Ticket result = ticketService.validateMutationAccess(2100L, "c-1", List.of("CUSTOMER"));
+        assertEquals(2100L, result.getId());
+    }
+
+    @Test
+    void validateMutationAccess_otherCustomer_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2101L).status("NEW").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2101L)).thenReturn(Optional.of(existing));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.validateMutationAccess(2101L, "other", List.of("CUSTOMER")));
+    }
+
+    @Test
+    void validateMutationAccess_agentNotClaimer_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2102L).status("NEW").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2102L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2102L, "agent-x")).thenReturn(false);
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.validateMutationAccess(2102L, "agent-x", List.of("AGENT")));
+    }
 }
 

@@ -198,4 +198,43 @@ class CommentServiceTest {
         assertEquals(2, result.size());
         verify(commentRepository, times(1)).findByTicketIdOrderByCreatedAtAsc(100L);
     }
+
+    @Test
+    void addComment_customerWithInternalType_throwsForbidden() {
+        com.ticketsystem.it_service_backend.entity.Ticket ticket =
+                com.ticketsystem.it_service_backend.entity.Ticket.builder().id(110L).status("IN_PROGRESS").customerId("customer-1").build();
+        when(ticketService.validateMutationAccess(110L, "customer-1", List.of("CUSTOMER"))).thenReturn(ticket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> commentService.addComment(110L, "spy", "INTERNAL", "customer-1", List.of("CUSTOMER")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void addComment_typeNull_defaultsToExternalAndCheckedAgainstWaitingStatusForCustomer() {
+        com.ticketsystem.it_service_backend.entity.Ticket ticket =
+                com.ticketsystem.it_service_backend.entity.Ticket.builder().id(120L).status("WAITING_FOR_CUSTOMER").customerId("customer-1").build();
+        when(ticketService.validateMutationAccess(120L, "customer-1", List.of("CUSTOMER"))).thenReturn(ticket);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(i -> {
+            Comment c = i.getArgument(0); c.setId(11L); return c;
+        });
+
+        Comment saved = commentService.addComment(120L, "answer", null, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals("EXTERNAL", saved.getType());
+        verify(ticketService).updateTicketStatus(120L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+    }
+
+    @Test
+    void getCommentsByTicketId_agentAdminSeesAll() {
+        Comment external = Comment.builder().id(1L).type("EXTERNAL").message("public").build();
+        Comment internal = Comment.builder().id(2L).type("INTERNAL").message("secret").build();
+        when(ticketService.getTicketWithAuth(100L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(waitingTicket);
+        when(commentRepository.findByTicketIdOrderByCreatedAtAsc(100L)).thenReturn(List.of(external, internal));
+
+        List<Comment> result = commentService.getCommentsByTicketId(100L, "admin-1", List.of("AGENT_ADMIN"));
+
+        assertEquals(2, result.size());
+    }
 }
