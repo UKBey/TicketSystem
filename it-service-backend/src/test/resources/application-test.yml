@@ -13,6 +13,13 @@ spring:
   docker:
     compose:
       enabled: false  # Docker Compose otomatik baslatma devre disi birakilir.
+  data:
+    redis:
+      # BaseIntegrationTest icindeki Testcontainer host/port'u
+      # @DynamicPropertySource ile override eder.
+      host: localhost
+      port: 6379
+      timeout: 5s
   jpa:
     hibernate:
       ddl-auto: validate  # Sema yonetimi Flyway'e birakilir; JPA sadece dogrular.

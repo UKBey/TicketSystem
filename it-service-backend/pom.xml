@@ -230,12 +230,20 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
-        <!-- Token-bucket rate limiting (bucket4j-spring-boot-starter eklenmez;
-             manuel kontrol tercih edilir) -->
+        <!-- Token-bucket rate limiting — Redis (Lettuce) backed via ProxyManager.
+             8.11+'da artefakt adlari _jdk17- prefix'iyle yeniden duzenlendi.
+             core ve redis-common transitively gelir. -->
         <dependency>
             <groupId>com.bucket4j</groupId>
-            <artifactId>bucket4j-core</artifactId>
-            <version>8.10.1</version>
+            <artifactId>bucket4j_jdk17-lettuce</artifactId>
+            <version>8.14.0</version>
+        </dependency>
+
+        <!-- Spring Data Redis: RedisTemplate / StringRedisTemplate auto-config'i
+             gelecekteki cache, queue ve session ihtiyaclari icin de hazir tutar. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
         <!-- Keycloak Admin Client: kullanıcı oluşturma ve rol atama işlemleri için.
