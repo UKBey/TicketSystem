@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LifeBuoy, Plus, Pencil, Trash2, X, Tag, Package } from 'lucide-react';
+import { LifeBuoy, Plus, Pencil, Trash2, X, Tag, Package, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
@@ -35,6 +35,16 @@ export default function KnownIssuesPage() {
   const [editing, setEditing]         = useState(null);
   const [form, setForm]               = useState({ title: '', content: '', topicId: '', isActive: true });
   const [saving, setSaving]           = useState(false);
+
+  // Akordiyon — birden fazla kayıt aynı anda açık kalabilir.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const toggleExpanded = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // ---------------------------------------------------------------
   // Ürün listesi — kullanıcının yetkili olduğu ürünler
@@ -245,56 +255,89 @@ export default function KnownIssuesPage() {
           {selectedProductId ? t('knownIssues.empty') : t('knownIssues.noProducts')}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-xl border p-4 flex flex-col"
-              style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                  {item.title}
-                </h3>
-                {!item.isActive && (
-                  <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
-                    {t('knownIssues.statusInactive')}
-                  </span>
+        <div
+          className="rounded-xl border overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          {items.map((item, idx) => {
+            const isOpen = expandedIds.has(item.id);
+            return (
+              <div
+                key={item.id}
+                className={idx > 0 ? 'border-t' : ''}
+                style={{ borderColor: 'var(--border-color)' }}
+              >
+                {/* Header — tiklanabilir, accordion'i acar/kapar */}
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(item.id)}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left transition-colors cursor-pointer hover:bg-[color:var(--bg-surface-hover)]"
+                  aria-expanded={isOpen}
+                >
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform duration-200"
+                    style={{
+                      color: 'var(--text-tertiary)',
+                      transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                    }}
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {item.title}
+                      </h3>
+                      {!item.isActive && (
+                        <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
+                          {t('knownIssues.statusInactive')}
+                        </span>
+                      )}
+                    </div>
+                    {item.topicId && topicLookup[item.topicId] && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <Tag className="h-3 w-3" />
+                        {topicLookup[item.topicId]}
+                      </div>
+                    )}
+                  </div>
+                </button>
+
+                {/* Body — sadece acikken render edilir; uzun icerik diger satirlari etkilemez */}
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-4 pl-11 sm:pl-12">
+                    <p
+                      className="text-sm whitespace-pre-wrap leading-relaxed"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {item.content}
+                    </p>
+                    {isAdmin && (
+                      <div
+                        className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3"
+                        style={{ borderColor: 'var(--border-color)' }}
+                      >
+                        <button
+                          onClick={() => openEdit(item)}
+                          className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          {t('knownIssues.edit')}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          {t('knownIssues.delete')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-
-              {item.topicId && topicLookup[item.topicId] && (
-                <div className="mt-1.5 inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  <Tag className="h-3 w-3" />
-                  {topicLookup[item.topicId]}
-                </div>
-              )}
-
-              <p className="mt-3 text-sm whitespace-pre-wrap leading-relaxed flex-1" style={{ color: 'var(--text-secondary)' }}>
-                {item.content}
-              </p>
-
-              {isAdmin && (
-                <div className="mt-4 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-color)' }}>
-                  <button
-                    onClick={() => openEdit(item)}
-                    className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
-                    style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                  >
-                    <Pencil className="h-3 w-3" />
-                    {t('knownIssues.edit')}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item)}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    {t('knownIssues.delete')}
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+            );
+          })}
         </div>
       )}
 
