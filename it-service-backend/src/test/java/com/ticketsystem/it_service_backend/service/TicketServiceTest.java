@@ -2454,5 +2454,81 @@ class TicketServiceTest {
                 () -> ticketService.closeTicket(2400L, "  ", "note", "agent-1", List.of("AGENT")));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
+
+    @Test
+    void createTicket_topicIdNull_throwsBadRequest() {
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.createTicket(input, "customer-1"));
+    }
+
+    @Test
+    void createTicket_topicNotFound_throwsNotFound() {
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).topicId(99L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.createTicket(input, "customer-1"));
+    }
+
+    @Test
+    void createTicket_topicProductMismatch_throwsBadRequest() {
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).topicId(20L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
+                com.ticketsystem.it_service_backend.entity.TicketTopic.builder()
+                        .id(20L).productId(999L).name("Other").isActive(true).build()));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.createTicket(input, "customer-1"));
+    }
+
+    @Test
+    void createTicket_topicInactive_throwsUnprocessable() {
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).topicId(20L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
+                com.ticketsystem.it_service_backend.entity.TicketTopic.builder()
+                        .id(20L).productId(10L).name("Inactive").isActive(false).build()));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.createTicket(input, "customer-1"));
+    }
+
+    @Test
+    void createTicket_productInactive_throws422() {
+        Product inactive = Product.builder().id(10L).name("X").isActive(false).build();
+        User c = User.builder().id("customer-1")
+                .authorizedProducts(List.of(inactive)).build();
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).topicId(20L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(c));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.createTicket(input, "customer-1"));
+    }
+
+    @Test
+    void assignTicket_targetAlreadyClaimed_returnsWithoutChange() {
+        Ticket existing = Ticket.builder().id(2500L).status("IN_PROGRESS")
+                .productId(10L).customerId("c-1").build();
+        when(ticketRepository.findById(2500L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2500L, "agent-1")).thenReturn(true);
+
+        Ticket result = ticketService.assignTicket(2500L, "agent-1", "admin-1", "note");
+
+        assertEquals("IN_PROGRESS", result.getStatus());
+        verify(ticketClaimRepository, never()).save(any());
+    }
 }
 
