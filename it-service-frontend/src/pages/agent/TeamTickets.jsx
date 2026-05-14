@@ -49,7 +49,8 @@ export default function TeamTickets() {
     priority, setPriority,
     search, setSearch,
     productIds, setProductIds,
-    agentId, setAgentId,
+    agentIds, setAgentIds,
+    topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
@@ -118,7 +119,8 @@ export default function TeamTickets() {
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           productIds={productIds} onProductIds={setProductIds}
-          agentId={agentId}       onAgentId={setAgentId}
+          agentIds={agentIds}     onAgentIds={setAgentIds}
+          topicIds={topicIds}     onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}

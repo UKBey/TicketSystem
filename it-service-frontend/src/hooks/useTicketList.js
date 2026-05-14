@@ -35,7 +35,8 @@ export function useTicketList(endpoint, opts = {}) {
   const [priority, setPriority]   = useState([]);
   const [search, setSearch]       = useState('');
   const [productIds, setProductIds] = useState([]);
-  const [agentId, setAgentId]      = useState('');
+  const [agentIds, setAgentIds]    = useState([]);
+  const [topicIds, setTopicIds]   = useState([]);
   const [slaStatuses, setSlaStatuses] = useState([]);
   const [dateFrom, setDateFrom]    = useState('');
   const [dateTo, setDateTo]       = useState('');
@@ -59,7 +60,8 @@ export function useTicketList(endpoint, opts = {}) {
       if (priority.length)   priority.forEach(v => qs.append('priority', v));
       if (search)            qs.set('search', search);
       if (productIds.length) productIds.forEach(v => qs.append('productId', v));
-      if (agentId)           qs.set('agentId', agentId);
+      if (agentIds.length)   agentIds.forEach(v => qs.append('agentId', v));
+      if (topicIds.length)   topicIds.forEach(v => qs.append('topicId', v));
       if (slaStatuses.length) slaStatuses.forEach(v => qs.append('slaStatus', v));
       if (dateFrom)          qs.set('dateFrom', dateFrom);
       if (dateTo)    qs.set('dateTo', dateTo);
@@ -77,7 +79,7 @@ export function useTicketList(endpoint, opts = {}) {
       setLoading(false);
     }
   }, [endpoint, page, size, sortBy, sortDir,
-      status, priority, search, productIds, agentId, slaStatuses, dateFrom, dateTo]);
+      status, priority, search, productIds, agentIds, topicIds, slaStatuses, dateFrom, dateTo]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -99,7 +101,8 @@ export function useTicketList(endpoint, opts = {}) {
     setPriority([]);
     setSearch('');
     setProductIds([]);
-    setAgentId('');
+    setAgentIds([]);
+    setTopicIds([]);
     setSlaStatuses([]);
     setDateFrom('');
     setDateTo('');
@@ -128,7 +131,8 @@ export function useTicketList(endpoint, opts = {}) {
     priority,  setPriority:  reset(setPriority),
     search,    setSearch:    reset(setSearch),
     productIds, setProductIds: reset(setProductIds),
-    agentId,    setAgentId:   reset(setAgentId),
+    agentIds,   setAgentIds:  reset(setAgentIds),
+    topicIds,   setTopicIds:  reset(setTopicIds),
     slaStatuses, setSlaStatuses: reset(setSlaStatuses),
     dateFrom,  setDateFrom:  reset(setDateFrom),
     dateTo,    setDateTo:    reset(setDateTo),

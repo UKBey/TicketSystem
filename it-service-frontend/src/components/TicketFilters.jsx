@@ -1,35 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, X, ChevronDown, Check } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import MultiSelectFilter from './filters/MultiSelectFilter';
+import FilterSearchInput from './filters/FilterSearchInput';
+import FilterChip from './filters/FilterChip';
+import ClearFiltersButton from './filters/ClearFiltersButton';
 
 const STATUSES   = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 
 /**
- * Full-featured filter bar for ticket list pages.
+ * Bilet listeleme sayfaları için tam yetenekli filtre barı.
  *
- * Props (all optional):
- *   status[]   — selected statuses array
- *   priority[] — selected priorities array
- *   search, productId, agentId, slaStatus, dateFrom, dateTo
- *   onStatus(arr), onPriority(arr), onSearch, onProductId, onAgentId, onSlaStatus, onDateFrom, onDateTo
- *   onClear        — clears all filters
- *   hideStatus     — hide status filter (e.g. Pool always NEW)
- *   hideAgent      — hide agent filter (e.g. customer pages)
- *   hideProduct    — hide product filter (e.g. ProductPage already scoped)
+ * Önemli davranış:
+ *   - Topic filtresi yalnızca productIds seçildikten sonra aktif olur.
+ *   - Tek productId taşıyan sayfalarda (ProductPage) `scopedProductId` ile topic otomatik gelir.
  */
 export default function TicketFilters({
-  status = [], priority = [], search, productIds = [], agentId, slaStatuses = [], dateFrom, dateTo,
-  onStatus, onPriority, onSearch, onProductIds, onAgentId, onSlaStatuses, onDateFrom, onDateTo,
+  status = [], priority = [], search, productIds = [], agentIds = [],
+  topicIds = [], slaStatuses = [], dateFrom, dateTo,
+  onStatus, onPriority, onSearch, onProductIds, onAgentIds, onTopicIds,
+  onSlaStatuses, onDateFrom, onDateTo,
   onClear,
   hideStatus  = false,
   hideAgent   = false,
   hideProduct = false,
+  scopedProductId,
 }) {
   const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [agents,   setAgents]   = useState([]);
+  const [topics,   setTopics]   = useState([]);
 
   const SLA_STATUSES = [
     { value: 'BREACHED', label: t('ticket.filters.slaBreached') },
@@ -44,72 +46,114 @@ export default function TicketFilters({
     { label: t('ticket.filters.presetLast90'), days: 90 },
   ];
 
-  // Fetch products and agents for dropdowns (only once)
   useEffect(() => {
-    if (!hideProduct) {
-      api.get('/products').then(r => setProducts(r.data)).catch(() => {});
-    }
-    if (!hideAgent) {
-      api.get('/users/agents').then(r => setAgents(r.data)).catch(() => {});
-    }
+    if (!hideProduct) api.get('/products').then((r) => setProducts(r.data)).catch(() => {});
+    if (!hideAgent)   api.get('/users/agents').then((r) => setAgents(r.data)).catch(() => {});
   }, []); // eslint-disable-line
 
-  const hasFilters = status?.length || priority?.length || search || productIds?.length || agentId || slaStatuses?.length || dateFrom || dateTo;
+  // Seçili productId(ler) değişince ilgili topic listesini topla.
+  const productsForTopics = scopedProductId
+    ? [scopedProductId]
+    : (productIds || []).map((id) => Number(id));
+
+  useEffect(() => {
+    const load = async () => {
+      if (productsForTopics.length === 0) {
+        setTopics([]);
+        return;
+      }
+      const results = await Promise.all(
+        productsForTopics.map((pid) =>
+          api.get(`/products/${pid}/topics`).then((r) => r.data).catch(() => []),
+        ),
+      );
+      // Aynı ID birden fazla ürünün topic listesinde gelirse de tek satır görsün.
+      const merged = new Map();
+      results.flat().forEach((t) => merged.set(t.id, t));
+      setTopics(Array.from(merged.values()));
+    };
+    load();
+  }, [productsForTopics.join(',')]); // eslint-disable-line
+
+  // Seçili topic, artık geçerli ürünler arasında değilse otomatik temizle.
+  useEffect(() => {
+    if (!topicIds || topicIds.length === 0) return;
+    const validIds = new Set(topics.map((t) => String(t.id)));
+    const filtered = topicIds.filter((id) => validIds.has(String(id)));
+    if (filtered.length !== topicIds.length && onTopicIds) {
+      onTopicIds(filtered);
+    }
+  }, [topics]); // eslint-disable-line
+
+  const topicFilterAvailable = productsForTopics.length > 0;
+
+  const hasFilters = status?.length || priority?.length || search || productIds?.length
+    || agentIds?.length || topicIds?.length || slaStatuses?.length || dateFrom || dateTo;
 
   return (
     <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
       {/* Main filter row */}
       <div className="flex flex-wrap items-center gap-2 px-4 py-3">
 
-        {/* Search */}
-        <SearchInput key={search || '__empty__'} value={search} onChange={onSearch} placeholder={t('ticket.filters.searchPlaceholder')} />
+        <FilterSearchInput
+          key={search || '__empty__'}
+          value={search}
+          onChange={onSearch}
+          placeholder={t('ticket.filters.searchPlaceholder')}
+        />
 
-        {/* Status — multi-select */}
         {!hideStatus && (
-          <MultiSelect
+          <MultiSelectFilter
             values={status}
             onChange={onStatus}
             placeholder={t('ticket.filters.allStatuses')}
-            options={STATUSES.map(s => ({ value: s, label: s.replace(/_/g, ' ') }))}
+            options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))}
           />
         )}
 
-        {/* Priority — multi-select */}
-        <MultiSelect
+        <MultiSelectFilter
           values={priority}
           onChange={onPriority}
           placeholder={t('ticket.filters.allPriorities')}
-          options={PRIORITIES.map(p => ({ value: p, label: p }))}
+          options={PRIORITIES.map((p) => ({ value: p, label: p }))}
         />
 
-        {/* SLA Status — multi-select */}
-        <MultiSelect
+        <MultiSelectFilter
           values={slaStatuses}
           onChange={onSlaStatuses}
           placeholder={t('ticket.filters.allSla')}
           options={SLA_STATUSES}
         />
 
-        {/* Product — multi-select */}
         {!hideProduct && products.length > 0 && (
-          <MultiSelect
+          <MultiSelectFilter
             values={productIds}
             onChange={onProductIds}
             placeholder={t('ticket.filters.allProducts')}
-            options={products.map(p => ({ value: String(p.id), label: p.name }))}
+            options={products.map((p) => ({ value: String(p.id), label: p.name }))}
           />
         )}
 
-        {/* Agent */}
+        {onTopicIds && (
+          <MultiSelectFilter
+            values={topicIds}
+            onChange={onTopicIds}
+            placeholder={t('ticket.filters.allTopics')}
+            disabled={!topicFilterAvailable}
+            disabledHint={t('ticket.filters.selectProductFirst')}
+            options={topics.map((tp) => ({ value: String(tp.id), label: tp.name }))}
+          />
+        )}
+
         {!hideAgent && agents.length > 0 && (
-          <FilterSelect
-            value={agentId} onChange={onAgentId}
+          <MultiSelectFilter
+            values={agentIds}
+            onChange={onAgentIds}
             placeholder={t('ticket.filters.allAgents')}
-            options={agents.map(a => ({ value: a.id, label: a.fullName }))}
+            options={agents.map((a) => ({ value: a.id, label: a.fullName }))}
           />
         )}
 
-        {/* Date range */}
         <DateRangePicker
           dateFrom={dateFrom} dateTo={dateTo}
           onDateFrom={onDateFrom} onDateTo={onDateTo}
@@ -117,43 +161,39 @@ export default function TicketFilters({
           t={t}
         />
 
-        {/* Clear */}
-        {hasFilters && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
-          >
-            <X className="h-3 w-3" />
-            {t('ticket.filters.clearAll')}
-          </button>
-        )}
+        {hasFilters && <ClearFiltersButton onClick={onClear} label={t('ticket.filters.clearAll')} />}
       </div>
 
       {/* Active filter chips */}
       {hasFilters && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-2.5">
-          {status?.map(s => (
-            <Chip key={s} label={t('ticket.filters.chipStatus', { value: s.replace(/_/g, ' ') })}
-              onRemove={() => onStatus(status.filter(v => v !== s))} />
+          {status?.map((s) => (
+            <FilterChip key={s} label={t('ticket.filters.chipStatus', { value: s.replace(/_/g, ' ') })}
+              onRemove={() => onStatus(status.filter((v) => v !== s))} />
           ))}
-          {priority?.map(p => (
-            <Chip key={p} label={t('ticket.filters.chipPriority', { value: p })}
-              onRemove={() => onPriority(priority.filter(v => v !== p))} />
+          {priority?.map((p) => (
+            <FilterChip key={p} label={t('ticket.filters.chipPriority', { value: p })}
+              onRemove={() => onPriority(priority.filter((v) => v !== p))} />
           ))}
-          {search    && <Chip label={t('ticket.filters.chipSearch', { value: search })} onRemove={() => onSearch('')} />}
-          {slaStatuses?.map(s => (
-            <Chip key={s} label={t('ticket.filters.chipSla', { value: SLA_STATUSES.find(sl => sl.value === s)?.label ?? s })}
-              onRemove={() => onSlaStatuses(slaStatuses.filter(v => v !== s))} />
+          {search    && <FilterChip label={t('ticket.filters.chipSearch', { value: search })} onRemove={() => onSearch('')} />}
+          {slaStatuses?.map((s) => (
+            <FilterChip key={s} label={t('ticket.filters.chipSla', { value: SLA_STATUSES.find((sl) => sl.value === s)?.label ?? s })}
+              onRemove={() => onSlaStatuses(slaStatuses.filter((v) => v !== s))} />
           ))}
-          {productIds?.map(pid => (
-            <Chip key={pid} label={t('ticket.filters.chipProduct', { value: products.find(p => String(p.id) === pid)?.name ?? pid })}
-              onRemove={() => onProductIds(productIds.filter(v => v !== pid))} />
+          {productIds?.map((pid) => (
+            <FilterChip key={pid} label={t('ticket.filters.chipProduct', { value: products.find((p) => String(p.id) === pid)?.name ?? pid })}
+              onRemove={() => onProductIds(productIds.filter((v) => v !== pid))} />
           ))}
-          {agentId   && <Chip label={t('ticket.filters.chipAgent', { value: agents.find(a => a.id === agentId)?.fullName ?? agentId })} onRemove={() => onAgentId('')} />}
+          {topicIds?.map((tid) => (
+            <FilterChip key={tid} label={t('ticket.filters.chipTopic', { value: topics.find((tp) => String(tp.id) === String(tid))?.name ?? tid })}
+              onRemove={() => onTopicIds(topicIds.filter((v) => v !== tid))} />
+          ))}
+          {agentIds?.map((aid) => (
+            <FilterChip key={aid} label={t('ticket.filters.chipAgent', { value: agents.find((a) => a.id === aid)?.fullName ?? aid })}
+              onRemove={() => onAgentIds(agentIds.filter((v) => v !== aid))} />
+          ))}
           {(dateFrom || dateTo) && (
-            <Chip
+            <FilterChip
               label={`${t('ticket.filters.from')}: ${dateFrom ? new Date(dateFrom).toLocaleDateString() : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString() : '…'}`}
               onRemove={() => { onDateFrom(''); onDateTo(''); }}
             />
@@ -164,154 +204,7 @@ export default function TicketFilters({
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-/**
- * Checkbox tabanlı çoklu seçim dropdown.
- * values: string[]  — seçili değerler
- * onChange: (string[]) => void
- */
-function MultiSelect({ values = [], onChange, placeholder, options }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const hasValue = values.length > 0;
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const toggle = (val) => {
-    if (values.includes(val)) {
-      onChange(values.filter(v => v !== val));
-    } else {
-      onChange([...values, val]);
-    }
-  };
-
-  const label = hasValue
-    ? values.map(v => options.find(o => o.value === v)?.label ?? v).join(', ')
-    : placeholder;
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none"
-        style={{
-          backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
-          borderColor:     hasValue ? '#3b82f6'               : 'var(--border-color)',
-          color:           hasValue ? '#2563eb'               : 'var(--text-secondary)',
-          maxWidth: '180px',
-        }}
-      >
-        <span className="truncate">{label}</span>
-        <ChevronDown className="h-3 w-3 flex-shrink-0" />
-      </button>
-
-      {open && (
-        <div
-          className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[160px]"
-          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-        >
-          {options.map(o => {
-            const checked = values.includes(o.value);
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => toggle(o.value)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10"
-                style={{ color: checked ? '#2563eb' : 'var(--text-primary)' }}
-              >
-                <span
-                  className="flex-shrink-0 h-3.5 w-3.5 rounded border flex items-center justify-center"
-                  style={{
-                    backgroundColor: checked ? '#3b82f6' : 'transparent',
-                    borderColor:     checked ? '#3b82f6' : 'var(--border-color)',
-                  }}
-                >
-                  {checked && <Check className="h-2.5 w-2.5 text-white" />}
-                </span>
-                {o.label}
-              </button>
-            );
-          })}
-          {hasValue && (
-            <button
-              type="button"
-              onClick={() => { onChange([]); setOpen(false); }}
-              className="flex items-center gap-1 w-full px-3 py-1.5 text-xs cursor-pointer border-t transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)', marginTop: '2px' }}
-            >
-              <X className="h-3 w-3" /> Temizle
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SearchInput({ value, onChange, placeholder }) {
-  const [local, setLocal] = useState(value ?? '');
-  const timer = useRef(null);
-
-  const handleChange = (e) => {
-    const v = e.target.value;
-    setLocal(v);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => onChange(v), 350);
-  };
-
-  return (
-    <div className="relative">
-      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
-        style={{ color: 'var(--text-tertiary)' }} />
-      <input
-        type="text"
-        value={local}
-        onChange={handleChange}
-        placeholder={placeholder}
-        className="rounded-lg border pl-8 pr-3 py-1.5 text-xs outline-none transition-all focus:ring-2 w-44"
-        style={{
-          backgroundColor: local ? 'rgba(59,130,246,0.06)' : 'var(--bg-input)',
-          borderColor:     local ? '#3b82f6'               : 'var(--border-color)',
-          color:           'var(--text-primary)',
-        }}
-      />
-      {local && (
-        <button type="button" onClick={() => { setLocal(''); onChange(''); }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
-          style={{ color: 'var(--text-tertiary)' }}>
-          <X className="h-3 w-3" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function FilterSelect({ value, onChange, placeholder, options }) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border px-2.5 py-1.5 text-xs outline-none cursor-pointer transition-all focus:ring-2"
-      style={{
-        backgroundColor: value ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
-        borderColor:     value ? '#3b82f6'               : 'var(--border-color)',
-        color:           value ? '#2563eb'               : 'var(--text-secondary)',
-      }}
-    >
-      <option value="">{placeholder}</option>
-      {options.map(o => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </select>
-  );
-}
+// ── Tarih aralığı yerel kalır; başka bir yerde kullanılmıyor ──────────────────
 
 function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, t }) {
   const [open, setOpen] = useState(false);
@@ -326,33 +219,24 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
 
   const applyPreset = (days) => {
     if (days === 0) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      onDateFrom(today.toISOString());
-      onDateTo(end.toISOString());
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const end = new Date();   end.setHours(23, 59, 59, 999);
+      onDateFrom(today.toISOString()); onDateTo(end.toISOString());
     } else {
       const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - days);
       start.setHours(0, 0, 0, 0);
-      onDateFrom(start.toISOString());
-      onDateTo(end.toISOString());
+      onDateFrom(start.toISOString()); onDateTo(end.toISOString());
     }
     setOpen(false);
   };
 
-  const toInputValue = (iso) => {
-    if (!iso) return '';
-    return iso.slice(0, 10); // yyyy-mm-dd
-  };
-
+  const toInputValue = (iso) => (iso ? iso.slice(0, 10) : '');
   const fromInput = (dateStr, isEnd) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
-    if (isEnd) d.setHours(23, 59, 59, 999);
-    else d.setHours(0, 0, 0, 0);
+    if (isEnd) d.setHours(23, 59, 59, 999); else d.setHours(0, 0, 0, 0);
     return d.toISOString();
   };
 
@@ -360,7 +244,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all"
         style={{
           backgroundColor: hasDate ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
@@ -377,11 +261,9 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
       {open && (
         <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg p-3 w-64"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-
-          {/* Presets */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.quickSelect')}</p>
           <div className="grid grid-cols-2 gap-1 mb-3">
-            {datePresets.map(p => (
+            {datePresets.map((p) => (
               <button key={p.label} type="button" onClick={() => applyPreset(p.days)}
                 className="rounded-lg border px-2 py-1 text-xs cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10 text-left"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
@@ -390,20 +272,19 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
             ))}
           </div>
 
-          {/* Custom range */}
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.customRange')}</p>
           <div className="space-y-1.5">
             <div>
               <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
               <input type="date" value={toInputValue(dateFrom)}
-                onChange={e => onDateFrom(fromInput(e.target.value, false))}
+                onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
                 className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
             </div>
             <div>
               <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
               <input type="date" value={toInputValue(dateTo)}
-                onChange={e => onDateTo(fromInput(e.target.value, true))}
+                onChange={(e) => onDateTo(fromInput(e.target.value, true))}
                 className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
             </div>
@@ -419,17 +300,5 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
         </div>
       )}
     </div>
-  );
-}
-
-function Chip({ label, onRemove }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
-      style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.2)', color: '#2563eb' }}>
-      {label}
-      <button type="button" onClick={onRemove} className="cursor-pointer hover:opacity-70">
-        <X className="h-2.5 w-2.5" />
-      </button>
-    </span>
   );
 }

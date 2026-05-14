@@ -24,6 +24,8 @@ export default function MyTickets() {
     status, setStatus,
     priority, setPriority,
     search, setSearch,
+    productIds, setProductIds,
+    topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
@@ -87,13 +89,14 @@ export default function MyTickets() {
           status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
+          productIds={productIds} onProductIds={setProductIds}
+          topicIds={topicIds}     onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
           hideStatus={tab === 'closed'}
           hideAgent
-          hideProduct={false}
         />
 
         {loading ? (

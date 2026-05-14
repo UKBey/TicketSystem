@@ -49,7 +49,8 @@ export default function ProductPage() {
     status, setStatus,
     priority, setPriority,
     search, setSearch,
-    agentId, setAgentId,
+    agentIds, setAgentIds,
+    topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
@@ -165,12 +166,14 @@ export default function ProductPage() {
           status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
-          agentId={agentId}     onAgentId={setAgentId}
+          agentIds={agentIds}   onAgentIds={setAgentIds}
+          topicIds={topicIds}   onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
           hideProduct
+          scopedProductId={Number(id)}
         />
 
         {ticketsLoading ? (

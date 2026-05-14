@@ -24,6 +24,7 @@ export default function Pool() {
     priority, setPriority,
     search, setSearch,
     productIds, setProductIds,
+    topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
@@ -72,6 +73,7 @@ export default function Pool() {
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           productIds={productIds} onProductIds={setProductIds}
+          topicIds={topicIds}     onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
