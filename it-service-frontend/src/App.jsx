@@ -21,6 +21,7 @@ import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
+import KnownIssuesPage from './pages/KnownIssuesPage';
 import NoRolePage from './pages/NoRolePage';
 
 function AppLayout({ children }) {
@@ -200,6 +201,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><NotificationPreferencesPage /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Sıkça karşılaşılan sorunlar — tüm roller erişir, içerik product yetkisine göre filtrelenir. */}
+        <Route
+          path="/known-issues"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+              <AppLayout><KnownIssuesPage /></AppLayout>
             </ProtectedRoute>
           }
         />

@@ -155,3 +155,23 @@ export const getLatestAiSummary = (ticketId) =>
 // Ticket'ın tüm özetlerini listele
 export const getAllAiSummaries = (ticketId) =>
   api.get(`/ai/summaries/tickets/${ticketId}`);
+
+// ============================================================
+// Known Issues (Sıkça Karşılaşılan Sorunlar) API
+// ============================================================
+
+export const listKnownIssues = (productId, { topicId, includeInactive = false } = {}) => {
+  const params = {};
+  if (topicId)         params.topicId = topicId;
+  if (includeInactive) params.includeInactive = true;
+  return api.get(`/products/${productId}/known-issues`, { params });
+};
+
+export const createKnownIssue = (productId, body) =>
+  api.post(`/products/${productId}/known-issues`, body);
+
+export const updateKnownIssue = (id, body) =>
+  api.put(`/known-issues/${id}`, body);
+
+export const deleteKnownIssue = (id) =>
+  api.delete(`/known-issues/${id}`);

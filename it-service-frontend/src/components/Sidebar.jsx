@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Settings,
   Package,
+  LifeBuoy,
   LogOut,
   ChevronLeft,
   Headset,
@@ -165,6 +166,14 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
               <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.products')}</span>
             </NavLink>
           </>
+        )}
+
+        {/* Tum roller — sikca karsilasilan sorunlar bilgi tabani */}
+        {primaryRole && (
+          <NavLink to="/known-issues" className={linkClassName} onClick={handleNavClick}>
+            <LifeBuoy className="h-[18px] w-[18px] flex-shrink-0" />
+            <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.knownIssues')}</span>
+          </NavLink>
         )}
       </nav>
 
