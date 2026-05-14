@@ -25,19 +25,24 @@ import NoRolePage from './pages/NoRolePage';
 
 function AppLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Mobilde sidebar overlay drawer (md altinda ml=0). md ve uzeri icin collapsed durumuna
+  // gore 76 / 260 px ml uygulanir. Tailwind dinamik sinif uretmedigi icin iki olasilik
+  // sabit class ile kosulluyoruz.
+  const desktopMarginClass = sidebarCollapsed ? 'md:ml-[76px]' : 'md:ml-[260px]';
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-body)' }}>
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((prev) => !prev)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
       />
-      <div
-        className="flex flex-1 flex-col transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? '76px' : '260px' }}
-      >
-        <Navbar />
-        <main className="flex-1 p-6 lg:p-8">{children}</main>
+      <div className={`flex flex-1 flex-col transition-[margin] duration-300 ${desktopMarginClass}`}>
+        <Navbar onMenuClick={() => setMobileOpen(true)} />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Menu } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import NotificationBell from './notifications/NotificationBell';
 import LanguageSwitcher from './LanguageSwitcher';
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { user, getPrimaryRole } = useAuth();
@@ -21,14 +21,28 @@ export default function Navbar() {
 
   return (
     <header
-      className="sticky top-0 z-30 flex h-16 items-center justify-end border-b px-6 backdrop-blur-xl"
+      className="sticky top-0 z-30 flex h-16 items-center justify-between border-b px-3 sm:px-6 backdrop-blur-xl gap-2"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--bg-surface) 85%, transparent)',
         borderColor: 'var(--border-color)',
       }}
     >
+      {/* Mobile hamburger — sadece md altinda gorunur. md ve uzeri sidebar her zaman ekranda. */}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 cursor-pointer"
+        style={{
+          backgroundColor: 'var(--bg-surface-secondary)',
+          color: 'var(--text-secondary)',
+        }}
+        aria-label={t('sidebar.expand')}
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Right: Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 ml-auto">
         {/* Language switcher */}
         <LanguageSwitcher />
 
