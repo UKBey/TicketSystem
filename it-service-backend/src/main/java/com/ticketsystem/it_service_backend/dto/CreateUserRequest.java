@@ -50,4 +50,13 @@ public class CreateUserRequest {
     @Schema(description = "Atanacak realm rolleri — en az bir rol zorunludur",
             example = "[\"AGENT\"]", allowableValues = {"CUSTOMER", "AGENT", "AGENT_ADMIN", "MANAGER"})
     private List<String> roles;
+
+    /**
+     * Şifre geçici mi (true → kullanıcı ilk girişte değiştirmek zorunda)
+     * yoksa kalıcı mı? Varsayılan: true. Yalnızca veri üretici (data-generator)
+     * gibi otomatik akışlarda kalıcı şifre tercih edilir.
+     */
+    @Schema(description = "Şifre geçici mi? Varsayılan true; data-generator gibi otomasyonlar false geçer.",
+            example = "true", defaultValue = "true")
+    private Boolean temporaryPassword;
 }

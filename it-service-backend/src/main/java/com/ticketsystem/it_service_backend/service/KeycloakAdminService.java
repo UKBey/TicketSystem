@@ -94,8 +94,10 @@ public class KeycloakAdminService {
             log.info("Keycloak kullanıcısı oluşturuldu. ID: {}", keycloakId);
         }
 
-        // 3. Geçici şifre ata (kullanıcı ilk girişte değiştirmek zorunda kalır)
-        setTemporaryPassword(usersResource, keycloakId, request.getPassword());
+        // 3. Şifre ata — varsayılan geçici (ilk girişte değişmek zorunda).
+        //    request.temporaryPassword == false ise kalıcı atanır (data-generator akışı).
+        boolean temporary = request.getTemporaryPassword() == null || request.getTemporaryPassword();
+        setUserPassword(usersResource, keycloakId, request.getPassword(), temporary);
 
         // 4. Realm rollerini ata — başarısız olursa kullanıcı rollsuz kalır, DB kaydı yine yapılır
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
@@ -268,14 +270,15 @@ public class KeycloakAdminService {
         return userRep;
     }
 
-    private void setTemporaryPassword(UsersResource usersResource, String keycloakId, String password) {
+    private void setUserPassword(UsersResource usersResource, String keycloakId,
+                                  String password, boolean temporary) {
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
-        credential.setTemporary(true); // Kullanıcı ilk girişte şifresini değiştirmek zorunda kalır.
+        credential.setTemporary(temporary);
 
         usersResource.get(keycloakId).resetPassword(credential);
-        log.debug("Geçici şifre atandı. Kullanıcı ID: {}", keycloakId);
+        log.debug("Şifre atandı. Kullanıcı ID: {}, temporary={}", keycloakId, temporary);
     }
 
     private void assignRealmRoles(RealmResource realmResource, String keycloakId, List<String> roleNames) {
