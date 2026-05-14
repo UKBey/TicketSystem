@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import keycloak from '../keycloak';
 import api from '../services/api';
 import i18n from '../i18n';
+import { useTheme } from './ThemeContext';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
+  const { theme, applyServerTheme, setTheme } = useTheme();
 
   const extractUserInfo = useCallback(() => {
     if (keycloak.tokenParsed) {
@@ -48,10 +50,17 @@ export function AuthProvider({ children }) {
         if (auth) {
           extractUserInfo();
           api.post('/users/sync')
-            .then(() => {
-              // Giriş sonrası localStorage'daki dil tercihini backend'e yaz
+            .then((res) => {
               const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
               api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+              const serverTheme = res?.data?.preferredTheme;
+              if (serverTheme === 'light' || serverTheme === 'dark') {
+                // Sunucudaki tercih kullanıcının "son seçimi" — UI'ı bununla hizala.
+                applyServerTheme(serverTheme);
+              } else {
+                // Henüz kayıt yoksa localStorage'daki mevcut temayı backend'e yaz.
+                setTheme(theme);
+              }
             })
             .catch(err => console.error('Sync error:', err));
         }
@@ -74,9 +83,15 @@ export function AuthProvider({ children }) {
       setAuthenticated(true);
       extractUserInfo();
       api.post('/users/sync')
-        .then(() => {
+        .then((res) => {
           const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
           api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+          const serverTheme = res?.data?.preferredTheme;
+          if (serverTheme === 'light' || serverTheme === 'dark') {
+            applyServerTheme(serverTheme);
+          } else {
+            setTheme(theme);
+          }
         })
         .catch(err => console.error('Sync error:', err));
     };
