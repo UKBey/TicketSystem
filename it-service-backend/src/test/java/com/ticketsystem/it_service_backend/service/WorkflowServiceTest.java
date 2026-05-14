@@ -452,4 +452,100 @@ class WorkflowServiceTest {
         assertTrue((Long) result.get("remainingMs") >= 0);
         assertEquals("active", result.get("slaState"));
     }
+
+    @Test
+    void pauseSla_alreadyPaused_isNoOp() {
+        Ticket ticket = Ticket.builder()
+                .id(1L).priority("HIGH")
+                .slaPausedAt(ZonedDateTime.now())
+                .processInstanceId(99L)
+                .build();
+
+        workflowService.pauseSla(ticket);
+
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), eq("pause_sla"), any());
+    }
+
+    @Test
+    void pauseSla_noProcessId_updatesDbOnly() {
+        Ticket ticket = Ticket.builder()
+                .id(2L).priority("HIGH")
+                .createdAt(ZonedDateTime.now().minusMinutes(2))
+                .slaElapsedMs(0L)
+                .build();
+
+        workflowService.pauseSla(ticket);
+
+        assertNotNull(ticket.getSlaPausedAt());
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+    }
+
+    @Test
+    void pauseSla_signalFailure_isSwallowed() {
+        Ticket ticket = Ticket.builder()
+                .id(3L).priority("HIGH")
+                .createdAt(ZonedDateTime.now().minusMinutes(2))
+                .processInstanceId(99L)
+                .slaElapsedMs(0L)
+                .build();
+        doThrow(new RuntimeException("broker down"))
+                .when(kieServerAdapter).signalProcessInstance(99L, "pause_sla", null);
+
+        workflowService.pauseSla(ticket);
+
+        assertNotNull(ticket.getSlaPausedAt());
+    }
+
+    @Test
+    void resumeSla_noProcessId_skipsKieCall() {
+        Ticket ticket = Ticket.builder().id(4L).priority("HIGH").slaElapsedMs(5_000L).build();
+
+        workflowService.resumeSla(ticket);
+
+        assertNull(ticket.getSlaPausedAt());
+        verify(kieServerAdapter, never()).setProcessVariable(any(), any(), any());
+    }
+
+    @Test
+    void resumeSla_signalFailure_isSwallowed() {
+        Ticket ticket = Ticket.builder().id(5L).priority("HIGH").processInstanceId(99L).slaElapsedMs(5_000L).build();
+        doThrow(new RuntimeException("kie down")).when(kieServerAdapter)
+                .signalProcessInstance(eq(99L), eq("resume_sla"), any());
+
+        workflowService.resumeSla(ticket);
+
+        assertNull(ticket.getSlaPausedAt());
+    }
+
+    @Test
+    void closeTicketWorkflow_noProcessId_skips() {
+        Ticket ticket = Ticket.builder().id(6L).build();
+
+        workflowService.closeTicketWorkflow(ticket);
+
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+        verify(kieServerAdapter, never()).abortProcess(any());
+    }
+
+    @Test
+    void closeTicketWorkflow_signalThrows_abortFallbackInvoked() {
+        Ticket ticket = Ticket.builder().id(7L).processInstanceId(123L).build();
+        doThrow(new RuntimeException("signal failed"))
+                .when(kieServerAdapter).signalProcessInstance(123L, "ticket_closed", null);
+
+        workflowService.closeTicketWorkflow(ticket);
+
+        verify(kieServerAdapter).abortProcess(123L);
+    }
+
+    @Test
+    void closeTicketWorkflow_abortFallbackAlsoThrows_isSwallowed() {
+        Ticket ticket = Ticket.builder().id(8L).processInstanceId(124L).build();
+        doThrow(new RuntimeException("signal failed"))
+                .when(kieServerAdapter).signalProcessInstance(124L, "ticket_closed", null);
+        doThrow(new RuntimeException("abort failed"))
+                .when(kieServerAdapter).abortProcess(124L);
+
+        workflowService.closeTicketWorkflow(ticket);
+    }
 }
