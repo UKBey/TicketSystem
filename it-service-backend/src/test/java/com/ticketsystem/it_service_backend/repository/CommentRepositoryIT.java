@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.repository;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
     private ProductRepository productRepository;
 
     @Autowired
+    private TicketTopicRepository ticketTopicRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private Long ticketId;
@@ -34,6 +38,7 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
     void setUp() {
         commentRepository.deleteAll();
         ticketRepository.deleteAll();
+        ticketTopicRepository.deleteAll();
         userRepository.deleteAll();
         productRepository.deleteAll();
 
@@ -41,6 +46,9 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
             .name("Support")
             .isActive(true)
             .build());
+
+        TicketTopic topic = ticketTopicRepository.save(TicketTopic.builder()
+            .productId(product.getId()).name("Diğer").isActive(true).build());
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
         userRepository.save(User.builder().id("u1").email("u1@test.com").fullName("User One").role("AGENT").build());
@@ -52,6 +60,7 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
                 .status("NEW")
                 .priority("HIGH")
             .productId(product.getId())
+                .topicId(topic.getId())
                 .customerId("customer-1")
                 .build());
 

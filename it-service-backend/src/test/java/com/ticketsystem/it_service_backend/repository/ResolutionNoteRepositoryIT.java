@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.repository;
 import com.ticketsystem.it_service_backend.entity.ResolutionNote;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
     private ProductRepository productRepository;
 
     @Autowired
+    private TicketTopicRepository ticketTopicRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private Long ticketId1;
@@ -37,6 +41,7 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
     void setUp() {
         resolutionNoteRepository.deleteAll();
         ticketRepository.deleteAll();
+        ticketTopicRepository.deleteAll();
         userRepository.deleteAll();
         productRepository.deleteAll();
 
@@ -44,6 +49,9 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .name("Support")
             .isActive(true)
             .build());
+
+        TicketTopic topic = ticketTopicRepository.save(TicketTopic.builder()
+            .productId(product.getId()).name("Diğer").isActive(true).build());
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
         userRepository.save(User.builder().id("agent-1").email("agent-1@test.com").fullName("Agent One").role("AGENT").build());
@@ -55,6 +63,7 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .status("IN_PROGRESS")
             .priority("HIGH")
             .productId(product.getId())
+            .topicId(topic.getId())
             .customerId("customer-1")
             .build()).getId();
 
@@ -64,6 +73,7 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .status("IN_PROGRESS")
             .priority("MEDIUM")
             .productId(product.getId())
+            .topicId(topic.getId())
             .customerId("customer-1")
             .build()).getId();
 
@@ -73,6 +83,7 @@ class ResolutionNoteRepositoryIT extends RepositoryIntegrationTestBase {
             .status("IN_PROGRESS")
             .priority("LOW")
             .productId(product.getId())
+            .topicId(topic.getId())
             .customerId("customer-1")
             .build()).getId();
 

@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,14 +24,20 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
     private ProductRepository productRepository;
 
     @Autowired
+    private TicketTopicRepository ticketTopicRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private Long productId1;
     private Long productId2;
+    private Long topicId1;
+    private Long topicId2;
 
     @BeforeEach
     void setUp() {
         ticketRepository.deleteAll();
+        ticketTopicRepository.deleteAll();
         userRepository.deleteAll();
         productRepository.deleteAll();
 
@@ -38,6 +45,8 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         Product p2 = productRepository.save(Product.builder().name("Network").isActive(true).build());
         productId1 = p1.getId();
         productId2 = p2.getId();
+        topicId1 = ticketTopicRepository.save(TicketTopic.builder().productId(productId1).name("Diğer").isActive(true).build()).getId();
+        topicId2 = ticketTopicRepository.save(TicketTopic.builder().productId(productId2).name("Diğer").isActive(true).build()).getId();
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
         userRepository.save(User.builder().id("customer-2").email("customer-2@test.com").fullName("Customer Two").role("CUSTOMER").build());
@@ -50,6 +59,7 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .status("NEW")
                 .priority("HIGH")
                 .productId(productId1)
+                .topicId(topicId1)
                 .customerId("customer-1")
                 .build());
 
@@ -59,6 +69,7 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .status("NEW")
                 .priority("LOW")
                 .productId(productId2)
+                .topicId(topicId2)
                 .customerId("customer-2")
                 .build());
 
@@ -68,6 +79,7 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
                 .status("IN_PROGRESS")
                 .priority("MEDIUM")
                 .productId(productId1)
+                .topicId(topicId1)
                 .customerId("customer-3")
                 .build());
     }

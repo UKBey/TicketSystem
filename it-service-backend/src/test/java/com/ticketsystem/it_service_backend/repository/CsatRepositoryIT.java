@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.repository;
 import com.ticketsystem.it_service_backend.entity.Csat;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
     private ProductRepository productRepository;
 
     @Autowired
+    private TicketTopicRepository ticketTopicRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private Long ticketId;
@@ -36,6 +40,7 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
     void setUp() {
         csatRepository.deleteAll();
         ticketRepository.deleteAll();
+        ticketTopicRepository.deleteAll();
         userRepository.deleteAll();
         productRepository.deleteAll();
 
@@ -43,6 +48,9 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
             .name("Support")
             .isActive(true)
             .build());
+
+        TicketTopic topic = ticketTopicRepository.save(TicketTopic.builder()
+            .productId(product.getId()).name("Diğer").isActive(true).build());
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
 
@@ -52,6 +60,7 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
             .status("RESOLVED")
             .priority("HIGH")
             .productId(product.getId())
+            .topicId(topic.getId())
             .customerId("customer-1")
             .build());
 
