@@ -75,22 +75,6 @@ export function useTicketDetail(id, hasRole) {
     fetchAttachments();
   }, [id, fetchTicket, fetchComments, fetchAttachments]);
 
-  // ResolutionNote tablosu kaldırıldı; çözüm bilgisi audit log'un son RESOLVE kaydından okunuyor.
-  const resolutionNote = useMemo(() => {
-    const logs = ticket?.auditLogs;
-    if (!logs || logs.length === 0) return null;
-    const resolveEntry = [...logs]
-      .filter((entry) => entry.actionType === 'RESOLVE')
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-    if (!resolveEntry) return null;
-    return {
-      reasonCode: resolveEntry.reasonCode,
-      note: resolveEntry.note,
-      agentId: resolveEntry.actorId,
-      agentName: resolveEntry.actorName,
-      createdAt: resolveEntry.createdAt,
-    };
-  }, [ticket?.auditLogs]);
 
   // Gercek zamanli guncellemeler: backend ticket mutation'larinda
   // /topic/tickets/{id} kanalina event yayinlar. Agent/admin ek olarak
@@ -297,7 +281,7 @@ export function useTicketDetail(id, hasRole) {
 
   return {
     // data
-    ticket, loading, timeline, slaInfo, currentDate, resolutionNote,
+    ticket, loading, timeline, slaInfo, currentDate,
     // comment form
     message, setMessage, commentType, setCommentType, sending, cooldown,
     // file

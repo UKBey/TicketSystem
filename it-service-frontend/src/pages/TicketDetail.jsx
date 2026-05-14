@@ -30,7 +30,7 @@ export default function TicketDetail() {
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
 
   const {
-    ticket, loading, timeline, slaInfo, currentDate, resolutionNote,
+    ticket, loading, timeline, slaInfo, currentDate,
     message, setMessage, commentType, setCommentType, sending, cooldown,
     uploading, fileInputRef, chatEndRef,
     resolveModalOpen, setResolveModalOpen,
@@ -160,7 +160,6 @@ export default function TicketDetail() {
           ticket={ticket}
           slaInfo={slaInfo}
           currentDate={currentDate}
-          resolutionNote={resolutionNote}
           isCustomer={isCustomer}
           isAgent={isAgent}
           isDark={isDark}

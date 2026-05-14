@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { PriorityBadge } from '../Badges';
-import { CheckCircle2, AlertTriangle } from 'lucide-react';
-import { formatDate, formatShortDate, formatSlaTime } from '../../utils/ticketFormatters';
+import { AlertTriangle } from 'lucide-react';
+import { formatDate, formatSlaTime } from '../../utils/ticketFormatters';
 
 function DetailRow({ label, value }) {
   return (
@@ -22,7 +22,7 @@ const PRIORITY_STYLES = {
 };
 
 export default function TicketDetailsCard({
-  ticket, slaInfo, currentDate, resolutionNote,
+  ticket, slaInfo, currentDate,
   isCustomer, isAgent, isDark, onPriorityChange,
 }) {
   const { t } = useTranslation();
@@ -135,31 +135,7 @@ export default function TicketDetailsCard({
           </div>
         )}
 
-        {ticket.resolvedAt && <DetailRow label={t('ticketDetail.resolvedAt')} value={formatDate(ticket.resolvedAt)} />}
-        {ticket.closedAt   && <DetailRow label={t('ticketDetail.closedAt')} value={formatDate(ticket.closedAt)} />}
-
-        {resolutionNote && (
-          <div>
-            <div className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
-              <CheckCircle2 className="h-3 w-3 text-accent-500" />
-              {t('ticketDetail.resolutionNote')}
-            </div>
-            {resolutionNote.reasonCode && (
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mb-1"
-                style={{ backgroundColor: 'rgba(16,185,129,0.12)', color: '#10b981' }}>
-                {t(`reasonCode.RESOLVE.${resolutionNote.reasonCode}`, { defaultValue: resolutionNote.reasonCode })}
-              </span>
-            )}
-            {resolutionNote.note && (
-              <div className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
-                {resolutionNote.note}
-              </div>
-            )}
-            <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-              {resolutionNote.agentName || resolutionNote.agentId} · {formatShortDate(resolutionNote.createdAt)}
-            </div>
-          </div>
-        )}
+        {ticket.closedAt && <DetailRow label={t('ticketDetail.closedAt')} value={formatDate(ticket.closedAt)} />}
 
       </div>
     </div>
