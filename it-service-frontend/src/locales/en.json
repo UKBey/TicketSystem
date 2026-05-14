@@ -543,6 +543,8 @@
     "accountDetails": "Account Details",
     "notificationPreferences": "Notification Preferences",
     "manageNotifications": "Manage which events trigger email notifications.",
+    "twoFactor": "Two-Factor Authentication",
+    "manageTwoFactor": "Protect your account with an additional security layer (authenticator app).",
     "authorizedProducts": "Authorized Products",
     "noProducts": "No authorized products assigned.",
     "fieldFullName": "Full Name",

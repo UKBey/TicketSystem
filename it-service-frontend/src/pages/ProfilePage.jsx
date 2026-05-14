@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
-  User, Shield, Globe, ExternalLink, Settings,
+  User, Shield, ShieldCheck, Globe, ExternalLink, Settings,
 } from 'lucide-react';
 import api from '../services/api';
 import i18n from '../i18n';
@@ -235,6 +235,17 @@ export default function ProfilePage() {
                 title={t('profile.notificationPreferences')}
                 description={t('profile.manageNotifications')}
                 onClick={() => navigate('/notification-preferences')}
+              />
+              <ActionCard
+                icon={ShieldCheck}
+                iconColor="#10b981"
+                iconBg="rgba(16,185,129,0.12)"
+                title={t('profile.twoFactor')}
+                description={t('profile.manageTwoFactor')}
+                onClick={() => {
+                  const url = `${window.location.origin}/auth/realms/TicketSystemRealm/account/#/account-security/signing-in`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
               />
             </div>
           </div>

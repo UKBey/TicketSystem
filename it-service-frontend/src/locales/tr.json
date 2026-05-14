@@ -543,6 +543,8 @@
     "accountDetails": "Hesap Detayları",
     "notificationPreferences": "Bildirim Tercihleri",
     "manageNotifications": "Hangi olayların e-posta bildirimi tetikleyeceğini yönetin.",
+    "twoFactor": "İki Adımlı Doğrulama",
+    "manageTwoFactor": "Hesabınızı ekstra bir güvenlik katmanıyla koruyun (Authenticator uygulaması).",
     "authorizedProducts": "Yetkili Ürünler",
     "noProducts": "Atanmış yetkili ürün yok.",
     "fieldFullName": "Ad Soyad",
