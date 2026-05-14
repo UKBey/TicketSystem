@@ -45,6 +45,8 @@ class UserServiceTest {
     private AgentProductLimitRepository agentProductLimitRepository;
     @Mock
     private TicketClaimRepository ticketClaimRepository;
+    @Mock
+    private KeycloakAdminService keycloakAdminService;
 
     @InjectMocks
     private UserService userService;
@@ -266,5 +268,273 @@ class UserServiceTest {
 
         assertThat(result.get(0).getMaxLimit()).isEqualTo(5);
         assertThat(result.get(0).getIsFull()).isFalse();
+    }
+
+    // -------------------------------------------------------------------------
+    // createUserWithKeycloak — happy + conflict + compensating action
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("createUserWithKeycloak → happy path → keycloak create + db sync + dto")
+    void createUserWithKeycloak_happyPath_syncsLocalDb() {
+        com.ticketsystem.it_service_backend.dto.CreateUserRequest req = new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
+        req.setUsername("john"); req.setEmail("john@x.com"); req.setFirstName("John"); req.setLastName("Doe");
+        req.setPassword("Temp1234!"); req.setRoles(List.of("AGENT"));
+
+        when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(false);
+        when(keycloakAdminService.existsByUsername("john")).thenReturn(false);
+        when(keycloakAdminService.createUser(req)).thenReturn("kc-id");
+        when(userRepository.findById("kc-id")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        var dto = userService.createUserWithKeycloak(req);
+
+        assertThat(dto.getKeycloakId()).isEqualTo("kc-id");
+        assertThat(dto.getFullName()).isEqualTo("John Doe");
+        assertThat(dto.getAssignedRoles()).containsExactly("AGENT");
+    }
+
+    @Test
+    @DisplayName("createUserWithKeycloak → email çakışması → UserAlreadyExistsException ve keycloak çağrılmaz")
+    void createUserWithKeycloak_emailConflict_throws() {
+        com.ticketsystem.it_service_backend.dto.CreateUserRequest req = new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
+        req.setUsername("john"); req.setEmail("john@x.com");
+        when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.createUserWithKeycloak(req))
+                .isInstanceOf(com.ticketsystem.it_service_backend.exception.UserAlreadyExistsException.class)
+                .extracting("field").isEqualTo("email");
+        verify(keycloakAdminService, org.mockito.Mockito.never()).createUser(any());
+    }
+
+    @Test
+    @DisplayName("createUserWithKeycloak → username çakışması → UserAlreadyExistsException")
+    void createUserWithKeycloak_usernameConflict_throws() {
+        com.ticketsystem.it_service_backend.dto.CreateUserRequest req = new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
+        req.setUsername("john"); req.setEmail("john@x.com");
+        when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(false);
+        when(keycloakAdminService.existsByUsername("john")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.createUserWithKeycloak(req))
+                .isInstanceOf(com.ticketsystem.it_service_backend.exception.UserAlreadyExistsException.class)
+                .extracting("field").isEqualTo("username");
+        verify(keycloakAdminService, org.mockito.Mockito.never()).createUser(any());
+    }
+
+    @Test
+    @DisplayName("createUserWithKeycloak → DB sync hatası → compensating delete keycloak ve RuntimeException")
+    void createUserWithKeycloak_dbFailure_compensatesAndRethrows() {
+        com.ticketsystem.it_service_backend.dto.CreateUserRequest req = new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
+        req.setUsername("john"); req.setEmail("john@x.com"); req.setFirstName("J"); req.setLastName("D");
+        req.setPassword("p"); req.setRoles(List.of("AGENT"));
+
+        when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(false);
+        when(keycloakAdminService.existsByUsername("john")).thenReturn(false);
+        when(keycloakAdminService.createUser(req)).thenReturn("kc-id");
+        when(userRepository.findById("kc-id")).thenThrow(new RuntimeException("db down"));
+
+        assertThatThrownBy(() -> userService.createUserWithKeycloak(req))
+                .isInstanceOf(RuntimeException.class);
+        verify(keycloakAdminService).deleteUser("kc-id");
+    }
+
+    // -------------------------------------------------------------------------
+    // resolveHighestRole — indirect via createUserWithKeycloak/updateUserRoles
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updateUserRoles → AGENT_ADMIN > MANAGER > AGENT > CUSTOMER önceliği")
+    void updateUserRoles_resolvesAgentAdminAsHighest() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
+
+        assertThat(result.getRole()).isEqualTo("AGENT_ADMIN");
+        verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → MANAGER → MANAGER")
+    void updateUserRoles_resolvesManager() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("agent-1", List.of("MANAGER", "CUSTOMER"));
+
+        assertThat(result.getRole()).isEqualTo("MANAGER");
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → boş liste → role null")
+    void updateUserRoles_emptyList_nullsRole() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("agent-1", List.of());
+
+        assertThat(result.getRole()).isNull();
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → CUSTOMER → CUSTOMER")
+    void updateUserRoles_customerOnly() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER"));
+
+        assertThat(result.getRole()).isEqualTo("CUSTOMER");
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → bilinmeyen rol → role null")
+    void updateUserRoles_unknownRole_nullsRole() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("agent-1", List.of("UNKNOWN"));
+
+        assertThat(result.getRole()).isNull();
+    }
+
+    // -------------------------------------------------------------------------
+    // getUserById
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getUserById → kullanıcı yok → RuntimeException")
+    void getUserById_missing_throws() {
+        when(userRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getUserById("ghost"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("ghost");
+    }
+
+    @Test
+    @DisplayName("getUserById → bulundu → yetkili ürün koleksiyonu initialize edilir")
+    void getUserById_existing_returnsUser() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+
+        User result = userService.getUserById("agent-1");
+
+        assertThat(result).isSameAs(user);
+    }
+
+    // -------------------------------------------------------------------------
+    // assignProductToUser
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("assignProductToUser → yeni ürün → ekler ve save eder")
+    void assignProductToUser_newProduct_addsToList() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(productRepository.findById(55L)).thenReturn(Optional.of(product));
+
+        userService.assignProductToUser("agent-1", 55L);
+
+        assertThat(user.getAuthorizedProducts()).containsExactly(product);
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("assignProductToUser → zaten yetkili → save edilmez")
+    void assignProductToUser_alreadyAssigned_skipsSave() {
+        user.getAuthorizedProducts().add(product);
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(productRepository.findById(55L)).thenReturn(Optional.of(product));
+
+        userService.assignProductToUser("agent-1", 55L);
+
+        verify(userRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    @DisplayName("assignProductToUser → ürün yok → RuntimeException")
+    void assignProductToUser_productMissing_throws() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.assignProductToUser("agent-1", 99L))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    // -------------------------------------------------------------------------
+    // removeProductFromUser
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("removeProductFromUser → ürünü listeden kaldırır")
+    void removeProductFromUser_removesAndSaves() {
+        user.getAuthorizedProducts().add(product);
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
+
+        userService.removeProductFromUser("agent-1", 55L);
+
+        assertThat(user.getAuthorizedProducts()).isEmpty();
+    }
+
+    // -------------------------------------------------------------------------
+    // updatePreferredLanguage
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updatePreferredLanguage → en → user.preferredLanguage=en")
+    void updatePreferredLanguage_en_saves() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updatePreferredLanguage("agent-1", "en");
+
+        assertThat(result.getPreferredLanguage()).isEqualTo("en");
+    }
+
+    @Test
+    @DisplayName("updatePreferredLanguage → tr → user.preferredLanguage=tr")
+    void updatePreferredLanguage_tr_saves() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updatePreferredLanguage("agent-1", "tr");
+
+        assertThat(result.getPreferredLanguage()).isEqualTo("tr");
+    }
+
+    @Test
+    @DisplayName("updatePreferredLanguage → desteklenmeyen dil → ResponseStatusException 400")
+    void updatePreferredLanguage_invalidLang_throws() {
+        assertThatThrownBy(() -> userService.updatePreferredLanguage("agent-1", "de"))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
+    }
+
+    // -------------------------------------------------------------------------
+    // deactivate / reactivate
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("deactivateUser → keycloak disable + isActive=false")
+    void deactivateUser_disablesUser() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.deactivateUser("agent-1");
+
+        assertThat(result.getIsActive()).isFalse();
+        verify(keycloakAdminService).setUserEnabled("agent-1", false);
+    }
+
+    @Test
+    @DisplayName("reactivateUser → keycloak enable + isActive=true")
+    void reactivateUser_enablesUser() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.reactivateUser("agent-1");
+
+        assertThat(result.getIsActive()).isTrue();
+        verify(keycloakAdminService).setUserEnabled("agent-1", true);
     }
 }

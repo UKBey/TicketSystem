@@ -199,4 +199,168 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("roles", roles));
         return jwt;
     }
+
+    // -------------------------------------------------------------------------
+    // updateLanguage
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateLanguage_returnsUpdatedDto() {
+        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredLanguage("tr").build();
+        when(userService.updatePreferredLanguage("u-1", "tr")).thenReturn(updated);
+        Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
+
+        ResponseEntity<UserDTO> response = userController.updateLanguage(jwt, "tr");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("tr", response.getBody().getPreferredLanguage());
+    }
+
+    // -------------------------------------------------------------------------
+    // getAgents / getAgentsWithCapacity / getUser
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getAgents_returnsList() {
+        when(userService.getAgents()).thenReturn(List.of(
+                User.builder().id("a-1").fullName("Agent 1").role("AGENT").build()
+        ));
+
+        ResponseEntity<List<UserDTO>> response = userController.getAgents();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+    }
+
+    @Test
+    void getAgentsWithCapacity_delegatesToService() {
+        com.ticketsystem.it_service_backend.dto.AgentCapacityDTO cap =
+                com.ticketsystem.it_service_backend.dto.AgentCapacityDTO.builder()
+                        .agentId("a-1").agentName("A").currentActiveTickets(2L).maxLimit(5).isFull(false).build();
+        when(userService.getAgentsWithCapacity(10L)).thenReturn(List.of(cap));
+
+        ResponseEntity<List<com.ticketsystem.it_service_backend.dto.AgentCapacityDTO>> response =
+                userController.getAgentsWithCapacity(10L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+    }
+
+    @Test
+    void getUser_returnsDto() {
+        User u = User.builder().id("u-1").fullName("X").role("AGENT").build();
+        when(userService.getUserById("u-1")).thenReturn(u);
+
+        ResponseEntity<UserDTO> response = userController.getUser("u-1");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("u-1", response.getBody().getId());
+    }
+
+    // -------------------------------------------------------------------------
+    // updateUserStatus
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateUserStatus_activeTrue_callsReactivate() {
+        User u = User.builder().id("u-2").fullName("X").role("AGENT").isActive(true).build();
+        when(userService.reactivateUser("u-2")).thenReturn(u);
+        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+
+        ResponseEntity<UserDTO> response = userController.updateUserStatus("u-2", true, jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).reactivateUser("u-2");
+    }
+
+    @Test
+    void updateUserStatus_activeFalse_callsDeactivate() {
+        User u = User.builder().id("u-2").fullName("X").role("AGENT").isActive(false).build();
+        when(userService.deactivateUser("u-2")).thenReturn(u);
+        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+
+        ResponseEntity<UserDTO> response = userController.updateUserStatus("u-2", false, jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(userService).deactivateUser("u-2");
+    }
+
+    @Test
+    void updateUserStatus_selfDeactivation_returnsBadRequest() {
+        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+
+        ResponseEntity<UserDTO> response = userController.updateUserStatus("admin-1", false, jwt);
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(userService, org.mockito.Mockito.never()).deactivateUser(org.mockito.ArgumentMatchers.any());
+    }
+
+    // -------------------------------------------------------------------------
+    // updateUserRoles
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateUserRoles_validRoles_returnsUpdatedDto() {
+        User u = User.builder().id("u-2").fullName("X").role("AGENT").build();
+        when(userService.updateUserRoles("u-2", List.of("AGENT"))).thenReturn(u);
+
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of("AGENT"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("AGENT", response.getBody().getRole());
+    }
+
+    @Test
+    void updateUserRoles_emptyList_returnsBadRequest() {
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of());
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(userService, org.mockito.Mockito.never()).updateUserRoles(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void updateUserRoles_nullList_returnsBadRequest() {
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", null);
+
+        assertEquals(400, response.getStatusCode().value());
+    }
+
+    // -------------------------------------------------------------------------
+    // createUser / getAssignableRoles (admin)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void createUser_returnsCreatedDto() {
+        com.ticketsystem.it_service_backend.dto.CreateUserRequest req =
+                new com.ticketsystem.it_service_backend.dto.CreateUserRequest();
+        req.setUsername("u"); req.setEmail("e@e.com");
+        req.setFirstName("F"); req.setLastName("L"); req.setPassword("Temp1234!");
+        req.setRoles(List.of("AGENT"));
+        com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO dto =
+                com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO.builder()
+                        .keycloakId("kc-id").username("u").email("e@e.com").fullName("F L")
+                        .assignedRoles(List.of("AGENT")).build();
+        when(userService.createUserWithKeycloak(req)).thenReturn(dto);
+
+        ResponseEntity<com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO> response =
+                userController.createUser(req);
+
+        assertEquals(201, response.getStatusCode().value());
+        assertEquals("kc-id", response.getBody().getKeycloakId());
+    }
+
+    @Test
+    void getAssignableRoles_returnsNames() {
+        org.keycloak.representations.idm.RoleRepresentation r1 = new org.keycloak.representations.idm.RoleRepresentation();
+        r1.setName("AGENT");
+        org.keycloak.representations.idm.RoleRepresentation r2 = new org.keycloak.representations.idm.RoleRepresentation();
+        r2.setName("CUSTOMER");
+        when(keycloakAdminService.getAssignableRoles()).thenReturn(List.of(r1, r2));
+
+        ResponseEntity<List<String>> response = userController.getAssignableRoles();
+
+        assertEquals(200, response.getStatusCode().value());
+        org.assertj.core.api.Assertions.assertThat(response.getBody()).containsExactly("AGENT", "CUSTOMER");
+    }
 }
