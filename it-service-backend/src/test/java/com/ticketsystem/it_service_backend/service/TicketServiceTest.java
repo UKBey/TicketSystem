@@ -2516,6 +2516,60 @@ class TicketServiceTest {
     }
 
     @Test
+    void getCustomerTicketsPaged_blankParams_buildsEmptyFilter() {
+        when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getCustomerTicketsPaged("c-1", "  ", "  ", PageRequest.of(0, 10));
+    }
+
+    @Test
+    void getPoolTicketsPaged_blankPriority_buildsEmptyFilter() {
+        when(userRepository.findById("u-1")).thenReturn(Optional.of(
+                User.builder().id("u-1").authorizedProducts(List.of(product)).build()));
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getPoolTicketsPaged("u-1", List.of("AGENT"), "  ", PageRequest.of(0, 10));
+    }
+
+    @Test
+    void getTeamTicketsPaged_withValue_passesPriority() {
+        when(userRepository.findById("u-1")).thenReturn(Optional.of(
+                User.builder().id("u-1").authorizedProducts(List.of(product)).build()));
+        when(ticketRepository.findTeamTicketsFiltered(any(), eq(List.of("HIGH")), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getTeamTicketsPaged("u-1", List.of("AGENT"), "HIGH", PageRequest.of(0, 10));
+    }
+
+    @Test
+    void getAgentClaimedTicketsPaged_withValues_passesParams() {
+        when(ticketClaimRepository.findTicketIdsByAgentId("a-1")).thenReturn(List.of(1L));
+        when(ticketRepository.findClaimedTicketsFiltered(eq(List.of(1L)), eq(List.of("NEW")), eq(List.of("HIGH")), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+        ticketService.getAgentClaimedTicketsPaged("a-1", "NEW", "HIGH", PageRequest.of(0, 10));
+    }
+
+    @Test
+    void getTicketsByProductFiltered_unknownRole_returnsEmpty() {
+        Pageable p = PageRequest.of(0, 10);
+
+        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "ghost", List.of("MANAGER"),
+                TicketFilterDTO.builder().build(), p);
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    void getTicketsByProductFiltered_customerStandardPath() {
+        when(ticketRepository.findByProductIdAndCustomerIdFiltered(eq(10L), eq("c-1"), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "c-1", List.of("CUSTOMER"),
+                TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+
+        assertNotNull(result);
+    }
+
+    @Test
     void assignTicket_targetAlreadyClaimed_returnsWithoutChange() {
         Ticket existing = Ticket.builder().id(2500L).status("IN_PROGRESS")
                 .productId(10L).customerId("c-1").build();
