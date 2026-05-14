@@ -29,7 +29,10 @@ public class TicketAuditLogDTO {
             allowableValues = {"UNCLAIM", "CLOSE", "CLAIM"})
     private String actionType;
 
-    @Schema(description = "Aksiyonun nedeni/açıklaması")
+    @Schema(description = "Önceden tanımlı sebep kodu (örn. SOLUTION_PROVIDED, WORKLOAD)", example = "WORKLOAD")
+    private String reasonCode;
+
+    @Schema(description = "Aksiyonun serbest metin açıklaması (opsiyonel; OTHER seçilince zorunlu)")
     private String note;
 
     @Schema(description = "Aksiyondan önceki bilet durumu", example = "IN_PROGRESS")
@@ -49,6 +52,7 @@ public class TicketAuditLogDTO {
                 .id(auditLog.getId())
                 .actorId(auditLog.getActorId())
                 .actionType(auditLog.getActionType())
+                .reasonCode(auditLog.getReasonCode())
                 .note(auditLog.getNote())
                 .previousState(auditLog.getPreviousState())
                 .newState(auditLog.getNewState())
@@ -65,6 +69,7 @@ public class TicketAuditLogDTO {
                 .actorId(auditLog.getActorId())
                 .actorName(actorName)
                 .actionType(auditLog.getActionType())
+                .reasonCode(auditLog.getReasonCode())
                 .note(auditLog.getNote())
                 .previousState(auditLog.getPreviousState())
                 .newState(auditLog.getNewState())

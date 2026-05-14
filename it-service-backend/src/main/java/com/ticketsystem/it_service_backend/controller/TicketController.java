@@ -7,6 +7,7 @@ import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
+import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -236,7 +237,7 @@ public class TicketController {
         String agentId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet unclaim isteği. Bilet ID: {}, Agent: {}", id, agentId);
-        Ticket ticket = ticketService.unclaimTicket(id, agentId, dto.getNote());
+        Ticket ticket = ticketService.unclaimTicket(id, agentId, dto.getReasonCode(), dto.getNote());
         log.info("Bilet başarıyla unclaim yapıldı. Bilet ID: {}", id);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
         }
@@ -282,23 +283,23 @@ public class TicketController {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet kapatma isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
-        Ticket ticket = ticketService.closeTicket(id, dto.getNote(), userId, roles);
+        Ticket ticket = ticketService.closeTicket(id, dto.getReasonCode(), dto.getNote(), userId, roles);
         log.info("Bilet başarıyla kapatıldı. Bilet ID: {}", id);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
-    @Operation(summary = "Bilet statüsü güncelle")
+    @Operation(summary = "Bilet statüsü güncelle (RESOLVED'a geçişte reasonCode zorunlu)")
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body,
+            @RequestBody @Valid StatusUpdateRequestDTO body,
             @AuthenticationPrincipal Jwt jwt) {
-        String newStatus = body.get("status");
+        String newStatus = body.getStatus();
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet statüsü güncelleme isteği. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
-        Ticket ticket = ticketService.updateTicketStatus(id, newStatus, userId, roles);
+        Ticket ticket = ticketService.updateTicketStatus(id, newStatus, body.getReasonCode(), body.getNote(), userId, roles);
         log.info("Bilet statüsü güncellendi. Bilet ID: {}, Statü: {}", id, newStatus);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }

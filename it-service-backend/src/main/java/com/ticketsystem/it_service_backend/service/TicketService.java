@@ -710,15 +710,15 @@ public class TicketService {
      */
     @Transactional
     public Ticket unclaimTicket(Long id, String agentId) {
-        return unclaimTicket(id, agentId, null);
+        return unclaimTicket(id, agentId, null, null);
     }
 
     /**
-     * Ajan kendi claim'ini geri bırakır ve sebebini audit log olarak saklar.
+     * Ajan kendi claim'ini geri bırakır; sebep kodu ve opsiyonel notu audit log'a yazılır.
      */
     @Transactional
-    public Ticket unclaimTicket(Long id, String agentId, String note) {
-        log.info("Unclaim isteği. Bilet: {}, Ajan: {}", id, agentId);
+    public Ticket unclaimTicket(Long id, String agentId, String reasonCode, String note) {
+        log.info("Unclaim isteği. Bilet: {}, Ajan: {}, Sebep: {}", id, agentId, reasonCode);
         Ticket ticket = getTicketById(id);
         String previousStatus = ticket.getStatus();
 
@@ -726,6 +726,7 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "error.ticket.no.active.claim");
         }
+        validateReasonInput(reasonCode, note);
 
         ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
 
@@ -741,21 +742,22 @@ public class TicketService {
             }
         }
 
-        recordTicketAuditLog(ticket, agentId, "UNCLAIM", note, previousStatus, ticket.getStatus());
+        recordTicketAuditLog(ticket, agentId, "UNCLAIM", reasonCode, note, previousStatus, ticket.getStatus());
         return ticket;
     }
 
     /**
-     * Bileti kapatır ve kapatma nedenini audit log olarak saklar.
+     * Bileti kapatır; sebep kodu ve opsiyonel notu audit log'a yazılır.
      */
     @Transactional
-    public Ticket closeTicket(Long id, String note, String userId, List<String> roles) {
-        log.info("Close isteği. Bilet: {}, Kullanıcı: {}", id, userId);
+    public Ticket closeTicket(Long id, String reasonCode, String note, String userId, List<String> roles) {
+        log.info("Close isteği. Bilet: {}, Kullanıcı: {}, Sebep: {}", id, userId, reasonCode);
         Ticket ticket = getTicketById(id);
         String oldStatus = ticket.getStatus();
 
         validateStateTransition(oldStatus, "CLOSED");
         validateStatusChangePermission(ticket, oldStatus, "CLOSED", userId, roles);
+        validateReasonInput(reasonCode, note);
 
         applyStatusSpecificRules(ticket, oldStatus, "CLOSED", userId);
 
@@ -765,7 +767,7 @@ public class TicketService {
         Ticket saved = ticketRepository.save(ticket);
         handleWorkflowSignals(saved, oldStatus, "CLOSED");
         notificationService.notifyStatusChanged(saved, oldStatus);
-        recordTicketAuditLog(saved, userId, "CLOSE", note, oldStatus, saved.getStatus());
+        recordTicketAuditLog(saved, userId, "CLOSE", reasonCode, note, oldStatus, saved.getStatus());
 
         return saved;
     }
@@ -775,10 +777,11 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     @Transactional
-    public Ticket updateTicketStatus(Long id, String newStatus, String userId, List<String> roles) {
-        log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}", id, newStatus, userId);
+    public Ticket updateTicketStatus(Long id, String newStatus, String reasonCode, String note,
+                                     String userId, List<String> roles) {
+        log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}, Sebep: {}", id, newStatus, userId, reasonCode);
         if ("CLOSED".equals(newStatus)) {
-            return closeTicket(id, null, userId, roles);
+            return closeTicket(id, reasonCode, note, userId, roles);
         }
 
         Ticket ticket = getTicketById(id);
@@ -786,6 +789,9 @@ public class TicketService {
 
         validateStateTransition(oldStatus, newStatus);
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
+        if ("RESOLVED".equals(newStatus)) {
+            validateReasonInput(reasonCode, note);
+        }
 
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
@@ -805,7 +811,7 @@ public class TicketService {
         else if ("WAITING_FOR_CUSTOMER".equals(newStatus)) actionType = "WAITING";
         else if ("IN_PROGRESS".equals(newStatus) && "WAITING_FOR_CUSTOMER".equals(oldStatus)) actionType = "RESUME";
         else actionType = "STATUS_CHANGE";
-        recordTicketAuditLog(saved, userId, actionType, null, oldStatus, newStatus);
+        recordTicketAuditLog(saved, userId, actionType, reasonCode, note, oldStatus, newStatus);
 
         return saved;
     }
@@ -862,16 +868,31 @@ public class TicketService {
 
     private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String note,
                                       String previousState, String newState) {
+        recordTicketAuditLog(ticket, actorId, actionType, null, note, previousState, newState);
+    }
+
+    private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String reasonCode,
+                                      String note, String previousState, String newState) {
         TicketAuditLog auditLog = TicketAuditLog.builder()
                 .ticket(ticket)
                 .actorId(actorId)
                 .actionType(actionType)
+                .reasonCode(reasonCode)
                 .note(note)
                 .previousState(previousState)
                 .newState(newState)
                 .build();
         ticketAuditLogRepository.save(auditLog);
         broadcastTicketUpdated(ticket.getId());
+    }
+
+    private void validateReasonInput(String reasonCode, String note) {
+        if (reasonCode == null || reasonCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.required");
+        }
+        if ("OTHER".equals(reasonCode) && (note == null || note.isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.note.required");
+        }
     }
 
     // Audit log her ticket mutation'unda kaydedildigi icin broadcast'i da buradan tetikliyoruz.

@@ -11,10 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Close ticket isteği — kapatma nedeni (zorunlu)")
+@Schema(description = "Close ticket isteği — sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class CloseTicketRequestDTO {
 
     @NotBlank(message = "{field.notblank}")
-    @Schema(description = "Kapatma nedeni", example = "Çözüm uygulanıp doğrulandı", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Önceden tanımlı kapatma nedeni kodu", example = "RESOLVED_CONFIRMED", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String reasonCode;
+
+    @Schema(description = "Serbest metin açıklama. reasonCode=OTHER ise zorunlu.", example = "Müşteri çağrıyla onay verdi.")
     private String note;
 }

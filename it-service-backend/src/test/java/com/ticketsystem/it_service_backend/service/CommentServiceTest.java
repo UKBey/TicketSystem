@@ -78,7 +78,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(100L, "I replied", "EXTERNAL", "customer-1", List.of("CUSTOMER"));
 
         assertEquals(1L, saved.getId());
-        verify(ticketService).updateTicketStatus(100L, "IN_PROGRESS", "customer-1", List.of("CUSTOMER"));
+        verify(ticketService).updateTicketStatus(100L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
     }
 
     @Test
@@ -148,7 +148,7 @@ class CommentServiceTest {
 
         assertEquals(8L, saved.getId());
         assertEquals("INTERNAL", saved.getType());
-        verify(ticketService, never()).updateTicketStatus(102L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
+        verify(ticketService, never()).updateTicketStatus(102L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
     }
 
     @Test
@@ -169,7 +169,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(103L, "ping", "EXTERNAL", "agent-1", List.of("AGENT"));
 
         assertNotNull(saved);
-        verify(ticketService, never()).updateTicketStatus(any(), any(), any(), any());
+        verify(ticketService, never()).updateTicketStatus(any(), any(), any(), any(), any(), any());
     }
 
     @Test

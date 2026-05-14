@@ -75,7 +75,7 @@ class CsatServiceTest {
         Csat saved = csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(1L, saved.getId());
-        verify(ticketService).updateTicketStatus(10L, "CLOSED", "customer-1", List.of("CUSTOMER"));
+        verify(ticketService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
     }
 
     @Test

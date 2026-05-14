@@ -4,6 +4,7 @@ import com.ticketsystem.it_service_backend.dto.AssignTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
+import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -263,14 +264,15 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4001L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.updateTicketStatus(4001L, "IN_PROGRESS", "agent-1", List.of("AGENT"))).thenReturn(updated);
+        when(ticketService.updateTicketStatus(4001L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.<String, Object>of("deadlineTs", 888L));
 
+        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
-                4001L, Map.of("status", "IN_PROGRESS"), jwtWithRole("agent-1", "AGENT"));
+                4001L, body, jwtWithRole("agent-1", "AGENT"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4001L, response.getBody().getId());
@@ -282,14 +284,15 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", "admin-1", List.of("AGENT_ADMIN"))).thenReturn(updated);
+        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.<String, Object>of("deadlineTs", 888L));
 
+        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
-                4002L, Map.of("status", "IN_PROGRESS"), jwtWithRole("admin-1", "AGENT_ADMIN"));
+                4002L, body, jwtWithRole("admin-1", "AGENT_ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4002L, response.getBody().getId());
@@ -301,13 +304,14 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").build();
 
-        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", "c1", List.of())).thenReturn(updated);
+        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "c1", List.of())).thenReturn(updated);
 
         Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("c1");
         lenient().when(jwt.getClaimAsMap("realm_access")).thenReturn(null);
 
-        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(4002L, Map.of("status", "IN_PROGRESS"), jwt);
+        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
+        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(4002L, body, jwt);
         assertEquals(200, response.getStatusCode().value());
         assertEquals("Unknown", response.getBody().getCustomerName());
         assertEquals("Unknown", response.getBody().getProductName());
@@ -466,9 +470,10 @@ class TicketControllerTest {
         Ticket unclaimed = Ticket.builder().id(9003L).title("Unclaim me").description("desc")
                 .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
         UnclaimRequestDTO dto = new UnclaimRequestDTO();
+        dto.setReasonCode("WORKLOAD");
         dto.setNote("dropping this ticket");
 
-        when(ticketService.unclaimTicket(9003L, "agent-1", "dropping this ticket")).thenReturn(unclaimed);
+        when(ticketService.unclaimTicket(9003L, "agent-1", "WORKLOAD", "dropping this ticket")).thenReturn(unclaimed);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));

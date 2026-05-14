@@ -104,10 +104,10 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 TRUNCATE TABLE
                     ticket_comments,
                     ticket_topics,
+                    ticket_audit_logs,
                     ticket_worklogs,
                     ticket_attachments,
                     csat_surveys,
-                    ticket_resolution_notes,
                     notifications,
                     tickets,
                     user_products,

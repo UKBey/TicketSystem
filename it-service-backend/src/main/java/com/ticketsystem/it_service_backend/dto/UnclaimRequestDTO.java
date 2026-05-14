@@ -11,10 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Unclaim (bırakma) isteği — işlem nedeni (zorunlu)")
+@Schema(description = "Unclaim (bırakma) isteği — sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class UnclaimRequestDTO {
 
     @NotBlank(message = "{field.notblank}")
-    @Schema(description = "Bırakma nedeni", example = "Müşteri yanıt bekliyor", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Önceden tanımlı bırakma nedeni kodu", example = "WORKLOAD", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String reasonCode;
+
+    @Schema(description = "Serbest metin açıklama. reasonCode=OTHER ise zorunlu.", example = "Sistemde benzer 3 bilet daha açık.")
     private String note;
 }

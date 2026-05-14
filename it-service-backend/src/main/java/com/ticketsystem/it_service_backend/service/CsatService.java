@@ -60,7 +60,7 @@ public class CsatService {
 
         // Musteri onayi geldiyse RESOLVED kayit CLOSED durumuna tasinir.
         if ("RESOLVED".equals(ticket.getStatus())) {
-            ticketService.updateTicketStatus(ticketId, "CLOSED", userId, roles);
+            ticketService.updateTicketStatus(ticketId, "CLOSED", "CSAT_SUBMITTED", null, userId, roles);
         }
 
         return savedCsat;

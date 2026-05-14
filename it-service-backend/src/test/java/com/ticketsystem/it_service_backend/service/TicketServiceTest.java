@@ -503,7 +503,7 @@ class TicketServiceTest {
                 when(ticketClaimRepository.existsByTicketIdAndAgentId(304L, "agent-1")).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "agent-1", List.of("AGENT"));
+                Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
 
                 assertEquals("RESOLVED", updated.getStatus());
                 assertNotNull(updated.getResolvedAt());
@@ -535,7 +535,7 @@ class TicketServiceTest {
                 when(ticketRepository.findById(305L)).thenReturn(Optional.of(waiting));
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketService.updateTicketStatus(305L, "IN_PROGRESS", "customer-1", List.of("CUSTOMER"));
+                Ticket updated = ticketService.updateTicketStatus(305L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
 
                 assertEquals("IN_PROGRESS", updated.getStatus());
                 verify(workflowService).resumeSla(updated);
@@ -609,7 +609,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(301L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(301L, "CLOSED", "agent-1", List.of("AGENT")));
+                () -> ticketService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -630,7 +630,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(302L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(302L, "IN_PROGRESS", "customer-1", List.of("CUSTOMER")));
+                () -> ticketService.updateTicketStatus(302L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -687,7 +687,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(601L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(601L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
+        Ticket updated = ticketService.updateTicketStatus(601L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("IN_PROGRESS", updated.getStatus());
         assertNull(updated.getResolvedAt());
@@ -709,7 +709,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(603L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(603L, "NEW", "agent-1", List.of("AGENT")));
+                () -> ticketService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -730,7 +730,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(604L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(604L, "CLOSED", "customer-1", List.of("CUSTOMER")));
+                () -> ticketService.updateTicketStatus(604L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -750,7 +750,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(605L, "NEW", "agent-1", List.of("AGENT")));
+                () -> ticketService.updateTicketStatus(605L, "NEW", null, null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -771,7 +771,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(606L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(606L, "NEW", "agent-1", List.of("AGENT"));
+        Ticket updated = ticketService.updateTicketStatus(606L, "NEW", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("NEW", updated.getStatus());
         verify(ticketClaimRepository).deleteByTicketId(606L);
@@ -793,7 +793,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(607L)).thenReturn(Optional.of(existing));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(607L, "CLOSED", "customer-1", List.of("CUSTOMER"));
+        Ticket updated = ticketService.updateTicketStatus(607L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals("CLOSED", updated.getStatus());
         assertNotNull(updated.getClosedAt());
@@ -817,7 +817,7 @@ class TicketServiceTest {
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new RuntimeException("workflow unavailable")).when(workflowService).syncTicketStatus(any(Ticket.class));
 
-        Ticket updated = ticketService.updateTicketStatus(608L, "IN_PROGRESS", "agent-1", List.of("AGENT"));
+        Ticket updated = ticketService.updateTicketStatus(608L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("IN_PROGRESS", updated.getStatus());
         verify(ticketRepository, times(1)).save(any(Ticket.class));
@@ -999,7 +999,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(800L, "agent-1")).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.unclaimTicket(800L, "agent-1", null));
+                () -> ticketService.unclaimTicket(800L, "agent-1", "WORKLOAD", null));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
@@ -1013,7 +1013,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.countByTicketId(801L)).thenReturn(0L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket result = ticketService.unclaimTicket(801L, "agent-1", "giving up");
+        Ticket result = ticketService.unclaimTicket(801L, "agent-1", "WORKLOAD", "giving up");
 
         assertEquals("NEW", result.getStatus());
         verify(ticketClaimRepository).deleteByTicketIdAndAgentId(801L, "agent-1");
@@ -1028,7 +1028,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(802L, "agent-1")).thenReturn(true);
         when(ticketClaimRepository.countByTicketId(802L)).thenReturn(1L);
 
-        Ticket result = ticketService.unclaimTicket(802L, "agent-1", null);
+        Ticket result = ticketService.unclaimTicket(802L, "agent-1", "WORKLOAD", null);
 
         assertEquals("IN_PROGRESS", result.getStatus());
         verify(ticketRepository, never()).save(any(Ticket.class));

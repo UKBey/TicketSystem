@@ -27,6 +27,9 @@ public class TicketAuditLog {
     @Column(name = "action_type", nullable = false, length = 30)
     private String actionType;
 
+    @Column(name = "reason_code", length = 50)
+    private String reasonCode;
+
     @Column(columnDefinition = "TEXT")
     private String note;
 
