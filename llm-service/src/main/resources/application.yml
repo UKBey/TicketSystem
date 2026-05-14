@@ -6,6 +6,12 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ticketdb}
     username: ${SPRING_DATASOURCE_USERNAME:ticketadmin}
     password: ${SPRING_DATASOURCE_PASSWORD:}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:5s}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -47,3 +53,13 @@ ticket-service:
   base-url: ${TICKET_SERVICE_BASE_URL:http://it-service-backend:8081}
   # Backend'in internal endpoint'leri için shared secret
   internal-token: ${TICKET_SERVICE_INTERNAL_TOKEN:internal-secret}
+
+# Per-client (IP bazli) rate limit — Redis'te Bucket4j ProxyManager ile yonetilir.
+# Varsayilan: 10 saniyede 1 istek. Tum degerler env vars uzerinden override edilebilir.
+app:
+  rate-limit:
+    enabled: ${LLM_RATE_LIMIT_ENABLED:true}
+    max-requests: ${LLM_RATE_LIMIT_MAX_REQUESTS:1}
+    duration-seconds: ${LLM_RATE_LIMIT_DURATION_SECONDS:10}
+    # Sadece bu path prefix'leri rate-limit'e tabidir.
+    path-patterns: ${LLM_RATE_LIMIT_PATH_PATTERNS:/api/ai/**}
