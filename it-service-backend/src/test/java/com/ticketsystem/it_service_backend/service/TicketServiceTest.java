@@ -1179,7 +1179,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("keyword").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1256,7 +1256,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("test").build();
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), f, p);
@@ -1349,7 +1349,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("issue").build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), f, p);
@@ -1427,7 +1427,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("vpn").build();
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), f, p);
@@ -1520,7 +1520,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("error").build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), f, p);
@@ -1597,7 +1597,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().search("printer").build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findByProductIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), f, p);
@@ -1665,7 +1665,7 @@ class TicketServiceTest {
     void getTicketsByProductFiltered_customer_withSearch() {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().search("login").build();
-        when(ticketRepository.findByProductIdAndCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdAndCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), f, p);
@@ -1760,7 +1760,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("slow").build();
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(100L));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findClaimedTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findClaimedTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", f, p);
@@ -1789,7 +1789,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "resolvedAt"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1802,7 +1802,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "closedAt"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1815,7 +1815,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaBreached"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1828,7 +1828,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "productId"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1841,7 +1841,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "customerId"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1854,7 +1854,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "assigneeId"));
         TicketFilterDTO f = TicketFilterDTO.builder().search("x").build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1871,7 +1871,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().createdAtFrom(ZonedDateTime.now().minusDays(7)).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1884,7 +1884,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().createdAtTo(ZonedDateTime.now()).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1897,7 +1897,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().slaStatuses(List.of("BREACHED")).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1905,12 +1905,12 @@ class TicketServiceTest {
     }
 
     @Test
-    @DisplayName("hasExtraFilters → agentId koşulu tetikler")
+    @DisplayName("hasExtraFilters → agentIds koşulu tetikler")
     void getCustomerTicketsFiltered_agentId_triggersFullFiltered() {
         Pageable p = PageRequest.of(0, 10);
-        TicketFilterDTO f = TicketFilterDTO.builder().agentId("agent-1").build();
+        TicketFilterDTO f = TicketFilterDTO.builder().agentIds(List.of("agent-1")).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1922,7 +1922,7 @@ class TicketServiceTest {
     void getCustomerTicketsFiltered_productIds_triggersFullFiltered() {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().productIds(List.of(10L)).build();
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1935,7 +1935,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().statuses(List.of("NEW", "IN_PROGRESS")).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
@@ -1948,7 +1948,7 @@ class TicketServiceTest {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().priorities(List.of("HIGH", "CRITICAL")).build();
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);

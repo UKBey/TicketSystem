@@ -56,8 +56,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true, countQuery = """
         SELECT COUNT(*) FROM tickets t
         WHERE t.customer_id = CAST(:customerId AS text)
@@ -68,8 +69,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """)
     Page<Ticket> findByCustomerIdFullFiltered(
             @Param("customerId")    String customerId,
@@ -78,7 +80,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -94,8 +99,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findPoolTicketsFullFiltered(
             @Param("productIds")    List<Long> productIds,
@@ -103,7 +109,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -118,15 +127,19 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findAllPoolTicketsFullFiltered(
             @Param("priorities") List<String> priorities,
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -142,8 +155,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findClaimedTicketsFullFiltered(
             @Param("ticketIds")     List<Long> ticketIds,
@@ -152,7 +166,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -168,8 +185,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findTeamTicketsFullFiltered(
             @Param("productIds")    List<Long> productIds,
@@ -177,7 +195,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -192,15 +213,19 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findAllTeamTicketsFullFiltered(
             @Param("priorities") List<String> priorities,
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -215,8 +240,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findByProductIdFullFiltered(
             @Param("productId")     Long productId,
@@ -224,7 +250,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
@@ -240,8 +269,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (CAST(:agentId AS text) IS NULL
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text)))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
         """, nativeQuery = true)
     Page<Ticket> findByProductIdAndCustomerIdFullFiltered(
             @Param("productId")     Long productId,
@@ -250,7 +280,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             @Param("searchPattern") String searchPattern,
             @Param("slaStatuses") List<String> slaStatuses,
-            @Param("agentId")       String agentId,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
             @Param("dateFrom")      ZonedDateTime dateFrom,
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);

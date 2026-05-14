@@ -24,11 +24,11 @@ public interface UserRepository extends JpaRepository<User, String> {
     /**
      * Admin panel için filtreli + sayfalı kullanıcı listesi.
      * search: fullName veya email içinde case-insensitive arama (null ise filtre uygulanmaz)
-     * role:   tam eşleşme (null ise filtre uygulanmaz)
+     * roles:  rol filtre listesi; filtre kapalıyken `roleFilterActive=false` ile gönderilir
      */
     @Query(value = """
             SELECT * FROM users u
-            WHERE (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
+            WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -36,13 +36,14 @@ public interface UserRepository extends JpaRepository<User, String> {
             """,
             countQuery = """
             SELECT COUNT(*) FROM users u
-            WHERE (CAST(:role AS text) IS NULL OR u.role = CAST(:role AS text))
+            WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
             """,
             nativeQuery = true)
-    Page<User> findFiltered(@Param("role")   String role,
-                            @Param("search") String search,
+    Page<User> findFiltered(@Param("roleFilterActive") Boolean roleFilterActive,
+                            @Param("roles")            List<String> roles,
+                            @Param("search")           String search,
                             Pageable pageable);
 }

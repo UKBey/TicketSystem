@@ -256,7 +256,7 @@ public class TicketService {
         if (hasExtraFilters(f)) {
             return ticketRepository.findByCustomerIdFullFiltered(
                     customerId, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
-                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), f.getAgentId(),
+                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
                     f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
         }
         return ticketRepository.findByCustomerIdFiltered(customerId, f.getStatuses(), f.getPriorities(), pageable);
@@ -296,7 +296,7 @@ public class TicketService {
         if (hasExtraFilters(f)) {
             return ticketRepository.findPoolTicketsFullFiltered(
                     productIds, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
         }
         return ticketRepository.findPoolTicketsFiltered(productIds, f.getPriorities(), pageable);
     }
@@ -328,7 +328,7 @@ public class TicketService {
         if (hasExtraFilters(f)) {
             return ticketRepository.findClaimedTicketsFullFiltered(
                     ticketIds, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
-                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), f.getAgentId(),
+                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
                     f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
         }
         return ticketRepository.findClaimedTicketsFiltered(ticketIds, f.getStatuses(), f.getPriorities(), pageable);
@@ -368,7 +368,7 @@ public class TicketService {
         if (hasExtraFilters(f)) {
             return ticketRepository.findTeamTicketsFullFiltered(
                     productIds, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
         }
         return ticketRepository.findTeamTicketsFiltered(productIds, f.getPriorities(), pageable);
     }
@@ -407,7 +407,7 @@ public class TicketService {
             if (hasExtraFilters(f)) {
                 return ticketRepository.findByProductIdFullFiltered(
                         productId, statusesOrAll(f), prioritiesOrAll(f), toSearchPattern(f.getSearch()),
-                        slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                        slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
             }
             return ticketRepository.findByProductIdFiltered(productId, f.getStatuses(), f.getPriorities(), pageable);
         }
@@ -429,23 +429,44 @@ public class TicketService {
             if (hasExtraFilters(f)) {
                 return ticketRepository.findByProductIdAndCustomerIdFullFiltered(
                         productId, userId, statusesOrAll(f), prioritiesOrAll(f), toSearchPattern(f.getSearch()),
-                        slaStatusesOrAll(f), f.getAgentId(), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                        slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
             }
             return ticketRepository.findByProductIdAndCustomerIdFiltered(productId, userId, f.getStatuses(), f.getPriorities(), pageable);
         }
         return Page.empty(pageable);
     }
 
-    /** Herhangi bir "ekstra" filtre (search, dateFrom, dateTo, slaStatus, agentId, productId) aktif mi? */
+    /** Herhangi bir "ekstra" filtre (search, dateFrom, dateTo, slaStatus, agentIds, topicIds, productId) aktif mi? */
     private boolean hasExtraFilters(TicketFilterDTO f) {
         return f.getSearch() != null && !f.getSearch().isBlank()
             || f.getCreatedAtFrom() != null
             || f.getCreatedAtTo() != null
             || (f.getSlaStatuses() != null && !f.getSlaStatuses().isEmpty())
-            || f.getAgentId() != null && !f.getAgentId().isBlank()
+            || (f.getAgentIds() != null && !f.getAgentIds().isEmpty())
+            || (f.getTopicIds() != null && !f.getTopicIds().isEmpty())
             || (f.getProductIds() != null && !f.getProductIds().isEmpty())
             || (f.getStatuses() != null && !f.getStatuses().isEmpty() && f.getStatuses().size() > 1)
             || (f.getPriorities() != null && !f.getPriorities().isEmpty() && f.getPriorities().size() > 1);
+    }
+
+    /** Agent filtresinin aktif olup olmadığını döner. */
+    private boolean hasAgentFilter(TicketFilterDTO f) {
+        return f.getAgentIds() != null && !f.getAgentIds().isEmpty();
+    }
+
+    /** Native IN(:agentIds) için: filtre kapalıyken eşleşmeyecek sentinel liste döner. */
+    private List<String> agentIdsOrPlaceholder(TicketFilterDTO f) {
+        return hasAgentFilter(f) ? f.getAgentIds() : List.of("__none__");
+    }
+
+    /** Topic filtresinin aktif olup olmadığını döner. */
+    private boolean hasTopicFilter(TicketFilterDTO f) {
+        return f.getTopicIds() != null && !f.getTopicIds().isEmpty();
+    }
+
+    /** Native IN(:topicIds) için: filtre kapalıyken eşleşmeyecek sentinel liste döner. */
+    private List<Long> topicIdsOrPlaceholder(TicketFilterDTO f) {
+        return hasTopicFilter(f) ? f.getTopicIds() : List.of(-1L);
     }
 
     /**

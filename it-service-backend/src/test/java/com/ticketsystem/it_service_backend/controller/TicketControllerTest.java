@@ -102,7 +102,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
                 jwtWithRole("customer-1", "CUSTOMER"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -121,7 +121,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
                 jwtWithRole("admin-1", "AGENT_ADMIN"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -137,7 +137,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
                 jwtWithRole("manager-1", "MANAGER"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(0, response.getBody().getContent().size());
@@ -163,7 +163,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -186,7 +186,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
                 jwtWithRole("admin-1", "AGENT_ADMIN"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -208,7 +208,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -389,7 +389,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -405,7 +405,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("admin-1", "AGENT_ADMIN"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(0, response.getBody().getContent().size());
@@ -431,7 +431,7 @@ class TicketControllerTest {
                 10L,
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -498,7 +498,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -512,7 +512,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
                 jwtWithRole("admin-1", "AGENT_ADMIN"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -526,7 +526,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -540,7 +540,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -555,7 +555,7 @@ class TicketControllerTest {
                 10L,
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -569,7 +569,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }

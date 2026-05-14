@@ -182,10 +182,10 @@ public class UserController {
     @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<Map<String, Object>> getAllUsers(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String role,
+            @RequestParam(required = false) List<String> role,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.info("Kullanıcı listeleme isteği. search={}, role={}, page={}, size={}", search, role, page, size);
+        log.info("Kullanıcı listeleme isteği. search={}, roles={}, page={}, size={}", search, role, page, size);
 
         Page<User> userPage = userService.getUsersFiltered(search, role, page, size);
 

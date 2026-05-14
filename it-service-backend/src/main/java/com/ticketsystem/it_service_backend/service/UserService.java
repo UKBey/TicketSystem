@@ -142,12 +142,13 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<User> getUsersFiltered(String search, String role, int page, int size) {
+    public Page<User> getUsersFiltered(String search, java.util.List<String> roles, int page, int size) {
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
-        String roleParam   = (role   == null || role.isBlank())   ? null : role.trim();
+        boolean roleFilterActive = roles != null && !roles.isEmpty();
+        java.util.List<String> roleList = roleFilterActive ? roles : java.util.List.of("__none__");
         // Native query kullandığımız için sort field adı SQL column adı olmalı
         Pageable pageable  = PageRequest.of(page, size, Sort.by("full_name").ascending());
-        return userRepository.findFiltered(roleParam, searchParam, pageable);
+        return userRepository.findFiltered(roleFilterActive, roleList, searchParam, pageable);
     }
 
     @Transactional(readOnly = true)

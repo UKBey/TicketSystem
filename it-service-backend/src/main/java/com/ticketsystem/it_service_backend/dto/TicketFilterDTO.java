@@ -34,8 +34,17 @@ public class TicketFilterDTO {
      */
     private List<Long> productIds;
 
-    /** Atanan agent'ın Keycloak ID'si */
-    private String agentId;
+    /**
+     * Atanan agent ID'leri — çoklu seçim destekler.
+     * Boş/null liste = filtre uygulanmaz.
+     */
+    private List<String> agentIds;
+
+    /**
+     * Talep konusu ID'leri — çoklu seçim destekler.
+     * Boş/null liste = filtre uygulanmaz.
+     */
+    private List<Long> topicIds;
 
     /**
      * SLA durumu — çoklu seçim destekler (BREACHED, ACTIVE, PAUSED).
@@ -94,5 +103,15 @@ public class TicketFilterDTO {
     /** Aktif slaStatus listesini null-safe döner. */
     public List<String> getSlaStatuses() {
         return (slaStatuses != null && !slaStatuses.isEmpty()) ? slaStatuses : null;
+    }
+
+    /** Aktif agentId listesini null-safe döner. */
+    public List<String> getAgentIds() {
+        return (agentIds != null && !agentIds.isEmpty()) ? agentIds : null;
+    }
+
+    /** Aktif topicId listesini null-safe döner. */
+    public List<Long> getTopicIds() {
+        return (topicIds != null && !topicIds.isEmpty()) ? topicIds : null;
     }
 }
