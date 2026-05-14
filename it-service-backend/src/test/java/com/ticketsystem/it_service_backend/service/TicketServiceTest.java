@@ -2324,5 +2324,135 @@ class TicketServiceTest {
         assertThrows(ResponseStatusException.class,
                 () -> ticketService.validateMutationAccess(2102L, "agent-x", List.of("AGENT")));
     }
+
+    // ------------------------------------------------------------------------
+    // claimTicket — remaining branches
+    // ------------------------------------------------------------------------
+
+    @Test
+    void claimTicket_waitingForCustomerStatus_addsClaim() {
+        Ticket existing = Ticket.builder().id(2200L).status("WAITING_FOR_CUSTOMER")
+                .priority("HIGH").productId(10L).customerId("c-1").build();
+        when(ticketRepository.findById(2200L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2200L, "agent-1")).thenReturn(false);
+
+        Ticket result = ticketService.claimTicket(2200L, "agent-1");
+
+        assertEquals("WAITING_FOR_CUSTOMER", result.getStatus());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    void claimTicket_alreadyClaimed_throwsConflict() {
+        Ticket existing = Ticket.builder().id(2201L).status("IN_PROGRESS")
+                .priority("HIGH").productId(10L).customerId("c-1").build();
+        when(ticketRepository.findById(2201L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2201L, "agent-1")).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.claimTicket(2201L, "agent-1"));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+    }
+
+    @Test
+    void claimTicket_customLimitDisabled_usesProductLimit() {
+        Ticket existing = Ticket.builder().id(2202L).status("NEW")
+                .priority("HIGH").productId(10L).customerId("c-1").build();
+        Product productWithLimit = Product.builder().id(10L).name("X").maxActiveTickets(5).build();
+        when(ticketRepository.findById(2202L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(productWithLimit));
+        AgentProductLimit override = AgentProductLimit.builder()
+                .agentId("agent-1").product(productWithLimit).useCustomLimit(false).maxActiveTickets(2).build();
+        when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L))
+                .thenReturn(Optional.of(override));
+        when(ticketClaimRepository.countActiveTicketsByAgentAndProduct("agent-1", 10L)).thenReturn(1L);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2202L, "agent-1")).thenReturn(false);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.claimTicket(2202L, "agent-1");
+        assertEquals("IN_PROGRESS", result.getStatus());
+    }
+
+    @Test
+    void claimTicket_workflowSyncFails_swallowsAndContinues() {
+        Ticket existing = Ticket.builder().id(2203L).status("NEW")
+                .priority("HIGH").productId(10L).customerId("c-1").processInstanceId(999L).build();
+        when(ticketRepository.findById(2203L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2203L, "agent-1")).thenReturn(false);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+        org.mockito.Mockito.doThrow(new RuntimeException("workflow down"))
+                .when(workflowService).syncTicketAssignment(existing, "agent-1");
+
+        Ticket result = ticketService.claimTicket(2203L, "agent-1");
+        assertEquals("IN_PROGRESS", result.getStatus());
+    }
+
+    @Test
+    void claimTicket_productNotFound_throwsNotFound() {
+        Ticket existing = Ticket.builder().id(2204L).status("NEW")
+                .priority("HIGH").productId(99L).customerId("c-1").build();
+        when(ticketRepository.findById(2204L)).thenReturn(Optional.of(existing));
+        User agentWithProduct = User.builder().id("agent-1")
+                .authorizedProducts(List.of(Product.builder().id(99L).build()))
+                .build();
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agentWithProduct));
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.claimTicket(2204L, "agent-1"));
+    }
+
+    // ------------------------------------------------------------------------
+    // validateStatusChangePermission via updateTicketStatus
+    // ------------------------------------------------------------------------
+
+    @Test
+    void updateTicketStatus_customerDisallowedTransition_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2301L).status("NEW").customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2301L)).thenReturn(Optional.of(existing));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(2301L, "IN_PROGRESS", null, null, "c-1", List.of("CUSTOMER")));
+    }
+
+    @Test
+    void updateTicketStatus_emptyRoles_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2302L).status("IN_PROGRESS")
+                .customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2302L)).thenReturn(Optional.of(existing));
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(2302L, "NEW", null, null, "ghost", List.of()));
+    }
+
+    @Test
+    void updateTicketStatus_agentAdminWithoutClaim_throwsForbidden() {
+        Ticket existing = Ticket.builder().id(2303L).status("IN_PROGRESS")
+                .customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2303L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2303L, "admin-1")).thenReturn(false);
+
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "admin-1", List.of("AGENT_ADMIN")));
+    }
+
+    @Test
+    void closeTicket_blankReasonCode_throwsBadRequest() {
+        Ticket existing = Ticket.builder().id(2400L).status("IN_PROGRESS")
+                .customerId("c-1").productId(10L).build();
+        when(ticketRepository.findById(2400L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2400L, "agent-1")).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.closeTicket(2400L, "  ", "note", "agent-1", List.of("AGENT")));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
 }
 
