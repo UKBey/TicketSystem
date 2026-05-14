@@ -1,9 +1,10 @@
 # Ticket System — Data Generator
 
 Sunum ve test için sisteme gerçekçi veri basan standalone Java uygulaması.
-**Tek bir `agent_admin` hesabıyla** çalışır; geri kalan kullanıcılar, ürünler,
-topic'ler, sıkça karşılaşılan sorunlar ve biletler bu hesap üzerinden idempotent
-şekilde oluşturulur.
+**Tek bir `agent_admin` hesabıyla** çalışır; ürünler, topic'ler, sıkça karşılaşılan
+sorunlar ve biletler bu hesap üzerinden idempotent şekilde oluşturulur.
+Agent ve customer kullanıcıları **Keycloak'ta önceden hazırlanmış olmalıdır**;
+generator kullanıcı oluşturmaz, yalnızca login dener.
 
 ## Gereksinimler
 
@@ -47,21 +48,24 @@ mevcut kayıtlara dokunmaz.
 ### 1. Kullanıcılar
 
 `src/main/resources/setup.json` içinde tanımlanan agent ve customer
-kullanıcıları sırayla işlenir:
+kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluşturmaz.
 
-- Login denenir. Başarılıysa → kullanıcı zaten mevcut, atlanır.
-- Login başarısızsa → admin endpoint (`POST /api/users/admin/create`) ile
-  **kalıcı şifreyle** oluşturulur (`temporaryPassword: false`).
-- Oluşturulan/var olan kullanıcı `/users/sync` ile DB'ye taşınır.
+- Login denenir. Başarılıysa → `/users/sync` ile DB'ye taşınır, oturum kaydedilir.
+- Login başarısızsa (kullanıcı yok ya da şifre eşleşmiyor) → uyarı loglanır
+  ve kullanıcı atlanır. Bilet üretimi geri kalan kullanıcılarla devam eder.
 
-Default kullanıcılar:
+> **Kullanıcı kurulumu sana ait.** Keycloak admin UI (`http://localhost/auth/admin`)
+> veya backend'in `POST /api/users/admin/create` endpoint'i ile aşağıdaki
+> hesapları önceden oluştur:
 
 | Rol | Kullanıcı adları | Şifre |
 |-----|-------------------|-------|
-| AGENT | agent1.gen, agent2.gen, agent3.gen | 321654 |
-| CUSTOMER | customer1.gen, customer2.gen, customer3.gen, customer4.gen | 321654 |
+| AGENT_ADMIN | aatest (config'te `ADMIN_AGENT_USERNAME`) | 321654 |
+| AGENT | agent1.gen, agent2.gen, agent3.gen | 321654Aa! |
+| CUSTOMER | customer1.gen, customer2.gen, customer3.gen, customer4.gen | 321654Aa! |
 
-> `setup.json` içine yeni kullanıcı eklemen yeterli, kod değişikliği gerekmez.
+> `setup.json` içine yeni kullanıcı eklemek için Keycloak'ta da oluşturman gerekir.
+> Var olmayan kullanıcılar sessizce atlanır.
 
 ### 2. Ürünler / topic'ler / sıkça karşılaşılan sorunlar
 
@@ -192,9 +196,13 @@ data-generator/
 → `ADMIN_AGENT_USERNAME` / `ADMIN_AGENT_PASSWORD` yanlış veya kullanıcı
 Keycloak'ta yok. Önce `http://localhost` üzerinden bir kez giriş yap.
 
-**"Kullanıcı oluşturuldu ama oturum açılamadı"**
-→ Backend'in `temporaryPassword: false` desteklemesi gerekir
-(`CreateUserRequest`). Eski backend sürümü varsa güncel image'a geç.
+**"Kullanıcı atlanıyor: ... login başarısız"**
+→ Generator artık kullanıcı oluşturmaz. setup.json'daki bu hesabı Keycloak'ta
+  manuel oluşturup şifresinin setup.json ile eşleştiğinden emin ol.
+  Yeni kullanıcılarda `Authentication > Required Actions` listesinde
+  `Update Password`'ün enable olmadığından, ya da kullanıcının
+  `requiredActions` listesinin boş olduğundan emin ol (aksi halde
+  Direct Access Grants login fails: "Account is not fully set up").
 
 **"Şablonda geçen ürün bulunamadı"**
 → Bilet JSON'undaki `productName` setup.json'daki ad ile birebir aynı olmalı.
