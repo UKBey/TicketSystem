@@ -183,7 +183,7 @@ export default function ProductPanel() {
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colName')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colStatus')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colMaxTickets')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '220px' }}>{t('productPanel.colActions')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '170px' }}>{t('productPanel.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,45 +215,52 @@ export default function ProductPanel() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2 flex-wrap">
+                    <div className="flex justify-end gap-1">
                       <button
-                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer"
                         style={{
                           borderColor: topicsOpen ? '#3b82f6' : 'var(--border-color)',
-                          backgroundColor: topicsOpen ? 'rgba(59,130,246,0.08)' : 'transparent',
+                          backgroundColor: topicsOpen ? 'rgba(59,130,246,0.12)' : 'transparent',
                           color: topicsOpen ? '#2563eb' : 'var(--text-secondary)',
                         }}
                         onClick={() => setExpandedTopicsProductId(topicsOpen ? null : product.id)}
                         title={t('productPanel.manageTopics')}
+                        aria-label={t('productPanel.manageTopics')}
                       >
-                        <Tag className="h-3 w-3" />
-                        {t('productPanel.topics')}
-                        {topicsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        <Tag className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
-                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer hover:bg-[var(--bg-surface-hover)]"
+                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                         onClick={() => navigate(`/products/${product.id}`)}
+                        title={t('productPanel.view')}
+                        aria-label={t('productPanel.view')}
                       >
-                        <Eye className="h-3 w-3" />
-                        {t('productPanel.view')}
+                        <Eye className="h-3.5 w-3.5" />
                       </button>
                       {isAdmin && (
                         <>
                           <button
-                            className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
-                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            type="button"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer hover:bg-[var(--bg-surface-hover)]"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                             onClick={() => openModal(product)}
+                            title={t('productPanel.edit')}
+                            aria-label={t('productPanel.edit')}
                           >
-                            <Pencil className="h-3 w-3" />
-                            {t('productPanel.edit')}
+                            <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                            type="button"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
+                            style={{ borderColor: 'var(--border-color)', color: '#ef4444' }}
                             onClick={() => handleDelete(product.id)}
+                            title={t('productPanel.delete')}
+                            aria-label={t('productPanel.delete')}
                           >
-                            <Trash2 className="h-3 w-3" />
-                            {t('productPanel.delete')}
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </>
                       )}
