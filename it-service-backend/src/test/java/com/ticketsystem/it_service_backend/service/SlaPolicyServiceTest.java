@@ -118,4 +118,39 @@ class SlaPolicyServiceTest {
             assertThat(service.getWarningThresholdHours("HIGH")).isEqualTo(1);
         }
     }
+
+    @Nested
+    @DisplayName("defaultMs branch coverage")
+    class DefaultMsBranches {
+
+        private SlaPolicyService emptyConfigService;
+
+        @BeforeEach
+        void setUp() {
+            // Empty policy map forces defaultMs() path for every priority lookup.
+            SlaProperties props = new SlaProperties();
+            props.setPolicies(Map.of());
+            emptyConfigService = new SlaPolicyService(props);
+        }
+
+        @Test
+        void critical_defaultsTo1Hour() {
+            assertThat(emptyConfigService.getSlaDurationMs("CRITICAL")).isEqualTo(3_600_000L);
+        }
+
+        @Test
+        void high_defaultsTo4Hours() {
+            assertThat(emptyConfigService.getSlaDurationMs("HIGH")).isEqualTo(4L * 3_600_000L);
+        }
+
+        @Test
+        void low_defaultsTo24Hours() {
+            assertThat(emptyConfigService.getSlaDurationMs("LOW")).isEqualTo(24L * 3_600_000L);
+        }
+
+        @Test
+        void medium_defaultsTo12Hours() {
+            assertThat(emptyConfigService.getSlaDurationMs("MEDIUM")).isEqualTo(12L * 3_600_000L);
+        }
+    }
 }
