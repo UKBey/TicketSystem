@@ -618,4 +618,64 @@ class NotificationServiceTest {
         notificationService.markAllAsRead("user-1");
         verify(notificationRepository).markAllAsReadByUserId("user-1");
     }
+
+    // -------------------------------------------------------------------------
+    // deleteNotification / deleteAllNotifications / purgeExpiredNotifications
+    // -------------------------------------------------------------------------
+
+    @Test
+    void deleteNotification_existing_callsRepository() {
+        when(notificationRepository.deleteByIdAndUserId(7L, "user-1")).thenReturn(1);
+
+        notificationService.deleteNotification(7L, "user-1");
+
+        verify(notificationRepository).deleteByIdAndUserId(7L, "user-1");
+    }
+
+    @Test
+    void deleteNotification_missingOrUnauthorized_throwsNotFound() {
+        when(notificationRepository.deleteByIdAndUserId(7L, "user-1")).thenReturn(0);
+
+        assertThrows(ResponseStatusException.class,
+                () -> notificationService.deleteNotification(7L, "user-1"));
+    }
+
+    @Test
+    void deleteAllNotifications_callsRepository() {
+        notificationService.deleteAllNotifications("user-1");
+        verify(notificationRepository).deleteAllByUserId("user-1");
+    }
+
+    @Test
+    void purgeExpiredNotifications_callsBothCutoffMethods() {
+        when(notificationRepository.deleteReadBefore(any())).thenReturn(3);
+        when(notificationRepository.deleteUnreadBefore(any())).thenReturn(1);
+
+        notificationService.purgeExpiredNotifications();
+
+        verify(notificationRepository).deleteReadBefore(any());
+        verify(notificationRepository).deleteUnreadBefore(any());
+    }
+
+    // -------------------------------------------------------------------------
+    // updatePreferences — full coverage of every field branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updatePreferences_newUser_createsDefault() {
+        when(preferenceRepository.findByUserId("user-new")).thenReturn(Optional.empty());
+        when(preferenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdateNotificationPreferenceRequest req = UpdateNotificationPreferenceRequest.builder()
+                .emailOnTicketCreated(true).emailOnTicketAssigned(true).emailOnStatusChanged(true)
+                .emailOnCommentAdded(true).emailOnSlaWarning(true).emailOnSlaBreached(true)
+                .emailOnTicketResolved(true).notifyOnTicketCreated(true).notifyOnTicketAssigned(true)
+                .notifyOnStatusChanged(true).notifyOnCommentAdded(true).notifyOnSlaWarning(true)
+                .notifyOnSlaBreached(true).notifyOnTicketResolved(true)
+                .build();
+
+        notificationService.updatePreferences("user-new", req);
+
+        verify(preferenceRepository).save(any());
+    }
 }

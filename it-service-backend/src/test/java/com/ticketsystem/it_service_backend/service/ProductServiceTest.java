@@ -259,4 +259,143 @@ class ProductServiceTest {
         assertThatThrownBy(() -> productService.updateMaxActiveTickets(10L, 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    @DisplayName("getProductById → MANAGER rolü → yetki kontrolü atlanır")
+    void getProductById_manager_skipsAuthCheck() {
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+
+        Product result = productService.getProductById(10L, "manager-1", List.of("MANAGER"));
+
+        assertThat(result.getId()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("getProductById → kullanıcı DB'de yok → NOT_FOUND")
+    void getProductById_userNotFound_throws() {
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(userRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getProductById(10L, "ghost", List.of("AGENT")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("getAllProducts → MANAGER rolü → tüm ürünler")
+    void getAllProducts_manager_returnsAll() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+
+        List<Product> result = productService.getAllProducts(null, List.of("MANAGER"));
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getAllProducts → kullanıcı bulunamaz → RuntimeException")
+    void getAllProducts_userNotFound_throws() {
+        when(userRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getAllProducts("ghost", List.of("AGENT")))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    @DisplayName("createProduct → isActive null → varsayılan true atanır")
+    void createProduct_nullIsActive_defaultsToTrue() {
+        Product input = Product.builder().name("X").build();
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Product result = productService.createProduct(input);
+
+        assertThat(result.getIsActive()).isTrue();
+    }
+
+    @Test
+    @DisplayName("createProduct → isActive false → değiştirilmez")
+    void createProduct_explicitFalse_keepsFalse() {
+        Product input = Product.builder().name("X").isActive(false).build();
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Product result = productService.createProduct(input);
+
+        assertThat(result.getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("deleteProduct → ürüne bağlı bilet yok → cascade delete atlanır")
+    void deleteProduct_noTickets_skipsCascade() {
+        when(ticketRepository.findByProductId(10L)).thenReturn(List.of());
+
+        productService.deleteProduct(10L);
+
+        verify(ticketService, org.mockito.Mockito.never()).deleteTicket(org.mockito.ArgumentMatchers.any());
+        verify(productRepository).deleteById(10L);
+    }
+
+    @Test
+    @DisplayName("deleteProduct → bağlı biletler var → her bilet için cascade")
+    void deleteProduct_withTickets_cascadesEach() {
+        com.ticketsystem.it_service_backend.entity.Ticket t1 =
+                com.ticketsystem.it_service_backend.entity.Ticket.builder().id(101L).build();
+        com.ticketsystem.it_service_backend.entity.Ticket t2 =
+                com.ticketsystem.it_service_backend.entity.Ticket.builder().id(102L).build();
+        when(ticketRepository.findByProductId(10L)).thenReturn(List.of(t1, t2));
+
+        productService.deleteProduct(10L);
+
+        verify(ticketService).deleteTicket(101L);
+        verify(ticketService).deleteTicket(102L);
+        verify(agentProductLimitRepository).deleteByProductId(10L);
+        verify(productRepository).deleteById(10L);
+    }
+
+    @Test
+    @DisplayName("updateProduct → ürün yok → RuntimeException")
+    void updateProduct_missing_throws() {
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.updateProduct(99L, Product.builder().build()))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    @DisplayName("updateProduct → name + isActive + maxActiveTickets patch → her üçü de güncellenir")
+    void updateProduct_fullPatch_updatesAllFields() {
+        Product existing = Product.builder().id(10L).name("Old").isActive(true).maxActiveTickets(3).build();
+        Product patch = Product.builder().name("New").isActive(false).maxActiveTickets(7).build();
+
+        when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Product updated = productService.updateProduct(10L, patch);
+
+        assertThat(updated.getName()).isEqualTo("New");
+        assertThat(updated.getIsActive()).isFalse();
+        assertThat(updated.getMaxActiveTickets()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("updateMaxActiveTickets → ürün yok → NOT_FOUND")
+    void updateMaxActiveTickets_productMissing_throws() {
+        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.updateMaxActiveTickets(99L, 5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("updateMaxActiveTickets → null limit → temizler")
+    void updateMaxActiveTickets_null_clears() {
+        Product existing = Product.builder().id(10L).name("X").isActive(true).maxActiveTickets(5).build();
+        when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Product result = productService.updateMaxActiveTickets(10L, null);
+
+        assertNull(result.getMaxActiveTickets());
+    }
 }

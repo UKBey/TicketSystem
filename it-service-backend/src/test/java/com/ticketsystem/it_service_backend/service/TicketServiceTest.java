@@ -1983,5 +1983,204 @@ class TicketServiceTest {
         Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
+
+    // -------------------------------------------------------------------------
+    // *Paged delegation methods — wrapper for *Filtered with simple DTO build
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("getCustomerTicketsPaged → null/blank → empty filter list yapımı")
+    void getCustomerTicketsPaged_nullParams_buildsEmptyFilter() {
+        Pageable p = PageRequest.of(0, 10);
+        when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getCustomerTicketsPaged("c-1", null, null, p);
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getCustomerTicketsPaged → status+priority → DTO listelere dönüşür")
+    void getCustomerTicketsPaged_withValues_buildsListsAndDelegates() {
+        Pageable p = PageRequest.of(0, 10);
+        when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getCustomerTicketsPaged("c-1", "NEW", "HIGH", p);
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getPoolTicketsPaged → null priority → empty filter")
+    void getPoolTicketsPaged_nullPriority_buildsEmpty() {
+        Pageable p = PageRequest.of(0, 10);
+        when(userRepository.findById("u-1")).thenReturn(Optional.of(
+                User.builder().id("u-1").authorizedProducts(List.of(product)).build()));
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getPoolTicketsPaged("u-1", List.of("AGENT"), null, p);
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getAgentClaimedTicketsPaged → priority empty → null filter list")
+    void getAgentClaimedTicketsPaged_blankParams() {
+        Pageable p = PageRequest.of(0, 10);
+        when(ticketClaimRepository.findTicketIdsByAgentId("a-1")).thenReturn(List.of(1L));
+        when(ticketRepository.findClaimedTicketsFiltered(eq(List.of(1L)), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getAgentClaimedTicketsPaged("a-1", "  ", "  ", p);
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getTeamTicketsPaged → null userId → empty page")
+    void getTeamTicketsPaged_nullUser_empty() {
+        Page<Ticket> result = ticketService.getTeamTicketsPaged(null, List.of("AGENT"), null, PageRequest.of(0, 10));
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getTicketsByProductPaged → status+priority null → filter listelere null koyar")
+    void getTicketsByProductPaged_nullArgs_buildsEmpty() {
+        Pageable p = PageRequest.of(0, 10);
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(
+                User.builder().id("agent-1").authorizedProducts(List.of(product)).build()));
+        when(ticketRepository.findByProductIdFiltered(eq(10L), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getTicketsByProductPaged(10L, "agent-1", List.of("AGENT"), null, null, p);
+        assertNotNull(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // updateTicketPriority — biggest single uncovered method (~142 instr)
+    // -------------------------------------------------------------------------
+
+    private Ticket inProgressTicketForPriority() {
+        return Ticket.builder()
+                .id(950L)
+                .title("t").description("d")
+                .priority("LOW").status("IN_PROGRESS")
+                .productId(10L).customerId("customer-1")
+                .slaBreached(false).slaElapsedMs(0L)
+                .createdAt(ZonedDateTime.now())
+                .build();
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → geçersiz priority → BAD_REQUEST")
+    void updateTicketPriority_invalid_throwsBadRequest() {
+        assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketPriority(950L, "URGENT", "agent-1", List.of("AGENT")));
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → aynı priority → değişiklik yapılmaz")
+    void updateTicketPriority_samePriority_noChange() {
+        Ticket existing = inProgressTicketForPriority();
+        when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+
+        Ticket result = ticketService.updateTicketPriority(950L, "LOW", "agent-1", List.of("AGENT"));
+
+        assertEquals("LOW", result.getPriority());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → aktif SLA, duraklatılmamış → pauseSla + resumeSla çağrılır")
+    void updateTicketPriority_activeSla_pausesAndResumes() {
+        Ticket existing = inProgressTicketForPriority();
+        when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+
+        assertEquals("HIGH", result.getPriority());
+        verify(workflowService).pauseSla(existing);
+        verify(workflowService).resumeSla(existing);
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → WAITING_FOR_CUSTOMER → pauseSla atlanır, deadline yeniden hesaplanır")
+    void updateTicketPriority_waitingForCustomer_pausedPath() {
+        Ticket existing = inProgressTicketForPriority();
+        existing.setStatus("WAITING_FOR_CUSTOMER");
+        when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(7_200_000L);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+
+        assertEquals("HIGH", result.getPriority());
+        verify(workflowService, never()).pauseSla(any());
+        verify(workflowService, never()).resumeSla(any());
+        assertNotNull(result.getSlaDeadline());
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → CLOSED → SLA hesabı yapılmaz")
+    void updateTicketPriority_closed_noSlaWork() {
+        Ticket existing = inProgressTicketForPriority();
+        existing.setStatus("CLOSED");
+        when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+
+        assertEquals("HIGH", result.getPriority());
+        verify(workflowService, never()).pauseSla(any());
+    }
+
+    @Test
+    @DisplayName("updateTicketPriority → SLA breached → pauseSla atlanır")
+    void updateTicketPriority_slaBreached_noPause() {
+        Ticket existing = inProgressTicketForPriority();
+        existing.setSlaBreached(true);
+        when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
+
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+
+        assertEquals("HIGH", result.getPriority());
+        verify(workflowService, never()).pauseSla(any());
+    }
+
+    // -------------------------------------------------------------------------
+    // hasExtraFilters branch coverage
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("hasExtraFilters → tek priority → no extra → kısa yol")
+    void getCustomerTicketsFiltered_singlePriorityNoExtra_skipsFullFiltered() {
+        Pageable p = PageRequest.of(0, 10);
+        TicketFilterDTO f = TicketFilterDTO.builder().priorities(List.of("HIGH")).build();
+        when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), eq(List.of("HIGH")), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("c-1", f, p);
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("hasExtraFilters → çoklu priority → fullFiltered tetiklenir")
+    void getCustomerTicketsFiltered_multiPriority_usesFullFiltered() {
+        Pageable p = PageRequest.of(0, 10);
+        TicketFilterDTO f = TicketFilterDTO.builder().priorities(List.of("HIGH", "MEDIUM")).build();
+        when(productRepository.findAll()).thenReturn(List.of());
+        when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("c-1", f, p);
+        assertNotNull(result);
+    }
 }
 
