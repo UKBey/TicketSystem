@@ -11,7 +11,9 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 /**
  * Tum entegrasyon testlerinin miras aldigi soyut temel sinif.
@@ -49,19 +51,34 @@ public abstract class BaseIntegrationTest {
                     .withPassword("testpass");
 
     /**
-     * Spring Boot baglam olusturulmadan once, Testcontainer'in gercek
-     * JDBC URL, kullanici adi ve sifresini Spring property'lerine enjekte eder.
-     * Boylece Flyway ve JPA dogru veritabanina baglanir.
+     * Rate-limit interceptor'unun Redis baglantisi icin paylasilan container.
+     * Tum IT siniflari arasinda yeniden kullanilir (singleton pattern).
+     */
+    @SuppressWarnings("resource")
+    static GenericContainer<?> REDIS =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379);
+
+    /**
+     * Spring Boot baglam olusturulmadan once, Testcontainer'lerin gercek
+     * JDBC URL'ini, kullanici adini, sifresini ve Redis host/port'unu Spring
+     * property'lerine enjekte eder.
      */
     @DynamicPropertySource
-    static void configureTestDatabase(DynamicPropertyRegistry registry) {
+    static void configureTestContainers(DynamicPropertyRegistry registry) {
         if (!POSTGRES.isRunning()) {
             POSTGRES.start();
+        }
+        if (!REDIS.isRunning()) {
+            REDIS.start();
         }
 
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+
+        registry.add("spring.data.redis.host", REDIS::getHost);
+        registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
     }
 
     // =========================================================================
