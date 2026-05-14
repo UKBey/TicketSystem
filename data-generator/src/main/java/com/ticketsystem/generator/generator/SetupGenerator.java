@@ -105,11 +105,7 @@ public class SetupGenerator {
             String password = u.path("password").asText();
 
             UserSession session = tryLogin(username, password, role);
-            if (session == null) {
-                log.warn("Kullanıcı atlanıyor: {} ({}) — login başarısız. Keycloak'ta kullanıcı yok ya da şifre eşleşmiyor.",
-                        username, role);
-                continue;
-            }
+            if (session == null) continue;
             log.info("Oturum açıldı: {} ({})", username, role);
             syncUser(session);
             sessions.add(session);
@@ -117,13 +113,19 @@ public class SetupGenerator {
         return sessions;
     }
 
+    /**
+     * Login dener. Başarısızsa Keycloak'ın döndürdüğü gerçek hata mesajını WARN ile
+     * logger; "invalid_grant"/"Account is not fully set up"/şifre uyuşmazlığı ayrımı
+     * bu mesajdan okunabilir.
+     */
     private UserSession tryLogin(String username, String password, String role) {
         try {
             KeycloakTokenClient tokenClient = new KeycloakTokenClient(http, mapper);
             tokenClient.login(username, password);
             return new UserSession(username, role, tokenClient);
         } catch (Exception e) {
-            log.debug("Login başarısız ({}): {}", username, e.getMessage());
+            log.warn("Login başarısız → kullanıcı atlanıyor: {} ({}) — Keycloak hatası: {}",
+                    username, role, e.getMessage());
             return null;
         }
     }
