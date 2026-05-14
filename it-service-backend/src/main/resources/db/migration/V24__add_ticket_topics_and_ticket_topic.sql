@@ -13,11 +13,13 @@ CREATE INDEX IF NOT EXISTS idx_ticket_topics_product_active
     ON ticket_topics (product_id, is_active);
 
 -- Bilet üzerinde konu referansı.
--- topic_id: kaynak konuya bağlantı (konu silinirse SET NULL — bilet kaybolmasın).
--- topic_name_snapshot: konunun bilet oluşturulduğu andaki adı; konu yeniden adlandırılsa veya silinse bile
+-- topic_id: kaynak konuya zorunlu bağlantı (NOT NULL).
+-- ON DELETE RESTRICT: kendisine bağlı bilet varsa konu silinemez; admin önce `is_active=false`
+-- yapmalı veya bu konudaki biletleri taşımalı.
+-- topic_name_snapshot: konunun bilet oluşturulduğu andaki adı; konu yeniden adlandırılsa bile
 -- geçmiş biletlerde doğru ad görünmeye devam eder.
 ALTER TABLE tickets
-    ADD COLUMN IF NOT EXISTS topic_id BIGINT REFERENCES ticket_topics(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS topic_id BIGINT NOT NULL REFERENCES ticket_topics(id) ON DELETE RESTRICT,
     ADD COLUMN IF NOT EXISTS topic_name_snapshot VARCHAR(255);
 
 CREATE INDEX IF NOT EXISTS idx_tickets_topic_id ON tickets (topic_id);
