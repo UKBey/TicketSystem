@@ -75,4 +75,76 @@ class SecurityConfigTest {
 
         assertFalse(result);
     }
+
+    @Test
+    void hasValidInternalTokenRejectsMismatch() {
+        SecurityConfig securityConfig = new SecurityConfig();
+        ReflectionTestUtils.setField(securityConfig, "internalApiToken", "expected");
+
+        boolean result = (Boolean) ReflectionTestUtils.invokeMethod(
+                securityConfig,
+                "hasValidInternalToken",
+                "wrong"
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    void hasValidInternalTokenRejectsEmptyExpected() {
+        SecurityConfig securityConfig = new SecurityConfig();
+        ReflectionTestUtils.setField(securityConfig, "internalApiToken", "");
+
+        boolean result = (Boolean) ReflectionTestUtils.invokeMethod(
+                securityConfig,
+                "hasValidInternalToken",
+                "anything"
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    void hasValidInternalTokenRejectsBlankHeader() {
+        SecurityConfig securityConfig = new SecurityConfig();
+        ReflectionTestUtils.setField(securityConfig, "internalApiToken", "secret-token");
+
+        boolean result = (Boolean) ReflectionTestUtils.invokeMethod(
+                securityConfig,
+                "hasValidInternalToken",
+                "   "
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    void jwtAuthenticationConverter_returnsEmpty_whenRealmAccessMissing() {
+        SecurityConfig securityConfig = new SecurityConfig();
+        JwtAuthenticationConverter converter = securityConfig.jwtAuthenticationConverter();
+
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getClaimAsMap("realm_access")).thenReturn(null);
+
+        List<String> authorities = converter.convert(jwt).getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        assertTrue(authorities.stream().noneMatch(a -> a.startsWith("ROLE_")));
+    }
+
+    @Test
+    void jwtAuthenticationConverter_returnsEmpty_whenRolesKeyMissing() {
+        SecurityConfig securityConfig = new SecurityConfig();
+        JwtAuthenticationConverter converter = securityConfig.jwtAuthenticationConverter();
+
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("other", "value"));
+
+        List<String> authorities = converter.convert(jwt).getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        assertTrue(authorities.stream().noneMatch(a -> a.startsWith("ROLE_")));
+    }
 }
