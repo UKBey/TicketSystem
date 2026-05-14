@@ -14,10 +14,13 @@ export default function Workspace() {
   const currentUserId = user?.sub || user?.id;
   const isAgentAdmin = hasRole('AGENT_ADMIN');
 
+  const WORKSPACE_STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
+
   const {
     tickets, totalPages, totalItems, loading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
+    status, setStatus,
     priority, setPriority,
     search, setSearch,
     productIds, setProductIds,
@@ -29,7 +32,7 @@ export default function Workspace() {
   } = useTicketList('/tickets/my-assigned', {
     sortBy: 'createdAt',
     sortDir: 'desc',
-    extraParams: { status: ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'] },
+    extraParams: { status: WORKSPACE_STATUSES },
   });
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export default function Workspace() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
+          status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           productIds={productIds} onProductIds={setProductIds}
@@ -90,7 +94,7 @@ export default function Workspace() {
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
-          hideStatus
+          statusOptions={WORKSPACE_STATUSES}
           hideAgent
         />
 

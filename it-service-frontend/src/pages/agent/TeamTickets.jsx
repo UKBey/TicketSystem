@@ -46,6 +46,7 @@ export default function TeamTickets() {
     tickets, totalPages, totalItems, loading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
+    status, setStatus,
     priority, setPriority,
     search, setSearch,
     productIds, setProductIds,
@@ -116,6 +117,7 @@ export default function TeamTickets() {
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
 
         <TicketFilters
+          status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}
           productIds={productIds} onProductIds={setProductIds}
@@ -125,7 +127,6 @@ export default function TeamTickets() {
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
-          hideStatus
         />
 
         {loading ? (

@@ -67,6 +67,8 @@ export function useTicketList(endpoint, opts = {}) {
       if (dateTo)    qs.set('dateTo', dateTo);
       Object.entries(extraParamsRef.current).forEach(([k, v]) => {
         if (v === undefined || v === null || v === '') return;
+        // Kullanıcı kendi status seçimini yapmışsa sayfanın varsayılan status kapsamını override etsin.
+        if (k === 'status' && status.length) return;
         if (Array.isArray(v)) v.forEach(item => qs.append(k, item));
         else qs.set(k, v);
       });

@@ -23,9 +23,10 @@ export default function TicketFilters({
   onStatus, onPriority, onSearch, onProductIds, onAgentIds, onTopicIds,
   onSlaStatuses, onDateFrom, onDateTo,
   onClear,
-  hideStatus  = false,
-  hideAgent   = false,
-  hideProduct = false,
+  hideStatus    = false,
+  hideAgent     = false,
+  hideProduct   = false,
+  statusOptions = STATUSES,
   scopedProductId,
 }) {
   const { t } = useTranslation();
@@ -107,7 +108,7 @@ export default function TicketFilters({
             values={status}
             onChange={onStatus}
             placeholder={t('ticket.filters.allStatuses')}
-            options={STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))}
+            options={statusOptions.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))}
           />
         )}
 
