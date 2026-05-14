@@ -575,6 +575,57 @@ class TicketControllerTest {
     }
 
     // -----------------------------------------------------------------------
+    // closeTicket and updatePriority handlers
+    // -----------------------------------------------------------------------
+
+    @Test
+    void closeTicket_returnsDto() {
+        Ticket closed = Ticket.builder().id(7000L).title("t").description("d")
+                .priority("HIGH").status("CLOSED").productId(10L).customerId("customer-1").build();
+        com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO body =
+                new com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO();
+        body.setReasonCode("RESOLVED_CONFIRMED");
+        body.setNote("done");
+        when(ticketService.closeTicket(7000L, "RESOLVED_CONFIRMED", "done", "agent-1", List.of("AGENT")))
+                .thenReturn(closed);
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(
+                User.builder().id("customer-1").fullName("C").email("c@x").role("CUSTOMER").build()));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
+        when(ticketService.getSlaTimerInfo(closed)).thenReturn(Map.<String, Object>of("deadlineTs", 1L));
+
+        ResponseEntity<TicketResponseDTO> response =
+                ticketController.closeTicket(7000L, body, jwtWithRole("agent-1", "AGENT"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(7000L, response.getBody().getId());
+    }
+
+    @Test
+    void updatePriority_returnsDto() {
+        Ticket updated = Ticket.builder().id(7100L).title("t").description("d")
+                .priority("CRITICAL").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+        when(ticketService.updateTicketPriority(7100L, "CRITICAL", "agent-1", List.of("AGENT")))
+                .thenReturn(updated);
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(
+                User.builder().id("customer-1").fullName("C").email("c@x").role("CUSTOMER").build()));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
+        when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.<String, Object>of("deadlineTs", 1L));
+
+        ResponseEntity<TicketResponseDTO> response =
+                ticketController.updatePriority(7100L, Map.of("priority", "CRITICAL"), jwtWithRole("agent-1", "AGENT"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("CRITICAL", response.getBody().getPriority());
+    }
+
+    @Test
+    void deleteTicket_returnsNoContent() {
+        ResponseEntity<Void> response = ticketController.deleteTicket(7200L);
+        assertEquals(204, response.getStatusCode().value());
+        verify(ticketService).deleteTicket(7200L);
+    }
+
+    // -----------------------------------------------------------------------
     // Helper
     // -----------------------------------------------------------------------
 
