@@ -244,8 +244,8 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
               </div>
             )}
 
-            {/* Ad — Soyad (yan yana) */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Ad — Soyad (mobilde alt alta, sm ve uzeri yan yana) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
                   {t('userManagement.form.firstName')} *

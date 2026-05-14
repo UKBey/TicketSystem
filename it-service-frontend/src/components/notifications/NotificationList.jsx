@@ -57,7 +57,7 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
 
   return (
     <div
-      className="absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl overflow-hidden z-50"
+      className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-xl shadow-xl overflow-hidden z-50"
       style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
     >
       {/* Header */}

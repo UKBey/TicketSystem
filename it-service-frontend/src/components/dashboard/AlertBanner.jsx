@@ -201,7 +201,7 @@ export default function AlertBanner({ data, loading }) {
           )}
 
           {/* Backlog Metrics */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { icon: Users,  label: 'Unassigned',    value: loading ? null : (backlog?.unassignedCount ?? 0),    color: '#ef4444' },
               { icon: Inbox,  label: 'New Waiting',    value: loading ? null : (backlog?.newTicketsWaiting ?? 0), color: '#f59e0b' },

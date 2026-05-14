@@ -38,8 +38,8 @@ export default function RateLimitToast() {
   if (!visible) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-2 duration-300">
-      <div className="flex items-center gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-warning-800 shadow-lg dark:border-warning-500/20 dark:bg-warning-500/10 dark:text-warning-300 min-w-[320px]">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-2 duration-300 w-[calc(100vw-2rem)] max-w-md sm:w-auto">
+      <div className="flex items-center gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-warning-800 shadow-lg dark:border-warning-500/20 dark:bg-warning-500/10 dark:text-warning-300 sm:min-w-[320px]">
         <AlertCircle className="h-5 w-5 shrink-0" />
         <div className="flex-1 text-sm font-medium">
           Too many requests. Please wait {countdown} seconds.
