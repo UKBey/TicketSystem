@@ -96,12 +96,20 @@ export default function TicketTable({
                 TCK-{String(ticket.id).padStart(3, '0')}
               </td>
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-medium truncate" title={ticket.title}>{ticket.title}</span>
-                  {ticket.slaBreached && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                      style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                      <AlertTriangle className="h-3 w-3" />SLA
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium truncate" title={ticket.title}>{ticket.title}</span>
+                    {ticket.slaBreached && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
+                        <AlertTriangle className="h-3 w-3" />SLA
+                      </span>
+                    )}
+                  </div>
+                  {(ticket.topicName || ticket.topicId) && (
+                    <span className="block truncate text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}
+                      title={ticket.topicName || `#${ticket.topicId}`}>
+                      {ticket.topicName || `#${ticket.topicId}`}
                     </span>
                   )}
                 </div>

@@ -106,6 +106,12 @@ export default function TicketDetail() {
             <span>👤 {ticket.customerName || ticket.customerId}</span>
             <span style={{ color: 'var(--text-tertiary)' }}>•</span>
             <span>Product: {ticket.productName || ticket.productId}</span>
+            {(ticket.topicName || ticket.topicId) && (
+              <>
+                <span style={{ color: 'var(--text-tertiary)' }}>•</span>
+                <span>{t('ticketDetail.topicLabel')}: {ticket.topicName || ticket.topicId}</span>
+              </>
+            )}
           </div>
         </div>
 
