@@ -624,6 +624,8 @@
     "emailInvalid": "Geçerli bir e-posta adresi girin.",
     "changePassword": "Şifreyi Değiştir",
     "changePasswordDesc": "Hesabınızın şifresini güvenli bir şekilde değiştirin.",
+    "twoFactorActive": "2FA Aktif",
+    "twoFactorInactive": "2FA Pasif",
     "twoFactorModal": {
       "title": "İki Adımlı Doğrulama",
       "subtitle": "Authenticator cihazlarınızı yönetin.",

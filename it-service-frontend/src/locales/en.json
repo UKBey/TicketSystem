@@ -624,6 +624,8 @@
     "emailInvalid": "Please enter a valid email address.",
     "changePassword": "Change Password",
     "changePasswordDesc": "Change your account password securely.",
+    "twoFactorActive": "2FA Active",
+    "twoFactorInactive": "2FA Inactive",
     "twoFactorModal": {
       "title": "Two-factor Authentication",
       "subtitle": "Manage your authenticator devices.",

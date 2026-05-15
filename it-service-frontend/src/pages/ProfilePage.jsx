@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
-  User, Shield, ShieldCheck, Globe, ExternalLink, Settings,
+  User, Shield, ShieldCheck, ShieldAlert, Globe, ExternalLink, Settings,
   Pencil, Check, X, Lock,
 } from 'lucide-react';
 import api from '../services/api';
@@ -212,13 +212,27 @@ export default function ProfilePage() {
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
 
+  // 2FA badge state — null while unknown so badge doesn't flicker on first paint.
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(null);
+
+  const refreshTwoFactor = useCallback(async () => {
+    try {
+      const devices = await userService.listTotpDevices();
+      setTwoFactorEnabled(Array.isArray(devices) && devices.length > 0);
+    } catch {
+      // Failure is non-critical — just hide the badge.
+      setTwoFactorEnabled(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
     api.get(`/users/${user.id}`)
       .then((res) => setProducts(res.data.authorizedProducts ?? []))
       .catch(() => {})
       .finally(() => setLoadingProducts(false));
-  }, [user?.id]);
+    refreshTwoFactor();
+  }, [user?.id, refreshTwoFactor]);
 
   const openEdit = (field) => {
     setError('');
@@ -329,6 +343,22 @@ export default function ProfilePage() {
                 <Globe className="h-3 w-3" />
                 {currentLang === 'tr' ? 'Türkçe' : 'English'}
               </span>
+              {twoFactorEnabled !== null && (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+                  style={
+                    twoFactorEnabled
+                      ? { backgroundColor: 'rgba(34,197,94,0.18)', color: '#22c55e',  backdropFilter: 'blur(4px)' }
+                      : { backgroundColor: 'rgba(245,158,11,0.18)', color: '#f59e0b', backdropFilter: 'blur(4px)' }
+                  }
+                  title={twoFactorEnabled ? t('profile.twoFactorActive') : t('profile.twoFactorInactive')}
+                >
+                  {twoFactorEnabled
+                    ? <ShieldCheck className="h-3 w-3" />
+                    : <ShieldAlert className="h-3 w-3" />}
+                  {twoFactorEnabled ? t('profile.twoFactorActive') : t('profile.twoFactorInactive')}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -540,7 +570,7 @@ export default function ProfilePage() {
       />
       <TwoFactorModal
         open={twoFactorModalOpen}
-        onClose={() => setTwoFactorModalOpen(false)}
+        onClose={() => { setTwoFactorModalOpen(false); refreshTwoFactor(); }}
         lang={currentLang}
       />
     </div>
