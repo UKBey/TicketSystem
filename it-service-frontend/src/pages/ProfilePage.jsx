@@ -437,11 +437,13 @@ export default function ProfilePage() {
                 onClick={() => {
                   // Keycloak account console'un "Signing in" sayfasina yonlendirir —
                   // kullanici mevcut 2FA cihazlarini listeleyebilir, yenisini ekleyebilir,
-                  // veya eskisini silebilir. Referrer parametreleri Keycloak'in "Back to app"
-                  // linki gostermesini saglar.
-                  const base = `${keycloak.authServerUrl.replace(/\/$/, '')}/realms/${keycloak.realm}/account/`;
+                  // veya eskisini silebilir. v3 account UI BrowserRouter kullaniyor, hash
+                  // degil path-based route lazim. Referrer params ile "Back to app" linki cikar.
+                  const root = keycloak.authServerUrl.replace(/\/$/, '');
                   const returnUri = encodeURIComponent(window.location.origin + '/profile');
-                  window.location.href = `${base}?referrer=ticket-frontend&referrer_uri=${returnUri}#/security/signing-in`;
+                  window.location.href =
+                    `${root}/realms/${keycloak.realm}/account/account-security/signing-in` +
+                    `?referrer=ticket-frontend&referrer_uri=${returnUri}`;
                 }}
               />
             </div>
