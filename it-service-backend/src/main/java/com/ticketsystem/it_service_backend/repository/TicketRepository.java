@@ -178,7 +178,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query(value = """
         SELECT * FROM tickets t
         WHERE t.product_id IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
           AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
@@ -191,6 +191,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         """, nativeQuery = true)
     Page<Ticket> findTeamTicketsFullFiltered(
             @Param("productIds")    List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             @Param("filterProductIds") List<Long> filterProductIds,
             @Param("searchPattern") String searchPattern,
@@ -512,37 +513,40 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
         """)
     Page<Ticket> findTeamTicketsFiltered(
             @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
     Page<Ticket> findTeamTicketsFilteredOrderByPriorityAsc(
             @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
     Page<Ticket> findTeamTicketsFilteredOrderByPriorityDesc(
             @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
@@ -734,7 +738,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
         ORDER BY
           CASE WHEN t.slaBreached = true THEN 0
@@ -744,13 +748,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         """)
     Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status NOT IN ('NEW', 'CLOSED')
+          AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
         ORDER BY
           CASE WHEN t.slaBreached = true THEN 0
@@ -760,6 +765,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         """)
     Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 

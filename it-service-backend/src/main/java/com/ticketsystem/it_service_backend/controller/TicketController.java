@@ -186,6 +186,7 @@ public class TicketController {
             @RequestParam(defaultValue = "20")  int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<Long> productId,
@@ -200,7 +201,7 @@ public class TicketController {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(page, size, sort);
         TicketFilterDTO filter = TicketFilterDTO.builder()
-                .priorities(priority).search(search).productIds(productId)
+                .statuses(status).priorities(priority).search(search).productIds(productId)
                 .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 

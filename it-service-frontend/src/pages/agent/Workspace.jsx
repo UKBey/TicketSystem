@@ -14,7 +14,8 @@ export default function Workspace() {
   const currentUserId = user?.sub || user?.id;
   const isAgentAdmin = hasRole('AGENT_ADMIN');
 
-  const WORKSPACE_STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
+  // NEW Pool'da, CLOSED History'de listelenir — Workspace yalnız aktif statüleri kapsar.
+  const WORKSPACE_STATUSES = ['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
 
   const {
     tickets, totalPages, totalItems, loading, error,

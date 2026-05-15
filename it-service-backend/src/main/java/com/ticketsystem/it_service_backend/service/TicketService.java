@@ -351,26 +351,27 @@ public class TicketService {
                 .map(Product::getId).collect(Collectors.toList());
         if (productIds.isEmpty()) return Page.empty(pageable);
 
+        List<String> statuses = teamStatusesOrActive(f);
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
             Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, f.getPriorities(), u)
-                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, f.getPriorities(), u);
+                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, statuses, f.getPriorities(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, statuses, f.getPriorities(), u);
         }
         if (isSortBySla(pageable)) {
             boolean asc = isAscending(pageable);
             Pageable u = toUnsorted(pageable);
             return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, f.getPriorities(), u)
-                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, f.getPriorities(), u);
+                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
         if (hasExtraFilters(f)) {
             return ticketRepository.findTeamTicketsFullFiltered(
-                    productIds, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
                     slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
         }
-        return ticketRepository.findTeamTicketsFiltered(productIds, f.getPriorities(), pageable);
+        return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
     }
 
     @Transactional(readOnly = true)
@@ -480,6 +481,8 @@ public class TicketService {
 
     private static final List<String> ALL_STATUSES   = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED");
     private static final List<String> ALL_PRIORITIES = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
+    /** Team listesi kapsamı: NEW (havuzda) ve CLOSED (history'de) hariç tüm aktif statüler. */
+    private static final List<String> ACTIVE_TEAM_STATUSES = List.of("IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED");
     private static final List<String> ALL_SLA_STATUSES = List.of("BREACHED", "ACTIVE", "PAUSED");
 
     /**
@@ -489,6 +492,15 @@ public class TicketService {
     private List<String> statusesOrAll(TicketFilterDTO f) {
         List<String> s = f.getStatuses();
         return (s != null && !s.isEmpty()) ? s : ALL_STATUSES;
+    }
+
+    /**
+     * Team list query'lerinde kullanılır: kullanıcı statü seçtiyse onu, yoksa NEW/CLOSED hariç
+     * aktif team statülerini döner. NEW'ler Pool'da, CLOSED'lar History'de listelenir.
+     */
+    private List<String> teamStatusesOrActive(TicketFilterDTO f) {
+        List<String> s = f.getStatuses();
+        return (s != null && !s.isEmpty()) ? s : ACTIVE_TEAM_STATUSES;
     }
 
     /**

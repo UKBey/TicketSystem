@@ -127,6 +127,7 @@ export default function TeamTickets() {
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
+          statusOptions={['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED']}
         />
 
         {loading ? (

@@ -389,7 +389,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -405,7 +405,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("admin-1", "AGENT_ADMIN"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(0, response.getBody().getContent().size());
@@ -540,7 +540,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
