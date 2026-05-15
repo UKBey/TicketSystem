@@ -223,25 +223,6 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(updated));
     }
 
-    @Operation(summary = "Şifre değiştirme akışını başlat",
-            description = """
-                    Oturum açan kullanıcıya Keycloak tarafında `UPDATE_PASSWORD` required action'ı
-                    atar. Frontend bunu çağırdıktan sonra kullanıcıyı yeniden login'e yönlendirir;
-                    Keycloak login akışı required action'ı görüp şifre değiştirme formunu zorla
-                    gösterir, tamamlanınca action otomatik silinir.
-                    """)
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Required action başarıyla atandı"),
-            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
-    })
-    @PostMapping("/me/request-password-change")
-    public ResponseEntity<Void> requestPasswordChange(@AuthenticationPrincipal Jwt jwt) {
-        String userId = jwt.getSubject();
-        log.info("Şifre değiştirme akışı başlatılıyor. Kullanıcı: {}", userId);
-        keycloakAdminService.addRequiredAction(userId, "UPDATE_PASSWORD");
-        return ResponseEntity.noContent().build();
-    }
-
     @Operation(summary = "Kullanıcı dil tercihini güncelle",
             description = "Kullanıcının tercih ettiği dili günceller. Desteklenen değerler: `en`, `tr`.")
     @ApiResponses({
