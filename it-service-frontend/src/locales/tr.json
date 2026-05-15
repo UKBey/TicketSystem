@@ -624,6 +624,23 @@
     "emailInvalid": "Geçerli bir e-posta adresi girin.",
     "changePassword": "Şifreyi Değiştir",
     "changePasswordDesc": "Hesabınızın şifresini güvenli bir şekilde değiştirin.",
+    "twoFactorModal": {
+      "title": "İki Adımlı Doğrulama",
+      "subtitle": "Authenticator cihazlarınızı yönetin.",
+      "noDevices": "Henüz authenticator cihazı eklenmemiş.",
+      "noDevicesHint": "Hesabınızı ekstra güvenlik katmanıyla korumak için bir cihaz ekleyin.",
+      "addDevice": "Yeni Cihaz Ekle",
+      "createdOn": "Eklendi: {{date}}",
+      "deviceWithoutLabel": "İsimsiz cihaz",
+      "delete": "Sil",
+      "confirmDelete": "Sil?",
+      "confirmDeleteDesc": "Bu cihaz authenticator olarak kullanılamayacak.",
+      "deleteConfirm": "Evet, sil",
+      "deleteCancel": "Vazgeç",
+      "loadError": "Cihazlar yüklenemedi.",
+      "deleteError": "Cihaz silinemedi.",
+      "deleting": "Siliniyor…"
+    },
     "passwordModal": {
       "title": "Şifreyi Değiştir",
       "subtitle": "Önce mevcut şifrenizi doğrulayın, ardından yeni şifrenizi belirleyin.",

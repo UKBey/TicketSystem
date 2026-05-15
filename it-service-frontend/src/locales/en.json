@@ -624,6 +624,23 @@
     "emailInvalid": "Please enter a valid email address.",
     "changePassword": "Change Password",
     "changePasswordDesc": "Change your account password securely.",
+    "twoFactorModal": {
+      "title": "Two-factor Authentication",
+      "subtitle": "Manage your authenticator devices.",
+      "noDevices": "No authenticator devices yet.",
+      "noDevicesHint": "Add a device to protect your account with an extra security layer.",
+      "addDevice": "Add new device",
+      "createdOn": "Added: {{date}}",
+      "deviceWithoutLabel": "Unnamed device",
+      "delete": "Delete",
+      "confirmDelete": "Delete?",
+      "confirmDeleteDesc": "This device will no longer be usable as authenticator.",
+      "deleteConfirm": "Yes, delete",
+      "deleteCancel": "Cancel",
+      "loadError": "Could not load devices.",
+      "deleteError": "Could not delete device.",
+      "deleting": "Deleting…"
+    },
     "passwordModal": {
       "title": "Change Password",
       "subtitle": "Verify your current password, then set a new one.",

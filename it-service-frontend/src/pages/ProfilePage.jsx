@@ -10,8 +10,8 @@ import {
 import api from '../services/api';
 import userService from '../services/userService';
 import i18n from '../i18n';
-import keycloak from '../keycloak';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import TwoFactorModal from '../components/TwoFactorModal';
 
 /* ── Role meta ─────────────────────────────────────────────── */
 const ROLE_META = {
@@ -273,6 +273,8 @@ export default function ProfilePage() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const triggerPasswordChange = () => setPasswordModalOpen(true);
 
+  const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
+
   const { firstName: currentFirstName, lastName: currentLastName } = splitFullName(user?.name);
 
   return (
@@ -434,19 +436,7 @@ export default function ProfilePage() {
                 iconBg="rgba(16,185,129,0.12)"
                 title={t('profile.twoFactor')}
                 description={t('profile.manageTwoFactor')}
-                onClick={() => {
-                  // Keycloak account console'un "Signing in" sayfasina yonlendirir —
-                  // kullanici mevcut 2FA cihazlarini listeleyebilir, yenisini ekleyebilir,
-                  // veya eskisini silebilir. v3 account UI HashRouter kullaniyor: /account/
-                  // base + #/account-security/signing-in hash route. CSS ile diger menu
-                  // item'lari gizlenmis durumda (yalniz "Signing in" gorulebilir).
-                  const root = keycloak.authServerUrl.replace(/\/$/, '');
-                  const returnUri = encodeURIComponent(window.location.origin + '/profile');
-                  window.location.href =
-                    `${root}/realms/${keycloak.realm}/account/` +
-                    `?referrer=ticket-frontend&referrer_uri=${returnUri}` +
-                    `#/account-security/signing-in`;
-                }}
+                onClick={() => setTwoFactorModalOpen(true)}
               />
             </div>
           </div>
@@ -547,6 +537,11 @@ export default function ProfilePage() {
       <ChangePasswordModal
         open={passwordModalOpen}
         onClose={() => setPasswordModalOpen(false)}
+      />
+      <TwoFactorModal
+        open={twoFactorModalOpen}
+        onClose={() => setTwoFactorModalOpen(false)}
+        lang={currentLang}
       />
     </div>
   );

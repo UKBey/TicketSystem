@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.dto.ChangePasswordRequest;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
+import com.ticketsystem.it_service_backend.dto.TotpCredentialDTO;
 import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -249,6 +250,48 @@ public class UserController {
             throw new WrongCurrentPasswordException();
         }
         keycloakAdminService.changeUserPassword(userId, request.getNewPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "2FA cihazlarını listele",
+            description = """
+                    Oturum açan kullanıcının kayıtlı TOTP (authenticator app) cihazlarını döner.
+                    Frontend tarafında 2FA yönetim modal'ında listelenir.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "2FA cihaz listesi başarıyla döndü")
+    })
+    @GetMapping("/me/2fa")
+    public ResponseEntity<List<TotpCredentialDTO>> listMyTotpDevices(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("2FA cihazları listeleniyor. Kullanıcı: {}", userId);
+
+        List<TotpCredentialDTO> devices = keycloakAdminService.listOtpCredentials(userId).stream()
+                .map(c -> TotpCredentialDTO.builder()
+                        .id(c.getId())
+                        .userLabel(c.getUserLabel())
+                        .createdDate(c.getCreatedDate())
+                        .build())
+                .toList();
+        return ResponseEntity.ok(devices);
+    }
+
+    @Operation(summary = "2FA cihazı sil",
+            description = """
+                    Oturum açan kullanıcının belirli bir TOTP cihazını siler. Sonraki girişte
+                    bu cihaz authenticator olarak kabul edilmez.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Cihaz başarıyla silindi"),
+            @ApiResponse(responseCode = "404", description = "Cihaz bulunamadı")
+    })
+    @DeleteMapping("/me/2fa/{credentialId}")
+    public ResponseEntity<Void> deleteMyTotpDevice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String credentialId) {
+        String userId = jwt.getSubject();
+        log.info("2FA cihazı silme isteği. Kullanıcı: {}, CredentialID: {}", userId, credentialId);
+        keycloakAdminService.removeCredential(userId, credentialId);
         return ResponseEntity.noContent().build();
     }
 

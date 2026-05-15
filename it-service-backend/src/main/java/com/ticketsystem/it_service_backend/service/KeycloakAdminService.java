@@ -357,6 +357,30 @@ public class KeycloakAdminService {
     }
 
     // -------------------------------------------------------------------------
+    // TOTP credentials (self-service 2FA management)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Kullanıcının kayıtlı tüm TOTP (authenticator app) credential'larını döner.
+     * Diğer credential tipleri (password, recovery-code vb.) filtrelenir.
+     */
+    public List<CredentialRepresentation> listOtpCredentials(String keycloakId) {
+        log.debug("TOTP credential listesi isteniyor. ID: {}", keycloakId);
+        return keycloakAdminClient.realm(realm).users().get(keycloakId).credentials().stream()
+                .filter(c -> "otp".equalsIgnoreCase(c.getType()))
+                .toList();
+    }
+
+    /**
+     * Kullanıcının belirli bir credential'ını siler. Tipik kullanım: TOTP cihazı kaldırma.
+     */
+    public void removeCredential(String keycloakId, String credentialId) {
+        log.info("Credential siliniyor. ID: {}, CredentialID: {}", keycloakId, credentialId);
+        keycloakAdminClient.realm(realm).users().get(keycloakId).removeCredential(credentialId);
+        log.info("Credential silindi. ID: {}, CredentialID: {}", keycloakId, credentialId);
+    }
+
+    // -------------------------------------------------------------------------
     // Kullanıcı silme (compensating action)
     // -------------------------------------------------------------------------
 

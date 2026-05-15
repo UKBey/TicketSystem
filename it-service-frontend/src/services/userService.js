@@ -9,7 +9,18 @@ async function changePassword({ currentPassword, newPassword }) {
   await api.post('/users/me/password', { currentPassword, newPassword });
 }
 
+async function listTotpDevices() {
+  const response = await api.get('/users/me/2fa');
+  return response.data;
+}
+
+async function deleteTotpDevice(credentialId) {
+  await api.delete(`/users/me/2fa/${credentialId}`);
+}
+
 export default {
   updateProfile,
   changePassword,
+  listTotpDevices,
+  deleteTotpDevice,
 };
