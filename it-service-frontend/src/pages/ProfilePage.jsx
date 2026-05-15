@@ -270,9 +270,14 @@ export default function ProfilePage() {
   };
 
   const triggerPasswordChange = () => {
+    // prompt:'login' aktif SSO session'a ragmen Keycloak'i yeniden auth'a zorlar —
+    // boylelikle kc_action=UPDATE_PASSWORD'un AIA freshness kontrolune takilip silently
+    // geri donmesi engellenir. Sifre degisikligi icin once kimligi dogrulamak guvenlik
+    // acisindan da dogru akistir.
     keycloak.login({
       action: 'UPDATE_PASSWORD',
       redirectUri: window.location.origin + '/profile',
+      prompt: 'login',
     });
   };
 
