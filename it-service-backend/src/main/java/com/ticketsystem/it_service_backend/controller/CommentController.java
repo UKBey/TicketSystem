@@ -124,9 +124,11 @@ public class CommentController {
     }
 
     private CommentDTO convertToDto(Comment comment) {
-        String authorName = comment.getAuthorId() != null
-            ? userRepository.findById(comment.getAuthorId()).map(User::getFullName).orElse("Unknown")
-            : "Unknown";
-        return CommentDTO.fromEntity(comment, authorName);
+        User author = comment.getAuthorId() != null
+            ? userRepository.findById(comment.getAuthorId()).orElse(null)
+            : null;
+        String authorName = author != null ? author.getFullName() : "Unknown";
+        String authorRole = author != null ? author.getRole() : null;
+        return CommentDTO.fromEntity(comment, authorName, authorRole);
     }
 }

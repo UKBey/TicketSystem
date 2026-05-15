@@ -83,8 +83,14 @@ public class InternalTicketController {
         );
 
         List<CommentDTO> comments = commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
-                .map(c -> CommentDTO.fromEntity(c,
-                        userRepository.findById(c.getAuthorId()).map(User::getFullName).orElse("Unknown")))
+                .map(c -> {
+                    User author = c.getAuthorId() != null
+                            ? userRepository.findById(c.getAuthorId()).orElse(null)
+                            : null;
+                    String authorName = author != null ? author.getFullName() : "Unknown";
+                    String authorRole = author != null ? author.getRole() : null;
+                    return CommentDTO.fromEntity(c, authorName, authorRole);
+                })
                 .collect(Collectors.toList());
 
         List<WorklogResponseDTO> worklogs = worklogRepository.findByTicketId(ticketId).stream()

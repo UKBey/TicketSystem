@@ -86,10 +86,12 @@ public class CommentService {
 
     // INTERNAL yorumlar agent-only topic'e gider; EXTERNAL'lar genel ticket topic'ine.
     private void broadcastComment(Long ticketId, Comment comment) {
-        String authorName = comment.getAuthorId() != null
-                ? userRepository.findById(comment.getAuthorId()).map(User::getFullName).orElse("Unknown")
-                : "Unknown";
-        CommentDTO dto = CommentDTO.fromEntity(comment, authorName);
+        User author = comment.getAuthorId() != null
+                ? userRepository.findById(comment.getAuthorId()).orElse(null)
+                : null;
+        String authorName = author != null ? author.getFullName() : "Unknown";
+        String authorRole = author != null ? author.getRole() : null;
+        CommentDTO dto = CommentDTO.fromEntity(comment, authorName, authorRole);
         String destination = "INTERNAL".equals(comment.getType())
                 ? "/topic/tickets/" + ticketId + "/internal"
                 : "/topic/tickets/" + ticketId;

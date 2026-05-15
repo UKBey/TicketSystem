@@ -48,10 +48,16 @@ export default function TicketTimeline({
         {timeline.map((item) => {
           const itemAuthorId   = item._type === 'attachment' ? item.uploaderId : item.authorId;
           const itemAuthorName = item._type === 'attachment' ? null : item.authorName;
+          const itemAuthorRole = item._type === 'attachment' ? null : item.authorRole;
           const isOwnItem  = itemAuthorId === user?.id;
           const isInternal = item.type === 'INTERNAL';
           const isRight    = isOwnItem && !isInternal;
-          const displayName = itemAuthorName || (itemAuthorId === ticket.customerId ? ticket.customerName : 'Agent');
+          const isCustomerAuthor = itemAuthorRole
+            ? itemAuthorRole === 'CUSTOMER'
+            : itemAuthorId === ticket.customerId;
+          const displayName = itemAuthorName || (isCustomerAuthor ? ticket.customerName : 'Agent');
+          const showRoleBadge = !isOwnItem && !isInternal;
+          const roleBadgeLabel = isCustomerAuthor ? t('ticketDetail.roleCustomer') : t('ticketDetail.roleAgent');
 
           let bubbleBg, bubbleText;
           if (isInternal) { bubbleBg = 'border'; bubbleText = ''; }
@@ -79,6 +85,17 @@ export default function TicketTimeline({
                 >
                   {displayName}
                 </span>
+                {showRoleBadge && (
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                    style={isCustomerAuthor
+                      ? { backgroundColor: isDark ? 'rgba(148,163,184,0.2)' : '#e2e8f0', color: isDark ? '#cbd5e1' : '#475569' }
+                      : { backgroundColor: isDark ? 'rgba(59,130,246,0.2)' : '#dbeafe', color: isDark ? '#93c5fd' : '#1d4ed8' }
+                    }
+                  >
+                    {roleBadgeLabel}
+                  </span>
+                )}
                 {isInternal && (
                   <span
                     className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"

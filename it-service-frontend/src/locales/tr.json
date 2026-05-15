@@ -346,6 +346,8 @@
     "internalNote": "Dahili Not",
     "messagePlaceholder": "Mesajınızı yazın...",
     "internal": "Dahili",
+    "roleAgent": "Temsilci",
+    "roleCustomer": "Müşteri",
     "send": "Gönder",
     "statusActions": "Durum İşlemleri",
     "resume": "Devam Et",

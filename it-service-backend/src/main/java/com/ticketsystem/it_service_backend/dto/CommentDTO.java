@@ -24,6 +24,9 @@ public class CommentDTO {
     @Schema(description = "Yazar adı (sunucu tarafında çözümlenir)", example = "Ali Yılmaz")
     private String authorName;
 
+    @Schema(description = "Yazarın sistemdeki rolü (CUSTOMER/AGENT/AGENT_ADMIN/MANAGER) — chat UI'da rozet için kullanılır", example = "AGENT")
+    private String authorRole;
+
     @Schema(description = "Yorum içeriği", example = "VPN ayarlarınızı kontrol ettim, port 443 engelli görünüyor.")
     private String message;
 
@@ -33,11 +36,12 @@ public class CommentDTO {
     @Schema(description = "Yorumun oluşturulma tarihi", example = "2026-04-21T11:30:00+03:00")
     private ZonedDateTime createdAt;
 
-    public static CommentDTO fromEntity(Comment comment, String authorName) {
+    public static CommentDTO fromEntity(Comment comment, String authorName, String authorRole) {
         return CommentDTO.builder()
                 .id(comment.getId())
                 .authorId(comment.getAuthorId())
                 .authorName(authorName)
+                .authorRole(authorRole)
                 .message(comment.getMessage())
                 .type(comment.getType())
                 .createdAt(comment.getCreatedAt())

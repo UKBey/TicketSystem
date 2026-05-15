@@ -346,6 +346,8 @@
     "internalNote": "Internal Note",
     "messagePlaceholder": "Type your message...",
     "internal": "Internal",
+    "roleAgent": "Agent",
+    "roleCustomer": "Customer",
     "send": "Send",
     "statusActions": "Status Actions",
     "resume": "Resume",
