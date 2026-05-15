@@ -269,13 +269,20 @@ export default function ProfilePage() {
     persist({ firstName, lastName, email });
   };
 
-  const triggerPasswordChange = () => {
-    // prompt:'login' aktif SSO session'a ragmen Keycloak'i yeniden auth'a zorlar —
-    // boylelikle kc_action=UPDATE_PASSWORD'un AIA freshness kontrolune takilip silently
-    // geri donmesi engellenir. Sifre degisikligi icin once kimligi dogrulamak guvenlik
-    // acisindan da dogru akistir.
+  const triggerPasswordChange = async () => {
+    // kc_action=UPDATE_PASSWORD bu Keycloak surumunde silently dropped oluyor;
+    // bunun yerine Admin API uzerinden kullaniciya UPDATE_PASSWORD required-action'i
+    // atiyoruz ve prompt=login ile yeniden auth'a yonlendiriyoruz. Keycloak'in login
+    // flow'u required-action'i her zaman gorur ve formu zorla gosterir; tamamlaninca
+    // action otomatik silinir.
+    try {
+      await userService.requestPasswordChange();
+    } catch (err) {
+      console.error('Password change request failed', err);
+      setError(t('profile.saveError'));
+      return;
+    }
     keycloak.login({
-      action: 'UPDATE_PASSWORD',
       redirectUri: window.location.origin + '/profile',
       prompt: 'login',
     });

@@ -14,6 +14,7 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -269,6 +270,33 @@ public class KeycloakAdminService {
 
         keycloakAdminClient.realm(realm).users().get(keycloakId).update(current);
         log.info("Keycloak profil güncellendi. ID: {}, emailChanged: {}", keycloakId, emailChanged);
+    }
+
+    /**
+     * Kullanıcının requiredActions listesine yeni bir action ekler (idempotent).
+     * Kullanıcı bir sonraki interactive login akışında bu action'ı tamamlamak zorundadır;
+     * tamamlanınca Keycloak action'ı listeden otomatik kaldırır.
+     *
+     * <p>{@code kc_action} URL parametresi bazı Keycloak konfigürasyonlarında sessizce
+     * yutulabildiği için self-service şifre/profil güncelleme akışında bu mekanizma
+     * daha güvenilirdir.
+     */
+    public void addRequiredAction(String keycloakId, String action) {
+        log.info("Required action ekleniyor. ID: {}, Action: {}", keycloakId, action);
+
+        UserRepresentation user = keycloakAdminClient.realm(realm).users().get(keycloakId).toRepresentation();
+        List<String> actions = user.getRequiredActions();
+        if (actions == null) {
+            actions = new ArrayList<>();
+        }
+        if (actions.contains(action)) {
+            log.debug("Required action zaten mevcut, atlandı. ID: {}, Action: {}", keycloakId, action);
+            return;
+        }
+        actions.add(action);
+        user.setRequiredActions(actions);
+        keycloakAdminClient.realm(realm).users().get(keycloakId).update(user);
+        log.info("Required action eklendi. ID: {}, Action: {}", keycloakId, action);
     }
 
     // -------------------------------------------------------------------------
