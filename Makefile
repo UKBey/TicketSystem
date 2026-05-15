@@ -49,6 +49,7 @@ help:
 	@echo    test             - Tum testleri calistirir
 	@echo    test-backend     - Backend testleri (Maven)
 	@echo    test-frontend    - Frontend testleri (Vitest)
+	@echo    ci			   	  - Continuous Integration: test + verify + lint
 	@echo.
 	@echo  Kapsam (Coverage):
 	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
@@ -129,6 +130,10 @@ test-frontend:
 	cd $(FRONTEND_DIR) && npm test
 
 # --- Kalite ---
+ci: # Continuous Integration: test + verify
+	make test
+	make verify
+	make lint
 
 lint:
 	cd $(FRONTEND_DIR) && npm run lint
@@ -137,6 +142,7 @@ verify:
 	cd $(BACKEND_DIR) && mvnw.cmd verify
 
 # --- SonarQube ---
+
 
 sonar-up:
 	docker compose up -d sonarqube-db sonarqube
