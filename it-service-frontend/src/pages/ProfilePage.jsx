@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
   User, Shield, ShieldCheck, Globe, ExternalLink, Settings,
+  Pencil, Check, X, Lock,
 } from 'lucide-react';
 import api from '../services/api';
+import userService from '../services/userService';
 import i18n from '../i18n';
 import keycloak from '../keycloak';
 
@@ -34,9 +36,9 @@ const ROLE_GRADIENT = {
 };
 
 /* ── Small info row ─────────────────────────────────────────── */
-function InfoRow({ icon: Icon, label, value, mono = false }) {
+function InfoRow({ icon: Icon, label, value, mono = false, onEdit }) {
   return (
-    <div className="flex items-center gap-3 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+    <div className="flex items-center gap-3 py-3 group" style={{ borderBottom: '1px solid var(--border-color)' }}>
       <div
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: 'var(--bg-surface-secondary)' }}
@@ -55,8 +57,96 @@ function InfoRow({ icon: Icon, label, value, mono = false }) {
           {value || '—'}
         </p>
       </div>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color: 'var(--text-tertiary)' }}
+          aria-label="edit"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
+}
+
+/* ── Editable row — for fullName (two inputs) or email (one input) ── */
+function EditableRow({ icon: Icon, label, fields, onSave, onCancel, saving, error, t }) {
+  // fields: [{ name, value, placeholder, type }]
+  const [values, setValues] = useState(() =>
+    fields.reduce((acc, f) => ({ ...acc, [f.name]: f.value ?? '' }), {})
+  );
+  const handleChange = (name) => (e) => setValues((v) => ({ ...v, [name]: e.target.value }));
+
+  return (
+    <div className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
+      <div
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg mt-5"
+        style={{ backgroundColor: 'var(--bg-surface-secondary)' }}
+      >
+        <Icon className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+          {label}
+        </p>
+        <div className={`flex gap-2 ${fields.length > 1 ? 'flex-col sm:flex-row' : ''}`}>
+          {fields.map((f) => (
+            <input
+              key={f.name}
+              type={f.type ?? 'text'}
+              value={values[f.name]}
+              onChange={handleChange(f.name)}
+              placeholder={f.placeholder}
+              disabled={saving}
+              className="flex-1 min-w-0 rounded-md border px-2.5 py-1.5 text-sm font-medium outline-none disabled:opacity-60"
+              style={{
+                backgroundColor: 'var(--bg-surface-secondary)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
+              autoFocus={f === fields[0]}
+            />
+          ))}
+        </div>
+        {error && (
+          <p className="mt-1.5 text-xs font-medium" style={{ color: '#ef4444' }}>{error}</p>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSave(values)}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ backgroundColor: '#3b82f6', color: 'white' }}
+          >
+            <Check className="h-3.5 w-3.5" />
+            {saving ? t('profile.saving') : t('profile.save')}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60"
+            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            <X className="h-3.5 w-3.5" />
+            {t('profile.cancel')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function splitFullName(fullName) {
+  if (!fullName) return { firstName: '', lastName: '' };
+  const trimmed = fullName.trim();
+  const idx = trimmed.indexOf(' ');
+  if (idx === -1) return { firstName: trimmed, lastName: '' };
+  return { firstName: trimmed.slice(0, idx), lastName: trimmed.slice(idx + 1).trim() };
 }
 
 /* ── Quick-action card ──────────────────────────────────────── */
@@ -107,7 +197,7 @@ function ActionCard({ icon: Icon, iconColor, iconBg, title, description, onClick
 export default function ProfilePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, getPrimaryRole } = useAuth();
+  const { user, getPrimaryRole, refreshUser } = useAuth();
   const primaryRole = getPrimaryRole();
   const roleMeta = ROLE_META[primaryRole] ?? { label: primaryRole ?? 'User', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' };
   const avatarGradient = ROLE_GRADIENT[primaryRole] ?? ROLE_GRADIENT.default;
@@ -116,6 +206,11 @@ export default function ProfilePage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const currentLang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
 
+  // 'name' | 'email' | null — which field is currently being edited
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState('');
+
   useEffect(() => {
     if (!user?.id) return;
     api.get(`/users/${user.id}`)
@@ -123,6 +218,65 @@ export default function ProfilePage() {
       .catch(() => {})
       .finally(() => setLoadingProducts(false));
   }, [user?.id]);
+
+  const openEdit = (field) => {
+    setError('');
+    setEditing(field);
+  };
+
+  const cancelEdit = () => {
+    setError('');
+    setEditing(null);
+  };
+
+  const persist = async ({ firstName, lastName, email }) => {
+    setSaving(true);
+    setError('');
+    try {
+      await userService.updateProfile({ firstName, lastName, email });
+      await refreshUser();
+      setEditing(null);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        setError(t('profile.emailConflict'));
+      } else if (status === 400) {
+        const fe = err?.response?.data?.fieldErrors ?? {};
+        setError(fe.email || fe.firstName || fe.lastName || t('profile.saveError'));
+      } else {
+        setError(t('profile.saveError'));
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveName = (vals) => {
+    const firstName = (vals.firstName || '').trim();
+    const lastName  = (vals.lastName  || '').trim();
+    if (!firstName) { setError(t('profile.firstNameRequired')); return; }
+    if (!lastName)  { setError(t('profile.lastNameRequired'));  return; }
+    persist({ firstName, lastName, email: user?.email });
+  };
+
+  const handleSaveEmail = (vals) => {
+    const email = (vals.email || '').trim();
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      setError(t('profile.emailInvalid'));
+      return;
+    }
+    const { firstName, lastName } = splitFullName(user?.name);
+    persist({ firstName, lastName, email });
+  };
+
+  const triggerPasswordChange = () => {
+    keycloak.login({
+      action: 'UPDATE_PASSWORD',
+      redirectUri: window.location.origin + '/profile',
+    });
+  };
+
+  const { firstName: currentFirstName, lastName: currentLastName } = splitFullName(user?.name);
 
   return (
     <div className="animate-fade-in">
@@ -203,10 +357,42 @@ export default function ProfilePage() {
 
             {/* Rows */}
             <div className="px-5 [&>*:last-child]:border-b-0">
-              <InfoRow icon={User}   label={t('profile.fieldFullName')} value={user?.name} />
+              {editing === 'name' ? (
+                <EditableRow
+                  icon={User}
+                  label={t('profile.fieldFullName')}
+                  fields={[
+                    { name: 'firstName', value: currentFirstName, placeholder: t('profile.fieldFirstName') },
+                    { name: 'lastName',  value: currentLastName,  placeholder: t('profile.fieldLastName')  },
+                  ]}
+                  onSave={handleSaveName}
+                  onCancel={cancelEdit}
+                  saving={saving}
+                  error={editing === 'name' ? error : ''}
+                  t={t}
+                />
+              ) : (
+                <InfoRow icon={User} label={t('profile.fieldFullName')} value={user?.name} onEdit={() => openEdit('name')} />
+              )}
+
               <InfoRow icon={IdCard} label={t('profile.fieldUsername')} value={user?.username} />
-              <InfoRow icon={Mail}   label={t('profile.fieldEmail')}    value={user?.email} />
-              <InfoRow icon={Key}    label={t('profile.fieldUserId')}   value={user?.id} mono />
+
+              {editing === 'email' ? (
+                <EditableRow
+                  icon={Mail}
+                  label={t('profile.fieldEmail')}
+                  fields={[{ name: 'email', value: user?.email, placeholder: t('profile.fieldEmail'), type: 'email' }]}
+                  onSave={handleSaveEmail}
+                  onCancel={cancelEdit}
+                  saving={saving}
+                  error={editing === 'email' ? error : ''}
+                  t={t}
+                />
+              ) : (
+                <InfoRow icon={Mail} label={t('profile.fieldEmail')} value={user?.email} onEdit={() => openEdit('email')} />
+              )}
+
+              <InfoRow icon={Key} label={t('profile.fieldUserId')} value={user?.id} mono />
             </div>
           </div>
         </div>
@@ -236,6 +422,14 @@ export default function ProfilePage() {
                 title={t('profile.notificationPreferences')}
                 description={t('profile.manageNotifications')}
                 onClick={() => navigate('/notification-preferences')}
+              />
+              <ActionCard
+                icon={Lock}
+                iconColor="#f59e0b"
+                iconBg="rgba(245,158,11,0.12)"
+                title={t('profile.changePassword')}
+                description={t('profile.changePasswordDesc')}
+                onClick={triggerPasswordChange}
               />
               <ActionCard
                 icon={ShieldCheck}

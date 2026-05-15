@@ -234,6 +234,44 @@ public class KeycloakAdminService {
     }
 
     // -------------------------------------------------------------------------
+    // Profil güncelleme (self-service)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Kullanıcının kimlik bilgilerini Keycloak tarafında günceller (firstName, lastName, email).
+     * Email değişirse {@code emailVerified} false'a çekilir; sonraki girişte Keycloak
+     * doğrulama akışını tetikler.
+     *
+     * @throws UserAlreadyExistsException yeni email başka bir kullanıcıda kayıtlıysa
+     */
+    public void updateUserProfile(String keycloakId, String firstName, String lastName, String email) {
+        log.info("Keycloak profil güncelleniyor. ID: {}", keycloakId);
+
+        UserRepresentation current = keycloakAdminClient.realm(realm).users().get(keycloakId).toRepresentation();
+
+        boolean emailChanged = email != null && !email.equalsIgnoreCase(current.getEmail());
+        if (emailChanged) {
+            // Aynı email başka kullanıcıda mevcut mu?
+            List<UserRepresentation> matches = keycloakAdminClient.realm(realm).users().searchByEmail(email, true);
+            boolean conflict = matches.stream().anyMatch(u -> !u.getId().equals(keycloakId));
+            if (conflict) {
+                log.warn("Email çakışması: {} başka bir kullanıcıda kayıtlı.", email);
+                throw new UserAlreadyExistsException("email", email);
+            }
+        }
+
+        current.setFirstName(firstName);
+        current.setLastName(lastName);
+        current.setEmail(email);
+        if (emailChanged) {
+            current.setEmailVerified(false);
+        }
+
+        keycloakAdminClient.realm(realm).users().get(keycloakId).update(current);
+        log.info("Keycloak profil güncellendi. ID: {}, emailChanged: {}", keycloakId, emailChanged);
+    }
+
+    // -------------------------------------------------------------------------
     // Kullanıcı silme (compensating action)
     // -------------------------------------------------------------------------
 

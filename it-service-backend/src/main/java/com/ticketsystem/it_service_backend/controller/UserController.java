@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
+import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
@@ -198,6 +199,28 @@ public class UserController {
                 "page",          userPage.getNumber(),
                 "size",          userPage.getSize()
         ));
+    }
+
+    @Operation(summary = "Profil bilgilerini güncelle",
+            description = """
+                    Oturum açan kullanıcının ad, soyad ve e-posta bilgilerini Keycloak üzerinde günceller
+                    ve yerel veritabanını senkronize eder. Email değişirse Keycloak'ta `emailVerified`
+                    false'a çekilir, sonraki girişte doğrulama akışı tetiklenebilir.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profil başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Validasyon hatası"),
+            @ApiResponse(responseCode = "409", description = "Bu email başka bir kullanıcıda kayıtlı")
+    })
+    @PutMapping("/me")
+    public ResponseEntity<UserDTO> updateMyProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @org.springframework.web.bind.annotation.RequestBody UpdateProfileRequest request) {
+        String userId = jwt.getSubject();
+        log.info("Profil güncelleme isteği. Kullanıcı: {}", userId);
+        User updated = userService.updateProfile(userId, request.getFirstName(), request.getLastName(), request.getEmail());
+        return ResponseEntity.ok(UserDTO.fromEntity(updated));
     }
 
     @Operation(summary = "Kullanıcı dil tercihini güncelle",

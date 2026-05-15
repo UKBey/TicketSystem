@@ -107,6 +107,17 @@ export function AuthProvider({ children }) {
     };
   }, [extractUserInfo, applyServerTheme, setTheme]);
 
+  const refreshUser = useCallback(async () => {
+    // Force-refresh token so updated claims (name/email) reach the client,
+    // then re-derive the local user state from the new tokenParsed.
+    try {
+      await keycloak.updateToken(-1);
+    } catch (e) {
+      console.warn('Token refresh failed during refreshUser', e);
+    }
+    extractUserInfo();
+  }, [extractUserInfo]);
+
   const login = useCallback(() => {
     const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
     keycloak.login({ redirectUri: window.location.origin + '/', locale });
@@ -149,6 +160,7 @@ export function AuthProvider({ children }) {
         logout,
         hasRole,
         getPrimaryRole,
+        refreshUser,
         keycloak,
       }}
     >

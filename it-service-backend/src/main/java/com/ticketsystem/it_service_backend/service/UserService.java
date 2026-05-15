@@ -191,6 +191,25 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Kullanıcının Keycloak profilini günceller ve yerel DB ile senkronize eder.
+     * firstName + lastName birleştirilerek {@code users.full_name} kolonuna yazılır.
+     */
+    @Transactional
+    public User updateProfile(String userId, String firstName, String lastName, String email) {
+        log.info("Profil güncelleme işlemi başlatıldı. ID: {}", userId);
+
+        keycloakAdminService.updateUserProfile(userId, firstName, lastName, email);
+
+        User user = getUserById(userId);
+        user.setFullName((firstName + " " + lastName).trim());
+        user.setEmail(email);
+        User saved = userRepository.save(user);
+
+        log.info("Profil başarıyla güncellendi. ID: {}", userId);
+        return saved;
+    }
+
     @Transactional
     public User updatePreferredLanguage(String userId, String lang) {
         if (!"en".equals(lang) && !"tr".equals(lang)) {
