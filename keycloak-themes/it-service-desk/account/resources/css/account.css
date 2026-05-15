@@ -275,3 +275,35 @@ p {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--it-border-strong); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--it-text-muted); }
+
+/* =================================================================
+   Restrict account console to "Signing in" page only.
+   Sidebar nav items + tab items for other sections are hidden so
+   the user only sees 2FA management. URL-bar nav still works as a
+   power-user escape hatch — this is UX guidance, not enforcement.
+   ================================================================= */
+
+/* Sidebar — hide everything except items leading to /account-security/signing-in */
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/personal-info"]),
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/applications"]),
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/groups"]),
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/resources"]),
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/account-security/device-activity"]),
+.pf-v5-c-nav__list .pf-v5-c-nav__item:has(a[href*="/account-security/linked-accounts"]) {
+  display: none !important;
+}
+
+/* Account-security alt sekme bari — Signing in disindakileri gizle */
+.pf-v5-c-tabs__list .pf-v5-c-tabs__item:has(a[href*="device-activity"]),
+.pf-v5-c-tabs__list .pf-v5-c-tabs__item:has(a[href*="linked-accounts"]),
+.pf-v5-c-tabs__item:has(a[href*="device-activity"]),
+.pf-v5-c-tabs__item:has(a[href*="linked-accounts"]) {
+  display: none !important;
+}
+
+/* Sag ust kose drop-down icindeki Personal info linkini gizle */
+.pf-v5-c-page__header-tools a[href*="personal-info"],
+.pf-v5-c-dropdown__menu-item:has(a[href*="personal-info"]),
+.pf-v5-c-menu__item:has(a[href*="personal-info"]) {
+  display: none !important;
+}
