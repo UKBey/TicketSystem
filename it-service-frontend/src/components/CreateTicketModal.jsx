@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import api from '../services/api';
+import api, { listKnownIssues } from '../services/api';
 
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const { t } = useTranslation();
@@ -15,6 +15,11 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Known issues for the selected topic — informational, doesn't block submit.
+  const [knownIssues, setKnownIssues] = useState([]);
+  const [knownIssuesLoading, setKnownIssuesLoading] = useState(false);
+  const [expandedIssueId, setExpandedIssueId] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,6 +41,21 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
       .catch(() => setTopics([]))
       .finally(() => setTopicsLoading(false));
   }, [productId]);
+
+  // Topic seçilince o topic için aktif known issue'ları çek — sadece bilgilendirme amaçlı.
+  useEffect(() => {
+    if (!productId || !topicId) {
+      setKnownIssues([]);
+      setExpandedIssueId(null);
+      return;
+    }
+    setKnownIssuesLoading(true);
+    setExpandedIssueId(null);
+    listKnownIssues(productId, { topicId })
+      .then((res) => setKnownIssues((res.data || []).filter((k) => k.isActive)))
+      .catch(() => setKnownIssues([]))
+      .finally(() => setKnownIssuesLoading(false));
+  }, [productId, topicId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,6 +92,8 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     setProductId('');
     setTopicId('');
     setTopics([]);
+    setKnownIssues([]);
+    setExpandedIssueId(null);
     setError('');
   };
 
@@ -173,6 +195,83 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                 ))}
               </select>
             </div>
+
+            {/* Known issues — informational panel for the selected topic. */}
+            {topicId && !knownIssuesLoading && knownIssues.length > 0 && (
+              <div
+                className="rounded-lg border p-3 animate-fade-in"
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.06)',
+                  borderColor: 'rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <div className="flex items-start gap-2.5 mb-2.5">
+                  <div
+                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md"
+                    style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)' }}
+                  >
+                    <Lightbulb className="h-4 w-4" style={{ color: '#f59e0b' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {t('ticket.createModal.knownIssuesHeading')}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {t('ticket.createModal.knownIssuesSubtitle')}
+                    </p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#f59e0b' }}>
+                      {t('ticket.createModal.knownIssuesCount', { count: knownIssues.length })}
+                    </p>
+                  </div>
+                </div>
+
+                <ul className="space-y-1.5">
+                  {knownIssues.map((ki) => {
+                    const isOpen = expandedIssueId === ki.id;
+                    return (
+                      <li
+                        key={ki.id}
+                        className="rounded-md border transition-colors"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-color)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setExpandedIssueId(isOpen ? null : ki.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left cursor-pointer"
+                          aria-expanded={isOpen}
+                          title={isOpen ? t('ticket.createModal.knownIssuesCollapse') : t('ticket.createModal.knownIssuesExpand')}
+                        >
+                          <span
+                            className="flex-1 text-sm font-semibold truncate"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {ki.title}
+                          </span>
+                          {isOpen
+                            ? <ChevronUp   className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
+                        </button>
+                        {isOpen && ki.content && (
+                          <div
+                            className="px-3 pb-3 pt-0 text-sm whitespace-pre-wrap leading-relaxed border-t"
+                            style={{
+                              color: 'var(--text-secondary)',
+                              borderColor: 'var(--border-color)',
+                              paddingTop: '0.5rem',
+                            }}
+                          >
+                            {ki.content}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Footer */}

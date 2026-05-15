@@ -173,7 +173,13 @@
       "creating": "Oluşturuluyor...",
       "create": "Bilet Oluştur",
       "errorRequired": "Başlık, Ürün ve Konu alanları zorunludur.",
-      "errorCreate": "Bilet oluşturulamadı."
+      "errorCreate": "Bilet oluşturulamadı.",
+      "knownIssuesHeading": "Bu Bilinen Sorunlardan Biri Yardımcı Olabilir",
+      "knownIssuesSubtitle": "Bilet açmadan önce kontrol edin — sorununuz aşağıdakilerden birinde çözülmüş olabilir.",
+      "knownIssuesCount_one": "{{count}} ilgili sorun",
+      "knownIssuesCount_other": "{{count}} ilgili sorun",
+      "knownIssuesExpand": "Detayı göster",
+      "knownIssuesCollapse": "Kapat"
     },
     "actionModal": {
       "labelReason": "Neden",

@@ -173,7 +173,13 @@
       "creating": "Creating...",
       "create": "Create Ticket",
       "errorRequired": "Title, Product and Topic fields are required.",
-      "errorCreate": "Could not create ticket."
+      "errorCreate": "Could not create ticket.",
+      "knownIssuesHeading": "One of These Known Issues May Help",
+      "knownIssuesSubtitle": "Before opening a ticket, check below — your issue may already be resolved.",
+      "knownIssuesCount_one": "{{count}} related issue",
+      "knownIssuesCount_other": "{{count}} related issues",
+      "knownIssuesExpand": "Show details",
+      "knownIssuesCollapse": "Collapse"
     },
     "actionModal": {
       "labelReason": "Reason",
