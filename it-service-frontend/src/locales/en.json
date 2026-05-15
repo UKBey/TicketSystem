@@ -568,7 +568,21 @@
     "kpiCsatTitle": "CSAT",
     "kpiCsatDetail": "{{count}} responses",
     "notYetSynced": "Not yet synced",
-    "loadError": "Dashboard metrics could not be loaded."
+    "loadError": "Dashboard metrics could not be loaded.",
+    "alerts": {
+      "title": "Alerts & Backlog",
+      "count": "{{count}} alerts",
+      "slaBreach": "SLA Breach",
+      "upcomingBreach": "Upcoming SLA Breach",
+      "waitingTooLong": "Waiting Too Long",
+      "breachedAgo": "breached {{time}} ago",
+      "remaining": "{{time}} remaining",
+      "breachIn": "SLA breach in {{time}}",
+      "waitingFor": "waiting {{time}}",
+      "unassigned": "Unassigned",
+      "newWaiting": "New Waiting",
+      "avgWait": "Avg. Wait"
+    }
   },
   "notification": {
     "title": "Notifications",

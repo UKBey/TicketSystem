@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Inbox, Users } from 'lucide-react';
 
 const PRIORITY_COLOR = {
@@ -8,10 +9,24 @@ const PRIORITY_COLOR = {
   LOW:      '#84cc16',
 };
 
-function formatHours(hours) {
-  if (!hours && hours !== 0) return '—';
-  if (hours < 1) return `${Math.round(hours * 60)}m`;
-  return `${hours.toFixed(1)}h`;
+function formatDuration(hours) {
+  if (hours === null || hours === undefined || Number.isNaN(hours)) return '—';
+  const totalSeconds = Math.round(Math.abs(hours) * 3600);
+
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  if (totalSeconds < 3600) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  if (totalSeconds < 86_400) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  const d = Math.floor(totalSeconds / 86_400);
+  const h = Math.floor((totalSeconds % 86_400) / 3600);
+  return h > 0 ? `${d}d ${h}h` : `${d}d`;
 }
 
 function PriorityBadge({ priority }) {
@@ -26,7 +41,7 @@ function PriorityBadge({ priority }) {
   );
 }
 
-function BreachedItem({ item }) {
+function BreachedItem({ item, t }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(239,68,68,0.04)', borderColor: 'rgba(239,68,68,0.18)' }}>
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#ef4444' }} />
@@ -40,8 +55,8 @@ function BreachedItem({ item }) {
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#ef4444' }}>
               {item.hoursUntilDeadline < 0
-                ? `breached ${formatHours(Math.abs(item.hoursUntilDeadline))} ago`
-                : `${formatHours(item.hoursUntilDeadline)} remaining`}
+                ? t('dashboard.alerts.breachedAgo', { time: formatDuration(Math.abs(item.hoursUntilDeadline)) })
+                : t('dashboard.alerts.remaining',   { time: formatDuration(item.hoursUntilDeadline) })}
             </span>
           )}
         </div>
@@ -50,7 +65,7 @@ function BreachedItem({ item }) {
   );
 }
 
-function UpcomingItem({ item }) {
+function UpcomingItem({ item, t }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(245,158,11,0.04)', borderColor: 'rgba(245,158,11,0.18)' }}>
       <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#f59e0b' }} />
@@ -63,7 +78,7 @@ function UpcomingItem({ item }) {
           {item.customerName ?? item.customerId}
           {item.hoursUntilDeadline !== null && item.hoursUntilDeadline !== undefined && (
             <span className="ml-2 font-semibold" style={{ color: '#f59e0b' }}>
-              SLA breach in {formatHours(item.hoursUntilDeadline)}
+              {t('dashboard.alerts.breachIn', { time: formatDuration(item.hoursUntilDeadline) })}
             </span>
           )}
         </div>
@@ -72,7 +87,7 @@ function UpcomingItem({ item }) {
   );
 }
 
-function WaitingItem({ item }) {
+function WaitingItem({ item, t }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(148,163,184,0.06)', borderColor: 'rgba(148,163,184,0.2)' }}>
       <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#94a3b8' }} />
@@ -84,7 +99,7 @@ function WaitingItem({ item }) {
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
           {item.customerName ?? item.customerId}
           {item.hoursWaiting !== null && item.hoursWaiting !== undefined && (
-            <span className="ml-2">waiting {formatHours(item.hoursWaiting)}</span>
+            <span className="ml-2">{t('dashboard.alerts.waitingFor', { time: formatDuration(item.hoursWaiting) })}</span>
           )}
         </div>
       </div>
@@ -93,6 +108,7 @@ function WaitingItem({ item }) {
 }
 
 export default function AlertBanner({ data, loading }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
 
   const breached  = data?.breachedSLA     ?? [];
@@ -122,11 +138,11 @@ export default function AlertBanner({ data, loading }) {
         </span>
         <div className="flex-1">
           <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Alerts &amp; Backlog
+            {t('dashboard.alerts.title')}
           </span>
           {!loading && totalAlerts > 0 && (
             <span className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              {totalAlerts} alerts
+              {t('dashboard.alerts.count', { count: totalAlerts })}
             </span>
           )}
         </div>
@@ -144,7 +160,7 @@ export default function AlertBanner({ data, loading }) {
           {(loading || breached.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: '#ef4444' }}>
-                SLA Breach ({loading ? '…' : breached.length})
+                {t('dashboard.alerts.slaBreach')} ({loading ? '…' : breached.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -154,7 +170,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {breached.map((item) => <BreachedItem key={item.ticketId} item={item} />)}
+                  {breached.map((item) => <BreachedItem key={item.ticketId} item={item} t={t} />)}
                 </div>
               )}
             </div>
@@ -164,7 +180,7 @@ export default function AlertBanner({ data, loading }) {
           {(loading || upcoming.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: '#f59e0b' }}>
-                Upcoming SLA Breach ({loading ? '…' : upcoming.length})
+                {t('dashboard.alerts.upcomingBreach')} ({loading ? '…' : upcoming.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -174,7 +190,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {upcoming.map((item) => <UpcomingItem key={item.ticketId} item={item} />)}
+                  {upcoming.map((item) => <UpcomingItem key={item.ticketId} item={item} t={t} />)}
                 </div>
               )}
             </div>
@@ -184,7 +200,7 @@ export default function AlertBanner({ data, loading }) {
           {(loading || waiting.length > 0) && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-secondary)' }}>
-                Waiting Too Long ({loading ? '…' : waiting.length})
+                {t('dashboard.alerts.waitingTooLong')} ({loading ? '…' : waiting.length})
               </p>
               {loading ? (
                 <div className="space-y-2">
@@ -194,7 +210,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {waiting.map((item) => <WaitingItem key={item.ticketId} item={item} />)}
+                  {waiting.map((item) => <WaitingItem key={item.ticketId} item={item} t={t} />)}
                 </div>
               )}
             </div>
@@ -203,9 +219,9 @@ export default function AlertBanner({ data, loading }) {
           {/* Backlog Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { icon: Users,  label: 'Unassigned',    value: loading ? null : (backlog?.unassignedCount ?? 0),    color: '#ef4444' },
-              { icon: Inbox,  label: 'New Waiting',    value: loading ? null : (backlog?.newTicketsWaiting ?? 0), color: '#f59e0b' },
-              { icon: Clock,  label: 'Avg. Wait',      value: loading ? null : formatHours(backlog?.avgWaitingHours), color: '#3b82f6' },
+              { icon: Users,  label: t('dashboard.alerts.unassigned'), value: loading ? null : (backlog?.unassignedCount ?? 0),    color: '#ef4444' },
+              { icon: Inbox,  label: t('dashboard.alerts.newWaiting'), value: loading ? null : (backlog?.newTicketsWaiting ?? 0), color: '#f59e0b' },
+              { icon: Clock,  label: t('dashboard.alerts.avgWait'),    value: loading ? null : formatDuration(backlog?.avgWaitingHours), color: '#3b82f6' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="rounded-2xl border px-3 py-3 text-center" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
                 <Icon className="mx-auto mb-1 h-4 w-4" style={{ color }} />

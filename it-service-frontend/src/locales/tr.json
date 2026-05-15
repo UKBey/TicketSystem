@@ -568,7 +568,21 @@
     "kpiCsatTitle": "MSAT",
     "kpiCsatDetail": "{{count}} yanıt",
     "notYetSynced": "Henüz senkronize edilmedi",
-    "loadError": "Kontrol paneli metrikleri yüklenemedi."
+    "loadError": "Kontrol paneli metrikleri yüklenemedi.",
+    "alerts": {
+      "title": "Uyarılar ve Birikim",
+      "count": "{{count}} uyarı",
+      "slaBreach": "SLA İhlali",
+      "upcomingBreach": "Yaklaşan SLA İhlali",
+      "waitingTooLong": "Çok Uzun Süre Bekleyenler",
+      "breachedAgo": "{{time}} önce ihlal edildi",
+      "remaining": "{{time}} kaldı",
+      "breachIn": "SLA ihlaline {{time}} var",
+      "waitingFor": "{{time}} süredir bekliyor",
+      "unassigned": "Atanmamış",
+      "newWaiting": "Bekleyen Yeni",
+      "avgWait": "Ort. Bekleme"
+    }
   },
   "notification": {
     "title": "Bildirimler",
