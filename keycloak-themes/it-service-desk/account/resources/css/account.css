@@ -1,0 +1,277 @@
+/* =================================================================
+   IT Service Desk — Custom Account Console Theme
+   Keycloak v3 account UI is React/Patternfly v5 based. We override
+   Patternfly's global CSS custom properties to make the page colors
+   and typography match the React app.
+   ================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ─── Brand tokens (shared between dark/light) ─── */
+  --it-primary:        #3b82f6;
+  --it-primary-hover:  #2563eb;
+  --it-primary-active: #1d4ed8;
+  --it-primary-soft:   rgba(59, 130, 246, 0.12);
+  --it-danger:         #ef4444;
+  --it-success:        #22c55e;
+  --it-warning:        #f59e0b;
+
+  /* ─── Light-mode surfaces (default) ─── */
+  --it-bg-page:    #f8fafc;
+  --it-bg-card:    #ffffff;
+  --it-bg-subtle:  #f1f5f9;
+  --it-text:       #0f172a;
+  --it-text-soft:  #475569;
+  --it-text-muted: #94a3b8;
+  --it-border:     #e2e8f0;
+  --it-border-strong: #cbd5e1;
+
+  /* ─── Patternfly v5 global overrides (light) ─── */
+  --pf-v5-global--primary-color--100: var(--it-primary);
+  --pf-v5-global--primary-color--200: var(--it-primary-hover);
+  --pf-v5-global--link--Color:        var(--it-primary);
+  --pf-v5-global--link--Color--hover: var(--it-primary-hover);
+  --pf-v5-global--active-color--100:  var(--it-primary);
+
+  --pf-v5-global--BackgroundColor--100: var(--it-bg-card);
+  --pf-v5-global--BackgroundColor--150: var(--it-bg-subtle);
+  --pf-v5-global--BackgroundColor--200: var(--it-bg-page);
+  --pf-v5-global--BackgroundColor--light-100: var(--it-bg-card);
+
+  --pf-v5-global--Color--100: var(--it-text);
+  --pf-v5-global--Color--200: var(--it-text-soft);
+  --pf-v5-global--Color--300: var(--it-text-muted);
+  --pf-v5-global--Color--dark-100: var(--it-text);
+
+  --pf-v5-global--BorderColor--100: var(--it-border);
+  --pf-v5-global--BorderColor--200: var(--it-border-strong);
+  --pf-v5-global--BorderColor--light-100: var(--it-border);
+
+  --pf-v5-global--FontFamily--text:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --pf-v5-global--FontFamily--heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --pf-v5-global--FontFamily--sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --pf-v5-global--BorderRadius--sm: 8px;
+  --pf-v5-global--BorderRadius--lg: 12px;
+
+  --pf-v5-global--BoxShadow--sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --pf-v5-global--BoxShadow--md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --pf-v5-global--BoxShadow--lg: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+}
+
+/* ─── Dark mode via prefers-color-scheme ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --it-bg-page:    #0f172a;
+    --it-bg-card:    #1e293b;
+    --it-bg-subtle:  #1a2536;
+    --it-text:       #f1f5f9;
+    --it-text-soft:  #cbd5e1;
+    --it-text-muted: #94a3b8;
+    --it-border:     #334155;
+    --it-border-strong: #475569;
+
+    --pf-v5-global--BackgroundColor--100: var(--it-bg-card);
+    --pf-v5-global--BackgroundColor--150: var(--it-bg-subtle);
+    --pf-v5-global--BackgroundColor--200: var(--it-bg-page);
+    --pf-v5-global--BackgroundColor--light-100: var(--it-bg-card);
+
+    --pf-v5-global--Color--100: var(--it-text);
+    --pf-v5-global--Color--200: var(--it-text-soft);
+    --pf-v5-global--Color--300: var(--it-text-muted);
+    --pf-v5-global--Color--dark-100: var(--it-text);
+
+    --pf-v5-global--BorderColor--100: var(--it-border);
+    --pf-v5-global--BorderColor--200: var(--it-border-strong);
+    --pf-v5-global--BorderColor--light-100: var(--it-border);
+
+    --pf-v5-global--BoxShadow--sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --pf-v5-global--BoxShadow--md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.25);
+    --pf-v5-global--BoxShadow--lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* =================================================================
+   Direct element overrides — for cases where PF variable cascade
+   doesn't fully cover the component.
+   ================================================================= */
+
+html, body, #root {
+  background-color: var(--it-bg-page) !important;
+  color: var(--it-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+/* Top navigation / page header */
+.pf-v5-c-masthead,
+.pf-v5-c-page__main-section,
+header {
+  background-color: var(--it-bg-card) !important;
+  border-bottom: 1px solid var(--it-border) !important;
+}
+
+/* Sidebar */
+.pf-v5-c-page__sidebar,
+.pf-v5-c-nav {
+  background-color: var(--it-bg-card) !important;
+  border-right: 1px solid var(--it-border) !important;
+}
+
+.pf-v5-c-nav__link {
+  color: var(--it-text-soft) !important;
+}
+
+.pf-v5-c-nav__link:hover,
+.pf-v5-c-nav__link.pf-m-current {
+  background-color: var(--it-primary-soft) !important;
+  color: var(--it-primary) !important;
+}
+
+/* Cards */
+.pf-v5-c-card {
+  background-color: var(--it-bg-card) !important;
+  border: 1px solid var(--it-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Buttons — primary */
+.pf-v5-c-button.pf-m-primary {
+  background-color: var(--it-primary) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  border: 0 !important;
+}
+.pf-v5-c-button.pf-m-primary:hover {
+  background-color: var(--it-primary-hover) !important;
+}
+.pf-v5-c-button.pf-m-primary:active,
+.pf-v5-c-button.pf-m-primary.pf-m-active {
+  background-color: var(--it-primary-active) !important;
+}
+
+/* Buttons — secondary */
+.pf-v5-c-button.pf-m-secondary {
+  border: 1px solid var(--it-border-strong) !important;
+  background-color: transparent !important;
+  color: var(--it-text) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+.pf-v5-c-button.pf-m-secondary:hover {
+  background-color: var(--it-bg-subtle) !important;
+  border-color: var(--it-primary) !important;
+}
+
+/* Buttons — link */
+.pf-v5-c-button.pf-m-link,
+.pf-v5-c-button.pf-m-inline {
+  color: var(--it-primary) !important;
+}
+.pf-v5-c-button.pf-m-link:hover {
+  color: var(--it-primary-hover) !important;
+}
+
+/* Buttons — danger */
+.pf-v5-c-button.pf-m-danger {
+  background-color: var(--it-danger) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+/* Inputs */
+.pf-v5-c-form-control,
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+  background-color: var(--it-bg-subtle) !important;
+  border: 1px solid var(--it-border) !important;
+  color: var(--it-text) !important;
+  border-radius: 8px !important;
+}
+.pf-v5-c-form-control:focus,
+input:focus, textarea:focus, select:focus {
+  border-color: var(--it-primary) !important;
+  box-shadow: 0 0 0 3px var(--it-primary-soft) !important;
+  outline: none !important;
+}
+
+/* Labels */
+.pf-v5-c-form__label,
+label {
+  color: var(--it-text-soft) !important;
+  font-weight: 500 !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6,
+.pf-v5-c-title {
+  color: var(--it-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Description / muted text */
+.pf-v5-c-content,
+.pf-v5-c-content p,
+p {
+  color: var(--it-text-soft) !important;
+}
+
+/* Tables */
+.pf-v5-c-table {
+  background-color: var(--it-bg-card) !important;
+  color: var(--it-text) !important;
+}
+.pf-v5-c-table thead {
+  background-color: var(--it-bg-subtle) !important;
+}
+.pf-v5-c-table th,
+.pf-v5-c-table td {
+  border-color: var(--it-border) !important;
+}
+
+/* Alerts */
+.pf-v5-c-alert {
+  border-radius: 8px !important;
+  border: 1px solid var(--it-border) !important;
+}
+
+/* Modal */
+.pf-v5-c-modal-box {
+  background-color: var(--it-bg-card) !important;
+  border: 1px solid var(--it-border) !important;
+  border-radius: 16px !important;
+  color: var(--it-text) !important;
+}
+
+/* Dropdown / select menus */
+.pf-v5-c-menu,
+.pf-v5-c-dropdown__menu {
+  background-color: var(--it-bg-card) !important;
+  border: 1px solid var(--it-border) !important;
+  border-radius: 8px !important;
+}
+.pf-v5-c-menu__item:hover,
+.pf-v5-c-dropdown__menu-item:hover {
+  background-color: var(--it-bg-subtle) !important;
+}
+
+/* Avatar / circle backgrounds — soften */
+.pf-v5-c-avatar {
+  border-radius: 50% !important;
+}
+
+/* Hide PatternFly logo / branding if present */
+.pf-v5-c-brand__hidden { display: none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--it-border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--it-text-muted); }

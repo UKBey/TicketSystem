@@ -435,12 +435,13 @@ export default function ProfilePage() {
                 title={t('profile.twoFactor')}
                 description={t('profile.manageTwoFactor')}
                 onClick={() => {
-                  // Keycloak'un CONFIGURE_TOTP required action'ını tetikler — kullanıcı doğrudan
-                  // QR kod + uygulamadan kod giriş ekranına düşer; bitince /profile'a geri döner.
-                  keycloak.login({
-                    action: 'CONFIGURE_TOTP',
-                    redirectUri: window.location.origin + '/profile',
-                  });
+                  // Keycloak account console'un "Signing in" sayfasina yonlendirir —
+                  // kullanici mevcut 2FA cihazlarini listeleyebilir, yenisini ekleyebilir,
+                  // veya eskisini silebilir. Referrer parametreleri Keycloak'in "Back to app"
+                  // linki gostermesini saglar.
+                  const base = `${keycloak.authServerUrl.replace(/\/$/, '')}/realms/${keycloak.realm}/account/`;
+                  const returnUri = encodeURIComponent(window.location.origin + '/profile');
+                  window.location.href = `${base}?referrer=ticket-frontend&referrer_uri=${returnUri}#/security/signing-in`;
                 }}
               />
             </div>

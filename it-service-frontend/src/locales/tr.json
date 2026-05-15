@@ -603,7 +603,7 @@
     "notificationPreferences": "Bildirim Tercihleri",
     "manageNotifications": "Hangi olayların e-posta bildirimi tetikleyeceğini yönetin.",
     "twoFactor": "İki Adımlı Doğrulama",
-    "manageTwoFactor": "Hesabınızı ekstra bir güvenlik katmanıyla koruyun (Authenticator uygulaması).",
+    "manageTwoFactor": "Authenticator cihazlarınızı görüntüleyin, yenisini ekleyin veya kaldırın.",
     "authorizedProducts": "Yetkili Ürünler",
     "noProducts": "Atanmış yetkili ürün yok.",
     "fieldFullName": "Ad Soyad",
