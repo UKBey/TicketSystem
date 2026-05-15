@@ -623,7 +623,27 @@
     "lastNameRequired": "Soyad alanı boş olamaz.",
     "emailInvalid": "Geçerli bir e-posta adresi girin.",
     "changePassword": "Şifreyi Değiştir",
-    "changePasswordDesc": "Hesap şifrenizi Keycloak üzerinden güvenli şekilde değiştirin."
+    "changePasswordDesc": "Hesabınızın şifresini güvenli bir şekilde değiştirin.",
+    "passwordModal": {
+      "title": "Şifreyi Değiştir",
+      "subtitle": "Önce mevcut şifrenizi doğrulayın, ardından yeni şifrenizi belirleyin.",
+      "currentPassword": "Mevcut Şifre",
+      "newPassword": "Yeni Şifre",
+      "confirmPassword": "Yeni Şifre (Tekrar)",
+      "passwordHint": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
+      "submit": "Şifreyi Değiştir",
+      "submitting": "Değiştiriliyor…",
+      "success": "Şifre başarıyla değiştirildi.",
+      "currentRequired": "Mevcut şifre zorunludur.",
+      "newRequired": "Yeni şifre zorunludur.",
+      "weakPassword": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
+      "mismatch": "Şifreler eşleşmiyor.",
+      "wrongCurrent": "Mevcut şifre yanlış.",
+      "policyViolation": "Yeni şifre güvenlik politikasına uymuyor.",
+      "genericError": "Şifre değiştirilemedi. Lütfen tekrar deneyin.",
+      "show": "Göster",
+      "hide": "Gizle"
+    }
   },
   "notificationPrefs": {
     "title": "Bildirim Tercihleri",

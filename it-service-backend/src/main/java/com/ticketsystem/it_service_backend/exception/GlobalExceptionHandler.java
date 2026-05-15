@@ -112,6 +112,34 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    // Self-service sifre degistirme akisinda mevcut sifre yanlis girildiginde 400 doner.
+    @ExceptionHandler(WrongCurrentPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleWrongCurrentPassword(WrongCurrentPasswordException ex) {
+        log.warn("Şifre değiştirme: mevcut şifre yanlış.");
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("WRONG_CURRENT_PASSWORD")
+                .message(msg("error.password.current.wrong"))
+                .fieldErrors(Map.of("currentPassword", msg("error.password.current.wrong")))
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Keycloak realm-level sifre politikasi ihlal edildiginde 400 doner.
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPassword(InvalidPasswordException ex) {
+        log.warn("Şifre değiştirme: yeni şifre politikayı ihlal etti.");
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("INVALID_PASSWORD")
+                .message(msg("error.password.policy"))
+                .fieldErrors(Map.of("newPassword", msg("error.password.policy")))
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     // Agent kapasite limiti asimlarini conflict olarak dondurur.
     @ExceptionHandler(TicketLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleTicketLimitExceededException(TicketLimitExceededException ex) {

@@ -1,7 +1,9 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
+import com.ticketsystem.it_service_backend.exception.InvalidPasswordException;
 import com.ticketsystem.it_service_backend.exception.UserAlreadyExistsException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -14,6 +16,13 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
@@ -32,6 +41,20 @@ public class KeycloakAdminService {
 
     @Value("${keycloak.admin.realm}")
     private String realm;
+
+    @Value("${keycloak.admin.server-url}")
+    private String serverUrl;
+
+    /**
+     * Direct-grant ile şifre doğrulamak için kullanılan public client. Frontend'in
+     * kullandığı clientId — {@code directAccessGrantsEnabled: true} olmalı.
+     */
+    @Value("${keycloak.user-client-id:ticket-frontend}")
+    private String userClientId;
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     /**
      * Sistem rolleri — atanabilir rol listesinden filtrelenir.
@@ -269,6 +292,68 @@ public class KeycloakAdminService {
 
         keycloakAdminClient.realm(realm).users().get(keycloakId).update(current);
         log.info("Keycloak profil güncellendi. ID: {}, emailChanged: {}", keycloakId, emailChanged);
+    }
+
+    // -------------------------------------------------------------------------
+    // Self-service şifre değiştirme
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verilen kullanıcı adı / şifre kombinasyonunu Keycloak'ın token endpoint'ine
+     * direct-grant isteği atarak doğrular. 200 dönerse şifre doğrudur; 401/400 dönerse
+     * yanlıştır.
+     */
+    public boolean verifyPassword(String username, String password) {
+        String tokenUrl = serverUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+        String body = "grant_type=password" +
+                "&client_id=" + URLEncoder.encode(userClientId, StandardCharsets.UTF_8) +
+                "&username="  + URLEncoder.encode(username,     StandardCharsets.UTF_8) +
+                "&password="  + URLEncoder.encode(password,     StandardCharsets.UTF_8) +
+                "&scope=openid";
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(tokenUrl))
+                .timeout(Duration.ofSeconds(10))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        try {
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            boolean ok = resp.statusCode() == 200;
+            log.debug("Şifre doğrulaması. Kullanıcı: {}, Sonuç: {}", username, ok ? "OK" : "RED");
+            return ok;
+        } catch (Exception e) {
+            log.error("Şifre doğrulama isteği başarısız. Kullanıcı: {}", username, e);
+            return false;
+        }
+    }
+
+    /**
+     * Kullanıcının şifresini kalıcı (non-temporary) olarak değiştirir.
+     * Keycloak realm-level şifre politikasını ihlal ederse {@link InvalidPasswordException}
+     * fırlatılır.
+     */
+    public void changeUserPassword(String keycloakId, String newPassword) {
+        log.info("Şifre güncelleniyor. ID: {}", keycloakId);
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(newPassword);
+        credential.setTemporary(false);
+        try {
+            keycloakAdminClient.realm(realm).users().get(keycloakId).resetPassword(credential);
+            log.info("Şifre başarıyla güncellendi. ID: {}", keycloakId);
+        } catch (WebApplicationException e) {
+            Response r = e.getResponse();
+            int status = r != null ? r.getStatus() : -1;
+            String responseBody = r != null ? r.readEntity(String.class) : "";
+            if (status == 400) {
+                log.warn("Keycloak şifre politikası ihlali. ID: {}, Body: {}", keycloakId, responseBody);
+                throw new InvalidPasswordException(responseBody);
+            }
+            log.error("Keycloak şifre güncelleme başarısız. HTTP {}, Body: {}", status, responseBody);
+            throw e;
+        }
     }
 
     // -------------------------------------------------------------------------

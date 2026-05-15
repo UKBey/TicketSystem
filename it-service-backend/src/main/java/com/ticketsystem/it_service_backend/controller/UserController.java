@@ -1,10 +1,12 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
+import com.ticketsystem.it_service_backend.dto.ChangePasswordRequest;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
 import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.exception.WrongCurrentPasswordException;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
 import jakarta.validation.Valid;
@@ -221,6 +223,33 @@ public class UserController {
         log.info("Profil güncelleme isteği. Kullanıcı: {}", userId);
         User updated = userService.updateProfile(userId, request.getFirstName(), request.getLastName(), request.getEmail());
         return ResponseEntity.ok(UserDTO.fromEntity(updated));
+    }
+
+    @Operation(summary = "Şifreyi değiştir",
+            description = """
+                    Oturum açan kullanıcının şifresini değiştirir. Önce mevcut şifre Keycloak token
+                    endpoint'ine direct-grant ile doğrulanır; başarısız olursa 400 döner.
+                    Doğrulama başarılıysa yeni şifre Keycloak Admin API üzerinden atanır. Realm
+                    şifre politikası ihlal edilirse de 400 döner (`newPassword` field error ile).
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Şifre başarıyla değiştirildi"),
+            @ApiResponse(responseCode = "400", description = "Mevcut şifre yanlış veya yeni şifre politikaya uymuyor"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
+    @PostMapping("/me/password")
+    public ResponseEntity<Void> changeMyPassword(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @org.springframework.web.bind.annotation.RequestBody ChangePasswordRequest request) {
+        String userId   = jwt.getSubject();
+        String username = jwt.getClaimAsString("preferred_username");
+        log.info("Şifre değiştirme isteği. Kullanıcı: {}", userId);
+
+        if (username == null || !keycloakAdminService.verifyPassword(username, request.getCurrentPassword())) {
+            throw new WrongCurrentPasswordException();
+        }
+        keycloakAdminService.changeUserPassword(userId, request.getNewPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Kullanıcı dil tercihini güncelle",

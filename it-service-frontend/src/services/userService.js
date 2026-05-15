@@ -5,6 +5,11 @@ async function updateProfile({ firstName, lastName, email }) {
   return response.data;
 }
 
+async function changePassword({ currentPassword, newPassword }) {
+  await api.post('/users/me/password', { currentPassword, newPassword });
+}
+
 export default {
   updateProfile,
+  changePassword,
 };

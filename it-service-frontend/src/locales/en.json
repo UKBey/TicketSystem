@@ -623,7 +623,27 @@
     "lastNameRequired": "Last name is required.",
     "emailInvalid": "Please enter a valid email address.",
     "changePassword": "Change Password",
-    "changePasswordDesc": "Change your account password securely through Keycloak."
+    "changePasswordDesc": "Change your account password securely.",
+    "passwordModal": {
+      "title": "Change Password",
+      "subtitle": "Verify your current password, then set a new one.",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "passwordHint": "At least 8 characters, 1 uppercase letter and 1 digit.",
+      "submit": "Change Password",
+      "submitting": "Changing…",
+      "success": "Password changed successfully.",
+      "currentRequired": "Current password is required.",
+      "newRequired": "New password is required.",
+      "weakPassword": "At least 8 characters, 1 uppercase letter and 1 digit.",
+      "mismatch": "Passwords do not match.",
+      "wrongCurrent": "Current password is incorrect.",
+      "policyViolation": "New password does not meet the security policy.",
+      "genericError": "Could not change password. Please try again.",
+      "show": "Show",
+      "hide": "Hide"
+    }
   },
   "notificationPrefs": {
     "title": "Notification Preferences",

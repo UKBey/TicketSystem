@@ -11,6 +11,7 @@ import api from '../services/api';
 import userService from '../services/userService';
 import i18n from '../i18n';
 import keycloak from '../keycloak';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 /* ── Role meta ─────────────────────────────────────────────── */
 const ROLE_META = {
@@ -269,12 +270,8 @@ export default function ProfilePage() {
     persist({ firstName, lastName, email });
   };
 
-  const triggerPasswordChange = () => {
-    keycloak.login({
-      action: 'UPDATE_PASSWORD',
-      redirectUri: window.location.origin + '/profile',
-    });
-  };
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const triggerPasswordChange = () => setPasswordModalOpen(true);
 
   const { firstName: currentFirstName, lastName: currentLastName } = splitFullName(user?.name);
 
@@ -541,6 +538,11 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+      />
     </div>
   );
 }
