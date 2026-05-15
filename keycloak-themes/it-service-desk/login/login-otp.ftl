@@ -3,12 +3,12 @@
     <#if section = "form">
         <form id="kc-otp-login-form" action="${url.loginAction}" method="post">
             <p class="form-description">
-                Enter the verification code from your authenticator app.
+                ${msg("loginOtpInstruction")}
             </p>
 
             <#if otpLogin.userOtpCredentials?size gt 1>
                 <div class="form-group">
-                    <label class="form-label">Select your device</label>
+                    <label class="form-label">${msg("loginOtpSelectDevice")}</label>
                     <div class="otp-device-list">
                         <#list otpLogin.userOtpCredentials as otpCredential>
                             <label class="otp-device-item">
@@ -26,7 +26,7 @@
             </#if>
 
             <div class="form-group">
-                <label for="otp" class="form-label">Verification Code</label>
+                <label for="otp" class="form-label">${msg("otpVerificationCode")}</label>
                 <input type="text"
                        id="otp"
                        name="otp"
