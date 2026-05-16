@@ -75,6 +75,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # OpenLDAP image — Dockerfile-ldap repo kokunden ldap-init/ klasorunu icine kopyaliyor
+      - name: Build & push openldap-server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile-ldap
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/openldap-server:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/openldap-server:${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   # ─────────────────────────────────────────────────────────────
   # 2. VDS'e deploy
   #    Güçlü bir VDS temin edildiğinde aşağıdaki job'ın

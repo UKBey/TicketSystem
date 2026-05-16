@@ -51,6 +51,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-ldap
+    image: ${DOCKERHUB_USERNAME:-local}/openldap-server:${IMAGE_TAG:-latest}
     container_name: openldap-server
     # LDAP portu disariya kapali — sadece Docker internal network uzerinden erisim.
     environment:
