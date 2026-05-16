@@ -74,7 +74,7 @@ kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluştur
 - **5 ürün** (VPN ve Ağ, E-posta ve İletişim, Donanım ve Altyapı,
   Kurumsal Yazılım, Bulut Hizmetleri) — `name` eşleşmesiyle idempotent.
 - Her ürün altında **5 topic** — `(productId, name)` eşleşmesiyle idempotent.
-- Her topic için **en az 2 known-issue** kaydı (başlık + içerik) —
+- Her topic için **10-15 known-issue** kaydı (başlık + içerik) —
   topic içinde başlık eşleşmesiyle idempotent.
 
 ### 3. Yetkilendirme
@@ -152,7 +152,7 @@ SLA süreleri öncelikten türetilir (CRITICAL 1h, HIGH 4h, MEDIUM 12h, LOW 24h)
 ```
 data-generator/
 └── src/main/resources/
-    ├── setup.json                 ← Kullanıcılar + 5 ürün × 5 topic × 2+ known-issue
+    ├── setup.json                 ← Kullanıcılar + 5 ürün × 5 topic × 10-15 known-issue
     └── tickets/
         ├── ticket-001.json        ← NEW   (8 dosya)
         ├── ticket-002.json

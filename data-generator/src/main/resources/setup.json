@@ -27,6 +27,46 @@
             {
               "title": "VPN bağlandıktan sonra internet kesiliyor",
               "content": "Split tunneling kapalıyken DNS routing'i yanlış kuruluyor olabilir. Çözüm: VPN profilinde 'Use default gateway on remote network' seçeneğini kapat ve route tablosunu temizle (route /f)."
+            },
+            {
+              "title": "Cisco AnyConnect 'Login denied, unauthorized connection mechanism' hatası",
+              "content": "Kullanıcı yanlış tünel grubuna bağlanıyor; ASA tarafında group-policy eşleşmiyor. Çözüm: AnyConnect profilinde 'Group' alanı 'CORP-SSL' seçilir ve istemci sürümü ASA'da tanımlı minimumla (4.10+) uyumlu olmalıdır."
+            },
+            {
+              "title": "FortiClient 'SSL_connect error' verip 14 koduyla düşüyor",
+              "content": "TLS 1.2 müzakeresi proxy tarafından kesiliyor. Çözüm: 'HKLM\\SOFTWARE\\Fortinet\\FortiClient\\Sslvpn' altında 'use_legacy_ssl_adapter=1' eklenir ve ssl-cipher 'high' olarak ayarlanır; kurumsal proxy bypass listesine 'vpn.corp.local' eklenir."
+            },
+            {
+              "title": "GlobalProtect 'Could not connect to gateway' hatası",
+              "content": "Portal sertifikası süresi dolmuş veya CRL kontrolü başarısız. Çözüm: 'C:\\Program Files\\Palo Alto Networks\\GlobalProtect\\PanGPS.log' incelenir, makineden Palo Alto kök CA sertifikası 'certlm.msc' üzerinden Trusted Root'a yeniden eklenir."
+            },
+            {
+              "title": "VPN tüneli kuruluyor ancak intranet sayfaları açılmıyor",
+              "content": "Route push edilmiş ancak DNS suffix 'corp.local' atanmamış. Çözüm: 'Get-DnsClient' çıktısında VPN adaptörü için ConnectionSpecificSuffix kontrol edilir, eksikse 'Set-DnsClient -InterfaceAlias \"PPP-VPN\" -ConnectionSpecificSuffix corp.local' komutu çalıştırılır."
+            },
+            {
+              "title": "MFA push bildirimi VPN girişine gelmiyor",
+              "content": "Keycloak ile Duo/Authy entegrasyonunda RADIUS challenge timeout 12 sn'ye düşmüş. Çözüm: ASA üzerinde 'aaa-server CORP-RADIUS timeout 30' yapılır; kullanıcı tarafında ise cihaz saatinin NTP ile senkron olduğu doğrulanır (w32tm /resync)."
+            },
+            {
+              "title": "Mac üzerinde VPN istemcisi sürekli 'reconnecting' durumunda kalıyor",
+              "content": "macOS 14 Sonoma'da network extension yetkisi reddedildiği için DPD paketleri düşüyor. Çözüm: System Settings > Privacy & Security > Network Extensions altında Cisco/Forti ajanına izin verilir, ardından 'sudo killall -HUP configd' ile network stack yeniden başlatılır."
+            },
+            {
+              "title": "VPN bağlıyken VoIP/Teams sesleri kesik kesik geliyor",
+              "content": "UDP yerine TCP tüneline düşülmüş; jitter artıyor. Çözüm: AnyConnect/FortiClient profilinde 'DTLS' veya 'UDP tunnel mode' aktif edilir, gateway tarafında UDP/443 firewall'da açılır."
+            },
+            {
+              "title": "'The VPN client driver encountered an error' (anyconnect.sys) BSOD oluşturuyor",
+              "content": "Windows 11 23H2 ile vpnva-6 sürücüsü uyumsuz. Çözüm: 'sc query vpnva' ile sürücü durdurulup AnyConnect 4.10.08025+ yüklenir; Hyper-V Virtual Switch tarafından sahiplenilen vEthernet adaptörleri 'Get-NetAdapterBinding' ile devre dışı bırakılır."
+            },
+            {
+              "title": "Always-On VPN cihaz tüneli açılmıyor, sadece user tunnel kuruluyor",
+              "content": "Machine sertifikası 'Local Computer\\Personal' deposunda eksik veya EKU'su yanlış. Çözüm: Intune'dan SCEP profili yeniden push edilir, 'certlm.msc' içinde Client Authentication EKU'lu sertifika doğrulanır, ardından 'Get-VpnConnection -AllUserConnection' ile durum kontrol edilir."
+            },
+            {
+              "title": "VPN üzerinden SMB paylaşıma erişirken çok yavaş kopyalama",
+              "content": "MTU değeri (1500) PPP başlıkları yüzünden fragmente oluyor. Çözüm: 'netsh interface ipv4 set subinterface \"PPP-VPN\" mtu=1400 store=persistent' uygulanır; ayrıca SMB üzerinde 'Set-SmbClientConfiguration -EnableBandwidthThrottling $false' denenir."
             }
           ]
         },
@@ -40,6 +80,46 @@
             {
               "title": "Konuk Wi-Fi sürekli koparıyor",
               "content": "DHCP havuzu tükendiği için kira süresi dolduktan sonra IP alınamıyor. Geçici çözüm: Statik IP atanır (10.10.20.50-100 aralığı). Kalıcı çözüm: Network ekibi havuzu /23'e genişletir."
+            },
+            {
+              "title": "Laptop CORP-SECURE'a sertifika hatasıyla bağlanmıyor",
+              "content": "Aruba ClearPass RADIUS sunucu sertifikası iç CA'dan yenilenmiş ancak makinede eski kök CA var. Çözüm: GPO 'Computer Configuration > Windows Settings > Security Settings > Public Key Policies' altından yeni 'CorpRootCA-2026' dağıtılır, ardından 'gpupdate /force' çalıştırılır."
+            },
+            {
+              "title": "5GHz SSID görünüyor ancak laptop 2.4GHz'e düşüyor",
+              "content": "Intel AX201 sürücüsünde 'Preferred Band' tanımsız ve roaming aggressiveness düşük. Çözüm: Device Manager > Wi-Fi adaptör > Advanced'tan 'Preferred Band: 5GHz', 'Roaming Aggressiveness: Highest' yapılır; sürücü Intel'in 22.250+ sürümüne güncellenir."
+            },
+            {
+              "title": "Toplantı odalarında Wi-Fi sinyali var ama paket kaybı yüksek",
+              "content": "Meraki MR access point'leri ortak kanalda (channel 6) çakışıyor. Çözüm: Meraki Dashboard > Radio Settings altında Auto-RF açılır, 'Min bitrate' 12 Mbps'e çekilir; spectrum analyzer ile mikrodalga/Bluetooth kaynakları tespit edilir."
+            },
+            {
+              "title": "Wi-Fi adaptörü 'No internet, secured' uyarısı veriyor",
+              "content": "NCSI probe 'www.msftncsi.com' adresine çıkamadığı için Windows ağı internetsiz görüyor; aslında bağlantı çalışıyor. Çözüm: Proxy istisnası eklenir veya 'HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\NetworkConnectivityStatusIndicator' altında 'EnableActiveProbing=0' uygulanır."
+            },
+            {
+              "title": "Yeni iPhone'lar CORP-SECURE'a 'Unable to join' diyor",
+              "content": "iOS 17 ile özel MAC adresi (Private Wi-Fi Address) açık olduğundan Aruba ClearPass cihazı tanımıyor. Çözüm: Ayarlar > Wi-Fi > SSID > 'Private Wi-Fi Address' kapatılır veya ClearPass profilinde MAC randomization toleranslı policy oluşturulur."
+            },
+            {
+              "title": "Asansör/merdiven bölgesinde roaming sırasında oturum kopuyor",
+              "content": "802.11r (Fast Transition) controller'da kapalı, her geçişte tam EAP yenileniyor. Çözüm: Aruba/Cisco WLC üzerinde SSID için 'FT over-the-DS' aktif edilir, istemcide '802.11r' desteği sürücü ayarlarından açık olmalıdır."
+            },
+            {
+              "title": "Yazıcı Wi-Fi'a bağlanıyor ancak 30 sn sonra düşüyor",
+              "content": "PMF (Protected Management Frames) zorunlu, eski yazıcı firmware'i desteklemiyor. Çözüm: WLC'de ilgili SSID için PMF 'Optional' yapılır veya yazıcı için ayrı bir 'IOT' SSID'i (WPA2-PSK) oluşturulup MAC filtre eklenir."
+            },
+            {
+              "title": "VPN olmadan ofis Wi-Fi'ında DNS yavaş çözülüyor",
+              "content": "DHCP option 6 yanlış DNS (8.8.8.8) gönderiyor, iç zone çözümleme gecikiyor. Çözüm: DHCP scope üzerinde 10.0.0.10 / 10.0.0.11 birincil ve ikincil DNS olarak ayarlanır; istemci tarafında 'ipconfig /release' + 'ipconfig /renew' uygulanır."
+            },
+            {
+              "title": "Wi-Fi adaptörü cihaz yöneticisinde 'Code 10' veriyor",
+              "content": "Modern Standby uyandıktan sonra sürücü hata veriyor. Çözüm: 'pnputil /restart-device' ile adaptör resetlenir; kalıcı çözüm için OEM (Lenovo/Dell) Wi-Fi sürücüsü güncellenir ve 'Allow this device to wake the computer' kapatılır."
+            },
+            {
+              "title": "BYOD telefonlarda Wi-Fi açıldıkça mobil veri kullanılıyor",
+              "content": "Captive portal (Aruba ClearPass Guest) HTTPS yönlendirmesi başarısız olunca cihaz 'no internet' deyip LTE'ye dönüyor. Çözüm: Portal sertifikası Let's Encrypt yerine kurumsal CA ile imzalanır ve 'captive.apple.com' / 'connectivitycheck.gstatic.com' walled garden listesine eklenir."
             }
           ]
         },
@@ -53,6 +133,46 @@
             {
               "title": "Ağ yazıcısına ping geçmiyor",
               "content": "Yazıcı VLAN 30'da, kullanıcı bilgisayarları VLAN 10'da. ACL kontrol edilir; eksikse network ekibi 10→30 yazıcı portları için kural ekler."
+            },
+            {
+              "title": "Kullanıcı portu link almıyor, switch LED'i yanmıyor",
+              "content": "Cisco Catalyst 9300 portunda err-disable durumu var (BPDU guard tetiklenmiş). Çözüm: 'show interface Gi1/0/24 status' ile doğrulanır, 'shutdown' ardından 'no shutdown' uygulanır; tekrar ediyorsa kullanıcı switch'i kaldırılır."
+            },
+            {
+              "title": "Yeni katta DHCP'den IP alınamıyor (169.254.x.x)",
+              "content": "DHCP relay (ip helper-address) yeni VLAN 40 SVI'sinde tanımsız. Çözüm: Core switch'te 'interface Vlan40' altına 'ip helper-address 10.0.0.20' eklenir; istemcide 'ipconfig /renew' ile IP alınır."
+            },
+            {
+              "title": "Kablolu ağda hız 1Gbit yerine 100Mbit'e düşüyor",
+              "content": "Cat5e kablo hasarlı veya patch panel pinout'u T568A/T568B karışmış. Çözüm: Fluke test cihazı ile kablo test edilir, gerekirse RJ45 yeniden krimplenir; switch port'ta 'speed auto / duplex auto' bırakılır."
+            },
+            {
+              "title": "VoIP telefon POE ile açılmıyor",
+              "content": "Switch port POE budget aşılmış veya 'power inline never' yazılmış. Çözüm: 'show power inline' ile budget kontrol edilir, port konfigine 'power inline auto' yazılır; class 3 telefonlar için minimum 15.4W gerekli."
+            },
+            {
+              "title": "Konferans odasındaki Cat6 prizden link gelmiyor",
+              "content": "Patch panel etiketi yanlış, port aslında pasif. Çözüm: 'show mac address-table interface' ile aktif portlar listelenir, eşleşme yoksa kablo trace edilir; kullanılmayan portlar 'shutdown' bırakılarak güvenlik sağlanır."
+            },
+            {
+              "title": "Aynı VLAN'daki iki kullanıcı birbirine ping atamıyor",
+              "content": "Private VLAN veya port isolation aktif. Çözüm: 'show vlan private-vlan' ile kontrol edilir; toplantı/konuk VLAN'larında izolasyon istenmiyorsa 'switchport mode access' standardına çevrilir."
+            },
+            {
+              "title": "Network tarama (nmap) sonrası tüm bağlantılar yavaşladı",
+              "content": "Storm Control veya IPS (Palo Alto) eşiği aşıldığı için trafik throttle ediliyor. Çözüm: 'show storm-control' kontrol edilir; ilgili user için Threat log'larda zone-protection drop'ları incelenir, yanlış pozitif ise istisna eklenir."
+            },
+            {
+              "title": "MAC adresi flapping uyarısı log'larda sürekli görünüyor",
+              "content": "Aynı MAC iki port arasında zıplıyor; muhtemelen loop veya yanlış kurulmuş ikinci uplink. Çözüm: 'show mac address-table address xxxx.xxxx.xxxx' ile portlar bulunur, loopback varsa Spanning-Tree (RPVST+) loop guard etkinleştirilir."
+            },
+            {
+              "title": "Kullanıcı 802.1X dot1x ile ağa kabul edilmiyor",
+              "content": "Cisco ISE policy'sinde Active Directory grup üyeliği eşleşmiyor veya sertifika expired. Çözüm: ISE Live Logs'ta 'Authentication failed' detayı incelenir; gerekirse 'wired_dot1x' profil yeniden push edilir, makinada 'wired AutoConfig' servisi başlatılır."
+            },
+            {
+              "title": "Aynı switch'e takılan cihazlar arasında broadcast fırtınası",
+              "content": "Kullanıcı kendi mini switch'ini takıp ikili kablo loop yapmış. Çözüm: 'errdisable recovery cause bpduguard' aktif edilir, 'spanning-tree bpduguard enable' tüm access portlarda zorunlu hale getirilir; kullanıcı uyarılır."
             }
           ]
         },
@@ -66,6 +186,46 @@
             {
               "title": "FTP transferleri timeout veriyor",
               "content": "Pasif FTP için 49152-65535 port aralığı outbound olarak izinli olmalı. Aktif mod artık desteklenmiyor, istemci tarafında pasif mod açılır."
+            },
+            {
+              "title": "Palo Alto NGFW SSL decrypt nedeniyle Microsoft Teams düşüyor",
+              "content": "Teams pinlenmiş sertifika kullandığı için MITM decryption başarısız. Çözüm: Decryption policy'sinde 'application teams-base, teams-audio, teams-video' için 'no-decrypt' kuralı tanımlanır; URL kategorisinde 'business-and-economy/teams.microsoft.com' istisnaya eklenir."
+            },
+            {
+              "title": "Fortigate üzerinde 'policy lookup failed' log mesajları",
+              "content": "Trafik default deny kuralına düşüyor; muhtemelen yeni subnet (10.0.50.0/24) address object olarak tanımlı değil. Çözüm: 'config firewall address' altında yeni nesne yaratılıp ilgili policy'ye source olarak eklenir, 'diagnose debug flow' ile doğrulanır."
+            },
+            {
+              "title": "Outbound DNS (UDP/53) firewall'da kapatıldı, çözümleme bozuk",
+              "content": "DoH/DoT zorunluluğu getirildikten sonra eski 53/udp kuralı kaldırılmış. Çözüm: İç resolver (10.0.0.10) için TCP/853 (DoT) açılır veya istisna kuralı ile sadece resolver IP'sinden 53/udp outbound izin verilir."
+            },
+            {
+              "title": "Site-to-site IPsec tüneli phase 2'de düşüyor",
+              "content": "PFS grup uyumsuz (DH14 vs DH19) ya da lifetime uyumsuz. Çözüm: 'diagnose vpn ike gateway list' / 'show crypto ipsec sa' ile parametreler doğrulanır; iki uçta da IKEv2 + AES256-SHA256 + DH19 + 3600 sn lifetime standardı uygulanır."
+            },
+            {
+              "title": "GeoIP filtresi yüzünden Avrupa partner trafikleri intermittent",
+              "content": "GeoIP veritabanı güncel değil; partner IP yeni allocation. Çözüm: Palo Alto'da 'request system external-list refresh', Fortigate'te 'execute update-now' ile feed yenilenir; geçici olarak ilgili /24 explicit allow listesine eklenir."
+            },
+            {
+              "title": "Kullanıcı 'Application identified as unknown-tcp' nedeniyle bloklanıyor",
+              "content": "App-ID custom uygulamayı tanımıyor. Çözüm: 'Application Override' policy yazılır veya 'Custom Application' tanımlanır (signature: dst port 8443, payload pattern 'CORP-APP'); ardından security policy'de bu uygulamaya izin verilir."
+            },
+            {
+              "title": "Threat Prevention 'brute-force-login' yanlış pozitif veriyor",
+              "content": "Load balancer health check'i kısa aralıkla TCP SYN gönderdiği için IPS tetikleniyor. Çözüm: Threat exception eklenerek LB IP'si (10.0.5.5) için '40031' threat ID exempt edilir, geçici olarak action 'alert' yapılır."
+            },
+            {
+              "title": "NAT sonrası dış servis kaynak IP'yi yanlış görüyor",
+              "content": "Hide NAT (PAT) yerine static one-to-one NAT gerekli. Çözüm: Fortigate'te 'config firewall vip' ile public IP eşlemesi yapılır, route-map ile sadece ilgili host için kaynak NAT istisnası eklenir; partner whitelist'inde IP doğrulanır."
+            },
+            {
+              "title": "DPI (Deep Packet Inspection) PDF indirmelerini bozuyor",
+              "content": "AV scan stream tabanlı çalışıyor, büyük dosyalarda buffer aşıyor. Çözüm: Antivirus profil 'oversize-limit' 50MB'a yükseltilir veya 'stream mode' devre dışı bırakılıp 'flow-based' yerine 'proxy-based' inspeksiyon ayarlanır."
+            },
+            {
+              "title": "Firewall log'ları SIEM'e (Splunk) düşmüyor",
+              "content": "Syslog hedef IP değişmiş veya UDP/514 yerine TCP/6514 bekleniyor. Çözüm: 'config log syslogd setting' altında yeni HEC kolektörü (10.0.6.50:6514) tanımlanır, sertifika doğrulama açılır; 'diagnose log test' ile uçtan uca akış kontrol edilir."
             }
           ]
         },
@@ -79,6 +239,46 @@
             {
               "title": "Bazı dış siteler 'DNS_PROBE_FINISHED_NXDOMAIN' veriyor",
               "content": "Caching DNS önbelleği bozulmuş olabilir. Çözüm: 'ipconfig /flushdns' + tarayıcı önbelleği temizleme. Devam ederse içerideki resolver yeniden başlatılır."
+            },
+            {
+              "title": "Active Directory replikasyonu DNS hatası veriyor",
+              "content": "_msdcs.corp.local zone delegation eksik veya SRV kayıtları silinmiş. Çözüm: 'dcdiag /test:dns' ve 'repadmin /replsummary' çalıştırılır; eksikse 'netlogon' servisi restart edilerek SRV kayıtları yeniden register edilir."
+            },
+            {
+              "title": "Conditional forwarder (azure.corp) sorgular düşüyor",
+              "content": "Forwarder hedefi (168.63.129.16) firewall'da bloklu veya forwarder cache lifetime 0 yapılmış. Çözüm: Firewall'da Azure DNS IP'sine UDP/53 outbound açılır, 'Set-DnsServerConditionalForwarderZone' ile MasterServers güncellenir."
+            },
+            {
+              "title": "DNSSEC validation hatası (SERVFAIL) belirli domainlerde",
+              "content": "İç resolver DNSSEC zorunlu ancak upstream chain bozuk. Çözüm: 'Resolve-DnsName -DnssecOk' ile doğrulanır, geçici olarak ilgili zone için validation kapatılır; kalıcı çözüm için domain sahibinden DS kayıtlarını düzeltmesi istenir."
+            },
+            {
+              "title": "Kullanıcılarda WPAD üzerinden yanlış proxy alınıyor",
+              "content": "DNS suffix search list'te 'corp.local' dışı domain önde olduğu için wpad.attacker.tld çözümleniyor. Çözüm: GPO ile 'Append these DNS suffixes' sırası sabitlenir; iç DNS'te wpad A kaydı tanımlanır ve global query block list'ten 'wpad' çıkarılır."
+            },
+            {
+              "title": "Round-robin yük dağılımı yapan iç site tek node'a düşüyor",
+              "content": "TTL 3600 sn olduğu için istemci cache'i yenilenmiyor. Çözüm: Zone üzerinde A kayıtları TTL'i 60 sn'ye çekilir; gerçek LB ihtiyacı varsa DNS yerine F5/HAProxy önerilir."
+            },
+            {
+              "title": "VPN bağlıyken Public DNS (1.1.1.1) hâlâ kullanılıyor",
+              "content": "Windows 'smart multi-homed name resolution' yüzünden tüm adaptörlere paralel sorgu atıyor. Çözüm: GPO 'Turn off smart multi-homed name resolution: Enabled' uygulanır; VPN adaptöründe metric daha düşük (1) yapılır."
+            },
+            {
+              "title": "Office 365 servisleri 'autodiscover' bulamıyor",
+              "content": "İç DNS'te eski 'autodiscover.corp.com' CNAME hâlâ Exchange 2016'yı işaret ediyor. Çözüm: Kayıt 'autodiscover.outlook.com' hedefine güncellenir, 'Test-OutlookWebServices' / Microsoft Remote Connectivity Analyzer ile doğrulanır."
+            },
+            {
+              "title": "Reverse DNS (PTR) eksik, mail sunucusu reddediliyor",
+              "content": "Spam filtre (Proofpoint) PTR yoksa mailleri reddediyor. Çözüm: ISP'den /29 blok için PTR kaydı talep edilir, in-addr.arpa zone'unda PTR 'mail.corp.com' olarak tanımlanır; 'dig -x 1.2.3.4' ile doğrulanır."
+            },
+            {
+              "title": "DNS sunucusu cache yüksek bellek kullanıyor ve yavaşlıyor",
+              "content": "Cache poisoning veya çok büyük zone transfer nedeniyle Windows DNS process 4GB+ tüketiyor. Çözüm: 'dnscmd /clearcache' uygulanır, 'MaxCacheSize' registry değeri 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\DNS\\Parameters' altında 524288000 (500MB) olarak sınırlanır."
+            },
+            {
+              "title": "Linux istemcilerde systemd-resolved iç zone çözmüyor",
+              "content": "127.0.0.53 stub resolver default kullanılıyor, /etc/resolv.conf elden düzenlenmiş. Çözüm: '/etc/systemd/resolved.conf' altında 'DNS=10.0.0.10 10.0.0.11' ve 'Domains=corp.local' tanımlanır, 'systemctl restart systemd-resolved' ardından 'resolvectl status' doğrulanır."
             }
           ]
         }
@@ -98,6 +298,46 @@
             {
               "title": "Profil silindikten sonra mailler kayboldu",
               "content": "Sunucu tarafında veri kayboluyor değil; profili yeniden ekleyince Cached Mode tüm verileri tekrar senkronize eder. Süre kutu boyutuna göre 15dk-2 saat arası sürer."
+            },
+            {
+              "title": "Outlook arama sonuç döndürmüyor 'Aramayı tamamlayamadık'",
+              "content": "Windows Search indeksi bozulmuş. Denetim Masası > Dizin Oluşturma Seçenekleri > Gelişmiş > 'Yeniden oluştur' tıklanır. Outlook kapalı tutulur; büyük posta kutularında indeksleme 1-3 saat sürebilir."
+            },
+            {
+              "title": "Outlook açılışta 'profil yüklenemedi' hatası veriyor",
+              "content": "Profil registry kaydı bozuk. HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Profiles altındaki ilgili profil silinir, Denetim Masası > Mail (Microsoft Outlook) üzerinden yeni profil oluşturulup varsayılan yapılır."
+            },
+            {
+              "title": "Paylaşılan posta kutusu otomatik eklenmiyor",
+              "content": "AutoMapping bayrağı kapalı olabilir. Exchange Online'da 'Remove-MailboxPermission' ardından 'Add-MailboxPermission -AutoMapping $true -AccessRights FullAccess' ile yeniden yetki verilir. İstemci tarafı en geç 60 dk içinde günceller."
+            },
+            {
+              "title": "Gönderilmiş öğeler klasöründe maili göremiyor",
+              "content": "POP3 hesabı yerel olarak kaydediyor olabilir veya 'Delegate Sends' ayarı bozuk. Dosya > Seçenekler > Posta > 'Gönderilen öğeleri sakla' işaretlenir; delege senaryosunda 'Set-MailboxSentItemsConfiguration -SendAsItemsCopiedTo SenderAndFrom' uygulanır."
+            },
+            {
+              "title": "Outlook imzası gönderimde kayboluyor",
+              "content": "Yeni Outlook (Monarch) bulut imza senkronu devre dışı veya 'roamingsignatures' bozulmuş. %appdata%\\Microsoft\\Signatures altındaki dosyalar yedeklenir, HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Setup altına DWORD 'DisableRoamingSignaturesTemporaryToggle=1' eklenir."
+            },
+            {
+              "title": "Outlook her açılışta parola istiyor",
+              "content": "Modern Authentication kapalı veya Credential Manager'da eski hesap kaydı bozulmuş. Denetim Masası > Kimlik Bilgileri Yöneticisi > 'MicrosoftOffice16_Data:*' kayıtları silinir, Outlook yeniden açıldığında MFA akışı tetiklenir."
+            },
+            {
+              "title": "Otomatik tamamlama (NK2) önerileri gelmiyor",
+              "content": "RoamCache klasörü bozulmuş. Outlook kapalıyken %localappdata%\\Microsoft\\Outlook\\RoamCache altındaki Stream_Autocomplete*.dat dosyaları silinir; liste yeniden oluşur, eski kayıtlar OST'den geri gelmez."
+            },
+            {
+              "title": "Outlook OST dosyası 50GB sınırını aştı",
+              "content": "Cached Mode varsayılan boyut sınırına ulaşıldı. Geçici çözüm olarak 'Sync slider' 12 aya çekilir; kalıcı çözüm HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Outlook\\PST altında 'MaxLargeFileSize=102400' (KB) ayarlanır."
+            },
+            {
+              "title": "Outlook eklentileri (COM Add-ins) devre dışı kalıyor",
+              "content": "Yavaş yüklenen eklentiler Outlook tarafından otomatik devre dışı bırakılıyor. Dosya > Yavaş ve Devre Dışı Bırakılmış COM Eklentileri'nden 'Her zaman etkinleştir' seçilir; GPO ile 'DoNotDisableAddinList' politikası eklentinin ProgID'si için tanımlanır."
+            },
+            {
+              "title": "Outlook 365 sürümü 'Lisans hatası' veriyor",
+              "content": "Office Activation token süresi dolmuş veya kullanıcıya M365 E3/E5 lisansı atanmamış. Komut satırında 'cscript ospp.vbs /dstatus' ile durum okunur; gerekirse 'OfficeC2RClient.exe /update user' ile yenileme tetiklenir, lisans M365 admin'den kontrol edilir."
             }
           ]
         },
@@ -111,6 +351,46 @@
             {
               "title": "DMARC nedeniyle mailler spam'e düşüyor",
               "content": "Gönderici domaininin SPF/DKIM/DMARC kayıtları kontrol edilir. Eksikse DNS ekibine kayıt eklemesi için talep açılır."
+            },
+            {
+              "title": "Dış alıcıya 'NDR 550 5.7.1 Relay denied' hatası",
+              "content": "Exchange Online connector'ında alıcı domain transport kuralı tarafından engelleniyor veya 'Accepted Domains'te internal/relay olarak hatalı tanımlı. EAC > Mail Flow > Accepted Domains'ten domain tipi 'Authoritative' yapılır, ardından message trace ile yeniden test edilir."
+            },
+            {
+              "title": "Mail gönderildi gözüküyor ama alıcıya ulaşmıyor",
+              "content": "Exchange Online'da 'Get-MessageTrace -SenderAddress kullanici@corp.local -StartDate (Get-Date).AddHours(-2)' ile iz sürülür. Genellikle Mimecast hold queue'da takılı; admin konsolunda 'Held Messages' altından serbest bırakılır."
+            },
+            {
+              "title": "Distribution List'e gönderim 'group does not accept messages from outside' hatası veriyor",
+              "content": "DL üzerinde 'RequireSenderAuthenticationEnabled=$true' aktif. Exchange Online PowerShell'de 'Set-DistributionGroup -Identity grup@corp.local -RequireSenderAuthenticationEnabled $false' ile dış gönderime izin verilir."
+            },
+            {
+              "title": "'Send As' yetkisi olmasına rağmen gönderim gri",
+              "content": "Yetki yansıması 1 saat sürebiliyor; ayrıca Outlook profilinde 'From' alanı gizli. Görünüm > 'From' alanı aç; gerekirse 'Add-RecipientPermission -Identity kutu -Trustee kullanici -AccessRights SendAs' yeniden uygulanır ve OWA üzerinden hemen test edilir."
+            },
+            {
+              "title": "Toplu mail gönderiminde 'Throttling 432 4.7.0' hatası",
+              "content": "EXO'nun saatlik 10.000 alıcı / dakikalık 30 mesaj limiti aşıldı. Servis hesabı için 'High Volume Email' lisansı önerilir veya gönderim Azure Communication Services Email üzerinden yapılır; bülten trafiği için Mailchimp gibi araç tercih edilir."
+            },
+            {
+              "title": "Outlook Outbox'ta mail takılı kalıyor",
+              "content": "Genellikle bozuk ek veya çevrimdışı mod. Gönder/Al sekmesinde 'Work Offline' kapatılır, Outbox'taki öğe çift tıklanıp ek kaldırıldıktan sonra tekrar gönderilir. Çözülmezse 'scanpst.exe' ile PST onarımı yapılır."
+            },
+            {
+              "title": "Mail body'sindeki Türkçe karakterler bozuk gidiyor",
+              "content": "Karakter kodlaması Western European (ISO-8859-1) olarak ayarlı. Outlook > Seçenekler > Gelişmiş > Uluslararası seçenekler > 'Giden iletiler için tercih edilen kodlama: Unicode (UTF-8)' seçilir."
+            },
+            {
+              "title": "Şifreli (S/MIME) mail gönderimi 'sertifika bulunamadı' veriyor",
+              "content": "Alıcının açık anahtarı GAL'de yok veya sertifika süresi dolmuş. EAC > Recipients > Mailboxes > kullanıcı > 'Email encryption' bölümünden sertifika yayınlanır; alıcıdan imzalı bir mail alınarak public key Contacts'a kaydedilir."
+            },
+            {
+              "title": "Read receipt (okundu bilgisi) gelmiyor",
+              "content": "Organizasyon transport kuralı veya kullanıcının OWA'da 'Asla okundu bilgisi gönderme' ayarı engelliyor. Set-MailboxMessageConfiguration -Identity kullanici -ReadReceiptResponse 'PromptUser' ile davranış sıfırlanır; bazı mobile istemciler MDN'i hiç desteklemez, beklenti yönetilir."
+            },
+            {
+              "title": "Gönderim sırasında 'Bu öğe gönderilemedi 0x80040115' hatası",
+              "content": "OST bozulması veya Cached Mode senkron çakışması. Önce Send/Receive ayarlarından 'All Accounts' senkronu durdurulur, /resetnavpane ile profil sıfırlanır; sorun devam ederse yeni Outlook profili oluşturulur."
             }
           ]
         },
@@ -124,6 +404,46 @@
             {
               "title": "Phishing maillere tıklanması durumunda yapılacaklar",
               "content": "1) Tarayıcı kapatılır. 2) Şifre derhal değiştirilir. 3) Olay IT Güvenlik'e bildirilir (security@corp.local). 4) Endpoint EDR taraması başlatılır."
+            },
+            {
+              "title": "Defender for Office 365 Safe Links URL'leri bozuyor",
+              "content": "Bazı CRM/ERP linkleri rewrite sonrası 404 dönüyor. Defender portal > Policies > Safe Links > 'Do not rewrite' listesine ilgili domain (örn. crm.partner.com) eklenir; aktif olması 30 dk sürer."
+            },
+            {
+              "title": "Spoofing: kendi adresimizden bize mail geliyor",
+              "content": "External gönderici dahili adres taklit ediyor. EAC > Mail flow > Rules ile 'If sender is outside the organization AND From address matches *@corp.local then prepend [EXTERNAL] and set SCL 9' kuralı eklenir; SPF '-all' sertleştirilir."
+            },
+            {
+              "title": "Kullanıcı hesabı yurt dışından login uyarısı veriyor",
+              "content": "Entra ID 'Risky sign-ins' raporunda olay incelenir. Kullanıcı için 'Revoke sessions' ve 'Require password change' uygulanır; Conditional Access 'Block legacy authentication' politikası doğrulanır."
+            },
+            {
+              "title": "Mail eklerindeki makro otomatik bloklandı",
+              "content": "Microsoft'un VBA macro varsayılan blok politikası devrede. Dosyaya sağ tık > Özellikler > 'Engellemeyi kaldır' yeterli; kurumsal güvenli kaynaklar için GPO 'Trusted Locations' altına UNC yolu eklenir, kullanıcıya manuel exception verilmez."
+            },
+            {
+              "title": "Şüpheli mailin başlık (header) analizi nasıl yapılır",
+              "content": "OWA'da mail açılır > '...' > View > View Message Details ile header kopyalanır, Microsoft Message Header Analyzer'a (mha.azurewebsites.net) yapıştırılır. 'Authentication-Results' satırında SPF/DKIM/DMARC=fail görülürse phishing olarak DLP'ye bildirilir."
+            },
+            {
+              "title": "Mimecast 'attachment management' eki PDF'e çeviriyor",
+              "content": "Politika gereği XLS/DOC ekler 'safe file' olarak PDF'e dönüştürülüyor. Mimecast admin > Gateway > Policies > Attachment Management'tan orijinal dosya talebi için kullanıcı self-service portal linki paylaşılır."
+            },
+            {
+              "title": "Hesabımdan istenmeyen mail gönderilmiş olabilir",
+              "content": "Hesap ele geçirilmiş olabilir. Exchange Online'da 'Search-MailboxAuditLog -Identity kullanici -Operations SendAs,Send -StartDate ...' çalıştırılır; Inbox rule'lar kontrol edilip 'Get-InboxRule | Remove-InboxRule' ile şüpheli kurallar silinir, MFA zorunlu hale getirilir."
+            },
+            {
+              "title": "Defender ATP Safe Attachments yüzünden ek 10dk gecikiyor",
+              "content": "Detonation chamber tarama süresi normalde 30sn-5dk, yoğunlukta uzar. 'Dynamic Delivery' modu açılarak body kullanıcıya hemen, ek tarama bitince teslim edilir; politika Defender portal > Safe Attachments altında ayarlanır."
+            },
+            {
+              "title": "QR kod içeren phishing (quishing) mailleri filtreyi geçiyor",
+              "content": "Geleneksel URL tarayıcıları QR'ı çözmüyor. Defender for Office 365 Plan 2'de 'QR code threats' özelliği etkinleştirilir; transport rule ile 'has attachment of type image/png AND subject contains MFA/login' içeren mailler karantinaya alınır."
+            },
+            {
+              "title": "Dış göndericilerden gelen mailler 'External' banner taşımıyor",
+              "content": "External sender tag kapalı. EXO PowerShell'de 'Set-ExternalInOutlook -Enabled $true' uygulanır; OWA ve yeni Outlook anında, klasik Outlook 16.0.14931+ sürümünde gösterir. Allowlist'e 'Set-ExternalInOutlook -AllowList @{Add=\"partner.com\"}' ile partner domainleri eklenebilir."
             }
           ]
         },
@@ -137,6 +457,46 @@
             {
               "title": "Tekrar eden toplantı serisinde tek bir gün değişmiyor",
               "content": "Outlook web sürümünde 'Bu olay' seçeneği eski seriden devraldığı için bazen kaydetmez. Çözüm: masaüstü Outlook'tan ilgili tek toplantı açılır, kaydedilir."
+            },
+            {
+              "title": "Delege olarak yöneticinin takvimine yeni toplantı eklenemiyor",
+              "content": "Delegate yetkisi 'Editor' yerine 'Reviewer' atanmış. EXO PowerShell'de 'Add-MailboxFolderPermission -Identity yonetici:\\Calendar -User asistan -AccessRights Editor -SharingPermissionFlags Delegate' komutu çalıştırılır."
+            },
+            {
+              "title": "Toplantı saati alıcıda farklı görünüyor",
+              "content": "Time zone uyuşmazlığı; gönderen UTC+3, alıcı OWA'da hâlâ UTC+1. OWA > Ayarlar > Genel > Bölge ve saat dilimi 'Istanbul' yapılır; istemci tarafı için 'tzutil /s Turkey Standard Time' çalıştırılır."
+            },
+            {
+              "title": "Oda kaynağı çakışan toplantıları otomatik onaylıyor",
+              "content": "AutomateProcessing 'AutoAccept' modunda ve AllowConflicts $true. 'Set-CalendarProcessing -Identity oda@corp.local -AutomateProcessing AutoAccept -AllowConflicts $false -MaximumDurationInMinutes 480' ile politika sertleştirilir."
+            },
+            {
+              "title": "Toplantı daveti yanıtları organizatöre düşmüyor",
+              "content": "Inbox rule yanıtları başka klasöre taşıyor veya 'Tracking' devre dışı. Outlook > Dosya > Seçenekler > Posta > Takip > 'Toplantı isteklerine verilen yanıtları otomatik güncelle' işaretlenir; ek olarak organizatörün kuralları 'Get-InboxRule' ile gözden geçirilir."
+            },
+            {
+              "title": "Outlook'ta paylaşılan takvim güncellenmiyor",
+              "content": "REST tabanlı paylaşımda 'Shared Calendar Improvements' bayrağı eksik. Outlook 16.0.13127+ sürümünde otomatik gelir; eski sürümde kullanıcı paylaşımdan kaldırılıp yeniden eklenir, takvim cache'i '%localappdata%\\Microsoft\\Outlook' altından silinir."
+            },
+            {
+              "title": "Teams toplantı linki davete eklenmiyor",
+              "content": "Teams Meeting eklentisi devre dışı veya 'Online Meeting' politikası kapalı. Outlook > Eklentileri Yönet > 'Microsoft Teams Meeting Add-in for Office' aktif edilir; Teams admin > Meeting policies > 'Allow Outlook add-in' Açık olmalı."
+            },
+            {
+              "title": "Geçmiş toplantılar takvimden kayboldu",
+              "content": "Retention politikası 'Calendar' klasörüne 365 gün uygulamış. Recoverable Items'tan 'Search-Mailbox -Identity kullanici -SearchQuery kind:meetings -TargetMailbox ... -TargetFolder Recovered' ile kurtarılır; ileride 'Set-RetentionPolicyTag' süresi uzatılır."
+            },
+            {
+              "title": "Toplantı katılımcı listesi 'Could not be updated' hatası veriyor",
+              "content": "Mailbox auditlog ve 'Calendar Repair Assistant' tetiklenmemiş olabilir. 'New-MailboxRepairRequest -Mailbox kullanici -CorruptionType ProvisionedFolder,SearchFolder,AggregateCounts,FolderView' çalıştırılır; tamamlanma 'Get-MailboxRepairRequest' ile izlenir."
+            },
+            {
+              "title": "iPhone takvimi Exchange ile senkronize olmuyor",
+              "content": "iOS native client modern auth bazen token'ı düşürüyor. Ayarlar > Mail > Hesaplar > Exchange > hesap kaldırılıp 'Microsoft Exchange' olarak yeniden eklenir; Conditional Access 'Approved client apps' politikası varsa Outlook for iOS önerilir."
+            },
+            {
+              "title": "Toplantı odası listesi (Room Finder) boş geliyor",
+              "content": "RoomList tanımlı değil. 'New-DistributionGroup -Name \"Kat3-Odalar\" -RoomList' oluşturulur, 'Add-DistributionGroupMember' ile odalar eklenir; istemci tarafı 24 saat içinde GAL OAB güncellemesiyle listeyi görür."
             }
           ]
         },
@@ -150,6 +510,46 @@
             {
               "title": "Teams ekran paylaşımı siyah ekran gösteriyor",
               "content": "GPU hızlandırma + Citrix VDI çakışıyor olabilir. Çözüm: Ayarlar > Genel > 'Disable GPU hardware acceleration' aktif edilir, uygulama yeniden başlatılır."
+            },
+            {
+              "title": "Teams sürekli 'Yeniden bağlanılıyor' yazıyor",
+              "content": "Proxy/SSL inspection Teams trafiğini bozuyor. *.teams.microsoft.com, *.skype.com, *.lync.com adresleri SSL bypass listesine eklenir; istemci cache'i '%appdata%\\Microsoft\\Teams' (klasik) veya '%localappdata%\\Packages\\MSTeams_*' (yeni) altından temizlenir."
+            },
+            {
+              "title": "Yeni Teams (v2) açılmıyor, klasik Teams'e dönüyor",
+              "content": "WebView2 Runtime eksik veya kurumsal politika 'UseNewTeamsClient=Disabled'. WebView2 Evergreen kurulur; Teams admin > Teams update policies > 'Use new Teams client' Enabled yapılır."
+            },
+            {
+              "title": "Teams toplantısında diğerleri beni duyuyor ama ben duymuyorum",
+              "content": "Çıkış cihazı yanlış seçili veya Windows 'Communications' özelliği başka sesleri %100 kısıyor. Ses > Toplantı sırasında > Cihaz ayarları'ndan doğru hoparlör seçilir; Denetim Masası > Ses > İletişim sekmesi > 'Hiçbir şey yapma' işaretlenir."
+            },
+            {
+              "title": "Teams chat geçmişi belirli bir tarihten önce görünmüyor",
+              "content": "Retention policy 90 gün uygulanmış olabilir. Compliance portal > Data lifecycle management > 'Teams chats' politikası incelenir; istisna gereken kullanıcı için ayrı bir adaptive scope ile yeni retention policy uygulanır."
+            },
+            {
+              "title": "Teams dosya yükleme '0xCAA20003' hatası veriyor",
+              "content": "Modern Auth token bozulmuş. Klasik Teams için %appdata%\\Microsoft\\Teams\\Cookies ve Local Storage silinir; yeni Teams için 'wsreset.exe' sonrası 'Get-AppxPackage MSTeams | Reset-AppxPackage' çalıştırılır."
+            },
+            {
+              "title": "Teams toplantısında kamera 'Can't start video' hatası veriyor",
+              "content": "Başka uygulama (Snipping Tool, OBS) kamerayı tutuyor olabilir. Ayarlar > Gizlilik > Kamera > 'Uygulamaların kameranıza erişmesine izin ver' açılır; Aygıt Yöneticisi'nden kamera sürücüsü güncellenir, devam ederse 'usbview' ile USB hub değiştirilir."
+            },
+            {
+              "title": "Dış kullanıcı Teams toplantısına 'Lobby'de bekleyemiyor",
+              "content": "Meeting policy 'Anonymous users can join' Disabled. Teams admin center > Meetings > Meeting policies > Global > 'Anonymous users and dial-in callers can start a meeting' Açık yapılır; ayrıca tenant düzeyinde 'Set-CsTeamsMeetingConfiguration -DisableAnonymousJoin $false' kontrol edilir."
+            },
+            {
+              "title": "Teams notification sesi geliyor ama görsel uyarı yok",
+              "content": "Windows Focus Assist (Odaklanma Yardımı) 'Yalnızca öncelik' modunda. Ayarlar > Sistem > Bildirimler > Odaklanma kapatılır; Teams Ayarlar > Bildirimler > 'Show notification banners' Açık olmalı, banner stili 'Yalnızca eylem merkezi' değil 'Banner ve eylem merkezi' seçilir."
+            },
+            {
+              "title": "Teams kanalı SharePoint dosyalarına erişim 'Sorry, you don't have access' veriyor",
+              "content": "Kanal SharePoint site permissions'ı senkron olmamış. Kanal sahibi 'Manage team > Members' kontrol eder; SharePoint admin'de site > Permissions > 'Run sync' tetiklenir, gerekirse 'Sync-UnifiedGroup' uygulanır."
+            },
+            {
+              "title": "Outlook'tan Teams toplantısı planlanırken 'Couldn't schedule the meeting' hatası",
+              "content": "Kullanıcıya Teams lisansı atanmamış veya 'MeetingPolicy' AllowPrivateMeetingScheduling $false. M365 admin > kullanıcı > lisans kontrolü yapılır; 'Grant-CsTeamsMeetingPolicy -Identity kullanici -PolicyName Global' ile varsayılan politika atanır."
             }
           ]
         }
@@ -169,6 +569,46 @@
             {
               "title": "Cihaz aşırı ısınıyor ve yavaşlıyor",
               "content": "Termal pasta kuruması veya fan tıkanması olası nedendir. Geçici: Dell PowerManager üzerinden 'Cool' profil seçilir. Kalıcı: donanım servise alınır."
+            },
+            {
+              "title": "Açılışta BitLocker recovery key istiyor",
+              "content": "TPM veya BIOS güncellemesi sonrası tetiklenir. Anahtar Azure AD > Devices > BitLocker Keys üzerinden alınır. Kalıcı çözüm için 'manage-bde -protectors -disable C:' ile bir kez askıya alınıp yeniden etkinleştirilir."
+            },
+            {
+              "title": "Cihaz Wi-Fi'a bağlanıyor ama internet yok",
+              "content": "Önce 'ipconfig /all' ile DHCP/DNS kontrol edilir. 'ipconfig /flushdns' ve 'netsh winsock reset' uygulanır. Intel AX201 sürücüsü Lenovo Vantage / Dell Command Update üzerinden güncellenir."
+            },
+            {
+              "title": "Parmak izi okuyucu Windows Hello'da çalışmıyor",
+              "content": "Device Manager > Biometric devices altında Goodix/Synaptics sürücüsü kaldırılıp yeniden kurulur. Settings > Sign-in options üzerinden parmak izi sıfırlanır; TPM temizliği gerekirse 'tpm.msc' ile yapılır."
+            },
+            {
+              "title": "Dahili webcam Teams'de görünmüyor",
+              "content": "F4/Fn tuşu ile kamera shutter kapalı olabilir. Settings > Privacy > Camera açık olmalı. Devam ederse Device Manager > Imaging devices altındaki sürücü 'Uninstall device' ile kaldırılıp yeniden taranır."
+            },
+            {
+              "title": "USB-C dock takıldığında ekranlar rastgele kapanıyor",
+              "content": "Dell WD19 / HP G5 dock firmware Dell Command Update veya HP Firmware Installer ile güncellenir. USB-C kablosu en az 100W PD destekli olmalı; aksi halde dock güç çekemez."
+            },
+            {
+              "title": "Sleep moddan dönüşte mavi ekran (DPC_WATCHDOG_VIOLATION)",
+              "content": "Genellikle NVMe veya grafik sürücüsünden kaynaklanır. 'sfc /scannow' ve 'DISM /Online /Cleanup-Image /RestoreHealth' çalıştırılır. Intel RST ve grafik sürücüsü OEM portalından güncellenir."
+            },
+            {
+              "title": "Klavye arka aydınlatması çalışmıyor",
+              "content": "Fn+F5 / Fn+Space ile aydınlatma seviyesi denenir. Dell/Lenovo'da OEM uygulaması (Dell Power Manager / Lenovo Vantage) üzerinden 'Keyboard backlight timeout' kontrol edilir. BIOS Setup > System Configuration altında ayar resetlenir."
+            },
+            {
+              "title": "Cihaz açılmıyor, güç LED'i yanmıyor",
+              "content": "Adaptör çıkartılıp güç tuşuna 30 saniye basılı tutularak rezidüel güç boşaltılır (drain). Sökülebilir pillerde pil çıkartılır. Sonuç vermezse adaptör başka bir cihazda denenir, devam ederse anakart arızası olarak servise yönlendirilir."
+            },
+            {
+              "title": "Dahili hoparlörden ses gelmiyor, kulaklıkta var",
+              "content": "Settings > Sound > Output cihazı 'Speakers (Realtek/Conexant)' seçilir. Realtek HD Audio sürücüsü OEM sitesinden yeniden kurulur. 'services.msc' altında Windows Audio servisi Automatic + Started olmalı."
+            },
+            {
+              "title": "SD kart okuyucu kartı görmüyor",
+              "content": "Realtek/Genesys card reader sürücüsü Device Manager > Memory technology devices altından güncellenir. Kart başka bir okuyucuda denenir; bozuksa 'chkdsk X: /f' ile dosya sistemi onarılır."
             }
           ]
         },
@@ -182,6 +622,46 @@
             {
               "title": "İkinci monitörde tek nokta titriyor (dead pixel)",
               "content": "1 piksel kabul edilebilir tolerans içinde. 3+ pikselde garanti kapsamında değiştirme yapılır."
+            },
+            {
+              "title": "Monitörde renkler soluk veya sarımsı görünüyor",
+              "content": "Önce OSD menüsünden 'Color Preset' Standard/sRGB yapılır. Windows > Settings > Display > Color profile sıfırlanır. Kalibrasyon için 'dccw.exe' (Display Color Calibration) çalıştırılır."
+            },
+            {
+              "title": "4K monitörde yazılar bulanık ve küçük",
+              "content": "Settings > Display > Scale 150% veya 175% yapılır. Uygulama bazında DPI override için exe > Properties > Compatibility > 'Override high DPI scaling' = Application seçilir."
+            },
+            {
+              "title": "Monitör 60 Hz'de takılı, 144 Hz seçilemiyor",
+              "content": "DisplayPort 1.2+ veya HDMI 2.0+ kablo kullanılmalı. NVIDIA Control Panel > Change resolution altından refresh rate seçilir. Sürücü güncel değilse GeForce Experience üzerinden Studio/Game Ready sürücüsü yüklenir."
+            },
+            {
+              "title": "Monitör uyku modundan uyanmıyor",
+              "content": "OSD menüsünden 'DisplayPort 1.1 / 1.2' uyumluluk modu denenir. Dell U2722 serisinde 'Deep Sleep' Off yapılır. Kablo değişimi ve farklı port (DP yerine HDMI) denemesi yapılır."
+            },
+            {
+              "title": "Ekran görüntüsünde yatay/dikey çizgiler",
+              "content": "Önce kablo başka portla denenir. Aynı monitör farklı bilgisayara takılır; sorun gidiyorsa GPU veya kablo, devam ediyorsa panel arızalıdır ve garanti süreci başlatılır."
+            },
+            {
+              "title": "USB-C tek kabloyla bağlanan monitör cihazı şarj etmiyor",
+              "content": "Monitörün OSD > USB-C Charging ayarı 'On in Power Off' yapılır. Kablonun en az 65W/90W PD desteklediği doğrulanır. Dell P/U serisi monitörlerde firmware Dell Display Manager üzerinden güncellenir."
+            },
+            {
+              "title": "İki monitör arasında pencere geçişinde gecikme",
+              "content": "Display ayarlarında iki monitörün refresh rate'i eşitlenir. NVIDIA Control Panel > Configure Surround > G-Sync kapalı tutulur. Aynı kablo standardı (her ikisi de DP) tercih edilir."
+            },
+            {
+              "title": "Monitör HDR moduna alınınca görüntü sönükleşiyor",
+              "content": "Windows > Display > HDR > 'Use HDR' açıkken SDR içerik soluk görünebilir. 'SDR content brightness' slider'ı ile dengelenir. HDR400 paneller tam HDR sunmaz; gerekirse HDR kapatılır."
+            },
+            {
+              "title": "Toplantı odası projektörü laptop'u algılamıyor",
+              "content": "HDMI kablo çıkartılıp tekrar takılır, Win+P > Duplicate seçilir. Projektör 'Auto Source' yerine HDMI 1/2 girişine sabitlenir. Dongle kullanılıyorsa USB-C alt-mode (DP Alt) desteklediği doğrulanır."
+            },
+            {
+              "title": "Monitörde 'No Signal' yazısı dönüyor",
+              "content": "Kablo her iki uçtan da sökülüp takılır. OSD > Input Source manuel olarak doğru porta alınır. Anakart entegre grafik + ayrık GPU varsa kablo doğru çıkışa (GPU) takılı olmalı."
             }
           ]
         },
@@ -195,6 +675,46 @@
             {
               "title": "Yazıcı çift taraflı baskı (duplex) yapmıyor",
               "content": "Driver ayarlarında 'Two-sided printing' kapalı olabilir. Yazıcı özellikleri > Device Settings > Duplex Unit = Installed yapılır."
+            },
+            {
+              "title": "HP LaserJet'te sürekli kağıt sıkışması (paper jam)",
+              "content": "Tray 2 kılavuzları kağıt boyutuna göre ayarlanır. Pickup roller temizlenir veya değiştirilir (genellikle 50.000 sayfada). Firmware HP FutureSmart üzerinden güncellenir."
+            },
+            {
+              "title": "Brother çok fonksiyonlu yazıcıda toner uyarısı kaybolmuyor",
+              "content": "Toner cartridge çıkartılıp drum reset prosedürü uygulanır (Menu > General Setup > Replace Toner > Continue). Muadil toner kullanılıyorsa çip sıfırlama gerekebilir."
+            },
+            {
+              "title": "Xerox WorkCentre tarayıcı ADF'de çift sayfa çekiyor",
+              "content": "ADF separator pad ve feed roller temizlenir/değiştirilir. Tarama profilinde 'Detect Multi-Feed' aktif edilir. CWIS (CentreWare) üzerinden firmware güncellemesi kontrol edilir."
+            },
+            {
+              "title": "Konica Minolta bizhub renkli baskıda renk kayması",
+              "content": "Service menüsünden 'Color Registration Adjust' çalıştırılır. Drum ünitesi ömrü kontrol edilir (Utility > Counter > Supply Status). IU değişimi gerekebilir."
+            },
+            {
+              "title": "Yazıcı SMB üzerinden tarama yapmıyor",
+              "content": "Windows 11'de SMBv1 kapalı; yazıcı SMBv2/v3 desteklemiyorsa firmware güncellenir. Hedef klasör için ayrı bir AD kullanıcısı tanımlanır, NTFS izinleri 'Modify' verilir. 'Everyone' yerine domain user kullanılır."
+            },
+            {
+              "title": "Print Spooler servisi sürekli duruyor",
+              "content": "C:\\Windows\\System32\\spool\\PRINTERS klasörü temizlenir (servis durdurulduktan sonra). Eski/hatalı driver 'printui /s /t2' ile kaldırılır. Type 4 (v4) sürücü tercih edilir."
+            },
+            {
+              "title": "Yazıcı baskılarında dikey beyaz şerit",
+              "content": "Lazer yazıcılarda drum veya toner dağıtıcı yüzeyi kirlenmiştir. Toner çalkalanır, drum yüzeyi tüy bırakmayan bezle silinir. Devam ederse drum ünitesi değiştirilir."
+            },
+            {
+              "title": "Kablosuz yazıcı ağdan görünmez oluyor",
+              "content": "Yazıcıya statik IP atanır (DHCP reservation ile). mDNS/Bonjour bazı VLAN'larda kapalı olabilir; bu durumda IP ile 'Add Printer' > 'TCP/IP Port' kullanılır. Firmware güncellemesi de sorunu çözebilir."
+            },
+            {
+              "title": "PDF dosyaları yazıcıya gönderildiğinde boş çıkıyor",
+              "content": "Adobe Reader > Print > Advanced > 'Print as Image' işaretlenir. PCL yerine PostScript driver kullanmak çözüm olabilir. Yazıcının PS modülü lisanslı mı kontrol edilir."
+            },
+            {
+              "title": "Renkli yazıcıda renkler yerine sadece siyah çıkıyor",
+              "content": "Driver > Color > 'Print in Grayscale' seçeneği kapatılır. Word/Excel'de 'Print in draft quality' kapalı olmalı. Renkli toner seviyesi 0 ise yazıcı otomatik gri tonlamaya düşer."
             }
           ]
         },
@@ -208,6 +728,46 @@
             {
               "title": "Klavyenin bazı tuşları çalışmıyor",
               "content": "Tuş takımı altına yabancı madde girmiş olabilir; basınçlı hava ile temizleme yapılır. Çözmezse klavye servise alınır."
+            },
+            {
+              "title": "Logitech MX Master 3 cihazlar arası geçiş yapmıyor",
+              "content": "Logi Options+ uygulamasından 'Flow' yeniden yapılandırılır. Easy-Switch tuşu ile manuel kanal değişimi denenir. Unifying receiver yerine Bolt receiver ise eşleme Logi Bolt yazılımı ile yapılır."
+            },
+            {
+              "title": "Klavyede NumLock açılışta kapalı geliyor",
+              "content": "Registry'de HKEY_USERS\\.DEFAULT\\Control Panel\\Keyboard > InitialKeyboardIndicators = 2147483650 yapılır. BIOS Setup > POST Behavior > NumLock = On ayarlanır."
+            },
+            {
+              "title": "Türkçe Q klavyede @ ve ' karakterleri yer değiştirmiş",
+              "content": "Windows > Time & Language > Language > Türkçe > Options altında klavye düzeni 'Türkçe Q' olduğundan emin olunur. ALT+SHIFT kısayolu yanlış düzene geçiriyor olabilir; Advanced keyboard settings'ten kısayol değiştirilir."
+            },
+            {
+              "title": "Kablosuz klavye gecikmeli yazıyor",
+              "content": "USB receiver'ı USB 3.0 portundan USB 2.0'a alın (USB 3.0 2.4 GHz parazit yapar). Pil değiştirilir. Logitech Unifying yazılımıyla yeniden eşleme yapılır."
+            },
+            {
+              "title": "Mouse imleci kendi kendine zıplıyor",
+              "content": "Optik sensör veya yüzey sorunu olabilir; mousepad kullanın. 'Enhance pointer precision' kapatılır. Touchpad varsa Device Manager'dan 'Disable when external pointing device is plugged in' işaretlenir."
+            },
+            {
+              "title": "Touchpad scroll çalışmıyor",
+              "content": "Synaptics/ELAN sürücüsü OEM portalından yeniden kurulur. Settings > Bluetooth & devices > Touchpad > Scroll & zoom > 'Drag two fingers to scroll' aktif edilir."
+            },
+            {
+              "title": "Klavyede CapsLock veya ScrollLock LED yanmıyor ama tuş çalışıyor",
+              "content": "Çoğunlukla LED arızası; işlevsel etki yoktur. Görsel geri bildirim için TrayStatus / Logitech Options uygulaması kullanılabilir. Garanti kapsamında değiştirilebilir."
+            },
+            {
+              "title": "Mouse tek tıklamayı çift olarak algılıyor",
+              "content": "Sol tıklama mikro switch yıpranmış olabilir. Settings > Mouse > 'Double-click speed' yavaşlatılarak geçici çözüm sağlanır. Logitech G-Hub / Options ile 'Click latency' ayarlanır; kalıcı çözüm switch değişimidir."
+            },
+            {
+              "title": "USB klavye Windows kurulumunda algılanmıyor",
+              "content": "BIOS Setup > Advanced > USB Configuration > 'Legacy USB Support' = Enabled yapılır. USB 3.0 yerine 2.0 (siyah) portlar denenir. Kurulum medyasına USB 3.0 driver entegre edilir."
+            },
+            {
+              "title": "Dell/HP markalı kablolu klavye sürekli yeniden bağlanıyor (USB device descriptor failed)",
+              "content": "USB selective suspend kapatılır: Control Panel > Power Options > Change plan settings > Advanced > USB settings > Disabled. Generic USB Hub sürücüleri Device Manager'dan kaldırılıp yeniden taranır."
             }
           ]
         },
@@ -221,6 +781,46 @@
             {
               "title": "Harici diski Windows tanımıyor",
               "content": "Disk Management üzerinden disk gözüküyor mu kontrol edilir. Mount edilmemişse harf atanır. Bozulmuşsa chkdsk /f çalıştırılır."
+            },
+            {
+              "title": "NVMe SSD SMART uyarısı veriyor (Bad sectors)",
+              "content": "CrystalDiskInfo veya Dell SupportAssist ile SMART değerleri okunur (Reallocated Sectors, Media Wearout). Critical Warning varsa veriler hemen yedeklenir; disk garanti kapsamında değiştirilir."
+            },
+            {
+              "title": "BitLocker şifrelenmiş disk başka makinede açılmıyor",
+              "content": "Recovery key Azure AD > Devices > BitLocker keys veya Active Directory üzerinden alınır. 'manage-bde -unlock D: -RecoveryPassword <key>' komutu ile manuel açılır."
+            },
+            {
+              "title": "USB flash bellek 'write-protected' uyarısı veriyor",
+              "content": "Fiziksel kilit anahtarı kontrol edilir. 'diskpart' > select disk > 'attributes disk clear readonly' uygulanır. Registry HKLM\\SYSTEM\\CurrentControlSet\\Control\\StorageDevicePolicies > WriteProtect = 0 yapılır."
+            },
+            {
+              "title": "Network drive (mapped) açılışta bağlanmıyor",
+              "content": "GPO veya 'net use' script'i 'Persistent: Yes' ile çalıştırılır. Credential Manager > Windows Credentials altında doğru kayıt bulunmalı. SMB1 kapalıysa sunucunun SMB2/3 desteklediği doğrulanır."
+            },
+            {
+              "title": "OneDrive senkronizasyonu durdu, dosyalar bulutta görünmüyor",
+              "content": "OneDrive ikonu > Settings > Account > Unlink this PC sonrası yeniden bağlanır. Yol uzunluğu 400 karakter sınırını aşıyorsa hata verir; dosya yolu kısaltılır. Ofis dosyaları için Office Upload Cache temizlenir."
+            },
+            {
+              "title": "Dosya kopyalanırken 'cyclic redundancy check' hatası",
+              "content": "Disk yüzeyinde bozuk sektör vardır. 'chkdsk X: /r' çalıştırılır (saatler sürebilir). Hata devam ederse Robocopy /ZB ile mümkün olduğunca kurtarma yapılır; disk değiştirilir."
+            },
+            {
+              "title": "SSD performansı zamanla düştü",
+              "content": "TRIM aktif mi kontrol edilir: 'fsutil behavior query DisableDeleteNotify' = 0 olmalı. Samsung Magician / Crucial Storage Executive ile firmware güncellenir. Disk %75'in altında dolu tutulmalı."
+            },
+            {
+              "title": "Disk Management'ta 'unallocated' alan birleştirilemiyor",
+              "content": "Aradaki recovery partition Diskpart ile silinir: 'diskpart' > select disk > select partition > delete partition override. Sonra Disk Management > Extend Volume kullanılır. Önce yedek alınmalıdır."
+            },
+            {
+              "title": "Dosya sunucusunda 'access denied' hatası, izinler doğru görünüyor",
+              "content": "Effective Access sekmesinden kullanıcı için izin hesaplanır. NTFS ve Share izinleri kesişimi alınır (en kısıtlayıcı kazanır). DFS kullanılıyorsa 'Access-Based Enumeration' davranışı kontrol edilir."
+            },
+            {
+              "title": "Bilgisayar açılışta 'No bootable device' hatası veriyor",
+              "content": "BIOS > Boot > Boot Mode = UEFI, Secure Boot uygun ayarda olmalı. Boot order'da NVMe ilk sırada. Bozulmuş bootloader için Windows kurulum medyası > Repair > 'bootrec /fixmbr /fixboot /rebuildbcd' çalıştırılır."
             }
           ]
         }
@@ -240,6 +840,46 @@
             {
               "title": "Yeni kullanıcıya ERP'de modül atanmıyor",
               "content": "Önce realm rolünün doğru olduğu doğrulanır. Sonra ERP-Admin üzerinden 'Authorized Modules' listesine ekleme yapılır; cache 5 dk sonra yenilenir."
+            },
+            {
+              "title": "SAP GUI 'Partner not reached' hatası veriyor",
+              "content": "SAP Logon > Connection > Properties > Network sekmesinden Application Server ve System Number doğrulanır. Genellikle saprouter string (/H/saprouter.firma.local/S/3299/H/) eksik girilmiştir; doğru string yapıştırılınca bağlantı düzelir."
+            },
+            {
+              "title": "Logo Tiger3 oturumu açarken 'Veritabanı sürümü uyumsuz'",
+              "content": "Client sürümü ile sunucu sürümü farklıdır. SYSCliMan üzerinden 'Sürüm Güncelleme' çalıştırılır veya kullanıcının makinesindeki Logo Update.exe ile patch indirilir. Servis yeniden başlatılana kadar oturum açılamaz."
+            },
+            {
+              "title": "Netsis Wings'te fatura kesilirken e-Fatura GİB'e gönderilmiyor",
+              "content": "Genellikle entegratör (Logo Connect / Mali Mühür) sertifikası süresi dolmuştur. Mali Mühür Bileşeni > Sertifika Durumu kontrol edilir, gerekirse Kamu SM'den yeni sertifika yüklenir ve servis 'LogoConnectService' restart edilir."
+            },
+            {
+              "title": "Oracle EBS 'FRM-92101' hatası ile düşüyor",
+              "content": "Forms Server çökmesi tipiktir. $LOG_HOME/ora/10.1.2/forms altındaki frmweb log'u incelenir; çoğunlukla JRE sürüm uyumsuzluğu vardır. Kullanıcı tarafında Java 8u202 32-bit kurulur, Exception Site List'e EBS URL'si eklenir."
+            },
+            {
+              "title": "Dynamics 365 F&O sayfası 'You are not authorized' diyor",
+              "content": "Yeni eklenen security role henüz cache'e yansımamıştır. System administration > Setup > Security > 'Refresh user authorization' çalıştırılır. Etkisi yoksa kullanıcının AAD grubu doğrulanır."
+            },
+            {
+              "title": "ERP toplu iş (batch job) 'Executing' durumunda takılıyor",
+              "content": "Batch worker AOS'a heartbeat gönderemiyordur. SQL'de SYSSERVERSESSIONS tablosundan ilgili AOS bulunup BATCHJOB.STATUS = 0 (withhold) yapılır, sonra tekrar 1 (waiting) çekilir. AOS servis restart'ı çoğunlukla kalıcı çözümdür."
+            },
+            {
+              "title": "SAP transport request 'RC=8' ile kaldı",
+              "content": "STMS_IMPORT log'u açılır; çoğunlukla eksik DDIC objesi veya syntax hatasıdır. Geliştirici düzeltip yeni TR açar; ara çözüm olarak 'Ignore Invalid Component Version' işaretlenerek import tekrarlanabilir."
+            },
+            {
+              "title": "ERP raporundan Excel'e aktarımda Türkçe karakterler bozuk",
+              "content": "Export charset Windows-1254 yerine UTF-8 üretmiştir. Excel > Data > From Text/CSV > File origin: '65001: Unicode (UTF-8)' seçilir. Kalıcı çözüm için ERP'de Output Settings > Encoding 'TR-1254' olarak ayarlanır."
+            },
+            {
+              "title": "Logo Netsis ön muhasebe modülünde 'Kilitli Kayıt' uyarısı",
+              "content": "Aynı kaydı başka bir oturum açık tutmaktadır. NETOPENS tablosundan kilit kaydı bulunur, kullanıcı onayıyla DELETE edilir. Tekrarlıyorsa istemcide 'Otomatik Kilit Süresi' 5 dakikaya düşürülür."
+            },
+            {
+              "title": "SAP Fiori Launchpad boş açılıyor, tile'lar gelmiyor",
+              "content": "/UI2/FLP_CUST_CONF cache temizlenir; ardından kullanıcıya atanmış PFCG rolünün katalog ve grup ataması doğrulanır. Tarayıcı tarafında Ctrl+Shift+Del ile site verisi temizlenip yeniden login önerilir."
             }
           ]
         },
@@ -253,6 +893,46 @@
             {
               "title": "CRM mobile uygulaması senkronize olmuyor",
               "content": "İlk olarak hesabın çıkış-giriş yapılır. Sonrasında uygulama cache temizlenir. Sorun sürerse SSO token süresi (60dk) dolmuş olabilir; manuel yeniden login."
+            },
+            {
+              "title": "Salesforce Outlook eklentisi şeritte görünmüyor",
+              "content": "File > Options > Add-ins > Disabled Items kontrol edilir, Salesforce add-in 'Enable' edilir. Hâlâ gelmezse 'Salesforce for Outlook' yerine 'Outlook Integration' (Lightning) Microsoft 365 Admin Center üzerinden re-deploy edilir."
+            },
+            {
+              "title": "HubSpot e-posta entegrasyonu 'Connection lost' hatası veriyor",
+              "content": "OAuth refresh token süresi dolmuştur. Settings > General > Email > Connected inboxes üzerinden 'Reconnect' tıklanır; Microsoft 365 onay ekranında 'HubSpot Sales' uygulamasına izin verilir."
+            },
+            {
+              "title": "Dynamics 365 CE 'Business Process Flow' aktivite oluşturmuyor",
+              "content": "Process aktif değildir veya scope 'User' kalmıştır. Power Apps > Solutions > BPF açılır, Activate edilir ve Scope 'Organization' yapılır. Kullanıcının 'Process User' rolü olduğu doğrulanır."
+            },
+            {
+              "title": "CRM'de fırsat kapatılırken 'Zorunlu alan dolu değil' uyarısı",
+              "content": "Stage gating kuralı eklenmiştir. Form editörden hangi alanın required olduğu bulunur (genellikle 'Kapanış Nedeni' veya 'Gelir'); kullanıcı doldurmadan stage ilerleyemez. İş kuralı geçici olarak deaktive edilebilir."
+            },
+            {
+              "title": "Salesforce raporu zamanlanmış olarak gelmiyor",
+              "content": "Setup > Scheduled Jobs altında 'Reporting Snapshot' status 'Failed' olabilir. Genellikle çalıştıran kullanıcı pasifleşmiştir. Aktif bir admin'e 'Schedule Future Runs' yetkisi verilip iş yeniden zamanlanır."
+            },
+            {
+              "title": "CRM'den toplu SMS gönderiminde 'Quota exceeded' hatası",
+              "content": "Günlük SMS havuzu (örn. 5000) tükenmiştir. Operatör portalından (Turkcell BiP / Vodafone Mesajım) ek paket alınır veya kampanya 2 güne bölünür. Quota sıfırlanması TSİ 00:00."
+            },
+            {
+              "title": "Lead atama otomasyonu çalışmıyor",
+              "content": "Round-robin queue'da aktif kullanıcı kalmamıştır. Setup > Queues üzerinden ekip üyeleri doğrulanır, ayrıca 'Assignment Rule' active olmalıdır (Setup > Lead Assignment Rules > Active checkbox)."
+            },
+            {
+              "title": "HubSpot'tan CRM'e form gönderimi düşmüyor",
+              "content": "Workflow 're-enrollment' kapalıdır veya form GDPR consent eksik. Marketing > Forms > Edit > Options > 'Always create contact' seçeneği aktifleştirilir; ardından Workflow > Settings > Re-enrollment triggers açılır."
+            },
+            {
+              "title": "CRM API çağrıları 429 'Too Many Requests' dönüyor",
+              "content": "Entegrasyon kullanıcısı API limitini aşmıştır (Salesforce 15.000/24h). System Overview > API Usage kontrol edilir, gereksiz polling 'Streaming API'ye (PushTopic) taşınır. Geçici çözüm: ek 'API Add-on' lisansı."
+            },
+            {
+              "title": "CRM dashboard 'Insufficient privileges' veriyor",
+              "content": "Folder paylaşım izni eksiktir. Dashboard sahibinden 'Manage Folder' altında ilgili public group eklenir, erişim 'View' olarak verilir. Lightning'de ayrıca 'Run as specified user' ayarı doğrulanır."
             }
           ]
         },
@@ -266,6 +946,46 @@
             {
               "title": "Word şablonları açılmıyor",
               "content": "Normal.dotm bozulmuş olabilir. %appdata%\\Microsoft\\Templates\\Normal.dotm silinir, Word yeniden açıldığında yeniden oluşur."
+            },
+            {
+              "title": "Outlook OST dosyası 50 GB sınırına dayandı",
+              "content": "Cached Exchange Mode aralığı File > Account Settings > Account Settings > Change > 'Mail to keep offline' 12 aya düşürülür. Alternatif: Online Archive (In-Place Archive) açılır, eski mailler otomatik taşınır."
+            },
+            {
+              "title": "Microsoft 365 'Need to sign in' bildirimi sürekli açılıyor",
+              "content": "Modern Authentication WAM cache bozulmuştur. %localappdata%\\Microsoft\\OneAuth ve %localappdata%\\Microsoft\\IdentityCache klasörleri silinir, uygulama tekrar açılır. Kalıcı çözmezse Credential Manager'dan 'MicrosoftOffice*' girdileri kaldırılır."
+            },
+            {
+              "title": "PowerPoint 'Slayt gösterisi başlatılırken hata oluştu'",
+              "content": "Hardware graphics acceleration sorunludur. File > Options > Advanced > Display > 'Disable hardware graphics acceleration' işaretlenir. Gömülü video varsa Insert > Video > Online yerine yerel dosya kullanılır."
+            },
+            {
+              "title": "Outlook arama 'No results' diyor ama mail var",
+              "content": "Windows Search indeksi bozulmuş. Control Panel > Indexing Options > Advanced > Rebuild tıklanır. Outlook tarafında File > Options > Search > Indexing Options'da Outlook'un işaretli olduğu doğrulanır; rebuild 30-60 dk sürer."
+            },
+            {
+              "title": "Excel dosyası ağ paylaşımından çok yavaş açılıyor",
+              "content": "AutoSave + büyük dosya + SMB latency tetikler. File > Options > Save > 'AutoRecover' aralığı 20 dk'ya çekilir; mümkünse dosya OneDrive/SharePoint'e taşınır, böylece Office sadece delta senkronize eder."
+            },
+            {
+              "title": "LibreOffice Calc'te xlsx açılırken formüller #NAME? veriyor",
+              "content": "Microsoft özel fonksiyonları (XLOOKUP, LET) eski LibreOffice'te yoktur. Tools > Macros > 'Use English function names' işaretlenir, ardından 7.5+ sürüme güncellenir. Alternatif: dosya .ods'e çevrilir."
+            },
+            {
+              "title": "OneDrive 'File in use' diyerek senkronize etmiyor",
+              "content": "Office uygulaması arkada dosyayı tutmaktadır. Task Manager'dan EXCEL.EXE / WINWORD.EXE süreçleri sonlandırılır. Devamı için OneDrive > Settings > Office > 'Use Office applications to sync' kapatılabilir."
+            },
+            {
+              "title": "Outlook 'Cannot expand the folder' hatası",
+              "content": "Paylaşılan posta kutusunda erişim yetkisi düşmüştür. EAC > recipients > mailboxes > Mailbox Delegation üzerinden 'Full Access' yeniden eklenir. İstemcide outlook.exe /resetnavpane çalıştırılır."
+            },
+            {
+              "title": "Word 'There was a problem sending the command' hatası",
+              "content": "DDE çakışmasıdır. File > Options > Advanced > General altında 'Ignore other applications that use DDE' onayı KALDIRILIR. Etkisi yoksa Word safe mode'da (winword.exe /safe) açılıp eklentiler tek tek devre dışı bırakılır."
+            },
+            {
+              "title": "Visio diyagramı 'Stencil locked' uyarısı veriyor",
+              "content": "Şablon dosyası başka kullanıcıda checkout durumundadır. SharePoint kütüphanesinden Check In yapılır veya admin 'Discard Check Out' işler. Yerel kopyada %appdata%\\Microsoft\\Visio altındaki .vssx kilit dosyaları silinir."
             }
           ]
         },
@@ -279,6 +999,46 @@
             {
               "title": "Edge 'Inprivate' modu açılmıyor",
               "content": "Kurumsal Edge politikası inprivate'i kapatabilir. GPO 'InPrivateModeAvailability = 1' aktiftir; iş gereği ise IT Security istisna ekler."
+            },
+            {
+              "title": "Chrome'da 'ERR_CERT_AUTHORITY_INVALID' iç uygulamalarda çıkıyor",
+              "content": "Kurumsal Root CA sertifikası bilgisayara push edilmemiştir. Intune > Devices > Configuration > 'Trusted Certificate' profili kullanıcıya assign edilir veya manuel olarak certlm.msc > Trusted Root altına .cer import edilir."
+            },
+            {
+              "title": "Edge profilleri sürekli sıfırlanıyor",
+              "content": "Roaming profile + Edge'in 'User Data' klasörü çakışmasıdır. GPO'dan 'Roam Microsoft Edge data' kapatılır; bunun yerine 'Sync' özelliği AAD ile açılır (Edge://settings/profiles/sync)."
+            },
+            {
+              "title": "Firefox ESR otomatik güncellenmiyor",
+              "content": "Kurumsal sürümde update kanalı 'esr', GPO ile 'DisableAppUpdate' aktif olabilir. about:policies sayfasından policy doğrulanır; güncelleme paket yönetim sisteminden (SCCM/Intune) deploy edilir."
+            },
+            {
+              "title": "Chrome SSO ile intranet uygulamasına otomatik login olmuyor",
+              "content": "Integrated Authentication ayarı eksiktir. Registry: HKLM\\SOFTWARE\\Policies\\Google\\Chrome\\AuthServerAllowlist = '*.firma.local'. Ayrıca Internet Options > Security > Local Intranet > Sites > Advanced'a URL eklenir."
+            },
+            {
+              "title": "Edge IE Mode hedef sitede çalışmıyor",
+              "content": "Site Enterprise Mode Site List XML'inde tanımlı değildir. M365 admin > Edge > Configuration policies > 'Configure Internet Explorer integration' SitelistUrl güncellenir, ardından edge://compat/enterprise üzerinden 'Force update' tetiklenir."
+            },
+            {
+              "title": "Tarayıcıda 'NET::ERR_CERT_DATE_INVALID' hatası",
+              "content": "Sistem saati yanlıştır veya sertifika gerçekten süresi dolmuş. İlk olarak w32tm /resync ile saat senkronize edilir. Hâlâ sürüyorsa Bilgi Güvenliği ekibine sertifika yenileme talebi açılır."
+            },
+            {
+              "title": "Chrome belleği 4 GB üzeri tüketiyor, sistem yavaşlıyor",
+              "content": "Memory Saver kapalıdır. chrome://settings/performance > 'Memory Saver' aktif edilir. Çok sayıda sekme açıksa 'Tab Groups' önerilir; uzun süreli işler için Edge'in 'Sleeping tabs' özelliği daha agresiftir."
+            },
+            {
+              "title": "Edge'de PDF'ler tarayıcı yerine Adobe'de açılıyor",
+              "content": "Varsayılan PDF işleyici Adobe Reader'a alınmıştır. Settings > Cookies and site permissions > PDF documents > 'Always download PDF files' KAPATILIR. Windows > Default Apps > .pdf 'Microsoft Edge' seçilir."
+            },
+            {
+              "title": "Firefox kurumsal proxy üzerinden çalışmıyor",
+              "content": "Firefox sistem proxy'sini otomatik almaz. about:preferences#general > Network Settings > 'Use system proxy settings' veya manuel PAC URL girilir. GPO ile dağıtım için mozilla.cfg + autoconfig.js yöntemi kullanılır."
+            },
+            {
+              "title": "Chrome 'Managed by your organization' mesajı kaldırılamıyor",
+              "content": "Bilgisayar domain'e dahildir, bu mesaj normaldir. chrome://policy ile aktif policy'ler listelenir. Kişisel cihaz domain'den ayrıldığında HKLM\\SOFTWARE\\Policies\\Google\\Chrome anahtarı temizlenir."
             }
           ]
         },
@@ -292,6 +1052,46 @@
             {
               "title": "Adobe Acrobat Pro 'Subscription expired' diyor",
               "content": "Lisans entitlement Adobe Admin Console'dan yenilenir. Kullanıcı 'Help > Sign Out' > tekrar oturum açar."
+            },
+            {
+              "title": "Windows 'Activate Windows' filigranı geri geldi",
+              "content": "KMS sunucusuyla iletişim 180 gün içinde yenilenmemiştir. Komut: slmgr.vbs /skms kms.firma.local:1688 ardından slmgr.vbs /ato. Hâlâ aktive olmazsa firewall'da TCP 1688 portu doğrulanır."
+            },
+            {
+              "title": "Office Volume License (KMS) aktivasyon hatası 0xC004F074",
+              "content": "KMS host count 5'in altındadır veya client KMS host'u bulamamaktadır. ospp.vbs /sethst:kms.firma.local sonra ospp.vbs /act çalıştırılır. DNS'te _vlmcs._tcp SRV kaydı kontrol edilir."
+            },
+            {
+              "title": "Adobe Creative Cloud 'Sign-in required' tekrarlıyor",
+              "content": "Federated ID + SAML token süresi sorunludur. C:\\Users\\<user>\\AppData\\Local\\Adobe\\OOBE\\opm.db silinir, makineye yeniden login. Çözmezse Adobe Admin Console > Identity > 'Reset SAML federation' önerilir."
+            },
+            {
+              "title": "AutoCAD 'License manager not functioning' hatası",
+              "content": "Network license olduğu için FlexLM (lmgrd) servisi durmuştur. Lisans sunucusunda LMTools > 'Stop Server' > 'Start Server' yapılır. İstemcide %programdata%\\Autodesk\\CLM\\LGS.data dosyası silinip yeniden sign-in tetiklenir."
+            },
+            {
+              "title": "Microsoft 365 lisansı atanmış ama Teams 'You are missing a license' diyor",
+              "content": "Service plan kapsamında Teams kapatılmıştır. Admin Center > Users > Licenses and apps > Apps altından 'Microsoft Teams' işaretlenir. Replikasyon için 1-2 saat beklenir, sonra Teams cache (%appdata%\\Microsoft\\Teams) temizlenir."
+            },
+            {
+              "title": "Visio Plan 2 yüklenen makinede 'Unlicensed Product' yazıyor",
+              "content": "Aynı kullanıcıda farklı bir Office Click-to-Run sürümü olabilir (örn. Volume + M365 karışık). 'Microsoft Support and Recovery Assistant' (SaRA) ile Office tamamen kaldırılıp ODT konfigürasyonu ile yalnızca Visio M365 yüklenir."
+            },
+            {
+              "title": "OEM Windows lisansı donanım değişikliği sonrası geçersiz",
+              "content": "OEM lisans anakarta bağlıdır, yenisinde aktif olmaz. settings > Activation > Troubleshoot > 'I changed hardware on this device recently' adımı denenir; başarısızsa MAK/KMS kurumsal lisansa geçilir."
+            },
+            {
+              "title": "SQL Server 'Evaluation period has expired' hatası",
+              "content": "180 günlük deneme süresi dolmuştur. SQL Server Installation Center > Maintenance > 'Edition Upgrade' adımı ile geçerli kurumsal product key girilir. Servis otomatik restart sonrası Standard/Enterprise olarak çalışır."
+            },
+            {
+              "title": "M365 admin'de 'Assign licenses' butonu disabled",
+              "content": "Tenant'ta lisans sayısı 0 ya da kullanıcı zaten max product (örn. iki Exchange plan) almıştır. Billing > Your products > 'Buy licenses' ile ek alınır, ya da PowerShell ile Set-MgUserLicense -RemoveLicenses çalıştırılarak çakışan plan kaldırılır."
+            },
+            {
+              "title": "Adobe shared device license sınıf bilgisayarında her açılışta sign-in istiyor",
+              "content": "Shared Device License doğru profille kurulmamıştır. Adobe Admin Console > Packages > yeni 'Shared Device License' paketi oluşturulur, deployment mode 'Shared Device'. SCCM/Intune ile dağıtıldığında öğrenci kullanıcı SSO sonrası tekrar sormaz."
             }
           ]
         }
@@ -311,6 +1111,46 @@
             {
               "title": "OneDrive senkronizasyonu çakışma dosyaları üretiyor",
               "content": "İki cihaz aynı anda düzenliyor olabilir. Bir cihazda OneDrive 'pause' yapılır, sorunu çözen sürüm seçilir, sonra senkronize edilir."
+            },
+            {
+              "title": "OneDrive for Business 'Error 0x8004de40' ile oturum açılamıyor",
+              "content": "TLS 1.2 veya proxy ayarları engelliyor olabilir. Internet Options > Advanced'dan TLS 1.2 aktif edilir; ardından %localappdata%\\Microsoft\\OneDrive\\onedrive.exe /reset komutu çalıştırılır."
+            },
+            {
+              "title": "Senkronize edilen dosyalar 'Locked by another user' uyarısı veriyor",
+              "content": "Office Web Apps üzerinde aynı dosya açık kalmış olabilir. SharePoint Admin Center > Active Users üzerinden check-in zorlanır veya kullanıcı dosyayı 'Discard checkout' ile bırakır."
+            },
+            {
+              "title": "Bilinen klasör taşıma (KFM) GPO ile uygulanmıyor",
+              "content": "Tenant ID GPO içinde yanlış girilmiş olabilir. 'Silently move Windows known folders to OneDrive' policy'sine Entra tenant ID'si yapıştırılır ve gpupdate /force komutu çalıştırılır."
+            },
+            {
+              "title": "OneDrive disk alanı doluyor ama 'Free up space' çalışmıyor",
+              "content": "Files On-Demand devre dışı kalmış olabilir. Ayarlardan 'Save space and download files as you use them' aktif edilir; sonra dosyalara sağ tık > 'Free up space' uygulanır."
+            },
+            {
+              "title": "Paylaşılan link 'This item might not exist' hatası dönüyor",
+              "content": "Dosya 93 günlük Recycle Bin süresini geçip kalıcı silinmiş olabilir. SharePoint Admin Center > More features > Recycle bin üzerinden second-stage bin kontrol edilir; yoksa restore mümkün değildir."
+            },
+            {
+              "title": "Mac istemcide OneDrive 'Authentication needed' döngüsüne giriyor",
+              "content": "Keychain'deki eski credential bozuk olabilir. Keychain Access içinde 'OneDrive' kayıtları silinir, uygulama Cmd+Q ile kapatılıp tekrar açılır ve hesap yeniden eklenir."
+            },
+            {
+              "title": "Senkron simgesinde kırmızı X var ama hata mesajı görünmüyor",
+              "content": "Geçersiz karakter (* : < > ? / \\ |) içeren dosya adı senkronu durduruyor. Sistem tepsisinde OneDrive ikonu > 'View sync problems' açılır, dosya yeniden adlandırılır."
+            },
+            {
+              "title": "Eski çalışanın OneDrive verisi yöneticiye aktarılamıyor",
+              "content": "Retention süresi (varsayılan 30 gün) dolmadan aktarım yapılmalı. M365 Admin Center > Active users > kullanıcı seçilip 'OneDrive' sekmesinden 'Access files' ile yeni sahibe link verilir."
+            },
+            {
+              "title": "Conditional Access nedeniyle OneDrive mobil uygulaması 'compliance' istiyor",
+              "content": "Intune'da cihaz uyumsuz görünüyor olabilir. Entra > Devices > kullanıcı cihazı 'Compliant' olarak görünene kadar Company Portal üzerinden enrollment tamamlanır."
+            },
+            {
+              "title": "Toplu yüklemede 'Upload blocked' uyarısı çıkıyor",
+              "content": "DLP politikası hassas veri tespit etmiş olabilir. M365 Compliance > Data loss prevention > Alerts üzerinden policy match incelenir, false positive ise exclusion eklenir."
             }
           ]
         },
@@ -324,6 +1164,46 @@
             {
               "title": "Toplu dosya silme limitle (5000 öğe) takılıyor",
               "content": "Bir kerede 5000+ dosya silinemiyor. PowerShell ile batch script çalıştırılır veya Recycle Bin Powershell modülü kullanılır."
+            },
+            {
+              "title": "Modern liste 'List view threshold' nedeniyle filtre uygulamıyor",
+              "content": "5000 öğe üstündeki listelerde indexed olmayan sütunla filtre çalışmaz. Site Settings > List settings > Indexed columns üzerinden ilgili kolon index'lenir."
+            },
+            {
+              "title": "SharePoint search yeni dökümanları indexlemiyor",
+              "content": "Crawl gecikmesi 15 dk - 2 saat sürebilir. SharePoint Admin Center > More features > Search > 'Reindex site' tetiklenir; kritikse Manage Search Schema'dan managed property crawl edilir."
+            },
+            {
+              "title": "Hub site bağlantısı 'Cannot connect to hub' hatası veriyor",
+              "content": "Hedef site farklı geo-location'da olabilir. SharePoint Admin Center > Active sites > site seçilip 'Hub' sekmesinden aynı region kontrol edilir; multi-geo tenant'larda hub aynı geo'da olmalı."
+            },
+            {
+              "title": "Excel dosyası tarayıcıda 'Workbook is locked for editing' diyor",
+              "content": "Co-authoring devre dışı veya WOPI cache takılı. Library Settings > Advanced settings > 'Opening in the browser' aktif edilir; gerekirse Set-SPOSite -DisableCompanyWideSharingLinks ile lock temizlenir."
+            },
+            {
+              "title": "Power Automate flow SharePoint trigger'ı çalışmıyor",
+              "content": "Flow connection sahibi şirketten ayrılmış olabilir. Power Automate portal > My flows > Run history kontrol edilir, 'Edit connection' ile servis hesabı bağlanır."
+            },
+            {
+              "title": "Kültür sütununda Türkçe karakterler bozuk görünüyor",
+              "content": "Site locale yanlış ayarlanmış. Site Settings > Regional settings > Locale 'Turkish (Turkey)' yapılır, kullanıcı bazında M365 > Settings > Language and region güncellenir."
+            },
+            {
+              "title": "Versioning history 'Major version limit reached' uyarısı veriyor",
+              "content": "Library 50.000 versiyon limitine yaklaşmış olabilir. Library Settings > Versioning settings > 'Number of major versions' 500'e düşürülür, gereksiz versiyonlar temizlenir."
+            },
+            {
+              "title": "External user davet edildi ama 'Access denied' alıyor",
+              "content": "Tenant sharing policy 'New and existing guests' olmalı. SharePoint Admin Center > Policies > Sharing > 'Anyone' veya 'New and existing guests' seçilir; ardından Entra > External Identities > Guest invite settings kontrol edilir."
+            },
+            {
+              "title": "Site collection storage quota dolmuş, upload başarısız",
+              "content": "Set-SPOSite -Identity https://tenant.sharepoint.com/sites/X -StorageQuota 51200 ile kota artırılır. Tenant havuzunda yer yoksa M365 Admin Center > Billing > Add-ons üzerinden ek storage satın alınır."
+            },
+            {
+              "title": "Migration sonrası link'ler 404 dönüyor",
+              "content": "URL rename sırasında redirect oluşturulmamış. SharePoint Admin Center > Active sites > 'Change site address' kullanıldıysa Get-SPOSiteRenameJob ile durum kontrol edilir; manuel link mapping CSV'si Invoke-SPOSiteSwap ile uygulanır."
             }
           ]
         },
@@ -337,6 +1217,46 @@
             {
               "title": "MFA Microsoft Authenticator bildirimi gelmiyor",
               "content": "Cihazda push servisi bloklu olabilir. Uygulama içi 'check for approvals' tıklatılır; çalışmazsa MFA cihazı yeniden kaydedilir."
+            },
+            {
+              "title": "Conditional Access yeni cihazdan girişi 'Blocked by policy' yapıyor",
+              "content": "Trusted locations veya compliant device şartı tetikleniyor. Entra > Security > Conditional Access > Sign-in logs üzerinden hangi policy'nin engellediği tespit edilir, gerekirse 'Report-only' mode'a alınır."
+            },
+            {
+              "title": "Azure AD Connect senkronizasyonu 'stopped-server-down' veriyor",
+              "content": "On-prem DC'ye erişim koptu. Sync sunucusunda Start-ADSyncSyncCycle -PolicyType Delta çalıştırılır; başarısızsa miisclient.exe ile connector durumu kontrol edilir."
+            },
+            {
+              "title": "App Service deployment slot swap sırasında 502 dönüyor",
+              "content": "Warm-up endpoint cevap vermiyor. App Service > Configuration > Application settings'de WEBSITE_SWAP_WARMUP_PING_PATH=/health, WEBSITE_SWAP_WARMUP_PING_STATUSES=200 eklenir."
+            },
+            {
+              "title": "AKS pod 'ImagePullBackOff' hatası alıyor",
+              "content": "ACR'a AKS managed identity erişimi yok. az aks update -n cluster -g rg --attach-acr myacr ile bağlanır; ardından kubectl rollout restart deployment/<name> ile pod yeniden başlatılır."
+            },
+            {
+              "title": "Azure Blob Storage 'AuthorizationFailure' veriyor",
+              "content": "SAS token süresi dolmuş veya IP kısıtlaması var. Storage account > Networking > Firewall whitelist kontrol edilir; az storage account generate-sas ile yeni token üretilir."
+            },
+            {
+              "title": "Azure SQL DB 'DTU exhausted' uyarısı geliyor",
+              "content": "Query performance tuning gerekli. Azure portal > SQL DB > Query Performance Insight üzerinden top resource consumers analiz edilir; geçici çözüm olarak az sql db update --service-objective S3 ile tier yükseltilir."
+            },
+            {
+              "title": "Entra ID grubu Intune'da görünmüyor",
+              "content": "Dynamic group rule yanlış veya sync henüz tamamlanmamış. Entra > Groups > Dynamic membership rules doğrulanır; manual refresh için 'Process rules' tetiklenir, yansıma 5-30 dk sürer."
+            },
+            {
+              "title": "Service Principal secret süresi doldu, pipeline kırıldı",
+              "content": "az ad sp credential reset --id <appId> ile yeni secret üretilir. Yeni secret Key Vault'a kaydedilir; pipeline'da DevOps > Service connections > Edit ile güncellenir."
+            },
+            {
+              "title": "Azure Front Door custom domain SSL 'CertificateNotFound'",
+              "content": "Domain validation TXT kaydı eklenmemiş. Front Door > Domains > _dnsauth.<host> TXT kaydı DNS'e yazılır; ardından 'Revalidate' tıklanır, sertifika 1-2 saat içinde provision edilir."
+            },
+            {
+              "title": "Log Analytics workspace ingestion 'Daily cap reached'",
+              "content": "Günlük veri limiti aşıldı, yeni log'lar düşüyor. Log Analytics workspace > Usage and estimated costs > Daily cap artırılır veya kapatılır; uzun vadede gereksiz tablo retention'ı kısaltılır."
             }
           ]
         },
@@ -350,6 +1270,46 @@
             {
               "title": "EC2 SSH 'Connection timeout' veriyor",
               "content": "Security Group inbound 22 portu eksik. VPC route table'da Internet Gateway yoksa public erişim mümkün değildir; bastion host kullanılır."
+            },
+            {
+              "title": "RDS 'Storage full' nedeniyle write işlemleri reddediliyor",
+              "content": "Auto-scaling kapalı kalmış olabilir. aws rds modify-db-instance --db-instance-identifier prod --allocated-storage 200 --apply-immediately komutu ile arttırılır; uzun vadede storage autoscaling açılır."
+            },
+            {
+              "title": "Lambda fonksiyonu 'Task timed out after 3.00 seconds'",
+              "content": "Default 3sn timeout yetersiz. aws lambda update-function-configuration --function-name X --timeout 30 ile artırılır; cold start için provisioned concurrency değerlendirilir."
+            },
+            {
+              "title": "IAM kullanıcısı 'AccessDenied' hatası alıyor, policy doğru görünüyor",
+              "content": "SCP (Service Control Policy) Organizations seviyesinde engelliyor olabilir. aws iam simulate-principal-policy --policy-source-arn <arn> --action-names s3:GetObject ile efektif izin test edilir."
+            },
+            {
+              "title": "CloudWatch alarmı 'INSUFFICIENT_DATA' state'inde takılı",
+              "content": "Metric publish edilmiyor veya namespace yanlış. aws cloudwatch get-metric-statistics ile veri gelip gelmediği kontrol edilir; agent yüklü değilse SSM ile CloudWatch Agent push edilir."
+            },
+            {
+              "title": "EKS cluster node'ları 'NotReady' duruma düşüyor",
+              "content": "kubelet CNI plugin'e ulaşamıyor olabilir. kubectl describe node ile event'lar incelenir; aws-node DaemonSet restart edilir, IAM role'ünde AmazonEKS_CNI_Policy bağlı mı doğrulanır."
+            },
+            {
+              "title": "Route 53 DNS kaydı propagate olmuyor",
+              "content": "TTL yüksek bırakılmış veya client cache'i temizlenmemiş. dig @8.8.8.8 <host> ile authoritative cevap kontrol edilir; ipconfig /flushdns ile local cache atılır, TTL ileride 60sn'ye düşürülür."
+            },
+            {
+              "title": "S3 Glacier'dan restore 'RestoreAlreadyInProgress' veriyor",
+              "content": "Önceki restore tamamlanmamış. aws s3api head-object --bucket X --key Y ile Restore header'ı kontrol edilir; Standard tier ortalama 3-5 saat, Bulk 5-12 saat sürer."
+            },
+            {
+              "title": "VPC peering kuruldu ama paketler düşüyor",
+              "content": "Her iki taraf route table'da peering kaydı eksik. aws ec2 create-route --route-table-id rtb-xxx --destination-cidr-block 10.0.0.0/16 --vpc-peering-connection-id pcx-xxx ile manuel route eklenir, security group'ta peer CIDR allow yapılır."
+            },
+            {
+              "title": "CloudFormation stack 'UPDATE_ROLLBACK_FAILED' state'inde sıkıştı",
+              "content": "Drift veya manual değişiklik nedeniyle rollback başarısız. aws cloudformation continue-update-rollback --stack-name X --resources-to-skip <LogicalId> ile sorunlu resource skip edilir; sonra drift detection çalıştırılır."
+            },
+            {
+              "title": "Cost Explorer 'Unblended cost' beklenmedik şekilde arttı",
+              "content": "NAT Gateway data transfer veya unused EIP olabilir. Cost Explorer > Group by 'Usage Type' ile detay incelenir; aws ec2 describe-addresses ile boşta EIP'ler tespit edilip release edilir."
             }
           ]
         },
@@ -363,6 +1323,50 @@
             {
               "title": "Geri yükleme sırasında dosya checksum uyumsuzluğu",
               "content": "Repository üzerinde bozulma olabilir. 'Health Check' job tetiklenir; corrupted block'lar bir sonraki yedekte düzeltilir."
+            },
+            {
+              "title": "Azure Backup VM snapshot 'UserErrorVmNotInDesirableState' veriyor",
+              "content": "VM deallocated durumda olabilir. Azure portal > VM > Start ile başlatılır; ardından Recovery Services Vault > Backup jobs üzerinden manuel 'Backup now' tetiklenir."
+            },
+            {
+              "title": "Veeam Proxy 'Failed to process disk' VDDK hatası veriyor",
+              "content": "vCenter sertifikası değişmiş olabilir. Veeam Console > Backup Infrastructure > Managed Servers > vCenter sağ tık > 'Properties' ile yeni thumbprint kabul edilir."
+            },
+            {
+              "title": "Commvault MediaAgent 'Network path not found' uyarısı geliyor",
+              "content": "CIFS share kimlik bilgisi süresi dolmuş. CommCell Console > Storage Resources > Library > MountPath > 'Modify access path' üzerinden domain user şifresi güncellenir."
+            },
+            {
+              "title": "Rubrik SLA domain ihlali (SLA Compliance < %100)",
+              "content": "Job penceresi yetersiz veya bandwidth darboğazı var. Rubrik UI > Reports > SLA Compliance > 'Missed Snapshots' detayı açılır, job window genişletilir veya throttling kaldırılır."
+            },
+            {
+              "title": "Acronis ajanı 'Cannot connect to management server' hatası veriyor",
+              "content": "Acronis Agent servisi düşmüş veya 9877 portu kapalı. Services.msc'den 'Acronis Managed Machine Service' restart edilir; firewall'da TCP 9877 outbound açılır."
+            },
+            {
+              "title": "AWS Backup vault lock nedeniyle eski yedek silinemiyor",
+              "content": "Compliance mode lock aktif; minimum retention süresi dolmadan delete reddedilir. aws backup describe-backup-vault ile MinRetentionDays kontrol edilir; sadece governance mode'da admin override mümkündür."
+            },
+            {
+              "title": "SQL Server transaction log backup 'log chain broken' diyor",
+              "content": "Full backup atlanmış veya recovery model değişmiş. SSMS > Database > Properties > Options > Recovery model 'Full' olduğu doğrulanır; yeni FULL backup alınır, log chain yeniden başlatılır."
+            },
+            {
+              "title": "S3 Glacier Deep Archive'dan restore süresi 48 saati geçiyor",
+              "content": "Bulk retrieval tier seçilmiş olabilir. aws s3api restore-object --restore-request 'Days=7,GlacierJobParameters={Tier=Standard}' ile Standard tier (~12 saat) tercih edilir."
+            },
+            {
+              "title": "Veeam tape job 'No suitable media' uyarısı veriyor",
+              "content": "Free media pool boş veya barcode tanınmıyor. Tape Infrastructure > Media Pools > 'Free' pool'a manuel ekleme yapılır; gerekirse tape kütüphanesinde Inventory yeniden çalıştırılır."
+            },
+            {
+              "title": "Office 365 backup (Veeam VBO) 'Throttling detected' veriyor",
+              "content": "Microsoft Graph API rate-limit'i aşılmış. VBO Console > Backup Proxy sayısı artırılır, eş zamanlı job sayısı düşürülür; mailbox başına throttling reset için 24 saat beklenir."
+            },
+            {
+              "title": "Bare-metal restore sonrası sistem 'INACCESSIBLE_BOOT_DEVICE' BSOD veriyor",
+              "content": "Restore edilen donanım farklı; driver mismatch. Acronis Universal Restore veya Veeam 'Universal Restore' wizard ile yeni HAL ve storage driver enjekte edilir, sistem yeniden boot edilir."
             }
           ]
         }
