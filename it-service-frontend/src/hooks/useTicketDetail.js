@@ -4,6 +4,8 @@ import api, {
   closeTicket as closeTicketWithNote,
   unclaimTicket as unclaimTicketWithNote,
   updateTicketPriority as updateTicketPriorityApi,
+  updateTicketTopic as updateTicketTopicApi,
+  listProductTopics,
 } from '../services/api';
 import { useTicketWebSocket } from './useTicketWebSocket';
 import { REASON_CODES } from '../utils/reasonCodes';
@@ -32,6 +34,11 @@ export function useTicketDetail(id, hasRole) {
   const [extraActionsOpen, setExtraActionsOpen] = useState(false);
   const [reasonModal, setReasonModal]           = useState({ isOpen: false, action: null });
   const [assignModal, setAssignModal]           = useState(false);
+
+  const [priorityModalOpen, setPriorityModalOpen] = useState(false);
+  const [topicModalOpen, setTopicModalOpen]       = useState(false);
+  const [topicsList, setTopicsList]               = useState([]);
+  const [topicsLoading, setTopicsLoading]         = useState(false);
 
   const fileInputRef = useRef(null);
   const chatEndRef   = useRef(null);
@@ -237,12 +244,38 @@ export function useTicketDetail(id, hasRole) {
 
   const handleAssignSuccess = () => fetchTicket();
 
-  const handlePriorityChange = async (newPriority) => {
+  const handlePriorityChange = async ({ value, reasonCode, note }) => {
     try {
-      const res = await updateTicketPriorityApi(id, newPriority);
+      const res = await updateTicketPriorityApi(id, { priority: value, reasonCode, note });
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not update priority.');
+      alert(err.response?.data?.message || t('ticketDetail.priorityChangeFailed'));
+      throw err;
+    }
+  };
+
+  const openTopicModal = async () => {
+    if (!ticket?.productId) return;
+    setTopicModalOpen(true);
+    setTopicsLoading(true);
+    try {
+      const res = await listProductTopics(ticket.productId);
+      setTopicsList((res.data || []).filter((tp) => tp.isActive));
+    } catch (err) {
+      console.error('Could not load topics:', err);
+      setTopicsList([]);
+    } finally {
+      setTopicsLoading(false);
+    }
+  };
+
+  const handleTopicChange = async ({ value, reasonCode, note }) => {
+    try {
+      const res = await updateTicketTopicApi(id, { topicId: Number(value), reasonCode, note });
+      setTicket(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || t('ticketDetail.topicChangeFailed'));
+      throw err;
     }
   };
 
@@ -292,11 +325,15 @@ export function useTicketDetail(id, hasRole) {
     extraActionsOpen, setExtraActionsOpen,
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
+    priorityModalOpen, setPriorityModalOpen,
+    topicModalOpen, setTopicModalOpen, openTopicModal,
+    topicsList, topicsLoading,
     // handlers
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,
     handleResolveClick, handleSubmitResolve,
-    handleSubmitCsat, handleAssignSuccess, handlePriorityChange,
+    handleSubmitCsat, handleAssignSuccess,
+    handlePriorityChange, handleTopicChange,
     openReasonModal, closeReasonModal, handleReasonConfirm,
   };
 }

@@ -102,8 +102,14 @@ export const unclaimTicket = (ticketId, payload) =>
 export const closeTicket = (ticketId, payload) =>
   api.put(`/tickets/${ticketId}/close`, payload);
 
-export const updateTicketPriority = (ticketId, priority) =>
-  api.put(`/tickets/${ticketId}/priority`, { priority });
+export const updateTicketPriority = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/priority`, payload);
+
+export const updateTicketTopic = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/topic`, payload);
+
+export const listProductTopics = (productId) =>
+  api.get(`/products/${productId}/topics`);
 
 // Agent kapasite listesini çek (atama UI'ı için)
 export const getAgentsWithCapacity = (productId) =>

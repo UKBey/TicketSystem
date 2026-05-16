@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   FileText, UserCheck, UserMinus, UserPlus, CheckCircle2,
-  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag,
+  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag, Hash,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 
@@ -21,6 +21,7 @@ const ACTION_CONFIG = {
   CLOSE:         { icon: XCircle,     color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  labelKey: 'auditClosed'      },
   STATUS_CHANGE:   { icon: ArrowRight,  color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditStatusChange'   },
   PRIORITY_CHANGE: { icon: Flag,        color: '#ec4899', bg: 'rgba(236,72,153,0.12)',  labelKey: 'auditPriorityChange' },
+  TOPIC_CHANGE:    { icon: Hash,        color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)',  labelKey: 'auditTopicChange'    },
 };
 
 const DEFAULT_CONFIG = { icon: ArrowRight, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditUpdated' };
@@ -189,6 +190,22 @@ export default function AuditTimeline({ auditLogs }) {
                             <PriorityPill priority={entry.previousState} />
                             <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                             <PriorityPill priority={entry.newState} />
+                          </div>
+                        )
+                      ) : entry.actionType === 'TOPIC_CHANGE' ? (
+                        entry.newState && (
+                          <div className="flex items-center flex-wrap gap-1.5 mb-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {entry.previousState && (
+                              <>
+                                <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium break-words" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
+                                  {entry.previousState}
+                                </span>
+                                <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                              </>
+                            )}
+                            <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold break-words" style={{ backgroundColor: 'rgba(14,165,233,0.15)', color: '#0ea5e9' }}>
+                              {entry.newState}
+                            </span>
                           </div>
                         )
                       ) : (

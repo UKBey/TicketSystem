@@ -19,6 +19,8 @@ import CsatModal from '../components/ticket/CsatModal';
 import ResolveModal from '../components/ticket/ResolveModal';
 import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
 import AuditTimeline from '../components/ticket/AuditTimeline';
+import ChangeFieldModal from '../components/ticket/ChangeFieldModal';
+import { REASON_CODES } from '../utils/reasonCodes';
 
 export default function TicketDetail() {
   const { t }        = useTranslation();
@@ -41,7 +43,11 @@ export default function TicketDetail() {
     handleFileUpload, handleDownloadAttachment,
     handleSendComment, handleStatusChange, handleClaim,
     handleResolveClick, handleSubmitResolve,
-    handleSubmitCsat, handleAssignSuccess, handlePriorityChange,
+    handleSubmitCsat, handleAssignSuccess,
+    handlePriorityChange, handleTopicChange,
+    priorityModalOpen, setPriorityModalOpen,
+    topicModalOpen, setTopicModalOpen, openTopicModal,
+    topicsList, topicsLoading,
     openReasonModal, closeReasonModal, handleReasonConfirm,
   } = useTicketDetail(id, hasRole);
 
@@ -163,7 +169,8 @@ export default function TicketDetail() {
           isCustomer={isCustomer}
           isAgent={isAgent}
           isDark={isDark}
-          onPriorityChange={handlePriorityChange}
+          onOpenPriorityModal={() => setPriorityModalOpen(true)}
+          onOpenTopicModal={openTopicModal}
         />
 
         <WorklogCard
@@ -247,6 +254,38 @@ export default function TicketDetail() {
         isOpen={resolveModalOpen}
         onClose={() => setResolveModalOpen(false)}
         onSave={handleSubmitResolve}
+      />
+
+      <ChangeFieldModal
+        isOpen={priorityModalOpen}
+        onClose={() => setPriorityModalOpen(false)}
+        onSave={handlePriorityChange}
+        title={t('ticketDetail.changePriorityTitle')}
+        description={t('ticketDetail.changePriorityDesc')}
+        label={t('ticketDetail.changePriorityLabel')}
+        currentValue={ticket.priority}
+        options={[
+          { value: 'LOW',      label: t('ticket.priority.low') },
+          { value: 'MEDIUM',   label: t('ticket.priority.medium') },
+          { value: 'HIGH',     label: t('ticket.priority.high') },
+          { value: 'CRITICAL', label: t('ticket.priority.critical') },
+        ]}
+        reasonCodes={REASON_CODES.PRIORITY_CHANGE}
+        reasonTranslationPrefix="reasonCode.PRIORITY_CHANGE"
+      />
+
+      <ChangeFieldModal
+        isOpen={topicModalOpen}
+        onClose={() => setTopicModalOpen(false)}
+        onSave={handleTopicChange}
+        title={t('ticketDetail.changeTopicTitle')}
+        description={t('ticketDetail.changeTopicDesc')}
+        label={t('ticketDetail.changeTopicLabel')}
+        currentValue={ticket.topicId}
+        loading={topicsLoading}
+        options={topicsList.map((tp) => ({ value: tp.id, label: tp.name }))}
+        reasonCodes={REASON_CODES.TOPIC_CHANGE}
+        reasonTranslationPrefix="reasonCode.TOPIC_CHANGE"
       />
     </div>
   );
