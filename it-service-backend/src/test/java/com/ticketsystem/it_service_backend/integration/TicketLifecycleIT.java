@@ -15,7 +15,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -72,9 +71,6 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     @Autowired
     private CommentRepository commentRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     // =========================================================================
     // Test Verileri — Her test oncesinde yeniden olusturulur
     // =========================================================================
@@ -86,37 +82,17 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     private TicketTopic testTopic;
 
     // =========================================================================
-    // Test Yapilandirmasi — Temizlik ve Tohum Veri Olusturma
+    // Test Yapilandirmasi — Tohum Veri Olusturma
     // =========================================================================
 
     /**
-     * Her testten once veritabanindaki is verilerini temizler ve
-     * yeni test verileri ekler. {@code sla_policies} tablosu Flyway
-     * tarafindan yonetildigi icin dokunulmaz.
-     *
-     * <p>TRUNCATE ... CASCADE kullanilarak FK bagimlilik sirasi
-     * otomatik olarak cozumlenir.
+     * Her testten once test verisi ekler. İş tablolarının temizliği
+     * {@link BaseIntegrationTest#truncateBusinessTables()} tarafından üst
+     * sınıfta yapılır ({@code @BeforeEach} parent-first sırasıyla çağrılır).
      */
     @BeforeEach
-    void resetDatabaseAndSeedTestData() {
-        // 1. Onceki test verisini temizle (FK CASCADE ile baglantili tablolar da temizlenir)
-        jdbcTemplate.execute("""
-                TRUNCATE TABLE
-                    ticket_comments,
-                    ticket_topics,
-                    ticket_audit_logs,
-                    ticket_worklogs,
-                    ticket_attachments,
-                    csat_surveys,
-                    notifications,
-                    tickets,
-                    user_products,
-                    users,
-                    products
-                CASCADE
-                """);
-
-        // 2. Test urunu olustur
+    void seedTestData() {
+        // Test urunu olustur
         testProduct = productRepository.save(
                 Product.builder()
                         .name("IT Support")

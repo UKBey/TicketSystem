@@ -49,7 +49,7 @@ help:
 	@echo    test             - Tum testleri calistirir
 	@echo    test-backend     - Backend testleri (Maven)
 	@echo    test-frontend    - Frontend testleri (Vitest)
-	@echo    ci			   	  - Continuous Integration: test + verify + lint
+	@echo    ci			   	  - Continuous Integration: verify + test-frontend + lint
 	@echo.
 	@echo  Kapsam (Coverage):
 	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
@@ -130,9 +130,9 @@ test-frontend:
 	cd $(FRONTEND_DIR) && npm test
 
 # --- Kalite ---
-ci: # Continuous Integration: test + verify
-	make test
+ci: # Continuous Integration: backend (verify = unit + integration + jacoco) + frontend tests + lint
 	make verify
+	make test-frontend
 	make lint
 
 lint:

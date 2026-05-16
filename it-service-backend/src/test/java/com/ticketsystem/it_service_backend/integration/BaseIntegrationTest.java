@@ -1,10 +1,12 @@
 package com.ticketsystem.it_service_backend.integration;
 
 import com.ticketsystem.it_service_backend.service.KieServerAdapter;
+import org.junit.jupiter.api.BeforeEach;
 import org.kie.server.client.KieServicesClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -110,4 +112,32 @@ public abstract class BaseIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;
+
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
+
+    /**
+     * Her test öncesi iş tablolarını temizler. Postgres container singleton
+     * olarak paylaşıldığı için bir IT sınıfının bıraktığı veri sonraki sınıfın
+     * "boş DB" varsayımını kıramamalı. Flyway tarafından yönetilen referans
+     * tablolar (örn. {@code sla_policies}) korunur.
+     */
+    @BeforeEach
+    void truncateBusinessTables() {
+        jdbcTemplate.execute("""
+                TRUNCATE TABLE
+                    ticket_comments,
+                    ticket_topics,
+                    ticket_audit_logs,
+                    ticket_worklogs,
+                    ticket_attachments,
+                    csat_surveys,
+                    notifications,
+                    tickets,
+                    user_products,
+                    users,
+                    products
+                CASCADE
+                """);
+    }
 }
