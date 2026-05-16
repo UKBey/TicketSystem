@@ -92,7 +92,7 @@ export default function RateLimitConfigPanel() {
         </div>
       ) : (
         <>
-          <div className="space-y-3 p-4 sm:hidden">
+          <div className="space-y-3 p-4 lg:hidden">
             {configs.map(config => {
               const reqPerMin = Math.round((config.maxRequests / config.durationSeconds) * 60);
 
@@ -175,7 +175,7 @@ export default function RateLimitConfigPanel() {
             )}
           </div>
 
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>

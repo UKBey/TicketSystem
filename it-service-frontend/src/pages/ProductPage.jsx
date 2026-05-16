@@ -189,7 +189,7 @@ export default function ProductPage() {
           </div>
         ) : (
           <>
-            <ul className="sm:hidden p-4 space-y-3">
+            <ul className="lg:hidden p-4 space-y-3">
               {tickets.map((ticket) => (
                 <li
                   key={ticket.id}
@@ -245,7 +245,7 @@ export default function ProductPage() {
               ))}
             </ul>
 
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               <table className="w-full">
                 <thead>
                   <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>

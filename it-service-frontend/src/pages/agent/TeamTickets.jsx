@@ -143,7 +143,7 @@ export default function TeamTickets() {
           </div>
         ) : (
           <>
-          <ul className="sm:hidden space-y-3 p-4">
+          <ul className="lg:hidden space-y-3 p-4">
             {displayedTickets.map((ticket) => (
               <li
                 key={ticket.id}
@@ -196,7 +196,7 @@ export default function TeamTickets() {
               </li>
             ))}
           </ul>
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>

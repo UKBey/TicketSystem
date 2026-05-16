@@ -88,7 +88,7 @@ function AgentPerformanceTable({ data, loading }) {
         </div>
       </div>
 
-      <div className="space-y-3 sm:hidden">
+      <div className="space-y-3 lg:hidden">
         {displayedAgents.map((agent, index) => {
           const workload = loading ? 45 : Math.min(100, Math.round(((agent.activeTickets ?? 0) / Math.max(totalActiveTickets, 1)) * 100));
           const csatTone = loading ? '' : getCsatTone(agent.csatAverage ?? 0);
@@ -164,7 +164,7 @@ function AgentPerformanceTable({ data, loading }) {
         })}
       </div>
 
-      <div className="hidden overflow-hidden rounded-2xl border sm:block" style={{ borderColor: 'var(--border-color-light)' }}>
+      <div className="hidden overflow-hidden rounded-2xl border lg:block" style={{ borderColor: 'var(--border-color-light)' }}>
         <div className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
           <div>Rank</div>
           <div>Agent</div>

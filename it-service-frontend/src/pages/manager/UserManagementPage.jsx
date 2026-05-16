@@ -256,7 +256,7 @@ export default function UserManagementPage() {
           </div>
         ) : (
           <>
-            <ul className="sm:hidden space-y-3 p-4">
+            <ul className="lg:hidden space-y-3 p-4">
               {users.map((user) => {
                 const isInactive = user.isActive === false;
                 const isStatusLoading = statusLoadingId === user.id;
@@ -364,7 +364,7 @@ export default function UserManagementPage() {
                 </li>
               )}
             </ul>
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '20%' }} />

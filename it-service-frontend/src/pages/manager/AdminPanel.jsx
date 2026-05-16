@@ -158,7 +158,7 @@ function AgentLimitsPanel({ user, t }) {
   return (
     <>
       {/* Mobile: card list per product */}
-      <ul className="sm:hidden mt-3 space-y-2">
+      <ul className="lg:hidden mt-3 space-y-2">
         {authorizedProducts.map(prod => {
           const entry = limits[prod.id] || { useCustom: false, value: '', saving: false, saved: false, error: '' };
           return (
@@ -209,7 +209,7 @@ function AgentLimitsPanel({ user, t }) {
       </ul>
 
       {/* Desktop: table */}
-      <div className="hidden sm:block mt-3 rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-color)' }}>
+      <div className="hidden lg:block mt-3 rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-color)' }}>
         <table className="w-full text-xs">
           <thead>
             <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
@@ -423,7 +423,7 @@ export default function AdminPanel() {
         ) : (
           <>
             {/* Mobile: card list */}
-            <ul className="sm:hidden p-4 space-y-3">
+            <ul className="lg:hidden p-4 space-y-3">
               {users.map(user => {
                 const isAgent = user.role === 'AGENT' || user.role === 'AGENT_ADMIN';
                 const limitOpen = expandedLimitUserId === user.id;
@@ -534,7 +534,7 @@ export default function AdminPanel() {
             </ul>
 
             {/* Desktop: table */}
-            <div className="hidden sm:block">
+            <div className="hidden lg:block">
               <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '13%' }} />

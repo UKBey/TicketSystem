@@ -51,7 +51,7 @@ export default function TicketTable({
 
   return (
     <>
-      <ul className="sm:hidden space-y-3 p-4">
+      <ul className="lg:hidden space-y-3 p-4">
         {tickets.map((ticket) => (
           <li
             key={ticket.id}
@@ -107,7 +107,7 @@ export default function TicketTable({
         ))}
       </ul>
 
-      <div className="hidden sm:block">
+      <div className="hidden lg:block">
       <table className="w-full" style={{ tableLayout: 'fixed' }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}

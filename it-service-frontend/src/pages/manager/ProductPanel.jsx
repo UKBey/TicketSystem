@@ -175,7 +175,7 @@ export default function ProductPanel() {
           </div>
         </div>
 
-        <ul className="sm:hidden space-y-3 p-4">
+        <ul className="lg:hidden space-y-3 p-4">
           {paginated.map(product => {
             const topicsOpen = expandedTopicsProductId === product.id;
             return (
@@ -285,7 +285,7 @@ export default function ProductPanel() {
           )}
         </ul>
 
-        <div className="hidden sm:block">
+        <div className="hidden lg:block">
           <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>

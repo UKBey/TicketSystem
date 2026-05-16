@@ -131,7 +131,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
         </div>
       ) : (
         <>
-          <ul className="sm:hidden p-4 space-y-3">
+          <ul className="lg:hidden p-4 space-y-3">
             {topics.map((topic) => (
               <li
                 key={topic.id}
@@ -178,7 +178,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
             ))}
           </ul>
 
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
