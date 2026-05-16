@@ -142,8 +142,62 @@ export default function TeamTickets() {
             <p className="text-sm">{t('teamTickets.emptySubtitle')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <table className="w-full min-w-[800px]">
+          <>
+          <ul className="sm:hidden space-y-3 p-4">
+            {displayedTickets.map((ticket) => (
+              <li
+                key={ticket.id}
+                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                className="rounded-xl border p-4 cursor-pointer"
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-semibold text-primary-500">TCK-{String(ticket.id).padStart(3, '0')}</span>
+                  <StatusBadge status={ticket.status} />
+                </div>
+                <div className="text-sm font-medium break-words mb-1" style={{ color: 'var(--text-primary)' }}>{ticket.title}</div>
+                {(ticket.topicName || ticket.topicId) && (
+                  <div className="text-[11px] mb-2" style={{ color: 'var(--text-tertiary)' }}>{ticket.topicName || `#${ticket.topicId}`}</div>
+                )}
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <PriorityBadge priority={ticket.priority} />
+                  <SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} />
+                  {ticket.slaBreached && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                      style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}
+                    >
+                      <AlertTriangle className="h-3 w-3" />SLA
+                    </span>
+                  )}
+                </div>
+                <div className="mb-2">
+                  <ClaimerAvatars claimers={ticket.claimers} currentUserId={currentUserId} youLabel={t('ticket.table.you')} />
+                </div>
+                <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</div>
+                <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
+                  <button
+                    className="w-full inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                    disabled={joiningId === ticket.id}
+                    onClick={(e) => handleJoin(ticket.id, e)}
+                  >
+                    <Users className="h-3 w-3" />
+                    {joiningId === ticket.id ? t('teamTickets.joining') : t('teamTickets.join')}
+                  </button>
+                  {isAgentAdmin && (
+                    <button
+                      className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                      onClick={(e) => handleOpenAssign(ticket, e)}
+                    >
+                      {t('ticket.actions.assign')}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden sm:block">
+            <table className="w-full">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                   <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
@@ -212,6 +266,7 @@ export default function TeamTickets() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <PaginationBar

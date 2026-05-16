@@ -247,16 +247,125 @@ export default function UserManagementPage() {
         </div>
 
         {/* Tablo */}
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div
-                className="h-7 w-7 rounded-full border-[3px] animate-spin"
-                style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }}
-              />
-            </div>
-          ) : (
-            <table className="w-full min-w-[820px]" style={{ tableLayout: 'fixed' }}>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div
+              className="h-7 w-7 rounded-full border-[3px] animate-spin"
+              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }}
+            />
+          </div>
+        ) : (
+          <>
+            <ul className="sm:hidden space-y-3 p-4">
+              {users.map((user) => {
+                const isInactive = user.isActive === false;
+                const isStatusLoading = statusLoadingId === user.id;
+                return (
+                  <li
+                    key={user.id}
+                    className="rounded-xl border p-4"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-color)',
+                      opacity: isInactive ? 0.6 : 1,
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
+                        {user.fullName}
+                        {isInactive && (
+                          <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                            ({t('userManagement.status.inactive')})
+                          </span>
+                        )}
+                      </span>
+                      {user.role ? (
+                        <span
+                          className="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                          style={roleBadgeStyle(user.role)}
+                        >
+                          {user.role}
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: 'rgba(100,116,139,0.1)', color: 'var(--text-tertiary)', border: '1px dashed var(--border-color)' }}
+                        >
+                          {t('userManagement.table.noRole')}
+                        </span>
+                      )}
+                    </div>
+                    <dl className="text-xs space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                          {t('userManagement.table.email')}
+                        </dt>
+                        <dd className="text-right break-all">{user.email}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                          {t('userManagement.table.username')}
+                        </dt>
+                        <dd className="text-right font-mono break-all" title={user.id}>
+                          {user.id ? user.id.split('-')[0] + '…' : '—'}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                          {t('userManagement.table.createdAt')}
+                        </dt>
+                        <dd className="text-right">{formatDate(user.createdAt)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
+                      <button
+                        onClick={() => handleOpenEditRole(user)}
+                        disabled={isInactive}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {t('userManagement.editRole.buttonTitle')}
+                      </button>
+                      <button
+                        onClick={() => handleToggleStatus(user)}
+                        disabled={isStatusLoading}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{
+                          borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                          color: isInactive ? '#16a34a' : '#dc2626',
+                          backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                        }}
+                      >
+                        {isStatusLoading ? (
+                          <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
+                            style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
+                        ) : isInactive ? (
+                          <UserCheck className="h-3.5 w-3.5" />
+                        ) : (
+                          <UserX className="h-3.5 w-3.5" />
+                        )}
+                        {t(isInactive
+                          ? 'userManagement.status.activateTitle'
+                          : 'userManagement.status.deactivateTitle')}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+              {users.length === 0 && (
+                <li
+                  className="rounded-xl border text-center py-12 text-sm"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
+                >
+                  {search || roleFilter.length > 0
+                    ? t('admin.panel.noUsersFiltered')
+                    : t('userManagement.table.noUsers')}
+                </li>
+              )}
+            </ul>
+            <div className="hidden sm:block">
+              <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '20%' }} />
                 <col style={{ width: '26%' }} />
@@ -412,8 +521,9 @@ export default function UserManagementPage() {
                 )}
               </tbody>
             </table>
-          )}
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Sayfalama */}
         <PaginationBar

@@ -175,8 +175,118 @@ export default function ProductPanel() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px]">
+        <ul className="sm:hidden space-y-3 p-4">
+          {paginated.map(product => {
+            const topicsOpen = expandedTopicsProductId === product.id;
+            return (
+              <li
+                key={product.id}
+                className="rounded-xl border p-4"
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
+                    {product.name}
+                  </span>
+                  <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                    product.isActive
+                      ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
+                  }`}>
+                    {product.isActive ? t('productPanel.statusActive') : t('productPanel.statusInactive')}
+                  </span>
+                </div>
+                <dl className="text-xs space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                      {t('productPanel.colId')}
+                    </dt>
+                    <dd className="text-right font-mono">{product.id}</dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                      {t('productPanel.colMaxTickets')}
+                    </dt>
+                    <dd className="text-right">
+                      {product.maxActiveTickets == null ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
+                          {t('productPanel.unlimited')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
+                          {product.maxActiveTickets}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedTopicsProductId(topicsOpen ? null : product.id)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer"
+                    style={{
+                      borderColor: topicsOpen ? '#3b82f6' : 'var(--border-color)',
+                      backgroundColor: topicsOpen ? 'rgba(59,130,246,0.12)' : 'transparent',
+                      color: topicsOpen ? '#2563eb' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <Tag className="h-3.5 w-3.5" />
+                    {t('productPanel.manageTopics')}
+                    {topicsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/products/${product.id}`)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-[var(--bg-surface-hover)]"
+                    style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {t('productPanel.view')}
+                  </button>
+                  {isAdmin && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openModal(product)}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-[var(--bg-surface-hover)]"
+                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t('productPanel.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(product.id)}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
+                        style={{ borderColor: 'var(--border-color)', color: '#ef4444' }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {t('productPanel.delete')}
+                      </button>
+                    </>
+                  )}
+                </div>
+                {topicsOpen && (
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
+                    <ProductTopicsSection productId={product.id} isAdmin={isAdmin} />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+          {paginated.length === 0 && (
+            <li
+              className="rounded-xl border text-center py-12 text-sm"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
+            >
+              {search ? t('productPanel.noProductsFiltered') : t('productPanel.noProducts')}
+            </li>
+          )}
+        </ul>
+
+        <div className="hidden sm:block">
+          <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colId')}</th>

@@ -88,8 +88,83 @@ function AgentPerformanceTable({ data, loading }) {
         </div>
       </div>
 
-      <div className="-mx-4 overflow-x-auto sm:mx-0">
-        <div className="min-w-[760px] overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-color-light)' }}>
+      <div className="space-y-3 sm:hidden">
+        {displayedAgents.map((agent, index) => {
+          const workload = loading ? 45 : Math.min(100, Math.round(((agent.activeTickets ?? 0) / Math.max(totalActiveTickets, 1)) * 100));
+          const csatTone = loading ? '' : getCsatTone(agent.csatAverage ?? 0);
+          const barColor = getBarColor(index);
+
+          return (
+            <div key={agent.agentId ?? agent.id ?? index} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-xs font-black" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+                  {loading ? <span className="h-4 w-6 animate-pulse rounded bg-[color:var(--bg-surface)]" /> : getRankBadge(index)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {loading ? <span className="inline-block h-4 w-32 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : agent.agentName}
+                    </div>
+                    {!loading && agent.role === 'AGENT_ADMIN' && (
+                      <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
+                        <Award className="h-3 w-3" />
+                        Admin
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+                    <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.max(workload, 10)}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Active</div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {loading ? <span className="inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.activeTickets)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Resolved</div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {loading ? <span className="inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.resolvedLast24Hours)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Avg. resolution</div>
+                  <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <Clock3 className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+                    {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatHours(agent.avgResolutionHours)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>CSAT</div>
+                  <div className={`flex items-center gap-1.5 text-sm font-bold ${csatTone}`}>
+                    <Star className="h-4 w-4" />
+                    {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>SLA / Worklog</div>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <Flame className="h-4 w-4" style={{ color: 'var(--color-danger-500)' }} />
+                    {loading ? (
+                      <span className="inline-block h-4 w-20 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" />
+                    ) : (
+                      <span>
+                        {formatNumber(agent.slaBreachedCount)} SLA • {formatMinutes(agent.worklogMinutesLast7Days)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border sm:block" style={{ borderColor: 'var(--border-color-light)' }}>
         <div className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
           <div>Rank</div>
           <div>Agent</div>
@@ -162,7 +237,6 @@ function AgentPerformanceTable({ data, loading }) {
               </div>
             );
           })}
-        </div>
         </div>
       </div>
 

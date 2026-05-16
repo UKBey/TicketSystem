@@ -56,18 +56,18 @@ export default function Workspace() {
             const activeCount = tickets.filter(tk => tk.productId === limit.productId).length;
             const effectiveLimit = limit.effectiveLimit;
             return (
-              <div key={limit.productId} className="rounded-lg border p-4"
+              <div key={limit.productId} className="rounded-lg border p-4 min-w-0"
                 style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)' }}>{limit.productName}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{activeCount}</span>
+                <p className="text-xs font-semibold mb-2 truncate" style={{ color: 'var(--text-tertiary)' }} title={limit.productName}>{limit.productName}</p>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{activeCount}</span>
                   {effectiveLimit && (
                     <>
                       <span style={{ color: 'var(--text-tertiary)' }}>/</span>
-                      <span className="text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>{effectiveLimit}</span>
+                      <span className="text-base sm:text-lg font-semibold" style={{ color: 'var(--text-secondary)' }}>{effectiveLimit}</span>
                     </>
                   )}
-                  <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('workspace.activeTickets')}</span>
+                  <span className="text-xs break-words" style={{ color: 'var(--text-tertiary)' }}>{t('workspace.activeTickets')}</span>
                 </div>
                 {effectiveLimit && activeCount >= effectiveLimit && (
                   <p className="text-xs mt-2 font-semibold text-danger-600 dark:text-danger-400">{t('workspace.limitExceeded')}</p>

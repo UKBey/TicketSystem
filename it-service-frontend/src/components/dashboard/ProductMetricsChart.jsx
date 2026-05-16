@@ -70,8 +70,8 @@ function ProductMetricsChart({ data, loading }) {
   return (
     <div className="rounded-2xl border p-4 sm:p-5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-5">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-5">
+        <div className="min-w-0">
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
             Ticket Distribution by Product
           </h3>
@@ -80,7 +80,7 @@ function ProductMetricsChart({ data, loading }) {
           </p>
         </div>
         <span
-          className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+          className="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: 'rgba(59,130,246,0.10)', color: '#1d4ed8' }}
         >
           {(data?.productMetrics ?? []).length} products

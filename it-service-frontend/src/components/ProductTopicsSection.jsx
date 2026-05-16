@@ -130,75 +130,124 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
           {isAdmin ? t('topic.emptyAdmin') : t('topic.emptyUser')}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                <th
-                  className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
-                  style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
-                >
-                  {t('topic.colName')}
-                </th>
-                <th
-                  className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
-                  style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
-                >
-                  {t('topic.colStatus')}
-                </th>
-                {isAdmin && (
-                  <th
-                    className="text-right px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
-                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '160px' }}
-                  >
-                    {t('topic.colActions')}
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {topics.map((topic) => (
-                <tr key={topic.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
-                  <td className="px-4 py-2.5 text-sm font-medium break-words" style={{ color: 'var(--text-primary)' }}>
+        <>
+          <ul className="sm:hidden p-4 space-y-3">
+            {topics.map((topic) => (
+              <li
+                key={topic.id}
+                className="rounded-xl border p-4"
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
                     {topic.name}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        topic.isActive
-                          ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
-                      }`}
+                  </span>
+                  <span
+                    className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      topic.isActive
+                        ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
+                    }`}
+                  >
+                    {topic.isActive ? t('topic.statusActive') : t('topic.statusInactive')}
+                  </span>
+                </div>
+                {isAdmin && (
+                  <div
+                    className="mt-3 pt-3 border-t flex flex-col gap-2"
+                    style={{ borderColor: 'var(--border-color-light)' }}
+                  >
+                    <button
+                      className="w-full inline-flex items-center justify-center gap-1 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer"
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                      onClick={() => openEdit(topic)}
                     >
-                      {topic.isActive ? t('topic.statusActive') : t('topic.statusInactive')}
-                    </span>
-                  </td>
+                      <Pencil className="h-3 w-3" />
+                      {t('topic.edit')}
+                    </button>
+                    <button
+                      className="w-full inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                      onClick={() => handleDelete(topic)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {t('topic.delete')}
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden sm:block">
+            <table className="w-full">
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+                  <th
+                    className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
+                  >
+                    {t('topic.colName')}
+                  </th>
+                  <th
+                    className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
+                  >
+                    {t('topic.colStatus')}
+                  </th>
                   {isAdmin && (
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
-                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                          onClick={() => openEdit(topic)}
-                        >
-                          <Pencil className="h-3 w-3" />
-                          {t('topic.edit')}
-                        </button>
-                        <button
-                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                          onClick={() => handleDelete(topic)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          {t('topic.delete')}
-                        </button>
-                      </div>
-                    </td>
+                    <th
+                      className="text-right px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
+                      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '160px' }}
+                    >
+                      {t('topic.colActions')}
+                    </th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {topics.map((topic) => (
+                  <tr key={topic.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+                    <td className="px-4 py-2.5 text-sm font-medium break-words" style={{ color: 'var(--text-primary)' }}>
+                      {topic.name}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          topic.isActive
+                            ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300'
+                        }`}
+                      >
+                        {topic.isActive ? t('topic.statusActive') : t('topic.statusInactive')}
+                      </span>
+                    </td>
+                    {isAdmin && (
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                            onClick={() => openEdit(topic)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            {t('topic.edit')}
+                          </button>
+                          <button
+                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                            onClick={() => handleDelete(topic)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            {t('topic.delete')}
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {isModalOpen && (

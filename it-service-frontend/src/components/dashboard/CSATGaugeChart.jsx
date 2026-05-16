@@ -90,9 +90,9 @@ function CSATGaugeChart({ data, loading }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {!loading && (
-            <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: trendConf.bg, borderColor: trendConf.border, color: trendConf.color }}>
+            <span className="inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold break-words" style={{ backgroundColor: trendConf.bg, borderColor: trendConf.border, color: trendConf.color }}>
               {trendConf.icon} {trend.thisMonth.toFixed(2)} this month · {trendConf.label}
             </span>
           )}

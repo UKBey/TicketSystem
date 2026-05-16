@@ -188,51 +188,109 @@ export default function ProductPage() {
             <p className="text-sm">{t('product.noTickets')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
-                  <SortTh field="slaDeadline" label={t('ticket.table.sla')}      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                </tr>
-              </thead>
-              <tbody>
-                {tickets.map((ticket) => (
-                  <tr key={ticket.id}
-                    onClick={() => navigate(`/tickets/${ticket.id}`)}
-                    className="cursor-pointer transition-colors duration-150"
-                    style={{ borderBottom: '1px solid var(--border-color-light)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                    <td className="px-4 py-3 text-sm font-semibold text-primary-500">
+          <>
+            <ul className="sm:hidden p-4 space-y-3">
+              {tickets.map((ticket) => (
+                <li
+                  key={ticket.id}
+                  onClick={() => navigate(`/tickets/${ticket.id}`)}
+                  className="rounded-xl border p-4 cursor-pointer transition-colors"
+                  style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-sm font-semibold text-primary-500">
                       TCK-{String(ticket.id).padStart(3, '0')}
-                    </td>
-                    <td className="px-4 py-3 text-sm max-w-xs" style={{ color: 'var(--text-primary)' }}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-medium truncate break-words" title={ticket.title}>{ticket.title}</span>
-                        {ticket.slaBreached && (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                            style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                            <AlertTriangle className="h-3 w-3" />SLA
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
-                    <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
-                    <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      {formatDate(ticket.createdAt)}
-                    </td>
+                    </span>
+                    {ticket.slaBreached && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
+                        <AlertTriangle className="h-3 w-3" />SLA
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className="text-sm font-medium break-words mb-3"
+                    style={{ color: 'var(--text-primary)' }}
+                    title={ticket.title}
+                  >
+                    {ticket.title}
+                  </p>
+                  <dl className="text-xs space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex justify-between gap-2 items-center">
+                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('ticket.table.status')}
+                      </dt>
+                      <dd className="text-right"><StatusBadge status={ticket.status} /></dd>
+                    </div>
+                    <div className="flex justify-between gap-2 items-center">
+                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('ticket.table.priority')}
+                      </dt>
+                      <dd className="text-right"><PriorityBadge priority={ticket.priority} /></dd>
+                    </div>
+                    <div className="flex justify-between gap-2 items-center">
+                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('ticket.table.sla')}
+                      </dt>
+                      <dd className="text-right"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+                        {t('ticket.table.created')}
+                      </dt>
+                      <dd className="text-right break-words">{formatDate(ticket.createdAt)}</dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden sm:block">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+                    <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                    <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                    <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                    <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
+                    <SortTh field="slaDeadline" label={t('ticket.table.sla')}      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
+                    <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {tickets.map((ticket) => (
+                    <tr key={ticket.id}
+                      onClick={() => navigate(`/tickets/${ticket.id}`)}
+                      className="cursor-pointer transition-colors duration-150"
+                      style={{ borderBottom: '1px solid var(--border-color-light)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                      <td className="px-4 py-3 text-sm font-semibold text-primary-500">
+                        TCK-{String(ticket.id).padStart(3, '0')}
+                      </td>
+                      <td className="px-4 py-3 text-sm max-w-xs" style={{ color: 'var(--text-primary)' }}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium truncate break-words" title={ticket.title}>{ticket.title}</span>
+                          {ticket.slaBreached && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                              style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
+                              <AlertTriangle className="h-3 w-3" />SLA
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
+                      <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
+                      <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {formatDate(ticket.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <PaginationBar

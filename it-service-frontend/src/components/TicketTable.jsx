@@ -50,8 +50,65 @@ export default function TicketTable({
   const sortable = typeof onSort === 'function';
 
   return (
-    <div className="overflow-x-auto -mx-4 sm:mx-0">
-      <table className="w-full min-w-[720px]" style={{ tableLayout: 'fixed' }}>
+    <>
+      <ul className="sm:hidden space-y-3 p-4">
+        {tickets.map((ticket) => (
+          <li
+            key={ticket.id}
+            onClick={() => navigate(`/tickets/${ticket.id}`)}
+            className="rounded-xl border p-4 cursor-pointer"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+          >
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs font-semibold text-primary-500">TCK-{String(ticket.id).padStart(3, '0')}</span>
+              <StatusBadge status={ticket.status} />
+            </div>
+            <div className="text-sm font-medium break-words mb-1" style={{ color: 'var(--text-primary)' }}>{ticket.title}</div>
+            {(ticket.topicName || ticket.topicId) && (
+              <div className="text-[11px] mb-2" style={{ color: 'var(--text-tertiary)' }}>{ticket.topicName || `#${ticket.topicId}`}</div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <PriorityBadge priority={ticket.priority} />
+              {showSla && <SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} />}
+              {ticket.slaBreached && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}
+                >
+                  <AlertTriangle className="h-3 w-3" />SLA
+                </span>
+              )}
+            </div>
+            {showClaimers && (
+              <div className="mb-2">
+                <ClaimerPills claimers={ticket.claimers} currentUserId={currentUserId} t={t} />
+              </div>
+            )}
+            <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</div>
+            {showClaimButton && (
+              <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
+                <button
+                  className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
+                >
+                  {t('ticket.actions.claim')}
+                </button>
+                {showAssignButton && (
+                  <button
+                    className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
+                  >
+                    {t('ticket.actions.assign')}
+                  </button>
+                )}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden sm:block">
+      <table className="w-full" style={{ tableLayout: 'fixed' }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}
           <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
@@ -153,7 +210,8 @@ export default function TicketTable({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 
