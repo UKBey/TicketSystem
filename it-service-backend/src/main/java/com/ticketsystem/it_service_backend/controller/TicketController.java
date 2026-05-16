@@ -3,10 +3,12 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.AssignTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO;
+import com.ticketsystem.it_service_backend.dto.PriorityChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
+import com.ticketsystem.it_service_backend.dto.TopicChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
@@ -309,19 +311,35 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
-    @Operation(summary = "Bilet önceliği güncelle")
+    @Operation(summary = "Bilet önceliği güncelle (sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/priority")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> updatePriority(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body,
+            @RequestBody @Valid PriorityChangeRequestDTO dto,
             @AuthenticationPrincipal Jwt jwt) {
-        String newPriority = body.get("priority");
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        log.info("Bilet önceliği güncelleme isteği. Bilet ID: {}, Yeni Öncelik: {}, Kullanıcı: {}", id, newPriority, userId);
-        Ticket ticket = ticketService.updateTicketPriority(id, newPriority, userId, roles);
-        log.info("Bilet önceliği güncellendi. Bilet ID: {}, Öncelik: {}", id, newPriority);
+        log.info("Bilet önceliği güncelleme isteği. Bilet ID: {}, Yeni Öncelik: {}, Sebep: {}, Kullanıcı: {}",
+                id, dto.getPriority(), dto.getReasonCode(), userId);
+        Ticket ticket = ticketService.updateTicketPriority(id, dto.getPriority(), dto.getReasonCode(), dto.getNote(), userId, roles);
+        log.info("Bilet önceliği güncellendi. Bilet ID: {}, Öncelik: {}", id, dto.getPriority());
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
+    @Operation(summary = "Bilet konusunu güncelle (aynı ürüne bağlı aktif bir topic; sebep kodu zorunlu, OTHER ise not zorunlu)")
+    @PutMapping("/{id}/topic")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    public ResponseEntity<TicketResponseDTO> updateTopic(
+            @PathVariable Long id,
+            @RequestBody @Valid TopicChangeRequestDTO dto,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet konusu güncelleme isteği. Bilet ID: {}, Yeni Topic: {}, Sebep: {}, Kullanıcı: {}",
+                id, dto.getTopicId(), dto.getReasonCode(), userId);
+        Ticket ticket = ticketService.updateTicketTopic(id, dto.getTopicId(), dto.getReasonCode(), dto.getNote(), userId, roles);
+        log.info("Bilet konusu güncellendi. Bilet ID: {}, Topic: {}", id, dto.getTopicId());
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 

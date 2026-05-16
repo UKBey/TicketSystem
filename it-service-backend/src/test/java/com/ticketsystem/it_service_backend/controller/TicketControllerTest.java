@@ -604,15 +604,18 @@ class TicketControllerTest {
     void updatePriority_returnsDto() {
         Ticket updated = Ticket.builder().id(7100L).title("t").description("d")
                 .priority("CRITICAL").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
-        when(ticketService.updateTicketPriority(7100L, "CRITICAL", "agent-1", List.of("AGENT")))
+        when(ticketService.updateTicketPriority(7100L, "CRITICAL", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")))
                 .thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("C").email("c@x").role("CUSTOMER").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(updated)).thenReturn(Map.<String, Object>of("deadlineTs", 1L));
 
+        com.ticketsystem.it_service_backend.dto.PriorityChangeRequestDTO dto =
+                com.ticketsystem.it_service_backend.dto.PriorityChangeRequestDTO.builder()
+                        .priority("CRITICAL").reasonCode("CUSTOMER_IMPACT").build();
         ResponseEntity<TicketResponseDTO> response =
-                ticketController.updatePriority(7100L, Map.of("priority", "CRITICAL"), jwtWithRole("agent-1", "AGENT"));
+                ticketController.updatePriority(7100L, dto, jwtWithRole("agent-1", "AGENT"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("CRITICAL", response.getBody().getPriority());

@@ -33,10 +33,10 @@ public class TicketAuditLog {
     @Column(columnDefinition = "TEXT")
     private String note;
 
-    @Column(name = "previous_state", length = 30)
+    @Column(name = "previous_state", length = 255)
     private String previousState;
 
-    @Column(name = "new_state", length = 30)
+    @Column(name = "new_state", length = 255)
     private String newState;
 
     @Column(name = "created_at", nullable = false, updatable = false)

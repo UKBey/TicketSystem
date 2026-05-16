@@ -2074,7 +2074,7 @@ class TicketServiceTest {
     @DisplayName("updateTicketPriority → geçersiz priority → BAD_REQUEST")
     void updateTicketPriority_invalid_throwsBadRequest() {
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketPriority(950L, "URGENT", "agent-1", List.of("AGENT")));
+                () -> ticketService.updateTicketPriority(950L, "URGENT", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")));
     }
 
     @Test
@@ -2084,7 +2084,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "LOW", "agent-1", List.of("AGENT"));
+        Ticket result = ticketService.updateTicketPriority(950L, "LOW", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("LOW", result.getPriority());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -2099,7 +2099,7 @@ class TicketServiceTest {
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService).pauseSla(existing);
@@ -2116,7 +2116,7 @@ class TicketServiceTest {
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(7_200_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());
@@ -2133,7 +2133,7 @@ class TicketServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());
@@ -2148,7 +2148,7 @@ class TicketServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "agent-1", List.of("AGENT"));
+        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());

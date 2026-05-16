@@ -850,7 +850,8 @@ public class TicketService {
     }
 
     @Transactional
-    public Ticket updateTicketPriority(Long id, String newPriority, String userId, List<String> roles) {
+    public Ticket updateTicketPriority(Long id, String newPriority, String reasonCode, String note,
+                                       String userId, List<String> roles) {
         log.info("Öncelik güncelleme. Bilet: {}, Yeni Öncelik: {}, Kullanıcı: {}", id, newPriority, userId);
         List<String> valid = List.of("LOW", "MEDIUM", "HIGH", "CRITICAL");
         if (!valid.contains(newPriority)) {
@@ -895,7 +896,39 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
-        recordTicketAuditLog(saved, userId, "PRIORITY_CHANGE", null, oldPriority, newPriority);
+        recordTicketAuditLog(saved, userId, "PRIORITY_CHANGE", reasonCode, note, oldPriority, newPriority);
+        return saved;
+    }
+
+    @Transactional
+    public Ticket updateTicketTopic(Long id, Long newTopicId, String reasonCode, String note,
+                                    String userId, List<String> roles) {
+        log.info("Konu güncelleme. Bilet: {}, Yeni Topic: {}, Kullanıcı: {}", id, newTopicId, userId);
+        if (newTopicId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.required");
+        }
+
+        Ticket ticket = getTicketWithAuth(id, userId, roles);
+        Long oldTopicId = ticket.getTopicId();
+        if (newTopicId.equals(oldTopicId)) return ticket;
+
+        TicketTopic newTopic = ticketTopicRepository.findById(newTopicId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.ticket.topic.notfound"));
+
+        if (!newTopic.getProductId().equals(ticket.getProductId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.product.mismatch");
+        }
+        if (Boolean.FALSE.equals(newTopic.getIsActive())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.inactive");
+        }
+
+        String oldTopicName = oldTopicId != null
+                ? ticketTopicRepository.findById(oldTopicId).map(TicketTopic::getName).orElse(String.valueOf(oldTopicId))
+                : null;
+
+        ticket.setTopicId(newTopicId);
+        Ticket saved = ticketRepository.save(ticket);
+        recordTicketAuditLog(saved, userId, "TOPIC_CHANGE", reasonCode, note, oldTopicName, newTopic.getName());
         return saved;
     }
 
