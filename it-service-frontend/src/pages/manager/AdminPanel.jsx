@@ -156,79 +156,124 @@ function AgentLimitsPanel({ user, t }) {
   }
 
   return (
-    <div className="mt-3 rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-color)' }}>
-      <table className="w-full text-xs">
-        <thead>
-          <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsProduct')}</th>
-            <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsDefault')}</th>
-            <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsCustom')}</th>
-            <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsValue')}</th>
-            <th className="px-3 py-2" />
-          </tr>
-        </thead>
-        <tbody>
-          {authorizedProducts.map(prod => {
-            const entry = limits[prod.id] || { useCustom: false, value: '', saving: false, saved: false, error: '' };
-            return (
-              <tr key={prod.id} style={{ borderTop: '1px solid var(--border-color-light)' }}>
-                {/* Ürün adı */}
-                <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{prod.name}</td>
+    <>
+      {/* Mobile: card list per product */}
+      <ul className="sm:hidden mt-3 space-y-2">
+        {authorizedProducts.map(prod => {
+          const entry = limits[prod.id] || { useCustom: false, value: '', saving: false, saved: false, error: '' };
+          return (
+            <li key={prod.id} className="rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{prod.name}</span>
+                <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
+                  {t('admin.panel.agentLimitsDefault')}: {prod.maxActiveTickets ?? t('admin.panel.agentLimitsUnlimited')}
+                </span>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none mb-2">
+                <input
+                  type="checkbox"
+                  checked={entry.useCustom}
+                  onChange={e => handleToggle(prod.id, e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('admin.panel.agentLimitsCustom')}: {entry.useCustom ? 'Açık' : 'Kapalı'}</span>
+              </label>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="number"
+                  min="1"
+                  disabled={!entry.useCustom}
+                  value={entry.value}
+                  onChange={e => handleValue(prod.id, e.target.value)}
+                  placeholder="—"
+                  className="flex-1 rounded border px-2 py-1.5 text-xs outline-none focus:ring-2 disabled:opacity-40"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: entry.error ? '#ef4444' : 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+                />
+                {entry.error && <span className="text-[10px]" style={{ color: '#ef4444' }}>{entry.error}</span>}
+              </div>
+              <button
+                onClick={() => handleSave(prod.id)}
+                disabled={entry.saving}
+                className="inline-flex w-full items-center justify-center gap-1 rounded px-2.5 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: entry.saved ? '#22c55e' : '#3b82f6' }}
+              >
+                {entry.saved
+                  ? <><Check className="h-3 w-3" />{t('admin.panel.agentLimitsSaved')}</>
+                  : entry.saving
+                    ? '…'
+                    : t('admin.panel.agentLimitsSave')}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
 
-                {/* Varsayılan limit */}
-                <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>
-                  {prod.maxActiveTickets ?? <span style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsUnlimited')}</span>}
-                </td>
-
-                {/* Toggle */}
-                <td className="px-3 py-2">
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+      {/* Desktop: table */}
+      <div className="hidden sm:block mt-3 rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-color)' }}>
+        <table className="w-full text-xs">
+          <thead>
+            <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
+              <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsProduct')}</th>
+              <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsDefault')}</th>
+              <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsCustom')}</th>
+              <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsValue')}</th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {authorizedProducts.map(prod => {
+              const entry = limits[prod.id] || { useCustom: false, value: '', saving: false, saved: false, error: '' };
+              return (
+                <tr key={prod.id} style={{ borderTop: '1px solid var(--border-color-light)' }}>
+                  <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{prod.name}</td>
+                  <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>
+                    {prod.maxActiveTickets ?? <span style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsUnlimited')}</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={entry.useCustom}
+                        onChange={e => handleToggle(prod.id, e.target.checked)}
+                        className="rounded"
+                      />
+                      <span style={{ color: 'var(--text-secondary)' }}>{entry.useCustom ? 'Açık' : 'Kapalı'}</span>
+                    </label>
+                  </td>
+                  <td className="px-3 py-2">
                     <input
-                      type="checkbox"
-                      checked={entry.useCustom}
-                      onChange={e => handleToggle(prod.id, e.target.checked)}
-                      className="rounded"
+                      type="number"
+                      min="1"
+                      disabled={!entry.useCustom}
+                      value={entry.value}
+                      onChange={e => handleValue(prod.id, e.target.value)}
+                      placeholder="—"
+                      className="w-20 rounded border px-2 py-1 text-xs outline-none focus:ring-2 disabled:opacity-40"
+                      style={{ backgroundColor: 'var(--bg-input)', borderColor: entry.error ? '#ef4444' : 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                     />
-                    <span style={{ color: 'var(--text-secondary)' }}>{entry.useCustom ? 'Açık' : 'Kapalı'}</span>
-                  </label>
-                </td>
-
-                {/* Değer input */}
-                <td className="px-3 py-2">
-                  <input
-                    type="number"
-                    min="1"
-                    disabled={!entry.useCustom}
-                    value={entry.value}
-                    onChange={e => handleValue(prod.id, e.target.value)}
-                    placeholder="—"
-                    className="w-20 rounded border px-2 py-1 text-xs outline-none focus:ring-2 disabled:opacity-40"
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: entry.error ? '#ef4444' : 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
-                  />
-                  {entry.error && <span className="ml-1 text-[10px]" style={{ color: '#ef4444' }}>{entry.error}</span>}
-                </td>
-
-                {/* Kaydet butonu */}
-                <td className="px-3 py-2">
-                  <button
-                    onClick={() => handleSave(prod.id)}
-                    disabled={entry.saving}
-                    className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
-                    style={{ backgroundColor: entry.saved ? '#22c55e' : '#3b82f6' }}
-                  >
-                    {entry.saved
-                      ? <><Check className="h-3 w-3" />{t('admin.panel.agentLimitsSaved')}</>
-                      : entry.saving
-                        ? '…'
-                        : t('admin.panel.agentLimitsSave')}
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                    {entry.error && <span className="ml-1 text-[10px]" style={{ color: '#ef4444' }}>{entry.error}</span>}
+                  </td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => handleSave(prod.id)}
+                      disabled={entry.saving}
+                      className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
+                      style={{ backgroundColor: entry.saved ? '#22c55e' : '#3b82f6' }}
+                    >
+                      {entry.saved
+                        ? <><Check className="h-3 w-3" />{t('admin.panel.agentLimitsSaved')}</>
+                        : entry.saving
+                          ? '…'
+                          : t('admin.panel.agentLimitsSave')}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -369,15 +414,128 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto -mx-px">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="h-7 w-7 rounded-full border-[3px] animate-spin"
-                style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-            </div>
-          ) : (
-            <table className="w-full min-w-[900px]" style={{ tableLayout: 'fixed' }}>
+        {/* Loading state shared by both layouts */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="h-7 w-7 rounded-full border-[3px] animate-spin"
+              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
+          </div>
+        ) : (
+          <>
+            {/* Mobile: card list */}
+            <ul className="sm:hidden p-4 space-y-3">
+              {users.map(user => {
+                const isAgent = user.role === 'AGENT' || user.role === 'AGENT_ADMIN';
+                const limitOpen = expandedLimitUserId === user.id;
+                return (
+                  <li key={user.id} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{user.fullName}</span>
+                      {user.role ? (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold whitespace-nowrap"
+                          style={roleBadgeStyle(user.role)}
+                        >
+                          {user.role}
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: 'rgba(100,116,139,0.1)', color: 'var(--text-tertiary)', border: '1px dashed var(--border-color)' }}
+                        >
+                          —
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs break-all mb-3" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+
+                    <div className="mb-3">
+                      <p className="text-[11px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.colAuthorized')}</p>
+                      <ProductChips
+                        products={user.authorizedProducts}
+                        onRemove={(productId) => handleRemoveProduct(user.id, productId)}
+                        t={t}
+                      />
+                    </div>
+
+                    <div className="mb-3">
+                      <p className="text-[11px] uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.colAssign')}</p>
+                      <div className="flex flex-col gap-2">
+                        <select
+                          className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none transition-all focus:ring-2 cursor-pointer"
+                          style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+                          onChange={(e) => setSelectedProductId(e.target.value)}
+                          value={selectedProductId}
+                        >
+                          <option value="">{t('admin.panel.selectProduct')}</option>
+                          {products
+                            .filter(p => !(user.authorizedProducts || []).some(ap => ap.id === p.id))
+                            .map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))
+                          }
+                        </select>
+                        <button
+                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                          onClick={() => handleAssignProduct(user.id)}
+                        >
+                          <Plus className="h-3 w-3" />
+                          {t('admin.panel.addProduct')}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isAgent && (
+                      <div className="pt-3 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
+                        <button
+                          onClick={() => setExpandedLimitUserId(limitOpen ? null : user.id)}
+                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer"
+                          style={{
+                            backgroundColor: limitOpen ? 'var(--bg-surface-secondary)' : 'var(--bg-input)',
+                            borderColor: limitOpen ? 'var(--primary-500, #3b82f6)' : 'var(--border-color)',
+                            color: limitOpen ? 'var(--primary-500, #3b82f6)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          <Settings2 className="h-3 w-3" />
+                          {t('admin.panel.agentLimits')}
+                        </button>
+                        {limitOpen && (
+                          <div className="mt-3 rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)' }}>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
+                                  {t('admin.panel.agentLimitsTitle', { name: user.fullName })}
+                                </p>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                  {t('admin.panel.agentLimitsSubtitle')}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => setExpandedLimitUserId(null)}
+                                className="rounded p-1 flex-shrink-0 transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
+                                style={{ color: 'var(--text-tertiary)' }}
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <AgentLimitsPanel user={user} t={t} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+              {users.length === 0 && (
+                <li className="text-center py-12 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                  {search || roleFilter.length > 0 ? t('admin.panel.noUsersFiltered') : t('admin.panel.noUsers')}
+                </li>
+              )}
+            </ul>
+
+            {/* Desktop: table */}
+            <div className="hidden sm:block">
+              <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '13%' }} />
                 <col style={{ width: '18%' }} />
@@ -526,8 +684,9 @@ export default function AdminPanel() {
                 )}
               </tbody>
             </table>
-          )}
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Pagination */}
         <PaginationBar
