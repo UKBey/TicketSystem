@@ -211,6 +211,39 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    @Operation(summary = "Yetkili olunan tüm ürünlerdeki tüm statülerdeki biletler — sayfalama + filtreleme",
+            description = "Agent/Agent Admin için 'All Tickets' sayfasının veri kaynağı. NEW ve CLOSED dahil tüm statüleri içerir.")
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    public ResponseEntity<Page<TicketResponseDTO>> getAllAccessibleTickets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0")   int page,
+            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) List<String> status,
+            @RequestParam(required = false) List<String> priority,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) List<Long> productId,
+            @RequestParam(required = false) List<String> agentId,
+            @RequestParam(required = false) List<Long> topicId,
+            @RequestParam(required = false) List<String> slaStatus,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
+
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        PageRequest pageable = PageRequest.of(page, size, sort);
+        TicketFilterDTO filter = TicketFilterDTO.builder()
+                .statuses(status).priorities(priority).search(search).productIds(productId)
+                .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
+                .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
+
+        Page<Ticket> tickets = ticketService.getAllAccessibleTicketsFiltered(userId, roles, filter, pageable);
+        return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
+    }
+
     @Operation(summary = "Bilet detayı getir")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponseDTO> getTicket(

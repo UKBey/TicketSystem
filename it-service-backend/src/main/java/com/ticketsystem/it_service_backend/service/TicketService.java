@@ -374,6 +374,43 @@ public class TicketService {
         return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
     }
 
+    /**
+     * Kullanıcının yetkili olduğu tüm ürünlerdeki TÜM statülerdeki ticket'ları döner.
+     * `getTeamTicketsFiltered`'ın aksine NEW/CLOSED'ları da içerir. "All Tickets" sayfası kullanır.
+     */
+    @Transactional(readOnly = true)
+    public Page<Ticket> getAllAccessibleTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
+        if (userId == null) return Page.empty(pageable);
+
+        User agent = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+        List<Long> productIds = agent.getAuthorizedProducts().stream()
+                .map(Product::getId).collect(Collectors.toList());
+        if (productIds.isEmpty()) return Page.empty(pageable);
+
+        List<String> statuses = (f.getStatuses() != null && !f.getStatuses().isEmpty()) ? f.getStatuses() : ALL_STATUSES;
+        if (isSortByPriority(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, statuses, f.getPriorities(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, statuses, f.getPriorities(), u);
+        }
+        if (isSortBySla(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
+        }
+        if (hasExtraFilters(f)) {
+            return ticketRepository.findTeamTicketsFullFiltered(
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+        }
+        return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
+    }
+
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductPaged(Long productId, String userId, List<String> roles,
                                                   String status, String priority, Pageable pageable) {
