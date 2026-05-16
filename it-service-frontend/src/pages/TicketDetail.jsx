@@ -30,6 +30,7 @@ export default function TicketDetail() {
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
+  const [priorityInitial, setPriorityInitial] = useState(null);
 
   const {
     ticket, loading, timeline, slaInfo, currentDate,
@@ -169,7 +170,7 @@ export default function TicketDetail() {
           isCustomer={isCustomer}
           isAgent={isAgent}
           isDark={isDark}
-          onOpenPriorityModal={() => setPriorityModalOpen(true)}
+          onPriorityChangeRequest={(p) => { setPriorityInitial(p); setPriorityModalOpen(true); }}
           onOpenTopicModal={openTopicModal}
         />
 
@@ -258,12 +259,13 @@ export default function TicketDetail() {
 
       <ChangeFieldModal
         isOpen={priorityModalOpen}
-        onClose={() => setPriorityModalOpen(false)}
+        onClose={() => { setPriorityModalOpen(false); setPriorityInitial(null); }}
         onSave={handlePriorityChange}
         title={t('ticketDetail.changePriorityTitle')}
         description={t('ticketDetail.changePriorityDesc')}
         label={t('ticketDetail.changePriorityLabel')}
         currentValue={ticket.priority}
+        initialValue={priorityInitial}
         options={[
           { value: 'LOW',      label: t('ticket.priority.low') },
           { value: 'MEDIUM',   label: t('ticket.priority.medium') },

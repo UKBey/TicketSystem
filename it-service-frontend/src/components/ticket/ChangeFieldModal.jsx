@@ -12,23 +12,24 @@ export default function ChangeFieldModal({
   label,
   options,
   currentValue,
+  initialValue,
   loading = false,
   reasonCodes,
   reasonTranslationPrefix,
 }) {
   const { t } = useTranslation();
-  const [value, setValue]           = useState(currentValue ?? '');
+  const [value, setValue]           = useState(initialValue ?? currentValue ?? '');
   const [reasonCode, setReasonCode] = useState('');
   const [noteText, setNoteText]     = useState('');
   const [saving, setSaving]         = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setValue(currentValue ?? '');
+      setValue(initialValue ?? currentValue ?? '');
       setReasonCode('');
       setNoteText('');
     }
-  }, [isOpen, currentValue]);
+  }, [isOpen, initialValue, currentValue]);
 
   useEffect(() => {
     if (!isOpen) return undefined;

@@ -12,10 +12,19 @@ function DetailRow({ label, value }) {
   );
 }
 
+const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+const PRIORITY_STYLES = {
+  LOW:      { color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
+  HIGH:     { color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
+  CRITICAL: { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)'  },
+};
+
 export default function TicketDetailsCard({
   ticket, slaInfo, currentDate,
   isCustomer, isAgent, isDark,
-  onOpenPriorityModal, onOpenTopicModal,
+  onPriorityChangeRequest, onOpenTopicModal,
 }) {
   const { t } = useTranslation();
 
@@ -93,20 +102,33 @@ export default function TicketDetailsCard({
 
         <div>
           <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('ticketDetail.priority')}</div>
-          <div className="flex flex-wrap items-center gap-2">
+          {isAgent && ticket.status !== 'CLOSED' ? (
+            <div className="flex flex-wrap gap-1.5">
+              {PRIORITY_OPTIONS.map((p) => {
+                const { color, bg } = PRIORITY_STYLES[p];
+                const isActive = ticket.priority === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => !isActive && onPriorityChangeRequest?.(p)}
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: isActive ? bg : 'transparent',
+                      color: isActive ? color : 'var(--text-tertiary)',
+                      border: `1.5px solid ${isActive ? color : 'var(--border-color)'}`,
+                      opacity: isActive ? 1 : 0.65,
+                    }}
+                    title={isActive ? undefined : t('ticketDetail.changePriority')}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
             <PriorityBadge priority={ticket.priority} />
-            {isAgent && ticket.status !== 'CLOSED' && (
-              <button
-                onClick={onOpenPriorityModal}
-                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer hover:bg-[var(--bg-surface-secondary)]"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                title={t('ticketDetail.changePriority')}
-              >
-                <Pencil className="h-3 w-3" />
-                {t('ticketDetail.changePriority')}
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {(ticket.topicName || ticket.topicId) && (
@@ -118,13 +140,14 @@ export default function TicketDetailsCard({
               </span>
               {isAgent && ticket.status !== 'CLOSED' && (
                 <button
+                  type="button"
                   onClick={onOpenTopicModal}
-                  className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer hover:bg-[var(--bg-surface-secondary)]"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors cursor-pointer hover:bg-[var(--bg-surface-secondary)]"
                   style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                   title={t('ticketDetail.changeTopic')}
+                  aria-label={t('ticketDetail.changeTopic')}
                 >
                   <Pencil className="h-3 w-3" />
-                  {t('ticketDetail.changeTopic')}
                 </button>
               )}
             </div>
