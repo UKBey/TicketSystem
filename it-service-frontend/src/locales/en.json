@@ -341,6 +341,20 @@
       "CUSTOMER_REQUEST": "Customer requested closure",
       "OTHER": "Other",
       "CSAT_SUBMITTED": "Customer submitted CSAT"
+    },
+    "PRIORITY_CHANGE": {
+      "CUSTOMER_IMPACT": "Customer impact changed",
+      "BUSINESS_URGENCY": "Business urgency changed",
+      "SLA_REASSESSMENT": "SLA reassessed",
+      "INCORRECT_INITIAL": "Initial priority was incorrect",
+      "OTHER": "Other"
+    },
+    "TOPIC_CHANGE": {
+      "MISCATEGORIZED": "Originally miscategorized",
+      "SCOPE_REFINED": "Ticket scope refined",
+      "ROOT_CAUSE_DIFFERENT": "Root cause points to a different topic",
+      "CUSTOMER_CLARIFIED": "Customer clarified the request",
+      "OTHER": "Other"
     }
   },
   "ticketDetail": {
@@ -395,6 +409,17 @@
     "auditAssigned": "Assigned",
     "auditStatusChange": "Status Changed",
     "auditPriorityChange": "Priority Changed",
+    "auditTopicChange": "Topic Changed",
+    "changePriority": "Change priority",
+    "changePriorityTitle": "Change ticket priority",
+    "changePriorityDesc": "Pick a new priority. The change will be audit-logged.",
+    "changePriorityLabel": "New priority",
+    "changeTopic": "Change topic",
+    "changeTopicTitle": "Change ticket topic",
+    "changeTopicDesc": "Move the ticket to a different topic under the same product. The change will be audit-logged.",
+    "changeTopicLabel": "New topic",
+    "topicChangeFailed": "Could not change topic.",
+    "priorityChangeFailed": "Could not change priority.",
     "statusNew": "New",
     "statusInProgress": "In Progress",
     "statusWaiting": "Waiting for Customer Response",
@@ -443,6 +468,7 @@
   },
   "form": {
     "save": "Save",
+    "saving": "Saving...",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "delete": "Delete",

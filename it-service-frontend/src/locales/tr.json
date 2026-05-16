@@ -341,6 +341,20 @@
       "CUSTOMER_REQUEST": "Müşteri kapatılmasını istedi",
       "OTHER": "Diğer",
       "CSAT_SUBMITTED": "Müşteri anketi gönderdi"
+    },
+    "PRIORITY_CHANGE": {
+      "CUSTOMER_IMPACT": "Müşteri etkisi değişti",
+      "BUSINESS_URGENCY": "İş için aciliyet arttı / düştü",
+      "SLA_REASSESSMENT": "SLA yeniden değerlendirildi",
+      "INCORRECT_INITIAL": "İlk öncelik yanlış belirlenmişti",
+      "OTHER": "Diğer"
+    },
+    "TOPIC_CHANGE": {
+      "MISCATEGORIZED": "Yanlış konuda açılmış",
+      "SCOPE_REFINED": "Talep kapsamı netleşti",
+      "ROOT_CAUSE_DIFFERENT": "Kök neden başka konuyu işaret ediyor",
+      "CUSTOMER_CLARIFIED": "Müşteri talebini netleştirdi",
+      "OTHER": "Diğer"
     }
   },
   "ticketDetail": {
@@ -395,6 +409,17 @@
     "auditAssigned": "Atandı",
     "auditStatusChange": "Durum Değişti",
     "auditPriorityChange": "Öncelik Değişti",
+    "auditTopicChange": "Konu Değişti",
+    "changePriority": "Önceliği değiştir",
+    "changePriorityTitle": "Bilet önceliğini değiştir",
+    "changePriorityDesc": "Yeni bir öncelik seçin. Değişiklik audit log'a kaydedilecek.",
+    "changePriorityLabel": "Yeni öncelik",
+    "changeTopic": "Konuyu değiştir",
+    "changeTopicTitle": "Bilet konusunu değiştir",
+    "changeTopicDesc": "Bileti aynı ürüne bağlı başka bir konuya taşıyın. Değişiklik audit log'a kaydedilecek.",
+    "changeTopicLabel": "Yeni konu",
+    "topicChangeFailed": "Konu değiştirilemedi.",
+    "priorityChangeFailed": "Öncelik değiştirilemedi.",
     "statusNew": "Yeni",
     "statusInProgress": "İşlemde",
     "statusWaiting": "Müşteri Yanıtı Bekleniyor",
@@ -443,6 +468,7 @@
   },
   "form": {
     "save": "Kaydet",
+    "saving": "Kaydediliyor...",
     "cancel": "İptal",
     "confirm": "Onayla",
     "delete": "Sil",
