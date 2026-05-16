@@ -78,7 +78,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border animate-slide-up"
+        className="w-full max-w-md sm:max-w-lg rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-color)',
@@ -88,21 +88,21 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between gap-4 px-6 py-4 border-b"
+          className="flex items-start justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-4 border-b flex-shrink-0"
           style={{ borderColor: 'var(--border-color)' }}
         >
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold break-words" style={{ color: 'var(--text-primary)' }}>
               {t('ticket.agentModal.title')}
             </h3>
-            <p className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="mt-0.5 text-sm break-words" style={{ color: 'var(--text-secondary)' }}>
               TCK-{String(ticketId).padStart(3, '0')} — {t('ticket.agentModal.subtitle')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
             style={{ color: 'var(--text-tertiary)' }}
             aria-label={t('ticket.agentModal.closeModal')}
           >
@@ -110,8 +110,8 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
           </button>
         </div>
 
-        <form onSubmit={handleAssign}>
-          <div className="px-6 py-5 space-y-4">
+        <form onSubmit={handleAssign} className="flex flex-col min-h-0 flex-1">
+          <div className="px-4 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
             {/* Submit error */}
             {submitError && (
@@ -177,12 +177,12 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                         }}
                       >
                         {/* Agent adı + seçim ikonu */}
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {isSelected && (
                             <UserCheck className="h-4 w-4 shrink-0 text-primary-500" />
                           )}
                           <span
-                            className="text-sm font-medium truncate"
+                            className="text-sm font-medium break-words min-w-0"
                             style={{ color: isFull ? 'var(--text-tertiary)' : 'var(--text-primary)' }}
                           >
                             {agent.agentName}
@@ -190,7 +190,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                         </div>
 
                         {/* Kapasite badge */}
-                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <div className="flex items-center gap-2 shrink-0 ml-2 sm:ml-3">
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
                             style={{
@@ -247,7 +247,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
 
           {/* Footer */}
           <div
-            className="flex justify-end gap-3 px-6 py-4 border-t"
+            className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0"
             style={{ borderColor: 'var(--border-color)' }}
           >
             <button

@@ -120,7 +120,7 @@ export default function ProductPanel() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('productPanel.title')}</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
@@ -130,7 +130,7 @@ export default function ProductPanel() {
         {isAdmin && (
           <button
             onClick={() => openModal()}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             {t('productPanel.newProduct')}
@@ -146,7 +146,7 @@ export default function ProductPanel() {
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {/* Header + search */}
-        <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
+        <div className="px-4 py-4 border-b flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:px-6"
           style={{ borderColor: 'var(--border-color)' }}>
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
             {t('productPanel.systemProducts')}
@@ -154,7 +154,7 @@ export default function ProductPanel() {
               {t('productPanel.totalCount', { count: filtered.length })}
             </span>
           </span>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
               style={{ color: 'var(--text-tertiary)' }} />
             <input
@@ -162,7 +162,7 @@ export default function ProductPanel() {
               placeholder={t('productPanel.searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="rounded-lg border pl-8 pr-8 py-1.5 text-xs outline-none focus:ring-2 w-48"
+              className="rounded-lg border pl-8 pr-8 py-1.5 text-xs outline-none focus:ring-2 w-full sm:w-48"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
             />
             {search && (
@@ -176,7 +176,7 @@ export default function ProductPanel() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[680px]">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colId')}</th>

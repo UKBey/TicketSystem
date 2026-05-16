@@ -102,12 +102,12 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div
-        className="w-full max-w-2xl rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
+        className="w-full max-w-md sm:max-w-lg md:max-w-2xl rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
           <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.title')}</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
             <X className="h-5 w-5" />
@@ -116,7 +116,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
           {/* Body */}
-          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+          <div className="px-4 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
             {error && (
               <div className="rounded-lg px-3 py-2 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
                 {error}
@@ -245,7 +245,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                           title={isOpen ? t('ticket.createModal.knownIssuesCollapse') : t('ticket.createModal.knownIssuesExpand')}
                         >
                           <span
-                            className="flex-1 text-sm font-semibold truncate"
+                            className="flex-1 min-w-0 text-sm font-semibold break-words"
                             style={{ color: 'var(--text-primary)' }}
                           >
                             {ki.title}
@@ -256,7 +256,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                         </button>
                         {isOpen && ki.content && (
                           <div
-                            className="px-3 pb-3 pt-0 text-sm whitespace-pre-wrap leading-relaxed border-t"
+                            className="px-3 pb-3 pt-0 text-sm whitespace-pre-wrap leading-relaxed border-t break-words"
                             style={{
                               color: 'var(--text-secondary)',
                               borderColor: 'var(--border-color)',
@@ -275,11 +275,11 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
+              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer w-full sm:w-auto"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
             >
               {t('form.cancel')}
@@ -287,7 +287,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
             >
               {loading ? t('ticket.createModal.creating') : t('ticket.createModal.create')}
             </button>

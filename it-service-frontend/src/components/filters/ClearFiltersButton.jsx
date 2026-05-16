@@ -10,7 +10,7 @@ export default function ClearFiltersButton({ onClick, label }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
+      className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer hover:bg-danger-50 dark:hover:bg-danger-500/10"
       style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
     >
       <X className="h-3 w-3" />

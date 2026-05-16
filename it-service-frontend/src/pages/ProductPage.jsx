@@ -112,14 +112,14 @@ export default function ProductPage() {
           {t('product.backToProducts')}
         </button>
 
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl"
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl"
               style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
               <Package className="h-6 w-6" style={{ color: 'var(--text-secondary)' }} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{product.name}</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold break-words" style={{ color: 'var(--text-primary)' }}>{product.name}</h1>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold mt-1 ${
                 product.isActive
                   ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'
@@ -131,7 +131,7 @@ export default function ProductPage() {
           </div>
           {isAdmin && (
             <button onClick={() => navigate('/products')}
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer self-start sm:self-auto flex-shrink-0"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
               <Settings className="h-4 w-4" />
               {t('product.manageProducts')}
@@ -140,7 +140,7 @@ export default function ProductPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard label={t('product.statTotal')}      value={totalItems}                                                                                    icon={Ticket}        color="#3b82f6" />
         <StatCard label={t('product.statActive')}     value={tickets.filter(tk => ['NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER'].includes(tk.status)).length}  icon={Activity}      color="#f59e0b" />
         <StatCard label={t('product.statSlaBreached')} value={tickets.filter(tk => tk.slaBreached).length}                                                   icon={AlertTriangle}  color="#ef4444" />
@@ -157,7 +157,7 @@ export default function ProductPage() {
 
       <div className="rounded-xl border overflow-hidden"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-        <div className="px-6 py-4 border-b text-sm font-semibold flex items-center justify-between"
+        <div className="px-4 sm:px-6 py-4 border-b text-sm font-semibold flex flex-wrap items-center justify-between gap-2"
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
           <span>{t('product.ticketsSection')}</span>
           <span className="text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>{totalItems} total</span>
@@ -211,9 +211,9 @@ export default function ProductPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-primary-500">
                       TCK-{String(ticket.id).padStart(3, '0')}
                     </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <td className="px-4 py-3 text-sm max-w-xs" style={{ color: 'var(--text-primary)' }}>
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-medium truncate" title={ticket.title}>{ticket.title}</span>
+                        <span className="font-medium truncate break-words" title={ticket.title}>{ticket.title}</span>
                         {ticket.slaBreached && (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
                             style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>

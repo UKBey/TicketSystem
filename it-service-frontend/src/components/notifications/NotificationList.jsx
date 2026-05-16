@@ -57,7 +57,7 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
 
   return (
     <div
-      className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-xl shadow-xl overflow-hidden z-50"
+      className="fixed inset-x-2 top-16 sm:top-auto sm:absolute sm:inset-x-auto sm:right-0 sm:mt-2 sm:w-96 max-h-[80vh] flex flex-col rounded-xl shadow-xl overflow-hidden z-50"
       style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
     >
       {/* Header */}
@@ -93,7 +93,7 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
       </div>
 
       {/* List */}
-      <div className="max-h-80 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-8">
             <div

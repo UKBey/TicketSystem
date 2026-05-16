@@ -25,11 +25,11 @@ export default function PaginationBar({ page, totalPages, totalItems, size, onPa
   const pages = buildPageNumbers(page, totalPages);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm"
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 px-4 py-3 border-t text-sm"
       style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
 
       {/* Left: count + page size */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
           {from}–{to} {t('common.of')} {totalItems}
         </span>
@@ -46,7 +46,7 @@ export default function PaginationBar({ page, totalPages, totalItems, size, onPa
       </div>
 
       {/* Right: page buttons */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-wrap">
         <PageBtn onClick={() => onPageChange(page - 1)} disabled={page === 0} aria-label={t('common.previousPage')}>
           <ChevronLeft className="h-3.5 w-3.5" />
         </PageBtn>
@@ -75,7 +75,7 @@ function PageBtn({ children, active, disabled, onClick, ...rest }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center justify-center min-w-[28px] h-7 rounded-md px-1.5 text-xs font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex items-center justify-center min-w-[36px] h-9 sm:min-w-[28px] sm:h-7 rounded-md px-1.5 text-xs font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
       style={{
         backgroundColor: active ? '#3b82f6' : 'var(--bg-surface-secondary)',
         color:           active ? '#ffffff'  : 'var(--text-secondary)',

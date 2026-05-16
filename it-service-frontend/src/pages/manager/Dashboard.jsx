@@ -175,7 +175,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       <section className="overflow-hidden rounded-3xl border shadow-[0_20px_60px_rgba(15,23,42,0.08)]" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-        <div className="relative px-6 py-7 sm:px-8 sm:py-8">
+        <div className="relative px-4 py-5 sm:px-8 sm:py-8">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-transparent to-accent-50 opacity-70 dark:from-primary-500/10 dark:to-accent-500/10" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
@@ -183,13 +183,13 @@ export default function Dashboard() {
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 {t('dashboard.badge')}
               </div>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-2xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
                 {t('dashboard.heading')}
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: 'var(--text-secondary)' }}>
                 {t('dashboard.description')}
               </p>
-              <div className="mt-5 flex flex-wrap items-center gap-3 text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:gap-3 sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                   <ArrowUpRight className="h-3.5 w-3.5" />
                   {t('dashboard.liveSummary')}
@@ -205,7 +205,7 @@ export default function Dashboard() {
               type="button"
               onClick={() => loadSummary({ silent: true })}
               disabled={refreshing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-color)',
@@ -229,19 +229,19 @@ export default function Dashboard() {
       <AlertBanner data={alertsData} loading={alertsLoading} />
 
       <ErrorBoundary>
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading ? (
             <>
-              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+              <div>
                 <SkeletonLoader lines={3} />
               </div>
-              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+              <div>
                 <SkeletonLoader lines={3} />
               </div>
-              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+              <div>
                 <SkeletonLoader lines={3} />
               </div>
-              <div className="col-span-4 sm:col-span-2 xl:col-span-1">
+              <div>
                 <SkeletonLoader lines={3} />
               </div>
             </>
@@ -265,20 +265,30 @@ export default function Dashboard() {
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Suspense fallback={<SkeletonLoader lines={6} />}>
-          <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
-        </Suspense>
-        <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="w-full min-w-0">
+          <Suspense fallback={<SkeletonLoader lines={6} />}>
+            <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
+          </Suspense>
+        </div>
+        <div className="w-full min-w-0">
+          <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
+        </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[3fr_2fr]">
-        <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
-        <ProductMetricsChart data={productMetrics} loading={productLoading} />
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
+        <div className="w-full min-w-0">
+          <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
+        </div>
+        <div className="w-full min-w-0">
+          <ProductMetricsChart data={productMetrics} loading={productLoading} />
+        </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <WorklogCompletionChart data={worklogCompletion} loading={worklogLoading} />
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="w-full min-w-0">
+          <WorklogCompletionChart data={worklogCompletion} loading={worklogLoading} />
+        </div>
         <div className="flex flex-col gap-4">
           <CompletionMeters data={worklogCompletion} loading={worklogLoading} />
           <TopAgentsBar data={worklogCompletion} loading={worklogLoading} />

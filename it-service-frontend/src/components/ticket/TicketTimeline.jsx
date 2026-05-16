@@ -39,7 +39,7 @@ export default function TicketTimeline({
       className="rounded-xl border overflow-hidden"
       style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
     >
-      <div className="flex flex-col gap-4 p-5 min-h-[300px] max-h-[500px] overflow-y-auto">
+      <div className="flex flex-col gap-4 p-4 sm:p-5 min-h-[300px] max-h-[500px] overflow-y-auto">
         {timeline.length === 0 && (
           <div className="flex items-center justify-center py-8" style={{ color: 'var(--text-tertiary)' }}>
             <p className="text-sm">{t('ticketDetail.noComments')}</p>
@@ -67,7 +67,7 @@ export default function TicketTimeline({
           return (
             <div
               key={`${item._type}-${item.id}`}
-              className={`max-w-[70%] rounded-xl px-4 py-3 text-sm animate-fade-in ${bubbleBg} ${bubbleText} ${
+              className={`max-w-[85%] sm:max-w-[70%] rounded-xl px-4 py-3 text-sm animate-fade-in break-words ${bubbleBg} ${bubbleText} ${
                 isInternal ? 'self-end' : isRight ? 'self-end' : 'self-start'
               }`}
               style={
@@ -78,7 +78,7 @@ export default function TicketTimeline({
                     : {}
               }
             >
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span
                   className={`text-xs font-semibold ${isRight && !isInternal ? 'text-white/80' : ''}`}
                   style={!isRight || isInternal ? { color: 'var(--text-secondary)' } : {}}
@@ -146,9 +146,9 @@ export default function TicketTimeline({
       </div>
 
       {ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
-        <div className="border-t px-5 py-4" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="border-t px-4 sm:px-5 py-4" style={{ borderColor: 'var(--border-color)' }}>
           {isAgent && (
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
               <button
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors cursor-pointer ${
                   commentType === 'EXTERNAL' ? 'bg-primary-500 text-white border-primary-500' : ''

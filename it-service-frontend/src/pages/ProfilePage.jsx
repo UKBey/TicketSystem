@@ -115,7 +115,7 @@ function EditableRow({ icon: Icon, label, fields, onSave, onCancel, saving, erro
         {error && (
           <p className="mt-1.5 text-xs font-medium" style={{ color: '#ef4444' }}>{error}</p>
         )}
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => onSave(values)}
@@ -311,18 +311,18 @@ export default function ProfilePage() {
           style={{ backgroundColor: '#8b5cf6' }}
         />
 
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5 px-6 py-7">
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 px-4 py-5 sm:px-6 sm:py-7">
           {/* Avatar */}
           <div
-            className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg"
+            className="flex h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0 items-center justify-center rounded-2xl text-xl sm:text-2xl font-bold text-white shadow-lg"
             style={{ background: avatarGradient }}
           >
             {getInitials(user?.name)}
           </div>
 
           {/* Name / email / role */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-white truncate">
+          <div className="flex-1 min-w-0 w-full">
+            <h1 className="text-lg sm:text-xl font-bold text-white truncate">
               {user?.name || user?.username || 'User'}
             </h1>
             <p className="text-sm mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>
@@ -375,7 +375,7 @@ export default function ProfilePage() {
           >
             {/* Card header */}
             <div
-              className="flex items-center gap-2 px-5 py-3.5 border-b"
+              className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b"
               style={{ borderColor: 'var(--border-color)' }}
             >
               <User className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
@@ -385,7 +385,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Rows */}
-            <div className="px-5 [&>*:last-child]:border-b-0">
+            <div className="px-4 sm:px-5 [&>*:last-child]:border-b-0">
               {editing === 'name' ? (
                 <EditableRow
                   icon={User}
@@ -435,7 +435,7 @@ export default function ProfilePage() {
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
           >
             <div
-              className="flex items-center gap-2 px-5 py-3.5 border-b"
+              className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b"
               style={{ borderColor: 'var(--border-color)' }}
             >
               <Settings className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
@@ -477,7 +477,7 @@ export default function ProfilePage() {
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
           >
             <div
-              className="flex items-center justify-between px-5 py-3.5 border-b"
+              className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b"
               style={{ borderColor: 'var(--border-color)' }}
             >
               <div className="flex items-center gap-2">

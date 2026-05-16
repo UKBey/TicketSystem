@@ -50,8 +50,8 @@ export default function TicketTable({
   const sortable = typeof onSort === 'function';
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full" style={{ tableLayout: 'fixed' }}>
+    <div className="overflow-x-auto -mx-4 sm:mx-0">
+      <table className="w-full min-w-[720px]" style={{ tableLayout: 'fixed' }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}
           <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}

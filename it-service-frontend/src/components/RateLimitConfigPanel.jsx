@@ -75,7 +75,7 @@ export default function RateLimitConfigPanel() {
 
   return (
     <div className="rounded-xl border overflow-hidden mt-8" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-      <div className="px-6 py-4 border-b font-semibold text-sm flex justify-between items-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+      <div className="px-4 py-4 border-b font-semibold text-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:px-6" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
         <span>{t('admin.rateLimits.title')}</span>
         {toastMessage && (
           <span className="text-xs font-medium text-success-600 dark:text-success-400 animate-pulse">
@@ -92,7 +92,7 @@ export default function RateLimitConfigPanel() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                 <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('admin.rateLimits.colEndpoint')}</th>

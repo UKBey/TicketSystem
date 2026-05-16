@@ -94,7 +94,7 @@ export default function TicketFilters({
   return (
     <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
       {/* Main filter row */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 px-4 py-3">
 
         <FilterSearchInput
           key={search || '__empty__'}
@@ -240,11 +240,11 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative w-full sm:w-auto" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all"
+        className="w-full sm:w-auto inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all"
         style={{
           backgroundColor: hasDate ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
           borderColor:     hasDate ? '#3b82f6'               : 'var(--border-color)',

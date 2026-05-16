@@ -338,7 +338,7 @@ export default function AdminPanel() {
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
 
         {/* Header + Filters */}
-        <div className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
+        <div className="px-4 py-4 border-b flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:px-6"
           style={{ borderColor: 'var(--border-color)' }}>
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
             {t('admin.panel.userProducts')}
@@ -349,7 +349,7 @@ export default function AdminPanel() {
             )}
           </span>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <FilterSearchInput
               value={search}
               onChange={setSearch}
@@ -370,14 +370,14 @@ export default function AdminPanel() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-px">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="h-7 w-7 rounded-full border-[3px] animate-spin"
                 style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
             </div>
           ) : (
-            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full min-w-[900px]" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '13%' }} />
                 <col style={{ width: '18%' }} />

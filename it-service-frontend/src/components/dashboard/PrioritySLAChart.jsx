@@ -49,8 +49,8 @@ function PrioritySLAChart({ data, loading }) {
   const averageOnTime = items.length > 0 ? summary.onTimeAverage / items.length : 0;
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <BarChart3 className="h-3.5 w-3.5" />

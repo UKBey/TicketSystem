@@ -71,8 +71,8 @@ function StatusDistributionChart({ data, loading }) {
   };
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <PieChart className="h-3.5 w-3.5" />
@@ -92,7 +92,7 @@ function StatusDistributionChart({ data, loading }) {
       <div className="grid gap-6 lg:grid-cols-[220px_1fr] lg:items-center">
         {/* Pie chart */}
         <div className="flex justify-center">
-          <div className="relative h-[220px] w-[220px]">
+          <div className="relative h-[180px] w-[180px] sm:h-[220px] sm:w-[220px]">
             <svg viewBox="0 0 220 220" className="h-full w-full">
               <defs>
                 <filter id="status-chart-shadow" x="-20%" y="-20%" width="140%" height="140%">

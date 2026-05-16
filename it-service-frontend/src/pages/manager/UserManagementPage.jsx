@@ -170,7 +170,7 @@ export default function UserManagementPage() {
       />
 
       {/* Sayfa başlığı */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
             {t('userManagement.title')}
@@ -182,7 +182,7 @@ export default function UserManagementPage() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer sm:w-auto"
         >
           <UserPlus className="h-4 w-4" />
           {t('userManagement.createUser')}
@@ -214,7 +214,7 @@ export default function UserManagementPage() {
       >
         {/* Header + Filtreler */}
         <div
-          className="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3"
+          className="px-4 py-4 border-b flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:px-6"
           style={{ borderColor: 'var(--border-color)' }}
         >
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
@@ -226,7 +226,7 @@ export default function UserManagementPage() {
             )}
           </span>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <FilterSearchInput
               value={search}
               onChange={setSearch}
@@ -256,7 +256,7 @@ export default function UserManagementPage() {
               />
             </div>
           ) : (
-            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <table className="w-full min-w-[820px]" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '20%' }} />
                 <col style={{ width: '26%' }} />

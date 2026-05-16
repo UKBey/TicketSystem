@@ -44,7 +44,7 @@ function WorklogCompletionChart({ data, loading }) {
   const missingArc = (eksikRate / 100) * CIRCUMFERENCE;
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
@@ -59,7 +59,7 @@ function WorklogCompletionChart({ data, loading }) {
         </p>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
 
         {/* Donut */}
         <div className="shrink-0">
@@ -114,7 +114,7 @@ function WorklogCompletionChart({ data, loading }) {
         </div>
 
         {/* Stats */}
-        <div className="flex-1 space-y-3">
+        <div className="w-full flex-1 space-y-3">
           <LegendRow
             color={color}
             label="Completed"

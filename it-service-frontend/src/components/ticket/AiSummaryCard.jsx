@@ -89,8 +89,8 @@ export default function AiSummaryCard({ ticketId, hasRole }) {
           </div>
         )}
         {summary && (
-          <div className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-            <span>{summary.model}</span>
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="break-all">{summary.model}</span>
             <span>{formatShortDate(summary.createdAt)}</span>
           </div>
         )}

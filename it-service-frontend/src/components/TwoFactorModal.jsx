@@ -37,7 +37,7 @@ function DeviceRow({ device, lang, onDelete, deletingId, t }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-sm font-semibold break-all" style={{ color: 'var(--text-primary)' }}>
           {device.userLabel || t('profile.twoFactorModal.deviceWithoutLabel')}
         </p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
@@ -149,30 +149,30 @@ export default function TwoFactorModal({ open, onClose, lang }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget && !deletingId) onClose(); }}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border shadow-xl flex flex-col"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', maxHeight: '90vh' }}
+        className="w-full max-w-md sm:max-w-lg rounded-2xl border shadow-xl flex flex-col max-h-[90vh]"
+        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
       >
         {/* Header */}
         <div
-          className="flex items-center gap-3 px-5 py-4 border-b"
+          className="flex items-center gap-3 px-5 py-4 border-b flex-shrink-0"
           style={{ borderColor: 'var(--border-color)' }}
         >
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
             style={{ backgroundColor: 'rgba(16,185,129,0.12)' }}
           >
             <ShieldCheck className="h-4 w-4" style={{ color: '#10b981' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-sm font-bold break-words" style={{ color: 'var(--text-primary)' }}>
               {t('profile.twoFactorModal.title')}
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs mt-0.5 break-words" style={{ color: 'var(--text-secondary)' }}>
               {t('profile.twoFactorModal.subtitle')}
             </p>
           </div>
@@ -237,14 +237,14 @@ export default function TwoFactorModal({ open, onClose, lang }) {
 
         {/* Footer */}
         <div
-          className="flex items-center justify-end gap-2 px-5 py-3 border-t"
+          className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 px-5 py-3 border-t flex-shrink-0"
           style={{ borderColor: 'var(--border-color)' }}
         >
           <button
             type="button"
             onClick={onClose}
             disabled={!!deletingId}
-            className="rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto"
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
           >
             {t('profile.cancel')}
@@ -253,7 +253,7 @@ export default function TwoFactorModal({ open, onClose, lang }) {
             type="button"
             onClick={handleAddDevice}
             disabled={!!deletingId}
-            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60 w-full sm:w-auto"
             style={{ backgroundColor: '#10b981' }}
           >
             <Plus className="h-3.5 w-3.5" />

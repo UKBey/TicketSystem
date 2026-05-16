@@ -42,7 +42,7 @@ export default function Navbar({ onMenuClick }) {
       </button>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-1.5 sm:gap-2 ml-auto min-w-0">
         {/* Language switcher */}
         <LanguageSwitcher />
 
@@ -68,12 +68,12 @@ export default function Navbar({ onMenuClick }) {
         <NotificationBell />
 
         {/* Divider */}
-        <div className="mx-2 h-8 w-px" style={{ backgroundColor: 'var(--border-color)' }} />
+        <div className="hidden sm:block mx-2 h-8 w-px" style={{ backgroundColor: 'var(--border-color)' }} />
 
         {/* User info — clickable, navigates to profile */}
         <button
           onClick={() => navigate('/profile')}
-          className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors cursor-pointer hover:opacity-80"
+          className="flex items-center gap-2 sm:gap-3 rounded-lg px-1 sm:px-2 py-1.5 transition-colors cursor-pointer hover:opacity-80 min-w-0"
           style={{ background: 'none', border: 'none' }}
         >
           <div
@@ -82,11 +82,11 @@ export default function Navbar({ onMenuClick }) {
           >
             {initials}
           </div>
-          <div className="hidden sm:block text-left">
-            <div className="text-sm font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+          <div className="hidden sm:block text-left min-w-0">
+            <div className="text-sm font-semibold leading-tight truncate max-w-[140px]" style={{ color: 'var(--text-primary)' }}>
               {user?.name || user?.username || 'User'}
             </div>
-            <div className="text-xs leading-tight" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="text-xs leading-tight truncate" style={{ color: 'var(--text-tertiary)' }}>
               {primaryRole || 'USER'}
             </div>
           </div>

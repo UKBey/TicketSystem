@@ -119,17 +119,17 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget && !submitting) onClose(); }}
     >
       <div
-        className="w-full max-w-md rounded-2xl border shadow-xl"
+        className="w-full max-w-md sm:max-w-lg max-h-[90vh] flex flex-col rounded-2xl border shadow-xl"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
       >
         {/* Header */}
         <div
-          className="flex items-center gap-3 px-5 py-4 border-b"
+          className="flex items-center gap-3 px-5 py-4 border-b flex-shrink-0"
           style={{ borderColor: 'var(--border-color)' }}
         >
           <div
@@ -159,7 +159,8 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <div>
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
               {t('profile.passwordModal.currentPassword')}
@@ -241,12 +242,13 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             >
               {t('profile.cancel')}
@@ -254,7 +256,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
             <button
               type="submit"
               disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto"
               style={{ backgroundColor: '#f59e0b' }}
             >
               <Lock className="h-3.5 w-3.5" />

@@ -188,11 +188,11 @@ export default function KnownIssuesPage() {
 
       {/* Toolbar — product picker + topic filter + add btn */}
       <div
-        className="rounded-xl border p-4 mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+        className="rounded-xl border p-4 mb-5 flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-end sm:justify-between"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end flex-1 min-w-0">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-end flex-1 min-w-0">
+          <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] min-w-0">
             <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-tertiary)' }}>
               <Package className="h-3.5 w-3.5" />
               {t('knownIssues.productLabel')}
@@ -211,7 +211,7 @@ export default function KnownIssuesPage() {
           </div>
 
           {topics.length > 0 && (
-            <div className="flex-1 min-w-0">
+            <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[12rem] min-w-0">
               <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-tertiary)' }}>
                 <Tag className="h-3.5 w-3.5" />
                 {t('knownIssues.topicFilterLabel')}
@@ -234,7 +234,7 @@ export default function KnownIssuesPage() {
         {isAdmin && selectedProductId && (
           <button
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             {t('knownIssues.add')}
@@ -284,7 +284,7 @@ export default function KnownIssuesPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      <h3 className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
                         {item.title}
                       </h3>
                       {!item.isActive && (
@@ -306,7 +306,7 @@ export default function KnownIssuesPage() {
                 {isOpen && (
                   <div className="px-4 sm:px-5 pb-4 pl-11 sm:pl-12">
                     <p
-                      className="text-sm whitespace-pre-wrap leading-relaxed"
+                      className="text-sm whitespace-pre-wrap leading-relaxed break-words"
                       style={{ color: 'var(--text-secondary)' }}
                     >
                       {item.content}
@@ -349,11 +349,11 @@ export default function KnownIssuesPage() {
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-lg rounded-xl border animate-slide-up max-h-[90vh] flex flex-col"
+            className="w-full max-w-md sm:max-w-lg rounded-xl border animate-slide-up max-h-[90vh] flex flex-col"
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                 {editing ? t('knownIssues.modalEditTitle') : t('knownIssues.modalNewTitle')}
               </h3>
@@ -366,8 +366,8 @@ export default function KnownIssuesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="flex-1 overflow-y-auto">
-              <div className="px-5 py-4 space-y-4">
+            <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
                     {t('knownIssues.labelTitle')} *
@@ -428,7 +428,7 @@ export default function KnownIssuesPage() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 px-5 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
                 <button
                   type="button"
                   onClick={closeModal}

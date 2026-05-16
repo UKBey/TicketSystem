@@ -68,7 +68,7 @@ export default function TicketDetail() {
   const isCustomer      = hasRole('CUSTOMER');
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6">
       {/* Left column */}
       <div className="flex flex-col gap-5 min-w-0">
         <button
@@ -81,16 +81,16 @@ export default function TicketDetail() {
         </button>
 
         <div>
-          <div className="flex items-center gap-3 flex-wrap justify-between">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{ticketCode}</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 sm:flex-wrap sm:justify-between">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h1 className="text-xl font-bold break-words" style={{ color: 'var(--text-primary)' }}>{ticketCode}</h1>
               <PriorityBadge priority={ticket.priority} />
               <StatusBadge status={ticket.status} />
             </div>
             {(isAgent || isAgentAdmin) && (
               <button
                 onClick={() => setAiSummaryModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 self-start sm:self-auto min-h-[40px] sm:min-h-0"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }}
                 title={t('ticketDetail.aiSummaryTitle')}
               >
@@ -99,7 +99,7 @@ export default function TicketDetail() {
               </button>
             )}
           </div>
-          <div className="text-lg font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>
+          <div className="text-lg font-semibold mt-1 break-words" style={{ color: 'var(--text-primary)' }}>
             {ticket.title}
           </div>
           <div className="flex items-center gap-2 mt-2 text-sm flex-wrap" style={{ color: 'var(--text-secondary)' }}>

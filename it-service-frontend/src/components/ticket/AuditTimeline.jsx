@@ -132,7 +132,7 @@ export default function AuditTimeline({ auditLogs }) {
           opacity: expanded ? 1 : 0,
         }}
       >
-        <div className="px-5 py-4">
+        <div className="px-4 sm:px-5 py-4">
           <div className="relative">
             {/* Vertical connector line */}
             <div
@@ -158,12 +158,12 @@ export default function AuditTimeline({ auditLogs }) {
 
                     {/* Content card */}
                     <div
-                      className={`flex-1 rounded-xl px-4 py-3 mb-3 transition-colors ${isLast ? '' : ''}`}
+                      className={`flex-1 min-w-0 rounded-xl px-3 sm:px-4 py-3 mb-3 transition-colors ${isLast ? '' : ''}`}
                       style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'var(--bg-surface-secondary)', borderLeft: `3px solid ${cfg.color}55` }}
                     >
                       {/* Top row: badge + actor + timestamp */}
                       <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <span
                             className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
                             style={{ backgroundColor: cfg.bg, color: cfg.color }}
@@ -172,12 +172,12 @@ export default function AuditTimeline({ auditLogs }) {
                             {t(`ticketDetail.${cfg.labelKey}`)}
                           </span>
                           {entry.actorName && (
-                            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <span className="text-xs font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
                               {entry.actorName}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                           {formatShortDate(entry.createdAt)}
                         </span>
                       </div>
@@ -185,7 +185,7 @@ export default function AuditTimeline({ auditLogs }) {
                       {/* State transition */}
                       {entry.actionType === 'PRIORITY_CHANGE' ? (
                         entry.previousState && entry.newState && (
-                          <div className="flex items-center gap-1.5 mb-1.5">
+                          <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
                             <PriorityPill priority={entry.previousState} />
                             <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                             <PriorityPill priority={entry.newState} />
@@ -194,14 +194,14 @@ export default function AuditTimeline({ auditLogs }) {
                       ) : (
                         <>
                           {entry.previousState && entry.newState && (
-                            <div className="flex items-center gap-1.5 mb-1.5">
+                            <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
                               <StatusPill status={entry.previousState} isDark={isDark} />
                               <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                               <StatusPill status={entry.newState} isDark={isDark} />
                             </div>
                           )}
                           {!entry.previousState && entry.newState && (
-                            <div className="flex items-center gap-1.5 mb-1.5">
+                            <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
                               <StatusPill status={entry.newState} isDark={isDark} />
                             </div>
                           )}

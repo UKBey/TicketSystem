@@ -194,19 +194,17 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-xl border animate-slide-up"
+        className="w-full max-w-md sm:max-w-lg rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-color)',
           boxShadow: 'var(--shadow-xl)',
-          maxHeight: '90vh',
-          overflowY: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between gap-4 px-6 py-4 border-b sticky top-0 z-10"
+          className="flex items-center justify-between gap-4 px-6 py-4 border-b flex-shrink-0"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
           <div className="flex items-center gap-3">
@@ -233,8 +231,8 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
             {/* Genel sunucu hatası */}
             {serverError && !serverError.field && (
@@ -428,14 +426,14 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
           {/* Footer */}
           <div
-            className="flex justify-end gap-3 px-6 py-4 border-t sticky bottom-0"
+            className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-6 py-4 border-t flex-shrink-0"
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
           >
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 w-full sm:w-auto"
               style={{
                 borderColor: 'var(--border-color)',
                 color: 'var(--text-secondary)',
@@ -447,7 +445,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors focus:outline-none focus:ring-4 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors focus:outline-none focus:ring-4 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
             >
               {loading ? (
                 <>

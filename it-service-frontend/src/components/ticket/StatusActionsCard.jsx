@@ -25,10 +25,10 @@ export default function StatusActionsCard({
       </div>
       <div className="p-4 space-y-2">
         {canDoStatusActions && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
               <button
-                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                className={`w-full sm:flex-1 rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold transition-colors cursor-pointer ${
                   ticket.status === 'WAITING_FOR_CUSTOMER' ? 'bg-primary-500 text-white' : 'border'
                 }`}
                 style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
@@ -39,7 +39,7 @@ export default function StatusActionsCard({
             )}
             {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
               <button
-                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                className={`w-full sm:flex-1 rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold transition-colors cursor-pointer ${
                   ticket.status === 'RESOLVED'
                     ? 'bg-danger-500 text-white hover:bg-danger-600'
                     : 'bg-accent-500 text-white hover:bg-accent-600'
@@ -54,7 +54,7 @@ export default function StatusActionsCard({
 
         {!hasClaimed && ticket?.status !== 'CLOSED' && (
           <button
-            className={`w-full rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors cursor-pointer ${
+            className={`w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white transition-colors cursor-pointer ${
               noClaimer ? 'bg-primary-500 hover:bg-primary-600' : 'bg-accent-500 hover:bg-accent-600'
             }`}
             onClick={onClaim}
@@ -65,7 +65,7 @@ export default function StatusActionsCard({
 
         {isAgentAdmin && ticket.status !== 'CLOSED' && (
           <button
-            className="w-full rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+            className="w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
             onClick={() => onSetAssignModal(true)}
           >
             {t('ticketDetail.assignToAgent')}
@@ -74,7 +74,7 @@ export default function StatusActionsCard({
 
         {(hasUnclaim || hasClose) && (
           <button
-            className="w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-full rounded-lg border px-3 py-2 min-h-[40px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
             onClick={() => onExtraActionsOpen(true)}
           >

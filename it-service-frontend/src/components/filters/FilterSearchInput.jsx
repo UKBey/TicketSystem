@@ -22,7 +22,7 @@ export default function FilterSearchInput({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full sm:w-auto" style={{ '--fsi-w': width }}>
       <Search
         className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
         style={{ color: 'var(--text-tertiary)' }}
@@ -32,9 +32,8 @@ export default function FilterSearchInput({
         value={local}
         onChange={handleChange}
         placeholder={placeholder}
-        className="rounded-lg border pl-8 pr-7 py-1.5 text-xs outline-none transition-all focus:ring-2"
+        className="w-full sm:w-[var(--fsi-w)] rounded-lg border pl-8 pr-7 py-1.5 text-xs outline-none transition-all focus:ring-2"
         style={{
-          width,
           backgroundColor: local ? 'rgba(59,130,246,0.06)' : 'var(--bg-input)',
           borderColor: local ? '#3b82f6' : 'var(--border-color)',
           color: 'var(--text-primary)',

@@ -35,7 +35,7 @@ export default function SlaTimerBadge({ ticket, tickSeconds = 0 }) {
     return styles[type];
   };
 
-  const baseCls = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
+  const baseCls = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap';
 
   const slaState = slaInfo.slaState;
 

@@ -59,18 +59,18 @@ export default function MultiSelectFilter({
     : (disabled && disabledHint ? disabledHint : placeholder);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative w-full sm:w-auto" ref={ref}>
       <button
         ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full sm:w-auto sm:min-w-[10rem] sm:max-w-[var(--msf-max-w)] inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
           borderColor: hasValue ? '#3b82f6' : 'var(--border-color)',
           color: hasValue ? '#2563eb' : 'var(--text-secondary)',
-          maxWidth,
+          '--msf-max-w': maxWidth,
         }}
       >
         <span className="truncate">{label}</span>

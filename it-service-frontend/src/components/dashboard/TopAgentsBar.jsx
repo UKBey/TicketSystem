@@ -8,7 +8,7 @@ function TopAgentsBar({ data, loading }) {
   const maxMinutes    = top5.length > 0 ? top5[0].totalMinutes : 1;
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
       <div className="mb-4 flex items-center gap-2">
         <Users className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
@@ -43,7 +43,7 @@ function TopAgentsBar({ data, loading }) {
             const hours  = (agent.totalMinutes / 60).toFixed(1);
             return (
               <div key={agent.agentId} className="flex items-center gap-3">
-                <div className="w-24 shrink-0 truncate text-sm font-medium"
+                <div className="w-16 shrink-0 truncate text-xs font-medium sm:w-24 sm:text-sm"
                   style={{ color: 'var(--text-primary)' }}
                   title={agent.agentUsername}>
                   {agent.agentUsername}

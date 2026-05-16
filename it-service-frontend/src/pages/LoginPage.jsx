@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md animate-slide-up">
         {/* Main card */}
         <div
-          className="rounded-2xl border p-10 text-center backdrop-blur-xl transition-all duration-300"
+          className="rounded-2xl border p-6 sm:p-10 text-center backdrop-blur-xl transition-all duration-300"
           style={{
             backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.85)',
             borderColor:     isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
@@ -57,18 +57,18 @@ export default function LoginPage() {
           }}
         >
           {/* Logo */}
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-            <Headset className="h-8 w-8 text-white" />
+          <div className="mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+            <Headset className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
 
           <h1
-            className="text-3xl font-bold mb-2 transition-colors duration-300"
+            className="text-2xl sm:text-3xl font-bold mb-2 transition-colors duration-300"
             style={{ color: isDark ? '#ffffff' : '#0f172a' }}
           >
             IT Service Desk
           </h1>
           <p
-            className="text-sm mb-8 leading-relaxed transition-colors duration-300"
+            className="text-sm mb-6 sm:mb-8 leading-relaxed transition-colors duration-300"
             style={{ color: isDark ? '#94a3b8' : '#64748b' }}
           >
             {t('login.subtitle')}

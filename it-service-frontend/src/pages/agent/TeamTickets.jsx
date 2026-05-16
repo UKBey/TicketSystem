@@ -142,8 +142,8 @@ export default function TeamTickets() {
             <p className="text-sm">{t('teamTickets.emptySubtitle')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                   <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />

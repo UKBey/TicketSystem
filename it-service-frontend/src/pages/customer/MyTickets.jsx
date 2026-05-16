@@ -40,14 +40,14 @@ export default function MyTickets() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticket.myTickets.title')}</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('ticket.myTickets.subtitle')}</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           {t('ticket.myTickets.newTicket')}
@@ -55,7 +55,7 @@ export default function MyTickets() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 mb-5">
+      <div className="flex gap-0 mb-5 overflow-x-auto">
         {TABS.map((tabItem, i) => {
           const active = tab === tabItem.key;
           return (

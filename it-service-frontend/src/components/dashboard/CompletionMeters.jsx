@@ -23,7 +23,7 @@ function CompletionMeters({ data, loading }) {
   const avgResolutionHours = rates.avgResolutionHours ?? 0;
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
       <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.18em]"
         style={{ color: 'var(--text-secondary)' }}>

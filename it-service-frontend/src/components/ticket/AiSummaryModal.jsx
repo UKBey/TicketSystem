@@ -91,12 +91,12 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
   return (
     <>
       <style>{modalStyles}</style>
-      <div className="ai-modal-overlay fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="ai-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div
-          className="ai-modal-content w-full max-w-2xl rounded-xl border mx-4 max-h-[80vh] flex flex-col overflow-hidden"
+          className="ai-modal-content w-full max-w-md sm:max-w-lg lg:max-w-2xl rounded-xl border max-h-[90vh] flex flex-col overflow-hidden"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-lg)' }}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
             <span className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               <Sparkles className="h-5 w-5 text-violet-500" />
               {t('ticketDetail.aiSummaryTitle')}
@@ -111,18 +111,18 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4">
             {summary && (
               <div
-                className="rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap"
+                className="rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap break-words"
                 style={{ backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#f5f3ff', color: 'var(--text-primary)', borderLeft: '4px solid #8b5cf6' }}
               >
                 {summary.summary}
               </div>
             )}
             {summary && (
-              <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                <span>{summary.model}</span>
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="break-all">{summary.model}</span>
                 <span>{formatShortDate(summary.createdAt)}</span>
               </div>
             )}
@@ -138,7 +138,7 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
             )}
           </div>
 
-          <div className="border-t px-6 py-4" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="border-t px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
             <button
               className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={

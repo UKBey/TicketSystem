@@ -68,7 +68,7 @@ function ProductMetricsChart({ data, loading }) {
   const allRows = otherRow ? [...rows, otherRow] : rows;
 
   return (
-    <div className="rounded-2xl border p-5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+    <div className="rounded-2xl border p-4 sm:p-5" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
       {/* Header */}
       <div className="flex items-start justify-between mb-5">
         <div>

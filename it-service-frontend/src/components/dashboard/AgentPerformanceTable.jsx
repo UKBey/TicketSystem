@@ -55,8 +55,8 @@ function AgentPerformanceTable({ data, loading }) {
   const displayedAgents = loading ? createPlaceholderRows() : agents;
 
   return (
-    <section className="rounded-3xl border p-6 shadow-sm" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+      <div className="mb-5 flex flex-col items-start justify-between gap-4 lg:flex-row">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <Users className="h-3.5 w-3.5" />
@@ -68,7 +68,7 @@ function AgentPerformanceTable({ data, loading }) {
           </p>
         </div>
 
-        <div className="grid gap-2 text-right text-xs sm:grid-cols-2 sm:text-left">
+        <div className="grid w-full grid-cols-2 gap-2 text-left text-xs sm:w-auto sm:grid-cols-2 lg:text-left">
           <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
             <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Agents</div>
             <div className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(totalAgents)}</div>
@@ -88,7 +88,8 @@ function AgentPerformanceTable({ data, loading }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-color-light)' }}>
+      <div className="-mx-4 overflow-x-auto sm:mx-0">
+        <div className="min-w-[760px] overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--border-color-light)' }}>
         <div className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
           <div>Rank</div>
           <div>Agent</div>
@@ -161,6 +162,7 @@ function AgentPerformanceTable({ data, loading }) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
 

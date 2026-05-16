@@ -95,26 +95,38 @@ function EventRow({ config, emailChecked, notifyChecked, onEmailChange, onNotify
 
   return (
     <div
-      className="flex items-center gap-4 rounded-xl px-4 py-3.5 transition-colors duration-150"
+      className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-xl px-4 py-3.5 transition-colors duration-150"
       style={{ backgroundColor: 'var(--bg-surface-secondary)', border: '1px solid var(--border-color)' }}
     >
-      {/* Icon */}
-      <div
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: config.iconBg }}
-      >
-        <Icon className="h-4 w-4" style={{ color: config.iconColor }} />
+      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+        {/* Icon */}
+        <div
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: config.iconBg }}
+        >
+          <Icon className="h-4 w-4" style={{ color: config.iconColor }} />
+        </div>
+
+        {/* Label */}
+        <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {t(`notificationPrefs.event.${config.key}`)}
+        </span>
       </div>
 
-      {/* Label */}
-      <span className="flex-1 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-        {t(`notificationPrefs.event.${config.key}`)}
-      </span>
-
       {/* Toggles */}
-      <div className="flex items-center gap-8">
-        <Toggle checked={emailChecked}  onChange={onEmailChange}  label={emailLabel} />
-        <Toggle checked={notifyChecked} onChange={onNotifyChange} label={notifyLabel} />
+      <div className="flex flex-wrap items-center gap-4 sm:gap-8 sm:pl-0 pl-12">
+        <div className="flex items-center gap-2">
+          <span className="sm:hidden text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            {t('notificationPrefs.colEmail')}
+          </span>
+          <Toggle checked={emailChecked}  onChange={onEmailChange}  label={emailLabel} />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="sm:hidden text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            {t('notificationPrefs.colInApp')}
+          </span>
+          <Toggle checked={notifyChecked} onChange={onNotifyChange} label={notifyLabel} />
+        </div>
       </div>
     </div>
   );
@@ -186,11 +198,11 @@ export default function NotificationPreferencesPage() {
           >
             <Bell className="h-4 w-4 text-white" />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
             {t('notificationPrefs.title')}
           </h1>
         </div>
-        <p className="text-sm ml-12" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm ml-12 sm:ml-12" style={{ color: 'var(--text-secondary)' }}>
           {t('notificationPrefs.subtitle')}
         </p>
       </div>
@@ -207,7 +219,7 @@ export default function NotificationPreferencesPage() {
         >
           {/* Card header */}
           <div
-            className="px-6 py-4 border-b"
+            className="hidden sm:block px-6 py-4 border-b"
             style={{ borderColor: 'var(--border-color)' }}
           >
             {/* Channel column headers */}
@@ -266,14 +278,14 @@ export default function NotificationPreferencesPage() {
           {/* Footer */}
           {!loading && (
             <div
-              className="px-4 pb-4 pt-1 flex items-center justify-between gap-4"
+              className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
             >
               <FeedbackBanner feedback={feedback} />
-              {!feedback && <span />}
+              {!feedback && <span className="hidden sm:block" />}
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-60 cursor-pointer flex-shrink-0"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-60 cursor-pointer flex-shrink-0 w-full sm:w-auto"
                 style={{
                   background: isSaving
                     ? '#6b7280'

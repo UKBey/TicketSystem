@@ -23,18 +23,18 @@ export default function ExtraActionsModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-xl border animate-slide-up"
+        className="w-full max-w-md sm:max-w-lg rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
           <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticketDetail.extraActions')}</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-5 space-y-3">
+        <div className="p-4 sm:p-5 space-y-3 overflow-y-auto flex-1">
           {showUnclaim && (
             <button
               className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer"

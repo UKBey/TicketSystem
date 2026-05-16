@@ -14,7 +14,7 @@ export default function NoRolePage() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center p-6"
+      className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6"
       style={{ backgroundColor: 'var(--bg-body)' }}
     >
       <div className="fixed top-4 right-4 z-50">
@@ -23,7 +23,7 @@ export default function NoRolePage() {
 
       <div className="w-full max-w-lg">
         <div
-          className="rounded-2xl border p-8 text-center"
+          className="rounded-2xl border p-6 sm:p-8 text-center"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-color)',

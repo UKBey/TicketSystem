@@ -101,7 +101,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-sm font-bold text-primary-500">{formatMinutes(w.minutes)}</span>
                   <button
                     className="rounded p-1 transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
@@ -112,10 +112,12 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
                   </button>
                 </div>
                 {w.description && (
-                  <div className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-primary)' }}>{w.description}</div>
+                  <div className="text-xs mt-1 leading-relaxed break-words" style={{ color: 'var(--text-primary)' }}>{w.description}</div>
                 )}
-                <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                  {w.agentId} · {formatShortDate(w.createdAt)}
+                <div className="text-[11px] mt-1 flex flex-wrap gap-x-1 gap-y-0.5 break-words" style={{ color: 'var(--text-tertiary)' }}>
+                  <span className="break-all">{w.agentId}</span>
+                  <span>·</span>
+                  <span>{formatShortDate(w.createdAt)}</span>
                 </div>
               </div>
             ))}

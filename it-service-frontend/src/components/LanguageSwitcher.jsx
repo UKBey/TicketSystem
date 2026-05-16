@@ -72,7 +72,7 @@ export default function LanguageSwitcher() {
       {/* Dropdown panel */}
       {open && (
         <div
-          className="absolute right-0 top-full mt-1.5 w-36 rounded-xl border overflow-hidden z-50"
+          className="absolute right-0 top-full mt-1.5 w-36 max-w-[calc(100vw-1rem)] rounded-xl border overflow-hidden z-50"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-color)',

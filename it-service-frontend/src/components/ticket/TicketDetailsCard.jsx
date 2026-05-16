@@ -7,7 +7,7 @@ function DetailRow({ label, value }) {
   return (
     <div>
       <div className="text-xs font-medium mb-0.5" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
-      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{value}</div>
+      <div className="text-sm font-medium break-words" style={{ color: 'var(--text-primary)' }}>{value}</div>
     </div>
   );
 }
@@ -77,7 +77,7 @@ export default function TicketDetailsCard({
       <div className="px-5 py-3 border-b text-sm font-semibold" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
         {t('ticketDetail.ticketDetails')}
       </div>
-      <div className="p-5 space-y-4">
+      <div className="p-4 sm:p-5 space-y-4">
         <DetailRow label={t('ticketDetail.created')} value={formatDate(ticket.createdAt)} />
 
         {!isCustomer && (
