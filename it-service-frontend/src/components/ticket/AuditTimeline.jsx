@@ -127,13 +127,13 @@ export default function AuditTimeline({ auditLogs }) {
       {/* Timeline body with smooth open/close animation */}
       <div
         style={{
-          maxHeight: expanded ? '1000px' : '0',
+          maxHeight: expanded ? '540px' : '0',
           overflow: 'hidden',
           transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out',
           opacity: expanded ? 1 : 0,
         }}
       >
-        <div className="px-4 sm:px-5 py-4">
+        <div className="px-4 sm:px-5 py-4 max-h-[500px] overflow-y-auto">
           <div className="relative">
             {/* Vertical connector line */}
             <div
