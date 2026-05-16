@@ -134,6 +134,11 @@ ci: # Continuous Integration: backend (verify = unit + integration + jacoco) + f
 	make verify
 	make test-frontend
 	make lint
+	@echo.
+	@echo ================================================================
+	@echo   CI PASSED -- backend verify + frontend tests + lint all green.
+	@echo   Safe to push.
+	@echo ================================================================
 
 lint:
 	cd $(FRONTEND_DIR) && npm run lint
