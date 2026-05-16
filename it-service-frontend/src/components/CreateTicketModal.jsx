@@ -102,21 +102,21 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl border animate-slide-up"
+        className="w-full max-w-2xl rounded-xl border animate-slide-up flex flex-col max-h-[90vh]"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-xl)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
           <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.title')}</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500" style={{ color: 'var(--text-tertiary)' }}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
           {/* Body */}
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
             {error && (
               <div className="rounded-lg px-3 py-2 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
                 {error}
@@ -225,7 +225,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                   </div>
                 </div>
 
-                <ul className="space-y-1.5">
+                <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                   {knownIssues.map((ki) => {
                     const isOpen = expandedIssueId === ki.id;
                     return (
@@ -275,7 +275,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
             <button
               type="button"
               onClick={onClose}
