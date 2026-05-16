@@ -13,6 +13,7 @@ import Pool from './pages/agent/Pool';
 import Workspace from './pages/agent/Workspace';
 import History from './pages/agent/History';
 import TeamTickets from './pages/agent/TeamTickets';
+import AllTickets from './pages/agent/AllTickets';
 import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
@@ -129,6 +130,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
               <AppLayout><TeamTickets /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/all-tickets"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+              <AppLayout><AllTickets /></AppLayout>
             </ProtectedRoute>
           }
         />

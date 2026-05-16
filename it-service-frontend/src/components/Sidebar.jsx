@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronLeft,
   Headset,
+  Layers,
   X,
 } from 'lucide-react';
 
@@ -137,6 +138,10 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
             <NavLink to="/team" className={linkClassName} onClick={handleNavClick}>
               <Users className="h-[18px] w-[18px] flex-shrink-0" />
               <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.teamTickets')}</span>
+            </NavLink>
+            <NavLink to="/all-tickets" className={linkClassName} onClick={handleNavClick}>
+              <Layers className="h-[18px] w-[18px] flex-shrink-0" />
+              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.allTickets')}</span>
             </NavLink>
           </>
         )}

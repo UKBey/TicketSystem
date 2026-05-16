@@ -14,6 +14,7 @@
     "workspace": "Çalışma Alanım",
     "pool": "Havuz",
     "teamTickets": "Ekip Biletleri",
+    "allTickets": "Tüm Biletler",
     "history": "Geçmiş",
     "dashboard": "Gösterge Paneli",
     "admin": "Yönetim Paneli",
@@ -235,6 +236,12 @@
     "emptySubtitle": "Şu anda ürün alanınızda üstlenilmiş bilet bulunmuyor.",
     "join": "Katıl",
     "joining": "Katılıyor…"
+  },
+  "allTickets": {
+    "title": "Tüm Biletler",
+    "subtitle": "Yetkili olduğunuz tüm ürünlerdeki — tüm statülerdeki — biletler.",
+    "emptyTitle": "Filtrelerinize uyan bilet yok",
+    "emptySubtitle": "Filtreleri temizleyin veya farklı bir ürün seçin."
   },
   "history": {
     "title": "Geçmiş",

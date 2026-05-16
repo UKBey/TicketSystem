@@ -14,6 +14,7 @@
     "workspace": "Workspace",
     "pool": "Pool",
     "teamTickets": "Team Tickets",
+    "allTickets": "All Tickets",
     "history": "History",
     "dashboard": "Dashboard",
     "admin": "Admin Panel",
@@ -235,6 +236,12 @@
     "emptySubtitle": "No claimed tickets in your product area right now.",
     "join": "Join",
     "joining": "Joining…"
+  },
+  "allTickets": {
+    "title": "All Tickets",
+    "subtitle": "Every ticket — across all statuses — in the products you can access.",
+    "emptyTitle": "No tickets match your filters",
+    "emptySubtitle": "Clear filters or pick a different product to see more results."
   },
   "history": {
     "title": "History",
