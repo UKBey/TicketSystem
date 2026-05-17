@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jbpm-db
+  labels:
+    app.kubernetes.io/name: jbpm-db
+    app.kubernetes.io/component: database
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: jbpm-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

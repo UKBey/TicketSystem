@@ -8,3 +8,8 @@ commonLabels:
 
 resources:
   - namespace.yaml
+  - data/it-service-db-initdb-configmap.yaml
+  - data/it-service-db-service.yaml
+  - data/it-service-db-statefulset.yaml
+  - data/jbpm-db-service.yaml
+  - data/jbpm-db-statefulset.yaml

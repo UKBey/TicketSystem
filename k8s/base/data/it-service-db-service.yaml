@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: it-service-db
+  labels:
+    app.kubernetes.io/name: it-service-db
+    app.kubernetes.io/component: database
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: it-service-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
