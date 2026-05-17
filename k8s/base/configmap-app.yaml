@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # ---- Public Keycloak URLs ----
+  KEYCLOAK_FRONTEND_URL: "http://ticketsystem.local/auth"
+  KC_HOSTNAME_URL: "http://ticketsystem.local/auth"
+  KC_HOSTNAME_ADMIN_URL: "http://ticketsystem.local/auth"
+  KC_HTTP_RELATIVE_PATH: "/auth"
+  KC_PROXY_HEADERS: "xforwarded"
+  KC_DB: "postgres"
+  KC_DB_URL: "jdbc:postgresql://it-service-db:5432/keycloakdb"
+
+  # ---- LDAP organisation/domain ----
+  LDAP_ORGANISATION: "Ticket System"
+  LDAP_DOMAIN: "ticketsystem.com"
+
+  # ---- Backend (Spring Boot) ----
+  SERVER_PORT: "8081"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://it-service-db:5432/ticketdb"
+  SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+  SPRING_FLYWAY_BASELINE_VERSION: "0"
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://ticketsystem.local/auth/realms/TicketSystemRealm"
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak-iam:8080/auth/realms/TicketSystemRealm/protocol/openid-connect/certs"
+
+  # ---- KIE / jBPM ----
+  JBPM_KIE_SERVER_URL: "http://kie-server:8080/kie-server/services/rest/server"
+  JBPM_KIE_SERVER_CONTAINER_ID: "ticket-workflow"
+  JBPM_KIE_SERVER_PROCESS_ID: "com.ticketsystem.workflow.ticket-lifecycle"
+  JBPM_KIE_SERVER_TIMEOUT: "30000"
+  JBPM_KIE_SERVER_CALLBACK_BASE_URL: "http://it-service-backend:8081/api/internal/workflow/callback"
+
+  # ---- Mail (Mailpit) ----
+  MAIL_HOST: "mailpit"
+  MAIL_PORT: "1025"
+  MAIL_FROM: "noreply@ticketsystem.local"
+
+  # ---- Keycloak Admin Client (service account) ----
+  KEYCLOAK_ADMIN_SERVER_URL: "http://keycloak-iam:8080/auth"
+  KEYCLOAK_ADMIN_REALM: "TicketSystemRealm"
+  KEYCLOAK_ADMIN_CLIENT_ID: "ticket-client"
+
+  # ---- Rate limit ----
+  RATE_LIMIT_GLOBAL_MAX_REQUESTS: "100"
+  RATE_LIMIT_GLOBAL_DURATION_SECONDS: "60"
+  RATE_LIMIT_GLOBAL_ENABLED: "true"
+
+  # ---- Redis ----
+  SPRING_DATA_REDIS_HOST: "redis"
+  SPRING_DATA_REDIS_PORT: "6379"
+
+  # ---- LLM service ----
+  LLM_SERVER_PORT: "8082"
+  TICKET_SERVICE_BASE_URL: "http://it-service-backend:8081"
+  GROQ_MODEL: "llama3-8b-8192"
+  GROQ_MAX_TOKENS: "1024"
+  GROQ_TIMEOUT_SECONDS: "30"
+  LLM_RATE_LIMIT_ENABLED: "true"
+  LLM_RATE_LIMIT_MAX_REQUESTS: "1"
+  LLM_RATE_LIMIT_DURATION_SECONDS: "10"
+  LLM_RATE_LIMIT_PATH_PATTERNS: "/api/ai/summaries/tickets/*/generate"
+
+  # ---- OpenTelemetry ----
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=kubernetes"
