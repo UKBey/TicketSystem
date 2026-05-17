@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  labels:
+    app.kubernetes.io/name: mailpit
+    app.kubernetes.io/component: support
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mailpit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mailpit
+        app.kubernetes.io/component: support
+    spec:
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:latest
+          ports:
+            - name: smtp
+              containerPort: 1025
+            - name: http
+              containerPort: 8025
