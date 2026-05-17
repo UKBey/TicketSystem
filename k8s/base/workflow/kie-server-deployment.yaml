@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kie-server
+  labels:
+    app.kubernetes.io/name: kie-server
+    app.kubernetes.io/component: workflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kie-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kie-server
+        app.kubernetes.io/component: workflow
+    spec:
+      containers:
+        - name: kie-server
+          image: jboss/kie-server-showcase:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: KIE_SERVER_ID
+              value: ticket-kie-server
+            - name: KIE_SERVER_LOCATION
+              value: http://kie-server:8080/kie-server/services/rest/server
+            - name: JAVA_OPTS
+              value: >-
+                -Xms512m -Xmx1024m
+                -Djava.net.preferIPv4Stack=true
+                -Dorg.kie.server.id=ticket-kie-server
+                -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
+                -Dorg.kie.server.persistence.ds=java:jboss/datasources/ExampleDS
+                -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.H2Dialect
+          readinessProbe:
+            httpGet:
+              path: /kie-server/services/rest/server
+              port: http
+              httpHeaders:
+                - name: Accept
+                  value: application/json
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /kie-server/services/rest/server
+              port: http
+              httpHeaders:
+                - name: Accept
+                  value: application/json
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
