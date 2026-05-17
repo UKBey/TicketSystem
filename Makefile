@@ -200,7 +200,7 @@ k8s-up:
 	@kind get clusters | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || kind create cluster --name $(KIND_CLUSTER)
 	kubectl --context kind-$(KIND_CLUSTER) apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 	kubectl --context kind-$(KIND_CLUSTER) -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
-	kubectl --context kind-$(KIND_CLUSTER) apply -k $(K8S_OVERLAY) --kustomize-load-restrictor=LoadRestrictionsNone
+	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
 	@echo.
 	@echo Cluster hazirlaniyor. Pod durumu: kubectl -n $(K8S_NAMESPACE) get pods -w
 	@echo ticketsystem.local hosts'da 127.0.0.1'e yonlendirilmis olmali.
