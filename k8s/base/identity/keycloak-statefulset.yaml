@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-iam
+  labels:
+    app.kubernetes.io/name: keycloak-iam
+    app.kubernetes.io/component: identity
+spec:
+  serviceName: keycloak-iam
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak-iam
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak-iam
+        app.kubernetes.io/component: identity
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0.1
+          args: ["start-dev", "--import-realm"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: KC_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_DB
+            - name: KC_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_DB_URL
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_DB_USERNAME
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_DB_PASSWORD
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_ADMIN
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_HOSTNAME_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_HOSTNAME_URL
+            - name: KC_HOSTNAME_ADMIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_HOSTNAME_ADMIN_URL
+            - name: KC_HTTP_RELATIVE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_HTTP_RELATIVE_PATH
+            - name: KC_PROXY_HEADERS
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: KC_PROXY_HEADERS
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /auth/realms/master
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /auth/realms/master
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - name: realm-import
+          configMap:
+            name: keycloak-realm

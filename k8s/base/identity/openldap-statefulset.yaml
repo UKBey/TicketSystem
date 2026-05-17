@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openldap-server
+  labels:
+    app.kubernetes.io/name: openldap-server
+    app.kubernetes.io/component: identity
+spec:
+  serviceName: openldap-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openldap-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openldap-server
+        app.kubernetes.io/component: identity
+    spec:
+      containers:
+        - name: openldap
+          # Uses the custom image built from `Dockerfile-ldap` (osixia/openldap +
+          # entrypoint wrapper that renders bootstrap.ldif.template from env vars).
+          # The image must be either pushed to a registry the cluster can reach,
+          # or loaded into the kind cluster via `kind load docker-image`.
+          image: local/openldap-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ldap
+              containerPort: 389
+            - name: ldaps
+              containerPort: 636
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/ldap
+            - name: config
+              mountPath: /etc/ldap/slapd.d
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: config
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 256Mi

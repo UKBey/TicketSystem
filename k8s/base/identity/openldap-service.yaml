@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap-server
+  labels:
+    app.kubernetes.io/name: openldap-server
+    app.kubernetes.io/component: identity
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: openldap-server
+  ports:
+    - name: ldap
+      port: 389
+      targetPort: 389
+    - name: ldaps
+      port: 636
+      targetPort: 636

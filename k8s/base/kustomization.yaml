@@ -14,6 +14,7 @@ resources:
   - data/it-service-db-statefulset.yaml
   - data/jbpm-db-service.yaml
   - data/jbpm-db-statefulset.yaml
+  - identity
 
 # Note: `app-secrets` Secret is materialised by overlays via `secretGenerator`
 # pointing at `k8s/overlays/<env>/secrets.env` (see k8s/base/secrets.example.env
