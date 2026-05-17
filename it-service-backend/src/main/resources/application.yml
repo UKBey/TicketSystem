@@ -88,6 +88,11 @@ management:
   endpoint:
     health:
       show-details: always
+      # Kubernetes probe endpoints (/actuator/health/liveness, /actuator/health/readiness).
+      # Spring Boot auto-enables these only when it detects a K8s environment; enabling
+      # explicitly keeps the contract stable across compose/local/K8s deployments.
+      probes:
+        enabled: true
 
   # Micrometer Tracing: her isteği örnekle (geliştirme ortamı için 1.0)
   tracing:

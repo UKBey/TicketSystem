@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-service
+  labels:
+    app.kubernetes.io/name: llm-service
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: llm-service
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: llm
+          image: local/llm-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: OTEL_SERVICE_NAME
+              value: llm-service
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
