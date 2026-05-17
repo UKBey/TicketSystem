@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketsystem
+  annotations:
+    # cert-manager issues Let's Encrypt certs via the cluster issuer named below;
+    # set this up once per cluster (see k8s/README.md "Production").
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: TS_AFFINITY
+    nginx.ingress.kubernetes.io/session-cookie-path: /api/ws
+spec:
+  tls:
+    - hosts:
+        - ticketsystem.example.com
+      secretName: ticketsystem-tls
+  rules:
+    - host: ticketsystem.example.com

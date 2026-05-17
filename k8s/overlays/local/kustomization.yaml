@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ticketsystem
+
+resources:
+  - ../../base
+
+# Generate `app-secrets` from the local env file (gitignored).
+# Copy `secrets.env.example` to `secrets.env` and fill in dev values.
+secretGenerator:
+  - name: app-secrets
+    envs:
+      - secrets.env
+    behavior: create
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+  - path: patches/frontend-replicas.yaml
+  - path: patches/ingress-host.yaml
+  - path: patches/storage-classes.yaml

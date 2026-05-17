@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ticketsystem
+
+resources:
+  - ../../base
+  - hpa-backend.yaml
+
+# Production secrets are committed as SealedSecret manifests sealed against the
+# cluster's bitnami-labs/sealed-secrets controller. The unsealed Secret keeps
+# the canonical name `app-secrets` so manifests in base/ resolve unchanged.
+#
+# To bootstrap:
+#   kubeseal --controller-namespace kube-system --controller-name sealed-secrets-controller \
+#     -f /tmp/app-secrets-plain.yaml -o yaml > k8s/overlays/prod/app-secrets.sealed.yaml
+#
+# Add the sealed file to resources: above once it exists.
+
+patches:
+  - path: patches/replicas.yaml
+  - path: patches/ingress-prod.yaml
+  - path: patches/remove-data-generator.yaml

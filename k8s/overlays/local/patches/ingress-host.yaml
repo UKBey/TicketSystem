@@ -1,0 +1,9 @@
+# Local kind cluster — exposed via host gateway at localhost. The host header
+# `ticketsystem.local` matches base/ingress/ingress.yaml; add an /etc/hosts entry
+# pointing ticketsystem.local to 127.0.0.1 (or use kind extraPortMappings).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketsystem
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
