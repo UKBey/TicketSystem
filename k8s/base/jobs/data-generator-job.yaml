@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-generator
+  labels:
+    app.kubernetes.io/name: data-generator
+    app.kubernetes.io/component: jobs
+  annotations:
+    # Optional demo seeding. Local overlay leaves this enabled; the prod overlay
+    # removes the resource entirely (see k8s/overlays/prod/kustomization.yaml).
+    ticketsystem.local/optional: "true"
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: data-generator
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # Block until backend reports ready so the JAR doesn't try to seed
+        # before Flyway has finished and Keycloak is reachable.
+        - name: wait-for-backend
+          image: curlimages/curl:8.10.1
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              until curl -fsSL http://it-service-backend:8081/actuator/health/readiness >/dev/null; do
+                echo "waiting for it-service-backend readiness..."
+                sleep 5
+              done
+      containers:
+        - name: generate
+          # Image must be built locally (data-generator/ has no Dockerfile yet —
+          # see k8s/README.md for the suggested build recipe) and loaded into the
+          # cluster (`kind load docker-image local/data-generator:latest`).
+          image: local/data-generator:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets

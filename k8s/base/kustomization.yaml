@@ -20,6 +20,7 @@ resources:
   - apps
   - frontend
   - ingress
+  - jobs
 
 # Note: `app-secrets` Secret is materialised by overlays via `secretGenerator`
 # pointing at `k8s/overlays/<env>/secrets.env` (see k8s/base/secrets.example.env
