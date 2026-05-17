@@ -6,3 +6,21 @@ resources:
   - redis-statefulset.yaml
   - mailpit-service.yaml
   - mailpit-deployment.yaml
+  - kafka-service.yaml
+  - kafka-statefulset.yaml
+  - opensearch-service.yaml
+  - opensearch-statefulset.yaml
+  - opensearch-dashboards-deployment.yaml
+  - otel-collector-deployment.yaml
+  - logstash-deployment.yaml
+
+configMapGenerator:
+  - name: otel-collector-config
+    files:
+      - otel-collector-config.yaml=../../../otel-collector-config.yaml
+  - name: logstash-pipeline
+    files:
+      - logstash.conf=../../../logstash.conf
+
+generatorOptions:
+  disableNameSuffixHash: true
