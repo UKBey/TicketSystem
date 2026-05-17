@@ -6,7 +6,8 @@
         verify \
         sonar sonar-up sonar-down \
         lint install clean \
-        gen gen-build gen-run
+        gen gen-build gen-run \
+        k8s-up k8s-down k8s-logs k8s-load-images k8s-render
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
@@ -65,6 +66,13 @@ help:
 	@echo    gen              - Generator'u derler ve calistirir (build + run)
 	@echo    gen-build        - Generator JAR'ini derler
 	@echo    gen-run          - Onceden derlenmiş JAR'i calistirir
+	@echo.
+	@echo  Kubernetes (kind + kustomize):
+	@echo    k8s-up           - Tum stack'i kind cluster'a deploy eder (overlay: local)
+	@echo    k8s-down         - kind cluster'i siler
+	@echo    k8s-logs s=deploy - Tek deployment'in loglarini izler
+	@echo    k8s-load-images  - Lokal Docker image'larini kind'a yukler
+	@echo    k8s-render       - Manifest'leri stdout'a render eder (debug)
 	@echo.
 	@echo  Diger:
 	@echo    lint             - Frontend ESLint kontrolu
@@ -174,6 +182,41 @@ gen-run:
 
 install:
 	cd $(FRONTEND_DIR) && npm install
+
+# --- Kubernetes (kind + kustomize) ---
+
+# kind cluster adi ve overlay yolu — overlay disardan ezilebilir: make k8s-up OVERLAY=prod
+KIND_CLUSTER ?= ticketsystem
+K8S_OVERLAY  ?= k8s/overlays/local
+K8S_NAMESPACE := ticketsystem
+# Local kullanildiginda kind'a yuklenecek image listesi (CD'deki ile aynı isimler).
+K8S_LOCAL_IMAGES := local/it-service-backend:latest \
+                    local/llm-service:latest \
+                    local/it-service-frontend:latest \
+                    local/openldap-server:latest \
+                    local/data-generator:latest
+
+k8s-up:
+	@kind get clusters | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || kind create cluster --name $(KIND_CLUSTER)
+	kubectl --context kind-$(KIND_CLUSTER) apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	kubectl --context kind-$(KIND_CLUSTER) wait --namespace ingress-nginx \
+	  --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=180s
+	kubectl --context kind-$(KIND_CLUSTER) apply -k $(K8S_OVERLAY) --kustomize-load-restrictor=LoadRestrictionsNone
+	@echo.
+	@echo Cluster hazirlaniyor. Pod durumu: kubectl -n $(K8S_NAMESPACE) get pods -w
+	@echo ticketsystem.local hosts'da 127.0.0.1'e yonlendirilmis olmali.
+
+k8s-down:
+	kind delete cluster --name $(KIND_CLUSTER)
+
+k8s-logs:
+	kubectl -n $(K8S_NAMESPACE) logs -f deploy/$(s)
+
+k8s-load-images:
+	@for %%i in ($(K8S_LOCAL_IMAGES)) do kind load docker-image %%i --name $(KIND_CLUSTER)
+
+k8s-render:
+	kubectl kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone
 
 # --- Temizlik ---
 
