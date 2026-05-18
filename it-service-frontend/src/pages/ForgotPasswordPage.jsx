@@ -6,8 +6,10 @@ import { useTheme } from '../context/ThemeContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { requestPasswordReset } from '../services/authApi';
 
+const SUPPORTED_LANGS = ['en', 'tr'];
+
 export default function ForgotPasswordPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -22,7 +24,9 @@ export default function ForgotPasswordPage() {
     setError('');
     setSubmitting(true);
     try {
-      await requestPasswordReset(email.trim());
+      const rawLang = (i18n.language ?? 'en').split('-')[0].toLowerCase();
+      const language = SUPPORTED_LANGS.includes(rawLang) ? rawLang : 'en';
+      await requestPasswordReset(email.trim(), { language, theme });
       setSubmitted(true);
     } catch (requestError) {
       if (requestError.response?.status === 429) {

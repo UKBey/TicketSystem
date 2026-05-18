@@ -68,7 +68,7 @@ public class AuthController {
             return tooManyRequests(ip);
         }
 
-        passwordResetService.requestPasswordReset(body.getEmail());
+        passwordResetService.requestPasswordReset(body.getEmail(), body.getLanguage(), body.getTheme());
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 

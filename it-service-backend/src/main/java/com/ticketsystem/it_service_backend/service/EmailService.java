@@ -116,16 +116,36 @@ public class EmailService {
     /**
      * Şifre sıfırlama bağlantısı içeren mail. Ticket-bağlamlı diğer mail'lerin
      * aksine bilet referansı yoktur; bu yüzden ayrı bir basit HTML şablonu kullanır.
+     *
+     * <p>{@code languageOverride} / {@code themeOverride} verilirse — kullanıcı
+     * o anki tarayıcı oturumunda hangi dil/temayı kullanıyorsa mail o şekilde
+     * basılır. Null/boş geçilirse kullanıcının DB'deki tercihine düşülür.
      */
     @Async
-    public void sendPasswordResetEmail(User recipient, String resetUrl, int ttlMinutes) {
-        Locale locale = localeOf(recipient);
+    public void sendPasswordResetEmail(User recipient, String resetUrl, int ttlMinutes,
+                                       String languageOverride, String themeOverride) {
+        Locale locale = resolveLocale(recipient, languageOverride);
+        Palette palette = resolvePalette(recipient, themeOverride);
         String subject = msg(locale, "email.subject.password.reset");
-        String body = buildPasswordResetHtml(locale, recipient, resetUrl, ttlMinutes);
+        String body = buildPasswordResetHtml(locale, palette, recipient, resetUrl, ttlMinutes);
         send(recipient.getEmail(), subject, body);
     }
 
-    private String buildPasswordResetHtml(Locale locale, User recipient, String resetUrl, int ttlMinutes) {
+    private Locale resolveLocale(User user, String override) {
+        if (override != null && !override.isBlank()) {
+            return Locale.forLanguageTag(override);
+        }
+        return localeOf(user);
+    }
+
+    private Palette resolvePalette(User user, String override) {
+        if (override != null && !override.isBlank()) {
+            return "dark".equalsIgnoreCase(override) ? Palette.DARK : Palette.LIGHT;
+        }
+        return paletteOf(user);
+    }
+
+    private String buildPasswordResetHtml(Locale locale, Palette p, User recipient, String resetUrl, int ttlMinutes) {
         String title    = msg(locale, "email.title.password.reset");
         String greeting = msg(locale, "email.greeting", recipient.getFullName());
         String body     = msg(locale, "email.body.password.reset", ttlMinutes);
@@ -134,7 +154,6 @@ public class EmailService {
         String ignore   = msg(locale, "email.ignore.password.reset");
         String footer   = msg(locale, "email.footer");
 
-        Palette p = paletteOf(recipient);
         String safeUrl = escapeHtml(resetUrl);
 
         return """

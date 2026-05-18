@@ -20,8 +20,11 @@ authApi.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-export async function requestPasswordReset(email) {
-  const response = await authApi.post('/forgot-password', { email });
+export async function requestPasswordReset(email, { language, theme } = {}) {
+  const payload = { email };
+  if (language) payload.language = language;
+  if (theme) payload.theme = theme;
+  const response = await authApi.post('/forgot-password', payload);
   return response.data;
 }
 

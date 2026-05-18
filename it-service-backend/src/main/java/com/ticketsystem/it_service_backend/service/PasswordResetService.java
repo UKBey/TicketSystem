@@ -50,9 +50,12 @@ public class PasswordResetService {
      * Verilen email için reset token üretir ve maille gönderir. Email enumeration'ı
      * önlemek için, email kayıtlı olmasa veya kullanıcı pasif olsa bile sessiz
      * şekilde başarılı döner — çağıran taraf hep aynı yanıtı vermelidir.
+     *
+     * @param languageOverride istemcinin o anki dili (en/tr); null ise DB tercihine düşülür
+     * @param themeOverride    istemcinin o anki teması (light/dark); null ise DB tercihine düşülür
      */
     @Transactional
-    public void requestPasswordReset(String email) {
+    public void requestPasswordReset(String email, String languageOverride, String themeOverride) {
         if (email == null || email.isBlank()) {
             log.debug("Reset isteği boş email ile geldi, sessiz geçildi");
             return;
@@ -85,8 +88,9 @@ public class PasswordResetService {
         tokenRepository.save(entity);
 
         String resetUrl = buildResetUrl(plainToken);
-        emailService.sendPasswordResetEmail(user, resetUrl, tokenTtlMinutes);
-        log.info("Reset linki gönderildi. User: {}, TTL: {} dk", user.getId(), tokenTtlMinutes);
+        emailService.sendPasswordResetEmail(user, resetUrl, tokenTtlMinutes, languageOverride, themeOverride);
+        log.info("Reset linki gönderildi. User: {}, TTL: {} dk, lang={}, theme={}",
+                user.getId(), tokenTtlMinutes, languageOverride, themeOverride);
     }
 
     /**
