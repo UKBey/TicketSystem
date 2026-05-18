@@ -608,6 +608,11 @@
     "kpiCsatDetail": "{{count}} responses",
     "notYetSynced": "Not yet synced",
     "loadError": "Dashboard metrics could not be loaded.",
+    "dateRange": {
+      "label": "Date range",
+      "lastDays": "Last {{count}} days",
+      "allTime": "All time"
+    },
     "alerts": {
       "title": "Alerts & Backlog",
       "count": "{{count}} alerts",

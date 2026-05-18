@@ -22,13 +22,15 @@ async function getTicketTimeline(days = 30) {
   return response.data;
 }
 
-async function getPrioritySLAMetrics() {
-  const response = await api.get('/metrics/priority-sla-metrics');
+async function getPrioritySLAMetrics(days) {
+  const params = days != null ? { days } : undefined;
+  const response = await api.get('/metrics/priority-sla-metrics', { params });
   return response.data;
 }
 
-async function getProductMetrics() {
-  const response = await api.get('/metrics/product-metrics');
+async function getProductMetrics(days) {
+  const params = days != null ? { days } : undefined;
+  const response = await api.get('/metrics/product-metrics', { params });
   return response.data;
 }
 

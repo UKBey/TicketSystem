@@ -608,6 +608,11 @@
     "kpiCsatDetail": "{{count}} yanıt",
     "notYetSynced": "Henüz senkronize edilmedi",
     "loadError": "Kontrol paneli metrikleri yüklenemedi.",
+    "dateRange": {
+      "label": "Tarih aralığı",
+      "lastDays": "Son {{count}} gün",
+      "allTime": "Tüm zamanlar"
+    },
     "alerts": {
       "title": "Uyarılar ve Birikim",
       "count": "{{count}} uyarı",

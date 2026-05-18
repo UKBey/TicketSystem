@@ -414,15 +414,24 @@ public class MetricsService {
     /**
      * Priority bazlı SLA hedef ve performans metriklerini hesaplar.
      * Her priority için ticket adedi, SLA hedef süresi, ortalama çözüm süresi,
-     * breach yüzdesi ve on-time yüzdesi döner.
+     * breach yüzdesi ve on-time yüzdesi döner. SLA hedef saatleri env-driven
+     * SlaPolicyService'ten okunur; days null/0 ⇒ tüm zamanlar.
      *
+     * @param days Pencere (gün); null veya 0 ise tüm zamanlar
      * @return PrioritySLAMetricsDTO — priority detay satırları
      */
-    @Cacheable(PRIORITY_SLA_METRICS)
-    public PrioritySLAMetricsDTO getPrioritySlaMetrics() {
-        log.info("Priority-SLA metrikleri hesaplanıyor...");
+    @Cacheable(value = PRIORITY_SLA_METRICS, key = "#days == null ? 'all' : #days")
+    public PrioritySLAMetricsDTO getPrioritySlaMetrics(Integer days) {
+        log.info("Priority-SLA metrikleri hesaplanıyor (days={})...", days);
 
-        List<Object[]> rawRows = slaPolicyRepository.findPrioritySlaMetrics();
+        Map<String, Integer> priorityHours = Map.of(
+                "CRITICAL", slaPolicyService.getResolutionHours("CRITICAL"),
+                "HIGH",     slaPolicyService.getResolutionHours("HIGH"),
+                "MEDIUM",   slaPolicyService.getResolutionHours("MEDIUM"),
+                "LOW",      slaPolicyService.getResolutionHours("LOW")
+        );
+
+        List<Object[]> rawRows = slaPolicyRepository.findPrioritySlaMetrics(priorityHours, days);
 
         List<PriorityDetailDTO> details = rawRows.stream()
                 .map(row -> PriorityDetailDTO.builder()
@@ -447,14 +456,17 @@ public class MetricsService {
      * Ürün bazında bilet metriklerini hesaplar.
      * Her aktif ürün için toplam bilet, açık bilet, ortalama çözüm süresi,
      * CSAT ortalaması ve SLA breach yüzdesi döner; toplam bilete göre azalan sıralıdır.
+     * days null/0 ⇒ tüm zamanlar.
      *
+     * @param days Pencere (gün); null veya 0 ise tüm zamanlar
      * @return ProductMetricsDTO — ürün detay satırları
      */
-    @Cacheable(PRODUCT_METRICS)
-    public ProductMetricsDTO getProductMetrics() {
-        log.info("Ürün bazında bilet metrikleri hesaplanıyor...");
+    @Cacheable(value = PRODUCT_METRICS, key = "#days == null ? 'all' : #days")
+    public ProductMetricsDTO getProductMetrics(Integer days) {
+        log.info("Ürün bazında bilet metrikleri hesaplanıyor (days={})...", days);
 
-        List<Object[]> rawRows = productRepository.findProductMetrics();
+        Integer dayWindow = (days != null && days > 0) ? days : null;
+        List<Object[]> rawRows = productRepository.findProductMetrics(dayWindow);
 
         List<ProductDetailDTO> products = rawRows.stream()
                 .map(row -> ProductDetailDTO.builder()

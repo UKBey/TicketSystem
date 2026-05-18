@@ -3,11 +3,13 @@ package com.ticketsystem.it_service_backend.repository;
 import com.ticketsystem.it_service_backend.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    // Ürün bazında toplam, açık, ortalama çözüm, CSAT ve SLA breach metriklerini döner
+    // Ürün bazında toplam, açık, ortalama çözüm, CSAT ve SLA breach metriklerini döner.
+    // days null veya 0 → tüm zamanlar; aksi halde son N gün içinde oluşturulmuş ticket'lar.
     @Query(value = """
             SELECT
                 p.id,
@@ -24,11 +26,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                 END                                                                 AS sla_breach_percentage
             FROM products p
             LEFT JOIN tickets t ON t.product_id = p.id
+                AND (CAST(:days AS INTEGER) IS NULL
+                     OR t.created_at >= NOW() - make_interval(days => CAST(:days AS INTEGER)))
             LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
             WHERE p.is_active = true
             GROUP BY p.id, p.name
             ORDER BY total_tickets DESC
             """, nativeQuery = true)
-    List<Object[]> findProductMetrics();
+    List<Object[]> findProductMetrics(@Param("days") Integer days);
 }
-

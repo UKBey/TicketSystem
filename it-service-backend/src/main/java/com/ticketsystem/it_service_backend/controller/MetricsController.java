@@ -220,12 +220,12 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'priority-sla-metrics'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/priority-sla-metrics")
-    public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics() {
-        log.info("Priority-SLA metrikleri istendi");
-        PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics();
+    public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics(
+            @RequestParam(required = false) Integer days) {
+        log.info("Priority-SLA metrikleri istendi (days={})", days);
+        PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics(days);
         return ResponseEntity.ok(metrics);
     }
 
@@ -258,12 +258,12 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'product-metrics'")
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/product-metrics")
-    public ResponseEntity<ProductMetricsDTO> getProductMetrics() {
-        log.info("Ürün bazında bilet metrikleri istendi");
-        ProductMetricsDTO metrics = metricsService.getProductMetrics();
+    public ResponseEntity<ProductMetricsDTO> getProductMetrics(
+            @RequestParam(required = false) Integer days) {
+        log.info("Ürün bazında bilet metrikleri istendi (days={})", days);
+        ProductMetricsDTO metrics = metricsService.getProductMetrics(days);
         return ResponseEntity.ok(metrics);
     }
 

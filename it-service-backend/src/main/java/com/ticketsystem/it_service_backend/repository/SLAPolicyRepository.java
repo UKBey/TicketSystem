@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
@@ -12,35 +13,39 @@ public class SLAPolicyRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public List<Object[]> findPrioritySlaMetrics() {
+    /**
+     * Priority bazlı SLA metriklerini hesaplar. SLA hedef saatleri çağıran tarafından
+     * (env-driven SlaPolicyService) verilir — tek doğruluk kaynağı.
+     *
+     * @param priorityHours CRITICAL/HIGH/MEDIUM/LOW → hedef saat haritası
+     * @param days          Sayım penceresi; null veya 0 ⇒ tüm zamanlar
+     */
+    public List<Object[]> findPrioritySlaMetrics(Map<String, Integer> priorityHours, Integer days) {
+        Integer dayWindow = (days != null && days > 0) ? days : null;
+
         String sql = """
                 WITH priorities AS (
-                    SELECT *
-                    FROM (
+                    SELECT * FROM (
                         VALUES
-                            ('CRITICAL', 4),
-                            ('HIGH', 8),
-                            ('MEDIUM', 16),
-                            ('LOW', 48)
-                    ) AS p(priority, default_target_hours)
-                ),
-                policy_target AS (
-                    SELECT
-                        p.priority,
-                        COALESCE(sp.target_resolution_hours, p.default_target_hours) AS target_hours
-                    FROM priorities p
-                    LEFT JOIN sla_policies sp ON sp.priority = p.priority
+                            ('CRITICAL'::text, CAST(? AS INTEGER)),
+                            ('HIGH'::text,     CAST(? AS INTEGER)),
+                            ('MEDIUM'::text,   CAST(? AS INTEGER)),
+                            ('LOW'::text,      CAST(? AS INTEGER))
+                    ) AS p(priority, target_hours)
                 ),
                 ticket_base AS (
                     SELECT
-                        pt.priority,
-                        pt.target_hours,
+                        p.priority,
+                        p.target_hours,
                         t.id,
                         t.created_at,
                         t.resolved_at,
                         COALESCE(t.sla_breached, false) AS sla_breached
-                    FROM policy_target pt
-                    LEFT JOIN tickets t ON t.priority = pt.priority
+                    FROM priorities p
+                    LEFT JOIN tickets t
+                        ON t.priority = p.priority
+                       AND (CAST(? AS INTEGER) IS NULL
+                            OR t.created_at >= NOW() - make_interval(days => CAST(? AS INTEGER)))
                 )
                 SELECT
                     tb.priority,
@@ -75,6 +80,15 @@ public class SLAPolicyRepository {
                 END
                 """;
 
+        Object[] args = new Object[]{
+                priorityHours.get("CRITICAL"),
+                priorityHours.get("HIGH"),
+                priorityHours.get("MEDIUM"),
+                priorityHours.get("LOW"),
+                dayWindow,
+                dayWindow
+        };
+
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
                 rs.getString("priority"),
                 rs.getLong("ticket_count"),
@@ -83,6 +97,6 @@ public class SLAPolicyRepository {
                 rs.getLong("breach_count"),
                 rs.getDouble("breach_percentage"),
                 rs.getDouble("on_time_percentage")
-        });
+        }, args);
     }
 }

@@ -19,6 +19,10 @@ public class SlaPolicyService {
         return defaultMs(priority.toUpperCase());
     }
 
+    public int getResolutionHours(String priority) {
+        return (int) (getSlaDurationMs(priority) / 3_600_000L);
+    }
+
     public int getWarningThresholdHours(String priority) {
         if (priority == null) return 2;
         SlaProperties.PolicyConfig cfg = slaProperties.getPolicies().get(priority.toUpperCase());

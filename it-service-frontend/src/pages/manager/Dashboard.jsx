@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
+import { ArrowUpRight, CalendarRange, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
 import StatusDistributionChart from '../../components/dashboard/StatusDistributionChart';
@@ -45,9 +45,13 @@ function formatHours(value) {
   return `${Number(value).toFixed(1)}h`;
 }
 
+const DATE_RANGE_OPTIONS = [7, 30, 90, null];
+const DEFAULT_DATE_RANGE = 30;
+
 export default function Dashboard() {
   const { t } = useTranslation();
 
+  const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,16 +83,18 @@ export default function Dashboard() {
       }
 
       setError('');
+      const timelineDays = dateRange ?? 365;
+      const worklogDays = dateRange ?? 365;
       const [summaryRes, statusRes, agentRes, timelineRes, prioritySlaRes, productRes, csatRes, worklogRes] =
         await Promise.allSettled([
           metricService.getDashboardSummary(),
           metricService.getStatusDistribution(),
           metricService.getAgentPerformance(),
-          metricService.getTicketTimeline(30),
-          metricService.getPrioritySLAMetrics(),
-          metricService.getProductMetrics(),
+          metricService.getTicketTimeline(timelineDays),
+          metricService.getPrioritySLAMetrics(dateRange),
+          metricService.getProductMetrics(dateRange),
           metricService.getCSATMetrics(3),
-          metricService.getWorklogCompletion(30),
+          metricService.getWorklogCompletion(worklogDays),
         ]);
 
       if (summaryRes.status === 'fulfilled') setSummary({ ...DEFAULT_SUMMARY, ...summaryRes.value });
@@ -117,7 +123,7 @@ export default function Dashboard() {
       setCsatLoading(false);
       setWorklogLoading(false);
     }
-  }, [t]);
+  }, [t, dateRange]);
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -201,21 +207,54 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => loadSummary({ silent: true })}
-              disabled={refreshing}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
-            </button>
+            <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <label
+                className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <CalendarRange className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">{t('dashboard.dateRange.label')}</span>
+                <select
+                  value={dateRange ?? 'all'}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setDateRange(value === 'all' ? null : Number(value));
+                  }}
+                  className="bg-transparent text-sm font-semibold focus:outline-none"
+                  style={{ color: 'var(--text-primary)' }}
+                  aria-label={t('dashboard.dateRange.label')}
+                >
+                  {DATE_RANGE_OPTIONS.map((option) => (
+                    <option key={option ?? 'all'} value={option ?? 'all'}>
+                      {option == null
+                        ? t('dashboard.dateRange.allTime')
+                        : t('dashboard.dateRange.lastDays', { count: option })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => loadSummary({ silent: true })}
+                disabled={refreshing}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+              </button>
+            </div>
           </div>
         </div>
       </section>
