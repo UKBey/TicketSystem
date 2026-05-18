@@ -1,0 +1,17 @@
+# Base configmap'i `http://ticketsystem.local` URL'leri ile geliyor (lokal
+# placeholder). Prod overlay'inde gercek HTTPS domain'e ezilmesi gerekiyor;
+# aksi halde Keycloak baska, JWT issuer baska URL kullanir ve OAuth2 resource
+# server token dogrulamasi basarisiz olur (SecurityConfig).
+#
+# `ticketsystem.example.com` placeholder — `ingress-prod.yaml`'daki host ile
+# ayni olmali. Gercek prod domain'iyle degistir.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  KEYCLOAK_FRONTEND_URL: "https://ticketsystem.example.com/auth"
+  KC_HOSTNAME_URL: "https://ticketsystem.example.com/auth"
+  KC_HOSTNAME_ADMIN_URL: "https://ticketsystem.example.com/auth"
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "https://ticketsystem.example.com/auth/realms/TicketSystemRealm"
+  MAIL_FROM: "noreply@ticketsystem.example.com"

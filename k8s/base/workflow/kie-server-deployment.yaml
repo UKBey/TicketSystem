@@ -18,7 +18,10 @@ spec:
     spec:
       containers:
         - name: kie-server
-          image: jboss/kie-server-showcase:latest
+          # Custom image — base showcase image'a ticket-workflow kjar'i gomulu
+          # (Dockerfile-kie). Compose'da host'tan bind mount edilen ~/.m2 burada
+          # gerekmez; kjar-deploy job'u artifact'i lokal repo'dan cozer.
+          image: local/kie-server:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -36,23 +39,18 @@ spec:
                 -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
                 -Dorg.kie.server.persistence.ds=java:jboss/datasources/ExampleDS
                 -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.H2Dialect
+          # KIE Server'in /kie-server/services/rest/server endpoint'i Basic Auth
+          # ister; httpGet probe credential gondermedigi icin 401 doner ve probe
+          # surekli fail eder. TCP probe ile port acik olunca Ready isaretliyoruz.
           readinessProbe:
-            httpGet:
-              path: /kie-server/services/rest/server
+            tcpSocket:
               port: http
-              httpHeaders:
-                - name: Accept
-                  value: application/json
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             failureThreshold: 30
           livenessProbe:
-            httpGet:
-              path: /kie-server/services/rest/server
+            tcpSocket:
               port: http
-              httpHeaders:
-                - name: Accept
-                  value: application/json
-            initialDelaySeconds: 120
+            initialDelaySeconds: 180
             periodSeconds: 30
             failureThreshold: 5

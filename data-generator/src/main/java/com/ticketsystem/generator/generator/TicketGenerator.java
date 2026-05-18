@@ -84,9 +84,6 @@ public class TicketGenerator {
             sleep();
         }
 
-        // Aşama 2: round-robin yorum gönderimi
-        flushCommentQueues();
-
         log.info("=== Bilet üretimi tamamlandı. Üretilen bilet: {} ===", ticketIds.size());
         return ticketIds;
     }
@@ -125,8 +122,13 @@ public class TicketGenerator {
         // 3. Worklog kayıtları
         addWorklogs(ticketId, agent, spec.path("worklogs"));
 
-        // 4. Yorumlar kuyruğa eklenir (round-robin'de gönderilecek)
+        // 4. Yorumlar kuyruğa eklenir ve HEMEN gönderilir.
+        //    Backend RESOLVED'e geçişte agent claim'ini siliyor (TicketService.java:801);
+        //    yorumları status update'ten sonraya bıraksak claim sahibi olmayan agent
+        //    yorum atmaya çalışıp 403 yer. Cooldown (COMMENT_DELAY_MS) için kullanıcı
+        //    bazlı round-robin queue içinde flush yapılıyor.
         enqueueComments(ticketId, customer, agent, spec.path("comments"));
+        flushCommentQueues();
 
         // 5. Status hedefe göre ilerlet
         switch (status) {

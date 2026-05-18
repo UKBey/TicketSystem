@@ -16,20 +16,6 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: jbpm-db
-spec:
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
   name: openldap-server
 spec:
   volumeClaimTemplates:

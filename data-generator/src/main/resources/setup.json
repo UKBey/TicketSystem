@@ -1,15 +1,15 @@
 {
   "users": {
     "agents": [
-      { "username": "agent1.gen", "email": "agent1.gen@ticketsystem.local", "firstName": "Aylin",  "lastName": "Demir",  "password": "321654Aa!" },
-      { "username": "agent2.gen", "email": "agent2.gen@ticketsystem.local", "firstName": "Kerem",  "lastName": "Yıldız", "password": "321654Aa!" },
-      { "username": "agent3.gen", "email": "agent3.gen@ticketsystem.local", "firstName": "Zeynep", "lastName": "Aksoy",  "password": "321654Aa!" }
+      { "username": "agent1.gen", "email": "agent1.gen@ticketsystem.local", "firstName": "Aylin",  "lastName": "Demir",  "password": "321654" },
+      { "username": "agent2.gen", "email": "agent2.gen@ticketsystem.local", "firstName": "Kerem",  "lastName": "Yıldız", "password": "321654" },
+      { "username": "agent3.gen", "email": "agent3.gen@ticketsystem.local", "firstName": "Zeynep", "lastName": "Aksoy",  "password": "321654" }
     ],
     "customers": [
-      { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local", "firstName": "Mehmet", "lastName": "Şahin",  "password": "321654Aa!" },
-      { "username": "customer2.gen", "email": "customer2.gen@ticketsystem.local", "firstName": "Elif",   "lastName": "Koç",    "password": "321654Aa!" },
-      { "username": "customer3.gen", "email": "customer3.gen@ticketsystem.local", "firstName": "Burak",  "lastName": "Polat",  "password": "321654Aa!" },
-      { "username": "customer4.gen", "email": "customer4.gen@ticketsystem.local", "firstName": "Selin",  "lastName": "Çelik",  "password": "321654Aa!" }
+      { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local", "firstName": "Mehmet", "lastName": "Şahin",  "password": "321654" },
+      { "username": "customer2.gen", "email": "customer2.gen@ticketsystem.local", "firstName": "Elif",   "lastName": "Koç",    "password": "321654" },
+      { "username": "customer3.gen", "email": "customer3.gen@ticketsystem.local", "firstName": "Burak",  "lastName": "Polat",  "password": "321654" },
+      { "username": "customer4.gen", "email": "customer4.gen@ticketsystem.local", "firstName": "Selin",  "lastName": "Çelik",  "password": "321654" }
     ]
   },
 

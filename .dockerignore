@@ -1,0 +1,27 @@
+# Docker build context'inden hariç tutulanlar — repo kökündeki Dockerfile'lar
+# (Dockerfile-ldap, Dockerfile-keycloak, Dockerfile-kie) build edilirken tüm
+# monorepo'yu context olarak göndermemek için.
+.git
+.github
+.idea
+.vscode
+**/node_modules
+**/dist
+**/.cache
+**/__pycache__
+**/*.log
+# Backend / llm-service / kjar Dockerfile'lari kendi multi-stage build'lerinde
+# JAR'i yeniden uretiyor; host'taki target/ klasorleri context'e gerekmez (buyuk).
+it-service-backend/target
+llm-service/target
+data-generator/target
+ticket-workflow-kjar/target
+k8s
+grafana
+observability
+prometheus.yml
+otel-collector-config.yaml
+logstash.conf
+sonarqube_data
+.env
+.env.local

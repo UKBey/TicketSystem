@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:latest
+          image: otel/opentelemetry-collector-contrib:0.114.0
           args: ["--config=/etc/otel-collector-config.yaml"]
           ports:
             - name: otlp-grpc

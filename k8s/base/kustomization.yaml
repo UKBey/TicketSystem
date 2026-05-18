@@ -3,8 +3,10 @@ kind: Kustomization
 
 namespace: ticketsystem
 
-commonLabels:
-  app.kubernetes.io/part-of: ticketsystem
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/part-of: ticketsystem
 
 resources:
   - namespace.yaml
@@ -12,8 +14,6 @@ resources:
   - data/it-service-db-initdb-configmap.yaml
   - data/it-service-db-service.yaml
   - data/it-service-db-statefulset.yaml
-  - data/jbpm-db-service.yaml
-  - data/jbpm-db-statefulset.yaml
   - identity
   - workflow
   - support

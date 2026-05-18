@@ -20,4 +20,16 @@ generatorOptions:
 patches:
   - path: patches/frontend-replicas.yaml
   - path: patches/ingress-host.yaml
+  - path: patches/configmap-app-local.yaml
   - path: patches/storage-classes.yaml
+  # Ingress host'unu sadece tek alanda degistirmek icin JSON6902 patch.
+  # Strategic merge ile rules listesine dokunsak base'deki path tanimlari kayboluyor.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: ticketsystem
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: localhost

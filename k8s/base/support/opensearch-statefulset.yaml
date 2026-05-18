@@ -25,7 +25,7 @@ spec:
             privileged: true
       containers:
         - name: opensearch
-          image: opensearchproject/opensearch:latest
+          image: opensearchproject/opensearch:2.18.0
           ports:
             - name: http
               containerPort: 9200

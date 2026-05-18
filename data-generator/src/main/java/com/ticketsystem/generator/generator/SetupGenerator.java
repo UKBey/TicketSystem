@@ -16,8 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Sistemi setup.json'daki şablona göre hazırlar.
@@ -64,7 +66,13 @@ public class SetupGenerator {
                     "Keycloak'ta setup.json'daki kullanıcıların önceden tanımlı ve şifresinin eşleştiğinden emin ol.");
         }
 
-        // 2. Ürünler — idempotent (name eşleşmesiyle)
+        // 2a. Generator'in onceden uretmis oldugu urunler varsa temizle. Backend
+        //     deleteProduct cascade'i bagli bilet/yorum/worklog/csat'i da siliyor —
+        //     her run sifirdan baslayabilir. Sadece setup.json'da tanimli isimler
+        //     siliniyor; sistemdeki diger urunlere dokunulmuyor.
+        cleanupOwnProducts(spec.path("products"));
+
+        // 2b. Ürünler — idempotent (name eşleşmesiyle)
         Map<String, Long> productByName = ensureProducts(spec.path("products"));
 
         // 3. Topic'ler — idempotent (product + name eşleşmesiyle)
@@ -165,6 +173,41 @@ public class SetupGenerator {
         } catch (Exception e) {
             log.warn("Sync edilemedi ({}): {}", session.getUsername(), e.getMessage());
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Cleanup — generator'in onceki run'da uretmis oldugu urunleri sil
+    // -----------------------------------------------------------------
+
+    private void cleanupOwnProducts(JsonNode productArray) throws InterruptedException {
+        Set<String> ownNames = new HashSet<>();
+        for (JsonNode p : productArray) ownNames.add(p.path("name").asText());
+        if (ownNames.isEmpty()) return;
+
+        JsonNode existing;
+        try {
+            existing = api.get("/products", adminAgent.getToken());
+        } catch (Exception e) {
+            log.warn("Önceki ürünler listelenemedi, temizlik atlaniyor: {}", e.getMessage());
+            return;
+        }
+        if (!existing.isArray()) return;
+
+        int deleted = 0;
+        for (JsonNode p : existing) {
+            String name = p.path("name").asText();
+            if (!ownNames.contains(name)) continue;
+            Long id = p.path("id").asLong();
+            try {
+                api.delete("/products/" + id, null, adminAgent.getToken());
+                log.info("Önceki ürün silindi: '{}' (ID: {}) — cascade ile bilet/yorum/worklog/csat da temizlendi", name, id);
+                deleted++;
+                Thread.sleep(GeneratorConfig.DELAY_MS);
+            } catch (Exception e) {
+                log.warn("Ürün silinemedi ({}, id={}): {}", name, id, e.getMessage());
+            }
+        }
+        if (deleted > 0) log.info("Temizlik tamam: {} ürün silindi.", deleted);
     }
 
     // -----------------------------------------------------------------

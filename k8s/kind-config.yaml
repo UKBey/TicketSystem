@@ -1,0 +1,20 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+# Control-plane node'una host port mapping ekler. ingress-nginx kind provider'i
+# controller'i bu node'da `hostPort: 80/443` ile dinler; bu mapping olmadan
+# tarayicidan http://localhost'a erisilemez (ERR_CONNECTION_REFUSED).
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP

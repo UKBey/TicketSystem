@@ -19,7 +19,11 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:24.0.1
+          # Custom image — base Keycloak image'a `it-service-desk` login temasi
+          # gomulu (Dockerfile-keycloak). Compose'da bind mount edilen tema
+          # k8s'te image'in icinde gelir.
+          image: local/keycloak-iam:latest
+          imagePullPolicy: IfNotPresent
           args: ["start-dev", "--import-realm"]
           ports:
             - name: http

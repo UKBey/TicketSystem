@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1.7
+#
+# Custom KIE Server image — ticket-workflow kjar'ini Maven repository'sine gomer.
+#
+# Docker compose'da host'un ~/.m2/repository klasoru KIE container'ina mount
+# ediliyordu; k8s'te bu mount yok, dolayisiyla `com.ticketsystem:ticket-workflow-
+# kjar:1.0.5` artifact'i bulunamiyor ve kjar-deploy job'u HTTP 400 ile fail
+# oluyordu. Image'a gomerek workflow registration'i k8s'te de calisir hale getirir.
+#
+# kie-maven-plugin 7.61.0.Final java.lang.Compiler (Java 9'da kaldirildi) referans
+# ettigi icin kjar'i Java 8 ile derlemek gerek. Multi-stage build host'un Java
+# versiyonundan bagimsiz tutar.
+
+# --- Build stage: kjar'i Java 8 maven ile derle ---
+FROM maven:3.8.7-eclipse-temurin-8 AS kjar-build
+WORKDIR /build
+COPY ticket-workflow-kjar/pom.xml .
+COPY ticket-workflow-kjar/src ./src
+# BuildKit cache mount: Maven .m2 cache'i layer'lar arasinda korunur, ikinci
+# build'den itibaren dependency download cok hizli.
+RUN --mount=type=cache,target=/root/.m2 mvn -q package -DskipTests
+
+# --- Runtime stage: showcase image + kjar Maven repo'ya gomulu ---
+FROM jboss/kie-server-showcase:7.61.0.Final
+USER root
+
+ARG KJAR_GROUP=com/ticketsystem
+ARG KJAR_ARTIFACT=ticket-workflow-kjar
+ARG KJAR_VERSION=1.0.5
+
+RUN mkdir -p /opt/jboss/.m2/repository/${KJAR_GROUP}/${KJAR_ARTIFACT}/${KJAR_VERSION}
+
+COPY --from=kjar-build /build/target/${KJAR_ARTIFACT}-${KJAR_VERSION}.jar \
+     /opt/jboss/.m2/repository/${KJAR_GROUP}/${KJAR_ARTIFACT}/${KJAR_VERSION}/${KJAR_ARTIFACT}-${KJAR_VERSION}.jar
+
+COPY ticket-workflow-kjar/pom.xml \
+     /opt/jboss/.m2/repository/${KJAR_GROUP}/${KJAR_ARTIFACT}/${KJAR_VERSION}/${KJAR_ARTIFACT}-${KJAR_VERSION}.pom
+
+RUN chown -R jboss:jboss /opt/jboss/.m2
+
+USER jboss

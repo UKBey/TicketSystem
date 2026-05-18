@@ -20,3 +20,4 @@ resources:
 patches:
   - path: patches/replicas.yaml
   - path: patches/ingress-prod.yaml
+  - path: patches/configmap-app-prod.yaml

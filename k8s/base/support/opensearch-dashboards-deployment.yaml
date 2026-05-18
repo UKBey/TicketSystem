@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: opensearch-dashboards
-          image: opensearchproject/opensearch-dashboards:latest
+          image: opensearchproject/opensearch-dashboards:2.18.0
           ports:
             - name: http
               containerPort: 5601

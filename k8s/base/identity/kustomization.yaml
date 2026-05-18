@@ -7,19 +7,18 @@ resources:
   - keycloak-service.yaml
   - keycloak-statefulset.yaml
 
-# ConfigMaps generated from the canonical files in the repo root so the
-# Keycloak realm and LDAP seed stay in lockstep with the docker-compose stack.
-# `kubectl kustomize` must be invoked with `--load-restrictor=LoadRestrictionsNone`
-# (the Makefile target handles this); the same applies to overlays that include
-# this directory transitively.
+# Realm export configmap. Keycloak StatefulSet mount eder ve --import-realm
+# args ile ilk acilista realm'i import eder.
+# `kubectl kustomize` `--load-restrictor=LoadRestrictionsNone` ile cagrilmali
+# (Makefile target hallediyor; transitive include eden overlay'ler de ayni).
+#
+# Not: LDAP seed `local/openldap-server` image'inin icine `Dockerfile-ldap`
+# ile gomulu (entrypoint-wrapper.sh + bootstrap.ldif.template). Ek configmap
+# gerekmez.
 configMapGenerator:
   - name: keycloak-realm
     files:
       - realm-export.json=../../../keycloak-init/realm-export.json
-  - name: openldap-seed
-    files:
-      - bootstrap.ldif.template=../../../ldap-init/bootstrap.ldif.template
-      - 10-render-bootstrap.sh=../../../ldap-init/10-render-bootstrap.sh
 
 generatorOptions:
   disableNameSuffixHash: true

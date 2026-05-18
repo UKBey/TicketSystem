@@ -7,7 +7,8 @@
         sonar sonar-up sonar-down \
         lint install clean \
         gen gen-build gen-run \
-        k8s-up k8s-down k8s-logs k8s-load-images k8s-render
+        k8s-up k8s-down k8s-logs k8s-build k8s-load-images k8s-render k8s-rebuild \
+        k8s-ensure k8s-apply k8s-restart-all k8s-redeploy-kjar _k8s-create _k8s-start
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
@@ -68,8 +69,13 @@ help:
 	@echo    gen-run          - Onceden derlenmiş JAR'i calistirir
 	@echo.
 	@echo  Kubernetes (kind + kustomize):
-	@echo    k8s-up           - Tum stack'i kind cluster'a deploy eder (overlay: local)
-	@echo    k8s-down         - kind cluster'i siler
+	@echo    k8s-rebuild      - TEK KOMUT: cluster yoksa olusturur, kapaliysa baslatir,
+	@echo                       tum image'lari build edip kind'a yukler, manifest'leri
+	@echo                       apply eder, pod'lari yenileyip kjar'i tekrar deploy eder.
+	@echo                       PVC verisi korunur (compose'daki 'make rebuild' karsiligi).
+	@echo    k8s-build        - Tum k8s image'larini build eder (4 compose servisi + keycloak + kie)
+	@echo    k8s-up           - Tum stack'i kind cluster'a ilk kez deploy eder (overlay: local)
+	@echo    k8s-down         - kind cluster'i SILER (PVC'ler dahil tum data gider)
 	@echo    k8s-logs s=deploy - Tek deployment'in loglarini izler
 	@echo    k8s-load-images  - Lokal Docker image'larini kind'a yukler
 	@echo    k8s-render       - Manifest'leri stdout'a render eder (debug)
@@ -186,23 +192,25 @@ install:
 # --- Kubernetes (kind + kustomize) ---
 
 # kind cluster adi ve overlay yolu — overlay disardan ezilebilir: make k8s-up OVERLAY=prod
-KIND_CLUSTER ?= ticketsystem
-K8S_OVERLAY  ?= k8s/overlays/local
-K8S_NAMESPACE := ticketsystem
+KIND_CLUSTER  ?= ticketsystem
+K8S_OVERLAY   ?= k8s/overlays/local
+K8S_NAMESPACE ?= ticketsystem
 # Local kullanildiginda kind'a yuklenecek image listesi (CD'deki ile aynı isimler).
 K8S_LOCAL_IMAGES := local/it-service-backend:latest \
                     local/llm-service:latest \
                     local/it-service-frontend:latest \
-                    local/openldap-server:latest
+                    local/openldap-server:latest \
+                    local/keycloak-iam:latest \
+                    local/kie-server:latest
 
 k8s-up:
-	@kind get clusters | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || kind create cluster --name $(KIND_CLUSTER)
+	@kind get clusters | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || kind create cluster --name $(KIND_CLUSTER) --config k8s/kind-config.yaml
 	kubectl --context kind-$(KIND_CLUSTER) apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 	kubectl --context kind-$(KIND_CLUSTER) -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
 	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
 	@echo.
 	@echo Cluster hazirlaniyor. Pod durumu: kubectl -n $(K8S_NAMESPACE) get pods -w
-	@echo ticketsystem.local hosts'da 127.0.0.1'e yonlendirilmis olmali.
+	@echo Site: http://localhost  (hosts dosyasina giris GEREKMIYOR; kind-config.yaml 80'i host'a aciyor)
 
 k8s-down:
 	kind delete cluster --name $(KIND_CLUSTER)
@@ -210,11 +218,62 @@ k8s-down:
 k8s-logs:
 	kubectl -n $(K8S_NAMESPACE) logs -f deploy/$(s)
 
+# DOCKERHUB_USERNAME=local override: docker-compose.yaml image tag'lerini
+# `${DOCKERHUB_USERNAME:-local}/...` ile uretiyor. Kullanicinin .env'inde gercek
+# kullanici adi olsa bile (ornegin push icin), k8s deployment'lari `local/...`
+# image arar. Bu target'a ozel override ile compose `local/...` tag'liyor.
+k8s-build: DOCKERHUB_USERNAME := local
+k8s-build:
+	docker compose build openldap-server it-service-backend llm-service it-service-frontend
+	docker build -t local/keycloak-iam:latest -f Dockerfile-keycloak .
+	docker build -t local/kie-server:latest  -f Dockerfile-kie  .
+
 k8s-load-images:
-	@for %%i in ($(K8S_LOCAL_IMAGES)) do kind load docker-image %%i --name $(KIND_CLUSTER)
+	kind load docker-image $(K8S_LOCAL_IMAGES) --name $(KIND_CLUSTER)
 
 k8s-render:
 	kubectl kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone
+
+# Compose'daki `make rebuild` ile ayni semantik: data silmeden tum guncellemeleri
+# uygular. Bilgisayar yeni acilmissa kind container'ini baslatir; cluster hic
+# yoksa olusturur. PVC'ler (postgres, ldap, redis, kafka, opensearch) korunur.
+k8s-rebuild: k8s-ensure k8s-build k8s-load-images k8s-apply k8s-restart-all k8s-redeploy-kjar
+	@echo.
+	@echo ================================================================
+	@echo  k8s-rebuild tamam. Pod durumu: kubectl -n $(K8S_NAMESPACE) get pods -w
+	@echo  Site: http://localhost
+	@echo ================================================================
+
+# Cluster yoksa olustur, durmussa baslat. Var ve calisiyorsa hicbir sey yapma.
+k8s-ensure:
+	@kind get clusters 2>NUL | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || $(MAKE) _k8s-create
+	@docker inspect -f "{{.State.Running}}" $(KIND_CLUSTER)-control-plane 2>NUL | findstr /B /L /C:"true" >NUL 2>&1 || $(MAKE) _k8s-start
+
+_k8s-create:
+	@echo Cluster yok, olusturuluyor...
+	kind create cluster --name $(KIND_CLUSTER) --config k8s/kind-config.yaml
+	kubectl --context kind-$(KIND_CLUSTER) apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	kubectl --context kind-$(KIND_CLUSTER) -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
+
+_k8s-start:
+	@echo Cluster container kapali, baslatiliyor...
+	docker start $(KIND_CLUSTER)-control-plane
+	kubectl --context kind-$(KIND_CLUSTER) wait --for=condition=Ready node --all --timeout=180s
+
+k8s-apply:
+	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
+
+# Tum deployment ve statefulset'leri rolling restart eder — yeni image SHA'lar
+# kind'a yuklendi, restart pod'lari yeni image ile yeniden baslatir.
+k8s-restart-all:
+	-kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) rollout restart deployment
+	-kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) rollout restart statefulset
+
+# KIE Server H2 (in-memory) kullaniyor; restart sonrasi container registration
+# kayboluyor. Job'u silip yeniden olusturmak kjar'i tekrar kayit eder.
+k8s-redeploy-kjar:
+	-kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) delete job kjar-deploy --ignore-not-found
+	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
 
 # --- Temizlik ---
 

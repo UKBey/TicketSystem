@@ -19,7 +19,10 @@ exporters:
       tls:
         insecure: true
     logs_index: otel-logs
-    traces_index: otel-traces
+    # NOT: `traces_index` opensearch exporter'dan opentelemetry-collector-contrib
+    # 0.114.0 itibariyle kaldirildi; traces default index'e (ss4o_traces-default-
+    # namespace) yazilir. Eski compose `:latest` cache'i kabul ediyordu, yeni
+    # versiyonlar parse hatasi veriyor.
 
   prometheus:
     endpoint: "0.0.0.0:8889"

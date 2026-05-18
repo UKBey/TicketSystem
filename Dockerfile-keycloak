@@ -1,0 +1,7 @@
+# Custom Keycloak image — base image'a `it-service-desk` temasini gomer.
+# Realm export'unda `loginTheme: it-service-desk` referansli oldugu icin tema
+# Keycloak'in /opt/keycloak/themes/ dizininde mevcut olmali.
+# Docker compose'da host'tan bind mount ediliyor; k8s'te image'a gomuyoruz.
+FROM quay.io/keycloak/keycloak:24.0.1
+
+COPY ./keycloak-themes/it-service-desk /opt/keycloak/themes/it-service-desk
