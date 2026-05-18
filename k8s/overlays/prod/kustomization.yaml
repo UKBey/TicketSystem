@@ -20,4 +20,3 @@ resources:
 patches:
   - path: patches/replicas.yaml
   - path: patches/ingress-prod.yaml
-  - path: patches/remove-data-generator.yaml

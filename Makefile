@@ -193,8 +193,7 @@ K8S_NAMESPACE := ticketsystem
 K8S_LOCAL_IMAGES := local/it-service-backend:latest \
                     local/llm-service:latest \
                     local/it-service-frontend:latest \
-                    local/openldap-server:latest \
-                    local/data-generator:latest
+                    local/openldap-server:latest
 
 k8s-up:
 	@kind get clusters | findstr /B /L /C:"$(KIND_CLUSTER)" >NUL 2>&1 || kind create cluster --name $(KIND_CLUSTER)
