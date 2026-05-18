@@ -179,16 +179,21 @@ sonar:
 
 gen: gen-build gen-run
 
-# Generator host'tan calisir ve API icin http://localhost, DateBackfiller icin
-# jdbc:postgresql://localhost:5432/ticketdb adreslerini kullanir. K8s ortaminda
-# Postgres host'a kapali oldugu icin port-forward gerekiyor. Bu target ayri bir
-# pencerede port-forward baslatir, sonra gen-build + gen-run akisini calistirir.
-# Pencereyi kullanici manuel kapatir (Ctrl+C).
+# Generator host'tan calisir; DateBackfiller dogrudan jdbc:postgresql://localhost:5432
+# adresine bagliniyor. K8s'te Postgres cluster ici oldugu icin port-forward gerek.
+# Bu target sadece talimat verir; otomatik popup denemesi (cmd /k start ...) GnuWin32
+# make'te `start` cmd-internal komutu CreateProcess ile dogrudan invoke edilemedigi
+# icin patliyordu. Kullanici port-forward'u kendi penceresinde acar, sonra `make gen`.
 gen-k8s:
-	start "PortForward postgres" cmd /k "kubectl -n $(K8S_NAMESPACE) port-forward svc/it-service-db 5432:5432"
-	@echo Port-forward baslatildi (ayri pencerede). 3 sn bekliyor...
-	@ping -n 4 127.0.0.1 >NUL
-	$(MAKE) gen
+	@echo ============================================================
+	@echo  K8s ortaminda Generator Calistirma -- 2 ADIM
+	@echo ============================================================
+	@echo  1. AYRI BIR PowerShell penceresinde sunu calistir:
+	@echo        kubectl -n $(K8S_NAMESPACE) port-forward svc/it-service-db 5432:5432
+	@echo  2. Sonra bu pencerede:
+	@echo        make gen
+	@echo  Pencere acik kalmali -- bittikten sonra Ctrl+C ile kapat.
+	@echo ============================================================
 
 gen-build:
 	cd $(GENERATOR_DIR) && ..\$(BACKEND_DIR)\mvnw.cmd package -q -DskipTests
