@@ -6,7 +6,7 @@
         verify \
         sonar sonar-up sonar-down \
         lint install clean \
-        gen gen-build gen-run \
+        gen gen-k8s gen-build gen-run \
         k8s-up k8s-down k8s-logs k8s-build k8s-load-images k8s-render k8s-rebuild \
         k8s-ensure k8s-apply k8s-restart-all k8s-redeploy-kjar _k8s-create _k8s-start
 
@@ -65,6 +65,7 @@ help:
 	@echo.
 	@echo  Veri Uretici (Data Generator):
 	@echo    gen              - Generator'u derler ve calistirir (build + run)
+	@echo    gen-k8s          - k8s ortaminda: port-forward + gen-build + gen-run
 	@echo    gen-build        - Generator JAR'ini derler
 	@echo    gen-run          - Onceden derlenmiş JAR'i calistirir
 	@echo.
@@ -177,6 +178,17 @@ sonar:
 # --- Veri Üretici ---
 
 gen: gen-build gen-run
+
+# Generator host'tan calisir ve API icin http://localhost, DateBackfiller icin
+# jdbc:postgresql://localhost:5432/ticketdb adreslerini kullanir. K8s ortaminda
+# Postgres host'a kapali oldugu icin port-forward gerekiyor. Bu target ayri bir
+# pencerede port-forward baslatir, sonra gen-build + gen-run akisini calistirir.
+# Pencereyi kullanici manuel kapatir (Ctrl+C).
+gen-k8s:
+	start "PortForward postgres" cmd /k "kubectl -n $(K8S_NAMESPACE) port-forward svc/it-service-db 5432:5432"
+	@echo Port-forward baslatildi (ayri pencerede). 3 sn bekliyor...
+	@ping -n 4 127.0.0.1 >NUL
+	$(MAKE) gen
 
 gen-build:
 	cd $(GENERATOR_DIR) && ..\$(BACKEND_DIR)\mvnw.cmd package -q -DskipTests
