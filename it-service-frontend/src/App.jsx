@@ -8,6 +8,8 @@ import RateLimitToast from './components/RateLimitToast';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import MyTickets from './pages/customer/MyTickets';
 import Pool from './pages/agent/Pool';
 import Workspace from './pages/agent/Workspace';
@@ -82,6 +84,16 @@ export default function App() {
         <Route
           path="/"
           element={authenticated ? <HomeRedirect /> : <LoginPage />}
+        />
+
+        {/* Anonim erişim — şifre sıfırlama akışı. Oturum açıksa anasayfaya yönlenir. */}
+        <Route
+          path="/forgot-password"
+          element={authenticated ? <HomeRedirect /> : <ForgotPasswordPage />}
+        />
+        <Route
+          path="/reset-password"
+          element={authenticated ? <HomeRedirect /> : <ResetPasswordPage />}
         />
 
         {/* Yetkili rol atanmamis kullanicilar icin bilgilendirme sayfasi. */}

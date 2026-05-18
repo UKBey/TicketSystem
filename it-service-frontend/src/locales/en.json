@@ -62,7 +62,39 @@
   "login": {
     "subtitle": "Create, track, and manage your support requests with ease.",
     "signIn": "Sign In",
-    "toggleTheme": "Toggle dark/light mode"
+    "toggleTheme": "Toggle dark/light mode",
+    "forgotPassword": "Forgot your password?"
+  },
+  "forgotPassword": {
+    "title": "Reset your password",
+    "subtitle": "Enter your email and we'll send you a link to reset your password.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "submit": "Send reset link",
+    "submitting": "Sending…",
+    "success": "If an account with that email exists, a password reset link has been sent. Check your inbox (and spam folder).",
+    "rateLimit": "Too many attempts. Please try again later.",
+    "invalidEmail": "Please enter a valid email address.",
+    "unknownError": "Something went wrong. Please try again.",
+    "backToLogin": "Back to sign in"
+  },
+  "resetPassword": {
+    "title": "Set a new password",
+    "subtitle": "Choose a new password for your account. Your old password keeps working until you confirm.",
+    "checking": "Validating link…",
+    "invalidToken": "This password reset link is invalid or has expired. Please request a new one.",
+    "newPasswordLabel": "New password",
+    "confirmPasswordLabel": "Confirm new password",
+    "submit": "Update password",
+    "submitting": "Updating…",
+    "success": "Password updated. Redirecting to sign in…",
+    "backToLogin": "Back to sign in",
+    "errors": {
+      "tooShort": "Password must be at least 8 characters.",
+      "mismatch": "Passwords do not match.",
+      "policyViolation": "Password does not meet the security policy. Try a stronger password.",
+      "unknown": "Something went wrong. Please try again."
+    }
   },
   "noRole": {
     "title": "No Role Assigned",

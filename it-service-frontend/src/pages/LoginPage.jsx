@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Headset, ArrowRight, Moon, Sun } from 'lucide-react';
@@ -81,6 +82,14 @@ export default function LoginPage() {
             {t('login.signIn')}
             <ArrowRight className="h-4 w-4" />
           </button>
+
+          <Link
+            to="/forgot-password"
+            className="mt-4 inline-block text-xs font-semibold transition-colors hover:underline"
+            style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+          >
+            {t('login.forgotPassword')}
+          </Link>
         </div>
       </div>
     </div>
