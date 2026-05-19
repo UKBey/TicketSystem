@@ -7,12 +7,19 @@ import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-re
 
 export default function TicketTable({
   tickets,
+  // Shortcut action props (geriye dönük uyumlu — Pool kullanıyor)
   showClaimButton,
   onClaim,
-  showSla = false,
-  currentUserId,
   showAssignButton = false,
   onAssign,
+  showSla = false,
+  currentUserId,
+  // Sayfa-spesifik özelleştirme prop'ları
+  renderActions,            // (ticket) => ReactNode — verilirse shortcut butonları override eder
+  emptyTitle,               // i18n key veya string; default 'ticket.empty.title'
+  emptySubtitle,            // i18n key veya string; default 'ticket.empty.subtitle'
+  showTopic = true,         // title hücresi altındaki topic alanı (TeamTickets/AllTickets eski davranışı için false)
+  forceShowClaimers,        // boolean | undefined — undefined ise auto-detect; sayfa zorlamak isterse boolean
   // Sort props (optional — omit for non-sortable tables)
   sortBy,
   sortDir,
@@ -40,14 +47,22 @@ export default function TicketTable({
     return (
       <div className="flex flex-col items-center justify-center py-16 px-8" style={{ color: 'var(--text-tertiary)' }}>
         <Inbox className="h-12 w-12 mb-4 opacity-30" />
-        <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t('ticket.empty.title')}</h3>
-        <p className="text-sm">{t('ticket.empty.subtitle')}</p>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+          {t(emptyTitle ?? 'ticket.empty.title')}
+        </h3>
+        <p className="text-sm">{t(emptySubtitle ?? 'ticket.empty.subtitle')}</p>
       </div>
     );
   }
 
-  const showClaimers = tickets.some((tk) => tk.claimers?.length > 0);
+  const showClaimers = typeof forceShowClaimers === 'boolean'
+    ? forceShowClaimers
+    : tickets.some((tk) => tk.claimers?.length > 0);
   const sortable = typeof onSort === 'function';
+
+  // Action sütunu kararı: renderActions öncelikli, yoksa shortcut showClaimButton.
+  const useCustomActions = typeof renderActions === 'function';
+  const showActionsColumn = useCustomActions || Boolean(showClaimButton);
 
   return (
     <>
@@ -85,21 +100,27 @@ export default function TicketTable({
               </div>
             )}
             <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</div>
-            {showClaimButton && (
+            {showActionsColumn && (
               <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
-                <button
-                  className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
-                >
-                  {t('ticket.actions.claim')}
-                </button>
-                {showAssignButton && (
-                  <button
-                    className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
-                  >
-                    {t('ticket.actions.assign')}
-                  </button>
+                {useCustomActions ? (
+                  renderActions(ticket)
+                ) : (
+                  <>
+                    <button
+                      className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
+                    >
+                      {t('ticket.actions.claim')}
+                    </button>
+                    {showAssignButton && (
+                      <button
+                        className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
+                      >
+                        {t('ticket.actions.assign')}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -113,7 +134,7 @@ export default function TicketTable({
           + minWidth tablo intrinsic genişliğini koruyup container içinde yatay
           scroll bar gösterir; üst container'daki rounded-xl overflow-hidden bozulmaz. */}
       <div className="hidden lg:block overflow-x-auto">
-      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showClaimButton) }}>
+      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showActionsColumn) }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}
           <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
@@ -122,7 +143,7 @@ export default function TicketTable({
           {showSla     && <col style={{ width: '130px' }} />}  {/* SLA */}
           {showClaimers && <col style={{ width: '140px' }} />} {/* Claimers */}
           <col style={{ width: '140px' }} />  {/* Created */}
-          {showClaimButton && <col style={{ width: '120px' }} />} {/* Action */}
+          {showActionsColumn && <col style={{ width: '160px' }} />} {/* Action — biraz daha geniş, iki butona yetsin */}
         </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
@@ -138,7 +159,7 @@ export default function TicketTable({
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
             )}
             <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            {showClaimButton && (
+            {showActionsColumn && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.actions')}</th>
             )}
@@ -168,7 +189,7 @@ export default function TicketTable({
                       </span>
                     )}
                   </div>
-                  {(ticket.topicName || ticket.topicId) && (
+                  {showTopic && (ticket.topicName || ticket.topicId) && (
                     <span className="block truncate text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}
                       title={ticket.topicName || `#${ticket.topicId}`}>
                       {ticket.topicName || `#${ticket.topicId}`}
@@ -191,22 +212,28 @@ export default function TicketTable({
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {formatDate(ticket.createdAt)}
               </td>
-              {showClaimButton && (
+              {showActionsColumn && (
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button
-                      className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
-                    >
-                      {t('ticket.actions.claim')}
-                    </button>
-                    {showAssignButton && (
-                      <button
-                        className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
-                      >
-                        {t('ticket.actions.assign')}
-                      </button>
+                    {useCustomActions ? (
+                      renderActions(ticket)
+                    ) : (
+                      <>
+                        <button
+                          className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
+                        >
+                          {t('ticket.actions.claim')}
+                        </button>
+                        {showAssignButton && (
+                          <button
+                            className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
+                          >
+                            {t('ticket.actions.assign')}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>
@@ -226,11 +253,11 @@ export default function TicketTable({
  * ortaya çıkıyor → minWidth = (fixedSum) / 0.70 ile başlığa makul (≥200px)
  * yer kalır.
  */
-function tableMinWidth(showSla, showClaimers, showClaim) {
+function tableMinWidth(showSla, showClaimers, showActions) {
   let fixed = 90 + 130 + 100 + 140; // ID + Status + Priority + Created
   if (showSla) fixed += 130;
   if (showClaimers) fixed += 140;
-  if (showClaim) fixed += 120;
+  if (showActions) fixed += 160;
   return `${Math.ceil(fixed / 0.70)}px`;
 }
 
