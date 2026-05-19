@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Award, Clock3, Flame, Star, Users } from 'lucide-react';
+import Skeleton from '../Skeleton';
 
 function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(value ?? 0);
@@ -98,12 +99,12 @@ function AgentPerformanceTable({ data, loading }) {
             <div key={agent.agentId ?? agent.id ?? index} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
               <div className="flex items-center gap-3">
                 <span className="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-xs font-black" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-                  {loading ? <span className="h-4 w-6 animate-pulse rounded bg-[color:var(--bg-surface)]" /> : getRankBadge(index)}
+                  {loading ? <Skeleton as="span" className="h-4 w-6" style={{ backgroundColor: 'var(--bg-surface)' }} /> : getRankBadge(index)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {loading ? <span className="inline-block h-4 w-32 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : agent.agentName}
+                      {loading ? <Skeleton as="span" className="inline-block h-4 w-32" /> : agent.agentName}
                     </div>
                     {!loading && agent.role === 'AGENT_ADMIN' && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
@@ -122,27 +123,27 @@ function AgentPerformanceTable({ data, loading }) {
                 <div>
                   <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Active</div>
                   <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {loading ? <span className="inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.activeTickets)}
+                    {loading ? <Skeleton as="span" className="inline-block h-4 w-12" /> : formatNumber(agent.activeTickets)}
                   </div>
                 </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Resolved</div>
                   <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {loading ? <span className="inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.resolvedLast24Hours)}
+                    {loading ? <Skeleton as="span" className="inline-block h-4 w-12" /> : formatNumber(agent.resolvedLast24Hours)}
                   </div>
                 </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Avg. resolution</div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     <Clock3 className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-                    {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatHours(agent.avgResolutionHours)}
+                    {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours)}
                   </div>
                 </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>CSAT</div>
                   <div className={`flex items-center gap-1.5 text-sm font-bold ${csatTone}`}>
                     <Star className="h-4 w-4" />
-                    {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
+                    {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
                   </div>
                 </div>
                 <div className="col-span-2">
@@ -150,7 +151,7 @@ function AgentPerformanceTable({ data, loading }) {
                   <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                     <Flame className="h-4 w-4" style={{ color: 'var(--color-danger-500)' }} />
                     {loading ? (
-                      <span className="inline-block h-4 w-20 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" />
+                      <Skeleton as="span" className="inline-block h-4 w-20" />
                     ) : (
                       <span>
                         {formatNumber(agent.slaBreachedCount)} SLA • {formatMinutes(agent.worklogMinutesLast7Days)}
@@ -185,14 +186,14 @@ function AgentPerformanceTable({ data, loading }) {
               <div key={agent.agentId ?? agent.id ?? index} className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] items-center gap-0 px-4 py-4 transition-colors hover:bg-[color:var(--bg-surface-hover)]">
                 <div className="flex items-center">
                   <span className="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-xs font-black" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
-                    {loading ? <span className="h-4 w-6 animate-pulse rounded bg-[color:var(--bg-surface)]" /> : getRankBadge(index)}
+                    {loading ? <Skeleton as="span" className="h-4 w-6" style={{ backgroundColor: 'var(--bg-surface)' }} /> : getRankBadge(index)}
                   </span>
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
                     <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {loading ? <span className="inline-block h-4 w-32 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : agent.agentName}
+                      {loading ? <Skeleton as="span" className="inline-block h-4 w-32" /> : agent.agentName}
                     </div>
                     {!loading && agent.role === 'AGENT_ADMIN' && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
@@ -207,27 +208,27 @@ function AgentPerformanceTable({ data, loading }) {
                 </div>
 
                 <div className="text-right text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {loading ? <span className="ml-auto inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.activeTickets)}
+                  {loading ? <Skeleton as="span" className="ml-auto inline-block h-4 w-12" /> : formatNumber(agent.activeTickets)}
                 </div>
 
                 <div className="text-right text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {loading ? <span className="ml-auto inline-block h-4 w-12 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatNumber(agent.resolvedLast24Hours)}
+                  {loading ? <Skeleton as="span" className="ml-auto inline-block h-4 w-12" /> : formatNumber(agent.resolvedLast24Hours)}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 text-right text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   <Clock3 className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-                  {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : formatHours(agent.avgResolutionHours)}
+                  {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours)}
                 </div>
 
                 <div className={`flex items-center justify-end gap-2 text-right text-sm font-bold ${csatTone}`}>
                   <Star className="h-4 w-4" />
-                  {loading ? <span className="inline-block h-4 w-14 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
+                  {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 text-right text-sm" style={{ color: 'var(--text-secondary)' }}>
                   <Flame className="h-4 w-4" style={{ color: 'var(--color-danger-500)' }} />
                   {loading ? (
-                    <span className="inline-block h-4 w-20 animate-pulse rounded bg-[color:var(--bg-surface-secondary)]" />
+                    <Skeleton as="span" className="inline-block h-4 w-20" />
                   ) : (
                     <span>
                       {formatNumber(agent.slaBreachedCount)} SLA • {formatMinutes(agent.worklogMinutesLast7Days)}

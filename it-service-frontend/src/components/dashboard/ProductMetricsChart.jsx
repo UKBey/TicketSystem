@@ -1,5 +1,6 @@
 import { memo, useState, useMemo } from 'react';
 import { Package } from 'lucide-react';
+import Skeleton from '../Skeleton';
 import { PRODUCT_COLORS } from './ChartColors';
 import './dashboard.css';
 
@@ -45,11 +46,11 @@ function ProductMetricsChart({ data, loading }) {
   if (loading) {
     return (
       <div className="rounded-2xl border p-5 space-y-3" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-        <div className="h-4 w-40 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+        <Skeleton className="h-4 w-40" />
         {[...Array(5)].map((_, i) => (
           <div key={i} className="space-y-1.5">
-            <div className="h-3 w-28 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
-            <div className="h-2 w-full rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-2 w-full" />
           </div>
         ))}
       </div>

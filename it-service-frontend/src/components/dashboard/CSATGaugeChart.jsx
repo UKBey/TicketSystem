@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { MessageSquare, Star } from 'lucide-react';
+import Skeleton from '../Skeleton';
 
 const CX = 110;
 const CY = 118;
@@ -166,9 +167,9 @@ function CSATGaugeChart({ data, loading }) {
           {loading ? (
             [1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="h-4 w-6 animate-pulse rounded" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
-                <div className="h-3 flex-1 animate-pulse rounded-full" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
-                <div className="h-4 w-14 animate-pulse rounded" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
+                <Skeleton className="h-4 w-6" />
+                <Skeleton className="h-3 flex-1 rounded-full" />
+                <Skeleton className="h-4 w-14" />
               </div>
             ))
           ) : (

@@ -840,6 +840,7 @@
   },
   "common": {
     "loading": "Yükleniyor...",
+    "loadingData": "Veri yükleniyor",
     "error": "Bir hata oluştu.",
     "retry": "Tekrar Dene",
     "noResults": "Sonuç bulunamadı.",

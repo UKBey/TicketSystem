@@ -840,6 +840,7 @@
   },
   "common": {
     "loading": "Loading...",
+    "loadingData": "Loading data",
     "error": "An error occurred.",
     "retry": "Retry",
     "noResults": "No results found.",

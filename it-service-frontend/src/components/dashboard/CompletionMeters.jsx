@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import Skeleton from '../Skeleton';
 import { getCompletionColor } from './ChartColors';
 
 const METERS = [
@@ -49,7 +50,7 @@ function CompletionMeters({ data, loading }) {
               <div className="relative h-2 overflow-hidden rounded-full"
                 style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                 {loading ? (
-                  <div className="h-full w-full animate-pulse rounded-full"
+                  <Skeleton className="h-full w-full rounded-full"
                     style={{ backgroundColor: 'var(--border-color-light)' }} />
                 ) : (
                   <div className="completion-meter-fill absolute inset-y-0 left-0 rounded-full"

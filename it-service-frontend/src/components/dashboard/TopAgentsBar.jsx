@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Users } from 'lucide-react';
+import Skeleton from '../Skeleton';
 import { PRODUCT_COLORS } from './ChartColors';
 
 function TopAgentsBar({ data, loading }) {
@@ -22,12 +23,9 @@ function TopAgentsBar({ data, loading }) {
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-4 w-20 animate-pulse rounded"
-                style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
-              <div className="h-3 flex-1 animate-pulse rounded-full"
-                style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
-              <div className="h-4 w-12 animate-pulse rounded"
-                style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 flex-1 rounded-full" />
+              <Skeleton className="h-4 w-12" />
             </div>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Inbox, Users } from 'lucide-react';
+import Skeleton from '../Skeleton';
 
 const PRIORITY_COLOR = {
   CRITICAL: '#ef4444',
@@ -165,7 +166,7 @@ export default function AlertBanner({ data, loading }) {
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2].map((i) => (
-                    <div key={i} className="h-12 animate-pulse rounded-xl" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
+                    <Skeleton key={i} className="h-12 rounded-xl" />
                   ))}
                 </div>
               ) : (
@@ -185,7 +186,7 @@ export default function AlertBanner({ data, loading }) {
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2].map((i) => (
-                    <div key={i} className="h-12 animate-pulse rounded-xl" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
+                    <Skeleton key={i} className="h-12 rounded-xl" />
                   ))}
                 </div>
               ) : (
@@ -205,7 +206,7 @@ export default function AlertBanner({ data, loading }) {
               {loading ? (
                 <div className="space-y-2">
                   {[1].map((i) => (
-                    <div key={i} className="h-12 animate-pulse rounded-xl" style={{ backgroundColor: 'var(--bg-surface-secondary)' }} />
+                    <Skeleton key={i} className="h-12 rounded-xl" />
                   ))}
                 </div>
               ) : (
@@ -227,7 +228,7 @@ export default function AlertBanner({ data, loading }) {
                 <Icon className="mx-auto mb-1 h-4 w-4" style={{ color }} />
                 <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
                 {value === null ? (
-                  <div className="mx-auto mt-1 h-5 w-10 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color-light)' }} />
+                  <Skeleton className="mx-auto mt-1 h-5 w-10" style={{ backgroundColor: 'var(--border-color-light)' }} />
                 ) : (
                   <div className="mt-0.5 text-lg font-black" style={{ color: 'var(--text-primary)' }}>{value}</div>
                 )}

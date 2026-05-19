@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Clock } from 'lucide-react';
+import Skeleton from '../Skeleton';
 import { getCompletionColor } from './ChartColors';
 
 const CX = 80, CY = 80, R = 52, STROKE_W = 14;
@@ -20,7 +21,7 @@ function StatCard({ label, value }) {
     <div className="rounded-xl border px-3 py-2 text-center" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
       <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
       {value === null ? (
-        <div className="mx-auto mt-1 h-5 w-12 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color-light)' }} />
+        <Skeleton className="mx-auto mt-1 h-5 w-12" style={{ backgroundColor: 'var(--border-color-light)' }} />
       ) : (
         <div className="mt-0.5 text-lg font-black" style={{ color: 'var(--text-primary)' }}>{value}</div>
       )}
