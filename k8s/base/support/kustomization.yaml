@@ -28,6 +28,10 @@ configMapGenerator:
   - name: prometheus-config
     files:
       - prometheus.yml=../../../prometheus.yml
+  # OPS-5: Alert kurallari — prometheus.yml `rule_files` glob'u ile yukler.
+  - name: prometheus-rules
+    files:
+      - ticketsystem-application.yaml=../../../prometheus-rules.yaml
   - name: grafana-provisioning-datasources
     files:
       - prometheus.yml=../../../grafana/provisioning/datasources/prometheus.yml

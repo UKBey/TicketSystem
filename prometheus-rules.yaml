@@ -1,0 +1,153 @@
+groups:
+  - name: ticketsystem-application
+    interval: 30s
+    rules:
+      # ----------------------------------------------------------------------
+      # Mail teslimat saglıgı — mail_send_total counter EmailService'te emit edilir.
+      # Categories: ticket_created, ticket_assigned, ticket_resolved, status_changed,
+      #             comment_added, sla_warning, sla_breached, password_reset,
+      #             password_changed, twofa_device_added, twofa_device_removed
+      # ----------------------------------------------------------------------
+      - alert: MailSendFailureSpike
+        expr: sum(rate(mail_send_total{status="failure"}[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          component: mail
+        annotations:
+          summary: "Mail sending is failing (>0.5/s for 5 min)"
+          description: |
+            mail_send_total{status="failure"} rate is {{ $value | printf "%.2f" }}/s
+            over the last 5 minutes. SMTP credentials, network egress, or upstream
+            provider may be broken. Check Mailpit (dev) or prod SMTP logs.
+            Critical security mail (password_reset, password_changed, twofa_*)
+            silently failing means users do NOT realize attacks.
+
+      - alert: SecurityMailFailing
+        expr: |
+          sum by (category) (
+            rate(mail_send_total{
+              status="failure",
+              category=~"password_reset|password_changed|twofa_device_added|twofa_device_removed"
+            }[10m])
+          ) > 0
+        for: 10m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Security notification mail failed (category={{ $labels.category }})"
+          description: |
+            A {{ $labels.category }} email failed in the last 10 minutes.
+            These are user-trust-critical (password changes, 2FA enrollment).
+            Investigate immediately — silent failure here means user cannot detect
+            unauthorized account changes.
+
+      - alert: SLAWarningMailSpike
+        expr: sum(rate(mail_send_total{category="sla_warning",status="success"}[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: sla
+        annotations:
+          summary: "SLA-warning mail rate above 2/s for 10 min"
+          description: |
+            Either load surge or SLA policy misconfiguration. Check ticket backlog
+            (pool size, unassigned count) and recent app.sla.policies env changes.
+
+      # ----------------------------------------------------------------------
+      # Workflow integration — Resilience4j circuit breaker around KIE Server.
+      # State: 0=CLOSED (healthy), 1=OPEN (failing), 2=HALF_OPEN (probing).
+      # ----------------------------------------------------------------------
+      - alert: KieServerCircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{name="kieServer",state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: workflow
+        annotations:
+          summary: "KIE Server circuit breaker OPEN — workflow sync disabled"
+          description: |
+            Backend is degrading gracefully (ticket CRUD continues without
+            workflow sync), but new tickets do not receive a process instance.
+            Reconcile orphan tickets after recovery via
+            POST /api/internal/workflow/reconcile.
+
+      # ----------------------------------------------------------------------
+      # JVM saturation — heap pressure leads to GC pause spirals.
+      # ----------------------------------------------------------------------
+      - alert: BackendHeapSaturated
+        expr: |
+          (
+            sum by (instance) (jvm_memory_used_bytes{area="heap"}) /
+            sum by (instance) (jvm_memory_max_bytes{area="heap"})
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "JVM heap >85% on {{ $labels.instance }} for 10 min"
+          description: |
+            Full-GC pressure imminent. Investigate large queries (MetricsService),
+            attachment downloads (DB-4 still pending), or memory leak. Raise -Xmx
+            or scale replicas if sustained.
+
+      # ----------------------------------------------------------------------
+      # DB pool exhaustion — Hikari max=20, idle=5 per backend instance.
+      # ----------------------------------------------------------------------
+      - alert: DBPoolExhausted
+        expr: |
+          (
+            hikaricp_connections_active /
+            hikaricp_connections_max
+          ) > 0.9
+          and
+          hikaricp_connections_pending > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Hikari pool >90% used with pending requests"
+          description: |
+            DB queries are slow or deadlocked. Check pg_stat_activity for queries
+            > 30s, kill if needed. Long-term raise SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE
+            (verify Postgres max_connections supports it — Keycloak + llm-service share).
+
+      # ----------------------------------------------------------------------
+      # HTTP error rate — Spring Boot http_server_requests metric.
+      # ----------------------------------------------------------------------
+      - alert: Backend5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator/.*"}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{uri!~"/actuator/.*"}[5m]))
+          > 0.02
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Backend 5xx rate >2% for 5 min"
+          description: |
+            More than 2 server errors per 100 requests over the last 5 min.
+            Check kubectl logs for stack traces, then validate downstream
+            (DB, Keycloak, KIE Server) availability.
+
+      - alert: BackendSlowEndpoints
+        expr: |
+          histogram_quantile(0.95,
+            sum by (uri, le) (
+              rate(http_server_requests_seconds_bucket{uri!~"/actuator/.*"}[5m])
+            )
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "p95 latency >2s on {{ $labels.uri }}"
+          description: |
+            Endpoint is responding slowly. Check DB query plan, N+1 patterns,
+            or external API latency (Groq for /api/ai/* endpoints).

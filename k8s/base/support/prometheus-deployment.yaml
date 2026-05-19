@@ -35,9 +35,16 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
+            # OPS-5: alert rule dosyalari ayri ConfigMap (prometheus-rules) ile mount edilir;
+            # prometheus.yml'daki `rule_files: /etc/prometheus/rules/*.yaml` glob'u ile yuklenir.
+            - name: rules
+              mountPath: /etc/prometheus/rules
       volumes:
         # prometheus.yml configMapGenerator üzerinden repo kökündeki dosyadan üretilir
         # (base/support/kustomization.yaml içinde tanımlı).
         - name: config
           configMap:
             name: prometheus-config
+        - name: rules
+          configMap:
+            name: prometheus-rules
