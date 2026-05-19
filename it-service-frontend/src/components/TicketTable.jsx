@@ -107,8 +107,13 @@ export default function TicketTable({
         ))}
       </ul>
 
-      <div className="hidden lg:block">
-      <table className="w-full" style={{ tableLayout: 'fixed' }}>
+      {/* lg breakpoint'inden (1024px) sonra tablo görünür. Ama içerik genişliği
+          parent container'dan daha fazlaysa (dar sidebar açıkken 1024–1280px arası
+          tipik durum), sütunlar daralıp truncate sınırını aşıyordu. overflow-x-auto
+          + minWidth tablo intrinsic genişliğini koruyup container içinde yatay
+          scroll bar gösterir; üst container'daki rounded-xl overflow-hidden bozulmaz. */}
+      <div className="hidden lg:block overflow-x-auto">
+      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showClaimButton) }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}
           <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
@@ -213,6 +218,20 @@ export default function TicketTable({
       </div>
     </>
   );
+}
+
+/**
+ * Tablo için ihtiyaca göre minimum genişlik. Title sütununun (%30) gerçek
+ * piksel değeri, diğer sabit sütunların toplamından sonra %70 dilim olarak
+ * ortaya çıkıyor → minWidth = (fixedSum) / 0.70 ile başlığa makul (≥200px)
+ * yer kalır.
+ */
+function tableMinWidth(showSla, showClaimers, showClaim) {
+  let fixed = 90 + 130 + 100 + 140; // ID + Status + Priority + Created
+  if (showSla) fixed += 130;
+  if (showClaimers) fixed += 140;
+  if (showClaim) fixed += 120;
+  return `${Math.ceil(fixed / 0.70)}px`;
 }
 
 function SortTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) {
