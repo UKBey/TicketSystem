@@ -2,7 +2,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import keycloak from '../keycloak';
 import api from '../services/api';
-import userService from '../services/userService';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
 
@@ -105,18 +104,6 @@ export function AuthProvider({ children }) {
       setAuthenticated(false);
       setUser(null);
       setRoles([]);
-    };
-
-    // Keycloak action callback'i (CONFIGURE_TOTP gibi) — keycloak-js, redirect
-    // URL'deki `kc_action_status` query param'ını init() sırasında temizliyor;
-    // bu yüzden ProfilePage'in useEffect'i fark edemiyor. Bu callback hook'ı
-    // init() URL'i temizlemeden ÖNCE tetikliyor.
-    keycloak.onActionUpdate = (status) => {
-      if (status === 'success') {
-        userService.notifyTotpDeviceAdded().catch((err) => {
-          console.warn('2FA add notification failed', err);
-        });
-      }
     };
   }, [extractUserInfo, applyServerTheme, setTheme]);
 

@@ -234,6 +234,38 @@ export default function ProfilePage() {
     refreshTwoFactor();
   }, [user?.id, refreshTwoFactor]);
 
+  // CONFIGURE_TOTP redirect dönüşü — TwoFactorModal redirect'ten önce mevcut
+  // cihaz ID'lerini sessionStorage'a yazar; biz burada listeyi tazeleyip
+  // gerçekten YENİ cihaz eklenmiş mi diye karşılaştırırız. Keycloak'ın action
+  // status parametresine bel bağlamak yerine durumu doğrudan veriden okur —
+  // Keycloak realm config'inden bağımsız çalışır.
+  useEffect(() => {
+    if (!user?.id) return;
+    const raw = sessionStorage.getItem('pending_2fa_setup');
+    if (raw === null) return;
+    sessionStorage.removeItem('pending_2fa_setup');
+
+    let beforeIds = [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) beforeIds = parsed;
+    } catch {
+      // Bozuk kayıt — boş liste varsayımıyla devam et.
+    }
+
+    userService.listTotpDevices()
+      .then((after) => {
+        const list = Array.isArray(after) ? after : [];
+        const added = list.filter((d) => !beforeIds.includes(d.id));
+        if (added.length > 0) {
+          userService.notifyTotpDeviceAdded().catch((err) => {
+            console.warn('2FA add notification failed', err);
+          });
+        }
+      })
+      .catch(() => { /* listeleme başarısızsa sessizce geç */ });
+  }, [user?.id]);
+
   const openEdit = (field) => {
     setError('');
     setEditing(field);

@@ -141,6 +141,16 @@ export default function TwoFactorModal({ open, onClose, lang }) {
   const handleAddDevice = () => {
     // Keycloak's CONFIGURE_TOTP required action shows a themed QR setup screen
     // (login theme covers this). After completion, user returns to /profile.
+    //
+    // Mevcut cihaz ID'lerini sessionStorage'a kaydet — geri dönünce ProfilePage
+    // listeyi yeniden çekip karşılaştıracak. Bu, Keycloak'ın `kc_action_status`
+    // parametresine bağlı kalmadan eklenen cihazı tespit etmeyi mümkün kılar.
+    const beforeIds = devices.map((d) => d.id);
+    try {
+      sessionStorage.setItem('pending_2fa_setup', JSON.stringify(beforeIds));
+    } catch {
+      // sessionStorage erişilemezse bile akış devam etsin — mail kaçar, kritik değil.
+    }
     const locale = lang === 'tr' ? 'tr' : 'en';
     keycloak.login({
       action: 'CONFIGURE_TOTP',
