@@ -340,19 +340,50 @@ public class EmailService {
     // Internal helpers
     // -------------------------------------------------------------------------
 
+    private static final int MAX_SEND_ATTEMPTS = 3;
+    private static final long SEND_RETRY_DELAY_MS = 200L;
+
     private void send(String to, String subject, String htmlBody) {
-        try {
-            MimeMessage msg = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(msg, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(msg);
-            log.debug("Mail sent: to={}, subject={}", to, subject);
-        } catch (Exception e) {
-            log.error("Mail could not be sent: to={}, subject={}, error={}", to, subject, e.getMessage());
+        // Boş alıcı: silent fail değil, açık atlama logu — kaynak debug edilebilir kalır.
+        if (to == null || to.isBlank()) {
+            log.warn("Mail atlandı (boş alıcı): subject={}", subject);
+            return;
         }
+
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
+            try {
+                MimeMessage msg = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(msg, "UTF-8");
+                helper.setFrom(fromAddress);
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(htmlBody, true);
+                mailSender.send(msg);
+                if (attempt > 1) {
+                    log.info("Mail sent on retry attempt {}/{}: to={}, subject={}",
+                            attempt, MAX_SEND_ATTEMPTS, to, subject);
+                } else {
+                    log.debug("Mail sent: to={}, subject={}", to, subject);
+                }
+                return;
+            } catch (Exception e) {
+                lastError = e;
+                if (attempt < MAX_SEND_ATTEMPTS) {
+                    log.warn("Mail attempt {}/{} failed (will retry): to={}, subject={}, error={}",
+                            attempt, MAX_SEND_ATTEMPTS, to, subject, e.getMessage());
+                    try {
+                        Thread.sleep(SEND_RETRY_DELAY_MS * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+        log.error("Mail could not be sent after {} attempts: to={}, subject={}, error={}",
+                MAX_SEND_ATTEMPTS, to, subject,
+                lastError == null ? "unknown" : lastError.getMessage());
     }
 
     private String buildHtml(Locale locale, User recipient, String title, String greeting,

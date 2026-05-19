@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.WorkflowCallbackDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +24,14 @@ class WorkflowCallbackControllerTest {
     @Mock
     private TicketRepository ticketRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private WorkflowCallbackController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new WorkflowCallbackController(ticketRepository);
+        controller = new WorkflowCallbackController(ticketRepository, notificationService);
         // expectedToken alanini reflection ile inject eder (normalde @Value ile dolardı).
         Field expectedTokenField = WorkflowCallbackController.class.getDeclaredField("expectedToken");
         expectedTokenField.setAccessible(true);

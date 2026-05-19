@@ -923,6 +923,21 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTicketsByPriority(@Param("statuses") List<String> statuses, @Param("priorities") List<String> priorities, @Param("before") ZonedDateTime before, Pageable pageable);
 
+    /**
+     * SLA "yaklaşıyor" uyarı maili henüz gönderilmemiş, threshold içindeki biletler.
+     * Scheduler her cycle'de bunları seçer ve mail atınca sla_warning_sent_at set eder
+     * — bu sayede aynı bilete birden fazla mail gitmez.
+     */
+    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities "
+         + "AND t.slaBreached = false AND t.slaPausedAt IS NULL "
+         + "AND t.slaWarningSentAt IS NULL "
+         + "AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before "
+         + "ORDER BY t.slaDeadline ASC")
+    List<Ticket> findPendingWarningTicketsByPriority(@Param("statuses") List<String> statuses,
+                                                     @Param("priorities") List<String> priorities,
+                                                     @Param("before") ZonedDateTime before,
+                                                     Pageable pageable);
+
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 

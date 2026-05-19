@@ -51,6 +51,13 @@ public class Ticket {
     @Builder.Default
     private Boolean slaBreached = false;
 
+    /**
+     * Threshold-based SLA "yaklaşıyor" uyarı maili gönderildiyse damgalanır.
+     * Scheduler bu sütunu NULL olan biletleri seçer; ikinci tarama tekrar mail atmaz.
+     */
+    @Column(name = "sla_warning_sent_at")
+    private ZonedDateTime slaWarningSentAt;
+
     @Column(name = "sla_elapsed_ms")
     @Builder.Default
     private Long slaElapsedMs = 0L;

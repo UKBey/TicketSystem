@@ -157,14 +157,14 @@ class NotificationServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void notifyTicketClaimed_savesNotificationAndSendsEmail_whenBothPreferencesEnabled() {
+    void notifyTicketClaimed_savesNotificationButNoEmail_selfClaimDoesNotEmailSelf() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
 
         notificationService.notifyTicketClaimed(ticket, "agent-1");
 
         verify(notificationRepository).save(any(Notification.class));
-        verify(emailService).sendTicketAssignedEmail(agent, ticket);
+        verify(emailService, never()).sendTicketAssignedEmail(any(), any());
     }
 
     @Test
@@ -561,7 +561,9 @@ class NotificationServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void notifyTicketClaimed_notifyDisabled_skipsNotificationButSendsEmail() {
+    void notifyTicketClaimed_notifyDisabled_skipsAllChannels() {
+        // Self-claim akışında email hiçbir koşulda gitmez; in-app notification
+        // tercihi false ise saveNotification de atlanır → çağrı no-op olur.
         NotificationPreference pref = NotificationPreference.builder()
                 .userId("agent-1").notifyOnTicketAssigned(false).emailOnTicketAssigned(true).build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -570,7 +572,7 @@ class NotificationServiceTest {
         notificationService.notifyTicketClaimed(ticket, "agent-1");
 
         verify(notificationRepository, never()).save(any(Notification.class));
-        verify(emailService).sendTicketAssignedEmail(agent, ticket);
+        verify(emailService, never()).sendTicketAssignedEmail(any(), any());
     }
 
     // -------------------------------------------------------------------------

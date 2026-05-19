@@ -90,7 +90,7 @@ class SlaNotificationSchedulerTest {
 
             scheduler.checkUpcomingSlaBreaches();
 
-            verify(ticketRepository, never()).findUpcomingBreachTicketsByPriority(any(), any(), any(), any());
+            verify(ticketRepository, never()).findPendingWarningTicketsByPriority(any(), any(), any(), any());
             verify(notificationService, never()).notifySlaWarning(any());
         }
 
@@ -98,7 +98,7 @@ class SlaNotificationSchedulerTest {
         @DisplayName("Threshold > 0 ama uyarı listesi boşsa notify çağrılmaz")
         void emptyWarningList_doesNotNotify() {
             when(slaPolicyService.getWarningThresholdHours(any())).thenReturn(2);
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(any(), any(), any(), any()))
+            when(ticketRepository.findPendingWarningTicketsByPriority(any(), any(), any(), any()))
                     .thenReturn(Collections.emptyList());
 
             scheduler.checkUpcomingSlaBreaches();
@@ -116,7 +116,7 @@ class SlaNotificationSchedulerTest {
             when(slaPolicyService.getWarningThresholdHours("HIGH")).thenReturn(0);
             when(slaPolicyService.getWarningThresholdHours("MEDIUM")).thenReturn(0);
             when(slaPolicyService.getWarningThresholdHours("LOW")).thenReturn(0);
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(
+            when(ticketRepository.findPendingWarningTicketsByPriority(
                     anyList(), eq(List.of("CRITICAL")), any(), any()))
                     .thenReturn(List.of(ticket));
 
@@ -135,10 +135,10 @@ class SlaNotificationSchedulerTest {
             when(slaPolicyService.getWarningThresholdHours("HIGH")).thenReturn(2);
             when(slaPolicyService.getWarningThresholdHours("MEDIUM")).thenReturn(0);
             when(slaPolicyService.getWarningThresholdHours("LOW")).thenReturn(0);
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(
+            when(ticketRepository.findPendingWarningTicketsByPriority(
                     anyList(), eq(List.of("CRITICAL")), any(), any()))
                     .thenReturn(List.of(critical));
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(
+            when(ticketRepository.findPendingWarningTicketsByPriority(
                     anyList(), eq(List.of("HIGH")), any(), any()))
                     .thenReturn(List.of(high));
 

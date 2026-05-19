@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZonedDateTime;
@@ -48,13 +50,15 @@ public class NotificationService {
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketCreated())) {
-                emailService.sendTicketCreatedEmail(customer, ticket);
+                runAfterCommit(() -> emailService.sendTicketCreatedEmail(customer, ticket));
             }
         });
     }
 
     /**
-     * Claim alan ajana bildirim gönderir. Çok-agentli yapıda her yeni claimer için ayrı çağrılır.
+     * Claim alan ajana in-app bildirim kaydeder. Self-claim akışında ajan kendisi
+     * action yaptığı için mail tetiklenmez — kendisi adına claim atan başkası yok,
+     * ekstra mail spam'ı oluşturur. In-app notification feed için kayıt yeterli.
      */
     public void notifyTicketClaimed(Ticket ticket, String agentId) {
         userRepository.findById(agentId).ifPresent(agent -> {
@@ -64,9 +68,8 @@ public class NotificationService {
                         msg(agent, "notification.ticket.assigned.agent", ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
-            if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
-                emailService.sendTicketAssignedEmail(agent, ticket);
-            }
+            // NOT: email tetiği kasıtlı olarak yok — self-claim'de ajan zaten action
+            // yapıyor, kendi kendine mail göndermek gereksiz.
         });
     }
 
@@ -84,7 +87,7 @@ public class NotificationService {
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
-                emailService.sendTicketAssignedEmail(agent, ticket);
+                runAfterCommit(() -> emailService.sendTicketAssignedEmail(agent, ticket));
             }
         });
 
@@ -111,7 +114,8 @@ public class NotificationService {
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnStatusChanged())) {
-                emailService.sendStatusChangedEmail(customer, ticket, oldStatus, ticket.getStatus());
+                runAfterCommit(() ->
+                        emailService.sendStatusChangedEmail(customer, ticket, oldStatus, ticket.getStatus()));
             }
         });
     }
@@ -133,8 +137,8 @@ public class NotificationService {
                     }
                     if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
                         userRepository.findById(comment.getAuthorId()).ifPresent(author ->
-                                emailService.sendCommentAddedEmail(agent, ticket,
-                                        comment.getMessage(), author.getFullName()));
+                                runAfterCommit(() -> emailService.sendCommentAddedEmail(agent, ticket,
+                                        comment.getMessage(), author.getFullName())));
                     }
                 })
             );
@@ -149,8 +153,8 @@ public class NotificationService {
                 }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
                     userRepository.findById(comment.getAuthorId()).ifPresent(author ->
-                            emailService.sendCommentAddedEmail(customer, ticket,
-                                    comment.getMessage(), author.getFullName()));
+                            runAfterCommit(() -> emailService.sendCommentAddedEmail(customer, ticket,
+                                    comment.getMessage(), author.getFullName())));
                 }
             });
         }
@@ -175,7 +179,7 @@ public class NotificationService {
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketResolved())) {
-                emailService.sendTicketResolvedEmail(customer, ticket);
+                runAfterCommit(() -> emailService.sendTicketResolvedEmail(customer, ticket));
             }
         });
     }
@@ -297,8 +301,8 @@ public class NotificationService {
                 if (shouldNotify) saveNotification(agent.getId(), type,
                         msg(agent, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
                 if (shouldEmail) {
-                    if (isWarning) emailService.sendSlaWarningEmail(agent, ticket);
-                    else           emailService.sendSlaBreachedEmail(agent, ticket);
+                    if (isWarning) runAfterCommit(() -> emailService.sendSlaWarningEmail(agent, ticket));
+                    else           runAfterCommit(() -> emailService.sendSlaBreachedEmail(agent, ticket));
                 }
             })
         );
@@ -315,9 +319,34 @@ public class NotificationService {
             if (shouldNotify) saveNotification(manager.getId(), type,
                     msg(manager, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
             if (shouldEmail) {
-                if (isWarning) emailService.sendSlaWarningEmail(manager, ticket);
-                else           emailService.sendSlaBreachedEmail(manager, ticket);
+                if (isWarning) runAfterCommit(() -> emailService.sendSlaWarningEmail(manager, ticket));
+                else           runAfterCommit(() -> emailService.sendSlaBreachedEmail(manager, ticket));
             }
+        }
+    }
+
+    /**
+     * Email tetiklerini transaction commit'ten SONRA çalıştır — eğer aktif bir
+     * transaction varsa. Bu sayede parent transaction rollback olursa mail gitmez;
+     * @Async metodun side-effect'i commit edilmemiş DB değişikliği için tetiklenmez.
+     *
+     * <p>Aktif transaction yoksa (örn. scheduler dışı transaction-less akış) görev
+     * anında çalıştırılır — eski davranışla birebir.
+     */
+    private void runAfterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        task.run();
+                    } catch (Exception e) {
+                        log.error("Post-commit email dispatch failed: {}", e.getMessage(), e);
+                    }
+                }
+            });
+        } else {
+            task.run();
         }
     }
 

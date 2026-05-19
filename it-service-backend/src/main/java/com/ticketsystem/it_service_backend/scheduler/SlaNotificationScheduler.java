@@ -50,17 +50,21 @@ public class SlaNotificationScheduler {
     /**
      * Deadline'ına yaklaşan, henüz ihlal edilmemiş biletler için uyarı gönderir.
      * Uyarı eşiği her öncelik için SLA politikasından okunur.
+     *
+     * <p>İdempotency: yalnız {@code sla_warning_sent_at IS NULL} olan biletler
+     * tetiklenir, mail başarıyla kuyruğa alındıktan sonra timestamp damgalanır.
+     * Aynı bilete tekrar tarama yapılırsa atlanır.
      */
+    @Transactional
     @Scheduled(fixedRate = 900_000)
     public void checkUpcomingSlaBreaches() {
-        // Her öncelik için ayrı eşik kullanarak uyarı gönder
         for (String priority : List.of("CRITICAL", "HIGH", "MEDIUM", "LOW")) {
             int thresholdHours = slaPolicyService.getWarningThresholdHours(priority);
-            if (thresholdHours <= 0) continue; // 0 ise bu öncelik için uyarı kapalı
+            if (thresholdHours <= 0) continue;
 
             ZonedDateTime warningThreshold = ZonedDateTime.now().plusHours(thresholdHours);
 
-            List<Ticket> warningTickets = ticketRepository.findUpcomingBreachTicketsByPriority(
+            List<Ticket> warningTickets = ticketRepository.findPendingWarningTicketsByPriority(
                     ACTIVE_STATUSES, java.util.List.of(priority), warningThreshold, PageRequest.of(0, 100));
 
             if (warningTickets.isEmpty()) continue;
@@ -68,8 +72,11 @@ public class SlaNotificationScheduler {
             log.info("SLA uyarı taraması [{}]: {} bilet deadline yaklaşıyor (eşik: {} saat).",
                     priority, warningTickets.size(), thresholdHours);
 
+            ZonedDateTime now = ZonedDateTime.now();
             for (Ticket ticket : warningTickets) {
                 notificationService.notifySlaWarning(ticket);
+                ticket.setSlaWarningSentAt(now);
+                ticketRepository.save(ticket);
                 log.info("SLA uyarısı gönderildi. Bilet ID: {}, Deadline: {}", ticket.getId(), ticket.getSlaDeadline());
             }
         }

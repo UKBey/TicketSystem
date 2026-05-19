@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.WorkflowCallbackDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
+import com.ticketsystem.it_service_backend.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,6 +27,7 @@ import java.time.ZonedDateTime;
 public class WorkflowCallbackController {
 
     private final TicketRepository ticketRepository;
+    private final NotificationService notificationService;
 
     @Value("${jbpm.kie-server.callback-token}")
     private String expectedToken;
@@ -91,10 +93,21 @@ public class WorkflowCallbackController {
     }
 
     private void handleSlaBreach(Ticket ticket) {
+        // jBPM aynı bilet için callback'i tekrar gönderirse, bayrak zaten set'tir ve
+        // mail tekrar gitmemeli. Scheduler de bu bayrağı kontrol ediyor — yani jBPM
+        // önce tetiklerse scheduler bir daha denemez ve double-mail riski yoktur.
+        if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
+            log.info("SLA breach callback tekrarı atlandı. TicketId={}", ticket.getId());
+            return;
+        }
+
         log.warn("SLA AŞIMI GERÇEKLEŞTİ! TicketId={}", ticket.getId());
         ticket.setSlaBreached(true);
         ticketRepository.save(ticket);
-        
-        // Ileride bildirim, otomatik eskalasyon gibi ek aksiyonlar buradan zincirlenebilir.
+
+        // jBPM trigger'ından gelen SLA breach için de mail/notification dispatch et —
+        // scheduler bu bileti artık görmez (flag set'tir), o yüzden mail sadece burada
+        // tetiklenir.
+        notificationService.notifySlaBreached(ticket);
     }
 }
