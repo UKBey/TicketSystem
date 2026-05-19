@@ -62,8 +62,11 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8080/realms/TicketSystemRealm}
-          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8080/realms/TicketSystemRealm/protocol/openid-connect/certs}
+          # Default'lar /auth prefix'i icerir — proje Keycloak'a KC_HTTP_RELATIVE_PATH=/auth ile
+          # baglanir. Bu default'lar yalnizca compose/k8s ConfigMap'ten gelen env yoksa devreye girer.
+          # Tek dogruluk kaynagi: KEYCLOAK_FRONTEND_URL → compose/configmap bu degerden turetir.
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost/auth/realms/TicketSystemRealm}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://keycloak-iam:8080/auth/realms/TicketSystemRealm/protocol/openid-connect/certs}
 
 app:
   mail:

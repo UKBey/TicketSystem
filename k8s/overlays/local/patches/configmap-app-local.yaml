@@ -2,6 +2,11 @@
 # kind setup'inda http://localhost'tan eristigimiz icin (secure context) bu
 # alanlari override ediyoruz. Keycloak realm export'u zaten localhost'a gore
 # client redirect URI tanimli (keycloak-init/realm-export.json).
+#
+# OPS-8: 4 URL ayni hostname kullanir — base'deki yorumla ayni kural:
+# Hostname'i degistirirken 4 satiri (FRONTEND_URL, HOSTNAME_URL, ADMIN_URL,
+# JWT_ISSUER_URI) birlikte guncelle. JWK_SET_URI overlay'lerde override edilmez
+# cunku in-cluster service hostname'i (keycloak-iam:8080) degismez.
 apiVersion: v1
 kind: ConfigMap
 metadata:

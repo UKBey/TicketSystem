@@ -5,6 +5,11 @@
 #
 # `ticketsystem.example.com` placeholder — `ingress-prod.yaml`'daki host ile
 # ayni olmali. Gercek prod domain'iyle degistir.
+#
+# OPS-8: Domain'i degistirirken asagidaki 4 satiri (KEYCLOAK_FRONTEND_URL,
+# KC_HOSTNAME_URL, KC_HOSTNAME_ADMIN_URL, JWT_ISSUER_URI) ve `ingress-prod.yaml`'i
+# birlikte guncelle. JWK_SET_URI base'den miras kalir — in-cluster servis hostname'i
+# kullandigi icin domain degisikliginden etkilenmez.
 apiVersion: v1
 kind: ConfigMap
 metadata:
