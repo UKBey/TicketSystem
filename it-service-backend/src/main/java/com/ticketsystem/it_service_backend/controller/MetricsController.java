@@ -69,7 +69,7 @@ public class MetricsController {
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/dashboard-summary")
     public ResponseEntity<DashboardMetricsDTO> getDashboardSummary() {
-        log.info("Dashboard özet metrikleri istendi");
+        log.debug("Dashboard özet metrikleri istendi");
         DashboardMetricsDTO metrics = metricsService.getDashboardSummary();
         return ResponseEntity.ok(metrics);
     }
@@ -107,7 +107,7 @@ public class MetricsController {
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/status-distribution")
     public ResponseEntity<StatusDistributionDTO> getStatusDistribution() {
-        log.info("Ticket durum dağılımı istendi");
+        log.debug("Ticket durum dağılımı istendi");
         StatusDistributionDTO distribution = metricsService.getStatusDistribution();
         return ResponseEntity.ok(distribution);
     }
@@ -145,7 +145,7 @@ public class MetricsController {
     @PreAuthorize("hasAnyRole('MANAGER', 'AGENT_ADMIN')")
     @GetMapping("/agent-performance")
     public ResponseEntity<AgentPerformanceDTO> getAgentPerformance() {
-        log.info("Ajan performans leaderboard isteği alındı");
+        log.debug("Ajan performans leaderboard isteği alındı");
         AgentPerformanceDTO performance = metricsService.getAgentPerformance();
         return ResponseEntity.ok(performance);
     }
@@ -186,7 +186,7 @@ public class MetricsController {
     @GetMapping("/ticket-timeline")
     public ResponseEntity<TicketTimelineDTO> getTicketTimeline(
             @RequestParam(defaultValue = "30") int days) {
-        log.info("Ticket timeline metrikleri istendi (days={})", days);
+        log.debug("Ticket timeline metrikleri istendi (days={})", days);
         TicketTimelineDTO timeline = metricsService.getTicketTimeline(days);
         return ResponseEntity.ok(timeline);
     }
@@ -224,7 +224,7 @@ public class MetricsController {
     @GetMapping("/priority-sla-metrics")
     public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics(
             @RequestParam(required = false) Integer days) {
-        log.info("Priority-SLA metrikleri istendi (days={})", days);
+        log.debug("Priority-SLA metrikleri istendi (days={})", days);
         PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics(days);
         return ResponseEntity.ok(metrics);
     }
@@ -262,7 +262,7 @@ public class MetricsController {
     @GetMapping("/product-metrics")
     public ResponseEntity<ProductMetricsDTO> getProductMetrics(
             @RequestParam(required = false) Integer days) {
-        log.info("Ürün bazında bilet metrikleri istendi (days={})", days);
+        log.debug("Ürün bazında bilet metrikleri istendi (days={})", days);
         ProductMetricsDTO metrics = metricsService.getProductMetrics(days);
         return ResponseEntity.ok(metrics);
     }
@@ -303,7 +303,7 @@ public class MetricsController {
     @GetMapping("/csat-metrics")
     public ResponseEntity<CSATMetricsDTO> getCSATMetrics(
             @RequestParam(defaultValue = "3") int months) {
-        log.info("CSAT detaylı metrikleri istendi (months={})", months);
+        log.debug("CSAT detaylı metrikleri istendi (months={})", months);
         CSATMetricsDTO metrics = metricsService.getCSATMetrics(months);
         return ResponseEntity.ok(metrics);
     }
@@ -341,7 +341,7 @@ public class MetricsController {
     @PreAuthorize("hasRole('MANAGER')")
     @GetMapping("/alerts-backlog")
     public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog() {
-        log.info("Alert ve backlog metrikleri istendi");
+        log.debug("Alert ve backlog metrikleri istendi");
         AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
         return ResponseEntity.ok(dto);
     }
@@ -381,7 +381,7 @@ public class MetricsController {
     @GetMapping("/worklog-completion")
     public ResponseEntity<WorklogCompletionDTO> getWorklogCompletion(
             @RequestParam(defaultValue = "30") int days) {
-        log.info("Worklog ve tamamlanma metrikleri istendi (days={})", days);
+        log.debug("Worklog ve tamamlanma metrikleri istendi (days={})", days);
         WorklogCompletionDTO dto = metricsService.getWorklogCompletion(days);
         return ResponseEntity.ok(dto);
     }

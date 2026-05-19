@@ -71,7 +71,7 @@ public class CsatService {
     }
 
     public Csat getCsatByTicketId(Long ticketId, String userId, List<String> roles) {
-        log.info("CSAT detay isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
+        log.debug("CSAT detay isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
         // CSAT detayi donmeden once bilet erisim kurali mevcut servisle dogrulanir.
         ticketService.getTicketWithAuth(ticketId, userId, roles);
@@ -84,7 +84,7 @@ public class CsatService {
     }
 
     public List<Csat> getAllCsats() {
-        log.info("Tüm CSAT anketlerini listeleme isteği (Agent admin).");
+        log.debug("Tüm CSAT anketlerini listeleme isteği (Agent admin).");
         return csatRepository.findAll();
     }
 }

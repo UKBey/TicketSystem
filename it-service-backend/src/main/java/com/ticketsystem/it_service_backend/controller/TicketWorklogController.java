@@ -81,7 +81,7 @@ public class TicketWorklogController {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
 
-        log.info("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
+        log.debug("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
 
         List<TicketWorklog> worklogs = worklogService.getWorklogsByTicket(id, userId, roles);
 
@@ -99,11 +99,11 @@ public class TicketWorklogController {
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasRole('AGENT_ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
-                log.info("Tüm worklogları listeleme isteği (Agent admin).");
+                log.debug("Tüm worklogları listeleme isteği (Agent admin).");
 
         List<TicketWorklog> worklogs = worklogService.getAllWorklogs();
 
-        log.info("Toplam {} worklog listelendi.", worklogs.size());
+        log.debug("Toplam {} worklog listelendi.", worklogs.size());
 
         return ResponseEntity.ok(worklogs.stream()
                 .map(WorklogResponseDTO::fromEntity)

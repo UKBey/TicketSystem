@@ -49,7 +49,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<Product> getAllProducts(String userId, List<String> roles) {
-        log.info("Ürün listeleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
+        log.debug("Ürün listeleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
 
         if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER")) {
             log.debug("Yönetici rolü algılandı, tüm ürünler getiriliyor.");

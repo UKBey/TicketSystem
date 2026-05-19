@@ -134,11 +134,11 @@ public class UserController {
     })
     @GetMapping("/agents")
     public ResponseEntity<List<UserDTO>> getAgents() {
-        log.info("Tüm ajanları listeleme isteği.");
-        
+        log.debug("Tüm ajanları listeleme isteği.");
+
         List<User> agents = userService.getAgents();
-        
-        log.info("Toplam {} ajan listelendi.", agents.size());
+
+        log.debug("Toplam {} ajan listelendi.", agents.size());
 
         return ResponseEntity.ok(agents.stream()
                 .map(UserDTO::fromEntity)
@@ -156,11 +156,11 @@ public class UserController {
     public ResponseEntity<List<AgentCapacityDTO>> getAgentsWithCapacity(
             @Parameter(description = "Ürün ID'si", required = true)
             @RequestParam Long productId) {
-        log.info("Agent kapasite listesi isteği. Product: {}", productId);
+        log.debug("Agent kapasite listesi isteği. Product: {}", productId);
 
         List<AgentCapacityDTO> agents = userService.getAgentsWithCapacity(productId);
 
-        log.info("Toplam {} agent kapasite bilgisiyle döndü.", agents.size());
+        log.debug("Toplam {} agent kapasite bilgisiyle döndü.", agents.size());
         return ResponseEntity.ok(agents);
     }
 
@@ -175,11 +175,11 @@ public class UserController {
     public ResponseEntity<UserDTO> getUser(
             @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890", required = true)
             @PathVariable String id) {
-        log.info("Kullanıcı detayı isteği. Kullanıcı ID: {}", id);
+        log.debug("Kullanıcı detayı isteği. Kullanıcı ID: {}", id);
 
         User user = userService.getUserById(id);
-        
-        log.info("Kullanıcı detayı çekildi: {} ({})", user.getFullName(), user.getRole());
+
+        log.debug("Kullanıcı detayı çekildi: {} ({})", user.getFullName(), user.getRole());
 
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
@@ -197,11 +197,11 @@ public class UserController {
             @RequestParam(required = false) List<String> role,
             @RequestParam(defaultValue = "0")  @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size) {
-        log.info("Kullanıcı listeleme isteği. search={}, roles={}, page={}, size={}", search, role, page, size);
+        log.debug("Kullanıcı listeleme isteği. search={}, roles={}, page={}, size={}", search, role, page, size);
 
         Page<User> userPage = userService.getUsersFiltered(search, role, page, size);
 
-        log.info("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
+        log.debug("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
 
         return ResponseEntity.ok(Map.of(
                 "content",       userPage.getContent().stream().map(UserDTO::fromEntity).collect(Collectors.toList()),
@@ -278,7 +278,7 @@ public class UserController {
     @GetMapping("/me/2fa")
     public ResponseEntity<List<TotpCredentialDTO>> listMyTotpDevices(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        log.info("2FA cihazları listeleniyor. Kullanıcı: {}", userId);
+        log.debug("2FA cihazları listeleniyor. Kullanıcı: {}", userId);
 
         List<TotpCredentialDTO> devices = keycloakAdminService.listOtpCredentials(userId).stream()
                 .map(c -> TotpCredentialDTO.builder()
@@ -363,7 +363,7 @@ public class UserController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String lang) {
         String userId = jwt.getSubject();
-        log.info("Dil tercihi güncelleme isteği. Kullanıcı: {}, Dil: {}", userId, lang);
+        log.debug("Dil tercihi güncelleme isteği. Kullanıcı: {}, Dil: {}", userId, lang);
         User user = userService.updatePreferredLanguage(userId, lang);
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
@@ -381,7 +381,7 @@ public class UserController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String theme) {
         String userId = jwt.getSubject();
-        log.info("Tema tercihi güncelleme isteği. Kullanıcı: {}, Tema: {}", userId, theme);
+        log.debug("Tema tercihi güncelleme isteği. Kullanıcı: {}, Tema: {}", userId, theme);
         User user = userService.updatePreferredTheme(userId, theme);
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
@@ -630,14 +630,14 @@ public class UserController {
     @GetMapping("/admin/roles")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<List<String>> getAssignableRoles() {
-        log.info("Atanabilir roller listesi isteği.");
+        log.debug("Atanabilir roller listesi isteği.");
 
         List<String> roles = keycloakAdminService.getAssignableRoles()
                 .stream()
                 .map(role -> role.getName())
                 .collect(Collectors.toList());
 
-        log.info("Toplam {} atanabilir rol döndü.", roles.size());
+        log.debug("Toplam {} atanabilir rol döndü.", roles.size());
         return ResponseEntity.ok(roles);
     }
 }

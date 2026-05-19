@@ -46,7 +46,7 @@ public class NotificationController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size) {
 
         String userId = jwt.getSubject();
-        log.info("Bildirim listeleme isteği. Kullanıcı: {}, Sayfa: {}", userId, page);
+        log.debug("Bildirim listeleme isteği. Kullanıcı: {}, Sayfa: {}", userId, page);
 
         Page<NotificationResponse> result = notificationService.getNotificationsForUser(
                 userId, PageRequest.of(page, size, Sort.by("createdAt").descending()));

@@ -94,11 +94,11 @@ public class AttachmentController {
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        log.info("Bilet ID: {} için ekli dosyaları listeleme isteği. Kullanıcı: {}", ticketId, userId);
+        log.debug("Bilet ID: {} için ekli dosyaları listeleme isteği. Kullanıcı: {}", ticketId, userId);
 
         List<Attachment> attachments = attachmentService.getTicketAttachments(ticketId, userId, roles);
 
-        log.info("Bilet ID: {} için {} dosya listelendi.", ticketId, attachments.size());
+        log.debug("Bilet ID: {} için {} dosya listelendi.", ticketId, attachments.size());
 
         return ResponseEntity.ok(attachments.stream()
                 .map(AttachmentDTO::fromEntity)

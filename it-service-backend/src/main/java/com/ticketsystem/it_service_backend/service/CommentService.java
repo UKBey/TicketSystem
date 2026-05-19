@@ -108,7 +108,7 @@ public class CommentService {
     }
 
     public List<Comment> getCommentsByTicketId(Long ticketId, String userId, List<String> roles) {
-        log.info("Yorum listeleme işlemi. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
+        log.debug("Yorum listeleme işlemi. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
         // Yorumlari dondurmeden once bilet goruntuleme yetkisi dogrulanir.
         ticketService.getTicketWithAuth(ticketId, userId, roles);

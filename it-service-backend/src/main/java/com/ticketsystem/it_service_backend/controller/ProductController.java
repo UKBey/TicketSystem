@@ -38,7 +38,7 @@ public class ProductController {
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt != null ? jwt.getSubject() : null;
         List<String> roles = jwt != null ? JwtUtils.extractRoles(jwt) : List.of();
-        log.info("Ürün detayı isteği. ID: {}, Kullanıcı: {}", id, userId);
+        log.debug("Ürün detayı isteği. ID: {}, Kullanıcı: {}", id, userId);
         Product product = productService.getProductById(id, userId, roles);
         return ResponseEntity.ok(ProductDTO.fromEntity(product));
     }
@@ -61,12 +61,12 @@ public class ProductController {
         String userId = jwt != null ? jwt.getSubject() : null;
         List<String> roles = jwt != null ? JwtUtils.extractRoles(jwt) : List.of();
         
-        log.info("Ürünleri listeleme isteği. Kullanıcı ID: {}", userId);
+        log.debug("Ürünleri listeleme isteği. Kullanıcı ID: {}", userId);
         log.debug("Kullanıcının rolleri: {}", roles);
 
         List<Product> products = productService.getAllProducts(userId, roles);
-        
-        log.info("Toplam {} ürün listelendi.", products.size());
+
+        log.debug("Toplam {} ürün listelendi.", products.size());
 
         return ResponseEntity.ok(products.stream()
                 .map(ProductDTO::fromEntity)

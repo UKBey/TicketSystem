@@ -219,7 +219,7 @@ public class UserService {
         }
         User user = getUserById(userId);
         user.setPreferredLanguage(lang);
-        log.info("Kullanıcı dil tercihi güncellendi. ID: {}, Dil: {}", userId, lang);
+        log.debug("Kullanıcı dil tercihi güncellendi. ID: {}, Dil: {}", userId, lang);
         return userRepository.save(user);
     }
 
@@ -232,7 +232,7 @@ public class UserService {
         }
         User user = getUserById(userId);
         user.setPreferredTheme(theme);
-        log.info("Kullanıcı tema tercihi güncellendi. ID: {}, Tema: {}", userId, theme);
+        log.debug("Kullanıcı tema tercihi güncellendi. ID: {}, Tema: {}", userId, theme);
         return userRepository.save(user);
     }
 
@@ -313,7 +313,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<AgentCapacityDTO> getAgentsWithCapacity(Long productId) {
-        log.info("Agent kapasite listesi istendi. Product ID: {}", productId);
+        log.debug("Agent kapasite listesi istendi. Product ID: {}", productId);
         
         // 1. Belirtilen product'a yetkili tüm agent'ları çek
         List<User> agents = userRepository.findByRoleAndAuthorizedProductsId("AGENT", productId);

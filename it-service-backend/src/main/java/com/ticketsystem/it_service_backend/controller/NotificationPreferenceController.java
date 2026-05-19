@@ -38,7 +38,7 @@ public class NotificationPreferenceController {
             @AuthenticationPrincipal Jwt jwt) {
 
         String userId = jwt.getSubject();
-        log.info("Bildirim tercihleri getirme isteği. Kullanıcı: {}", userId);
+        log.debug("Bildirim tercihleri getirme isteği. Kullanıcı: {}", userId);
         return ResponseEntity.ok(notificationService.getPreferences(userId));
     }
 

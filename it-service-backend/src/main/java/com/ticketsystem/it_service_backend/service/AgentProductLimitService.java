@@ -27,7 +27,7 @@ public class AgentProductLimitService {
 
     @Transactional(readOnly = true)
     public List<AgentProductLimitResponseDTO> getAgentLimits(String agentId) {
-        log.info("Agent limitleri getiriliyor. Agent: {}", agentId);
+        log.debug("Agent limitleri getiriliyor. Agent: {}", agentId);
         return agentProductLimitRepository.findByAgentId(agentId).stream()
                 .map(AgentProductLimitResponseDTO::fromEntity)
                 .toList();

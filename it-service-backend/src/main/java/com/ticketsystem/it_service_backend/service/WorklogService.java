@@ -67,7 +67,7 @@ public class WorklogService {
      * Bilete bagli worklog kayitlarini, rol kurallarina uygun sekilde listeler.
      */
     public List<TicketWorklog> getWorklogsByTicket(Long ticketId, String userId, List<String> roles) {
-        log.info("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
+        log.debug("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
         // Listeleme oncesi biletin varligi teyit edilir.
         Ticket ticket = ticketService.getTicketById(ticketId);
@@ -98,7 +98,7 @@ public class WorklogService {
      * Tum worklog kayitlarini yonetici ekrani icin dondurur.
      */
     public List<TicketWorklog> getAllWorklogs() {
-        log.info("Tüm worklogları listeleme isteği (Manager).");
+        log.debug("Tüm worklogları listeleme isteği (Manager).");
         return worklogRepository.findAll();
     }
 

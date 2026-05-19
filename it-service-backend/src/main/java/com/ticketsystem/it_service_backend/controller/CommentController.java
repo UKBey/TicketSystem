@@ -111,7 +111,7 @@ public class CommentController {
         List<String> roles = JwtUtils.extractRoles(jwt);
 
         // Listeleme talebi ve cagriyi yapan kullanici bilgisi kayda gecirilir.
-        log.info("Bilet ID: {} için yorumları listeleme isteği alındı. Kullanıcı ID: {}", ticketId, userId);
+        log.debug("Bilet ID: {} için yorumları listeleme isteği alındı. Kullanıcı ID: {}", ticketId, userId);
 
         // Yetki veya is kurali hatalari ortak exception katmanina birakilir.
         List<Comment> comments = commentService.getCommentsByTicketId(ticketId, userId, roles);
@@ -124,7 +124,7 @@ public class CommentController {
                 .collect(Collectors.toList());
 
         // Donen yorum adedi yanit oncesi loglanir.
-        log.info("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
+        log.debug("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
 
         return ResponseEntity.ok(commentDTOs);
     }
