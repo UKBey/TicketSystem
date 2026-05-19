@@ -196,8 +196,10 @@ export default function TeamTickets() {
               </li>
             ))}
           </ul>
-          <div className="hidden lg:block">
-            <table className="w-full">
+          {/* Dar viewport (1024–1280px) durumunda sütunlar sıkışıyordu; overflow-x-auto
+              + minWidth ile dış container'ı şişirmeden yatay scroll bar gösteriyor. */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full" style={{ minWidth: '1100px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                   <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
