@@ -21,3 +21,29 @@ patches:
   - path: patches/replicas.yaml
   - path: patches/ingress-prod.yaml
   - path: patches/configmap-app-prod.yaml
+
+# Image tag stratejisi — silent downgrade'i (`:latest` + `IfNotPresent`) önlemek
+# için CD pipeline'ı her deploy'da `kustomize edit set image` ile newTag'i git
+# commit SHA'sı ile günceller. Immutable tag → `IfNotPresent` güvenli kalır
+# (aynı tag asla iki kez push edilmez), tarayıcı eski layer'a düşmez.
+#
+# CD adımı (cd.yml içinde):
+#   cd k8s/overlays/prod
+#   kustomize edit set image \
+#     local/it-service-backend=${REGISTRY}/it-service-backend:${SHA} \
+#     local/llm-service=${REGISTRY}/llm-service:${SHA} \
+#     local/it-service-frontend=${REGISTRY}/it-service-frontend:${SHA} \
+#     local/openldap-server=${REGISTRY}/openldap-server:${SHA}
+images:
+  - name: local/it-service-backend
+    newName: local/it-service-backend
+    newTag: latest
+  - name: local/llm-service
+    newName: local/llm-service
+    newTag: latest
+  - name: local/it-service-frontend
+    newName: local/it-service-frontend
+    newTag: latest
+  - name: local/openldap-server
+    newName: local/openldap-server
+    newTag: latest

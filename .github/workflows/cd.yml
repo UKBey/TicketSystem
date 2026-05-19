@@ -89,7 +89,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ─────────────────────────────────────────────────────────────
-  # 2. VDS'e deploy
+  # 2. VDS'e deploy (Docker Compose)
   #    Güçlü bir VDS temin edildiğinde aşağıdaki job'ın
   #    başındaki `if: false` satırı kaldırılır ve
   #    gerekli secrets (VDS_HOST, VDS_USER, VDS_SSH_KEY)
@@ -143,3 +143,56 @@ jobs:
 
             # Kullanılmayan eski image'ları temizle
             docker image prune -f
+
+  # ─────────────────────────────────────────────────────────────
+  # 3. K8s cluster'a deploy (kustomize prod overlay)
+  #    K8s prod cluster'ı hazır olduğunda:
+  #      - `if: false` kaldırılır
+  #      - secrets (KUBE_CONFIG_BASE64) eklenir — kubeconfig base64 encoded
+  #      - DOCKERHUB_USERNAME secret'ı zaten mevcut
+  #    `kustomize edit set image` komutuyla prod overlay'in image referansları
+  #    SHA tag'iyle güncellenir → silent downgrade engellenir, rollback için
+  #    önceki SHA'ya commit revert yeterli.
+  # ─────────────────────────────────────────────────────────────
+  deploy-k8s:
+    name: Deploy to K8s (prod overlay)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: false   # ← K8s cluster hazır olduğunda bu satırı sil
+
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl + kustomize
+        uses: azure/setup-kubectl@v4
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_BASE64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Override image tags with commit SHA
+        run: |
+          cd k8s/overlays/prod
+          SHA=${{ github.event.workflow_run.head_sha }}
+          REG=${{ secrets.DOCKERHUB_USERNAME }}
+          kustomize edit set image \
+            local/it-service-backend=$REG/it-service-backend:$SHA \
+            local/llm-service=$REG/llm-service:$SHA \
+            local/it-service-frontend=$REG/it-service-frontend:$SHA \
+            local/openldap-server=$REG/openldap-server:$SHA
+
+      - name: Apply manifests
+        run: |
+          kustomize build k8s/overlays/prod --load-restrictor=LoadRestrictionsNone | kubectl apply -f -
+          kubectl -n ticketsystem rollout status deploy/it-service-backend --timeout=180s
+          kubectl -n ticketsystem rollout status deploy/it-service-frontend --timeout=120s
+          kubectl -n ticketsystem rollout status deploy/llm-service --timeout=120s
