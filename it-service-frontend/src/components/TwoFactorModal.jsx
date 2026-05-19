@@ -141,9 +141,11 @@ export default function TwoFactorModal({ open, onClose, lang }) {
   const handleAddDevice = () => {
     // Keycloak's CONFIGURE_TOTP required action shows a themed QR setup screen
     // (login theme covers this). After completion, user returns to /profile.
+    const locale = lang === 'tr' ? 'tr' : 'en';
     keycloak.login({
       action: 'CONFIGURE_TOTP',
       redirectUri: window.location.origin + '/profile',
+      locale,
     });
   };
 
