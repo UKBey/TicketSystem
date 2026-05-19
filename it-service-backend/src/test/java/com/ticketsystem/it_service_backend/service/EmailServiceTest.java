@@ -2,12 +2,13 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.MessageSource;
@@ -18,9 +19,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,7 +33,8 @@ class EmailServiceTest {
     @Mock
     private MessageSource messageSource;
 
-    @InjectMocks
+    private MeterRegistry meterRegistry;
+
     private EmailService emailService;
 
     private User customer;
@@ -40,6 +42,8 @@ class EmailServiceTest {
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
+        emailService = new EmailService(mailSender, messageSource, meterRegistry);
         ReflectionTestUtils.setField(emailService, "fromAddress", "noreply@ticketsystem.local");
 
         // MessageSource: her key için key'in kendisini döndür (test ortamında yeterli)
@@ -68,6 +72,8 @@ class EmailServiceTest {
     void sendTicketCreatedEmail_callsMailSenderSend() {
         emailService.sendTicketCreatedEmail(customer, ticket);
         verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "ticket_created", "status", "success").count());
     }
 
     @Test
@@ -113,6 +119,8 @@ class EmailServiceTest {
                 .when(mailSender).send(any(MimeMessage.class));
 
         assertDoesNotThrow(() -> emailService.sendTicketCreatedEmail(customer, ticket));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "ticket_created", "status", "failure").count());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -21,9 +22,33 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final MessageSource messageSource;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.mail.from}")
     private String fromAddress;
+
+    private static final String METRIC_NAME      = "mail_send_total";
+    private static final String TAG_CATEGORY     = "category";
+    private static final String TAG_STATUS       = "status";
+    private static final String STATUS_SUCCESS   = "success";
+    private static final String STATUS_FAILURE   = "failure";
+    private static final String STATUS_SKIPPED   = "skipped";
+
+    static final class Category {
+        static final String TICKET_CREATED      = "ticket_created";
+        static final String TICKET_ASSIGNED     = "ticket_assigned";
+        static final String TICKET_RESOLVED     = "ticket_resolved";
+        static final String STATUS_CHANGED      = "status_changed";
+        static final String COMMENT_ADDED       = "comment_added";
+        static final String SLA_WARNING         = "sla_warning";
+        static final String SLA_BREACHED        = "sla_breached";
+        static final String PASSWORD_RESET      = "password_reset";
+        static final String PASSWORD_CHANGED    = "password_changed";
+        static final String TWOFA_DEVICE_ADDED  = "twofa_device_added";
+        static final String TWOFA_DEVICE_REMOVED = "twofa_device_removed";
+
+        private Category() {}
+    }
 
     // -------------------------------------------------------------------------
     // Public send methods — each resolves messages using the recipient's locale
@@ -38,7 +63,7 @@ public class EmailService {
                 msg(locale, "email.greeting", customer.getFullName()),
                 msg(locale, "email.body.ticket.created"),
                 ticket);
-        send(customer.getEmail(), subject, body);
+        send(customer.getEmail(), subject, body, Category.TICKET_CREATED);
     }
 
     @Async
@@ -50,7 +75,7 @@ public class EmailService {
                 msg(locale, "email.greeting", agent.getFullName()),
                 msg(locale, "email.body.ticket.assigned"),
                 ticket);
-        send(agent.getEmail(), subject, body);
+        send(agent.getEmail(), subject, body, Category.TICKET_ASSIGNED);
     }
 
     @Async
@@ -62,7 +87,7 @@ public class EmailService {
                 msg(locale, "email.greeting", customer.getFullName()),
                 msg(locale, "email.body.status.changed", escapeHtml(oldStatus), escapeHtml(newStatus)),
                 ticket);
-        send(customer.getEmail(), subject, body);
+        send(customer.getEmail(), subject, body, Category.STATUS_CHANGED);
     }
 
     @Async
@@ -74,7 +99,7 @@ public class EmailService {
                 msg(locale, "email.greeting", recipient.getFullName()),
                 msg(locale, "email.body.comment.added", escapeHtml(commenterName), escapeHtml(commentMessage)),
                 ticket);
-        send(recipient.getEmail(), subject, body);
+        send(recipient.getEmail(), subject, body, Category.COMMENT_ADDED);
     }
 
     @Async
@@ -86,7 +111,7 @@ public class EmailService {
                 msg(locale, "email.greeting", recipient.getFullName()),
                 msg(locale, "email.body.sla.warning"),
                 ticket);
-        send(recipient.getEmail(), subject, body);
+        send(recipient.getEmail(), subject, body, Category.SLA_WARNING);
     }
 
     @Async
@@ -98,7 +123,7 @@ public class EmailService {
                 msg(locale, "email.greeting", recipient.getFullName()),
                 msg(locale, "email.body.sla.breached"),
                 ticket);
-        send(recipient.getEmail(), subject, body);
+        send(recipient.getEmail(), subject, body, Category.SLA_BREACHED);
     }
 
     @Async
@@ -110,7 +135,7 @@ public class EmailService {
                 msg(locale, "email.greeting", customer.getFullName()),
                 msg(locale, "email.body.ticket.resolved"),
                 ticket);
-        send(customer.getEmail(), subject, body);
+        send(customer.getEmail(), subject, body, Category.TICKET_RESOLVED);
     }
 
     /**
@@ -128,7 +153,7 @@ public class EmailService {
         Palette palette = resolvePalette(recipient, themeOverride);
         String subject = msg(locale, "email.subject.password.reset");
         String body = buildPasswordResetHtml(locale, palette, recipient, resetUrl, ttlMinutes);
-        send(recipient.getEmail(), subject, body);
+        send(recipient.getEmail(), subject, body, Category.PASSWORD_RESET);
     }
 
     /**
@@ -146,7 +171,7 @@ public class EmailService {
         String body    = msg(locale, "email.body.password.changed");
         String warning = msg(locale, "email.warning.password.changed");
         String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
-        send(recipient.getEmail(), subject, html);
+        send(recipient.getEmail(), subject, html, Category.PASSWORD_CHANGED);
     }
 
     /**
@@ -164,7 +189,7 @@ public class EmailService {
         String body    = msg(locale, "email.body.twofa.added", escapeHtml(label));
         String warning = msg(locale, "email.warning.twofa.added");
         String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
-        send(recipient.getEmail(), subject, html);
+        send(recipient.getEmail(), subject, html, Category.TWOFA_DEVICE_ADDED);
     }
 
     /**
@@ -182,7 +207,7 @@ public class EmailService {
         String body    = msg(locale, "email.body.twofa.removed", escapeHtml(label));
         String warning = msg(locale, "email.warning.twofa.removed");
         String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
-        send(recipient.getEmail(), subject, html);
+        send(recipient.getEmail(), subject, html, Category.TWOFA_DEVICE_REMOVED);
     }
 
     /**
@@ -343,10 +368,11 @@ public class EmailService {
     private static final int MAX_SEND_ATTEMPTS = 3;
     private static final long SEND_RETRY_DELAY_MS = 200L;
 
-    private void send(String to, String subject, String htmlBody) {
+    private void send(String to, String subject, String htmlBody, String category) {
         // Boş alıcı: silent fail değil, açık atlama logu — kaynak debug edilebilir kalır.
         if (to == null || to.isBlank()) {
             log.warn("Mail atlandı (boş alıcı): subject={}", subject);
+            recordMetric(category, STATUS_SKIPPED);
             return;
         }
 
@@ -366,6 +392,7 @@ public class EmailService {
                 } else {
                     log.debug("Mail sent: to={}, subject={}", to, subject);
                 }
+                recordMetric(category, STATUS_SUCCESS);
                 return;
             } catch (Exception e) {
                 lastError = e;
@@ -384,6 +411,11 @@ public class EmailService {
         log.error("Mail could not be sent after {} attempts: to={}, subject={}, error={}",
                 MAX_SEND_ATTEMPTS, to, subject,
                 lastError == null ? "unknown" : lastError.getMessage());
+        recordMetric(category, STATUS_FAILURE);
+    }
+
+    private void recordMetric(String category, String status) {
+        meterRegistry.counter(METRIC_NAME, TAG_CATEGORY, category, TAG_STATUS, status).increment();
     }
 
     private String buildHtml(Locale locale, User recipient, String title, String greeting,
