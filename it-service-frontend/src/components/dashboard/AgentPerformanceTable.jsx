@@ -154,7 +154,7 @@ function AgentPerformanceTable({ data, loading }) {
                       <Skeleton as="span" className="inline-block h-4 w-20" />
                     ) : (
                       <span>
-                        {formatNumber(agent.slaBreachedCount)} SLA • {formatMinutes(agent.worklogMinutesLast7Days)}
+                        {formatNumber(agent.slaBreachedCount)} SLA <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days)}
                       </span>
                     )}
                   </div>
@@ -231,7 +231,7 @@ function AgentPerformanceTable({ data, loading }) {
                     <Skeleton as="span" className="inline-block h-4 w-20" />
                   ) : (
                     <span>
-                      {formatNumber(agent.slaBreachedCount)} SLA • {formatMinutes(agent.worklogMinutesLast7Days)}
+                      {formatNumber(agent.slaBreachedCount)} SLA <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days)}
                     </span>
                   )}
                 </div>

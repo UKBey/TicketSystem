@@ -124,11 +124,11 @@ export default function TicketDetail() {
               <User className="h-3.5 w-3.5" aria-label={t('ticketDetail.customerLabel')} />
               {ticket.customerName || ticket.customerId}
             </span>
-            <span style={{ color: 'var(--text-tertiary)' }}>•</span>
+            <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>•</span>
             <span>{t('ticketDetail.productLabel')}: {ticket.productName || ticket.productId}</span>
             {(ticket.topicName || ticket.topicId) && (
               <>
-                <span style={{ color: 'var(--text-tertiary)' }}>•</span>
+                <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>•</span>
                 <span>{t('ticketDetail.topicLabel')}: {ticket.topicName || ticket.topicId}</span>
               </>
             )}
