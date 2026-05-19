@@ -28,6 +28,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -36,6 +38,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
@@ -48,6 +51,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
+@Validated
 public class TicketController {
 
     private final TicketService ticketService;
@@ -86,7 +90,7 @@ public class TicketController {
     public ResponseEntity<Page<TicketResponseDTO>> getTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
@@ -123,7 +127,7 @@ public class TicketController {
     public ResponseEntity<Page<TicketResponseDTO>> getPoolTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> priority,
@@ -153,7 +157,7 @@ public class TicketController {
     public ResponseEntity<Page<TicketResponseDTO>> getMyAssignedTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
@@ -185,7 +189,7 @@ public class TicketController {
     public ResponseEntity<Page<TicketResponseDTO>> getTeamTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
@@ -218,7 +222,7 @@ public class TicketController {
     public ResponseEntity<Page<TicketResponseDTO>> getAllAccessibleTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
@@ -393,7 +397,7 @@ public class TicketController {
             @PathVariable Long productId,
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,

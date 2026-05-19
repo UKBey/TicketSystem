@@ -13,7 +13,10 @@ import com.ticketsystem.it_service_backend.service.EmailService;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +48,7 @@ import lombok.extern.log4j.Log4j2;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Validated
 public class UserController {
 
     private final UserService userService;
@@ -191,8 +195,8 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> getAllUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> role,
-            @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "0")  @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size) {
         log.info("Kullanıcı listeleme isteği. search={}, roles={}, page={}, size={}", search, role, page, size);
 
         Page<User> userPage = userService.getUsersFiltered(search, role, page, size);

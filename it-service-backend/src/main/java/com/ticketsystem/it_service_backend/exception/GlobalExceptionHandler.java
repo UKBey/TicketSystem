@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -71,6 +74,30 @@ public class GlobalExceptionHandler {
         }
 
         log.warn("Doğrulama Hatası (400 BAD_REQUEST): {}", fieldErrors);
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(msg("error.validation.failed"))
+                .fieldErrors(fieldErrors)
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // @RequestParam/@PathVariable üzerindeki @Max/@Min/@Pattern gibi validation'lar
+    // ConstraintViolationException fırlatır (MethodArgumentNotValidException değil).
+    // Aksi takdirde generic Exception handler 500 döndürürdü.
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        for (ConstraintViolation<?> v : ex.getConstraintViolations()) {
+            String path = v.getPropertyPath().toString();
+            // propertyPath = "methodName.paramName" — sadece son segmenti kullan
+            String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+            fieldErrors.put(field, v.getMessage());
+        }
+
+        log.warn("Parametre Doğrulama Hatası (400 BAD_REQUEST): {}", fieldErrors);
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
