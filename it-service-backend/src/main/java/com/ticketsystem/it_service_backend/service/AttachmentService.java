@@ -6,10 +6,12 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -91,19 +93,37 @@ public class AttachmentService {
         return savedAttachment;
     }
 
-    public List<Attachment> getTicketAttachments(Long ticketId) {
-        log.debug("Bilet ID: {} için ekli dosyalar çekiliyor.", ticketId);
+    /**
+     * Bilete ait dosya metadata listesini döner. Kullanıcının bilete erişim
+     * yetkisi yoksa 403 fırlatır — IDOR riskini (başka biletin eklerini
+     * sıralı ID ile enumerate etmek) engeller.
+     */
+    public List<Attachment> getTicketAttachments(Long ticketId, String userId, List<String> roles) {
+        log.debug("Bilet ID: {} için ekli dosyalar çekiliyor. Kullanıcı: {}", ticketId, userId);
+        ticketService.getTicketWithAuth(ticketId, userId, roles);
         return attachmentRepository.findByTicketId(ticketId);
     }
 
-    public Attachment getAttachment(Long id) {
-        return attachmentRepository.findById(id)
+    /**
+     * Tek bir dosyayı çeker. Önce dosyanın bağlı olduğu bilete kullanıcının
+     * erişim hakkı doğrulanır → başka kullanıcının dosyasını ID enumerate
+     * ederek indirme (IDOR) engellenir.
+     */
+    public Attachment getAttachment(Long id, String userId, List<String> roles) {
+        Attachment attachment = attachmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("error.attachment.not.found"));
+        Ticket ticket = attachment.getTicket();
+        if (ticket == null) {
+            log.warn("Dosya ID: {} bağlı olduğu bilete sahip değil — erişim reddedildi.", id);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.attachment.access.forbidden");
+        }
+        ticketService.getTicketWithAuth(ticket.getId(), userId, roles);
+        return attachment;
     }
 
     public void deleteAttachment(Long id, String userId, List<String> roles) {
-        Attachment attachment = getAttachment(id);
-        
+        Attachment attachment = getAttachment(id, userId, roles);
+
         log.info("Dosya silme işlemi. ID: {}, Siler: {}, Roller: {}", id, userId, roles);
 
         // Agent admin rolunde dosya sahipligi aranmadan silme izni vardir.

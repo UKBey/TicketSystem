@@ -50,9 +50,9 @@ class AttachmentControllerTest {
     @Test
     void getAttachments_returnsList() {
         Attachment a = Attachment.builder().id(2L).ticket(Ticket.builder().id(10L).build()).uploaderId("u1").fileName("b.log").fileType("text/plain").content("x".getBytes()).build();
-        when(attachmentService.getTicketAttachments(10L)).thenReturn(List.of(a));
+        when(attachmentService.getTicketAttachments(10L, "u1", List.of("AGENT"))).thenReturn(List.of(a));
 
-        ResponseEntity<List<AttachmentDTO>> response = attachmentController.getAttachments(10L);
+        ResponseEntity<List<AttachmentDTO>> response = attachmentController.getAttachments(10L, jwtWithRoles("u1", List.of("AGENT")));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().size());
@@ -61,9 +61,9 @@ class AttachmentControllerTest {
     @Test
     void downloadAttachment_returnsBytesAndHeaders() {
         Attachment a = Attachment.builder().id(3L).fileName("c.pdf").fileType("application/pdf").content(new byte[]{1,2,3}).build();
-        when(attachmentService.getAttachment(3L)).thenReturn(a);
+        when(attachmentService.getAttachment(3L, "u1", List.of("AGENT"))).thenReturn(a);
 
-        ResponseEntity<byte[]> response = attachmentController.downloadAttachment(3L);
+        ResponseEntity<byte[]> response = attachmentController.downloadAttachment(3L, jwtWithRoles("u1", List.of("AGENT")));
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());

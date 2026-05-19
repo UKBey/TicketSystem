@@ -102,8 +102,9 @@ class AttachmentServiceTest {
 
     @Test
     void deleteAttachment_nonOwnerNonManager_throwsForbidden() {
-        Attachment attachment = Attachment.builder().id(5L).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
+        Attachment attachment = Attachment.builder().id(5L).ticket(ticket).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(5L)).thenReturn(Optional.of(attachment));
+        when(ticketService.getTicketWithAuth(10L, "other-user", List.of("AGENT"))).thenReturn(ticket);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> attachmentService.deleteAttachment(5L, "other-user", List.of("AGENT")));
@@ -114,8 +115,9 @@ class AttachmentServiceTest {
 
     @Test
     void deleteAttachment_managerCanDelete() {
-        Attachment attachment = Attachment.builder().id(6L).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
+        Attachment attachment = Attachment.builder().id(6L).ticket(ticket).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(6L)).thenReturn(Optional.of(attachment));
+        when(ticketService.getTicketWithAuth(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(ticket);
 
         // Only AGENT_ADMIN can delete arbitrary attachments now
         attachmentService.deleteAttachment(6L, "admin-1", List.of("AGENT_ADMIN"));
@@ -125,8 +127,9 @@ class AttachmentServiceTest {
 
     @Test
     void deleteAttachment_owner_canDelete() {
-        Attachment attachment = Attachment.builder().id(7L).uploaderId("uploader").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
+        Attachment attachment = Attachment.builder().id(7L).ticket(ticket).uploaderId("uploader").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(7L)).thenReturn(Optional.of(attachment));
+        when(ticketService.getTicketWithAuth(10L, "uploader", List.of("AGENT"))).thenReturn(ticket);
 
         attachmentService.deleteAttachment(7L, "uploader", List.of("AGENT"));
 
@@ -138,18 +141,46 @@ class AttachmentServiceTest {
         when(attachmentRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class,
-                () -> attachmentService.getAttachment(99L));
+                () -> attachmentService.getAttachment(99L, "agent-1", List.of("AGENT")));
+    }
+
+    @Test
+    void getAttachment_unauthorizedUser_throwsForbidden() {
+        // S-3 IDOR fix testi: kullanıcı bilete erişemiyorsa dosya da indirilemez.
+        Attachment attachment = Attachment.builder().id(50L).ticket(ticket).fileName("secret.pdf").build();
+        when(attachmentRepository.findById(50L)).thenReturn(Optional.of(attachment));
+        when(ticketService.getTicketWithAuth(10L, "intruder", List.of("AGENT")))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "error.ticket.view.forbidden"));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> attachmentService.getAttachment(50L, "intruder", List.of("AGENT")));
+
+        assertEquals(403, ex.getStatusCode().value());
     }
 
     @Test
     void getTicketAttachments_returnsList() {
+        when(ticketService.getTicketWithAuth(10L, "agent-1", List.of("AGENT"))).thenReturn(ticket);
         when(attachmentRepository.findByTicketId(10L)).thenReturn(List.of(
                 Attachment.builder().id(1L).fileName("a.log").build()
         ));
 
-        List<Attachment> result = attachmentService.getTicketAttachments(10L);
+        List<Attachment> result = attachmentService.getTicketAttachments(10L, "agent-1", List.of("AGENT"));
 
         assertEquals(1, result.size());
+    }
+
+    @Test
+    void getTicketAttachments_unauthorizedUser_throwsForbidden() {
+        // S-3 IDOR fix testi: ticket auth fail edince liste hiç çekilmez.
+        when(ticketService.getTicketWithAuth(10L, "intruder", List.of("AGENT")))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "error.ticket.view.forbidden"));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> attachmentService.getTicketAttachments(10L, "intruder", List.of("AGENT")));
+
+        assertEquals(403, ex.getStatusCode().value());
+        verify(attachmentRepository, never()).findByTicketId(any());
     }
 
     @Test

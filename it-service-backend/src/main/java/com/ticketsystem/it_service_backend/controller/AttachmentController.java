@@ -90,11 +90,14 @@ public class AttachmentController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<List<AttachmentDTO>> getAttachments(
             @Parameter(description = "Dosyaları listelenecek biletin ID'si", example = "42", required = true)
-            @PathVariable Long ticketId) {
-        log.info("Bilet ID: {} için ekli dosyaları listeleme isteği.", ticketId);
-        
-        List<Attachment> attachments = attachmentService.getTicketAttachments(ticketId);
-        
+            @PathVariable Long ticketId,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Bilet ID: {} için ekli dosyaları listeleme isteği. Kullanıcı: {}", ticketId, userId);
+
+        List<Attachment> attachments = attachmentService.getTicketAttachments(ticketId, userId, roles);
+
         log.info("Bilet ID: {} için {} dosya listelendi.", ticketId, attachments.size());
 
         return ResponseEntity.ok(attachments.stream()
@@ -115,11 +118,14 @@ public class AttachmentController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<byte[]> downloadAttachment(
             @Parameter(description = "İndirilecek dosyanın ID'si", example = "55", required = true)
-            @PathVariable Long id) {
-        log.info("Dosya ID: {} için indirme isteği.", id);
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Dosya ID: {} için indirme isteği. Kullanıcı: {}", id, userId);
 
-        Attachment attachment = attachmentService.getAttachment(id);
-        
+        Attachment attachment = attachmentService.getAttachment(id, userId, roles);
+
         log.info("Dosya başarıyla çekildi: {}, Tip: {}", attachment.getFileName(), attachment.getFileType());
 
         return ResponseEntity.ok()
