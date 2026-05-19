@@ -28,10 +28,13 @@ public class WorkflowService {
 
     private final SlaPolicyService slaPolicyService;
 
-    @Value("${jbpm.kie-server.process-id}")
+    // process-id ve callback-base-url icin inline default'lar application.yml ile aynidir;
+    // application.yml'in bozulmasi durumunda ikincil korumadir. Token bilinen bir secret oldugu
+    // icin default yoktur — eksikse Spring boot'ta fail-fast yapar (guvenli davranis).
+    @Value("${jbpm.kie-server.process-id:com.ticketsystem.workflow.ticket-lifecycle}")
     private String processId;
 
-    @Value("${jbpm.kie-server.callback-base-url}")
+    @Value("${jbpm.kie-server.callback-base-url:http://host.docker.internal:8081/api/internal/workflow/callback}")
     private String callbackBaseUrl;
 
     @Value("${jbpm.kie-server.callback-token}")
