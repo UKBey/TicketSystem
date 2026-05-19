@@ -40,6 +40,13 @@ spec:
               value: "-Xms512m -Xmx512m"
             - name: DISABLE_SECURITY_PLUGIN
               value: "true"
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
           volumeMounts:
             - name: data
               mountPath: /usr/share/opensearch/data

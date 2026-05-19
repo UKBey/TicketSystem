@@ -19,6 +19,13 @@ spec:
       containers:
         - name: logstash
           image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+              cpu: 500m
           volumeMounts:
             - name: pipeline
               mountPath: /usr/share/logstash/pipeline/logstash.conf

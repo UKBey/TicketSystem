@@ -79,6 +79,13 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: KC_PROXY_HEADERS
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1536Mi
+              cpu: 1000m
           volumeMounts:
             - name: realm-import
               mountPath: /opt/keycloak/data/import

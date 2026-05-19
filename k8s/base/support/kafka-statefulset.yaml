@@ -42,6 +42,13 @@ spec:
               value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
             - name: CLUSTER_ID
               value: TicketSystemKafkaCluster
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 200m
+            limits:
+              memory: 1Gi
+              cpu: 500m
           volumeMounts:
             - name: data
               mountPath: /var/lib/kafka/data

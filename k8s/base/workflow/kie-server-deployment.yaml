@@ -39,6 +39,13 @@ spec:
                 -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
                 -Dorg.kie.server.persistence.ds=java:jboss/datasources/ExampleDS
                 -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.H2Dialect
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1536Mi
+              cpu: 1000m
           # KIE Server'in /kie-server/services/rest/server endpoint'i Basic Auth
           # ister; httpGet probe credential gondermedigi icin 401 doner ve probe
           # surekli fail eder. TCP probe ile port acik olunca Ready isaretliyoruz.
