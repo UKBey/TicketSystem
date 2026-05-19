@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Smartphone, Plus, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import userService from '../services/userService';
 import keycloak from '../keycloak';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 function formatDate(epochMillis, lang) {
   if (!epochMillis) return '—';
@@ -116,12 +117,7 @@ export default function TwoFactorModal({ open, onClose, lang }) {
     if (open) fetchDevices();
   }, [open, fetchDevices]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape' && !deletingId) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, deletingId, onClose]);
+  useEscapeToClose(open, onClose, { disabled: !!deletingId });
 
   if (!open) return null;
 

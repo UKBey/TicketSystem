@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAssignableRoles, updateUserRoles } from '../services/api';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 /**
  * EditRoleModal — AGENT_ADMIN'in mevcut bir kullanıcının rollerini düzenlemesi için modal.
@@ -41,12 +42,7 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
   }, [isOpen, user]); // eslint-disable-line
 
   // ESC ile kapatma
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useEscapeToClose(isOpen, onClose);
 
   const handleRoleToggle = (roleName) => {
     setSelectedRoles((prev) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OTHER_REASON_CODE } from '../../utils/reasonCodes';
+import { useEscapeToClose } from '../../hooks/useEscapeToClose';
 
 export default function ChangeFieldModal({
   isOpen,
@@ -31,14 +32,7 @@ export default function ChangeFieldModal({
     }
   }, [isOpen, initialValue, currentValue]);
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

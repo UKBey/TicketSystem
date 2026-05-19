@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, UserCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAgentsWithCapacity, assignTicket } from '../services/api';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 /**
  * AgentSelectionModal — Agent Admin'in bir bileti belirli bir agent'a ataması için
@@ -44,12 +45,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
   }, [isOpen, productId]); // eslint-disable-line
 
   // ESC tuşu ile kapatma
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useEscapeToClose(isOpen, onClose);
 
   const handleAssign = async (e) => {
     e.preventDefault();

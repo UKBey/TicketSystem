@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { OTHER_REASON_CODE } from '../utils/reasonCodes';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 const VARIANT_STYLES = {
   primary: 'bg-primary-500 hover:bg-primary-600 focus:ring-primary-500/30',
@@ -25,14 +26,7 @@ export default function ActionReasonModal({
   const [reasonCode, setReasonCode] = useState('');
   const [noteText, setNoteText] = useState('');
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useEscapeToClose(isOpen, onClose);
 
   const resetAndClose = () => {
     setReasonCode('');

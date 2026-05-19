@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Eye, EyeOff, Lock, Check } from 'lucide-react';
 import userService from '../services/userService';
+import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
@@ -63,12 +64,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
   }, [open]);
 
   // ESC to close.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape' && !submitting) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, submitting, onClose]);
+  useEscapeToClose(open, onClose, { disabled: submitting });
 
   if (!open) return null;
 
