@@ -114,7 +114,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        # `caches` ops icin manuel cache flush imkani — ozellikle env-driven SLA
+        # ayarlari degistikten sonra DELETE /actuator/caches/{name} ile temizlenir.
+        # SecurityConfig anonim erisimi yasaklar; JWT + role guard uygulanir.
+        include: health,info,metrics,prometheus,caches
   endpoint:
     health:
       show-details: always

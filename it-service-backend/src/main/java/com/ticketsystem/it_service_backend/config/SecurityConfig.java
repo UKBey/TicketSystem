@@ -56,6 +56,12 @@ public class SecurityConfig {
             .access((authentication, context) ->
                 new AuthorizationDecision(hasValidInternalToken(context.getRequest().getHeader("X-Internal-Token"))))
 
+            // Actuator cache yonetimi: env-driven SLA degisikligi sonrasi
+            // DELETE /actuator/caches/{name} ile manuel flush yapilir; sadece
+            // admin rolleri erisebilir.
+            .requestMatchers("/actuator/caches/**")
+            .hasAnyRole("AGENT_ADMIN", "MANAGER")
+
             // Geri kalan tum endpoint'ler icin JWT dogrulamasi zorunludur.
             .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

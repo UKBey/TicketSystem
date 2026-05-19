@@ -1,7 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.config.CacheConfig;
 import com.ticketsystem.it_service_backend.config.SlaProperties;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -9,6 +12,22 @@ import org.springframework.stereotype.Service;
 public class SlaPolicyService {
 
     private final SlaProperties slaProperties;
+
+    /**
+     * SLA policy degistiginde ilgili tum dashboard cache'lerini bosaltir.
+     * Su an SLA policy DB-backed bir admin endpoint'i ile guncellenmiyor (env-driven),
+     * ama ileride boyle bir akis eklenirse veya manuel ops flush gerekirse cagrilacak
+     * tek metod buradadir. Ayrica `/actuator/caches/{name}` DELETE ile de runtime flush
+     * yapilabilir (SecurityConfig admin rol gerektirir).
+     */
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PRIORITY_SLA_METRICS, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY,    allEntries = true),
+            @CacheEvict(value = CacheConfig.AGENT_PERFORMANCE,    allEntries = true)
+    })
+    public void evictSlaDependentCaches() {
+        // Method body bos; @CacheEvict aspect'i flush'i yapar.
+    }
 
     public long getSlaDurationMs(String priority) {
         if (priority == null) return defaultMs("MEDIUM");
