@@ -232,6 +232,11 @@ services:
       SERVER_PORT: "8081"
       # Swagger/OpenAPI dev için açık (default kapalı); compose dev workflow değişmez.
       SPRINGDOC_ENABLED: "true"
+      # Hibernate SQL log'ları dev'de açık (prod default WARN — sensitive bind sızıntısı engellenir).
+      HIBERNATE_SHOW_SQL: "true"
+      HIBERNATE_FORMAT_SQL: "true"
+      HIBERNATE_SQL_LOG_LEVEL: "DEBUG"
+      HIBERNATE_BIND_LOG_LEVEL: "TRACE"
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}

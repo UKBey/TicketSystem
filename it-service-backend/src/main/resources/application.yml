@@ -24,14 +24,17 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    # show-sql / SQL log seviyeleri env-driven: dev'de DEBUG/TRACE açık,
+    # prod'da WARN ile log shipping bandwidth ve hassas bind parametre
+    # sızıntısı engellenir. Compose dev'de `HIBERNATE_SHOW_SQL=true` set ediyor.
+    show-sql: ${HIBERNATE_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
   logging:
     level:
-      org.hibernate.SQL: DEBUG
-      org.hibernate.orm.jdbc.bind: TRACE
+      org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:WARN}
+      org.hibernate.orm.jdbc.bind: ${HIBERNATE_BIND_LOG_LEVEL:WARN}
   messages:
     encoding: UTF-8
     use-code-as-default-message: true
