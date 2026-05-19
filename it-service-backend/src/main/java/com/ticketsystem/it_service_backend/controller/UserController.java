@@ -8,6 +8,8 @@ import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.WrongCurrentPasswordException;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.service.EmailService;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
 import jakarta.validation.Valid;
@@ -47,6 +49,8 @@ public class UserController {
 
     private final UserService userService;
     private final KeycloakAdminService keycloakAdminService;
+    private final UserRepository userRepository;
+    private final EmailService emailService;
 
     // UI girisinden sonra kullaniciyi yerel veritabaniyla esitlemek icin cagrilir.
     @Operation(summary = "Kullanıcı senkronizasyonu",
@@ -250,6 +254,12 @@ public class UserController {
             throw new WrongCurrentPasswordException();
         }
         keycloakAdminService.changeUserPassword(userId, request.getNewPassword());
+
+        // Şifre değişti — kullanıcıya bildirim maili gönder.
+        // Kullanıcı oturum açmış olduğu için DB'deki dil/tema tercihleri güncel kabul edilir.
+        userRepository.findById(userId).ifPresent(user ->
+                emailService.sendPasswordChangedEmail(user, null, null));
+
         return ResponseEntity.noContent().build();
     }
 

@@ -14,8 +14,10 @@ const STATUS = {
   DONE: 'done',
 };
 
+const SUPPORTED_LANGS = ['en', 'tr'];
+
 export default function ResetPasswordPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const isDark = theme === 'dark';
@@ -59,7 +61,9 @@ export default function ResetPasswordPage() {
 
     setStatus(STATUS.SUBMITTING);
     try {
-      await resetPassword(token, password);
+      const rawLang = (i18n.language ?? 'en').split('-')[0].toLowerCase();
+      const language = SUPPORTED_LANGS.includes(rawLang) ? rawLang : 'en';
+      await resetPassword(token, password, { language, theme });
       setStatus(STATUS.DONE);
       setTimeout(() => navigate('/'), 3500);
     } catch (requestError) {

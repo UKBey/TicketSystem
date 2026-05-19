@@ -131,6 +131,83 @@ public class EmailService {
         send(recipient.getEmail(), subject, body);
     }
 
+    /**
+     * Şifre başarıyla değiştirildiğinde gönderilen güvenlik bildirimi.
+     * Hem profil sayfasındaki "şifre değiştir" hem de forgot-password reset
+     * akışlarının sonunda tetiklenir. Yetkisiz değişiklik tespiti için kullanıcının
+     * fark etmesini sağlar — silent password change'i önler.
+     */
+    @Async
+    public void sendPasswordChangedEmail(User recipient, String languageOverride, String themeOverride) {
+        Locale locale = resolveLocale(recipient, languageOverride);
+        Palette palette = resolvePalette(recipient, themeOverride);
+        String subject = msg(locale, "email.subject.password.changed");
+        String body = buildPasswordChangedHtml(locale, palette, recipient);
+        send(recipient.getEmail(), subject, body);
+    }
+
+    private String buildPasswordChangedHtml(Locale locale, Palette p, User recipient) {
+        String title    = msg(locale, "email.title.password.changed");
+        String greeting = msg(locale, "email.greeting", recipient.getFullName());
+        String body     = msg(locale, "email.body.password.changed");
+        String warning  = msg(locale, "email.warning.password.changed");
+        String footer   = msg(locale, "email.footer");
+
+        return """
+                <!DOCTYPE html>
+                <html lang="%s">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width,initial-scale=1">
+                  <meta name="color-scheme" content="%s">
+                </head>
+                <body style="margin:0;padding:0;background:%s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:%s;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:%s;padding:32px 16px;">
+                    <tr><td align="center">
+                      <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:600px;background:%s;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                        <tr><td style="background:linear-gradient(135deg,%s 0%%,%s 100%%);padding:32px;">
+                          <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="vertical-align:middle;">
+                                <div style="display:inline-block;width:44px;height:44px;line-height:44px;text-align:center;background:rgba(255,255,255,0.18);border-radius:12px;font-size:22px;color:#fff;font-weight:700;">IT</div>
+                              </td>
+                              <td style="vertical-align:middle;padding-left:14px;">
+                                <div style="color:rgba(255,255,255,0.75);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;">IT Service Desk</div>
+                                <div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:2px;">%s</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td></tr>
+                        <tr><td style="padding:32px;">
+                          <p style="margin:0 0 12px 0;font-size:15px;color:%s;">%s</p>
+                          <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:%s;">%s</p>
+                          <div style="padding:14px 18px;border-radius:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);font-size:13px;line-height:1.5;color:#b91c1c;">
+                            %s
+                          </div>
+                        </td></tr>
+                        <tr><td style="padding:0 32px 28px 32px;">
+                          <div style="border-top:1px solid %s;padding-top:18px;font-size:12px;color:%s;text-align:center;line-height:1.5;">%s</div>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(
+                locale.getLanguage(),
+                p.colorScheme,
+                p.bgBody, p.textPrimary,
+                p.bgBody,
+                p.bgCard,
+                p.headerStart, p.headerEnd,
+                title,
+                p.textPrimary, greeting,
+                p.textSecondary, body,
+                warning,
+                p.border, p.textMuted, footer
+        );
+    }
+
     private Locale resolveLocale(User user, String override) {
         if (override != null && !override.isBlank()) {
             return Locale.forLanguageTag(override);

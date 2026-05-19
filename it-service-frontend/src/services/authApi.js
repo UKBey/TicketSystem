@@ -33,8 +33,11 @@ export async function validateResetToken(token) {
   return response.data.valid === true;
 }
 
-export async function resetPassword(token, newPassword) {
-  const response = await authApi.post('/reset-password', { token, newPassword });
+export async function resetPassword(token, newPassword, { language, theme } = {}) {
+  const payload = { token, newPassword };
+  if (language) payload.language = language;
+  if (theme) payload.theme = theme;
+  const response = await authApi.post('/reset-password', payload);
   return response.data;
 }
 

@@ -91,7 +91,9 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
         try {
-            passwordResetService.resetPassword(body.getToken(), body.getNewPassword());
+            passwordResetService.resetPassword(
+                    body.getToken(), body.getNewPassword(),
+                    body.getLanguage(), body.getTheme());
             return ResponseEntity.ok(Map.of("status", "ok"));
         } catch (InvalidResetTokenException e) {
             log.info("Reset token reddedildi: {}", e.getMessage());

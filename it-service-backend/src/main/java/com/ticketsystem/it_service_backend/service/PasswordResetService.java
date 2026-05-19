@@ -112,9 +112,13 @@ public class PasswordResetService {
      *
      * <p>Şifre değişimi Keycloak'a kadar başarıyla gidene kadar token "used" olarak
      * işaretlenmez — böylece Keycloak hatasında kullanıcı aynı linki tekrar deneyebilir.
+     *
+     * @param languageOverride başarı mailinin dili (opsiyonel)
+     * @param themeOverride    başarı mailinin teması (opsiyonel)
      */
     @Transactional
-    public void resetPassword(String plainToken, String newPassword) {
+    public void resetPassword(String plainToken, String newPassword,
+                              String languageOverride, String themeOverride) {
         if (plainToken == null || plainToken.isBlank()) {
             throw new InvalidResetTokenException("Token eksik");
         }
@@ -135,6 +139,8 @@ public class PasswordResetService {
         token.setUsedAt(ZonedDateTime.now());
         tokenRepository.save(token);
         log.info("Şifre başarıyla sıfırlandı. User: {}", user.getId());
+
+        emailService.sendPasswordChangedEmail(user, languageOverride, themeOverride);
     }
 
     private String generatePlainToken() {
