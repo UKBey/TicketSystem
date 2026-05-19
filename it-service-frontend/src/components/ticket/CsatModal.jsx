@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Star } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 export default function CsatModal({ isOpen, onClose, onSubmit }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [rating, setRating]     = useState(5);
   const [comment, setComment]   = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -15,7 +17,7 @@ export default function CsatModal({ isOpen, onClose, onSubmit }) {
     try {
       await onSubmit(rating, comment);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not submit survey.');
+      toast.error(err.response?.data?.message || t('ticketDetail.submitCsatFailed'));
     } finally {
       setSubmitting(false);
     }

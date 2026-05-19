@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LifeBuoy, Plus, Pencil, Trash2, X, Tag, Package, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import {
   listKnownIssues,
@@ -20,6 +21,7 @@ import {
  */
 export default function KnownIssuesPage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
 
@@ -122,7 +124,7 @@ export default function KnownIssuesPage() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.content.trim()) {
-      alert(t('knownIssues.errorRequired'));
+      toast.error(t('knownIssues.errorRequired'));
       return;
     }
     const payload = {
@@ -142,7 +144,7 @@ export default function KnownIssuesPage() {
       }
       closeModal();
     } catch (err) {
-      alert(err.response?.data?.message || t('knownIssues.errorSave'));
+      toast.error(err.response?.data?.message || t('knownIssues.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -154,7 +156,7 @@ export default function KnownIssuesPage() {
       await deleteKnownIssue(item.id);
       setItems((prev) => prev.filter((it) => it.id !== item.id));
     } catch (err) {
-      alert(err.response?.data?.message || t('knownIssues.errorDelete'));
+      toast.error(err.response?.data?.message || t('knownIssues.errorDelete'));
     }
   };
 

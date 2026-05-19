@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
@@ -11,6 +12,7 @@ import AgentSelectionModal from '../../components/AgentSelectionModal';
 
 export default function Pool() {
   const { t } = useTranslation();
+  const toast = useToast();
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isAgentAdmin = hasRole('AGENT_ADMIN');
@@ -39,9 +41,9 @@ export default function Pool() {
       navigate(`/tickets/${ticketId}`);
     } catch (err) {
       if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
-        alert(`Limit exceeded: ${err.response.data.message}`);
+        toast.error(t('ticketDetail.limitExceeded', { message: err.response.data.message }));
       } else {
-        alert(err.response?.data?.message || 'Could not claim ticket.');
+        toast.error(err.response?.data?.message || t('ticketDetail.claimFailed'));
       }
     }
   };

@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function ProductTopicsSection({ productId, isAdmin }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert(t('topic.errorNameRequired'));
+      toast.error(t('topic.errorNameRequired'));
       return;
     }
     setSaving(true);
@@ -67,7 +69,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
       }
       closeModal();
     } catch (err) {
-      alert(err.response?.data?.message || t('topic.errorSave'));
+      toast.error(err.response?.data?.message || t('topic.errorSave'));
     } finally {
       setSaving(false);
     }
@@ -79,7 +81,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
       await api.delete(`/topics/${topic.id}`);
       setTopics((prev) => prev.filter((tp) => tp.id !== topic.id));
     } catch (err) {
-      alert(err.response?.data?.message || t('topic.errorDelete'));
+      toast.error(err.response?.data?.message || t('topic.errorDelete'));
     }
   };
 

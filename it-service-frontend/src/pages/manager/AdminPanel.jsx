@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, X, ChevronDown, ChevronUp, Settings2, Check } from 'lucide-react';
 import api, { getAgentLimits, setAgentLimit } from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
@@ -279,6 +280,7 @@ function AgentLimitsPanel({ user, t }) {
 
 export default function AdminPanel() {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [users, setUsers]               = useState([]);
   const [products, setProducts]         = useState([]);
@@ -336,14 +338,14 @@ export default function AdminPanel() {
 
   const handleAssignProduct = async (userId) => {
     if (!selectedProductId) {
-      alert(t('admin.panel.alertAssign'));
+      toast.error(t('admin.panel.alertAssign'));
       return;
     }
     try {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || t('admin.panel.errorAssign'));
+      toast.error(err.response?.data?.message || t('admin.panel.errorAssign'));
     }
   };
 
@@ -353,7 +355,7 @@ export default function AdminPanel() {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
-      alert(err.response?.data?.message || t('admin.panel.errorRemove'));
+      toast.error(err.response?.data?.message || t('admin.panel.errorRemove'));
     }
   };
 

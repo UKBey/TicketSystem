@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OTHER_REASON_CODE, REASON_CODES } from '../../utils/reasonCodes';
+import { useToast } from '../../context/ToastContext';
 
 export default function ResolveModal({ isOpen, onClose, onSave }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [reasonCode, setReasonCode] = useState('');
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,7 @@ export default function ResolveModal({ isOpen, onClose, onSave }) {
     try {
       await onSave({ reasonCode, note: trimmedNote || null });
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not resolve ticket.');
+      toast.error(err.response?.data?.message || t('ticketDetail.resolveFailed'));
     } finally {
       setSaving(false);
     }

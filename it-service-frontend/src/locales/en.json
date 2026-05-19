@@ -8,6 +8,9 @@
     "message": "Too many requests. Please wait {{seconds}} seconds.",
     "close": "Dismiss notification"
   },
+  "toast": {
+    "close": "Dismiss"
+  },
   "nav": {
     "theme": { "toDark": "Switch to dark mode", "toLight": "Switch to light mode" },
     "language": { "label": "Language", "en": "English", "tr": "Turkish" }
@@ -465,6 +468,14 @@
     "changeTopicLabel": "New topic",
     "topicChangeFailed": "Could not change topic.",
     "priorityChangeFailed": "Could not change priority.",
+    "uploadFileFailed": "Could not upload file.",
+    "downloadFileFailed": "Could not download file.",
+    "sendCommentFailed": "Could not send comment.",
+    "statusUpdateFailed": "Could not update status.",
+    "claimFailed": "Could not claim ticket.",
+    "releaseFailed": "Could not release ticket.",
+    "closeFailed": "Could not close ticket.",
+    "limitExceeded": "Limit exceeded: {{message}}",
     "statusNew": "New",
     "statusInProgress": "In Progress",
     "statusWaiting": "Waiting for Customer Response",
@@ -480,6 +491,11 @@
     "worklogSave": "Save",
     "worklogPlaceholder": "Brief description of work done...",
     "confirmDeleteWorklog": "Are you sure you want to delete this work log?",
+    "addWorklogFailed": "Could not add work log.",
+    "deleteWorklogFailed": "Could not delete work log.",
+    "submitCsatFailed": "Could not submit survey.",
+    "resolveFailed": "Could not resolve ticket.",
+    "joinFailed": "Could not join ticket.",
     "ticketNotFound": "Ticket not found",
     "csatTitle": "Customer Satisfaction Survey",
     "csatQuestion": "How would you rate the resolution process from 1 to 5?",

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock, Plus, Trash2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
+import { useToast } from '../../context/ToastContext';
 import { formatMinutes, formatShortDate } from '../../utils/ticketFormatters';
 
 export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [worklogs, setWorklogs]               = useState([]);
   const [isOpen, setIsOpen]                   = useState(true);
@@ -39,7 +41,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
       setDescription('');
       setFormOpen(false);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not add worklog.');
+      toast.error(err.response?.data?.message || t('ticketDetail.addWorklogFailed'));
     } finally {
       setAdding(false);
     }
@@ -51,7 +53,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
       await api.delete(`/tickets/${ticketId}/worklogs/${worklogId}`);
       setWorklogs((prev) => prev.filter((w) => w.id !== worklogId));
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not delete worklog.');
+      toast.error(err.response?.data?.message || t('ticketDetail.deleteWorklogFailed'));
     }
   };
 

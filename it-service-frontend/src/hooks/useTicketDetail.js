@@ -8,10 +8,12 @@ import api, {
   listProductTopics,
 } from '../services/api';
 import { useTicketWebSocket } from './useTicketWebSocket';
+import { useToast } from '../context/ToastContext';
 import { REASON_CODES } from '../utils/reasonCodes';
 
 export function useTicketDetail(id, hasRole) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [ticket, setTicket]       = useState(null);
   const [comments, setComments]   = useState([]);
@@ -142,7 +144,7 @@ export function useTicketDetail(id, hasRole) {
       });
       setAttachments((prev) => (prev.some((a) => a.id === res.data.id) ? prev : [...prev, res.data]));
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not upload file.');
+      toast.error(err.response?.data?.message || t('ticketDetail.uploadFileFailed'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -161,7 +163,7 @@ export function useTicketDetail(id, hasRole) {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Could not download file.');
+      toast.error(t('ticketDetail.downloadFileFailed'));
     }
   };
 
@@ -182,7 +184,7 @@ export function useTicketDetail(id, hasRole) {
       const ticketRes = await api.get(`/tickets/${id}`);
       setTicket(ticketRes.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not send comment.');
+      toast.error(err.response?.data?.message || t('ticketDetail.sendCommentFailed'));
     } finally {
       setSending(false);
     }
@@ -193,7 +195,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not update status.');
+      toast.error(err.response?.data?.message || t('ticketDetail.statusUpdateFailed'));
     }
   };
 
@@ -203,9 +205,9 @@ export function useTicketDetail(id, hasRole) {
       setTicket(res.data);
     } catch (err) {
       if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
-        alert(`Limit exceeded: ${err.response.data.message}`);
+        toast.error(t('ticketDetail.limitExceeded', { message: err.response.data.message }));
       } else {
-        alert(err.response?.data?.message || 'Could not claim ticket.');
+        toast.error(err.response?.data?.message || t('ticketDetail.claimFailed'));
       }
     }
   };
@@ -215,7 +217,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await unclaimTicketWithNote(id, payload);
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not release ticket.');
+      toast.error(err.response?.data?.message || t('ticketDetail.releaseFailed'));
     }
   };
 
@@ -224,7 +226,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await closeTicketWithNote(id, payload);
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not close ticket.');
+      toast.error(err.response?.data?.message || t('ticketDetail.closeFailed'));
     }
   };
 
@@ -249,7 +251,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await updateTicketPriorityApi(id, { priority: value, reasonCode, note });
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || t('ticketDetail.priorityChangeFailed'));
+      toast.error(err.response?.data?.message || t('ticketDetail.priorityChangeFailed'));
       throw err;
     }
   };
@@ -274,7 +276,7 @@ export function useTicketDetail(id, hasRole) {
       const res = await updateTicketTopicApi(id, { topicId: Number(value), reasonCode, note });
       setTicket(res.data);
     } catch (err) {
-      alert(err.response?.data?.message || t('ticketDetail.topicChangeFailed'));
+      toast.error(err.response?.data?.message || t('ticketDetail.topicChangeFailed'));
       throw err;
     }
   };

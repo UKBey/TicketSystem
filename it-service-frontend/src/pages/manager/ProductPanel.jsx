@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, X, Eye, Search, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 
@@ -11,6 +12,7 @@ const PAGE_SIZE = 10;
 
 export default function ProductPanel() {
   const { t } = useTranslation();
+  const toast = useToast();
   const navigate = useNavigate();
   const { getPrimaryRole } = useAuth();
   const role = getPrimaryRole();
@@ -77,7 +79,7 @@ export default function ProductPanel() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert(t('productPanel.errorNameRequired'));
+      toast.error(t('productPanel.errorNameRequired'));
       return;
     }
 
@@ -96,7 +98,7 @@ export default function ProductPanel() {
       }
       closeModal();
     } catch (err) {
-      alert(err.response?.data?.message || t('productPanel.errorSave'));
+      toast.error(err.response?.data?.message || t('productPanel.errorSave'));
     }
   };
 
@@ -106,7 +108,7 @@ export default function ProductPanel() {
       await api.delete(`/products/${id}`);
       setProducts(products.filter(p => p.id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || t('productPanel.errorDelete'));
+      toast.error(err.response?.data?.message || t('productPanel.errorDelete'));
     }
   };
 

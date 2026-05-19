@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getRateLimitConfigs, updateRateLimitConfig } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import { Save } from 'lucide-react';
 
 export default function RateLimitConfigPanel() {
   const { t } = useTranslation();
+  const toast = useToast();
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   const fetchConfigs = useCallback(async () => {
     try {
@@ -51,18 +52,13 @@ export default function RateLimitConfigPanel() {
         config.id === id ? res.data : config
       ));
       
-      showToast(t('admin.rateLimits.toastSaved'));
+      toast.success(t('admin.rateLimits.toastSaved'));
     } catch (err) {
       console.error('Save failed:', err);
-      alert(err.response?.data?.message || t('admin.rateLimits.errorSave'));
+      toast.error(err.response?.data?.message || t('admin.rateLimits.errorSave'));
     } finally {
       setSavingId(null);
     }
-  };
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
   };
 
   if (loading) {
@@ -77,11 +73,6 @@ export default function RateLimitConfigPanel() {
     <div className="rounded-xl border overflow-hidden mt-8" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
       <div className="px-4 py-4 border-b font-semibold text-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:px-6" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
         <span>{t('admin.rateLimits.title')}</span>
-        {toastMessage && (
-          <span className="text-xs font-medium text-success-600 dark:text-success-400 animate-pulse">
-            {toastMessage}
-          </span>
-        )}
       </div>
       
       {error ? (

@@ -12,6 +12,9 @@
     "message": "Çok fazla istek. Lütfen {{seconds}} saniye bekleyin.",
     "close": "Bildirimi kapat"
   },
+  "toast": {
+    "close": "Kapat"
+  },
   "sidebar": {
     "myTickets": "Biletlerim",
     "createTicket": "Bilet Oluştur",
@@ -465,6 +468,14 @@
     "changeTopicLabel": "Yeni konu",
     "topicChangeFailed": "Konu değiştirilemedi.",
     "priorityChangeFailed": "Öncelik değiştirilemedi.",
+    "uploadFileFailed": "Dosya yüklenemedi.",
+    "downloadFileFailed": "Dosya indirilemedi.",
+    "sendCommentFailed": "Yorum gönderilemedi.",
+    "statusUpdateFailed": "Durum güncellenemedi.",
+    "claimFailed": "Bilet üstlenilemedi.",
+    "releaseFailed": "Bilet bırakılamadı.",
+    "closeFailed": "Bilet kapatılamadı.",
+    "limitExceeded": "Limit aşıldı: {{message}}",
     "statusNew": "Yeni",
     "statusInProgress": "İşlemde",
     "statusWaiting": "Müşteri Yanıtı Bekleniyor",
@@ -480,6 +491,11 @@
     "worklogSave": "Kaydet",
     "worklogPlaceholder": "Yapılan çalışmanın kısa açıklaması...",
     "confirmDeleteWorklog": "Bu iş kaydını silmek istediğinizden emin misiniz?",
+    "addWorklogFailed": "İş kaydı eklenemedi.",
+    "deleteWorklogFailed": "İş kaydı silinemedi.",
+    "submitCsatFailed": "Anket gönderilemedi.",
+    "resolveFailed": "Bilet çözüldü olarak işaretlenemedi.",
+    "joinFailed": "Bilete katılınamadı.",
     "ticketNotFound": "Bilet bulunamadı",
     "csatTitle": "Müşteri Memnuniyeti Anketi",
     "csatQuestion": "Çözüm sürecini 1'den 5'e kadar nasıl değerlendirirsiniz?",
