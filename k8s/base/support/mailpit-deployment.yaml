@@ -24,3 +24,8 @@ spec:
               containerPort: 1025
             - name: http
               containerPort: 8025
+          env:
+            # Ingress'te /mailpit prefix'i ile servis edilir; mailpit kendi asset
+            # URL'lerini bu prefix altında üretir, ingress rewrite gerekmez.
+            - name: MP_WEBROOT
+              value: "mailpit"

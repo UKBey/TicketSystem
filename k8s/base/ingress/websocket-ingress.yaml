@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketsystem-websocket
+  labels:
+    app.kubernetes.io/name: ticketsystem-ingress
+    app.kubernetes.io/component: ingress
+  annotations:
+    # /api/ws/* → /ws/* path rewrite — backend STOMP endpoint'i /ws altında.
+    # Nginx Ingress'te rewrite-target annotation ingress seviyesinde olduğu için
+    # bu kural ana ingress'ten ayrı bir resource'ta tutuluyor; yoksa diğer
+    # path'lere de rewrite uygulanırdı.
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /ws/$2
+    # WebSocket handshake için uzun timeout — nginx.conf'tan aynısı.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ticketsystem.local
+      http:
+        paths:
+          - path: /api/ws(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: it-service-backend
+                port:
+                  number: 8081

@@ -27,3 +27,9 @@ spec:
               value: '["http://opensearch:9200"]'
             - name: DISABLE_SECURITY_DASHBOARDS_PLUGIN
               value: "true"
+            # Ingress'ten /opensearch prefix'i ile servis edilebilmesi için sub-path desteği.
+            # Dashboards tüm asset URL'lerini bu prefix ile üretir; ingress rewrite gerekmez.
+            - name: SERVER_BASEPATH
+              value: "/opensearch"
+            - name: SERVER_REWRITEBASEPATH
+              value: "true"
