@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
+import com.ticketsystem.it_service_backend.dto.CommentRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -54,7 +55,7 @@ class CommentControllerTest {
 
         ResponseEntity<CommentDTO> response = commentController.addComment(
                 100L,
-                Map.of("message", "Need help", "type", "EXTERNAL"),
+                CommentRequestDTO.builder().message("Need help").type("EXTERNAL").build(),
                 jwtWithRoles("customer-1", List.of("CUSTOMER"))
         );
 
