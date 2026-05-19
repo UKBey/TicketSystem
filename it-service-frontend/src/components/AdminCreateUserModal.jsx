@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, UserPlus, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createUser, getAssignableRoles } from '../services/api';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
+
+// F-4 — form validation accessibility:
+// Submit sonrasi ilk hatali alana otomatik focus. Sira form'daki gorsel sirayla ayni
+// olmali ki klavye kullanicisi mantikli akista hareketsin.
+const FIELD_FOCUS_ORDER = ['firstName', 'lastName', 'username', 'email', 'password', 'roles'];
 
 /**
  * AdminCreateUserModal — AGENT_ADMIN'in Keycloak'ta yeni kullanıcı oluşturması için modal.
@@ -33,6 +38,18 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
   const [availableRoles, setAvailableRoles] = useState([]);
   const [rolesLoading, setRolesLoading]     = useState(false);
   const [rolesError, setRolesError]         = useState('');
+
+  // F-4: submit fail edince ilk hatali alana focus icin field refleri.
+  const fieldRefs = useRef({});
+
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) return;
+    const firstField = FIELD_FOCUS_ORDER.find((k) => errors[k]);
+    const target = firstField && fieldRefs.current[firstField];
+    if (target && typeof target.focus === 'function') {
+      target.focus();
+    }
+  }, [errors]);
 
   // Modal açıldığında state'i sıfırla ve rolleri çek
   useEffect(() => {
@@ -245,6 +262,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   {t('userManagement.form.firstName')} *
                 </label>
                 <input
+                  ref={(el) => { fieldRefs.current.firstName = el; }}
                   type="text"
                   name="firstName"
                   value={formData.firstName}
@@ -253,9 +271,11 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   className={inputClass('firstName')}
                   style={inputStyle('firstName')}
                   placeholder="John"
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                 />
                 {errors.firstName && (
-                  <p className="mt-1 text-xs text-red-400">{errors.firstName}</p>
+                  <p id="firstName-error" role="alert" className="mt-1 text-xs text-red-400">{errors.firstName}</p>
                 )}
               </div>
               <div>
@@ -263,6 +283,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   {t('userManagement.form.lastName')} *
                 </label>
                 <input
+                  ref={(el) => { fieldRefs.current.lastName = el; }}
                   type="text"
                   name="lastName"
                   value={formData.lastName}
@@ -271,9 +292,11 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   className={inputClass('lastName')}
                   style={inputStyle('lastName')}
                   placeholder="Doe"
+                  aria-invalid={!!errors.lastName}
+                  aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                 />
                 {errors.lastName && (
-                  <p className="mt-1 text-xs text-red-400">{errors.lastName}</p>
+                  <p id="lastName-error" role="alert" className="mt-1 text-xs text-red-400">{errors.lastName}</p>
                 )}
               </div>
             </div>
@@ -284,6 +307,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 {t('userManagement.form.username')} *
               </label>
               <input
+                ref={(el) => { fieldRefs.current.username = el; }}
                 type="text"
                 name="username"
                 value={formData.username}
@@ -292,9 +316,11 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 className={inputClass('username')}
                 style={inputStyle('username')}
                 placeholder="john.doe"
+                aria-invalid={!!errors.username}
+                aria-describedby={errors.username ? 'username-error' : undefined}
               />
               {errors.username && (
-                <p className="mt-1 text-xs text-red-400">{errors.username}</p>
+                <p id="username-error" role="alert" className="mt-1 text-xs text-red-400">{errors.username}</p>
               )}
             </div>
 
@@ -304,6 +330,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 {t('userManagement.form.email')} *
               </label>
               <input
+                ref={(el) => { fieldRefs.current.email = el; }}
                 type="email"
                 name="email"
                 value={formData.email}
@@ -312,9 +339,11 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 className={inputClass('email')}
                 style={inputStyle('email')}
                 placeholder="john.doe@example.com"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : undefined}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-400">{errors.email}</p>
+                <p id="email-error" role="alert" className="mt-1 text-xs text-red-400">{errors.email}</p>
               )}
             </div>
 
@@ -325,6 +354,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
               </label>
               <div className="relative">
                 <input
+                  ref={(el) => { fieldRefs.current.password = el; }}
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
@@ -333,6 +363,8 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   className={inputClass('password')}
                   style={{ ...inputStyle('password'), paddingRight: '2.5rem' }}
                   placeholder="Min. 8 karakter, 1 büyük harf, 1 rakam"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : 'password-hint'}
                 />
                 <button
                   type="button"
@@ -346,9 +378,9 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 </button>
               </div>
               {errors.password ? (
-                <p className="mt-1 text-xs text-red-400">{errors.password}</p>
+                <p id="password-error" role="alert" className="mt-1 text-xs text-red-400">{errors.password}</p>
               ) : (
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p id="password-hint" className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                   {t('userManagement.form.passwordHint')}
                 </p>
               )}
@@ -368,12 +400,18 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
               ) : rolesError ? (
                 <p className="text-sm text-red-400">{rolesError}</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {availableRoles.map((role) => {
+                <div
+                  role="group"
+                  aria-invalid={!!errors.roles}
+                  aria-describedby={errors.roles ? 'roles-error' : 'roles-hint'}
+                  className="flex flex-wrap gap-2"
+                >
+                  {availableRoles.map((role, index) => {
                     const isChecked = formData.roles.includes(role);
                     return (
                       <button
                         key={role}
+                        ref={index === 0 ? (el) => { fieldRefs.current.roles = el; } : undefined}
                         type="button"
                         onClick={() => handleRoleToggle(role)}
                         className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer"
@@ -400,9 +438,9 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
               )}
 
               {errors.roles && (
-                <p className="mt-1.5 text-xs text-red-400">{errors.roles}</p>
+                <p id="roles-error" role="alert" className="mt-1.5 text-xs text-red-400">{errors.roles}</p>
               )}
-              <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              <p id="roles-hint" className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                 {t('userManagement.form.rolesHint')}
               </p>
             </div>

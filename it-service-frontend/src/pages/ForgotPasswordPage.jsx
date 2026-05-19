@@ -118,6 +118,8 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder={t('forgotPassword.emailPlaceholder')}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? 'forgot-email-error' : undefined}
                     className="w-full rounded-xl border pl-10 pr-3 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                     style={{
                       backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
@@ -130,6 +132,8 @@ export default function ForgotPasswordPage() {
 
               {error && (
                 <div
+                  id="forgot-email-error"
+                  role="alert"
                   className="rounded-lg border px-3 py-2 text-xs"
                   style={{
                     backgroundColor: isDark ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',

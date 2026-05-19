@@ -8,6 +8,8 @@ const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 function PasswordInput({ id, value, onChange, placeholder, disabled, error, autoFocus }) {
   const [visible, setVisible] = useState(false);
+  // F-4: error varken aria-invalid="true" ve aria-describedby ile hata mesajini
+  // screen reader'a baglar. Mesaj <p id="{id}-error" role="alert"> ile DOM'da.
   return (
     <div className="relative">
       <input
@@ -19,6 +21,8 @@ function PasswordInput({ id, value, onChange, placeholder, disabled, error, auto
         disabled={disabled}
         autoFocus={autoFocus}
         autoComplete="new-password"
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
         className="w-full rounded-md border px-3 py-2 pr-10 text-sm font-medium outline-none disabled:opacity-60"
         style={{
           backgroundColor: 'var(--bg-surface-secondary)',
@@ -171,7 +175,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
               autoFocus
             />
             {fieldErrors.currentPassword && (
-              <p className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
+              <p id="current-password-error" role="alert" className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
                 {fieldErrors.currentPassword}
               </p>
             )}
@@ -190,7 +194,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
               error={fieldErrors.newPassword}
             />
             {fieldErrors.newPassword ? (
-              <p className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
+              <p id="new-password-error" role="alert" className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
                 {fieldErrors.newPassword}
               </p>
             ) : (
@@ -213,7 +217,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
               error={fieldErrors.confirmPassword}
             />
             {fieldErrors.confirmPassword && (
-              <p className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
+              <p id="confirm-password-error" role="alert" className="mt-1 text-xs font-medium" style={{ color: '#ef4444' }}>
                 {fieldErrors.confirmPassword}
               </p>
             )}
