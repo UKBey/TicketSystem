@@ -25,7 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -93,7 +92,6 @@ class TicketServiceTest {
     @Mock
     private TicketTopicRepository ticketTopicRepository;
 
-    @InjectMocks
     private TicketService ticketService;
 
     private Product product;
@@ -104,6 +102,16 @@ class TicketServiceTest {
 
     @BeforeEach
     void setUp() {
+        TicketAuditHelper auditHelper = new TicketAuditHelper(ticketAuditLogRepository, messagingTemplate);
+        TicketClaimService ticketClaimService = new TicketClaimService(
+                ticketRepository, ticketClaimRepository, productRepository, userRepository,
+                agentProductLimitRepository, workflowService, notificationService, auditHelper);
+        ticketService = new TicketService(
+                ticketRepository, ticketClaimRepository, productRepository, ticketTopicRepository,
+                commentRepository, userRepository, workflowService, slaPolicyService,
+                eventPublisher, csatRepository, worklogRepository, attachmentRepository,
+                notificationService, auditHelper, ticketClaimService);
+
         product = Product.builder().id(10L).name("CRM").build();
         topic = TicketTopic.builder().id(50L).productId(10L).name("Diğer").isActive(true).build();
 

@@ -1,33 +1,25 @@
 package com.ticketsystem.it_service_backend.service;
 
-import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Product;
-import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
 import com.ticketsystem.it_service_backend.entity.Ticket;
-import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.event.TicketCreatedEvent;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
-import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
-import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
-import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
-import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -53,7 +45,6 @@ public class TicketService {
     private final TicketClaimRepository ticketClaimRepository;
     private final ProductRepository productRepository;
     private final TicketTopicRepository ticketTopicRepository;
-    private final AgentProductLimitRepository agentProductLimitRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
@@ -62,9 +53,9 @@ public class TicketService {
     private final CsatRepository csatRepository;
     private final WorklogRepository worklogRepository;
     private final AttachmentRepository attachmentRepository;
-    private final TicketAuditLogRepository ticketAuditLogRepository;
     private final NotificationService notificationService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final TicketAuditHelper auditHelper;
+    private final TicketClaimService ticketClaimService;
 
     // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
     private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
@@ -693,125 +684,23 @@ public class TicketService {
      * Ajanın belirtilen bileti claim alıp almadığını kontrol eder.
      */
     public boolean isAgentClaimer(Long ticketId, String agentId) {
-        return ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId);
+        return ticketClaimService.isAgentClaimer(ticketId, agentId);
     }
 
     // -----------------------------------------------------------------
-    // Claim & Unclaim
+    // Claim & Unclaim — TicketClaimService'e delege edilir
     // -----------------------------------------------------------------
 
-    /**
-     * Ajan bileti sahiplenir. NEW ise ilk claim — IN_PROGRESS'e geçer.
-     * IN_PROGRESS ise mevcut sahiplenilenlerle birlikte claim eklenir.
-     */
-    @Transactional
     public Ticket claimTicket(Long id, String agentId) {
-        log.info("Claim isteği. Bilet: {}, Ajan: {}", id, agentId);
-        Ticket ticket = getTicketById(id);
-
-        String currentStatus = ticket.getStatus();
-        if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus) && !"WAITING_FOR_CUSTOMER".equals(currentStatus)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "error.ticket.claim.invalid.status");
-        }
-
-        User agent = userRepository.findById(agentId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + agentId));
-
-        boolean isAuthorized = agent.getAuthorizedProducts().stream()
-                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-        if (!isAuthorized) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "error.ticket.claim.product.forbidden");
-        }
-
-        Product product = productRepository.findById(ticket.getProductId())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                "error.product.not.found"));
-
-        Integer effectiveLimit = product.getMaxActiveTickets();
-        AgentProductLimit customLimit = agentProductLimitRepository
-            .findByAgentIdAndProductId(agentId, product.getId())
-            .orElse(null);
-        if (customLimit != null && Boolean.TRUE.equals(customLimit.getUseCustomLimit())) {
-            effectiveLimit = customLimit.getMaxActiveTickets();
-        }
-
-        if (effectiveLimit != null) {
-            long activeCount = ticketClaimRepository.countActiveTicketsByAgentAndProduct(agentId, product.getId());
-            if (activeCount >= effectiveLimit) {
-            throw new TicketLimitExceededException("error.ticket.limit.exceeded", effectiveLimit);
-            }
-        }
-
-        if (ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "error.ticket.already.claimed");
-        }
-
-        TicketClaim claim = TicketClaim.builder()
-                .ticket(ticket)
-                .agentId(agentId)
-                .build();
-        ticketClaimRepository.save(claim);
-
-        // İlk claim ise bileti IN_PROGRESS'e taşır.
-        if ("NEW".equals(currentStatus)) {
-            ticket.setStatus("IN_PROGRESS");
-            ticketRepository.save(ticket);
-            log.info("İlk claim — bilet IN_PROGRESS'e alındı. Bilet: {}", id);
-            try {
-                workflowService.syncTicketAssignment(ticket, agentId);
-            } catch (Exception e) {
-                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
-            }
-        }
-
-        notificationService.notifyTicketClaimed(ticket, agentId);
-        recordTicketAuditLog(ticket, agentId, "CLAIM", null, currentStatus, ticket.getStatus());
-        return ticket;
+        return ticketClaimService.claimTicket(id, agentId);
     }
 
-    /**
-     * Ajan kendi claim'ini geri bırakır.
-     * Son claim ise bilet NEW'e döner (havuza geri gider).
-     */
-    @Transactional
     public Ticket unclaimTicket(Long id, String agentId) {
-        return unclaimTicket(id, agentId, null, null);
+        return ticketClaimService.unclaimTicket(id, agentId);
     }
 
-    /**
-     * Ajan kendi claim'ini geri bırakır; sebep kodu ve opsiyonel notu audit log'a yazılır.
-     */
-    @Transactional
     public Ticket unclaimTicket(Long id, String agentId, String reasonCode, String note) {
-        log.info("Unclaim isteği. Bilet: {}, Ajan: {}, Sebep: {}", id, agentId, reasonCode);
-        Ticket ticket = getTicketById(id);
-        String previousStatus = ticket.getStatus();
-
-        if (!ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "error.ticket.no.active.claim");
-        }
-        validateReasonInput(reasonCode, note);
-
-        ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
-
-        long remaining = ticketClaimRepository.countByTicketId(id);
-        if (remaining == 0 && "IN_PROGRESS".equals(ticket.getStatus())) {
-            log.info("Son claim bırakıldı — bilet havuza (NEW) geri dönüyor. Bilet: {}", id);
-            ticket.setStatus("NEW");
-            ticketRepository.save(ticket);
-            try {
-                workflowService.syncTicketStatus(ticket);
-            } catch (Exception e) {
-                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
-            }
-        }
-
-        recordTicketAuditLog(ticket, agentId, "UNCLAIM", reasonCode, note, previousStatus, ticket.getStatus());
-        return ticket;
+        return ticketClaimService.unclaimTicket(id, agentId, reasonCode, note);
     }
 
     /**
@@ -969,40 +858,16 @@ public class TicketService {
 
     private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String note,
                                       String previousState, String newState) {
-        recordTicketAuditLog(ticket, actorId, actionType, null, note, previousState, newState);
+        auditHelper.record(ticket, actorId, actionType, note, previousState, newState);
     }
 
     private void recordTicketAuditLog(Ticket ticket, String actorId, String actionType, String reasonCode,
                                       String note, String previousState, String newState) {
-        TicketAuditLog auditLog = TicketAuditLog.builder()
-                .ticket(ticket)
-                .actorId(actorId)
-                .actionType(actionType)
-                .reasonCode(reasonCode)
-                .note(note)
-                .previousState(previousState)
-                .newState(newState)
-                .build();
-        ticketAuditLogRepository.save(auditLog);
-        broadcastTicketUpdated(ticket.getId());
+        auditHelper.record(ticket, actorId, actionType, reasonCode, note, previousState, newState);
     }
 
     private void validateReasonInput(String reasonCode, String note) {
-        if (reasonCode == null || reasonCode.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.required");
-        }
-        if ("OTHER".equals(reasonCode) && (note == null || note.isBlank())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.note.required");
-        }
-    }
-
-    // Audit log her ticket mutation'unda kaydedildigi icin broadcast'i da buradan tetikliyoruz.
-    private void broadcastTicketUpdated(Long ticketId) {
-        try {
-            messagingTemplate.convertAndSend("/topic/tickets/" + ticketId, TicketWebSocketEvent.ticketUpdated());
-        } catch (Exception e) {
-            log.warn("WebSocket broadcast hatasi (ticket {}): {}", ticketId, e.getMessage());
-        }
+        auditHelper.validateReasonInput(reasonCode, note);
     }
 
     private void validateStateTransition(String current, String next) {
@@ -1095,104 +960,11 @@ public class TicketService {
     }
 
     // -----------------------------------------------------------------
-    // Manuel Atama (Agent Admin)
+    // Manuel Atama — TicketClaimService'e delege edilir
     // -----------------------------------------------------------------
 
-    /**
-     * Agent Admin tarafından belirtilen bileti hedef agent'a manuel olarak atar.
-     * Kapasite kontrolü, yetki doğrulaması ve audit log kaydı içerir.
-     */
-    @Transactional
     public Ticket assignTicket(Long ticketId, String targetAgentId, String adminId, String note) {
-        log.info("Manuel atama isteği. Bilet: {}, Hedef Agent: {}, Admin: {}", ticketId, targetAgentId, adminId);
-
-        Ticket ticket = getTicketById(ticketId);
-
-        // 1. Kapalı biletler atanamaz
-        if ("CLOSED".equals(ticket.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.assign.closed");
-        }
-
-        // 2. Admin'in bu ürün üzerinde yetkisi var mı?
-        User adminUser = userRepository.findById(adminId)
-                .orElseThrow(() -> new EntityNotFoundException("Admin bulunamadı: " + adminId));
-        boolean adminAuthorized = adminUser.getAuthorizedProducts().stream()
-                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-        if (!adminAuthorized) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "error.ticket.assign.admin.not.authorized");
-        }
-
-        // 3. Hedef agent'ı yükle ve ürün yetki kontrolü
-        User targetAgent = userRepository.findById(targetAgentId)
-                .orElseThrow(() -> new EntityNotFoundException("Agent bulunamadı: " + targetAgentId));
-
-        boolean isAuthorized = targetAgent.getAuthorizedProducts().stream()
-                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-        if (!isAuthorized) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "error.ticket.assign.agent.not.authorized");
-        }
-
-        // 4. Kapasite kontrolü
-        Product product = productRepository.findById(ticket.getProductId())
-                .orElseThrow(() -> new EntityNotFoundException("Ürün bulunamadı: " + ticket.getProductId()));
-
-        Integer effectiveLimit = product.getMaxActiveTickets();
-        AgentProductLimit customLimit = agentProductLimitRepository
-                .findByAgentIdAndProductId(targetAgentId, product.getId())
-                .orElse(null);
-        if (customLimit != null && Boolean.TRUE.equals(customLimit.getUseCustomLimit())) {
-            effectiveLimit = customLimit.getMaxActiveTickets();
-        }
-
-        if (effectiveLimit != null) {
-            long activeCount = ticketClaimRepository
-                    .countActiveTicketsByAgentAndProduct(targetAgentId, product.getId());
-            if (activeCount >= effectiveLimit) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "error.ticket.assign.agent.limit.exceeded");
-            }
-        }
-
-        // 5. Zaten claim almışsa tekrar ekleme, sadece log
-        if (ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, targetAgentId)) {
-            log.warn("Hedef agent zaten bu bileti claim almış. Bilet: {}, Agent: {}", ticketId, targetAgentId);
-            return ticket;
-        }
-
-        // 6. Claim kaydı oluştur
-        TicketClaim claim = TicketClaim.builder()
-                .ticket(ticket)
-                .agentId(targetAgentId)
-                .build();
-        ticketClaimRepository.save(claim);
-
-        // 7. İlk claim ise statüyü IN_PROGRESS'e çek
-        String previousStatus = ticket.getStatus();
-        if ("NEW".equals(previousStatus)) {
-            ticket.setStatus("IN_PROGRESS");
-            ticketRepository.save(ticket);
-            log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
-        }
-
-        // 8. Audit log kaydet
-        recordTicketAuditLog(ticket, adminId, "ASSIGN",
-                note != null ? note : "Manuel atama yapıldı",
-                previousStatus, ticket.getStatus());
-
-        // 9. Workflow sync
-        try {
-            workflowService.syncTicketAssignment(ticket, targetAgentId);
-        } catch (Exception e) {
-            log.error("Workflow sync hatası. TicketId={}, Hata={}", ticketId, e.getMessage());
-        }
-
-        // 10. Bildirim
-        notificationService.notifyTicketAssigned(ticket, targetAgentId, adminId);
-
-        log.info("Bilet başarıyla atandı. Bilet: {}, Agent: {}", ticketId, targetAgentId);
-        return ticket;
+        return ticketClaimService.assignTicket(ticketId, targetAgentId, adminId, note);
     }
 
     // -----------------------------------------------------------------
