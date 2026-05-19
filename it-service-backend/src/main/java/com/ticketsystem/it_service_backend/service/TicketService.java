@@ -196,11 +196,9 @@ public class TicketService {
     @Transactional(readOnly = true)
     public List<Ticket> getTeamTickets(String userId, List<String> roles) {
         if (roles.contains("AGENT_ADMIN")) {
-            return ticketRepository.findActiveByProductIdIn(
-                    ticketRepository.findAll().stream()
-                            .map(Ticket::getProductId)
-                            .distinct()
-                            .collect(Collectors.toList()));
+            // Önceden findAll().stream().distinct() ile tüm bileti belleğe çekiyordu;
+            // tek SQL sorgusuyla aynı sonuç — bellek/CPU tasarrufu + LazyInit yok.
+            return ticketRepository.findAllActive();
         }
         if (userId == null) return new ArrayList<>();
 

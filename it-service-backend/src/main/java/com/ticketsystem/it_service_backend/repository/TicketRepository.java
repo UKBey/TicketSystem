@@ -36,6 +36,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.productId IN :productIds AND t.status NOT IN ('NEW', 'CLOSED')")
     List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
 
+    /**
+     * Tüm aktif biletler (AGENT_ADMIN paneli için). Eski kod `findAll()` ile
+     * tüm satırları çekip Java tarafında product_id'leri distinct yapıyordu —
+     * 10k+ bilet karşısında ağır pattern; bu method tek sorgu ile çözer.
+     */
+    @Query("SELECT t FROM Ticket t WHERE t.status NOT IN ('NEW', 'CLOSED')")
+    List<Ticket> findAllActive();
+
     // =========================================================================
     // Genel filtreli sorgular — tüm yeni filtre parametrelerini destekler
     // (searchPattern, status, priority, productId, agentId, slaStatus, dateFrom, dateTo)

@@ -1042,8 +1042,7 @@ class TicketServiceTest {
     @DisplayName("getTeamTickets → AGENT_ADMIN tüm ürünlere ait aktif biletleri döner")
     void getTeamTickets_agentAdmin_returnsActiveTickets() {
         Ticket t = Ticket.builder().id(900L).productId(10L).build();
-        when(ticketRepository.findAll()).thenReturn(List.of(t));
-        when(ticketRepository.findActiveByProductIdIn(any())).thenReturn(List.of(t));
+        when(ticketRepository.findAllActive()).thenReturn(List.of(t));
 
         List<Ticket> result = ticketService.getTeamTickets("admin-1", List.of("AGENT_ADMIN"));
 
