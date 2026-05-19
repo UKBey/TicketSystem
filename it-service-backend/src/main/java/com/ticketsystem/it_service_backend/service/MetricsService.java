@@ -186,27 +186,29 @@ public class MetricsService {
                 .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
 
-        List<Ticket> tickets = ticketRepository.findAll();
-        List<TicketWorklog> worklogs = worklogRepository.findAll();
-        Map<Long, Integer> csatByTicketId = csatRepository.findAll().stream()
-                .collect(Collectors.toMap(
-                        csat -> csat.getTicketId(),
-                        csat -> csat.getRating(),
-                        (left, right) -> left
-                ));
-
-        // Ajan → sahiplenilen bilet ID'leri haritası (N+1 önleme).
         List<String> agentIds = activeAgents.stream().map(User::getId).collect(Collectors.toList());
-        Map<String, Set<Long>> claimedTicketIdsByAgent = buildClaimedTicketIdMap(agentIds);
-
         ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
         ZonedDateTime last7Days = ZonedDateTime.now().minusDays(7);
 
+        // DB tarafında aggregate ediliyor — eski 3 findAll() yerine 2 sorgu.
+        // Sonuç [agent_id, active, resolved24h, slaBreached, avgResolutionHours, csatAvg]
+        Map<String, Object[]> metricsByAgent = agentIds.isEmpty() ? Map.of()
+                : ticketRepository.findAgentPerformanceMetrics(agentIds, last24Hours).stream()
+                        .collect(Collectors.toMap(
+                                row -> (String) row[0],
+                                row -> row,
+                                (left, right) -> left));
+
+        Map<String, Long> worklogMinutesByAgent = worklogRepository.findAgentWorklogSummary(last7Days).stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> ((Number) row[1]).longValue(),
+                        (left, right) -> left));
+
         List<AgentPerformanceItemDTO> agentRows = activeAgents.stream()
-                .map(agent -> buildAgentPerformanceRow(
-                        agent, tickets, worklogs, csatByTicketId,
-                        claimedTicketIdsByAgent.getOrDefault(agent.getId(), Set.of()),
-                        last24Hours, last7Days))
+                .map(agent -> buildAgentPerformanceRow(agent,
+                        metricsByAgent.get(agent.getId()),
+                        worklogMinutesByAgent.getOrDefault(agent.getId(), 0L)))
                 .sorted(Comparator
                         .comparing(AgentPerformanceItemDTO::getActiveTickets, Comparator.reverseOrder())
                         .thenComparing(AgentPerformanceItemDTO::getResolvedLast24Hours, Comparator.reverseOrder())
@@ -236,49 +238,20 @@ public class MetricsService {
                 .build();
     }
 
-    private Map<String, Set<Long>> buildClaimedTicketIdMap(List<String> agentIds) {
-        if (agentIds.isEmpty()) return Map.of();
-        Map<String, Set<Long>> result = new HashMap<>();
-        ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(agentIds).forEach(row -> {
-            String agentId = (String) row[0];
-            Long ticketId = (Long) row[1];
-            result.computeIfAbsent(agentId, k -> new java.util.HashSet<>()).add(ticketId);
-        });
-        return result;
-    }
-
-    private AgentPerformanceItemDTO buildAgentPerformanceRow(
-            User agent,
-            List<Ticket> tickets,
-            List<TicketWorklog> worklogs,
-            Map<Long, Integer> csatByTicketId,
-            Set<Long> claimedTicketIds,
-            ZonedDateTime last24Hours,
-            ZonedDateTime last7Days) {
-
-        List<Ticket> agentTickets = tickets.stream()
-                .filter(ticket -> claimedTicketIds.contains(ticket.getId()))
-                .toList();
-
-        long activeTickets = agentTickets.stream()
-                .filter(ticket -> Set.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER").contains(ticket.getStatus()))
-                .count();
-
-        long resolvedLast24Hours = agentTickets.stream()
-                .filter(ticket -> ticket.getResolvedAt() != null && ticket.getResolvedAt().isAfter(last24Hours))
-                .count();
-
-        long slaBreachedCount = agentTickets.stream()
-                .filter(ticket -> Boolean.TRUE.equals(ticket.getSlaBreached()))
-                .count();
-
-        Double avgResolutionHours = calculateAverageResolutionHours(agentTickets);
-        Double csatAverage = calculateAverageCsat(agentTickets, csatByTicketId);
-        Long worklogMinutesLast7Days = worklogs.stream()
-                .filter(worklog -> agent.getId().equals(worklog.getAgentId()))
-                .filter(worklog -> worklog.getCreatedAt() != null && worklog.getCreatedAt().isAfter(last7Days))
-                .mapToLong(worklog -> worklog.getMinutes() != null ? worklog.getMinutes() : 0L)
-                .sum();
+    /**
+     * Aggregated query çıktısından DTO oluşturur. Eski Java-side join'leri
+     * (3 findAll + stream filter) gereksizleşti — tüm sayım/ortalamalar
+     * {@link com.ticketsystem.it_service_backend.repository.TicketRepository#findAgentPerformanceMetrics}
+     * SQL'inde yapıldı.
+     */
+    private AgentPerformanceItemDTO buildAgentPerformanceRow(User agent,
+                                                             Object[] metricsRow,
+                                                             long worklogMinutesLast7Days) {
+        long activeTickets       = metricsRow == null ? 0L : ((Number) metricsRow[1]).longValue();
+        long resolvedLast24Hours = metricsRow == null ? 0L : ((Number) metricsRow[2]).longValue();
+        long slaBreachedCount    = metricsRow == null ? 0L : ((Number) metricsRow[3]).longValue();
+        double avgResolutionHrs  = metricsRow == null ? 0.0 : ((Number) metricsRow[4]).doubleValue();
+        double csatAverage       = metricsRow == null ? 0.0 : ((Number) metricsRow[5]).doubleValue();
 
         return AgentPerformanceItemDTO.builder()
                 .agentId(agent.getId())
@@ -286,44 +259,11 @@ public class MetricsService {
                 .role(agent.getRole())
                 .activeTickets(activeTickets)
                 .resolvedLast24Hours(resolvedLast24Hours)
-                .avgResolutionHours(avgResolutionHours)
+                .avgResolutionHours(avgResolutionHrs)
                 .csatAverage(csatAverage)
                 .slaBreachedCount(slaBreachedCount)
                 .worklogMinutesLast7Days(worklogMinutesLast7Days)
                 .build();
-    }
-
-    private Double calculateAverageResolutionHours(List<Ticket> tickets) {
-        List<Ticket> resolvedTickets = tickets.stream()
-                .filter(ticket -> ticket.getCreatedAt() != null && ticket.getResolvedAt() != null)
-                .toList();
-
-        if (resolvedTickets.isEmpty()) {
-            return 0.0;
-        }
-
-        double totalHours = resolvedTickets.stream()
-                .mapToDouble(ticket -> ChronoUnit.MILLIS.between(ticket.getCreatedAt(), ticket.getResolvedAt()) / (1000.0 * 60 * 60))
-                .sum();
-
-        return totalHours / resolvedTickets.size();
-    }
-
-    private Double calculateAverageCsat(List<Ticket> tickets, Map<Long, Integer> csatByTicketId) {
-        List<Integer> ratings = tickets.stream()
-                .map(Ticket::getId)
-                .map(csatByTicketId::get)
-                .filter(rating -> rating != null)
-                .toList();
-
-        if (ratings.isEmpty()) {
-            return 0.0;
-        }
-
-        return ratings.stream()
-                .mapToInt(Integer::intValue)
-                .average()
-                .orElse(0.0);
     }
 
     private PriorityMetricsDTO getPriorityDistributionFromDb() {

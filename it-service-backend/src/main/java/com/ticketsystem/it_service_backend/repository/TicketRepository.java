@@ -44,6 +44,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status NOT IN ('NEW', 'CLOSED')")
     List<Ticket> findAllActive();
 
+    /**
+     * Agent başına tek seferde tüm dashboard performans metrikleri.
+     * Eski {@code getAgentPerformance} 3 ayrı findAll() (tickets + worklogs + csat)
+     * ile 100MB+ heap spike yaratıyordu; bu sorgu DB tarafında aggregate eder.
+     *
+     * Dönüş: her satır {@code [agent_id, active_tickets, resolved_24h,
+     *  sla_breached, avg_resolution_hours, csat_avg]}.
+     */
+    @Query(value = """
+            SELECT
+                tc.agent_id                                                          AS agent_id,
+                COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END)::BIGINT AS active_tickets,
+                COUNT(CASE WHEN t.resolved_at >= :since24h THEN 1 END)::BIGINT        AS resolved_24h,
+                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)::BIGINT             AS sla_breached,
+                COALESCE(AVG(CASE
+                    WHEN t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0
+                END), 0)::DOUBLE PRECISION                                            AS avg_resolution_hours,
+                COALESCE(AVG(CAST(cs.rating AS DOUBLE PRECISION)), 0)::DOUBLE PRECISION AS csat_avg
+            FROM ticket_claims tc
+            JOIN tickets t        ON t.id = tc.ticket_id
+            LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+            WHERE tc.agent_id IN (:agentIds)
+            GROUP BY tc.agent_id
+            """, nativeQuery = true)
+    List<Object[]> findAgentPerformanceMetrics(@Param("agentIds") List<String> agentIds,
+                                               @Param("since24h") ZonedDateTime since24h);
+
     // =========================================================================
     // Genel filtreli sorgular — tüm yeni filtre parametrelerini destekler
     // (searchPattern, status, priority, productId, agentId, slaStatus, dateFrom, dateTo)

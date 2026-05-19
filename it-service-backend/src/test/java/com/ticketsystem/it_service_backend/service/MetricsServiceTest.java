@@ -7,7 +7,6 @@ import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
-import com.ticketsystem.it_service_backend.entity.Csat;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
@@ -217,22 +216,17 @@ class MetricsServiceTest {
         }
 
         @Test
-        @DisplayName("Aktif agent ticket, worklog ve CSAT verisiyle işlenir")
+        @DisplayName("Aktif agent aggregated metric query sonucunu DTO'ya yansıtır")
         void activeAgent_withTickets_returnsMetrics() {
             User agent = User.builder().id("uuid-1").fullName("Test Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
             when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
 
-            Ticket activeTicket = Ticket.builder()
-                    .id(1L).status("IN_PROGRESS")
-                    .priority("HIGH").slaBreached(false)
-                    .createdAt(ZonedDateTime.now().minusDays(2))
-                    .build();
-            when(ticketRepository.findAll()).thenReturn(List.of(activeTicket));
-            when(ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-1", 1L}));
-            when(worklogRepository.findAll()).thenReturn(Collections.emptyList());
-            when(csatRepository.findAll()).thenReturn(Collections.emptyList());
+            // Aggregated query: [agent_id, active, resolved24h, slaBreached, avgResHours, csatAvg]
+            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-1", 1L, 0L, 0L, 0.0, 0.0}));
+            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+                    .thenReturn(Collections.emptyList());
 
             AgentPerformanceDTO dto = metricsService.getAgentPerformance();
 
@@ -243,24 +237,17 @@ class MetricsServiceTest {
         }
 
         @Test
-        @DisplayName("Çözülen bilet varsa avgResolutionHours hesaplanır (non-empty path)")
+        @DisplayName("Aggregated SQL avgResolutionHours hesabını DB tarafında yapar")
         void activeAgent_withResolvedTicket_calculatesAvgResolutionHours() {
             User agent = User.builder().id("uuid-2").fullName("Resolver Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
             when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
 
-            ZonedDateTime createdAt = ZonedDateTime.now().minusHours(4);
-            ZonedDateTime resolvedAt = ZonedDateTime.now().minusHours(2);
-            Ticket resolvedTicket = Ticket.builder()
-                    .id(10L).status("RESOLVED")
-                    .priority("MEDIUM").slaBreached(false)
-                    .createdAt(createdAt).resolvedAt(resolvedAt)
-                    .build();
-            when(ticketRepository.findAll()).thenReturn(List.of(resolvedTicket));
-            when(ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-2", 10L}));
-            when(worklogRepository.findAll()).thenReturn(Collections.emptyList());
-            when(csatRepository.findAll()).thenReturn(Collections.emptyList());
+            // Aggregated query — DB'den ortalama 2.0 saat dönmüş gibi mock
+            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-2", 0L, 0L, 0L, 2.0, 0.0}));
+            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+                    .thenReturn(Collections.emptyList());
 
             AgentPerformanceDTO dto = metricsService.getAgentPerformance();
 
@@ -269,19 +256,16 @@ class MetricsServiceTest {
         }
 
         @Test
-        @DisplayName("CSAT verisi varsa csatAverage hesaplanır (non-empty path)")
+        @DisplayName("Aggregated SQL csatAverage'ı doğrudan döndürür")
         void activeAgent_withCsatData_calculatesCsatAverage() {
             User agent = User.builder().id("uuid-3").fullName("CSAT Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
             when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
 
-            Ticket ticket = Ticket.builder().id(20L).status("RESOLVED").priority("HIGH").build();
-            when(ticketRepository.findAll()).thenReturn(List.of(ticket));
-            when(ticketClaimRepository.findAgentIdAndTicketIdByAgentIdIn(anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-3", 20L}));
-            when(worklogRepository.findAll()).thenReturn(Collections.emptyList());
-            Csat csat = Csat.builder().ticketId(20L).rating(5).build();
-            when(csatRepository.findAll()).thenReturn(List.of(csat));
+            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+                    .thenReturn(List.<Object[]>of(new Object[]{"uuid-3", 0L, 0L, 0L, 0.0, 5.0}));
+            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+                    .thenReturn(Collections.emptyList());
 
             AgentPerformanceDTO dto = metricsService.getAgentPerformance();
 
