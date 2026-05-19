@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,10 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/tickets/{ticketId}/comments")
 @RequiredArgsConstructor
+// S-6: defense-in-depth — SecurityConfig zaten anonim erisimi yasakliyor; method-level
+// auth check'i kodda gorunur kilar. Rol bazli kontrol (kim yorum yazip okuyabilir)
+// servis katmanindadir; burada yalniz authenticate olmayi zorunlu kiliyoruz.
+@PreAuthorize("isAuthenticated()")
 public class CommentController {
 
     private final CommentService commentService;

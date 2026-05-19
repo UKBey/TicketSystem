@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -27,6 +28,9 @@ import java.util.Map;
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 @Validated
+// S-6: defense-in-depth — endpoint'ler kullanici-bazli filtreleme yapiyor (servis
+// katmaninda userId guard'i var). Class-level isAuthenticated ek koruma katmani.
+@PreAuthorize("isAuthenticated()")
 public class NotificationController {
 
     private final NotificationService notificationService;
