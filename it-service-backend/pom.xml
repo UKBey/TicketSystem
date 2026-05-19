@@ -327,6 +327,39 @@
                             </formats>
                         </configuration>
                     </execution>
+                    <!--
+                        Coverage erozyonunu yakalamak icin minimum esikler. Mevcut
+                        seviye yaklasik %86 LINE / %78 BRANCH; bu degerler 11 puan
+                        tampon birakacak sekilde belirlendi. CI'da haltOnFailure
+                        ile asagisina inen PR'lar fail olur.
+                    -->
+                    <execution>
+                        <id>check-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <haltOnFailure>true</haltOnFailure>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.65</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 			<plugin>
