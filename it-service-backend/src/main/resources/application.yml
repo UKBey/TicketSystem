@@ -83,6 +83,18 @@ app:
         warning-threshold-hours: ${SLA_CRITICAL_WARNING_HOURS:0}
 
 # ============================================================
+# OpenAPI / Swagger UI — varsayılan kapalı (production-safe).
+# Dev compose ve K8s local overlay'inde SPRINGDOC_ENABLED=true override edilir.
+# Endpoint'ler register edilmediği için /swagger-ui ve /v3/api-docs 404 döner;
+# anonim recon imkansızlaşır.
+# ============================================================
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
+
+# ============================================================
 # Gözlemlenebilirlik (Observability) — OpenTelemetry
 # ============================================================
 management:

@@ -230,6 +230,8 @@ services:
     # Backend portu disariya kapali — nginx uzerinden /api/ path'i ile erisim.
     environment:
       SERVER_PORT: "8081"
+      # Swagger/OpenAPI dev için açık (default kapalı); compose dev workflow değişmez.
+      SPRINGDOC_ENABLED: "true"
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
