@@ -8,6 +8,7 @@ import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -34,19 +35,27 @@ public class CommentService {
     private final SimpMessagingTemplate messagingTemplate;
 
     private final ConcurrentHashMap<String, Instant> lastCommentTime = new ConcurrentHashMap<>();
-    private static final long COMMENT_COOLDOWN_SECONDS = 5;
-    private static final int COMMENT_MESSAGE_MAX_LENGTH = 500;
+
+    // B-10 — cooldown ve max length artik application.yml/env ile yapilandirilabilir.
+    // DB-level constraint (V23 char_length CHECK) yine 500 olarak sabit; bu degerden
+    // YUKSEK bir maxLength yapilandirirsaniz DB tarafinda fail eder. Asagi cekmek
+    // (orn. 200) guvenli — service katmani daha agresif reddeder.
+    @Value("${app.comments.cooldown-seconds:5}")
+    private long cooldownSeconds;
+
+    @Value("${app.comments.max-length:500}")
+    private int maxMessageLength;
 
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
         log.info("Yorum ekleme işlemi. Bilet ID: {}, Kullanıcı: {}, Tip: {}", ticketId, userId, type);
 
-        if (message != null && message.length() > COMMENT_MESSAGE_MAX_LENGTH) {
+        if (message != null && message.length() > maxMessageLength) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.comment.message.too.long");
         }
 
         Instant last = lastCommentTime.get(userId);
-        if (last != null && Instant.now().isBefore(last.plusSeconds(COMMENT_COOLDOWN_SECONDS))) {
+        if (last != null && Instant.now().isBefore(last.plusSeconds(cooldownSeconds))) {
             throw new ResponseStatusException(HttpStatusCode.valueOf(429), "error.comment.rate.limit");
         }
 

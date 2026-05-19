@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -48,6 +49,11 @@ class CommentServiceTest {
 
     @BeforeEach
     void setUp() {
+        // @Value field'lari InjectMocks ile null/0 kaliyor; varsayilan production
+        // degerleriyle hizalanmis test fixtures.
+        ReflectionTestUtils.setField(commentService, "cooldownSeconds", 5L);
+        ReflectionTestUtils.setField(commentService, "maxMessageLength", 500);
+
         waitingTicket = Ticket.builder()
                 .id(100L)
                 .status("WAITING_FOR_CUSTOMER")

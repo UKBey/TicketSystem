@@ -346,6 +346,10 @@ services:
       RATE_LIMIT_GLOBAL_DURATION_SECONDS: ${RATE_LIMIT_GLOBAL_DURATION_SECONDS:-60}
       RATE_LIMIT_GLOBAL_ENABLED: ${RATE_LIMIT_GLOBAL_ENABLED:-true}
 
+      # Comment ayarlari (B-10) — DB CHECK (V23) 500 max, asagi cekmek guvenli.
+      COMMENT_COOLDOWN_SECONDS: ${COMMENT_COOLDOWN_SECONDS:-5}
+      COMMENT_MAX_LENGTH: ${COMMENT_MAX_LENGTH:-500}
+
       # Redis baglanti ayarlari — rate-limit bucket'lari ve gelecekteki cache/queue kullanimi.
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis}
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}

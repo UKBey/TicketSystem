@@ -71,6 +71,11 @@ spring:
 app:
   mail:
     from: ${MAIL_FROM:noreply@ticketsystem.local}
+  comments:
+    # B-10 — comment kurallari config'ten okunur. DB CHECK constraint (V23) 500 ile
+    # sabit; max-length'i bunun uzerine cikartmayin, asagi cekmek guvenli.
+    cooldown-seconds: ${COMMENT_COOLDOWN_SECONDS:5}
+    max-length: ${COMMENT_MAX_LENGTH:500}
   password-reset:
     token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:60}
     frontend-base-url: ${PASSWORD_RESET_FRONTEND_BASE_URL:http://localhost}
