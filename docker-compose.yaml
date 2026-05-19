@@ -67,6 +67,14 @@ services:
       - ldap_config:/etc/ldap/slapd.d
     networks:
       - it-service-net
+    healthcheck:
+      # 0185 = port 389 hex (LDAP). Container'da ldapsearch olsa bile root erisimi
+      # ve TLS config karmasiklasiyor; basit port aktiflik kontrolu yeterli.
+      test: ["CMD-SHELL", "grep -q '00000000:0185' /proc/net/tcp || grep -q '00000000:0185' /proc/net/tcp6"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # LDAP yonetim arayuzu.
   phpldapadmin:
@@ -87,6 +95,13 @@ services:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak-iam
     command: start-dev --import-realm
+    healthcheck:
+      # 1F90 = port 8080 hex. Keycloak container'inda curl/wget yok; /proc/net/tcp ile check.
+      test: ["CMD-SHELL", "grep -q '00000000:1F90' /proc/net/tcp || grep -q '00000000:1F90' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
     # Keycloak portu disariya kapali — nginx uzerinden /realms/ path'i ile erisim.
     environment:
       KC_DB: postgres
@@ -132,19 +147,26 @@ services:
 
   # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.20
     container_name: mailpit
     ports:
       - "1025:1025"
       - "8025:8025"
     networks:
       - it-service-net
+    healthcheck:
+      # 1F59 = port 8025 hex; wget yerine /proc/net/tcp ile container-agnostic check.
+      test: ["CMD-SHELL", "grep -q '00000000:1F59' /proc/net/tcp || grep -q '00000000:1F59' /proc/net/tcp6"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Gozlemlenebilirlik katmani servisleri.
 
   # Log ve telemetry verisi icin arama/veri deposu.
   opensearch:
-    image: opensearchproject/opensearch:latest
+    image: opensearchproject/opensearch:2.18.0
     container_name: opensearch
     environment:
       - discovery.type=single-node
@@ -157,10 +179,17 @@ services:
       - opensearch_data:/usr/share/opensearch/data
     networks:
       - it-service-net
+    healthcheck:
+      # 23F0 = port 9200 hex. Cluster health request gerektirmeden basit port aktiflik kontrolu.
+      test: ["CMD-SHELL", "grep -q '00000000:23F0' /proc/net/tcp || grep -q '00000000:23F0' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
 
   # OpenSearch verisini gorsellestirme arayuzu.
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:latest
+    image: opensearchproject/opensearch-dashboards:2.18.0
     container_name: opensearch-dashboards
     ports:
       - "5601:5601"
@@ -168,13 +197,21 @@ services:
       - OPENSEARCH_HOSTS=http://opensearch:9200
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
     networks:
       - it-service-net
+    healthcheck:
+      # 15E1 = port 5601 hex
+      test: ["CMD-SHELL", "grep -q '00000000:15E1' /proc/net/tcp || grep -q '00000000:15E1' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   # Telemetry verisini toplayip hedefe aktaran collector.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.116.0
     container_name: otel-collector
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
@@ -184,13 +221,21 @@ services:
       - "4318:4318"
       - "8889:8889"
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
     networks:
       - it-service-net
+    healthcheck:
+      # 10ED = port 4317 hex (gRPC OTLP) — collector burada listen ediyor.
+      test: ["CMD-SHELL", "grep -q '00000000:10ED' /proc/net/tcp || grep -q '00000000:10ED' /proc/net/tcp6"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   # Metrik toplama ve saklama servisi.
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.55.1
     container_name: prometheus
     ports:
       - "9090:9090"
@@ -199,13 +244,21 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
-      - otel-collector
+      otel-collector:
+        condition: service_healthy
     networks:
       - it-service-net
+    healthcheck:
+      # 2382 = port 9090 hex
+      test: ["CMD-SHELL", "grep -q '00000000:2382' /proc/net/tcp || grep -q '00000000:2382' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # Metrik gorsellestime servisi.
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.4.0
     container_name: grafana
     ports:
       - "3000:3000"
@@ -216,9 +269,17 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     networks:
       - it-service-net
+    healthcheck:
+      # 0BB8 = port 3000 hex
+      test: ["CMD-SHELL", "grep -q '00000000:0BB8' /proc/net/tcp || grep -q '00000000:0BB8' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # Gozlemlenebilirlik katmani sonu.
 
@@ -298,16 +359,16 @@ services:
       it-service-db:
         condition: service_healthy
       keycloak-iam:
-        condition: service_started
+        condition: service_healthy
       kie-server:
-        condition: service_started
+        condition: service_healthy
       mailpit:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
       otel-collector:
         # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
@@ -430,18 +491,34 @@ services:
       CLUSTER_ID: "TicketSystemKafkaCluster"
     networks:
       - it-service-net
+    healthcheck:
+      # 2384 = port 9092 hex. Broker burada PLAINTEXT listen ediyor.
+      test: ["CMD-SHELL", "grep -q '00000000:2384' /proc/net/tcp || grep -q '00000000:2384' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # Kafka'dan log okuyup OpenSearch'e yazan Logstash servisi.
   logstash:
-    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
+    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.1
     container_name: logstash-consumer
     volumes:
       - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     depends_on:
-      - kafka
-      - opensearch
+      kafka:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
     networks:
       - it-service-net
+    healthcheck:
+      # 2580 = port 9600 hex (Logstash monitoring API).
+      test: ["CMD-SHELL", "grep -q '00000000:2580' /proc/net/tcp || grep -q '00000000:2580' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   # jBPM/KIE Server katmani.
 
@@ -468,8 +545,10 @@ services:
   # Standalone KIE Server servisi (unmanaged mod).
   # Varsayilan kullanici: kieserver / kieserver1!
   # Swagger UI: http://localhost:8180/kie-server/docs
+  # Versiyon backend'in kullandigi kie-server-client (7.61.0.Final) ile aligne tutuluyor —
+  # mismatch durumunda KIE REST API'si davranis degisikligi yasayabilir.
   kie-server:
-    image: jboss/kie-server-showcase:latest
+    image: jboss/kie-server-showcase:7.61.0.Final
     container_name: kie-server
     ports:
       - "8180:8080"
@@ -492,6 +571,13 @@ services:
       - ~/.m2/repository:/opt/jboss/.m2/repository
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      # 1F90 = port 8080 hex (Wildfly KIE Server'i burada listen ediyor).
+      test: ["CMD-SHELL", "grep -q '00000000:1F90' /proc/net/tcp || grep -q '00000000:1F90' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
   # jBPM/KIE Server katmani sonu.
 
   # Kod kalitesi analiz veritabani.
