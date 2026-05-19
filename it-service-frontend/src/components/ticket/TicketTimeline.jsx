@@ -3,6 +3,7 @@ import {
   Send, Paperclip, File, FileText, FileArchive, Image, Download,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
+import { useTicketDetailContext } from './TicketDetailContext';
 
 function getFileIcon(fileType) {
   if (!fileType) return <File className="h-5 w-5" />;
@@ -14,17 +15,18 @@ function getFileIcon(fileType) {
   return <File className="h-5 w-5" />;
 }
 
-export default function TicketTimeline({
-  timeline, ticket, user,
-  isAgent, isCustomer, isDark,
-  chatEndRef,
-  message, setMessage,
-  commentType, setCommentType,
-  sending, cooldown,
-  uploading, fileInputRef,
-  handleSendComment, handleFileUpload, handleDownloadAttachment,
-}) {
+export default function TicketTimeline() {
   const { t } = useTranslation();
+  const {
+    timeline, ticket, user,
+    isAgent, isCustomer, isDark,
+    chatEndRef,
+    message, setMessage,
+    commentType, setCommentType,
+    sending, cooldown,
+    uploading, fileInputRef,
+    handleSendComment, handleFileUpload, handleDownloadAttachment,
+  } = useTicketDetailContext();
   const COMMENT_MESSAGE_MAX_LENGTH = 500;
 
   const handleKeyDown = (e) => {

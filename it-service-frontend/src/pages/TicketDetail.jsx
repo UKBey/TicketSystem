@@ -11,6 +11,7 @@ import { ArrowLeft, Sparkles, User } from 'lucide-react';
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { STATUS_OPTIONS } from '../utils/ticketFormatters';
 import TicketTimeline from '../components/ticket/TicketTimeline';
+import { TicketDetailProvider } from '../components/ticket/TicketDetailContext';
 import StatusActionsCard from '../components/ticket/StatusActionsCard';
 import TicketDetailsCard from '../components/ticket/TicketDetailsCard';
 import WorklogCard from '../components/ticket/WorklogCard';
@@ -74,7 +75,16 @@ export default function TicketDetail() {
   const isAgentAdmin    = hasRole('AGENT_ADMIN');
   const isCustomer      = hasRole('CUSTOMER');
 
+  const ticketDetailContextValue = {
+    ticket, user, isAgent, isCustomer, isDark,
+    timeline, chatEndRef,
+    message, setMessage, commentType, setCommentType, sending, cooldown,
+    uploading, fileInputRef,
+    handleSendComment, handleFileUpload, handleDownloadAttachment,
+  };
+
   return (
+    <TicketDetailProvider value={ticketDetailContextValue}>
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 sm:gap-6">
       {/* Left column */}
       <div className="flex flex-col gap-5 min-w-0">
@@ -125,26 +135,7 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        <TicketTimeline
-          timeline={timeline}
-          ticket={ticket}
-          user={user}
-          isAgent={isAgent}
-          isCustomer={isCustomer}
-          isDark={isDark}
-          chatEndRef={chatEndRef}
-          message={message}
-          setMessage={setMessage}
-          commentType={commentType}
-          setCommentType={setCommentType}
-          sending={sending}
-          cooldown={cooldown}
-          uploading={uploading}
-          fileInputRef={fileInputRef}
-          handleSendComment={handleSendComment}
-          handleFileUpload={handleFileUpload}
-          handleDownloadAttachment={handleDownloadAttachment}
-        />
+        <TicketTimeline />
 
         <AuditTimeline
           auditLogs={ticket.auditLogs ?? ticket.ticketAuditLogs ?? []}
@@ -293,5 +284,6 @@ export default function TicketDetail() {
         reasonTranslationPrefix="reasonCode.TOPIC_CHANGE"
       />
     </div>
+    </TicketDetailProvider>
   );
 }
