@@ -18,9 +18,14 @@ async function deleteTotpDevice(credentialId) {
   await api.delete(`/users/me/2fa/${credentialId}`);
 }
 
+async function notifyTotpDeviceAdded() {
+  await api.post('/users/me/2fa/notify-added');
+}
+
 export default {
   updateProfile,
   changePassword,
   listTotpDevices,
   deleteTotpDevice,
+  notifyTotpDeviceAdded,
 };

@@ -234,6 +234,23 @@ export default function ProfilePage() {
     refreshTwoFactor();
   }, [user?.id, refreshTwoFactor]);
 
+  // Keycloak CONFIGURE_TOTP redirect back hook — yeni cihaz başarıyla eklendiğinde
+  // Keycloak `?kc_action_status=success` query param'ı ile geri yönlendirir.
+  // Bu durumda backend'e bildirim atıp UI'da listeyi tazeliyoruz, sonra URL'i temizliyoruz.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('kc_action_status') !== 'success') return;
+
+    userService.notifyTotpDeviceAdded()
+      .catch(() => { /* mail tetiği UX'i bloklamaz */ })
+      .finally(() => {
+        refreshTwoFactor();
+        // URL'i temizle — refresh edilince tekrar tetiklenmesin.
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      });
+  }, [refreshTwoFactor]);
+
   const openEdit = (field) => {
     setError('');
     setEditing(field);

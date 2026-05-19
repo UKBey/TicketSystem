@@ -142,15 +142,57 @@ public class EmailService {
         Locale locale = resolveLocale(recipient, languageOverride);
         Palette palette = resolvePalette(recipient, themeOverride);
         String subject = msg(locale, "email.subject.password.changed");
-        String body = buildPasswordChangedHtml(locale, palette, recipient);
-        send(recipient.getEmail(), subject, body);
+        String title   = msg(locale, "email.title.password.changed");
+        String body    = msg(locale, "email.body.password.changed");
+        String warning = msg(locale, "email.warning.password.changed");
+        String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
+        send(recipient.getEmail(), subject, html);
     }
 
-    private String buildPasswordChangedHtml(Locale locale, Palette p, User recipient) {
-        String title    = msg(locale, "email.title.password.changed");
+    /**
+     * Hesaba yeni bir 2FA cihazı eklendiğinde gönderilen güvenlik bildirimi.
+     */
+    @Async
+    public void send2FADeviceAddedEmail(User recipient, String deviceLabel) {
+        Locale locale = localeOf(recipient);
+        Palette palette = paletteOf(recipient);
+        String label = (deviceLabel == null || deviceLabel.isBlank())
+                ? msg(locale, "email.body.twofa.device.unnamed")
+                : deviceLabel;
+        String subject = msg(locale, "email.subject.twofa.added");
+        String title   = msg(locale, "email.title.twofa.added");
+        String body    = msg(locale, "email.body.twofa.added", escapeHtml(label));
+        String warning = msg(locale, "email.warning.twofa.added");
+        String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
+        send(recipient.getEmail(), subject, html);
+    }
+
+    /**
+     * Hesaptan bir 2FA cihazı kaldırıldığında gönderilen güvenlik bildirimi.
+     */
+    @Async
+    public void send2FADeviceRemovedEmail(User recipient, String deviceLabel) {
+        Locale locale = localeOf(recipient);
+        Palette palette = paletteOf(recipient);
+        String label = (deviceLabel == null || deviceLabel.isBlank())
+                ? msg(locale, "email.body.twofa.device.unnamed")
+                : deviceLabel;
+        String subject = msg(locale, "email.subject.twofa.removed");
+        String title   = msg(locale, "email.title.twofa.removed");
+        String body    = msg(locale, "email.body.twofa.removed", escapeHtml(label));
+        String warning = msg(locale, "email.warning.twofa.removed");
+        String html    = buildSecurityNotificationHtml(locale, palette, recipient, title, body, warning);
+        send(recipient.getEmail(), subject, html);
+    }
+
+    /**
+     * Ortak güvenlik bildirimi şablonu — bilet referansı olmayan, gövdesi tek
+     * paragraf + kırmızı uyarı kutusu olan mail'ler için (password changed,
+     * 2FA added/removed).
+     */
+    private String buildSecurityNotificationHtml(Locale locale, Palette p, User recipient,
+                                                 String title, String body, String warning) {
         String greeting = msg(locale, "email.greeting", recipient.getFullName());
-        String body     = msg(locale, "email.body.password.changed");
-        String warning  = msg(locale, "email.warning.password.changed");
         String footer   = msg(locale, "email.footer");
 
         return """

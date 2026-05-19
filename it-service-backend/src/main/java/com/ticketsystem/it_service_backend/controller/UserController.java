@@ -301,7 +301,48 @@ public class UserController {
             @PathVariable String credentialId) {
         String userId = jwt.getSubject();
         log.info("2FA cihazı silme isteği. Kullanıcı: {}, CredentialID: {}", userId, credentialId);
+
+        // Silmeden önce cihaz etiketini yakala — silme sonrası bildirim mailinde geçecek.
+        String deviceLabel = keycloakAdminService.listOtpCredentials(userId).stream()
+                .filter(c -> credentialId.equals(c.getId()))
+                .map(c -> c.getUserLabel())
+                .findFirst()
+                .orElse(null);
+
         keycloakAdminService.removeCredential(userId, credentialId);
+
+        userRepository.findById(userId).ifPresent(user ->
+                emailService.send2FADeviceRemovedEmail(user, deviceLabel));
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "2FA cihaz eklendi bildirimi",
+            description = """
+                    Keycloak CONFIGURE_TOTP akışı tamamlandığında frontend bu endpoint'i
+                    çağırır. Kullanıcının en son eklenen TOTP cihazı bulunup "cihaz eklendi"
+                    bildirim maili gönderilir. Idempotency: endpoint zaten son cihaza göre
+                    çalıştığı için yan yana çağrılarsa birden fazla mail tetiklenebilir; UI
+                    bunu yalnızca `kc_action_status=success` sinyaliyle çağırmalı.
+                    """)
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Bildirim mailı kuyruğa alındı"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
+    @PostMapping("/me/2fa/notify-added")
+    public ResponseEntity<Void> notifyTotpDeviceAdded(@AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.info("2FA cihazı ekleme bildirimi istendi. Kullanıcı: {}", userId);
+
+        String latestLabel = keycloakAdminService.listOtpCredentials(userId).stream()
+                .max(java.util.Comparator.comparing(
+                        c -> c.getCreatedDate() == null ? 0L : c.getCreatedDate()))
+                .map(c -> c.getUserLabel())
+                .orElse(null);
+
+        userRepository.findById(userId).ifPresent(user ->
+                emailService.send2FADeviceAddedEmail(user, latestLabel));
+
         return ResponseEntity.noContent().build();
     }
 
