@@ -17,7 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.ZonedDateTime;
 import java.util.Base64;
-import java.util.Optional;
 
 /**
  * "Forgot password" akışını yönetir. Token üretimi, mail tetiği, validate ve
@@ -61,13 +60,11 @@ public class PasswordResetService {
             return;
         }
 
-        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email.trim());
-        if (userOpt.isEmpty()) {
+        User user = userRepository.findByEmailIgnoreCase(email.trim()).orElse(null);
+        if (user == null) {
             log.info("Reset isteği bilinmeyen email için: {} — sessiz başarı döndürülüyor", email);
             return;
         }
-
-        User user = userOpt.get();
         if (Boolean.FALSE.equals(user.getIsActive())) {
             log.info("Reset isteği pasif kullanıcı için: {} — sessiz başarı", user.getId());
             return;
