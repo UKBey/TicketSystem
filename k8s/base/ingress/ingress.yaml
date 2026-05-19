@@ -39,6 +39,22 @@ spec:
                 name: keycloak-iam
                 port:
                   number: 8080
+          # Swagger UI ve OpenAPI spec — dev/local'de SPRINGDOC_ENABLED=true
+          # iken erişilir; prod'da backend zaten endpoint'i register etmez (404).
+          - path: /swagger-ui
+            pathType: Prefix
+            backend:
+              service:
+                name: it-service-backend
+                port:
+                  number: 8081
+          - path: /v3/api-docs
+            pathType: Prefix
+            backend:
+              service:
+                name: it-service-backend
+                port:
+                  number: 8081
           # Observability ve developer UI'ları — her servis kendi base-path
           # config'iyle çalışıyor, ingress'in rewrite yapmasına gerek yok:
           #  - Mailpit: MP_WEBROOT=mailpit
