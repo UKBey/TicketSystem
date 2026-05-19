@@ -4,6 +4,10 @@
     "clearAll": "Clear all",
     "noOptions": "No options"
   },
+  "rateLimit": {
+    "message": "Too many requests. Please wait {{seconds}} seconds.",
+    "close": "Dismiss notification"
+  },
   "nav": {
     "theme": { "toDark": "Switch to dark mode", "toLight": "Switch to light mode" },
     "language": { "label": "Language", "en": "English", "tr": "Turkish" }
@@ -397,6 +401,8 @@
     }
   },
   "ticketDetail": {
+    "customerLabel": "Customer",
+    "productLabel": "Product",
     "back": "Back",
     "topicLabel": "Topic",
     "noComments": "No comments or attachments yet.",

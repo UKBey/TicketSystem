@@ -8,6 +8,10 @@
     "clearAll": "Tümünü temizle",
     "noOptions": "Seçenek yok"
   },
+  "rateLimit": {
+    "message": "Çok fazla istek. Lütfen {{seconds}} saniye bekleyin.",
+    "close": "Bildirimi kapat"
+  },
   "sidebar": {
     "myTickets": "Biletlerim",
     "createTicket": "Bilet Oluştur",
@@ -398,6 +402,8 @@
   },
   "ticketDetail": {
     "back": "Geri",
+    "customerLabel": "Müşteri",
+    "productLabel": "Ürün",
     "topicLabel": "Konu",
     "noComments": "Henüz yorum veya dosya eki yok.",
     "download": "İndir",

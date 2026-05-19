@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
 import ActionReasonModal from '../components/ActionReasonModal';
 import AgentSelectionModal from '../components/AgentSelectionModal';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, User } from 'lucide-react';
 
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { STATUS_OPTIONS } from '../utils/ticketFormatters';
@@ -110,9 +110,12 @@ export default function TicketDetail() {
             {ticket.title}
           </div>
           <div className="flex items-center gap-2 mt-2 text-sm flex-wrap" style={{ color: 'var(--text-secondary)' }}>
-            <span>👤 {ticket.customerName || ticket.customerId}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" aria-label={t('ticketDetail.customerLabel')} />
+              {ticket.customerName || ticket.customerId}
+            </span>
             <span style={{ color: 'var(--text-tertiary)' }}>•</span>
-            <span>Product: {ticket.productName || ticket.productId}</span>
+            <span>{t('ticketDetail.productLabel')}: {ticket.productName || ticket.productId}</span>
             {(ticket.topicName || ticket.topicId) && (
               <>
                 <span style={{ color: 'var(--text-tertiary)' }}>•</span>
