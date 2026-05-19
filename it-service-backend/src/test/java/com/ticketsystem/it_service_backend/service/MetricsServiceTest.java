@@ -37,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -547,11 +548,8 @@ class MetricsServiceTest {
         @DisplayName("Worklog kaydı yoksa boş liste ve sıfır oranlar döner")
         void noWorklogs_returnsZeroRates() {
             when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(Collections.emptyList());
-            when(ticketRepository.countCreatedSince(any())).thenReturn(0L);
-            when(ticketRepository.countResolvedSince(any())).thenReturn(0L);
-            when(ticketRepository.countClosedSince(any())).thenReturn(0L);
-            when(ticketRepository.avgResolutionHoursSince(any())).thenReturn(null);
-            when(ticketRepository.slaComplianceRateSince(any())).thenReturn(null);
+            when(ticketRepository.findWorklogCompletionAggregates(any()))
+                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(7);
 
@@ -568,12 +566,9 @@ class MetricsServiceTest {
             List<Object[]> rawRows = List.<Object[]>of(new Object[]{"agent-1", 120L, 3L});
 
             when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(rawRows);
-            when(userRepository.findById("agent-1")).thenReturn(java.util.Optional.of(agent));
-            when(ticketRepository.countCreatedSince(any())).thenReturn(10L);
-            when(ticketRepository.countResolvedSince(any())).thenReturn(6L);
-            when(ticketRepository.countClosedSince(any())).thenReturn(2L);
-            when(ticketRepository.avgResolutionHoursSince(any())).thenReturn(3.5);
-            when(ticketRepository.slaComplianceRateSince(any())).thenReturn(0.85);
+            when(userRepository.findAllById(anyIterable())).thenReturn(List.of(agent));
+            when(ticketRepository.findWorklogCompletionAggregates(any()))
+                    .thenReturn(List.<Object[]>of(new Object[]{10L, 6L, 2L, 3.5, 0.85}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(30);
 
@@ -588,11 +583,8 @@ class MetricsServiceTest {
         @DisplayName("days parametresi 1-365 arasına sınırlandırılır")
         void days_clampedToRange() {
             when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(Collections.emptyList());
-            when(ticketRepository.countCreatedSince(any())).thenReturn(0L);
-            when(ticketRepository.countResolvedSince(any())).thenReturn(0L);
-            when(ticketRepository.countClosedSince(any())).thenReturn(0L);
-            when(ticketRepository.avgResolutionHoursSince(any())).thenReturn(null);
-            when(ticketRepository.slaComplianceRateSince(any())).thenReturn(null);
+            when(ticketRepository.findWorklogCompletionAggregates(any()))
+                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(9999);
 

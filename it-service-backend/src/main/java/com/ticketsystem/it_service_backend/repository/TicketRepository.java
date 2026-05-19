@@ -949,6 +949,27 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query(value = "SELECT (COUNT(CASE WHEN t.sla_breached = false THEN 1 END) * 100.0) / NULLIF(COUNT(t.id), 0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since", nativeQuery = true)
     Double slaComplianceRateSince(@Param("since") ZonedDateTime since);
 
+    /**
+     * B-9: getWorklogCompletion için 4 ayrı COUNT/AVG query'sini tek SQL'de birleştirir.
+     * PostgreSQL FILTER syntax'ı koşullu aggregate yapar; tek table scan yeterli.
+     *
+     * Tek satır döner; konum: [0]=totalCreated, [1]=totalResolved, [2]=totalClosed,
+     * [3]=avgResolutionHours, [4]=slaComplianceRate.
+     */
+    @Query(value = """
+            SELECT
+                COUNT(*) FILTER (WHERE t.created_at >= :since)::BIGINT AS total_created,
+                COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since)::BIGINT AS total_resolved,
+                COUNT(*) FILTER (WHERE t.status = 'CLOSED' AND t.closed_at >= :since)::BIGINT AS total_closed,
+                AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0)
+                    FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since
+                            AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL) AS avg_resolution_hours,
+                (COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
+                    / NULLIF(COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since), 0) AS sla_compliance_rate
+            FROM tickets t
+            """, nativeQuery = true)
+    List<Object[]> findWorklogCompletionAggregates(@Param("since") ZonedDateTime since);
+
     // Alert sorgulari
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTickets(@Param("statuses") List<String> statuses, Pageable pageable);

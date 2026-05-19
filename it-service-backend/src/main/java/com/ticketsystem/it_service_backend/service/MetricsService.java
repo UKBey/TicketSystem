@@ -583,18 +583,23 @@ public class MetricsService {
         int safeDays = Math.max(1, Math.min(days, 365));
         ZonedDateTime since = ZonedDateTime.now().minusDays(safeDays);
 
+        // B-9: Agent name lookup N+1'i kaldirildi — tum agent'lari tek findAllById ile cek.
         List<Object[]> rawWorklogs = worklogRepository.findAgentWorklogSummary(since);
+        List<String> agentIds = rawWorklogs.stream()
+                .map(row -> String.valueOf(row[0]))
+                .toList();
+        Map<String, String> agentNameById = agentIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(agentIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getFullName, (a, b) -> a));
+
         List<WorklogSummaryItemDTO> agentWorklogs = rawWorklogs.stream()
                 .map(row -> {
                     String agentId = String.valueOf(row[0]);
                     long totalMinutes = ((Number) row[1]).longValue();
                     long totalEntries = ((Number) row[2]).longValue();
-                    String agentName = userRepository.findById(agentId)
-                            .map(u -> u.getFullName())
-                            .orElse(agentId);
                     return WorklogSummaryItemDTO.builder()
                             .agentId(agentId)
-                            .agentUsername(agentName)
+                            .agentUsername(agentNameById.getOrDefault(agentId, agentId))
                             .totalMinutes(totalMinutes)
                             .totalEntries(totalEntries)
                             .avgMinutesPerEntry(totalEntries > 0 ? (double) totalMinutes / totalEntries : 0.0)
@@ -602,11 +607,14 @@ public class MetricsService {
                 })
                 .toList();
 
-        long totalCreated = ticketRepository.countCreatedSince(since);
-        long totalResolved = ticketRepository.countResolvedSince(since);
-        long totalClosed = ticketRepository.countClosedSince(since);
-        Double avgResolutionHours = ticketRepository.avgResolutionHoursSince(since);
-        Double slaComplianceRate = ticketRepository.slaComplianceRateSince(since);
+        // B-9: 5 ayri COUNT/AVG sorgusu yerine PostgreSQL FILTER ile tek aggregated query.
+        List<Object[]> aggregates = ticketRepository.findWorklogCompletionAggregates(since);
+        Object[] row = aggregates.isEmpty() ? new Object[]{0L, 0L, 0L, null, null} : aggregates.get(0);
+        long totalCreated  = row[0] != null ? ((Number) row[0]).longValue() : 0L;
+        long totalResolved = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+        long totalClosed   = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+        Double avgResolutionHours = row[3] != null ? ((Number) row[3]).doubleValue() : null;
+        Double slaComplianceRate  = row[4] != null ? ((Number) row[4]).doubleValue() : null;
 
         double completionRate = totalCreated > 0
                 ? ((double) (totalResolved + totalClosed) / totalCreated) * 100.0
