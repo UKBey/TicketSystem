@@ -41,6 +41,10 @@ spec:
                   number: 8080
           # Swagger UI ve OpenAPI spec — dev/local'de SPRINGDOC_ENABLED=true
           # iken erişilir; prod'da backend zaten endpoint'i register etmez (404).
+          # Doğru path: /swagger-ui/index.html (springdoc default). Kısa yol
+          # /swagger-ui (slash yok) için compose'da nginx redirect var; K8s'te
+          # kullanıcının tam path'i yazması gerek veya yer ingress annotation
+          # ile redirect eklenebilir (ihtiyaca göre).
           - path: /swagger-ui
             pathType: Prefix
             backend:
