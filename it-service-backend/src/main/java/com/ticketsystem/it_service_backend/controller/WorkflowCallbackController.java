@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.ZonedDateTime;
 
 @Log4j2
@@ -59,7 +61,9 @@ public class WorkflowCallbackController {
             @Valid @RequestBody WorkflowCallbackDTO callback) {
 
         // Callback sadece servisler arasi paylasilan token ile kabul edilir.
-        if (headerToken == null || !headerToken.equals(expectedToken)) {
+        // Constant-time karşılaştırma: String.equals early-return yaptığı için
+        // timing attack ile token karakter-karakter tahmin edilebilirdi.
+        if (!constantTimeEquals(headerToken, expectedToken)) {
             log.warn("Yetkisiz Callback İsteği! Token eşleşmedi veya gönderilmedi.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized internal API call");
         }
@@ -109,5 +113,16 @@ public class WorkflowCallbackController {
         // scheduler bu bileti artık görmez (flag set'tir), o yüzden mail sadece burada
         // tetiklenir.
         notificationService.notifySlaBreached(ticket);
+    }
+
+    /**
+     * Constant-time token karşılaştırması. MessageDigest.isEqual byte-uzunluklarına
+     * bakmaksızın sabit sürede çalışır → cevap süresinden token sızdırılamaz.
+     */
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        return MessageDigest.isEqual(
+                a.getBytes(StandardCharsets.UTF_8),
+                b.getBytes(StandardCharsets.UTF_8));
     }
 }

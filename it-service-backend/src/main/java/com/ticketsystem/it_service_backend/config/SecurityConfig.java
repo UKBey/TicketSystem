@@ -13,10 +13,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -83,8 +84,13 @@ public class SecurityConfig {
     }
 
     private boolean hasValidInternalToken(String headerToken) {
-        return StringUtils.hasText(headerToken)
-                && StringUtils.hasText(internalApiToken)
-                && Objects.equals(headerToken, internalApiToken);
+        if (!StringUtils.hasText(headerToken) || !StringUtils.hasText(internalApiToken)) {
+            return false;
+        }
+        // Constant-time karşılaştırma — String.equals early-return yapıyor, bu da
+        // timing attack ile karakter-karakter token tahminine zemin hazırlar.
+        return MessageDigest.isEqual(
+                headerToken.getBytes(StandardCharsets.UTF_8),
+                internalApiToken.getBytes(StandardCharsets.UTF_8));
     }
 }
