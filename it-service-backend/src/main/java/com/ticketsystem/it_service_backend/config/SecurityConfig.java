@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,9 +13,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.util.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +33,40 @@ public class SecurityConfig {
     @Value("${jbpm.kie-server.callback-token}")
     private String internalApiToken;
 
+    /**
+     * S-10 — Explicit CORS allow-list. Bu projede frontend ve backend nginx ile
+     * ayni origin'den servis edildigi icin pratik bir CORS senaryosu yok; bean
+     * yine de tanimli ki ileride bir mobile/3rd-party istemci eklenirse origin
+     * acikca whitelist'lensin. Default'a guvenmek kapsam disi kayma riski tasir.
+     *
+     * Origin'ler {@code app.cors.allowed-origins} ile genisletilebilir; default
+     * yalniz ana proxy URL'lerini kapsar.
+     */
+    @Value("${app.cors.allowed-origins:http://localhost,http://ticketsystem.local}")
+    private String allowedOrigins;
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList()));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        // Credentials acikca false — JWT bearer header ile geliyor, cookie yok.
+        cfg.setAllowCredentials(false);
+        cfg.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/api/**", cfg);
+        return src;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+        .cors(Customizer.withDefaults())
         .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
             // Dokumantasyon, saglik, metrik ve ilk giris endpoint'leri anonim erisime aciktir.
