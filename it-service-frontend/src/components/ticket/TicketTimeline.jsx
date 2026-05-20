@@ -18,7 +18,7 @@ function getFileIcon(fileType) {
 export default function TicketTimeline() {
   const { t } = useTranslation();
   const {
-    timeline, ticket, user,
+    timeline, ticket,
     isAgent, isCustomer, isDark,
     chatEndRef,
     message, setMessage,
@@ -51,14 +51,19 @@ export default function TicketTimeline() {
           const itemAuthorId   = item._type === 'attachment' ? item.uploaderId : item.authorId;
           const itemAuthorName = item._type === 'attachment' ? null : item.authorName;
           const itemAuthorRole = item._type === 'attachment' ? null : item.authorRole;
-          const isOwnItem  = itemAuthorId === user?.id;
           const isInternal = item.type === 'INTERNAL';
-          const isRight    = isOwnItem && !isInternal;
           const isCustomerAuthor = itemAuthorRole
             ? itemAuthorRole === 'CUSTOMER'
             : itemAuthorId === ticket.customerId;
+          // Hizalama yazarın kimliğine göre değil, bakan kullanıcının tarafına göre yapılır:
+          // müşteri bakıyorsa kendi mesajları sağda, ajan bakıyorsa tüm ajan mesajları sağda.
+          // Dahili notları yalnızca ajanlar görür; her zaman ajan tarafında (sağda) durur.
+          const isRight = isInternal
+            ? true
+            : isCustomer ? isCustomerAuthor : !isCustomerAuthor;
           const displayName = itemAuthorName || (isCustomerAuthor ? ticket.customerName : 'Agent');
-          const showRoleBadge = !isOwnItem && !isInternal;
+          // Rol rozeti yalnızca karşı taraftaki (soldaki) mesajlarda gösterilir.
+          const showRoleBadge = !isRight && !isInternal;
           const roleBadgeLabel = isCustomerAuthor ? t('ticketDetail.roleCustomer') : t('ticketDetail.roleAgent');
 
           let bubbleBg, bubbleText;
