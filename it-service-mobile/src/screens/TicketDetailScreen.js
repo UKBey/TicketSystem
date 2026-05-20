@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
   TextInput,
   Pressable,
@@ -11,7 +10,6 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -49,8 +47,6 @@ import SlaBadge from '../components/SlaBadge';
 
 const COMMENT_MAX = 500;
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-// Sabit boyutlu sohbet paneli — cihaz yüksekliğine göre bir kez hesaplanır.
-const CHAT_HEIGHT = Math.round(Dimensions.get('window').height * 0.42);
 
 const AUDIT_KEYS = {
   CLAIM: 'auditClaimed',
@@ -84,7 +80,12 @@ function mergeById(prev, incoming) {
   return changed ? Array.from(byId.values()) : prev;
 }
 
-/** Bilet detayı — bilgi/aksiyonlar + sabit boyutlu sohbet paneli + denetim geçmişi. */
+/**
+ * Bilet detayı — sayfanın tamamı tek bir FlatList'tir: bilgi/aksiyon kartları
+ * liste başlığı (ListHeaderComponent), sohbet mesajları liste içeriği, denetim
+ * geçmişi ise liste altbilgisidir (ListFooterComponent). Böylece sohbet
+ * sanallaştırılır ve iç içe ScrollView/VirtualizedList uyarısı oluşmaz.
+ */
 export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const { theme } = useTheme();
@@ -119,6 +120,8 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [auditOpen, setAuditOpen] = useState(false);
 
   const chatRef = useRef(null);
+  // İlk yüklemede en üstte (bilgi/aksiyonlar) kal; yeni mesajda sona kaydır.
+  const shouldScroll = useRef(false);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -154,8 +157,18 @@ export default function TicketDetailScreen({ route, navigation }) {
   // Gerçek zamanlı: yorum/ek/güncelleme WebSocket üzerinden anlık gelir.
   useTicketWebSocket(id, {
     includeInternal: isAgent,
-    onComment: (c) => setComments((prev) => mergeById(prev, [c])),
-    onAttachment: (a) => setAttachments((prev) => mergeById(prev, [a])),
+    onComment: (c) =>
+      setComments((prev) => {
+        const next = mergeById(prev, [c]);
+        if (next !== prev) shouldScroll.current = true;
+        return next;
+      }),
+    onAttachment: (a) =>
+      setAttachments((prev) => {
+        const next = mergeById(prev, [a]);
+        if (next !== prev) shouldScroll.current = true;
+        return next;
+      }),
     onTicketUpdated: () => {
       getTicket(id)
         .then((r) => setTicket(r.data))
@@ -166,7 +179,6 @@ export default function TicketDetailScreen({ route, navigation }) {
   // Yedek "anlık" mekanizma: ekran açıkken bileti, yorumları ve ekleri 3 sn'de
   // bir sessizce tazeler. Böylece sadece mesajlar değil; durum, öncelik, konu,
   // SLA, üstlenenler ve denetim geçmişi de yenilemeden güncellenir.
-  // mergeById sayesinde yorum/ekte yeni öğe yoksa gereksiz re-render olmaz.
   useFocusEffect(
     useCallback(() => {
       const poll = async () => {
@@ -175,8 +187,18 @@ export default function TicketDetailScreen({ route, navigation }) {
           if (canUseAttachments) reqs.push(getAttachments(id));
           const [tRes, cRes, aRes] = await Promise.all(reqs);
           setTicket(tRes.data);
-          setComments((prev) => mergeById(prev, cRes.data ?? []));
-          if (aRes) setAttachments((prev) => mergeById(prev, aRes.data ?? []));
+          setComments((prev) => {
+            const next = mergeById(prev, cRes.data ?? []);
+            if (next !== prev) shouldScroll.current = true;
+            return next;
+          });
+          if (aRes) {
+            setAttachments((prev) => {
+              const next = mergeById(prev, aRes.data ?? []);
+              if (next !== prev) shouldScroll.current = true;
+              return next;
+            });
+          }
         } catch {
           // sessiz — bir sonraki tur yeniden dener
         }
@@ -205,6 +227,7 @@ export default function TicketDetailScreen({ route, navigation }) {
         type: isAgent ? commentType : 'EXTERNAL',
       });
       setComments((prev) => mergeById(prev, [res.data]));
+      shouldScroll.current = true;
       setMessage('');
       setCooldown(5);
       const timer = setInterval(() => {
@@ -326,6 +349,7 @@ export default function TicketDetailScreen({ route, navigation }) {
       setUploading(true);
       const res = await uploadAttachment(id, file);
       setAttachments((prev) => mergeById(prev, [res.data]));
+      shouldScroll.current = true;
     } catch (e) {
       Alert.alert(e?.response?.data?.message || t('ticketDetail.uploadFileFailed', 'Dosya yüklenemedi.'));
     } finally {
@@ -365,11 +389,187 @@ export default function TicketDetailScreen({ route, navigation }) {
 
   const status = ticket.status;
   const canComment = status !== 'CLOSED';
-  // Mevcut agent bu bileti üstlenmiş mi? (claimers listesinde kendi agentId'si var mı)
   const iClaimed = (ticket.claimers ?? []).some((c) => c.agentId === user?.id);
   const noClaimer = (ticket.claimers?.length ?? 0) === 0;
   const showActions = isAgent && status !== 'CLOSED';
   const auditLogs = ticket.auditLogs ?? [];
+
+  const listHeader = (
+    <View style={styles.headerWrap}>
+      <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+        <View style={styles.row}>
+          <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
+          <View style={styles.headerBadges}>
+            <SlaBadge slaInfo={ticket.slaInfo} />
+            <View style={[styles.badge, { backgroundColor: statusColor(status) }]}>
+              <Text style={styles.badgeText}>{statusLabel(status, t)}</Text>
+            </View>
+          </View>
+        </View>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
+        {!!ticket.description && (
+          <Text style={[styles.desc, { color: theme.textSecondary }]}>{ticket.description}</Text>
+        )}
+      </View>
+
+      <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+        <Field label={t('ticketDetail.priority', 'Öncelik')} theme={theme}
+          value={priorityLabel(ticket.priority, t)} valueColor={priorityColor(ticket.priority)} />
+        <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={ticket.productName} />
+        <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={ticket.topicName} />
+        <Field label={t('ticketDetail.customer', 'Müşteri')} theme={theme} value={ticket.customerName} />
+        <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme} value={formatDate(ticket.createdAt)} />
+      </View>
+
+      {showActions && (
+        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+            {t('ticketDetail.actions', 'İşlemler')}
+          </Text>
+          <View style={styles.actionRow}>
+            {!iClaimed ? (
+              <>
+                {/* Üstlenmemiş agent — yalnızca Üstlen/Katıl ve (admin ise) Ata. */}
+                <ActionBtn
+                  theme={theme}
+                  busy={actionBusy}
+                  onPress={doClaim}
+                  label={noClaimer ? t('ticketDetail.claim', 'Üstlen') : t('ticketDetail.join', 'Katıl')}
+                  color={noClaimer ? theme.primary : theme.success}
+                />
+                {hasRole('AGENT_ADMIN') && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
+                    label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+                )}
+              </>
+            ) : (
+              <>
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
+                  label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
+                {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                    label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
+                )}
+                {status === 'IN_PROGRESS' && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
+                    label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
+                )}
+                {status !== 'RESOLVED' && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
+                    label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
+                )}
+                {status === 'RESOLVED' && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                    label={t('ticketDetail.reopen', 'Yeniden Aç')} />
+                )}
+                {status === 'RESOLVED' && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
+                    label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
+                )}
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('PRIORITY')}
+                  label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
+                  label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
+                {hasRole('AGENT_ADMIN') && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
+                    label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+                )}
+              </>
+            )}
+          </View>
+        </View>
+      )}
+
+      {isAgent && (
+        <Pressable
+          onPress={() => navigation.navigate('Worklog', { id })}
+          style={({ pressed }) => [
+            styles.card,
+            styles.worklogBtn,
+            { backgroundColor: theme.bgSurface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+            {t('ticketDetail.worklog', 'Süre Kayıtları')}
+          </Text>
+          <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
+        </Pressable>
+      )}
+
+      {isCustomer && status === 'RESOLVED' && (
+        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+            {t('ticketDetail.resolvedQuestion', 'Sorununuz çözüldü mü?')}
+          </Text>
+          <Text style={[styles.desc, { color: theme.textSecondary }]}>
+            {t(
+              'ticketDetail.resolvedDesc',
+              'Bu bilet çözüldü olarak işaretlendi. Sorununuz giderildiyse onaylayıp kısa bir anket doldurun, aksi halde bileti yeniden açın.',
+            )}
+          </Text>
+          <View style={styles.actionRow}>
+            <ActionBtn theme={theme} busy={actionBusy} onPress={() => setCsatOpen(true)}
+              label={t('ticketDetail.yesResolved', 'Evet, çözüldü')} color={theme.success} />
+            <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+              label={t('ticketDetail.noResolved', 'Hayır, yeniden aç')} color={theme.danger} />
+          </View>
+        </View>
+      )}
+
+      <Text style={[styles.section, { color: theme.textPrimary }]}>
+        {t('ticketDetail.comments', 'Sohbet')}
+      </Text>
+    </View>
+  );
+
+  const listFooter =
+    auditLogs.length > 0 ? (
+      <View style={[styles.card, styles.footerCard, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+        <Pressable onPress={() => setAuditOpen((o) => !o)} style={styles.auditHeader}>
+          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+            {t('ticketDetail.auditHistory', 'Denetim Geçmişi')} ({auditLogs.length})
+          </Text>
+          <Ionicons
+            name={auditOpen ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={theme.textSecondary}
+          />
+        </Pressable>
+        {auditOpen &&
+          auditLogs.map((a, i) => (
+            <View
+              key={a.id ?? i}
+              style={[
+                styles.auditRow,
+                { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
+              ]}
+            >
+              <View style={styles.auditTop}>
+                <Text style={[styles.auditAction, { color: theme.textPrimary }]}>
+                  {AUDIT_KEYS[a.actionType]
+                    ? t(`ticketDetail.${AUDIT_KEYS[a.actionType]}`, humanize(a.actionType))
+                    : humanize(a.actionType)}
+                </Text>
+                <Text style={[styles.auditDate, { color: theme.textTertiary }]}>
+                  {formatDate(a.createdAt)}
+                </Text>
+              </View>
+              <Text style={[styles.auditMeta, { color: theme.textSecondary }]}>
+                {a.actorName || '—'}
+                {a.previousState && a.newState
+                  ? ` · ${statusLabel(a.previousState, t)} → ${statusLabel(a.newState, t)}`
+                  : ''}
+              </Text>
+              {!!a.reasonCode && (
+                <Text style={[styles.auditMeta, { color: theme.textTertiary }]}>
+                  {humanize(a.reasonCode)}
+                </Text>
+              )}
+              {!!a.note && <Text style={[styles.auditNote, { color: theme.textSecondary }]}>{a.note}</Text>}
+            </View>
+          ))}
+      </View>
+    ) : null;
 
   return (
     <KeyboardAvoidingView
@@ -377,226 +577,45 @@ export default function TicketDetailScreen({ route, navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
+      <FlatList
+        ref={chatRef}
+        data={timeline}
+        keyExtractor={(item) => `${item._kind}-${item.id}`}
+        renderItem={({ item }) => (
+          <ChatBubble
+            item={item}
+            theme={theme}
+            t={t}
+            isCustomer={isCustomer}
+            customerId={ticket.customerId}
+            customerName={ticket.customerName}
+            isDownloading={downloadingId === item.id}
+            onDownload={doDownload}
+          />
+        )}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={
+          <Text style={{ color: theme.textTertiary, textAlign: 'center', paddingVertical: 16 }}>
+            {t('ticketDetail.noComments', 'Henüz mesaj yok.')}
+          </Text>
+        }
+        contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        initialNumToRender={12}
+        windowSize={9}
+        removeClippedSubviews
+        onContentSizeChange={() => {
+          if (shouldScroll.current) {
+            chatRef.current?.scrollToEnd({ animated: true });
+            shouldScroll.current = false;
+          }
+        }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.primary} />
         }
-      >
-        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-          <View style={styles.row}>
-            <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
-            <View style={styles.headerBadges}>
-              <SlaBadge slaInfo={ticket.slaInfo} />
-              <View style={[styles.badge, { backgroundColor: statusColor(status) }]}>
-                <Text style={styles.badgeText}>{statusLabel(status, t)}</Text>
-              </View>
-            </View>
-          </View>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
-          {!!ticket.description && (
-            <Text style={[styles.desc, { color: theme.textSecondary }]}>{ticket.description}</Text>
-          )}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-          <Field label={t('ticketDetail.priority', 'Öncelik')} theme={theme}
-            value={priorityLabel(ticket.priority, t)} valueColor={priorityColor(ticket.priority)} />
-          <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={ticket.productName} />
-          <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={ticket.topicName} />
-          <Field label={t('ticketDetail.customer', 'Müşteri')} theme={theme} value={ticket.customerName} />
-          <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme} value={formatDate(ticket.createdAt)} />
-        </View>
-
-        {showActions && (
-          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              {t('ticketDetail.actions', 'İşlemler')}
-            </Text>
-            <View style={styles.actionRow}>
-              {!iClaimed ? (
-                <>
-                  {/* Üstlenmemiş agent — yalnızca Üstlen/Katıl ve (admin ise) Ata. */}
-                  <ActionBtn
-                    theme={theme}
-                    busy={actionBusy}
-                    onPress={doClaim}
-                    label={noClaimer ? t('ticketDetail.claim', 'Üstlen') : t('ticketDetail.join', 'Katıl')}
-                    color={noClaimer ? theme.primary : theme.success}
-                  />
-                  {hasRole('AGENT_ADMIN') && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
-                      label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
-                  )}
-                </>
-              ) : (
-                <>
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
-                    label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
-                  {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
-                      label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
-                  )}
-                  {status === 'IN_PROGRESS' && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
-                      label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
-                  )}
-                  {status !== 'RESOLVED' && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
-                      label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
-                  )}
-                  {status === 'RESOLVED' && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
-                      label={t('ticketDetail.reopen', 'Yeniden Aç')} />
-                  )}
-                  {status === 'RESOLVED' && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
-                      label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
-                  )}
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('PRIORITY')}
-                    label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
-                    label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
-                  {hasRole('AGENT_ADMIN') && (
-                    <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
-                      label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
-                  )}
-                </>
-              )}
-            </View>
-          </View>
-        )}
-
-        {isAgent && (
-          <Pressable
-            onPress={() => navigation.navigate('Worklog', { id })}
-            style={({ pressed }) => [
-              styles.card,
-              styles.worklogBtn,
-              { backgroundColor: theme.bgSurface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              {t('ticketDetail.worklog', 'Süre Kayıtları')}
-            </Text>
-            <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
-          </Pressable>
-        )}
-
-        {isCustomer && status === 'RESOLVED' && (
-          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-              {t('ticketDetail.resolvedQuestion', 'Sorununuz çözüldü mü?')}
-            </Text>
-            <Text style={[styles.desc, { color: theme.textSecondary }]}>
-              {t(
-                'ticketDetail.resolvedDesc',
-                'Bu bilet çözüldü olarak işaretlendi. Sorununuz giderildiyse onaylayıp kısa bir anket doldurun, aksi halde bileti yeniden açın.',
-              )}
-            </Text>
-            <View style={styles.actionRow}>
-              <ActionBtn theme={theme} busy={actionBusy} onPress={() => setCsatOpen(true)}
-                label={t('ticketDetail.yesResolved', 'Evet, çözüldü')} color={theme.success} />
-              <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
-                label={t('ticketDetail.noResolved', 'Hayır, yeniden aç')} color={theme.danger} />
-            </View>
-          </View>
-        )}
-
-        {/* Sabit boyutlu, sanallaştırılmış (virtualized) sohbet paneli. */}
-        <Text style={[styles.section, { color: theme.textPrimary }]}>
-          {t('ticketDetail.comments', 'Sohbet')}
-        </Text>
-        <View
-          style={[
-            styles.chatBox,
-            { height: CHAT_HEIGHT, backgroundColor: theme.bgSurface, borderColor: theme.border },
-          ]}
-        >
-          <FlatList
-            ref={chatRef}
-            data={timeline}
-            keyExtractor={(item) => `${item._kind}-${item.id}`}
-            renderItem={({ item }) => (
-              <ChatBubble
-                item={item}
-                theme={theme}
-                t={t}
-                isCustomer={isCustomer}
-                customerId={ticket.customerId}
-                customerName={ticket.customerName}
-                isDownloading={downloadingId === item.id}
-                onDownload={doDownload}
-              />
-            )}
-            contentContainerStyle={styles.chatContent}
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            initialNumToRender={12}
-            windowSize={9}
-            removeClippedSubviews
-            onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: false })}
-            ListEmptyComponent={
-              <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 16 }}>
-                {t('ticketDetail.noComments', 'Henüz mesaj yok.')}
-              </Text>
-            }
-          />
-        </View>
-
-        {/* Denetim geçmişi — sohbetin altında, aç/kapa. */}
-        {auditLogs.length > 0 && (
-          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-            <Pressable onPress={() => setAuditOpen((o) => !o)} style={styles.auditHeader}>
-              <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-                {t('ticketDetail.auditHistory', 'Denetim Geçmişi')} ({auditLogs.length})
-              </Text>
-              <Ionicons
-                name={auditOpen ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={theme.textSecondary}
-              />
-            </Pressable>
-            {auditOpen &&
-              auditLogs.map((a, i) => (
-                <View
-                  key={a.id ?? i}
-                  style={[
-                    styles.auditRow,
-                    { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-                  ]}
-                >
-                  <View style={styles.auditTop}>
-                    <Text style={[styles.auditAction, { color: theme.textPrimary }]}>
-                      {AUDIT_KEYS[a.actionType]
-                        ? t(`ticketDetail.${AUDIT_KEYS[a.actionType]}`, humanize(a.actionType))
-                        : humanize(a.actionType)}
-                    </Text>
-                    <Text style={[styles.auditDate, { color: theme.textTertiary }]}>
-                      {formatDate(a.createdAt)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.auditMeta, { color: theme.textSecondary }]}>
-                    {a.actorName || '—'}
-                    {a.previousState && a.newState
-                      ? ` · ${statusLabel(a.previousState, t)} → ${statusLabel(a.newState, t)}`
-                      : ''}
-                  </Text>
-                  {!!a.reasonCode && (
-                    <Text style={[styles.auditMeta, { color: theme.textTertiary }]}>
-                      {humanize(a.reasonCode)}
-                    </Text>
-                  )}
-                  {!!a.note && (
-                    <Text style={[styles.auditNote, { color: theme.textSecondary }]}>{a.note}</Text>
-                  )}
-                </View>
-              ))}
-          </View>
-        )}
-      </ScrollView>
+      />
 
       {canComment && (
         <View style={[styles.composer, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
@@ -759,8 +778,8 @@ function ActionBtn({ label, onPress, busy, theme, color }) {
 
 /**
  * Tek sohbet baloncuğu (yorum veya ek). memo ile sarılı — props değişmedikçe
- * yeniden render olmaz; uzun sohbette FlatList sanallaştırması ile birlikte
- * yalnızca görünen ve gerçekten değişen baloncuklar render edilir.
+ * yeniden render olmaz; FlatList sanallaştırması ile birlikte uzun sohbette
+ * yalnızca görünen baloncuklar render edilir.
  */
 const ChatBubble = memo(function ChatBubble({
   item,
@@ -857,7 +876,9 @@ const ChatBubble = memo(function ChatBubble({
 
 const styles = StyleSheet.create({
   full: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 14, gap: 14, paddingBottom: 20 },
+  listContent: { padding: 14, gap: 8, paddingBottom: 20 },
+  headerWrap: { gap: 14, marginBottom: 8 },
+  footerCard: { marginTop: 10 },
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 10 },
   worklogBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { fontSize: 14, fontWeight: '700' },
@@ -874,9 +895,7 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actionBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9 },
   actionBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  section: { fontSize: 16, fontWeight: '700', marginTop: 2, marginBottom: -4 },
-  chatBox: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  chatContent: { padding: 12, gap: 8 },
+  section: { fontSize: 16, fontWeight: '700', marginTop: 2 },
   bubbleWrap: { width: '100%' },
   bubble: { maxWidth: '86%', borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, gap: 3 },
   bubbleHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
