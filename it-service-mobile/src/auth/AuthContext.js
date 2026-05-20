@@ -1,0 +1,143 @@
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
+import * as SecureStore from 'expo-secure-store';
+import * as oidc from './oidc';
+import api, { setAuthToken, setUnauthorizedHandler } from '../api/client';
+import { APP_ROLES } from '../config';
+
+const REFRESH_KEY = 'kc_refresh_token';
+const AuthContext = createContext(null);
+
+/**
+ * Kimlik durumunu yöneten context — web'deki AuthContext'in mobil karşılığı.
+ * Access token bellekte (api client'a enjekte edilir), refresh token SecureStore'da.
+ */
+export function AuthProvider({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [roles, setRoles] = useState([]);
+  const refreshTokenRef = useRef(null);
+
+  // TokenResponse'u uygula: access token'ı dağıt, claim'leri çöz, refresh'i sakla.
+  const applyTokens = useCallback(async (tokenResponse) => {
+    const access = tokenResponse.accessToken;
+    setAuthToken(access);
+
+    const claims = oidc.decodeJwt(access) || {};
+    const tokenRoles = (claims.realm_access?.roles || []).filter((r) =>
+      APP_ROLES.includes(r),
+    );
+    setRoles(tokenRoles);
+    setUser({
+      id: claims.sub,
+      name: claims.name || claims.preferred_username,
+      email: claims.email,
+      username: claims.preferred_username,
+    });
+    setAuthenticated(true);
+
+    if (tokenResponse.refreshToken) {
+      refreshTokenRef.current = tokenResponse.refreshToken;
+      await SecureStore.setItemAsync(REFRESH_KEY, tokenResponse.refreshToken);
+    }
+  }, []);
+
+  const clearSession = useCallback(async () => {
+    setAuthToken(null);
+    setAuthenticated(false);
+    setUser(null);
+    setRoles([]);
+    refreshTokenRef.current = null;
+    await SecureStore.deleteItemAsync(REFRESH_KEY);
+  }, []);
+
+  // Açılışta: kayıtlı refresh token varsa sessizce yenileyip oturumu sürdür.
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await SecureStore.getItemAsync(REFRESH_KEY);
+        if (saved) {
+          const refreshed = await oidc.refresh(saved);
+          await applyTokens(refreshed);
+          api.post('/users/sync').catch(() => {});
+        }
+      } catch {
+        await clearSession();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [applyTokens, clearSession]);
+
+  // 401 yakalanınca: token yenilemeyi dene, olmazsa oturumu kapat.
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      const rt = refreshTokenRef.current;
+      if (!rt) {
+        await clearSession();
+        return;
+      }
+      try {
+        const refreshed = await oidc.refresh(rt);
+        await applyTokens(refreshed);
+      } catch {
+        await clearSession();
+      }
+    });
+  }, [applyTokens, clearSession]);
+
+  const login = useCallback(async () => {
+    const tokenResponse = await oidc.login();
+    if (!tokenResponse) return false;
+    await applyTokens(tokenResponse);
+    api.post('/users/sync').catch(() => {});
+    return true;
+  }, [applyTokens]);
+
+  const logout = useCallback(async () => {
+    const rt = refreshTokenRef.current;
+    await clearSession();
+    if (rt) oidc.endSession(rt);
+  }, [clearSession]);
+
+  const hasRole = useCallback((role) => roles.includes(role), [roles]);
+
+  // Birincil rol önceliği — web ile aynı: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER.
+  const getPrimaryRole = useCallback(() => {
+    if (roles.includes('AGENT_ADMIN')) return 'AGENT_ADMIN';
+    if (roles.includes('MANAGER')) return 'MANAGER';
+    if (roles.includes('AGENT')) return 'AGENT';
+    if (roles.includes('CUSTOMER')) return 'CUSTOMER';
+    return null;
+  }, [roles]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        loading,
+        authenticated,
+        user,
+        roles,
+        login,
+        logout,
+        hasRole,
+        getPrimaryRole,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}
