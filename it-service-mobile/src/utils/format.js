@@ -28,3 +28,11 @@ export function statusLabel(status, t) {
 export function priorityLabel(priority, t) {
   return t(`priority.${priority}`, priority || '—');
 }
+
+/** Dakikayı "Xs Ydk" biçimine çevirir. */
+export function formatMinutes(m) {
+  if (m === null || m === undefined) return '—';
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return h > 0 ? `${h}s ${mm}dk` : `${mm}dk`;
+}

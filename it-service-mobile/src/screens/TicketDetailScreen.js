@@ -23,6 +23,7 @@ import {
   claimTicket,
   changeStatus,
   closeTicket,
+  unclaimTicket,
 } from '../api/tickets';
 import {
   formatDate,
@@ -37,7 +38,7 @@ import ReasonSheet from '../components/ReasonSheet';
 const COMMENT_MAX = 500;
 
 /** Bilet detayı — alanlar, aksiyonlar, yorum listesi ve yorum gönderme. */
-export default function TicketDetailScreen({ route }) {
+export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -129,14 +130,15 @@ export default function TicketDetailScreen({ route }) {
     runAction(() => changeStatus(id, { status }), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
 
   const onReasonConfirm = async ({ reasonCode, note }) => {
-    const isResolve = reasonMode === 'RESOLVE';
-    await runAction(
-      () =>
-        isResolve
-          ? changeStatus(id, { status: 'RESOLVED', reasonCode, note })
-          : closeTicket(id, { reasonCode, note }),
-      t('ticketDetail.actionFailed', 'İşlem başarısız.'),
-    );
+    let fn;
+    if (reasonMode === 'RESOLVE') {
+      fn = () => changeStatus(id, { status: 'RESOLVED', reasonCode, note });
+    } else if (reasonMode === 'CLOSE') {
+      fn = () => closeTicket(id, { reasonCode, note });
+    } else {
+      fn = () => unclaimTicket(id, { reasonCode, note }); // UNCLAIM
+    }
+    await runAction(fn, t('ticketDetail.actionFailed', 'İşlem başarısız.'));
     setReasonMode(null);
   };
 
@@ -205,6 +207,10 @@ export default function TicketDetailScreen({ route }) {
                 <ActionBtn theme={theme} busy={actionBusy} onPress={doClaim}
                   label={t('ticketDetail.claim', 'Üstlen')} />
               )}
+              {claimed && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
+                  label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
+              )}
               {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
                 <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
                   label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
@@ -227,6 +233,22 @@ export default function TicketDetailScreen({ route }) {
               )}
             </View>
           </View>
+        )}
+
+        {isAgent && (
+          <Pressable
+            onPress={() => navigation.navigate('Worklog', { id })}
+            style={({ pressed }) => [
+              styles.card,
+              styles.worklogBtn,
+              { backgroundColor: theme.bgSurface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+              {t('ticketDetail.worklog', 'Süre Kayıtları')}
+            </Text>
+            <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
+          </Pressable>
         )}
 
         <Text style={[styles.section, { color: theme.textPrimary }]}>
@@ -326,7 +348,9 @@ export default function TicketDetailScreen({ route }) {
         title={
           reasonMode === 'RESOLVE'
             ? t('ticketDetail.resolveTitle', 'Bileti Çöz')
-            : t('ticketDetail.closeTitle', 'Bileti Kapat')
+            : reasonMode === 'CLOSE'
+              ? t('ticketDetail.closeTitle', 'Bileti Kapat')
+              : t('ticketDetail.unclaimTitle', 'Bileti Bırak')
         }
         actionKey={reasonMode || 'RESOLVE'}
         codes={REASON_CODES[reasonMode] || []}
@@ -366,6 +390,7 @@ const styles = StyleSheet.create({
   full: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 14, gap: 14 },
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 10 },
+  worklogBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { fontSize: 14, fontWeight: '700' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   id: { fontSize: 12, fontWeight: '600' },

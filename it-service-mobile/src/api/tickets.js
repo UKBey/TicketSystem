@@ -43,3 +43,17 @@ export const closeTicket = (id, body) => api.put(`/tickets/${id}/close`, body);
 
 /** Yeni bilet oluşturur. body: { title, description, priority, productId, topicId }. */
 export const createTicket = (body) => api.post('/tickets', body);
+
+/** Bileti bırakır (unclaim). payload: { reasonCode, note }. */
+export const unclaimTicket = (id, payload) =>
+  api.delete(`/tickets/${id}/claim`, { data: payload });
+
+/** Bilete ait worklog (süre kaydı) listesi. */
+export const getWorklogs = (id) => api.get(`/tickets/${id}/worklogs`);
+
+/** Worklog ekler. body: { minutes, description }. */
+export const addWorklog = (id, body) => api.post(`/tickets/${id}/worklogs`, body);
+
+/** Worklog siler. */
+export const deleteWorklog = (id, worklogId) =>
+  api.delete(`/tickets/${id}/worklogs/${worklogId}`);

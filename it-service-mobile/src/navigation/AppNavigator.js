@@ -9,6 +9,7 @@ import KnownIssuesScreen from '../screens/KnownIssuesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProductsScreen from '../screens/ProductsScreen';
 import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
+import WorklogScreen from '../screens/WorklogScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,11 @@ export default function AppNavigator() {
         name="NotificationPreferences"
         component={NotificationPreferencesScreen}
         options={{ title: t('notificationPrefs.title', 'Bildirim Tercihleri') }}
+      />
+      <Stack.Screen
+        name="Worklog"
+        component={WorklogScreen}
+        options={{ title: t('worklog.title', 'Süre Kayıtları') }}
       />
     </Stack.Navigator>
   );
