@@ -434,16 +434,19 @@ curl -fsS 'http://localhost:9200/otel-metrics-*/_count'
 docker logs --tail 50 data-prepper
 ```
 
-### Metrik dashboard'ları (OpenSearch Dashboards)
+### Dashboard'lar (OpenSearch Dashboards)
 
-Örnek dashboard'lar `observability/metrics-dashboards.ndjson` içinde saklı
-(index pattern + 4 görsel: Request Volume, API Response Time, Error Rate, Service Health).
+Tüm OpenSearch Dashboards saved object'leri tek dosyada:
+`observability/opensearch-dashboards.ndjson` — 3 index pattern (`otel-logs*`,
+`ss4o_traces-*`, `otel-metrics-*`), 2 dashboard ve 8 görsel.
 Temiz bir OpenSearch'e veya re-import için:
 
 ```bash
 curl -s -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
-  -H 'osd-xsrf: true' -F file=@observability/metrics-dashboards.ndjson
+  -H 'osd-xsrf: true' -F file=@observability/opensearch-dashboards.ndjson
 ```
 
-Görüntüleme: OpenSearch Dashboards → Dashboard → **OpenTelemetry Metrikleri**
-(compose'da `http://localhost/opensearch`, k8s'te `/opensearch`).
+Görüntüleme: OpenSearch Dashboards → Dashboard
+(compose'da `http://localhost/opensearch`, k8s'te `/opensearch`):
+- **OpenTelemetry Metrikleri** — metrik (Request Volume, API Response Time, Error Rate, Service Health)
+- **Ticket System Overview** — trace (endpoint'ler, HTTP hata kodları, istek hacmi, gecikme)
