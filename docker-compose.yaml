@@ -295,6 +295,10 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_LOGS_EXPORTER: "otlp"
       OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
+      # Metrikler OpenSearch'te saklaniyor — delta temporality kumulatif sayac yerine
+      # her aralik icin artisi gonderir; Dashboards'ta sum aggregation dogrudan calisir
+      # (Prometheus'taki rate() ihtiyacini ortadan kaldirir).
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
       # Keycloak Admin Client — kullanıcı yönetimi için service account bağlantısı
       KEYCLOAK_ADMIN_SERVER_URL: "http://keycloak-iam:8080/auth"
       KEYCLOAK_ADMIN_REALM: "TicketSystemRealm"

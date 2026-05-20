@@ -27,7 +27,7 @@ exporters:
   # Metrikler Data Prepper'a OTLP/gRPC ile gonderilir; Data Prepper OpenSearch'e
   # yazar. opensearch exporter metrik desteklemez (sadece logs + traces), bu yuzden
   # metrik yolu Data Prepper uzerinden gecer.
-  otlp/dataprepper:
+  otlp_grpc/dataprepper:
     endpoint: "data-prepper:21891"
     tls:
       insecure: true
@@ -45,4 +45,4 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/dataprepper]
+      exporters: [otlp_grpc/dataprepper]
