@@ -53,8 +53,12 @@ export function useTicketWebSocket(
             client.subscribe(`/topic/tickets/${ticketId}/internal`, handleEvent);
           }
         },
-        onStompError: () => {},
-        onWebSocketError: () => {},
+        onStompError: (frame) => {
+          console.warn('[ticket-ws] STOMP error:', frame?.headers?.message, frame?.body);
+        },
+        onWebSocketError: (evt) => {
+          console.warn('[ticket-ws] WebSocket error:', evt?.message || evt);
+        },
       });
       client.activate();
     } catch {

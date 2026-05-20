@@ -1,3 +1,5 @@
+// Polyfill'ler her şeyden ÖNCE yüklenmeli (WebSocket için TextEncoder/TextDecoder).
+import './src/polyfills';
 import { registerRootComponent } from 'expo';
 
 import App from './App';
