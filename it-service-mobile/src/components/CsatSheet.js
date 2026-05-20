@@ -31,7 +31,7 @@ export default function CsatSheet({ visible, busy, onCancel, onConfirm }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <SheetBackdrop>
+      <SheetBackdrop onClose={onCancel}>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             {t('ticketDetail.csatTitle', 'Memnuniyet Anketi')}

@@ -165,7 +165,7 @@ export default function KnownIssuesScreen() {
       </ScrollView>
 
       <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setCreateOpen(false)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('knownIssues.add', 'Yeni Sorun Ekle')}

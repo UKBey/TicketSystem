@@ -235,7 +235,7 @@ export default function TicketListScreen({ navigation, route }) {
         animationType="slide"
         onRequestClose={() => setFilterOpen(false)}
       >
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setFilterOpen(false)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('ticketList.filters', 'Filtreler')}

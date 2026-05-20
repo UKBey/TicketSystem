@@ -82,7 +82,7 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <SheetBackdrop>
+      <SheetBackdrop onClose={onClose}>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             {t('admin.panel.agentLimitsTitle', '{{name}} — Bilet Limitleri', {

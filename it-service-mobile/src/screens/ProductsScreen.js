@@ -338,7 +338,7 @@ export default function ProductsScreen({ navigation }) {
         animationType="slide"
         onRequestClose={() => setProductForm(null)}
       >
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setProductForm(null)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {productForm?.id
@@ -391,7 +391,7 @@ export default function ProductsScreen({ navigation }) {
         animationType="slide"
         onRequestClose={() => setTopicForm(null)}
       >
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setTopicForm(null)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {topicForm?.id

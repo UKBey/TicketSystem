@@ -17,6 +17,7 @@ export default function RoleFilterChips({ value, onChange }) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.bar}
       contentContainerStyle={styles.row}
       keyboardShouldPersistTaps="handled"
     >
@@ -51,6 +52,8 @@ export default function RoleFilterChips({ value, onChange }) {
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 8, paddingHorizontal: 12, paddingBottom: 10 },
+  // Yatay ScrollView, dikey flex column içinde dikeyde büyümesin diye flexGrow:0.
+  bar: { flexGrow: 0, flexShrink: 0 },
+  row: { gap: 8, paddingHorizontal: 12, paddingBottom: 10, alignItems: 'center' },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
 });

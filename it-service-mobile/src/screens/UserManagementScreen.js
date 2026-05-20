@@ -251,7 +251,7 @@ export default function UserManagementScreen() {
 
       {/* Yeni kullanıcı modalı */}
       <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setCreateOpen(false)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('userManagement.form.title', 'Yeni Kullanıcı Oluştur')}
@@ -338,7 +338,7 @@ export default function UserManagementScreen() {
 
       {/* Rol düzenleme modalı */}
       <Modal visible={!!editUser} transparent animationType="slide" onRequestClose={() => setEditUser(null)}>
-        <SheetBackdrop>
+        <SheetBackdrop onClose={() => setEditUser(null)}>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('userManagement.editRole.title', 'Rol Düzenle')}

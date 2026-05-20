@@ -5,16 +5,20 @@ import { useTheme } from '../theme/ThemeContext';
  * Alt-sayfa (bottom sheet) modalları için ortak arka plan.
  * - Klavye açıldığında içeriği yukarı iter (KeyboardAvoidingView), böylece
  *   giriş alanları ve butonlar klavyenin altında kalmaz.
- * - Karartılmış alana dokununca klavyeyi kapatır.
+ * - Karartılmış alana dokununca klavyeyi kapatır ve (onClose verilmişse) modalı kapatır.
  */
-export default function SheetBackdrop({ children }) {
+export default function SheetBackdrop({ children, onClose }) {
   const { theme } = useTheme();
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+    onClose?.();
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.backdrop, { backgroundColor: theme.overlay }]}
     >
-      <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdropPress} />
       {children}
     </KeyboardAvoidingView>
   );
