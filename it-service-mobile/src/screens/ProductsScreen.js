@@ -213,6 +213,7 @@ export default function ProductsScreen({ navigation }) {
               navigation.navigate('ProductTickets', {
                 endpoint: `/tickets/by-product/${item.id}`,
                 title: item.name,
+                filters: ['status', 'priority', 'sla', 'date'],
               })
             }
             style={[styles.smallBtn, { backgroundColor: theme.primary }]}

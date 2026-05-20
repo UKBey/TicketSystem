@@ -35,6 +35,9 @@ export const updateUserStatus = (id, active) =>
 export const getAgentsWithCapacity = (productId) =>
   api.get('/users/agents/capacity', { params: { productId } });
 
+/** Tüm agent'ları listeler — bilet filtresinde agent seçimi için. */
+export const getAgents = () => api.get('/users/agents');
+
 // ---- Yönetim paneli — ürün yetkisi & agent limitleri ----
 
 /** Kullanıcıya ürün yetkisi ekler. Güncellenmiş kullanıcıyı döner. */

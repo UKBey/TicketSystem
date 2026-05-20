@@ -13,6 +13,9 @@ const Tab = createBottomTabNavigator();
 /** Role göre alt sekme yapılandırması. Geçmiş sekmesi kapalı biletleri gösterir. */
 function tabsForRole(role, t) {
   const menu = { name: 'Menu', title: t('tabs.menu', 'Menü'), icon: 'menu-outline', menu: true };
+  // Team/Workspace status filtresi NEW ve CLOSED hariç.
+  const agentStatus = ['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
+  const poolFilters = ['priority', 'sla', 'product', 'topic', 'date'];
   const history = {
     name: 'History',
     title: t('tabs.history', 'Geçmiş'),
@@ -22,11 +25,37 @@ function tabsForRole(role, t) {
 
   if (role === 'AGENT' || role === 'AGENT_ADMIN') {
     return [
-      { name: 'Workspace', title: t('tabs.workspace', 'Çalışma'), icon: 'briefcase-outline', endpoint: '/tickets/my-assigned' },
-      { name: 'Pool', title: t('tabs.pool', 'Havuz'), icon: 'albums-outline', endpoint: '/tickets/pool' },
-      { name: 'Team', title: t('tabs.team', 'Takım'), icon: 'people-outline', endpoint: '/tickets/team' },
-      { name: 'AllTickets', title: t('tabs.all', 'Tümü'), icon: 'documents-outline', endpoint: '/tickets/all' },
-      { ...history, endpoint: '/tickets/my-assigned' },
+      {
+        name: 'Workspace',
+        title: t('tabs.workspace', 'Çalışma'),
+        icon: 'briefcase-outline',
+        endpoint: '/tickets/my-assigned',
+        filters: ['status', 'priority', 'sla', 'product', 'topic', 'date'],
+        statusOptions: agentStatus,
+      },
+      {
+        name: 'Pool',
+        title: t('tabs.pool', 'Havuz'),
+        icon: 'albums-outline',
+        endpoint: '/tickets/pool',
+        filters: poolFilters,
+      },
+      {
+        name: 'Team',
+        title: t('tabs.team', 'Takım'),
+        icon: 'people-outline',
+        endpoint: '/tickets/team',
+        filters: ['status', 'priority', 'sla', 'product', 'topic', 'agent', 'date'],
+        statusOptions: agentStatus,
+      },
+      {
+        name: 'AllTickets',
+        title: t('tabs.all', 'Tümü'),
+        icon: 'documents-outline',
+        endpoint: '/tickets/all',
+        filters: ['status', 'priority', 'sla', 'product', 'topic', 'date'],
+      },
+      { ...history, endpoint: '/tickets/my-assigned', filters: poolFilters },
       menu,
     ];
   }
@@ -38,8 +67,15 @@ function tabsForRole(role, t) {
   }
   // CUSTOMER (ve varsayılan)
   return [
-    { name: 'MyTickets', title: t('tabs.myTickets', 'Biletlerim'), icon: 'documents-outline', endpoint: '/tickets', canCreate: true },
-    { ...history, endpoint: '/tickets' },
+    {
+      name: 'MyTickets',
+      title: t('tabs.myTickets', 'Biletlerim'),
+      icon: 'documents-outline',
+      endpoint: '/tickets',
+      canCreate: true,
+      filters: ['status', 'priority', 'date'],
+    },
+    { ...history, endpoint: '/tickets', filters: ['priority', 'date'] },
     menu,
   ];
 }
@@ -69,7 +105,14 @@ export default function MainTabs() {
           name={tab.name}
           component={tab.menu ? MenuScreen : tab.dashboard ? DashboardScreen : TicketListScreen}
           initialParams={
-            tab.endpoint ? { endpoint: tab.endpoint, status: tab.status } : undefined
+            tab.endpoint
+              ? {
+                  endpoint: tab.endpoint,
+                  status: tab.status,
+                  filters: tab.filters,
+                  statusOptions: tab.statusOptions,
+                }
+              : undefined
           }
           options={({ navigation }) => ({
             title: tab.title,

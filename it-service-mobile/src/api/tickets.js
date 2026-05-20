@@ -12,20 +12,34 @@ export function getTickets({
   sortDir = 'desc',
   status,
   priority,
+  slaStatus,
+  productId,
+  topicId,
+  agentId,
   search,
+  dateFrom,
+  dateTo,
 } = {}) {
   const qs = new URLSearchParams();
   qs.set('page', String(page));
   qs.set('size', String(size));
   qs.set('sortBy', sortBy);
   qs.set('sortDir', sortDir);
-  if (status) {
-    (Array.isArray(status) ? status : [status]).forEach((s) => qs.append('status', s));
-  }
-  if (priority) {
-    (Array.isArray(priority) ? priority : [priority]).forEach((p) => qs.append('priority', p));
-  }
+  const appendAll = (key, val) => {
+    if (val == null) return;
+    (Array.isArray(val) ? val : [val]).forEach((v) => {
+      if (v != null) qs.append(key, String(v));
+    });
+  };
+  appendAll('status', status);
+  appendAll('priority', priority);
+  appendAll('slaStatus', slaStatus);
+  appendAll('productId', productId);
+  appendAll('topicId', topicId);
+  appendAll('agentId', agentId);
   if (search) qs.set('search', search);
+  if (dateFrom) qs.set('dateFrom', dateFrom);
+  if (dateTo) qs.set('dateTo', dateTo);
   return api.get(`${endpoint}?${qs.toString()}`);
 }
 

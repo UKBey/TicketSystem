@@ -6,6 +6,7 @@ import {
   Pressable,
   TextInput,
   Modal,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
@@ -15,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { getTickets } from '../api/tickets';
+import { getProducts, getProductTopics } from '../api/products';
+import { getAgents } from '../api/users';
 import {
   formatDate,
   statusColor,
@@ -24,18 +27,58 @@ import {
 } from '../utils/format';
 import SheetBackdrop from '../components/SheetBackdrop';
 import SlaBadge from '../components/SlaBadge';
+import PickerField from '../components/PickerField';
 
 const STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const SLA_VALUES = ['BREACHED', 'ACTIVE', 'PAUSED'];
+const DATE_PRESETS = [0, 7, 30, 90];
 const PAGE_SIZE = 20;
 
-/** Rol bazlı bilet listesi — arama, durum/öncelik filtresi ve sayfalama. */
+/** Çok seçimli filtre çipleri satırı. */
+function ChipGroup({ theme, options, selected, onToggle }) {
+  return (
+    <View style={styles.chipWrap}>
+      {options.map((o) => {
+        const on = selected.includes(o.value);
+        return (
+          <Pressable
+            key={String(o.value)}
+            onPress={() => onToggle(o.value)}
+            style={[
+              styles.chip,
+              {
+                borderColor: on ? theme.primary : theme.border,
+                backgroundColor: on ? theme.primary : 'transparent',
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: on ? theme.onPrimary : theme.textSecondary,
+                fontSize: 12,
+                fontWeight: '600',
+              }}
+            >
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Rol bazlı bilet listesi — arama, sekmeye özel filtreler ve sayfalama. */
 export default function TicketListScreen({ navigation, route }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
 
   const endpoint = route.params?.endpoint || '/tickets';
   const baseStatus = route.params?.status; // History → CLOSED (kilitli)
+  const filterCfg = route.params?.filters || ['status', 'priority', 'date'];
+  const statusOptions = route.params?.statusOptions || STATUSES;
+  const has = (f) => filterCfg.includes(f);
 
   const [tickets, setTickets] = useState([]);
   const [page, setPage] = useState(0);
@@ -46,14 +89,54 @@ export default function TicketListScreen({ navigation, route }) {
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState([]);
-  const [priorityFilter, setPriorityFilter] = useState([]);
 
+  // Uygulanmış filtreler
+  const [statusF, setStatusF] = useState([]);
+  const [priorityF, setPriorityF] = useState([]);
+  const [slaF, setSlaF] = useState([]);
+  const [productF, setProductF] = useState(null);
+  const [topicF, setTopicF] = useState(null);
+  const [agentF, setAgentF] = useState(null);
+  const [dateF, setDateF] = useState(null);
+
+  // Filtre modalı + taslak değerler
   const [filterOpen, setFilterOpen] = useState(false);
-  const [draftStatus, setDraftStatus] = useState([]);
-  const [draftPriority, setDraftPriority] = useState([]);
+  const [dStatus, setDStatus] = useState([]);
+  const [dPriority, setDPriority] = useState([]);
+  const [dSla, setDSla] = useState([]);
+  const [dProduct, setDProduct] = useState(null);
+  const [dTopic, setDTopic] = useState(null);
+  const [dAgent, setDAgent] = useState(null);
+  const [dDate, setDDate] = useState(null);
 
-  // Arama girişini geciktir — her tuşta istek atma.
+  const [products, setProducts] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [topics, setTopics] = useState([]);
+
+  // Filtre verilerini (ürün/agent) bir kez yükle.
+  useEffect(() => {
+    if (has('product')) {
+      getProducts().then((r) => setProducts(r.data ?? [])).catch(() => {});
+    }
+    if (has('agent')) {
+      getAgents().then((r) => setAgents(r.data ?? [])).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Taslak ürün değişince o ürünün konularını yükle.
+  useEffect(() => {
+    if (!has('topic') || !dProduct) {
+      setTopics([]);
+      return;
+    }
+    getProductTopics(dProduct)
+      .then((r) => setTopics(r.data ?? []))
+      .catch(() => setTopics([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dProduct]);
+
+  // Arama girişini geciktir.
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(id);
@@ -65,14 +148,26 @@ export default function TicketListScreen({ navigation, route }) {
       else setLoading(true);
       setError(null);
       try {
-        const status = baseStatus ? [baseStatus] : statusFilter;
+        const status = baseStatus ? [baseStatus] : statusF;
+        let dateFrom;
+        if (dateF != null) {
+          const d = new Date();
+          d.setHours(0, 0, 0, 0);
+          if (dateF > 0) d.setDate(d.getDate() - dateF);
+          dateFrom = d.toISOString();
+        }
         const res = await getTickets({
           endpoint,
           page: pageArg,
           size: PAGE_SIZE,
           status: status.length ? status : undefined,
-          priority: priorityFilter.length ? priorityFilter : undefined,
+          priority: priorityF.length ? priorityF : undefined,
+          slaStatus: slaF.length ? slaF : undefined,
+          productId: productF ? [productF] : undefined,
+          topicId: topicF ? [topicF] : undefined,
+          agentId: agentF ? [agentF] : undefined,
           search: debouncedSearch || undefined,
+          dateFrom,
         });
         setTickets(res.data?.content ?? []);
         setTotalPages(Math.max(1, res.data?.totalPages ?? 1));
@@ -85,10 +180,9 @@ export default function TicketListScreen({ navigation, route }) {
         setRefreshing(false);
       }
     },
-    [endpoint, baseStatus, statusFilter, priorityFilter, debouncedSearch, t],
+    [endpoint, baseStatus, statusF, priorityF, slaF, productF, topicF, agentF, dateF, debouncedSearch, t],
   );
 
-  // Odaklanınca ve filtre/arama değişince ilk sayfayı yükler.
   useFocusEffect(
     useCallback(() => {
       load(0);
@@ -96,21 +190,48 @@ export default function TicketListScreen({ navigation, route }) {
   );
 
   const openFilter = () => {
-    setDraftStatus(statusFilter);
-    setDraftPriority(priorityFilter);
+    setDStatus(statusF);
+    setDPriority(priorityF);
+    setDSla(slaF);
+    setDProduct(productF);
+    setDTopic(topicF);
+    setDAgent(agentF);
+    setDDate(dateF);
     setFilterOpen(true);
   };
 
   const applyFilter = () => {
-    setStatusFilter(draftStatus);
-    setPriorityFilter(draftPriority);
+    setStatusF(dStatus);
+    setPriorityF(dPriority);
+    setSlaF(dSla);
+    setProductF(dProduct);
+    setTopicF(dTopic);
+    setAgentF(dAgent);
+    setDateF(dDate);
     setFilterOpen(false);
   };
 
-  const toggleDraft = (arr, setArr, val) =>
+  const clearFilter = () => {
+    setDStatus([]);
+    setDPriority([]);
+    setDSla([]);
+    setDProduct(null);
+    setDTopic(null);
+    setDAgent(null);
+    setDDate(null);
+  };
+
+  const toggleIn = (arr, setArr, val) =>
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
 
-  const activeCount = (baseStatus ? 0 : statusFilter.length) + priorityFilter.length;
+  const activeCount =
+    (baseStatus ? 0 : statusF.length) +
+    priorityF.length +
+    slaF.length +
+    (productF ? 1 : 0) +
+    (topicF ? 1 : 0) +
+    (agentF ? 1 : 0) +
+    (dateF != null ? 1 : 0);
 
   const renderItem = ({ item }) => (
     <Pressable
@@ -141,6 +262,19 @@ export default function TicketListScreen({ navigation, route }) {
       </View>
     </Pressable>
   );
+
+  const productOptions = [
+    { label: t('ticket.filters.allProducts', 'Tüm ürünler'), value: null },
+    ...products.map((p) => ({ label: p.name, value: p.id })),
+  ];
+  const topicOptions = [
+    { label: t('ticket.filters.allTopics', 'Tüm konular'), value: null },
+    ...topics.map((tp) => ({ label: tp.name, value: tp.id })),
+  ];
+  const agentOptions = [
+    { label: t('ticket.filters.allAgents', 'Tüm ajanlar'), value: null },
+    ...agents.map((a) => ({ label: a.fullName || a.email || String(a.id), value: a.id })),
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bgBody }]}>
@@ -245,80 +379,119 @@ export default function TicketListScreen({ navigation, route }) {
               {t('ticketList.filters', 'Filtreler')}
             </Text>
 
-            {!baseStatus && (
-              <>
-                <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>
-                  {t('ticketList.statusLabel', 'Durum')}
-                </Text>
-                <View style={styles.chipWrap}>
-                  {STATUSES.map((s) => {
-                    const on = draftStatus.includes(s);
-                    return (
-                      <Pressable
-                        key={s}
-                        onPress={() => toggleDraft(draftStatus, setDraftStatus, s)}
-                        style={[
-                          styles.chip,
-                          {
-                            borderColor: on ? theme.primary : theme.border,
-                            backgroundColor: on ? theme.primary : 'transparent',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={{
-                            color: on ? theme.onPrimary : theme.textSecondary,
-                            fontSize: 12,
-                            fontWeight: '600',
-                          }}
-                        >
-                          {statusLabel(s, t)}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </>
-            )}
+            <ScrollView style={styles.sheetScroll} keyboardShouldPersistTaps="handled">
+              {has('status') && !baseStatus && (
+                <>
+                  <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>
+                    {t('ticketList.statusLabel', 'Durum')}
+                  </Text>
+                  <ChipGroup
+                    theme={theme}
+                    options={statusOptions.map((s) => ({ value: s, label: statusLabel(s, t) }))}
+                    selected={dStatus}
+                    onToggle={(v) => toggleIn(dStatus, setDStatus, v)}
+                  />
+                </>
+              )}
 
-            <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>
-              {t('ticketList.priorityLabel', 'Öncelik')}
-            </Text>
-            <View style={styles.chipWrap}>
-              {PRIORITIES.map((p) => {
-                const on = draftPriority.includes(p);
-                return (
-                  <Pressable
-                    key={p}
-                    onPress={() => toggleDraft(draftPriority, setDraftPriority, p)}
-                    style={[
-                      styles.chip,
-                      {
-                        borderColor: on ? theme.primary : theme.border,
-                        backgroundColor: on ? theme.primary : 'transparent',
-                      },
+              {has('priority') && (
+                <>
+                  <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>
+                    {t('ticketList.priorityLabel', 'Öncelik')}
+                  </Text>
+                  <ChipGroup
+                    theme={theme}
+                    options={PRIORITIES.map((p) => ({ value: p, label: priorityLabel(p, t) }))}
+                    selected={dPriority}
+                    onToggle={(v) => toggleIn(dPriority, setDPriority, v)}
+                  />
+                </>
+              )}
+
+              {has('sla') && (
+                <>
+                  <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>SLA</Text>
+                  <ChipGroup
+                    theme={theme}
+                    options={[
+                      { value: 'BREACHED', label: t('ticket.filters.slaBreached', 'SLA İhlal Edildi') },
+                      { value: 'ACTIVE', label: t('ticket.filters.slaActive', 'SLA Aktif') },
+                      { value: 'PAUSED', label: t('ticket.filters.slaPaused', 'SLA Duraklatıldı') },
                     ]}
-                  >
-                    <Text
-                      style={{
-                        color: on ? theme.onPrimary : theme.textSecondary,
-                        fontSize: 12,
-                        fontWeight: '600',
-                      }}
-                    >
-                      {priorityLabel(p, t)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                    selected={dSla}
+                    onToggle={(v) => toggleIn(dSla, setDSla, v)}
+                  />
+                </>
+              )}
+
+              {has('product') && (
+                <View style={styles.pickerWrap}>
+                  <PickerField
+                    label={t('ticket.filters.product', 'Ürün')}
+                    placeholder={t('ticket.filters.allProducts', 'Tüm ürünler')}
+                    value={dProduct}
+                    onChange={(v) => {
+                      setDProduct(v);
+                      setDTopic(null);
+                    }}
+                    options={productOptions}
+                  />
+                </View>
+              )}
+
+              {has('topic') && (
+                <View style={styles.pickerWrap}>
+                  <PickerField
+                    label={t('ticket.filters.allTopics', 'Konu')}
+                    placeholder={
+                      dProduct
+                        ? t('ticket.filters.allTopics', 'Tüm konular')
+                        : t('ticket.filters.selectProductFirst', 'Önce ürün seçin')
+                    }
+                    value={dTopic}
+                    onChange={setDTopic}
+                    disabled={!dProduct}
+                    options={topicOptions}
+                  />
+                </View>
+              )}
+
+              {has('agent') && (
+                <View style={styles.pickerWrap}>
+                  <PickerField
+                    label={t('ticket.filters.allAgents', 'Ajan')}
+                    placeholder={t('ticket.filters.allAgents', 'Tüm ajanlar')}
+                    value={dAgent}
+                    onChange={setDAgent}
+                    options={agentOptions}
+                  />
+                </View>
+              )}
+
+              {has('date') && (
+                <>
+                  <Text style={[styles.filterLabel, { color: theme.textSecondary }]}>
+                    {t('ticket.filters.dateRange', 'Tarih aralığı')}
+                  </Text>
+                  <ChipGroup
+                    theme={theme}
+                    options={DATE_PRESETS.map((d) => ({
+                      value: d,
+                      label:
+                        d === 0
+                          ? t('ticket.filters.presetToday', 'Bugün')
+                          : t(`ticket.filters.presetLast${d}`, `Son ${d} gün`),
+                    }))}
+                    selected={dDate != null ? [dDate] : []}
+                    onToggle={(v) => setDDate(dDate === v ? null : v)}
+                  />
+                </>
+              )}
+            </ScrollView>
 
             <View style={styles.sheetActions}>
               <Pressable
-                onPress={() => {
-                  setDraftStatus([]);
-                  setDraftPriority([]);
-                }}
+                onPress={clearFilter}
                 style={[styles.sheetBtn, { borderWidth: 1, borderColor: theme.border }]}
               >
                 <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>
@@ -398,9 +571,11 @@ const styles = StyleSheet.create({
   pagerBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 10 },
   sheetTitle: { fontSize: 17, fontWeight: '700' },
-  filterLabel: { fontSize: 13, fontWeight: '600', marginTop: 4 },
+  sheetScroll: { maxHeight: 420 },
+  filterLabel: { fontSize: 13, fontWeight: '600', marginTop: 10, marginBottom: 6 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
-  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  pickerWrap: { marginTop: 10 },
+  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
   sheetBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });
