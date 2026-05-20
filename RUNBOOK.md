@@ -19,13 +19,12 @@ IT-service ticketing sistemi oncall referansı. Kısa, kopyala-yapıştır odakl
 | kie-server            | 8080            | `:8180` (dev)     | jBPM workflow engine (7.61.0.Final)       | `docker logs kie-server`                     |
 | redis                 | 6379            | `:6379` (dev)     | Rate-limit Bucket4j + cache               | `docker logs redis`                          |
 | mailpit               | 1025/8025       | `:8025` (dev)     | Dev SMTP sink                             | `docker logs mailpit`                        |
-| opensearch            | 9200            | `:9200` (dev)     | Log + telemetry store                     | `docker logs opensearch`                     |
-| opensearch-dashboards | 5601            | `/opensearch`     | Log UI                                    | `docker logs opensearch-dashboards`          |
+| opensearch            | 9200            | `:9200` (dev)     | Log, trace ve metrik store                | `docker logs opensearch`                     |
+| opensearch-dashboards | 5601            | `/opensearch`     | Log/trace/metrik UI + dashboard'lar       | `docker logs opensearch-dashboards`          |
 | kafka                 | 9092            | `:9092` (dev)     | Log pipeline tampon (KRaft mode)          | `docker logs kafka-broker`                   |
 | logstash              | -               | -                 | Kafka → OpenSearch                        | `docker logs logstash-consumer`              |
-| otel-collector        | 4317/4318/8889  | -                 | Traces/metrics/logs OTLP alıcı            | `docker logs otel-collector`                 |
-| prometheus            | 9090            | `:9090` (dev)     | Metrik store + alert rules (OPS-5)        | `docker logs prometheus`                     |
-| grafana               | 3000            | `/grafana`        | Dashboard'lar                             | `docker logs grafana`                        |
+| otel-collector        | 4317/4318       | -                 | Trace/metrik/log OTLP alıcı               | `docker logs otel-collector`                 |
+| data-prepper          | 21891           | -                 | OTLP metrik → OpenSearch                  | `docker logs data-prepper`                   |
 | sonarqube             | 9000            | `:9000` (dev)     | Code quality (yalnız CI)                  | `docker logs sonarqube`                      |
 
 K8s karşılıkları: `docker logs <name>` yerine `kubectl -n ticketsystem logs deploy/<name>` veya `make k8s-logs s=<name>`.
@@ -422,12 +421,15 @@ for svc in it-service-backend llm-service kie-server; do
 done
 ```
 
-### Prometheus alert durumu (OPS-5)
+### OpenSearch'te metrik akışı
 
 ```bash
-# Aktif alert'ler
-curl -fsS http://localhost:9090/api/v1/alerts | jq '.data.alerts[] | {alertname: .labels.alertname, state: .state, value: .value}'
+# otel-metrics-* index'i oluşmuş ve doküman alıyor mu
+curl -fsS 'http://localhost:9200/_cat/indices/otel-metrics-*?v'
 
-# Tüm rule'lar yüklü mü
-curl -fsS http://localhost:9090/api/v1/rules | jq '.data.groups[].rules[] | {name: .name, type: .type}'
+# Toplam metrik doküman sayısı (akış canlıysa artar)
+curl -fsS 'http://localhost:9200/otel-metrics-*/_count'
+
+# Akış kopuksa zinciri sırayla kontrol et: backend OTLP push → otel-collector → data-prepper → opensearch
+docker logs --tail 50 data-prepper
 ```

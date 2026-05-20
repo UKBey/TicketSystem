@@ -171,7 +171,7 @@ Her prod deploy öncesi:
 - [ ] DB backup doğrulandı — son 24 saatte `pg_dump ticketdb` alındı VE bir scratch container'da restore-test edildi
 - [ ] Image tag commit SHA (`:latest` DEĞİL); registry'de gerçekten var
 - [ ] Cluster'daki secret'lar yeni image beklentilerine uyuyor (yeni env var eklendiyse SealedSecret resealed)
-- [ ] Prometheus alert rule'ları aktif (`/etc/prometheus/rules/*.yaml` mount edilmiş — OPS-5)
+- [ ] Metrik akışı doğrulandı — OpenSearch'te `otel-metrics-*` index'i doküman alıyor (Backend → OTel Collector → Data Prepper → OpenSearch)
 
 ---
 
@@ -246,11 +246,9 @@ curl -fsS -XPOST https://<host>/api/tickets \
 
 # Dönen ticket id üzerinde claim + comment endpoint'leri tetikle
 
-# Grafana yükleniyor mu
-curl -fsS https://<host>/grafana/api/health | jq '.database'        # ok
-
-# Prometheus alert'leri yüklü mü (OPS-5)
-curl -fsS https://<host>:9090/api/v1/rules | jq '.data.groups[0].name'  # ticketsystem-application
+# OpenSearch Dashboards yükleniyor mu — metrik/trace/log dashboard'ları burada
+curl -fsS https://<host>/opensearch/api/status | jq '.status.overall.state'   # green
+# Metrik akışı: Dashboards > Discover > otel-metrics-* pattern'inde yeni doküman görünmeli
 
 # Mail counter — B-3 sonrası mail_send_total emit ediliyor
 curl -fsS https://<host>/actuator/metrics/mail_send_total | jq '.measurements'
