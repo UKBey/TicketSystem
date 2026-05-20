@@ -16,6 +16,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getUsers, assignProduct, removeProduct } from '../api/users';
 import { getProducts } from '../api/products';
 import AgentLimitsSheet from '../components/AgentLimitsSheet';
+import RoleFilterChips from '../components/RoleFilterChips';
 
 const fullNameOf = (u) =>
   u.fullName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '—';
@@ -28,6 +29,7 @@ export default function AdminPanelScreen() {
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyUserId, setBusyUserId] = useState(null);
   const [addUser, setAddUser] = useState(null);
@@ -36,14 +38,19 @@ export default function AdminPanelScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getUsers({ page: 0, size: 100, search: search || undefined });
+      const res = await getUsers({
+        page: 0,
+        size: 100,
+        search: search || undefined,
+        role: roleFilter || undefined,
+      });
       setUsers(res.data?.content ?? res.data ?? []);
     } catch {
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, roleFilter]);
 
   useEffect(() => {
     load();
@@ -178,6 +185,8 @@ export default function AdminPanelScreen() {
           ]}
         />
       </View>
+
+      <RoleFilterChips value={roleFilter} onChange={setRoleFilter} />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 32 }} size="large" color={theme.primary} />
