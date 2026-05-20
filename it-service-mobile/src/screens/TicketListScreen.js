@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../auth/AuthContext';
@@ -58,9 +59,12 @@ export default function TicketListScreen({ navigation }) {
     [endpoint, tab, t],
   );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Ekran her odaklandığında listeyi tazeler (detay/oluşturma sonrası dönüşte güncel kalır).
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const renderItem = ({ item }) => (
     <Pressable

@@ -40,3 +40,6 @@ export const changeStatus = (id, body) => api.put(`/tickets/${id}/status`, body)
 
 /** Bileti kapatır. body: { reasonCode, note }. */
 export const closeTicket = (id, body) => api.put(`/tickets/${id}/close`, body);
+
+/** Yeni bilet oluşturur. body: { title, description, priority, productId, topicId }. */
+export const createTicket = (body) => api.post('/tickets', body);
