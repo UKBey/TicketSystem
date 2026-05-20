@@ -16,6 +16,9 @@ export const markAllAsRead = () => api.post('/notifications/read-all');
 /** Bir bildirimi siler. */
 export const deleteNotification = (id) => api.delete(`/notifications/${id}`);
 
+/** Kullanıcının tüm bildirimlerini kalıcı olarak siler. */
+export const deleteAllNotifications = () => api.delete('/notifications');
+
 /** Bildirim tercihlerini getirir. */
 export const getPreferences = () => api.get('/notification-preferences');
 

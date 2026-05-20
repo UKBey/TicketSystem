@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import {
@@ -16,6 +17,7 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  deleteAllNotifications,
 } from '../api/notifications';
 import { formatDate } from '../utils/format';
 
@@ -51,17 +53,40 @@ export default function NotificationsScreen({ navigation }) {
     markAllAsRead().catch(() => {});
   }, []);
 
+  const deleteAll = useCallback(() => {
+    Alert.alert(
+      t('notifications.deleteAllTitle', 'Tüm bildirimleri sil'),
+      t('notifications.deleteAllConfirm', 'Tüm bildirimler kalıcı olarak silinecek. Emin misiniz?'),
+      [
+        { text: t('common.cancel', 'İptal'), style: 'cancel' },
+        {
+          text: t('notifications.deleteAll', 'Tümünü Sil'),
+          style: 'destructive',
+          onPress: () => {
+            setItems([]);
+            deleteAllNotifications().catch(() => load(true));
+          },
+        },
+      ],
+    );
+  }, [t, load]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={markAll} hitSlop={8} style={{ paddingRight: 12 }}>
-          <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 14 }}>
-            {t('notifications.markAll', 'Tümünü Oku')}
-          </Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={markAll} hitSlop={8}>
+            <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 13 }}>
+              {t('notifications.markAll', 'Tümünü Oku')}
+            </Text>
+          </Pressable>
+          <Pressable onPress={deleteAll} hitSlop={8}>
+            <Ionicons name="trash-outline" size={20} color={theme.danger} />
+          </Pressable>
+        </View>
       ),
     });
-  }, [navigation, markAll, theme.primary, t]);
+  }, [navigation, markAll, deleteAll, theme.primary, theme.danger, t]);
 
   const onPress = (n) => {
     if (!n.isRead) {
@@ -143,6 +168,7 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingRight: 12 },
   list: { padding: 12, gap: 8, flexGrow: 1 },
   item: {
     flexDirection: 'row',

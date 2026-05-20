@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
@@ -162,26 +161,35 @@ export default function CreateTicketScreen({ navigation }) {
             <Text style={[styles.kiHeading, { color: theme.textPrimary }]}>
               {t('createTicket.knownIssues', 'Bilinen sorunlar')} ({knownIssues.length})
             </Text>
-            {knownIssues.map((ki) => {
-              const open = expandedIssue === ki.id;
-              return (
-                <Pressable
-                  key={ki.id}
-                  onPress={() => setExpandedIssue(open ? null : ki.id)}
-                  style={[styles.kiItem, { borderColor: theme.border, backgroundColor: theme.bgSurface }]}
-                >
-                  <Text style={[styles.kiTitle, { color: theme.textPrimary }]}>
-                    {open ? '▾ ' : '▸ '}{ki.title}
-                  </Text>
-                  {open && !!ki.content && (
-                    <Text style={[styles.kiContent, { color: theme.textSecondary }]}>{ki.content}</Text>
-                  )}
-                </Pressable>
-              );
-            })}
+            <ScrollView
+              style={styles.kiScroll}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
+              {knownIssues.map((ki) => {
+                const open = expandedIssue === ki.id;
+                return (
+                  <Pressable
+                    key={ki.id}
+                    onPress={() => setExpandedIssue(open ? null : ki.id)}
+                    style={[styles.kiItem, { borderColor: theme.border, backgroundColor: theme.bgSurface }]}
+                  >
+                    <Text style={[styles.kiTitle, { color: theme.textPrimary }]}>
+                      {open ? '▾ ' : '▸ '}
+                      {ki.title}
+                    </Text>
+                    {open && !!ki.content && (
+                      <Text style={[styles.kiContent, { color: theme.textSecondary }]}>{ki.content}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
+      </ScrollView>
 
+      <View style={[styles.footer, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
         <Pressable
           onPress={submit}
           disabled={submitting}
@@ -196,7 +204,7 @@ export default function CreateTicketScreen({ navigation }) {
             <Text style={styles.submitText}>{t('createTicket.create', 'Bilet Oluştur')}</Text>
           )}
         </Pressable>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -216,15 +224,16 @@ const styles = StyleSheet.create({
   error: { fontSize: 14, fontWeight: '500' },
   kiBox: { borderWidth: 1, borderRadius: 10, padding: 12, gap: 8 },
   kiHeading: { fontSize: 14, fontWeight: '700' },
-  kiItem: { borderWidth: 1, borderRadius: 8, padding: 10, gap: 6 },
+  kiScroll: { maxHeight: 240 },
+  kiItem: { borderWidth: 1, borderRadius: 8, padding: 10, gap: 6, marginBottom: 8 },
   kiTitle: { fontSize: 13, fontWeight: '600' },
   kiContent: { fontSize: 13, lineHeight: 18 },
+  footer: { borderTopWidth: 1, padding: 12 },
   submit: {
     height: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
