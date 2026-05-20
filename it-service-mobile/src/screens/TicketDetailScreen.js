@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TextInput,
   Pressable,
   StyleSheet,
@@ -66,13 +67,19 @@ const AUDIT_KEYS = {
 
 const humanize = (s) => String(s || '—').replace(/_/g, ' ');
 
-/** Eklenebilir listeyi id'ye göre birleştirir; yeni öğe yoksa aynı referansı döner. */
+/**
+ * Eklenebilir (append-only) listeyi id'ye göre birleştirir.
+ * - Mevcut id'lerin nesne referansı KORUNUR — memo'lu baloncuklar gereksiz render olmaz.
+ * - Yeni öğe yoksa aynı dizi referansı döner — gereksiz re-render olmaz.
+ */
 function mergeById(prev, incoming) {
   let changed = false;
   const byId = new Map(prev.map((x) => [x.id, x]));
   (incoming || []).forEach((x) => {
-    if (!byId.has(x.id)) changed = true;
-    byId.set(x.id, x);
+    if (!byId.has(x.id)) {
+      byId.set(x.id, x);
+      changed = true;
+    }
   });
   return changed ? Array.from(byId.values()) : prev;
 }
@@ -158,6 +165,7 @@ export default function TicketDetailScreen({ route, navigation }) {
 
   // Yedek "anlık" mekanizma: ekran açıkken yorum/ekleri 3 sn'de bir sessizce
   // tazeler — WebSocket bağlanamasa bile yeni mesajlar yenilemeden görünür.
+  // mergeById sayesinde yeni mesaj yoksa hiçbir re-render tetiklenmez.
   useFocusEffect(
     useCallback(() => {
       const poll = async () => {
@@ -324,16 +332,20 @@ export default function TicketDetailScreen({ route, navigation }) {
     }
   };
 
-  const doDownload = async (att) => {
-    setDownloadingId(att.id);
-    try {
-      await downloadAttachment(att);
-    } catch (e) {
-      Alert.alert(t('ticketDetail.downloadFileFailed', 'Dosya indirilemedi.'));
-    } finally {
-      setDownloadingId(null);
-    }
-  };
+  // useCallback — memo'lu ChatBubble'ın gereksiz render olmaması için referans sabit.
+  const doDownload = useCallback(
+    async (att) => {
+      setDownloadingId(att.id);
+      try {
+        await downloadAttachment(att);
+      } catch (e) {
+        Alert.alert(t('ticketDetail.downloadFileFailed', 'Dosya indirilemedi.'));
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [t],
+  );
 
   if (loading) {
     return (
@@ -355,100 +367,6 @@ export default function TicketDetailScreen({ route, navigation }) {
   const claimed = (ticket.claimers?.length ?? 0) > 0;
   const showActions = isAgent && status !== 'CLOSED';
   const auditLogs = ticket.auditLogs ?? [];
-
-  /** Bir sohbet baloncuğu (yorum veya ek) — bakan kullanıcının tarafına göre hizalanır. */
-  const renderBubble = (item) => {
-    const isAttachment = item._kind === 'attachment';
-    const authorId = isAttachment ? item.uploaderId : item.authorId;
-    const authorRole = isAttachment ? null : item.authorRole;
-    const isInternal = item.type === 'INTERNAL';
-    const isCustomerAuthor = authorRole
-      ? authorRole === 'CUSTOMER'
-      : authorId === ticket.customerId;
-    const isRight = isInternal ? true : isCustomer ? isCustomerAuthor : !isCustomerAuthor;
-    const displayName =
-      (!isAttachment && item.authorName) ||
-      (isCustomerAuthor
-        ? ticket.customerName || t('ticketDetail.roleCustomer', 'Müşteri')
-        : t('ticketDetail.roleAgent', 'Temsilci'));
-
-    let bg;
-    let fg;
-    let borderColor;
-    if (isInternal) {
-      bg = theme.dark ? 'rgba(245,158,11,0.14)' : '#fffbeb';
-      fg = theme.textPrimary;
-      borderColor = theme.warning;
-    } else if (isRight) {
-      bg = theme.primary;
-      fg = '#ffffff';
-      borderColor = theme.primary;
-    } else {
-      bg = theme.bgSurfaceSecondary;
-      fg = theme.textPrimary;
-      borderColor = theme.border;
-    }
-    const subColor = isRight && !isInternal ? 'rgba(255,255,255,0.7)' : theme.textTertiary;
-
-    return (
-      <View
-        key={`${item._kind}-${item.id}`}
-        style={[styles.bubbleWrap, { alignItems: isRight ? 'flex-end' : 'flex-start' }]}
-      >
-        <View style={[styles.bubble, { backgroundColor: bg, borderColor }]}>
-          <View style={styles.bubbleHead}>
-            <Text
-              style={[
-                styles.bubbleName,
-                { color: isRight && !isInternal ? 'rgba(255,255,255,0.85)' : theme.textSecondary },
-              ]}
-              numberOfLines={1}
-            >
-              {displayName}
-            </Text>
-            {!isRight && !isInternal && (
-              <View style={[styles.roleTag, { backgroundColor: theme.bgSurface }]}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: theme.textSecondary }}>
-                  {isCustomerAuthor
-                    ? t('ticketDetail.roleCustomer', 'Müşteri')
-                    : t('ticketDetail.roleAgent', 'Temsilci')}
-                </Text>
-              </View>
-            )}
-            {isInternal && (
-              <View style={[styles.roleTag, { backgroundColor: `${theme.warning}33` }]}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: theme.warning }}>
-                  {t('ticketDetail.internal', 'Dahili')}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {isAttachment ? (
-            <Pressable
-              onPress={() => doDownload(item)}
-              disabled={downloadingId === item.id}
-              style={styles.attachInBubble}
-            >
-              <Ionicons name="document-attach" size={20} color={fg} />
-              <Text style={[styles.attachInName, { color: fg }]} numberOfLines={1}>
-                {item.fileName}
-              </Text>
-              {downloadingId === item.id ? (
-                <ActivityIndicator size="small" color={fg} />
-              ) : (
-                <Ionicons name="download-outline" size={18} color={fg} />
-              )}
-            </Pressable>
-          ) : (
-            <Text style={[styles.bubbleMsg, { color: fg }]}>{item.message}</Text>
-          )}
-
-          <Text style={[styles.bubbleDate, { color: subColor }]}>{formatDate(item.createdAt)}</Text>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <KeyboardAvoidingView
@@ -571,7 +489,7 @@ export default function TicketDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Sabit boyutlu, kendi içinde kaydırılabilen sohbet paneli. */}
+        {/* Sabit boyutlu, sanallaştırılmış (virtualized) sohbet paneli. */}
         <Text style={[styles.section, { color: theme.textPrimary }]}>
           {t('ticketDetail.comments', 'Sohbet')}
         </Text>
@@ -581,30 +499,41 @@ export default function TicketDetailScreen({ route, navigation }) {
             { height: CHAT_HEIGHT, backgroundColor: theme.bgSurface, borderColor: theme.border },
           ]}
         >
-          <ScrollView
+          <FlatList
             ref={chatRef}
+            data={timeline}
+            keyExtractor={(item) => `${item._kind}-${item.id}`}
+            renderItem={({ item }) => (
+              <ChatBubble
+                item={item}
+                theme={theme}
+                t={t}
+                isCustomer={isCustomer}
+                customerId={ticket.customerId}
+                customerName={ticket.customerName}
+                isDownloading={downloadingId === item.id}
+                onDownload={doDownload}
+              />
+            )}
             contentContainerStyle={styles.chatContent}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
+            initialNumToRender={12}
+            windowSize={9}
+            removeClippedSubviews
             onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: false })}
-          >
-            {timeline.length === 0 ? (
+            ListEmptyComponent={
               <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 16 }}>
                 {t('ticketDetail.noComments', 'Henüz mesaj yok.')}
               </Text>
-            ) : (
-              timeline.map(renderBubble)
-            )}
-          </ScrollView>
+            }
+          />
         </View>
 
         {/* Denetim geçmişi — sohbetin altında, aç/kapa. */}
         {auditLogs.length > 0 && (
           <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-            <Pressable
-              onPress={() => setAuditOpen((o) => !o)}
-              style={styles.auditHeader}
-            >
+            <Pressable onPress={() => setAuditOpen((o) => !o)} style={styles.auditHeader}>
               <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
                 {t('ticketDetail.auditHistory', 'Denetim Geçmişi')} ({auditLogs.length})
               </Text>
@@ -811,6 +740,104 @@ function ActionBtn({ label, onPress, busy, theme, color }) {
     </Pressable>
   );
 }
+
+/**
+ * Tek sohbet baloncuğu (yorum veya ek). memo ile sarılı — props değişmedikçe
+ * yeniden render olmaz; uzun sohbette FlatList sanallaştırması ile birlikte
+ * yalnızca görünen ve gerçekten değişen baloncuklar render edilir.
+ */
+const ChatBubble = memo(function ChatBubble({
+  item,
+  theme,
+  t,
+  isCustomer,
+  customerId,
+  customerName,
+  isDownloading,
+  onDownload,
+}) {
+  const isAttachment = item._kind === 'attachment';
+  const authorId = isAttachment ? item.uploaderId : item.authorId;
+  const authorRole = isAttachment ? null : item.authorRole;
+  const isInternal = item.type === 'INTERNAL';
+  const isCustomerAuthor = authorRole ? authorRole === 'CUSTOMER' : authorId === customerId;
+  const isRight = isInternal ? true : isCustomer ? isCustomerAuthor : !isCustomerAuthor;
+  const displayName =
+    (!isAttachment && item.authorName) ||
+    (isCustomerAuthor
+      ? customerName || t('ticketDetail.roleCustomer', 'Müşteri')
+      : t('ticketDetail.roleAgent', 'Temsilci'));
+
+  let bg;
+  let fg;
+  let borderColor;
+  if (isInternal) {
+    bg = theme.dark ? 'rgba(245,158,11,0.14)' : '#fffbeb';
+    fg = theme.textPrimary;
+    borderColor = theme.warning;
+  } else if (isRight) {
+    bg = theme.primary;
+    fg = '#ffffff';
+    borderColor = theme.primary;
+  } else {
+    bg = theme.bgSurfaceSecondary;
+    fg = theme.textPrimary;
+    borderColor = theme.border;
+  }
+  const subColor = isRight && !isInternal ? 'rgba(255,255,255,0.7)' : theme.textTertiary;
+
+  return (
+    <View style={[styles.bubbleWrap, { alignItems: isRight ? 'flex-end' : 'flex-start' }]}>
+      <View style={[styles.bubble, { backgroundColor: bg, borderColor }]}>
+        <View style={styles.bubbleHead}>
+          <Text
+            style={[
+              styles.bubbleName,
+              { color: isRight && !isInternal ? 'rgba(255,255,255,0.85)' : theme.textSecondary },
+            ]}
+            numberOfLines={1}
+          >
+            {displayName}
+          </Text>
+          {!isRight && !isInternal && (
+            <View style={[styles.roleTag, { backgroundColor: theme.bgSurface }]}>
+              <Text style={{ fontSize: 9, fontWeight: '700', color: theme.textSecondary }}>
+                {isCustomerAuthor
+                  ? t('ticketDetail.roleCustomer', 'Müşteri')
+                  : t('ticketDetail.roleAgent', 'Temsilci')}
+              </Text>
+            </View>
+          )}
+          {isInternal && (
+            <View style={[styles.roleTag, { backgroundColor: `${theme.warning}33` }]}>
+              <Text style={{ fontSize: 9, fontWeight: '700', color: theme.warning }}>
+                {t('ticketDetail.internal', 'Dahili')}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {isAttachment ? (
+          <Pressable onPress={() => onDownload(item)} disabled={isDownloading} style={styles.attachInBubble}>
+            <Ionicons name="document-attach" size={20} color={fg} />
+            <Text style={[styles.attachInName, { color: fg }]} numberOfLines={1}>
+              {item.fileName}
+            </Text>
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={fg} />
+            ) : (
+              <Ionicons name="download-outline" size={18} color={fg} />
+            )}
+          </Pressable>
+        ) : (
+          <Text style={[styles.bubbleMsg, { color: fg }]}>{item.message}</Text>
+        )}
+
+        <Text style={[styles.bubbleDate, { color: subColor }]}>{formatDate(item.createdAt)}</Text>
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   full: { flex: 1, alignItems: 'center', justifyContent: 'center' },
