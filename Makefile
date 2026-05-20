@@ -1,6 +1,6 @@
 .PHONY: help \
         up rebuild down logs ps restart \
-        infra dev dev-backend dev-frontend \
+        infra dev dev-backend dev-frontend dev-mobile \
         build build-backend build-frontend \
         test test-backend test-frontend \
         verify \
@@ -12,6 +12,7 @@
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
+MOBILE_DIR   := it-service-mobile
 GENERATOR_DIR := data-generator
 
 # .env dosyasini oku (varsa)
@@ -41,6 +42,7 @@ help:
 	@echo    dev              - Backend ve Frontend'i local'de baslar (ayri pencereler)
 	@echo    dev-backend      - Sadece Backend'i local baslar (Spring Boot :8081)
 	@echo    dev-frontend     - Sadece Frontend'i local baslar (Vite :5173)
+	@echo    dev-mobile       - Mobil uygulamayi baslar (Expo dev server)
 	@echo.
 	@echo  Build:
 	@echo    build            - Backend ve Frontend'i derler
@@ -123,6 +125,9 @@ dev-backend:
 
 dev-frontend:
 	cd $(FRONTEND_DIR) && npm run dev
+
+dev-mobile:
+	cd $(MOBILE_DIR) && npx expo start
 
 # --- Build ---
 
