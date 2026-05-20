@@ -22,6 +22,11 @@ export const discovery = {
 /** Deep-link redirect URI — Keycloak ticket-mobile client'ına kayıtlı olmalı. */
 export const redirectUri = AuthSession.makeRedirectUri({ scheme: 'itservicemobile' });
 
+// İlk kurulumda Keycloak client'ına doğru pattern'i eklemek için redirect URI'yi logla.
+if (__DEV__) {
+  console.log('[oidc] redirectUri =', redirectUri);
+}
+
 const SCOPES = ['openid', 'profile', 'email'];
 
 /**
