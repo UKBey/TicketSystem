@@ -43,6 +43,7 @@ import ReasonSheet from '../components/ReasonSheet';
 import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
 import AssignSheet from '../components/AssignSheet';
 import CsatSheet from '../components/CsatSheet';
+import AiSummarySheet from '../components/AiSummarySheet';
 import SlaBadge from '../components/SlaBadge';
 
 const COMMENT_MAX = 500;
@@ -115,6 +116,7 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState([]);
   const [csatOpen, setCsatOpen] = useState(false);
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [auditOpen, setAuditOpen] = useState(false);
@@ -496,6 +498,16 @@ export default function TicketDetailScreen({ route, navigation }) {
         </Pressable>
       )}
 
+      {isAgent && (
+        <Pressable
+          onPress={() => setAiSummaryOpen(true)}
+          style={({ pressed }) => [styles.aiBtn, { opacity: pressed ? 0.85 : 1 }]}
+        >
+          <Ionicons name="sparkles" size={16} color="#fff" />
+          <Text style={styles.aiBtnText}>{t('ticketDetail.aiSummary', 'AI Özeti')}</Text>
+        </Pressable>
+      )}
+
       {isCustomer && status === 'RESOLVED' && (
         <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
@@ -746,6 +758,12 @@ export default function TicketDetailScreen({ route, navigation }) {
         onCancel={() => setCsatOpen(false)}
         onConfirm={onCsatConfirm}
       />
+
+      <AiSummarySheet
+        visible={aiSummaryOpen}
+        ticketId={id}
+        onClose={() => setAiSummaryOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -878,6 +896,16 @@ const styles = StyleSheet.create({
   headerWrap: { gap: 14, marginBottom: 8 },
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 10 },
   worklogBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#7c3aed',
+  },
+  aiBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   cardTitle: { fontSize: 14, fontWeight: '700' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   id: { fontSize: 12, fontWeight: '600' },
