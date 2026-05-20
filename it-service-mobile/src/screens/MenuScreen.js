@@ -53,6 +53,18 @@ export default function MenuScreen({ navigation }) {
           />
           <MenuRow
             theme={theme}
+            icon="cube-outline"
+            label={t('menu.products', 'Ürünler')}
+            onPress={() => navigation.navigate('Products')}
+          />
+          <MenuRow
+            theme={theme}
+            icon="options-outline"
+            label={t('menu.notificationPrefs', 'Bildirim Tercihleri')}
+            onPress={() => navigation.navigate('NotificationPreferences')}
+          />
+          <MenuRow
+            theme={theme}
             icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
             label={mode === 'dark' ? t('menu.lightMode', 'Açık tema') : t('menu.darkMode', 'Koyu tema')}
             onPress={toggle}
