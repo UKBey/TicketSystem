@@ -12,6 +12,20 @@
     "HIGH": "High",
     "CRITICAL": "Critical"
   },
+  "tabs": {
+    "menu": "Menu",
+    "history": "History",
+    "workspace": "Workspace",
+    "pool": "Pool",
+    "team": "Team",
+    "all": "All",
+    "dashboard": "Panel",
+    "myTickets": "My Tickets"
+  },
+  "ticketList": {
+    "error": "Could not load tickets.",
+    "empty": "No tickets."
+  },
   "filters": {
     "clear": "Clear",
     "clearAll": "Clear all",

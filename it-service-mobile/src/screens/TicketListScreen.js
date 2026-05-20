@@ -20,20 +20,15 @@ import {
   priorityLabel,
 } from '../utils/format';
 
-const TABS = [
-  { key: 'active', status: null },
-  { key: 'closed', status: 'CLOSED' },
-];
-
-/** Rol bazlı bilet listesi — aktif / kapalı sekmeleri, çek-yenile, satıra dokun → detay. */
+/** Rol bazlı bilet listesi — çek-yenile, satıra dokun → detay. */
 export default function TicketListScreen({ navigation, route }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
 
-  // Endpoint sekmeden (MainTabs initialParams) gelir; yoksa müşteri varsayılanı.
+  // Endpoint ve status sekmeden (MainTabs initialParams) gelir.
   const endpoint = route.params?.endpoint || '/tickets';
+  const status = route.params?.status;
 
-  const [tab, setTab] = useState('active');
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +40,6 @@ export default function TicketListScreen({ navigation, route }) {
       else setLoading(true);
       setError(null);
       try {
-        const status = TABS.find((x) => x.key === tab)?.status;
         const res = await getTickets({ endpoint, status });
         setTickets(res.data?.content ?? []);
       } catch (e) {
@@ -55,7 +49,7 @@ export default function TicketListScreen({ navigation, route }) {
         setRefreshing(false);
       }
     },
-    [endpoint, tab, t],
+    [endpoint, status, t],
   );
 
   // Ekran her odaklandığında listeyi tazeler (detay/oluşturma sonrası dönüşte güncel kalır).
@@ -98,35 +92,6 @@ export default function TicketListScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bgBody }]}>
-      <View style={[styles.tabs, { borderColor: theme.border }]}>
-        {TABS.map((x) => {
-          const active = tab === x.key;
-          return (
-            <Pressable
-              key={x.key}
-              onPress={() => setTab(x.key)}
-              style={[
-                styles.tab,
-                { borderColor: theme.border },
-                active && { backgroundColor: theme.primary },
-              ]}
-            >
-              <Text
-                style={{
-                  color: active ? theme.onPrimary : theme.textSecondary,
-                  fontWeight: '600',
-                  fontSize: 14,
-                }}
-              >
-                {x.key === 'active'
-                  ? t('ticketList.tabActive', 'Aktif')
-                  : t('ticketList.tabClosed', 'Kapalı')}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
       {loading ? (
         <ActivityIndicator style={styles.center} size="large" color={theme.primary} />
       ) : error ? (
@@ -153,14 +118,6 @@ export default function TicketListScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabs: { flexDirection: 'row', padding: 12, gap: 8 },
-  tab: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
   list: { padding: 12, gap: 10, flexGrow: 1 },
   card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 8 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -12,6 +12,20 @@
     "HIGH": "Yüksek",
     "CRITICAL": "Kritik"
   },
+  "tabs": {
+    "menu": "Menü",
+    "history": "Geçmiş",
+    "workspace": "Çalışma",
+    "pool": "Havuz",
+    "team": "Takım",
+    "all": "Tümü",
+    "dashboard": "Panel",
+    "myTickets": "Biletlerim"
+  },
+  "ticketList": {
+    "error": "Biletler yüklenemedi.",
+    "empty": "Bilet yok."
+  },
   "nav": {
     "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },
     "language": { "label": "Dil", "en": "İngilizce", "tr": "Türkçe" }

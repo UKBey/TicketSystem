@@ -10,29 +10,36 @@ import DashboardScreen from '../screens/DashboardScreen';
 
 const Tab = createBottomTabNavigator();
 
-/** Role göre alt sekme yapılandırması. */
-function tabsForRole(role) {
-  const menu = { name: 'Menu', title: 'Menü', icon: 'menu-outline', menu: true };
+/** Role göre alt sekme yapılandırması. Geçmiş sekmesi kapalı biletleri gösterir. */
+function tabsForRole(role, t) {
+  const menu = { name: 'Menu', title: t('tabs.menu', 'Menü'), icon: 'menu-outline', menu: true };
+  const history = {
+    name: 'History',
+    title: t('tabs.history', 'Geçmiş'),
+    icon: 'time-outline',
+    status: 'CLOSED',
+  };
 
   if (role === 'AGENT' || role === 'AGENT_ADMIN') {
     return [
-      { name: 'Workspace', title: 'Çalışma Alanım', icon: 'briefcase-outline', endpoint: '/tickets/my-assigned' },
-      { name: 'Pool', title: 'Havuz', icon: 'albums-outline', endpoint: '/tickets/pool' },
-      { name: 'Team', title: 'Takım', icon: 'people-outline', endpoint: '/tickets/team' },
-      { name: 'AllTickets', title: 'Tüm Biletler', icon: 'documents-outline', endpoint: '/tickets/all' },
+      { name: 'Workspace', title: t('tabs.workspace', 'Çalışma'), icon: 'briefcase-outline', endpoint: '/tickets/my-assigned' },
+      { name: 'Pool', title: t('tabs.pool', 'Havuz'), icon: 'albums-outline', endpoint: '/tickets/pool' },
+      { name: 'Team', title: t('tabs.team', 'Takım'), icon: 'people-outline', endpoint: '/tickets/team' },
+      { name: 'AllTickets', title: t('tabs.all', 'Tümü'), icon: 'documents-outline', endpoint: '/tickets/all' },
+      { ...history, endpoint: '/tickets/my-assigned' },
       menu,
     ];
   }
   if (role === 'MANAGER') {
     return [
-      { name: 'Dashboard', title: 'Panel', icon: 'stats-chart-outline', dashboard: true },
-      { name: 'AllTickets', title: 'Tüm Biletler', icon: 'documents-outline', endpoint: '/tickets/all' },
+      { name: 'Dashboard', title: t('tabs.dashboard', 'Panel'), icon: 'stats-chart-outline', dashboard: true },
       menu,
     ];
   }
   // CUSTOMER (ve varsayılan)
   return [
-    { name: 'MyTickets', title: 'Biletlerim', icon: 'documents-outline', endpoint: '/tickets' },
+    { name: 'MyTickets', title: t('tabs.myTickets', 'Biletlerim'), icon: 'documents-outline', endpoint: '/tickets', canCreate: true },
+    { ...history, endpoint: '/tickets' },
     menu,
   ];
 }
@@ -42,7 +49,7 @@ export default function MainTabs() {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const { getPrimaryRole } = useAuth();
-  const tabs = tabsForRole(getPrimaryRole());
+  const tabs = tabsForRole(getPrimaryRole(), t);
 
   return (
     <Tab.Navigator
@@ -53,6 +60,7 @@ export default function MainTabs() {
         tabBarStyle: { backgroundColor: theme.bgSurface, borderTopColor: theme.border },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textTertiary,
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
       {tabs.map((tab) => (
@@ -60,14 +68,16 @@ export default function MainTabs() {
           key={tab.name}
           name={tab.name}
           component={tab.menu ? MenuScreen : tab.dashboard ? DashboardScreen : TicketListScreen}
-          initialParams={tab.endpoint ? { endpoint: tab.endpoint } : undefined}
+          initialParams={
+            tab.endpoint ? { endpoint: tab.endpoint, status: tab.status } : undefined
+          }
           options={({ navigation }) => ({
             title: tab.title,
             tabBarLabel: tab.title,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={tab.icon} color={color} size={size} />
             ),
-            headerRight: tab.endpoint
+            headerRight: tab.canCreate
               ? () => (
                   <Pressable
                     onPress={() => navigation.navigate('CreateTicket')}
