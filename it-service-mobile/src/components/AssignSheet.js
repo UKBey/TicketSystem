@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import PickerField from './PickerField';
+import SheetBackdrop from './SheetBackdrop';
 
 /** Bileti bir agent'a atamak için modal — agent seçimi + not. */
 export default function AssignSheet({ visible, agents, busy, onCancel, onConfirm }) {
@@ -28,7 +29,7 @@ export default function AssignSheet({ visible, agents, busy, onCancel, onConfirm
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+      <SheetBackdrop>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             {t('ticketDetail.assignTitle', 'Bileti Ata')}
@@ -72,7 +73,7 @@ export default function AssignSheet({ visible, agents, busy, onCancel, onConfirm
             </Pressable>
           </View>
         </View>
-      </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

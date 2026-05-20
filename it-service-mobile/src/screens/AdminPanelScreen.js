@@ -187,6 +187,8 @@ export default function AdminPanelScreen() {
           keyExtractor={(u) => String(u.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListEmptyComponent={
             <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 32 }}>
               {search ? t('admin.panel.noUsersFiltered', 'Eşleşen kullanıcı yok.') : t('admin.panel.noUsers', 'Kullanıcı bulunamadı.')}

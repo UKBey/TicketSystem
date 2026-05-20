@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import PickerField from './PickerField';
+import SheetBackdrop from './SheetBackdrop';
 
 /**
  * Yeni bir değer (öncelik/konu) + sebep kodu + not seçtiren modal.
@@ -45,7 +46,7 @@ export default function ChangeWithReasonSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+      <SheetBackdrop>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
 
@@ -60,7 +61,7 @@ export default function ChangeWithReasonSheet({
           <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
             {t('reason.label', 'Sebep')}
           </Text>
-          <ScrollView style={{ maxHeight: 200 }}>
+          <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
             {codes.map((c) => {
               const active = code === c;
               return (
@@ -110,7 +111,7 @@ export default function ChangeWithReasonSheet({
             </Pressable>
           </View>
         </View>
-      </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

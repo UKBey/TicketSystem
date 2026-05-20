@@ -22,6 +22,7 @@ import {
   updateUserStatus,
 } from '../api/users';
 import PickerField from '../components/PickerField';
+import SheetBackdrop from '../components/SheetBackdrop';
 
 const EMPTY_FORM = { username: '', email: '', firstName: '', lastName: '', password: '', role: null };
 
@@ -181,6 +182,8 @@ export default function UserManagementScreen() {
           keyExtractor={(u) => String(u.id)}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListEmptyComponent={
             <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 32 }}>
               {t('userManagement.empty', 'Kullanıcı yok.')}
@@ -191,7 +194,7 @@ export default function UserManagementScreen() {
 
       {/* Yeni kullanıcı modalı */}
       <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
-        <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+        <SheetBackdrop>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('userManagement.createUser', 'Yeni Kullanıcı')}
@@ -230,7 +233,7 @@ export default function UserManagementScreen() {
               onConfirm={submitCreate}
             />
           </View>
-        </View>
+        </SheetBackdrop>
       </Modal>
 
       {/* Rol düzenleme modalı */}

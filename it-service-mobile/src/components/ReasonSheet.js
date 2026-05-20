@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import SheetBackdrop from './SheetBackdrop';
 
 /**
  * Sebep kodu + not seçtiren modal — çöz / kapat / unclaim gibi aksiyonlarda kullanılır.
@@ -39,11 +40,11 @@ export default function ReasonSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+      <SheetBackdrop>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
 
-          <ScrollView style={styles.list}>
+          <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
             {codes.map((c) => {
               const active = code === c;
               return (
@@ -99,7 +100,7 @@ export default function ReasonSheet({
             </Pressable>
           </View>
         </View>
-      </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

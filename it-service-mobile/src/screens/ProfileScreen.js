@@ -101,7 +101,11 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: theme.bgBody }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
             {t('profile.info', 'Profil Bilgileri')}

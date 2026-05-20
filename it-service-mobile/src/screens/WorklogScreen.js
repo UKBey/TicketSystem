@@ -87,7 +87,11 @@ export default function WorklogScreen({ route }) {
       style={{ flex: 1, backgroundColor: theme.bgBody }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={[styles.addCard, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
             {t('worklog.add', 'Süre Kaydı Ekle')}

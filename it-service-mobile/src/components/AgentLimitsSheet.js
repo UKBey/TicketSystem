@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { getAgentLimits, setAgentLimit } from '../api/users';
+import SheetBackdrop from './SheetBackdrop';
 
 /**
  * Bir agent'ın ürün bazlı bilet limit override'larını yöneten modal.
@@ -81,7 +82,7 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+      <SheetBackdrop>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             {t('admin.panel.agentLimitsTitle', '{{name}} — Bilet Limitleri', {
@@ -192,7 +193,7 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
             </Text>
           </Pressable>
         </View>
-      </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

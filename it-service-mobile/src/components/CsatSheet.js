@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import SheetBackdrop from './SheetBackdrop';
 
 const CSAT_MAX = 500;
 
@@ -30,7 +31,7 @@ export default function CsatSheet({ visible, busy, onCancel, onConfirm }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+      <SheetBackdrop>
         <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             {t('ticketDetail.csatTitle', 'Memnuniyet Anketi')}
@@ -89,7 +90,7 @@ export default function CsatSheet({ visible, busy, onCancel, onConfirm }) {
             </Pressable>
           </View>
         </View>
-      </View>
+      </SheetBackdrop>
     </Modal>
   );
 }

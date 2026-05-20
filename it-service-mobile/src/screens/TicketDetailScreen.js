@@ -299,6 +299,8 @@ export default function TicketDetailScreen({ route, navigation }) {
     >
       <ScrollView
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.primary} />
         }

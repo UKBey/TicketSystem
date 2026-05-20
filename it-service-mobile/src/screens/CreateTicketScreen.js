@@ -91,7 +91,11 @@ export default function CreateTicketScreen({ navigation }) {
       style={{ flex: 1, backgroundColor: theme.bgBody }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {error && <Text style={[styles.error, { color: theme.danger }]}>{error}</Text>}
 
         <View style={styles.group}>

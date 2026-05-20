@@ -21,6 +21,7 @@ import {
   deleteKnownIssue,
 } from '../api/products';
 import PickerField from '../components/PickerField';
+import SheetBackdrop from '../components/SheetBackdrop';
 
 /** Bilinen sorunlar bilgi tabanı — ürün seç, akordeon liste; admin ekler/siler. */
 export default function KnownIssuesScreen() {
@@ -164,7 +165,7 @@ export default function KnownIssuesScreen() {
       </ScrollView>
 
       <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
-        <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
+        <SheetBackdrop>
           <View style={[styles.sheet, { backgroundColor: theme.bgSurface }]}>
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('knownIssues.add', 'Yeni Sorun Ekle')}
@@ -227,7 +228,7 @@ export default function KnownIssuesScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </SheetBackdrop>
       </Modal>
     </View>
   );
