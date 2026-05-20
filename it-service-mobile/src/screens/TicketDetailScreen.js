@@ -3,13 +3,20 @@ import {
   View,
   Text,
   ScrollView,
+  TextInput,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
-import { getTicket, getComments } from '../api/tickets';
+import { useAuth } from '../auth/AuthContext';
+import { getTicket, getComments, postComment } from '../api/tickets';
 import {
   formatDate,
   statusColor,
@@ -18,17 +25,27 @@ import {
   priorityLabel,
 } from '../utils/format';
 
-/** Bilet detayı — alanlar + yorum listesi. Çek-yenile destekli. */
+const COMMENT_MAX = 500;
+
+/** Bilet detayı — alanlar, yorum listesi ve yorum gönderme. */
 export default function TicketDetailScreen({ route }) {
   const { id } = route.params;
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { hasRole } = useAuth();
+  const headerHeight = useHeaderHeight();
+  const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
 
   const [ticket, setTicket] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  const [message, setMessage] = useState('');
+  const [commentType, setCommentType] = useState('EXTERNAL');
+  const [sending, setSending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -53,6 +70,35 @@ export default function TicketDetailScreen({ route }) {
     load();
   }, [load]);
 
+  const sendComment = async () => {
+    if (!message.trim() || cooldown > 0 || sending) return;
+    setSending(true);
+    try {
+      const res = await postComment(id, {
+        message: message.trim(),
+        type: isAgent ? commentType : 'EXTERNAL',
+      });
+      setComments((prev) =>
+        prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data],
+      );
+      setMessage('');
+      setCooldown(5);
+      const timer = setInterval(() => {
+        setCooldown((p) => {
+          if (p <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return p - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      Alert.alert(t('ticketDetail.sendCommentFailed', 'Yorum gönderilemedi.'));
+    } finally {
+      setSending(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.full, { backgroundColor: theme.bgBody }]}>
@@ -68,69 +114,135 @@ export default function TicketDetailScreen({ route }) {
     );
   }
 
+  const canComment = ticket.status !== 'CLOSED';
+
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.bgBody }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.primary} />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.bgBody }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={headerHeight}
     >
-      <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-        <View style={styles.row}>
-          <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
-          <View style={[styles.badge, { backgroundColor: statusColor(ticket.status) }]}>
-            <Text style={styles.badgeText}>{statusLabel(ticket.status, t)}</Text>
-          </View>
-        </View>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
-        {!!ticket.description && (
-          <Text style={[styles.desc, { color: theme.textSecondary }]}>{ticket.description}</Text>
-        )}
-      </View>
-
-      <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-        <Field label={t('ticketDetail.priority', 'Öncelik')} theme={theme}
-          value={priorityLabel(ticket.priority, t)} valueColor={priorityColor(ticket.priority)} />
-        <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={ticket.productName} />
-        <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={ticket.topicName} />
-        <Field label={t('ticketDetail.customer', 'Müşteri')} theme={theme} value={ticket.customerName} />
-        <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme}
-          value={formatDate(ticket.createdAt)} />
-      </View>
-
-      <Text style={[styles.section, { color: theme.textPrimary }]}>
-        {t('ticketDetail.comments', 'Yorumlar')} ({comments.length})
-      </Text>
-
-      {comments.length === 0 ? (
-        <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 8 }}>
-          {t('ticketDetail.noComments', 'Henüz yorum yok.')}
-        </Text>
-      ) : (
-        comments.map((c) => (
-          <View
-            key={c.id}
-            style={[styles.comment, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}
-          >
-            <View style={styles.row}>
-              <Text style={[styles.cAuthor, { color: theme.textPrimary }]}>
-                {c.authorName || '—'}
-              </Text>
-              <Text style={[styles.cDate, { color: theme.textTertiary }]}>
-                {formatDate(c.createdAt)}
-              </Text>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.primary} />
+        }
+      >
+        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          <View style={styles.row}>
+            <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
+            <View style={[styles.badge, { backgroundColor: statusColor(ticket.status) }]}>
+              <Text style={styles.badgeText}>{statusLabel(ticket.status, t)}</Text>
             </View>
-            {c.type === 'INTERNAL' && (
-              <Text style={[styles.internal, { color: theme.warning }]}>
-                {t('ticketDetail.internal', 'Dahili')}
-              </Text>
-            )}
-            <Text style={[styles.cMsg, { color: theme.textSecondary }]}>{c.message}</Text>
           </View>
-        ))
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
+          {!!ticket.description && (
+            <Text style={[styles.desc, { color: theme.textSecondary }]}>{ticket.description}</Text>
+          )}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          <Field label={t('ticketDetail.priority', 'Öncelik')} theme={theme}
+            value={priorityLabel(ticket.priority, t)} valueColor={priorityColor(ticket.priority)} />
+          <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={ticket.productName} />
+          <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={ticket.topicName} />
+          <Field label={t('ticketDetail.customer', 'Müşteri')} theme={theme} value={ticket.customerName} />
+          <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme}
+            value={formatDate(ticket.createdAt)} />
+        </View>
+
+        <Text style={[styles.section, { color: theme.textPrimary }]}>
+          {t('ticketDetail.comments', 'Yorumlar')} ({comments.length})
+        </Text>
+
+        {comments.length === 0 ? (
+          <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 8 }}>
+            {t('ticketDetail.noComments', 'Henüz yorum yok.')}
+          </Text>
+        ) : (
+          comments.map((c) => (
+            <View
+              key={c.id}
+              style={[styles.comment, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}
+            >
+              <View style={styles.row}>
+                <Text style={[styles.cAuthor, { color: theme.textPrimary }]}>{c.authorName || '—'}</Text>
+                <Text style={[styles.cDate, { color: theme.textTertiary }]}>{formatDate(c.createdAt)}</Text>
+              </View>
+              {c.type === 'INTERNAL' && (
+                <Text style={[styles.internal, { color: theme.warning }]}>
+                  {t('ticketDetail.internal', 'Dahili')}
+                </Text>
+              )}
+              <Text style={[styles.cMsg, { color: theme.textSecondary }]}>{c.message}</Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {canComment && (
+        <View style={[styles.composer, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          {isAgent && (
+            <View style={styles.typeRow}>
+              {[
+                { key: 'EXTERNAL', label: t('ticketDetail.reply', 'Müşteriye yanıt') },
+                { key: 'INTERNAL', label: t('ticketDetail.internalNote', 'Dahili not') },
+              ].map((opt) => {
+                const active = commentType === opt.key;
+                return (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => setCommentType(opt.key)}
+                    style={[
+                      styles.typeChip,
+                      { borderColor: theme.border },
+                      active && { backgroundColor: theme.primary, borderColor: theme.primary },
+                    ]}
+                  >
+                    <Text style={{ color: active ? theme.onPrimary : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+          <View style={styles.inputRow}>
+            <TextInput
+              value={message}
+              onChangeText={setMessage}
+              placeholder={t('ticketDetail.messagePlaceholder', 'Mesaj yaz...')}
+              placeholderTextColor={theme.textTertiary}
+              multiline
+              maxLength={COMMENT_MAX}
+              style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
+            />
+            <Pressable
+              onPress={sendComment}
+              disabled={!message.trim() || cooldown > 0 || sending}
+              style={({ pressed }) => [
+                styles.sendBtn,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: !message.trim() || cooldown > 0 || sending || pressed ? 0.5 : 1,
+                },
+              ]}
+            >
+              {sending ? (
+                <ActivityIndicator color={theme.onPrimary} size="small" />
+              ) : (
+                <Text style={{ color: theme.onPrimary, fontWeight: '700' }}>
+                  {cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send', 'Gönder')}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+          <Text style={[styles.counter, { color: message.length >= COMMENT_MAX ? theme.danger : theme.textTertiary }]}>
+            {message.length}/{COMMENT_MAX}
+          </Text>
+        </View>
       )}
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -138,9 +250,7 @@ function Field({ label, value, theme, valueColor }) {
   return (
     <View style={styles.field}>
       <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{label}</Text>
-      <Text style={[styles.fieldValue, { color: valueColor || theme.textPrimary }]}>
-        {value || '—'}
-      </Text>
+      <Text style={[styles.fieldValue, { color: valueColor || theme.textPrimary }]}>{value || '—'}</Text>
     </View>
   );
 }
@@ -164,4 +274,28 @@ const styles = StyleSheet.create({
   cDate: { fontSize: 11 },
   cMsg: { fontSize: 14, lineHeight: 19 },
   internal: { fontSize: 10, fontWeight: '700' },
+  composer: { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 },
+  typeRow: { flexDirection: 'row', gap: 8 },
+  typeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
+  input: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+    fontSize: 14,
+  },
+  sendBtn: {
+    minWidth: 72,
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  counter: { fontSize: 11, textAlign: 'right' },
 });

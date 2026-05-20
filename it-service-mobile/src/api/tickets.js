@@ -28,3 +28,6 @@ export const getTicket = (id) => api.get(`/tickets/${id}`);
 
 /** Bilete ait yorumlar. */
 export const getComments = (id) => api.get(`/tickets/${id}/comments`);
+
+/** Yeni yorum gönderir. body: { message, type } — type: 'EXTERNAL' | 'INTERNAL'. */
+export const postComment = (id, body) => api.post(`/tickets/${id}/comments`, body);
