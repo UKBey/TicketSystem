@@ -16,6 +16,11 @@ export function setAuthToken(token) {
   authToken = token || null;
 }
 
+/** Geçerli erişim token'ını döner — axios dışı isteklerde (ör. dosya indirme) kullanılır. */
+export function getAuthToken() {
+  return authToken;
+}
+
 export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }

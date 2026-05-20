@@ -13,6 +13,8 @@ import {
   Alert,
 } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../auth/AuthContext';
@@ -39,6 +41,8 @@ import {
   priorityLabel,
 } from '../utils/format';
 import { REASON_CODES } from '../constants/reasonCodes';
+import { getAttachments, uploadAttachment } from '../api/attachments';
+import { downloadAttachment } from '../utils/download';
 import ReasonSheet from '../components/ReasonSheet';
 import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
 import AssignSheet from '../components/AssignSheet';
@@ -56,6 +60,8 @@ export default function TicketDetailScreen({ route, navigation }) {
   const headerHeight = useHeaderHeight();
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
   const isCustomer = hasRole('CUSTOMER');
+  // Ek dosya uçları yalnızca CUSTOMER/AGENT/AGENT_ADMIN'e açık — MANAGER hariç.
+  const canUseAttachments = isAgent || isCustomer;
 
   const [ticket, setTicket] = useState(null);
   const [comments, setComments] = useState([]);
@@ -75,6 +81,9 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState([]);
   const [csatOpen, setCsatOpen] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -85,6 +94,14 @@ export default function TicketDetailScreen({ route, navigation }) {
         const [tRes, cRes] = await Promise.all([getTicket(id), getComments(id)]);
         setTicket(tRes.data);
         setComments(cRes.data ?? []);
+        if (canUseAttachments) {
+          try {
+            const aRes = await getAttachments(id);
+            setAttachments(aRes.data ?? []);
+          } catch {
+            // Ekler kritik değil — bilet yine de gösterilir.
+          }
+        }
       } catch (e) {
         setError(t('ticketDetail.error', 'Bilet yüklenemedi.'));
       } finally {
@@ -92,7 +109,7 @@ export default function TicketDetailScreen({ route, navigation }) {
         setRefreshing(false);
       }
     },
-    [id, t],
+    [id, t, canUseAttachments],
   );
 
   useEffect(() => {
@@ -222,6 +239,38 @@ export default function TicketDetailScreen({ route, navigation }) {
     }
   };
 
+  const pickAndUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets?.[0];
+      if (!file) return;
+      setUploading(true);
+      const res = await uploadAttachment(id, file);
+      setAttachments((prev) =>
+        prev.some((a) => a.id === res.data.id) ? prev : [...prev, res.data],
+      );
+    } catch (e) {
+      Alert.alert(e?.response?.data?.message || t('ticketDetail.uploadFileFailed', 'Dosya yüklenemedi.'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const doDownload = async (att) => {
+    setDownloadingId(att.id);
+    try {
+      await downloadAttachment(att);
+    } catch (e) {
+      Alert.alert(t('ticketDetail.downloadFileFailed', 'Dosya indirilemedi.'));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.full, { backgroundColor: theme.bgBody }]}>
@@ -337,6 +386,59 @@ export default function TicketDetailScreen({ route, navigation }) {
             </Text>
             <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
           </Pressable>
+        )}
+
+        {canUseAttachments && (
+          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+            <View style={styles.row}>
+              <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+                {t('ticketDetail.attachments', 'Ekler')} ({attachments.length})
+              </Text>
+              {canComment && (
+                <Pressable onPress={pickAndUpload} disabled={uploading} hitSlop={6}>
+                  {uploading ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>
+                      + {t('ticketDetail.addFile', 'Dosya Ekle')}
+                    </Text>
+                  )}
+                </Pressable>
+              )}
+            </View>
+            {attachments.length === 0 ? (
+              <Text style={{ color: theme.textTertiary, fontSize: 13 }}>
+                {t('ticketDetail.noAttachments', 'Henüz ek yok.')}
+              </Text>
+            ) : (
+              attachments.map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => doDownload(a)}
+                  disabled={downloadingId === a.id}
+                  style={({ pressed }) => [
+                    styles.attachRow,
+                    { borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <Ionicons name="document-attach-outline" size={22} color={theme.textSecondary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.attachName, { color: theme.textPrimary }]} numberOfLines={1}>
+                      {a.fileName}
+                    </Text>
+                    <Text style={[styles.attachDate, { color: theme.textTertiary }]}>
+                      {formatDate(a.createdAt)}
+                    </Text>
+                  </View>
+                  {downloadingId === a.id ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Ionicons name="download-outline" size={20} color={theme.primary} />
+                  )}
+                </Pressable>
+              ))
+            )}
+          </View>
         )}
 
         {isCustomer && status === 'RESOLVED' && (
@@ -592,4 +694,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   counter: { fontSize: 11, textAlign: 'right' },
+  attachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+  },
+  attachName: { fontSize: 14, fontWeight: '600' },
+  attachDate: { fontSize: 11, marginTop: 2 },
 });
