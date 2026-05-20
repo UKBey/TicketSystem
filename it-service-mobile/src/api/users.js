@@ -55,3 +55,15 @@ export const setAgentLimit = (agentId, productId, useCustomLimit, maxActiveTicke
 /** Agent'ın bir ürün için limit override'ını kaldırır. */
 export const deleteAgentLimit = (agentId, productId) =>
   api.delete(`/agents/${agentId}/limits/${productId}`);
+
+// ---- İki adımlı doğrulama (TOTP) ----
+
+/** Kullanıcının kayıtlı TOTP (authenticator) cihazlarını listeler. */
+export const getTotpDevices = () => api.get('/users/me/2fa');
+
+/** Bir TOTP cihazını kaldırır. */
+export const deleteTotpDevice = (credentialId) =>
+  api.delete(`/users/me/2fa/${credentialId}`);
+
+/** Yeni bir TOTP cihazı eklendiğini backend'e bildirir (bilgilendirme e-postası). */
+export const notifyTotpAdded = () => api.post('/users/me/2fa/notify-added');

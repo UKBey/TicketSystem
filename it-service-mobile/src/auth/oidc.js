@@ -63,6 +63,24 @@ export async function login() {
   );
 }
 
+/**
+ * Keycloak CONFIGURE_TOTP akışını tarayıcıda başlatır — kullanıcı authenticator
+ * cihazını (QR) kurar. Başarıda true döner. Token'lar uygulanmaz; çağıran taraf
+ * yalnızca cihaz listesini tazeler.
+ */
+export async function configureTotp() {
+  const request = new AuthSession.AuthRequest({
+    clientId: KEYCLOAK_CLIENT_ID,
+    redirectUri,
+    scopes: SCOPES,
+    usePKCE: true,
+    extraParams: { kc_action: 'CONFIGURE_TOTP' },
+  });
+  await request.makeAuthUrlAsync(discovery);
+  const result = await request.promptAsync(discovery, { preferEphemeralSession: true });
+  return result.type === 'success';
+}
+
 /** Refresh token ile yeni bir access token alır. */
 export async function refresh(refreshToken) {
   return AuthSession.refreshAsync(

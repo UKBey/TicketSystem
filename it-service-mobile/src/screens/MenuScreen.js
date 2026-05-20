@@ -58,6 +58,12 @@ export default function MenuScreen({ navigation }) {
           />
           <MenuRow
             theme={theme}
+            icon="lock-closed-outline"
+            label={t('menu.twoFactor', 'İki Adımlı Doğrulama')}
+            onPress={() => navigation.navigate('TwoFactor')}
+          />
+          <MenuRow
+            theme={theme}
             icon="cube-outline"
             label={t('menu.products', 'Ürünler')}
             onPress={() => navigation.navigate('Products')}

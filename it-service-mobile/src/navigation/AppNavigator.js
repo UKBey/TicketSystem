@@ -13,6 +13,7 @@ import WorklogScreen from '../screens/WorklogScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
 import TicketListScreen from '../screens/TicketListScreen';
+import TwoFactorScreen from '../screens/TwoFactorScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -92,6 +93,11 @@ export default function AppNavigator() {
         options={({ route }) => ({
           title: route.params?.title || t('products.tickets', 'Ürün Biletleri'),
         })}
+      />
+      <Stack.Screen
+        name="TwoFactor"
+        component={TwoFactorScreen}
+        options={{ title: t('profile.twoFactor', 'İki Adımlı Doğrulama') }}
       />
     </Stack.Navigator>
   );
