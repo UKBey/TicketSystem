@@ -23,6 +23,7 @@ import {
   priorityLabel,
 } from '../utils/format';
 import SheetBackdrop from '../components/SheetBackdrop';
+import SlaBadge from '../components/SlaBadge';
 
 const STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -121,8 +122,11 @@ export default function TicketListScreen({ navigation, route }) {
     >
       <View style={styles.cardTop}>
         <Text style={[styles.cardId, { color: theme.textTertiary }]}>#{item.id}</Text>
-        <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
-          <Text style={styles.badgeText}>{statusLabel(item.status, t)}</Text>
+        <View style={styles.cardTopRight}>
+          <SlaBadge slaInfo={item.slaInfo} />
+          <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
+            <Text style={styles.badgeText}>{statusLabel(item.status, t)}</Text>
+          </View>
         </View>
       </View>
       <Text style={[styles.cardTitle, { color: theme.textPrimary }]} numberOfLines={2}>
@@ -373,7 +377,8 @@ const styles = StyleSheet.create({
   filterBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   list: { padding: 12, paddingTop: 4, gap: 10, flexGrow: 1 },
   card: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 8 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  cardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   cardId: { fontSize: 12, fontWeight: '600' },
   cardTitle: { fontSize: 15, fontWeight: '600' },
   cardMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },

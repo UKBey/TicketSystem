@@ -47,6 +47,7 @@ import ReasonSheet from '../components/ReasonSheet';
 import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
 import AssignSheet from '../components/AssignSheet';
 import CsatSheet from '../components/CsatSheet';
+import SlaBadge from '../components/SlaBadge';
 
 const COMMENT_MAX = 500;
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -308,8 +309,11 @@ export default function TicketDetailScreen({ route, navigation }) {
         <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
           <View style={styles.row}>
             <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
-            <View style={[styles.badge, { backgroundColor: statusColor(status) }]}>
-              <Text style={styles.badgeText}>{statusLabel(status, t)}</Text>
+            <View style={styles.headerBadges}>
+              <SlaBadge slaInfo={ticket.slaInfo} />
+              <View style={[styles.badge, { backgroundColor: statusColor(status) }]}>
+                <Text style={styles.badgeText}>{statusLabel(status, t)}</Text>
+              </View>
             </View>
           </View>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
@@ -660,6 +664,7 @@ const styles = StyleSheet.create({
   desc: { fontSize: 14, lineHeight: 20 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  headerBadges: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   field: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
   fieldLabel: { fontSize: 13 },
   fieldValue: { fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
