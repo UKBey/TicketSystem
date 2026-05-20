@@ -13,6 +13,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -65,6 +66,17 @@ const AUDIT_KEYS = {
 
 const humanize = (s) => String(s || '—').replace(/_/g, ' ');
 
+/** Eklenebilir listeyi id'ye göre birleştirir; yeni öğe yoksa aynı referansı döner. */
+function mergeById(prev, incoming) {
+  let changed = false;
+  const byId = new Map(prev.map((x) => [x.id, x]));
+  (incoming || []).forEach((x) => {
+    if (!byId.has(x.id)) changed = true;
+    byId.set(x.id, x);
+  });
+  return changed ? Array.from(byId.values()) : prev;
+}
+
 /** Bilet detayı — bilgi/aksiyonlar + sabit boyutlu sohbet paneli + denetim geçmişi. */
 export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -100,7 +112,6 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [auditOpen, setAuditOpen] = useState(false);
 
   const chatRef = useRef(null);
-  const shouldScroll = useRef(true);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -119,7 +130,6 @@ export default function TicketDetailScreen({ route, navigation }) {
             // Ekler kritik değil.
           }
         }
-        shouldScroll.current = true;
       } catch (e) {
         setError(t('ticketDetail.error', 'Bilet yüklenemedi.'));
       } finally {
@@ -137,20 +147,35 @@ export default function TicketDetailScreen({ route, navigation }) {
   // Gerçek zamanlı: yorum/ek/güncelleme WebSocket üzerinden anlık gelir.
   useTicketWebSocket(id, {
     includeInternal: isAgent,
-    onComment: (c) => {
-      setComments((prev) => (prev.some((x) => x.id === c.id) ? prev : [...prev, c]));
-      shouldScroll.current = true;
-    },
-    onAttachment: (a) => {
-      setAttachments((prev) => (prev.some((x) => x.id === a.id) ? prev : [...prev, a]));
-      shouldScroll.current = true;
-    },
+    onComment: (c) => setComments((prev) => mergeById(prev, [c])),
+    onAttachment: (a) => setAttachments((prev) => mergeById(prev, [a])),
     onTicketUpdated: () => {
       getTicket(id)
         .then((r) => setTicket(r.data))
         .catch(() => {});
     },
   });
+
+  // Yedek "anlık" mekanizma: ekran açıkken yorum/ekleri 3 sn'de bir sessizce
+  // tazeler — WebSocket bağlanamasa bile yeni mesajlar yenilemeden görünür.
+  useFocusEffect(
+    useCallback(() => {
+      const poll = async () => {
+        try {
+          const cRes = await getComments(id);
+          setComments((prev) => mergeById(prev, cRes.data ?? []));
+          if (canUseAttachments) {
+            const aRes = await getAttachments(id);
+            setAttachments((prev) => mergeById(prev, aRes.data ?? []));
+          }
+        } catch {
+          // sessiz — bir sonraki tur yeniden dener
+        }
+      };
+      const interval = setInterval(poll, 3000);
+      return () => clearInterval(interval);
+    }, [id, canUseAttachments]),
+  );
 
   // Yorum + ekler tek bir kronolojik sohbet akışında birleşir.
   const timeline = useMemo(() => {
@@ -170,9 +195,8 @@ export default function TicketDetailScreen({ route, navigation }) {
         message: message.trim(),
         type: isAgent ? commentType : 'EXTERNAL',
       });
-      setComments((prev) => (prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data]));
+      setComments((prev) => mergeById(prev, [res.data]));
       setMessage('');
-      shouldScroll.current = true;
       setCooldown(5);
       const timer = setInterval(() => {
         setCooldown((p) => {
@@ -292,8 +316,7 @@ export default function TicketDetailScreen({ route, navigation }) {
       if (!file) return;
       setUploading(true);
       const res = await uploadAttachment(id, file);
-      setAttachments((prev) => (prev.some((a) => a.id === res.data.id) ? prev : [...prev, res.data]));
-      shouldScroll.current = true;
+      setAttachments((prev) => mergeById(prev, [res.data]));
     } catch (e) {
       Alert.alert(e?.response?.data?.message || t('ticketDetail.uploadFileFailed', 'Dosya yüklenemedi.'));
     } finally {
@@ -563,12 +586,7 @@ export default function TicketDetailScreen({ route, navigation }) {
             contentContainerStyle={styles.chatContent}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
-            onContentSizeChange={() => {
-              if (shouldScroll.current) {
-                chatRef.current?.scrollToEnd({ animated: false });
-                shouldScroll.current = false;
-              }
-            }}
+            onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: false })}
           >
             {timeline.length === 0 ? (
               <Text style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 16 }}>
