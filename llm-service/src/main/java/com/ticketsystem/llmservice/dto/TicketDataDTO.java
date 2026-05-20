@@ -21,6 +21,7 @@ public class TicketDataDTO {
     private String status;
     private String priority;
     private String productName;
+    private String topicName;
     private String customerName;
     private Boolean slaBreached;
     private ZonedDateTime slaDeadline;
@@ -75,5 +76,18 @@ public class TicketDataDTO {
         private String previousState;
         private String newState;
         private ZonedDateTime createdAt;
+    }
+
+    /**
+     * Biletin ürün/konusuna bağlı "sıkça karşılaşılan sorun" kaydı.
+     * LLM, biletteki sorunu bu kayıtlarla karşılaştırıp eşleşme varsa belirtir.
+     */
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class KnownIssueInfo {
+        private Long id;
+        private Long topicId;
+        private String title;
+        private String content;
     }
 }

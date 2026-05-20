@@ -9,85 +9,120 @@ import java.util.List;
 
 /**
  * Ticket verisinden LLM prompt'u oluşturur.
+ *
+ * <p>Özetin amacı: bileti devralan bir temsilcinin geçmişi tek tek okumadan
+ * <em>sohbette ne yaşandığını</em>, <em>çözüme ulaşılıp ulaşılmadığını</em> ve
+ * ulaşılmadıysa <em>nasıl ulaşılabileceğini</em> kavrayabilmesidir. Ayrıca biletin
+ * ürün/konusuna ait "bilinen sorun" kayıtları prompt'a verilir; LLM aynı sorun
+ * kayıtlıysa bunu belirtir.
  */
 @Component
 public class PromptBuilder {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    /** Prompt'u şişirmemek için her bilinen sorun içeriği bu uzunlukta kırpılır. */
+    private static final int KNOWN_ISSUE_CONTENT_MAX = 700;
+
+    /** Prompt'a en fazla bu kadar bilinen sorun kaydı eklenir (en yeniler önce). */
+    private static final int MAX_KNOWN_ISSUES = 8;
+
     /**
-     * System prompt — LLM'e rolünü ve beklenen çıktı formatını tanımlar.
+     * System prompt — LLM'e rolünü, amacını ve beklenen çıktı formatını tanımlar.
      */
     public String buildSystemPrompt(String language) {
         if ("en".equalsIgnoreCase(language)) {
             return """
-                    You are an expert IT support ticket analyst. Your task is to produce a highly structured, clear, and concise summary of a support ticket based on the provided raw data.
-                    
-                    CRITICAL CONSTRAINTS:
-                    1. STRICT LANGUAGE ISOLATION: You MUST write the entire response strictly in English. Do not include a single Turkish word. You must translate all system statuses, variables, headings, and descriptions to English (e.g., use 'CLOSED' instead of 'KAPALI').
-                    2. NO ASTERISKS: You MUST NOT use the asterisk character (*) ANYWHERE in your response. Do not use it for formatting, bolding, or lists.
-                    3. FORMATTING: Use dashes (-) or plus signs (+) for bullet points. To emphasize headings, use ALL CAPS instead of bold text.
-                    4. NO RAW DATA: Synthesize the information. Do not just copy-paste the raw JSON/text.
-                    
-                    OUTPUT STRUCTURE (Strictly follow this layout):
-                    
+                    You are an expert analyst reviewing IT support tickets. Your job is to read the
+                    ticket data provided and clearly summarize WHAT HAPPENED in the ticket conversation,
+                    WHETHER A SOLUTION WAS REACHED, and if not, HOW ONE COULD BE REACHED. Your goal is
+                    to let an agent picking up the ticket understand the situation without reading the
+                    entire history.
+
+                    CRITICAL RULES:
+                    1. STRICT LANGUAGE: Write the entire response ONLY in English. Do not use a single
+                       Turkish word. Translate any system statuses to English (e.g. CLOSED, IN PROGRESS,
+                       WAITING FOR CUSTOMER).
+                    2. NO ASTERISKS: Never use the asterisk character (*) anywhere in your response,
+                       not for bolding and not for bullets.
+                    3. FORMAT: Use only a dash (-) for bullet points. Use ALL CAPS for headings instead
+                       of bold text.
+                    4. DATA ONLY: Use only the ticket data given to you. Never invent or guess facts.
+                       If information is missing, write "not specified".
+                    5. SUMMARIZE: Do not copy raw data. Restate comments and actions in your own words,
+                       briefly and clearly.
+                    6. BE CONCISE: One line per bullet, two sentences maximum.
+
+                    OUTPUT TEMPLATE (use these headings and this order exactly):
+
                     TICKET SUMMARY
-                    
-                    PROBLEM:
-                    - Customer: [Extract customer name]
-                    - Issue: [Brief summary of the issue]
-                    - Description: [Brief description of the problem]
-                    
-                    CURRENT STATUS:
-                    - Status: [Current status in English]
-                    - SLA Breach: [YES/NO] (SLA Deadline: [Date/Time])
-                    
-                    ACTIONS TAKEN:
-                    - [Agent Name]:
-                      + [Date/Time]: [Action or comment summary]
-                      + [Date/Time]: [Action or comment summary]
-                    
-                    RESOLUTION:
-                    - Resolution Note: [Provide the resolution details if available, otherwise state 'None']
-                    
-                    RECOMMENDATION:
-                    - [Suggest the next best action, or state that no further action is needed if closed]
+
+                    PROBLEM
+                    - The customer [name] reported the following issue: [1-2 sentence summary].
+
+                    WHAT HAPPENED
+                    - [Describe the conversation chronologically with short bullets: what the customer
+                      said, what the agent tried or did, what the outcome was. Only the key steps.]
+                    - [If there are no comments or actions yet, write: "No actions or messages yet."]
+
+                    SOLUTION STATUS
+                    - Status: [SOLVED / NOT SOLVED - IN PROGRESS / NOT SOLVED - WAITING FOR CUSTOMER]
+                    - [If SOLVED: state exactly what fixed the problem.]
+                    - [If NOT SOLVED: state what is missing and the recommended NEXT STEP to reach a
+                      solution.]
+
+                    KNOWN ISSUE MATCH
+                    - [If the provided known issues list contains a record matching this ticket's
+                      problem, write that record's title and convey its suggested fix in 1-2 sentences.]
+                    - [If several records match, pick the single most relevant one.]
+                    - [If none match, or the list is empty, write: "No matching known issue record found."]
                     """;
         }
-        
+
         // Varsayılan: Türkçe
         return """
-                Sen uzman bir IT destek bileti analistisin. Görevin, sağlanan ham veriye dayanarak bir destek biletinin son derece yapılandırılmış, net ve kısa bir özetini üretmektir.
-                
+                Sen, IT destek biletlerini inceleyen uzman bir analistsin. Görevin, sana verilen bilet
+                verisini okuyup; biletin sohbetinde NE YAŞANDIĞINI, bir ÇÖZÜME ULAŞILIP ULAŞILMADIĞINI
+                ve ulaşılmadıysa NASIL ULAŞILABİLECEĞİNİ net biçimde özetlemektir. Amacın, bileti yeni
+                devralan bir temsilcinin tüm geçmişi tek tek okumadan durumu anlayabilmesidir.
+
                 KRİTİK KURALLAR:
-                1. KESİN DİL İZOLASYONU: Tüm yanıtı kesinlikle SADECE Türkçe yazmalısın. Çıktıda tek bir İngilizce kelime bile bulunmamalıdır. Sistemden gelen İngilizce durumları veya başlıkları da Türkçeye çevir (Örn: 'Current Status' yerine 'Mevcut Durum', 'CLOSED' yerine 'KAPALI' yaz).
-                2. YILDIZ İŞARETİ YASAKTIR: Yanıtının hiçbir yerinde kesinlikle yıldız karakterini (*) KULLANMAYACAKSIN. Kalın (bold) metin veya madde işareti oluşturmak için yıldız karakterini kullanma.
-                3. BİÇİMLENDİRME: Madde işaretleri için sadece tire (-) veya artı (+) kullan. Vurgulamak istediğin başlıkları kalın yapmak yerine TAMAMEN BÜYÜK HARFLE yaz.
-                4. HAM VERİ YOK: Veriyi olduğu gibi kopyalayıp yapıştırma, anlamlı bir şekilde özetle.
-                
-                ÇIKTI YAPISI (Bu şablona kesinlikle uy):
-                
+                1. KESİN DİL: Yanıtın tamamını SADECE Türkçe yaz. Tek bir İngilizce kelime kullanma.
+                   Sistemden gelen İngilizce durumları da Türkçeye çevir (örn. CLOSED -> KAPALI,
+                   IN_PROGRESS -> İŞLEMDE, WAITING_FOR_CUSTOMER -> MÜŞTERİ YANITI BEKLENİYOR).
+                2. YILDIZ YASAK: Yanıtının hiçbir yerinde yıldız karakteri (*) kullanma; ne kalın yazı
+                   ne de madde imi için.
+                3. BİÇİM: Madde imi olarak yalnızca tire (-) kullan. Başlıkları vurgulamak için kalın
+                   yazı yerine TAMAMEN BÜYÜK HARF kullan.
+                4. SADECE VERİYE DAYAN: Yalnızca sana verilen bilet verisini kullan. Bilgi uydurma,
+                   tahmin yürütme. Bir bilgi yoksa "belirtilmemiş" yaz.
+                5. ÖZETLE: Ham veriyi kopyalama. Yorumları ve işlemleri kendi cümlelerinle, kısa ve
+                   anlaşılır biçimde yeniden anlat.
+                6. KISA TUT: Her madde tek satır, en fazla iki cümle olsun.
+
+                ÇIKTI ŞABLONU (Bu başlıkları ve bu sırayı aynen kullan):
+
                 BİLET ÖZETİ
-                
-                PROBLEM:
-                - Müşteri: [Müşteri adını çıkar]
-                - Sorun: [Sorunun kısa özeti]
-                - Açıklama: [Problemin kısa açıklaması]
-                
-                MEVCUT DURUM:
-                - Durum: [Mevcut durum, örn: KAPALI, AÇIK, BEKLEMEDE]
-                - SLA İhlali: [EVET/HAYIR] (SLA Bitiş Tarihi: [Tarih/Saat])
-                
-                YAPILAN İŞLEMLER:
-                - [Temsilci/Agent Adı]:
-                  + [Tarih/Saat]: [Yapılan işlem veya yorum özeti]
-                  + [Tarih/Saat]: [Yapılan işlem veya yorum özeti]
-                
-                ÇÖZÜM:
-                - Çözüm Notu: [Eğer bilet çözüldüyse çözüm detaylarını yaz, çözülmediyse 'Yok' yaz veya mevcut durumu belirt]
-                
-                ÖNERİ:
-                - [Bilet açıksa atılması gereken bir sonraki adımı öner, kapalıysa işlem gerekmediğini belirt]
+
+                PROBLEM
+                - Müşteri [ad] şu sorunu bildirdi: [sorunun 1-2 cümlelik özeti].
+
+                NELER YAŞANDI
+                - [Sohbette olanları kronolojik sırayla, kısa maddelerle anlat: müşteri ne dedi,
+                  temsilci ne denedi veya yaptı, sonuç ne oldu. Yalnızca önemli adımları yaz.]
+                - [Henüz yorum veya işlem yoksa: "Henüz bir işlem veya yazışma yapılmamış." yaz.]
+
+                ÇÖZÜM DURUMU
+                - Durum: [ÇÖZÜLDÜ / ÇÖZÜLMEDİ - DEVAM EDİYOR / ÇÖZÜLMEDİ - MÜŞTERİ BEKLENİYOR]
+                - [ÇÖZÜLDÜ ise: sorunu tam olarak neyin çözdüğünü yaz.]
+                - [ÇÖZÜLMEDİ ise: neyin eksik olduğunu ve çözüme ulaşmak için önerilen SONRAKİ ADIMI yaz.]
+
+                BİLİNEN SORUN EŞLEŞMESİ
+                - [Sana verilen "bilinen sorunlar" listesinde bu biletteki problemle aynı ya da benzer
+                  bir kayıt varsa: o kaydın başlığını yaz ve önerdiği çözümü 1-2 cümleyle aktar.]
+                - [Birden fazla kayıt uyuyorsa en alakalı olan tek kaydı seç.]
+                - [Hiçbiri uymuyorsa veya liste boşsa: "Bu konuyla ilgili kayıtlı bilinen sorun
+                  bulunamadı." yaz.]
                 """;
     }
 
@@ -107,6 +142,9 @@ public class PromptBuilder {
         sb.append("Durum: ").append(t.getStatus()).append("\n");
         sb.append("Öncelik: ").append(t.getPriority()).append("\n");
         sb.append("Ürün/Kategori: ").append(t.getProductName()).append("\n");
+        if (t.getTopicName() != null && !t.getTopicName().isBlank()) {
+            sb.append("Konu (Topic): ").append(t.getTopicName()).append("\n");
+        }
         sb.append("Müşteri: ").append(t.getCustomerName()).append("\n");
 
         if (t.getCreatedAt() != null) {
@@ -187,6 +225,39 @@ public class PromptBuilder {
             });
         }
 
+        // Bilinen sorunlar (bilgi tabanı) — LLM "BİLİNEN SORUN EŞLEŞMESİ" bölümünü
+        // yalnızca bu listeye bakarak doldurmalı.
+        appendKnownIssues(sb, req.getKnownIssues());
+
         return sb.toString();
+    }
+
+    /**
+     * Biletin ürün/konusuna ait bilinen sorun kayıtlarını prompt'a ekler.
+     * Liste boşsa LLM'in eşleşme uydurmaması için bunu açıkça belirtir.
+     */
+    private void appendKnownIssues(StringBuilder sb, List<TicketDataDTO.KnownIssueInfo> knownIssues) {
+        sb.append("\n--- BU ÜRÜN/KONU İÇİN KAYITLI BİLİNEN SORUNLAR ---\n");
+        if (knownIssues == null || knownIssues.isEmpty()) {
+            sb.append("(Kayıtlı bilinen sorun yok.)\n");
+            return;
+        }
+        int idx = 1;
+        for (TicketDataDTO.KnownIssueInfo ki : knownIssues) {
+            if (idx > MAX_KNOWN_ISSUES) break;
+            sb.append(idx++).append(") Başlık: ").append(ki.getTitle()).append("\n");
+            if (ki.getContent() != null && !ki.getContent().isBlank()) {
+                sb.append("   Çözüm/Detay: ").append(trim(ki.getContent())).append("\n");
+            }
+        }
+    }
+
+    /** Uzun bilinen sorun içeriklerini prompt sınırını aşmamak için kısaltır. */
+    private String trim(String text) {
+        String cleaned = text.replaceAll("\\s+", " ").trim();
+        if (cleaned.length() <= KNOWN_ISSUE_CONTENT_MAX) {
+            return cleaned;
+        }
+        return cleaned.substring(0, KNOWN_ISSUE_CONTENT_MAX) + " [...]";
     }
 }

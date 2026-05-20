@@ -29,6 +29,9 @@ public class SummarizeRequestDTO {
     /** Çözüm notu (varsa) */
     private TicketDataDTO.ResolutionNoteInfo resolutionNote;
 
+    /** Biletin ürün/konusuna ait sıkça karşılaşılan sorunlar (bilgi tabanı kayıtları) */
+    private List<TicketDataDTO.KnownIssueInfo> knownIssues;
+
     /** Özet dili: "tr" veya "en" (varsayılan: "tr") */
     private String language = "tr";
 }

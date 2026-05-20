@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
+import com.ticketsystem.it_service_backend.dto.KnownIssueDTO;
 import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
@@ -8,6 +9,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
+import com.ticketsystem.it_service_backend.repository.KnownIssueRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -44,6 +46,7 @@ public class InternalTicketController {
     private final TicketClaimRepository ticketClaimRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final KnownIssueRepository knownIssueRepository;
 
     /**
      * LLM servisi için bir ticket'ın tüm verisini tek seferde döner.
@@ -97,10 +100,23 @@ public class InternalTicketController {
                 .map(WorklogResponseDTO::fromEntity)
                 .collect(Collectors.toList());
 
+        // LLM özetinin "bilinen sorun eşleşmesi" yapabilmesi için bilet konusuna
+        // ilişkin kayıtları da gönderiyoruz: bilete özel topic kayıtları + ürün
+        // genelindeki (topic'siz) kayıtlar. Yalnızca aktif olanlar dahil edilir.
+        List<KnownIssueDTO> knownIssues = ticket.getProductId() != null
+                ? knownIssueRepository
+                        .findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(ticket.getProductId()).stream()
+                        .filter(ki -> ki.getTopicId() == null
+                                || ki.getTopicId().equals(ticket.getTopicId()))
+                        .map(KnownIssueDTO::fromEntity)
+                        .collect(Collectors.toList())
+                : List.of();
+
         Map<String, Object> response = Map.of(
                 "ticket", ticketDTO,
                 "comments", comments,
-                "worklogs", worklogs
+                "worklogs", worklogs,
+                "knownIssues", knownIssues
         );
 
         return ResponseEntity.ok(response);

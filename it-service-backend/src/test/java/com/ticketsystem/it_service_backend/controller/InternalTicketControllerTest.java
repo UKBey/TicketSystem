@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.KnownIssue;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
@@ -9,6 +10,7 @@ import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
+import com.ticketsystem.it_service_backend.repository.KnownIssueRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -42,6 +44,7 @@ class InternalTicketControllerTest {
     @Mock private TicketClaimRepository ticketClaimRepository;
     @Mock private UserRepository userRepository;
     @Mock private ProductRepository productRepository;
+    @Mock private KnownIssueRepository knownIssueRepository;
 
     @InjectMocks private InternalTicketController controller;
 
@@ -94,11 +97,26 @@ class InternalTicketControllerTest {
                 .id(1L).ticketId(ticketId).agentId("agent-1").minutes(30).description("debug").build();
         when(worklogRepository.findByTicketId(ticketId)).thenReturn(List.of(worklog));
 
+        // Bilet ürün 10 / topic 5'e ait: topic-5 + ürün geneli (topic'siz) dahil edilmeli,
+        // başka bir topic'e ait kayıt (topic 999) elenmelidir.
+        KnownIssue topicIssue = KnownIssue.builder()
+                .id(1L).productId(10L).topicId(5L).title("Auth token expires")
+                .content("Re-issue the token").isActive(true).build();
+        KnownIssue productWideIssue = KnownIssue.builder()
+                .id(2L).productId(10L).topicId(null).title("CRM is slow")
+                .content("Clear the cache").isActive(true).build();
+        KnownIssue otherTopicIssue = KnownIssue.builder()
+                .id(3L).productId(10L).topicId(999L).title("Unrelated")
+                .content("n/a").isActive(true).build();
+        when(knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(10L))
+                .thenReturn(List.of(topicIssue, productWideIssue, otherTopicIssue));
+
         ResponseEntity<Map<String, Object>> response = controller.getFullTicketData(ticketId);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         Map<String, Object> body = response.getBody();
-        assertThat(body).containsKeys("ticket", "comments", "worklogs");
+        assertThat(body).containsKeys("ticket", "comments", "worklogs", "knownIssues");
+        assertThat((List<?>) body.get("knownIssues")).hasSize(2);
 
         TicketResponseDTO dto = (TicketResponseDTO) body.get("ticket");
         assertThat(dto.getId()).isEqualTo(ticketId);
@@ -127,6 +145,7 @@ class InternalTicketControllerTest {
         when(commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId)).thenReturn(List.of());
         when(worklogRepository.findByTicketId(ticketId)).thenReturn(List.of());
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of());
+        when(knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(99L)).thenReturn(List.of());
 
         ResponseEntity<Map<String, Object>> response = controller.getFullTicketData(ticketId);
 
@@ -180,6 +199,7 @@ class InternalTicketControllerTest {
         when(commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId)).thenReturn(List.of());
         when(worklogRepository.findByTicketId(ticketId)).thenReturn(List.of());
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of());
+        when(knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(10L)).thenReturn(List.of());
 
         ResponseEntity<Map<String, Object>> response = controller.getFullTicketData(ticketId);
 

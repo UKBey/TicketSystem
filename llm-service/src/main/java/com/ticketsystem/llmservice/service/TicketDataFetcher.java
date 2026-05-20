@@ -66,10 +66,14 @@ public class TicketDataFetcher {
         // Çözüm notu
         req.setResolutionNote(parseResolutionNote(root.get("resolutionNote")));
 
-        log.info("Ticket verisi başarıyla çekildi. TicketId: {}, Yorum: {}, Worklog: {}",
+        // Bilinen sorunlar (bilgi tabanı kayıtları)
+        req.setKnownIssues(parseKnownIssues(root.get("knownIssues")));
+
+        log.info("Ticket verisi başarıyla çekildi. TicketId: {}, Yorum: {}, Worklog: {}, Bilinen sorun: {}",
                 ticketId,
                 req.getComments() != null ? req.getComments().size() : 0,
-                req.getWorklogs() != null ? req.getWorklogs().size() : 0);
+                req.getWorklogs() != null ? req.getWorklogs().size() : 0,
+                req.getKnownIssues() != null ? req.getKnownIssues().size() : 0);
 
         return req;
     }
@@ -83,6 +87,7 @@ public class TicketDataFetcher {
         t.setStatus(strVal(node, "status"));
         t.setPriority(strVal(node, "priority"));
         t.setProductName(strVal(node, "productName"));
+        t.setTopicName(strVal(node, "topicName"));
         t.setCustomerName(strVal(node, "customerName"));
         t.setSlaBreached(boolVal(node, "slaBreached"));
         t.setSlaDeadline(dateVal(node, "slaDeadline"));
@@ -147,6 +152,20 @@ public class TicketDataFetcher {
             wi.setDescription(strVal(w, "description"));
             wi.setCreatedAt(dateVal(w, "createdAt"));
             list.add(wi);
+        }
+        return list;
+    }
+
+    private List<TicketDataDTO.KnownIssueInfo> parseKnownIssues(JsonNode node) {
+        List<TicketDataDTO.KnownIssueInfo> list = new ArrayList<>();
+        if (node == null || !node.isArray()) return list;
+        for (JsonNode k : node) {
+            TicketDataDTO.KnownIssueInfo ki = new TicketDataDTO.KnownIssueInfo();
+            ki.setId(longVal(k, "id"));
+            ki.setTopicId(longVal(k, "topicId"));
+            ki.setTitle(strVal(k, "title"));
+            ki.setContent(strVal(k, "content"));
+            list.add(ki);
         }
         return list;
     }
