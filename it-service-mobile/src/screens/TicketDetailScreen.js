@@ -218,6 +218,10 @@ export default function TicketDetailScreen({ route }) {
                   label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
               )}
               {status === 'RESOLVED' && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                  label={t('ticketDetail.reopen', 'Yeniden Aç')} />
+              )}
+              {status === 'RESOLVED' && (
                 <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
                   label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
               )}
