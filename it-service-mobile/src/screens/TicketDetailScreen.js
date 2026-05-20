@@ -89,7 +89,7 @@ export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const headerHeight = useHeaderHeight();
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
   const isCustomer = hasRole('CUSTOMER');
@@ -365,7 +365,9 @@ export default function TicketDetailScreen({ route, navigation }) {
 
   const status = ticket.status;
   const canComment = status !== 'CLOSED';
-  const claimed = (ticket.claimers?.length ?? 0) > 0;
+  // Mevcut agent bu bileti üstlenmiş mi? (claimers listesinde kendi agentId'si var mı)
+  const iClaimed = (ticket.claimers ?? []).some((c) => c.agentId === user?.id);
+  const noClaimer = (ticket.claimers?.length ?? 0) === 0;
   const showActions = isAgent && status !== 'CLOSED';
   const auditLogs = ticket.auditLogs ?? [];
 
@@ -414,41 +416,54 @@ export default function TicketDetailScreen({ route, navigation }) {
               {t('ticketDetail.actions', 'İşlemler')}
             </Text>
             <View style={styles.actionRow}>
-              {!claimed && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={doClaim}
-                  label={t('ticketDetail.claim', 'Üstlen')} />
-              )}
-              {claimed && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
-                  label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
-              )}
-              {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
-                  label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
-              )}
-              {status === 'IN_PROGRESS' && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
-                  label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
-              )}
-              {status !== 'RESOLVED' && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
-                  label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
-              )}
-              {status === 'RESOLVED' && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
-                  label={t('ticketDetail.reopen', 'Yeniden Aç')} />
-              )}
-              {status === 'RESOLVED' && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
-                  label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
-              )}
-              <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('PRIORITY')}
-                label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
-              <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
-                label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
-              {hasRole('AGENT_ADMIN') && (
-                <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
-                  label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+              {!iClaimed ? (
+                <>
+                  {/* Üstlenmemiş agent — yalnızca Üstlen/Katıl ve (admin ise) Ata. */}
+                  <ActionBtn
+                    theme={theme}
+                    busy={actionBusy}
+                    onPress={doClaim}
+                    label={noClaimer ? t('ticketDetail.claim', 'Üstlen') : t('ticketDetail.join', 'Katıl')}
+                    color={noClaimer ? theme.primary : theme.success}
+                  />
+                  {hasRole('AGENT_ADMIN') && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
+                      label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+                  )}
+                </>
+              ) : (
+                <>
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
+                    label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
+                  {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                      label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
+                  )}
+                  {status === 'IN_PROGRESS' && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
+                      label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
+                  )}
+                  {status !== 'RESOLVED' && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
+                      label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
+                  )}
+                  {status === 'RESOLVED' && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                      label={t('ticketDetail.reopen', 'Yeniden Aç')} />
+                  )}
+                  {status === 'RESOLVED' && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
+                      label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
+                  )}
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('PRIORITY')}
+                    label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
+                    label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
+                  {hasRole('AGENT_ADMIN') && (
+                    <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
+                      label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+                  )}
+                </>
               )}
             </View>
           </View>
