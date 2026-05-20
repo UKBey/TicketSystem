@@ -14,7 +14,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bgBody }]}>
+    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: theme.bgBody }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.greeting, { color: theme.textPrimary }]}>
           {t('home.welcome', 'Hoş geldin')}, {user?.name || user?.username}

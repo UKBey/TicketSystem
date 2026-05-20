@@ -1,0 +1,30 @@
+import api from './client';
+
+/**
+ * Sayfalı bilet listesi. Backend yanıtı: { content, totalPages, totalElements }.
+ * endpoint role'e göre değişir (customer: /tickets, agent: /tickets/all).
+ */
+export function getTickets({
+  endpoint = '/tickets',
+  page = 0,
+  size = 20,
+  sortBy = 'createdAt',
+  sortDir = 'desc',
+  status,
+} = {}) {
+  const qs = new URLSearchParams();
+  qs.set('page', String(page));
+  qs.set('size', String(size));
+  qs.set('sortBy', sortBy);
+  qs.set('sortDir', sortDir);
+  if (status) {
+    (Array.isArray(status) ? status : [status]).forEach((s) => qs.append('status', s));
+  }
+  return api.get(`${endpoint}?${qs.toString()}`);
+}
+
+/** Tek bilet detayı. */
+export const getTicket = (id) => api.get(`/tickets/${id}`);
+
+/** Bilete ait yorumlar. */
+export const getComments = (id) => api.get(`/tickets/${id}/comments`);

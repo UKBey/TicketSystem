@@ -4,14 +4,11 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
+import AppNavigator from './AppNavigator';
 
-const Stack = createNativeStackNavigator();
+const AuthStack = createNativeStackNavigator();
 
-/**
- * Kök navigasyon — oturum durumuna göre Login veya uygulama ekranlarını gösterir.
- * Rol bazlı navigation sonraki fazda HomeScreen'in yerine gelecek.
- */
+/** Kök navigasyon — oturum durumuna göre Login veya uygulama ekranlarını gösterir. */
 export default function RootNavigator() {
   const { loading, authenticated } = useAuth();
   const { theme } = useTheme();
@@ -26,13 +23,13 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {authenticated ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        )}
-      </Stack.Navigator>
+      {authenticated ? (
+        <AppNavigator />
+      ) : (
+        <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+          <AuthStack.Screen name="Login" component={LoginScreen} />
+        </AuthStack.Navigator>
+      )}
     </NavigationContainer>
   );
 }
