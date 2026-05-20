@@ -24,7 +24,10 @@ import {
   changeStatus,
   closeTicket,
   unclaimTicket,
+  changePriority,
+  changeTopic,
 } from '../api/tickets';
+import { getProductTopics } from '../api/products';
 import {
   formatDate,
   statusColor,
@@ -34,8 +37,10 @@ import {
 } from '../utils/format';
 import { REASON_CODES } from '../constants/reasonCodes';
 import ReasonSheet from '../components/ReasonSheet';
+import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
 
 const COMMENT_MAX = 500;
+const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 /** Bilet detayı — alanlar, aksiyonlar, yorum listesi ve yorum gönderme. */
 export default function TicketDetailScreen({ route, navigation }) {
@@ -58,7 +63,9 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [cooldown, setCooldown] = useState(0);
 
   const [actionBusy, setActionBusy] = useState(false);
-  const [reasonMode, setReasonMode] = useState(null); // 'RESOLVE' | 'CLOSE' | null
+  const [reasonMode, setReasonMode] = useState(null); // 'RESOLVE' | 'CLOSE' | 'UNCLAIM' | null
+  const [changeMode, setChangeMode] = useState(null); // 'PRIORITY' | 'TOPIC' | null
+  const [topicOptions, setTopicOptions] = useState([]);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -140,6 +147,27 @@ export default function TicketDetailScreen({ route, navigation }) {
     }
     await runAction(fn, t('ticketDetail.actionFailed', 'İşlem başarısız.'));
     setReasonMode(null);
+  };
+
+  const openChange = async (mode) => {
+    if (mode === 'TOPIC' && ticket?.productId) {
+      try {
+        const res = await getProductTopics(ticket.productId);
+        setTopicOptions((res.data ?? []).map((tp) => ({ label: tp.name, value: tp.id })));
+      } catch {
+        setTopicOptions([]);
+      }
+    }
+    setChangeMode(mode);
+  };
+
+  const onChangeConfirm = async ({ value, reasonCode, note }) => {
+    const fn =
+      changeMode === 'PRIORITY'
+        ? () => changePriority(id, { priority: value, reasonCode, note })
+        : () => changeTopic(id, { topicId: value, reasonCode, note });
+    await runAction(fn, t('ticketDetail.actionFailed', 'İşlem başarısız.'));
+    setChangeMode(null);
   };
 
   if (loading) {
@@ -231,6 +259,10 @@ export default function TicketDetailScreen({ route, navigation }) {
                 <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
                   label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
               )}
+              <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('PRIORITY')}
+                label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
+              <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
+                label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
             </View>
           </View>
         )}
@@ -357,6 +389,31 @@ export default function TicketDetailScreen({ route, navigation }) {
         busy={actionBusy}
         onCancel={() => setReasonMode(null)}
         onConfirm={onReasonConfirm}
+      />
+
+      <ChangeWithReasonSheet
+        visible={changeMode !== null}
+        title={
+          changeMode === 'PRIORITY'
+            ? t('ticketDetail.changePriorityTitle', 'Önceliği Değiştir')
+            : t('ticketDetail.changeTopicTitle', 'Konuyu Değiştir')
+        }
+        valueLabel={
+          changeMode === 'PRIORITY'
+            ? t('ticketDetail.newPriority', 'Yeni öncelik')
+            : t('ticketDetail.newTopic', 'Yeni konu')
+        }
+        valuePlaceholder={t('common.select', 'Seç')}
+        valueOptions={
+          changeMode === 'PRIORITY'
+            ? PRIORITIES.map((p) => ({ label: priorityLabel(p, t), value: p }))
+            : topicOptions
+        }
+        actionKey={changeMode === 'PRIORITY' ? 'PRIORITY_CHANGE' : 'TOPIC_CHANGE'}
+        codes={changeMode === 'PRIORITY' ? REASON_CODES.PRIORITY_CHANGE : REASON_CODES.TOPIC_CHANGE}
+        busy={actionBusy}
+        onCancel={() => setChangeMode(null)}
+        onConfirm={onChangeConfirm}
       />
     </KeyboardAvoidingView>
   );
