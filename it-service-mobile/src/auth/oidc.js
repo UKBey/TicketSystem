@@ -42,7 +42,12 @@ export async function login() {
   });
   await request.makeAuthUrlAsync(discovery);
 
-  const result = await request.promptAsync(discovery);
+  // preferEphemeralSession: her giriş izole bir tarayıcı oturumu kullanır —
+  // Keycloak'in SSO cerezi Safari'ye yazilip taşınmaz. Boylece cikis sonrasi
+  // tekrar giriste login formu daima gosterilir ve baska hesaba gecilebilir.
+  const result = await request.promptAsync(discovery, {
+    preferEphemeralSession: true,
+  });
   if (result.type !== 'success' || !result.params?.code) {
     return null;
   }
