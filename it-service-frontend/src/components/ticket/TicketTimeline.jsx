@@ -212,6 +212,19 @@ export default function TicketTimeline() {
               {cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}
             </button>
           </div>
+          <div
+            className="mt-1.5 text-right text-xs tabular-nums"
+            style={{
+              color:
+                message.length >= COMMENT_MESSAGE_MAX_LENGTH
+                  ? 'var(--color-danger-500, #ef4444)'
+                  : message.length >= COMMENT_MESSAGE_MAX_LENGTH * 0.9
+                    ? 'var(--color-warning-500, #f59e0b)'
+                    : 'var(--text-secondary)',
+            }}
+          >
+            {message.length}/{COMMENT_MESSAGE_MAX_LENGTH}
+          </div>
         </div>
       )}
     </div>
