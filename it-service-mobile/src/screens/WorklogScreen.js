@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { getWorklogs, addWorklog, deleteWorklog } from '../api/tickets';
@@ -43,6 +44,19 @@ export default function WorklogScreen({ route }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Ekran açıkken süre kayıtlarını 3 sn'de bir sessizce tazeler — başka bir
+  // kullanıcı worklog ekler/silerse yenileme yapmadan ekrana yansır.
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        getWorklogs(id)
+          .then((res) => setWorklogs(res.data ?? []))
+          .catch(() => {});
+      }, 3000);
+      return () => clearInterval(interval);
+    }, [id]),
+  );
 
   const add = async () => {
     const mins = parseInt(minutes, 10);

@@ -163,19 +163,20 @@ export default function TicketDetailScreen({ route, navigation }) {
     },
   });
 
-  // Yedek "anlık" mekanizma: ekran açıkken yorum/ekleri 3 sn'de bir sessizce
-  // tazeler — WebSocket bağlanamasa bile yeni mesajlar yenilemeden görünür.
-  // mergeById sayesinde yeni mesaj yoksa hiçbir re-render tetiklenmez.
+  // Yedek "anlık" mekanizma: ekran açıkken bileti, yorumları ve ekleri 3 sn'de
+  // bir sessizce tazeler. Böylece sadece mesajlar değil; durum, öncelik, konu,
+  // SLA, üstlenenler ve denetim geçmişi de yenilemeden güncellenir.
+  // mergeById sayesinde yorum/ekte yeni öğe yoksa gereksiz re-render olmaz.
   useFocusEffect(
     useCallback(() => {
       const poll = async () => {
         try {
-          const cRes = await getComments(id);
+          const reqs = [getTicket(id), getComments(id)];
+          if (canUseAttachments) reqs.push(getAttachments(id));
+          const [tRes, cRes, aRes] = await Promise.all(reqs);
+          setTicket(tRes.data);
           setComments((prev) => mergeById(prev, cRes.data ?? []));
-          if (canUseAttachments) {
-            const aRes = await getAttachments(id);
-            setAttachments((prev) => mergeById(prev, aRes.data ?? []));
-          }
+          if (aRes) setAttachments((prev) => mergeById(prev, aRes.data ?? []));
         } catch {
           // sessiz — bir sonraki tur yeniden dener
         }
