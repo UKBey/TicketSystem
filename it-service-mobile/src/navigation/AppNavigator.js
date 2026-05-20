@@ -12,6 +12,7 @@ import NotificationPreferencesScreen from '../screens/NotificationPreferencesScr
 import WorklogScreen from '../screens/WorklogScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
+import TicketListScreen from '../screens/TicketListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -84,6 +85,13 @@ export default function AppNavigator() {
         name="AdminPanel"
         component={AdminPanelScreen}
         options={{ title: t('admin.panel.title', 'Yönetim Paneli') }}
+      />
+      <Stack.Screen
+        name="ProductTickets"
+        component={TicketListScreen}
+        options={({ route }) => ({
+          title: route.params?.title || t('products.tickets', 'Ürün Biletleri'),
+        })}
       />
     </Stack.Navigator>
   );
