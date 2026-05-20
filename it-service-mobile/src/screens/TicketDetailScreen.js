@@ -516,60 +516,59 @@ export default function TicketDetailScreen({ route, navigation }) {
         </View>
       )}
 
+      {auditLogs.length > 0 && (
+        <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+          <Pressable onPress={() => setAuditOpen((o) => !o)} style={styles.auditHeader}>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+              {t('ticketDetail.auditHistory', 'Denetim Geçmişi')} ({auditLogs.length})
+            </Text>
+            <Ionicons
+              name={auditOpen ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={theme.textSecondary}
+            />
+          </Pressable>
+          {auditOpen &&
+            auditLogs.map((a, i) => (
+              <View
+                key={a.id ?? i}
+                style={[
+                  styles.auditRow,
+                  { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
+                ]}
+              >
+                <View style={styles.auditTop}>
+                  <Text style={[styles.auditAction, { color: theme.textPrimary }]}>
+                    {AUDIT_KEYS[a.actionType]
+                      ? t(`ticketDetail.${AUDIT_KEYS[a.actionType]}`, humanize(a.actionType))
+                      : humanize(a.actionType)}
+                  </Text>
+                  <Text style={[styles.auditDate, { color: theme.textTertiary }]}>
+                    {formatDate(a.createdAt)}
+                  </Text>
+                </View>
+                <Text style={[styles.auditMeta, { color: theme.textSecondary }]}>
+                  {a.actorName || '—'}
+                  {a.previousState && a.newState
+                    ? ` · ${statusLabel(a.previousState, t)} → ${statusLabel(a.newState, t)}`
+                    : ''}
+                </Text>
+                {!!a.reasonCode && (
+                  <Text style={[styles.auditMeta, { color: theme.textTertiary }]}>
+                    {humanize(a.reasonCode)}
+                  </Text>
+                )}
+                {!!a.note && <Text style={[styles.auditNote, { color: theme.textSecondary }]}>{a.note}</Text>}
+              </View>
+            ))}
+        </View>
+      )}
+
       <Text style={[styles.section, { color: theme.textPrimary }]}>
         {t('ticketDetail.comments', 'Sohbet')}
       </Text>
     </View>
   );
-
-  const listFooter =
-    auditLogs.length > 0 ? (
-      <View style={[styles.card, styles.footerCard, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
-        <Pressable onPress={() => setAuditOpen((o) => !o)} style={styles.auditHeader}>
-          <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
-            {t('ticketDetail.auditHistory', 'Denetim Geçmişi')} ({auditLogs.length})
-          </Text>
-          <Ionicons
-            name={auditOpen ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={theme.textSecondary}
-          />
-        </Pressable>
-        {auditOpen &&
-          auditLogs.map((a, i) => (
-            <View
-              key={a.id ?? i}
-              style={[
-                styles.auditRow,
-                { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-              ]}
-            >
-              <View style={styles.auditTop}>
-                <Text style={[styles.auditAction, { color: theme.textPrimary }]}>
-                  {AUDIT_KEYS[a.actionType]
-                    ? t(`ticketDetail.${AUDIT_KEYS[a.actionType]}`, humanize(a.actionType))
-                    : humanize(a.actionType)}
-                </Text>
-                <Text style={[styles.auditDate, { color: theme.textTertiary }]}>
-                  {formatDate(a.createdAt)}
-                </Text>
-              </View>
-              <Text style={[styles.auditMeta, { color: theme.textSecondary }]}>
-                {a.actorName || '—'}
-                {a.previousState && a.newState
-                  ? ` · ${statusLabel(a.previousState, t)} → ${statusLabel(a.newState, t)}`
-                  : ''}
-              </Text>
-              {!!a.reasonCode && (
-                <Text style={[styles.auditMeta, { color: theme.textTertiary }]}>
-                  {humanize(a.reasonCode)}
-                </Text>
-              )}
-              {!!a.note && <Text style={[styles.auditNote, { color: theme.textSecondary }]}>{a.note}</Text>}
-            </View>
-          ))}
-      </View>
-    ) : null;
 
   return (
     <KeyboardAvoidingView
@@ -594,7 +593,6 @@ export default function TicketDetailScreen({ route, navigation }) {
           />
         )}
         ListHeaderComponent={listHeader}
-        ListFooterComponent={listFooter}
         ListEmptyComponent={
           <Text style={{ color: theme.textTertiary, textAlign: 'center', paddingVertical: 16 }}>
             {t('ticketDetail.noComments', 'Henüz mesaj yok.')}
@@ -878,7 +876,6 @@ const styles = StyleSheet.create({
   full: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { padding: 14, gap: 8, paddingBottom: 20 },
   headerWrap: { gap: 14, marginBottom: 8 },
-  footerCard: { marginTop: 10 },
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 10 },
   worklogBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { fontSize: 14, fontWeight: '700' },
