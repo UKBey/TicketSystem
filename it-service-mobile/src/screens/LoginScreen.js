@@ -11,7 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 
 /** Giriş ekranı — Keycloak OIDC akışını sistem tarayıcısında başlatır. */
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -62,6 +62,16 @@ export default function LoginScreen() {
           </Text>
         )}
       </Pressable>
+
+      <Pressable
+        onPress={() => navigation.navigate('ForgotPassword')}
+        hitSlop={8}
+        style={styles.forgotLink}
+      >
+        <Text style={[styles.forgotText, { color: theme.textSecondary }]}>
+          {t('login.forgotPassword', 'Şifrenizi mi unuttunuz?')}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -97,6 +107,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
+    fontWeight: '600',
+  },
+  forgotLink: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  forgotText: {
+    fontSize: 14,
     fontWeight: '600',
   },
 });
