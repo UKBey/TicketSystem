@@ -9,3 +9,10 @@ export const getProductTopics = (productId) => api.get(`/products/${productId}/t
 /** Bir ürün/konu için aktif "bilinen sorunlar". */
 export const getKnownIssues = (productId, topicId) =>
   api.get(`/products/${productId}/known-issues${topicId ? `?topicId=${topicId}` : ''}`);
+
+/** Yeni bilinen sorun oluşturur (yalnızca AGENT_ADMIN / MANAGER). */
+export const createKnownIssue = (productId, body) =>
+  api.post(`/products/${productId}/known-issues`, body);
+
+/** Bilinen sorun kaydını siler (yalnızca AGENT_ADMIN / MANAGER). */
+export const deleteKnownIssue = (id) => api.delete(`/known-issues/${id}`);
