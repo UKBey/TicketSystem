@@ -10,6 +10,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ProductsScreen from '../screens/ProductsScreen';
 import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
 import WorklogScreen from '../screens/WorklogScreen';
+import UserManagementScreen from '../screens/UserManagementScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -72,6 +73,11 @@ export default function AppNavigator() {
         name="Worklog"
         component={WorklogScreen}
         options={{ title: t('worklog.title', 'Süre Kayıtları') }}
+      />
+      <Stack.Screen
+        name="UserManagement"
+        component={UserManagementScreen}
+        options={{ title: t('userManagement.title', 'Kullanıcı Yönetimi') }}
       />
     </Stack.Navigator>
   );

@@ -10,6 +10,7 @@ export default function MenuScreen({ navigation }) {
   const { user, roles, getPrimaryRole, logout } = useAuth();
   const { theme, mode, toggle } = useTheme();
   const { t } = useTranslation();
+  const isAdmin = roles.includes('AGENT_ADMIN') || roles.includes('MANAGER');
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: theme.bgBody }]}>
@@ -63,6 +64,14 @@ export default function MenuScreen({ navigation }) {
             label={t('menu.notificationPrefs', 'Bildirim Tercihleri')}
             onPress={() => navigation.navigate('NotificationPreferences')}
           />
+          {isAdmin && (
+            <MenuRow
+              theme={theme}
+              icon="people-outline"
+              label={t('menu.userManagement', 'Kullanıcı Yönetimi')}
+              onPress={() => navigation.navigate('UserManagement')}
+            />
+          )}
           <MenuRow
             theme={theme}
             icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
