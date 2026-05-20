@@ -1,0 +1,17 @@
+import api from './client';
+
+/** Sayfalı bildirim listesi. */
+export const getNotifications = (page = 0, size = 50) =>
+  api.get('/notifications', { params: { page, size } });
+
+/** Okunmamış bildirim sayısı. */
+export const getUnreadCount = () => api.get('/notifications/unread-count');
+
+/** Tek bildirimi okundu işaretler. */
+export const markAsRead = (id) => api.patch(`/notifications/${id}/read`);
+
+/** Tüm bildirimleri okundu işaretler. */
+export const markAllAsRead = () => api.post('/notifications/read-all');
+
+/** Bir bildirimi siler. */
+export const deleteNotification = (id) => api.delete(`/notifications/${id}`);

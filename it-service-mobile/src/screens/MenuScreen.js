@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 
-/** Menü sekmesi — kullanıcı bilgisi, tema ve oturum kapatma. */
-export default function MenuScreen() {
+/** Menü sekmesi — kullanıcı bilgisi, diğer ekranlara geçiş, tema ve çıkış. */
+export default function MenuScreen({ navigation }) {
   const { user, roles, getPrimaryRole, logout } = useAuth();
   const { theme, mode, toggle } = useTheme();
   const { t } = useTranslation();
@@ -32,21 +32,20 @@ export default function MenuScreen() {
           )}
         </View>
 
-        <Pressable
-          onPress={toggle}
-          style={[styles.rowItem, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}
-        >
-          <Ionicons
-            name={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
-            size={20}
-            color={theme.textSecondary}
+        <View style={styles.group}>
+          <MenuRow
+            theme={theme}
+            icon="notifications-outline"
+            label={t('menu.notifications', 'Bildirimler')}
+            onPress={() => navigation.navigate('Notifications')}
           />
-          <Text style={[styles.rowText, { color: theme.textPrimary }]}>
-            {mode === 'dark'
-              ? t('menu.lightMode', 'Açık tema')
-              : t('menu.darkMode', 'Koyu tema')}
-          </Text>
-        </Pressable>
+          <MenuRow
+            theme={theme}
+            icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+            label={mode === 'dark' ? t('menu.lightMode', 'Açık tema') : t('menu.darkMode', 'Koyu tema')}
+            onPress={toggle}
+          />
+        </View>
 
         <Pressable
           onPress={logout}
@@ -60,6 +59,22 @@ export default function MenuScreen() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function MenuRow({ icon, label, onPress, theme }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: theme.bgSurface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 },
+      ]}
+    >
+      <Ionicons name={icon} size={20} color={theme.textSecondary} />
+      <Text style={[styles.rowText, { color: theme.textPrimary }]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+    </Pressable>
   );
 }
 
@@ -80,7 +95,8 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13 },
   roleBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, marginTop: 4 },
   roleText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  rowItem: {
+  group: { gap: 8 },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -88,7 +104,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
   },
-  rowText: { fontSize: 15, fontWeight: '500' },
+  rowText: { flex: 1, fontSize: 15, fontWeight: '500' },
   logout: {
     flexDirection: 'row',
     alignItems: 'center',

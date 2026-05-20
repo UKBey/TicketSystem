@@ -4,6 +4,7 @@ import { useTheme } from '../theme/ThemeContext';
 import MainTabs from './MainTabs';
 import TicketDetailScreen from '../screens/TicketDetailScreen';
 import CreateTicketScreen from '../screens/CreateTicketScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,11 @@ export default function AppNavigator() {
         name="CreateTicket"
         component={CreateTicketScreen}
         options={{ title: t('createTicket.screenTitle', 'Yeni Bilet'), presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: t('notifications.title', 'Bildirimler') }}
       />
     </Stack.Navigator>
   );
