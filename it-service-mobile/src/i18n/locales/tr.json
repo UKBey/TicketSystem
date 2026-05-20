@@ -24,7 +24,13 @@
   },
   "ticketList": {
     "error": "Biletler yüklenemedi.",
-    "empty": "Bilet yok."
+    "empty": "Bilet yok.",
+    "search": "Bilet ara...",
+    "filters": "Filtreler",
+    "statusLabel": "Durum",
+    "priorityLabel": "Öncelik",
+    "clearFilters": "Temizle",
+    "apply": "Uygula"
   },
   "nav": {
     "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },

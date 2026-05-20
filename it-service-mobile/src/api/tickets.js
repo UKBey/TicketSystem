@@ -11,6 +11,8 @@ export function getTickets({
   sortBy = 'createdAt',
   sortDir = 'desc',
   status,
+  priority,
+  search,
 } = {}) {
   const qs = new URLSearchParams();
   qs.set('page', String(page));
@@ -20,6 +22,10 @@ export function getTickets({
   if (status) {
     (Array.isArray(status) ? status : [status]).forEach((s) => qs.append('status', s));
   }
+  if (priority) {
+    (Array.isArray(priority) ? priority : [priority]).forEach((p) => qs.append('priority', p));
+  }
+  if (search) qs.set('search', search);
   return api.get(`${endpoint}?${qs.toString()}`);
 }
 

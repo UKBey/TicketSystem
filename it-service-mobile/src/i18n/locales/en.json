@@ -24,7 +24,13 @@
   },
   "ticketList": {
     "error": "Could not load tickets.",
-    "empty": "No tickets."
+    "empty": "No tickets.",
+    "search": "Search tickets...",
+    "filters": "Filters",
+    "statusLabel": "Status",
+    "priorityLabel": "Priority",
+    "clearFilters": "Clear",
+    "apply": "Apply"
   },
   "filters": {
     "clear": "Clear",
