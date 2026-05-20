@@ -11,7 +11,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
-import { useAuth } from '../auth/AuthContext';
 import { getTickets } from '../api/tickets';
 import {
   formatDate,
@@ -27,12 +26,12 @@ const TABS = [
 ];
 
 /** Rol bazlı bilet listesi — aktif / kapalı sekmeleri, çek-yenile, satıra dokun → detay. */
-export default function TicketListScreen({ navigation }) {
+export default function TicketListScreen({ navigation, route }) {
   const { theme } = useTheme();
-  const { getPrimaryRole } = useAuth();
   const { t } = useTranslation();
 
-  const endpoint = getPrimaryRole() === 'CUSTOMER' ? '/tickets' : '/tickets/all';
+  // Endpoint sekmeden (MainTabs initialParams) gelir; yoksa müşteri varsayılanı.
+  const endpoint = route.params?.endpoint || '/tickets';
 
   const [tab, setTab] = useState('active');
   const [tickets, setTickets] = useState([]);

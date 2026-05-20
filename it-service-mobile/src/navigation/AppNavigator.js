@@ -1,15 +1,16 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
-import TicketListScreen from '../screens/TicketListScreen';
+import MainTabs from './MainTabs';
 import TicketDetailScreen from '../screens/TicketDetailScreen';
 import CreateTicketScreen from '../screens/CreateTicketScreen';
-import HomeScreen from '../screens/HomeScreen';
 
 const Stack = createNativeStackNavigator();
 
-/** Oturum açık kullanıcının ekran yığını. */
+/**
+ * Oturum açık kullanıcının kök yığını — alt sekmeler (MainTabs) + üzerine açılan
+ * detay ve oluşturma ekranları. Sekme içindeki listeler bu ekranlara navigate eder.
+ */
 export default function AppNavigator() {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -23,27 +24,7 @@ export default function AppNavigator() {
         contentStyle: { backgroundColor: theme.bgBody },
       }}
     >
-      <Stack.Screen
-        name="TicketList"
-        component={TicketListScreen}
-        options={({ navigation }) => ({
-          title: t('ticketList.title', 'Biletler'),
-          headerRight: () => (
-            <View style={{ flexDirection: 'row', gap: 16 }}>
-              <Pressable onPress={() => navigation.navigate('CreateTicket')} hitSlop={8}>
-                <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 15 }}>
-                  + {t('createTicket.new', 'Yeni')}
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => navigation.navigate('Account')} hitSlop={8}>
-                <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 15 }}>
-                  {t('account.title', 'Hesap')}
-                </Text>
-              </Pressable>
-            </View>
-          ),
-        })}
-      />
+      <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen
         name="TicketDetail"
         component={TicketDetailScreen}
@@ -55,11 +36,6 @@ export default function AppNavigator() {
         name="CreateTicket"
         component={CreateTicketScreen}
         options={{ title: t('createTicket.screenTitle', 'Yeni Bilet'), presentation: 'modal' }}
-      />
-      <Stack.Screen
-        name="Account"
-        component={HomeScreen}
-        options={{ title: t('account.title', 'Hesap') }}
       />
     </Stack.Navigator>
   );
