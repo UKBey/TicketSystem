@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../auth/AuthContext';
 import TicketListScreen from '../screens/TicketListScreen';
 import MenuScreen from '../screens/MenuScreen';
+import DashboardScreen from '../screens/DashboardScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -24,6 +25,7 @@ function tabsForRole(role) {
   }
   if (role === 'MANAGER') {
     return [
+      { name: 'Dashboard', title: 'Panel', icon: 'stats-chart-outline', dashboard: true },
       { name: 'AllTickets', title: 'Tüm Biletler', icon: 'documents-outline', endpoint: '/tickets/all' },
       menu,
     ];
@@ -57,7 +59,7 @@ export default function MainTabs() {
         <Tab.Screen
           key={tab.name}
           name={tab.name}
-          component={tab.menu ? MenuScreen : TicketListScreen}
+          component={tab.menu ? MenuScreen : tab.dashboard ? DashboardScreen : TicketListScreen}
           initialParams={tab.endpoint ? { endpoint: tab.endpoint } : undefined}
           options={({ navigation }) => ({
             title: tab.title,

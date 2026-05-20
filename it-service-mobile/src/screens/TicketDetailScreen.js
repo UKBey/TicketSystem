@@ -27,6 +27,7 @@ import {
   changePriority,
   changeTopic,
   assignTicket,
+  submitCsat,
 } from '../api/tickets';
 import { getProductTopics } from '../api/products';
 import { getAgentsWithCapacity } from '../api/users';
@@ -41,6 +42,7 @@ import { REASON_CODES } from '../constants/reasonCodes';
 import ReasonSheet from '../components/ReasonSheet';
 import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
 import AssignSheet from '../components/AssignSheet';
+import CsatSheet from '../components/CsatSheet';
 
 const COMMENT_MAX = 500;
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -53,6 +55,7 @@ export default function TicketDetailScreen({ route, navigation }) {
   const { hasRole } = useAuth();
   const headerHeight = useHeaderHeight();
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
+  const isCustomer = hasRole('CUSTOMER');
 
   const [ticket, setTicket] = useState(null);
   const [comments, setComments] = useState([]);
@@ -71,6 +74,7 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [topicOptions, setTopicOptions] = useState([]);
   const [assignOpen, setAssignOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState([]);
+  const [csatOpen, setCsatOpen] = useState(false);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -205,6 +209,19 @@ export default function TicketDetailScreen({ route, navigation }) {
     }
   };
 
+  const onCsatConfirm = async ({ rating, comment }) => {
+    setActionBusy(true);
+    try {
+      await submitCsat(id, { rating, comment });
+      setCsatOpen(false);
+      await load();
+    } catch (e) {
+      Alert.alert(e?.response?.data?.message || t('ticketDetail.submitCsatFailed', 'Anket gönderilemedi.'));
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.full, { backgroundColor: theme.bgBody }]}>
@@ -320,6 +337,36 @@ export default function TicketDetailScreen({ route, navigation }) {
             </Text>
             <Text style={{ color: theme.primary, fontSize: 20, fontWeight: '700' }}>›</Text>
           </Pressable>
+        )}
+
+        {isCustomer && status === 'RESOLVED' && (
+          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+              {t('ticketDetail.resolvedQuestion', 'Sorununuz çözüldü mü?')}
+            </Text>
+            <Text style={[styles.desc, { color: theme.textSecondary }]}>
+              {t(
+                'ticketDetail.resolvedDesc',
+                'Bu bilet çözüldü olarak işaretlendi. Sorununuz giderildiyse onaylayıp kısa bir anket doldurun, aksi halde bileti yeniden açın.',
+              )}
+            </Text>
+            <View style={styles.actionRow}>
+              <ActionBtn
+                theme={theme}
+                busy={actionBusy}
+                onPress={() => setCsatOpen(true)}
+                label={t('ticketDetail.yesResolved', 'Evet, çözüldü')}
+                color={theme.success}
+              />
+              <ActionBtn
+                theme={theme}
+                busy={actionBusy}
+                onPress={() => doStatus('IN_PROGRESS')}
+                label={t('ticketDetail.noResolved', 'Hayır, yeniden aç')}
+                color={theme.danger}
+              />
+            </View>
+          </View>
         )}
 
         <Text style={[styles.section, { color: theme.textPrimary }]}>
@@ -461,6 +508,13 @@ export default function TicketDetailScreen({ route, navigation }) {
         busy={actionBusy}
         onCancel={() => setAssignOpen(false)}
         onConfirm={onAssignConfirm}
+      />
+
+      <CsatSheet
+        visible={csatOpen}
+        busy={actionBusy}
+        onCancel={() => setCsatOpen(false)}
+        onConfirm={onCsatConfirm}
       />
     </KeyboardAvoidingView>
   );

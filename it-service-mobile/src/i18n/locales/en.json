@@ -1,4 +1,17 @@
 {
+  "status": {
+    "NEW": "New",
+    "IN_PROGRESS": "In Progress",
+    "WAITING_FOR_CUSTOMER": "Waiting for Customer",
+    "RESOLVED": "Resolved",
+    "CLOSED": "Closed"
+  },
+  "priority": {
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "CRITICAL": "Critical"
+  },
   "filters": {
     "clear": "Clear",
     "clearAll": "Clear all",
@@ -680,7 +693,42 @@
       "unassigned": "Unassigned",
       "newWaiting": "New Waiting",
       "avgWait": "Avg. Wait"
-    }
+    },
+    "kpiSla": "SLA Breach",
+    "kpiResolution": "Avg. Resolution",
+    "kpiCsat": "CSAT",
+    "alertsSection": "Alerts",
+    "alertBreached": "SLA breached",
+    "alertUpcoming": "Upcoming",
+    "alertWaiting": "Waiting long",
+    "unassigned": "Unassigned tickets",
+    "newWaiting": "New tickets waiting",
+    "avgWaiting": "Avg. waiting time",
+    "statusDist": "Status Distribution",
+    "priorityDist": "Priority Distribution",
+    "prioritySla": "Priority-SLA Metrics",
+    "tickets": "tickets",
+    "slaTarget": "SLA target",
+    "avgResolution": "Avg. resolution",
+    "onTime": "On time",
+    "breach": "Breach",
+    "agentPerf": "Agent Performance",
+    "admin": "Admin",
+    "active": "Active",
+    "resolved24h": "Resolved 24h",
+    "slaBreach": "SLA breach",
+    "worklog7d": "Worklog 7d",
+    "productMetrics": "Product Metrics",
+    "open": "Open",
+    "completion": "Completion",
+    "created": "Created",
+    "resolvedTotal": "Resolved",
+    "closedTotal": "Closed",
+    "completionRate": "Completion rate",
+    "csatDetail": "CSAT Detail",
+    "csatAverage": "Average rating",
+    "csatResponses": "Total responses",
+    "topComments": "Top comments"
   },
   "notification": {
     "title": "Notifications",
@@ -857,6 +905,8 @@
   "common": {
     "loading": "Loading...",
     "loadingData": "Loading data",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
     "error": "An error occurred.",
     "retry": "Retry",
     "noResults": "No results found.",

@@ -50,6 +50,9 @@ export const changeTopic = (id, body) => api.put(`/tickets/${id}/topic`, body);
 /** Bileti bir agent'a atar. body: { targetAgentId, note }. */
 export const assignTicket = (id, body) => api.put(`/tickets/${id}/assign`, body);
 
+/** CSAT memnuniyet anketi gönderir. body: { rating, comment }. RESOLVED bileti CLOSED yapar. */
+export const submitCsat = (id, body) => api.post(`/tickets/${id}/csat`, body);
+
 /** Yeni bilet oluşturur. body: { title, description, priority, productId, topicId }. */
 export const createTicket = (body) => api.post('/tickets', body);
 

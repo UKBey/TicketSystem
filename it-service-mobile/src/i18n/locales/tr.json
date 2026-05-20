@@ -1,4 +1,17 @@
 {
+  "status": {
+    "NEW": "Yeni",
+    "IN_PROGRESS": "İşlemde",
+    "WAITING_FOR_CUSTOMER": "Müşteri Yanıtı Bekleniyor",
+    "RESOLVED": "Çözüldü",
+    "CLOSED": "Kapatıldı"
+  },
+  "priority": {
+    "LOW": "Düşük",
+    "MEDIUM": "Orta",
+    "HIGH": "Yüksek",
+    "CRITICAL": "Kritik"
+  },
   "nav": {
     "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },
     "language": { "label": "Dil", "en": "İngilizce", "tr": "Türkçe" }
@@ -680,7 +693,42 @@
       "unassigned": "Atanmamış",
       "newWaiting": "Bekleyen Yeni",
       "avgWait": "Ort. Bekleme"
-    }
+    },
+    "kpiSla": "SLA İhlali",
+    "kpiResolution": "Ort. Çözüm",
+    "kpiCsat": "CSAT",
+    "alertsSection": "Uyarılar",
+    "alertBreached": "SLA aşıldı",
+    "alertUpcoming": "Yaklaşan",
+    "alertWaiting": "Uzun bekleyen",
+    "unassigned": "Atanmamış bilet",
+    "newWaiting": "Bekleyen yeni bilet",
+    "avgWaiting": "Ort. bekleme süresi",
+    "statusDist": "Durum Dağılımı",
+    "priorityDist": "Öncelik Dağılımı",
+    "prioritySla": "Öncelik-SLA Metrikleri",
+    "tickets": "bilet",
+    "slaTarget": "SLA hedefi",
+    "avgResolution": "Ort. çözüm",
+    "onTime": "Zamanında",
+    "breach": "İhlal",
+    "agentPerf": "Agent Performansı",
+    "admin": "Admin",
+    "active": "Aktif",
+    "resolved24h": "Çözülen 24s",
+    "slaBreach": "SLA ihlali",
+    "worklog7d": "Worklog 7g",
+    "productMetrics": "Ürün Metrikleri",
+    "open": "Açık",
+    "completion": "Tamamlanma",
+    "created": "Oluşturulan",
+    "resolvedTotal": "Çözülen",
+    "closedTotal": "Kapatılan",
+    "completionRate": "Tamamlanma oranı",
+    "csatDetail": "CSAT Detayı",
+    "csatAverage": "Ortalama puan",
+    "csatResponses": "Toplam yanıt",
+    "topComments": "Öne çıkan yorumlar"
   },
   "notification": {
     "title": "Bildirimler",
@@ -857,6 +905,8 @@
   "common": {
     "loading": "Yükleniyor...",
     "loadingData": "Veri yükleniyor",
+    "cancel": "İptal",
+    "confirm": "Onayla",
     "error": "Bir hata oluştu.",
     "retry": "Tekrar Dene",
     "noResults": "Sonuç bulunamadı.",
