@@ -46,15 +46,3 @@ patches:
       - op: add
         path: /metadata/annotations/nginx.ingress.kubernetes.io~1ssl-redirect
         value: "false"
-  # Local'de Grafana root URL'inin localhost'a göre olması gerekli;
-  # base'deki ticketsystem.local kalırsa redirect URL'leri yanlış olur.
-  # env array index sırası: 0 ADMIN_USER, 1 ADMIN_PASSWORD, 2 ROOT_URL, 3 SERVE_FROM_SUB_PATH.
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: grafana
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/env/2/value
-        value: "http://localhost/grafana/"

@@ -62,8 +62,8 @@ spec:
           # Observability ve developer UI'ları — her servis kendi base-path
           # config'iyle çalışıyor, ingress'in rewrite yapmasına gerek yok:
           #  - Mailpit: MP_WEBROOT=mailpit
-          #  - Grafana: GF_SERVER_SERVE_FROM_SUB_PATH=true + GF_SERVER_ROOT_URL
           #  - OpenSearch Dashboards: SERVER_BASEPATH=/opensearch + REWRITEBASEPATH=true
+          #    (metrik, trace ve log dashboard'ları burada)
           - path: /mailpit
             pathType: Prefix
             backend:
@@ -71,13 +71,6 @@ spec:
                 name: mailpit
                 port:
                   number: 8025
-          - path: /grafana
-            pathType: Prefix
-            backend:
-              service:
-                name: grafana
-                port:
-                  number: 3000
           - path: /opensearch
             pathType: Prefix
             backend:

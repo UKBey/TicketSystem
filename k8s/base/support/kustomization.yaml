@@ -12,11 +12,8 @@ resources:
   - opensearch-statefulset.yaml
   - opensearch-dashboards-deployment.yaml
   - otel-collector-deployment.yaml
+  - data-prepper-deployment.yaml
   - logstash-deployment.yaml
-  - prometheus-service.yaml
-  - prometheus-deployment.yaml
-  - grafana-service.yaml
-  - grafana-deployment.yaml
 
 configMapGenerator:
   - name: otel-collector-config
@@ -25,20 +22,10 @@ configMapGenerator:
   - name: logstash-pipeline
     files:
       - logstash.conf=../../../logstash.conf
-  - name: prometheus-config
+  - name: data-prepper-config
     files:
-      - prometheus.yml=../../../prometheus.yml
-  # OPS-5: Alert kurallari — prometheus.yml `rule_files` glob'u ile yukler.
-  - name: prometheus-rules
-    files:
-      - ticketsystem-application.yaml=../../../prometheus-rules.yaml
-  - name: grafana-provisioning-datasources
-    files:
-      - prometheus.yml=../../../grafana/provisioning/datasources/prometheus.yml
-  - name: grafana-provisioning-dashboards
-    files:
-      - provider.yml=../../../grafana/provisioning/dashboards/provider.yml
-      - ticket-system.json=../../../grafana/provisioning/dashboards/ticket-system.json
+      - pipelines.yaml=../../../data-prepper/pipelines.yaml
+      - data-prepper-config.yaml=../../../data-prepper/data-prepper-config.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
