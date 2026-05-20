@@ -6,17 +6,22 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import LanguageSheet from '../components/LanguageSheet';
 
 /** Giriş ekranı — Keycloak OIDC akışını sistem tarayıcısında başlatır. */
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [langOpen, setLangOpen] = useState(false);
 
   const onLogin = async () => {
     setBusy(true);
@@ -33,6 +38,20 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bgBody }]}>
+      <Pressable
+        onPress={() => setLangOpen(true)}
+        hitSlop={8}
+        style={[
+          styles.langBtn,
+          { top: insets.top + 8, backgroundColor: theme.bgSurface, borderColor: theme.border },
+        ]}
+      >
+        <Ionicons name="language-outline" size={16} color={theme.textSecondary} />
+        <Text style={[styles.langText, { color: theme.textSecondary }]}>
+          {i18n.language?.startsWith('tr') ? 'Türkçe' : 'English'}
+        </Text>
+      </Pressable>
+
       <View style={styles.brand}>
         <Text style={[styles.title, { color: theme.textPrimary }]}>
           IT Service Desk
@@ -72,6 +91,8 @@ export default function LoginScreen({ navigation }) {
           {t('login.forgotPassword', 'Şifrenizi mi unuttunuz?')}
         </Text>
       </Pressable>
+
+      <LanguageSheet visible={langOpen} onClose={() => setLangOpen(false)} />
     </View>
   );
 }
@@ -115,6 +136,21 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  langBtn: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  langText: {
+    fontSize: 13,
     fontWeight: '600',
   },
 });

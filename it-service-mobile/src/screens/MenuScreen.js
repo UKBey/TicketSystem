@@ -1,15 +1,19 @@
+import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { updateLanguagePreference } from '../api/users';
+import LanguageSheet from '../components/LanguageSheet';
 
 /** Menü sekmesi — kullanıcı bilgisi, diğer ekranlara geçiş, tema ve çıkış. */
 export default function MenuScreen({ navigation }) {
   const { user, roles, getPrimaryRole, logout } = useAuth();
   const { theme, mode, toggle } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [langOpen, setLangOpen] = useState(false);
   const isAdmin = roles.includes('AGENT_ADMIN') || roles.includes('MANAGER');
 
   return (
@@ -82,6 +86,14 @@ export default function MenuScreen({ navigation }) {
           )}
           <MenuRow
             theme={theme}
+            icon="language-outline"
+            label={`${t('nav.language.label', 'Dil')} — ${
+              i18n.language?.startsWith('tr') ? 'Türkçe' : 'English'
+            }`}
+            onPress={() => setLangOpen(true)}
+          />
+          <MenuRow
+            theme={theme}
             icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
             label={mode === 'dark' ? t('menu.lightMode', 'Açık tema') : t('menu.darkMode', 'Koyu tema')}
             onPress={toggle}
@@ -99,6 +111,12 @@ export default function MenuScreen({ navigation }) {
           <Text style={styles.logoutText}>{t('menu.logout', 'Çıkış Yap')}</Text>
         </Pressable>
       </ScrollView>
+
+      <LanguageSheet
+        visible={langOpen}
+        onClose={() => setLangOpen(false)}
+        onSelect={(code) => updateLanguagePreference(code).catch(() => {})}
+      />
     </SafeAreaView>
   );
 }

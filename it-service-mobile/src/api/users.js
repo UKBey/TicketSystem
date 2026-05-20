@@ -9,6 +9,10 @@ export const updateProfile = (body) => api.put('/users/me', body);
 /** Şifre değiştirir. body: { currentPassword, newPassword }. */
 export const changePassword = (body) => api.post('/users/me/password', body);
 
+/** Tercih edilen dili backend'e kaydeder — bildirim ve e-postalar bu değeri kullanır. */
+export const updateLanguagePreference = (lang) =>
+  api.put('/users/me/language', null, { params: { lang } });
+
 // ---- Kullanıcı yönetimi (AGENT_ADMIN / MANAGER) ----
 
 /** Sayfalı kullanıcı listesi. params: { page, size, search }. */
