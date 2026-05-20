@@ -47,6 +47,9 @@ export const changePriority = (id, body) => api.put(`/tickets/${id}/priority`, b
 /** Konuyu değiştirir. body: { topicId, reasonCode, note }. */
 export const changeTopic = (id, body) => api.put(`/tickets/${id}/topic`, body);
 
+/** Bileti bir agent'a atar. body: { targetAgentId, note }. */
+export const assignTicket = (id, body) => api.put(`/tickets/${id}/assign`, body);
+
 /** Yeni bilet oluşturur. body: { title, description, priority, productId, topicId }. */
 export const createTicket = (body) => api.post('/tickets', body);
 

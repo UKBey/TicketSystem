@@ -26,3 +26,7 @@ export const updateUserRoles = (id, roles) => api.put(`/users/${id}/roles`, role
 /** Kullanıcıyı aktif/pasif yapar. */
 export const updateUserStatus = (id, active) =>
   api.put(`/users/${id}/status`, null, { params: { active } });
+
+/** Bir ürün için agent'ları kapasite bilgisiyle listeler (atama için). */
+export const getAgentsWithCapacity = (productId) =>
+  api.get('/users/agents/capacity', { params: { productId } });

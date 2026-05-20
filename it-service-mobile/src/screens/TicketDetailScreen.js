@@ -26,8 +26,10 @@ import {
   unclaimTicket,
   changePriority,
   changeTopic,
+  assignTicket,
 } from '../api/tickets';
 import { getProductTopics } from '../api/products';
+import { getAgentsWithCapacity } from '../api/users';
 import {
   formatDate,
   statusColor,
@@ -38,6 +40,7 @@ import {
 import { REASON_CODES } from '../constants/reasonCodes';
 import ReasonSheet from '../components/ReasonSheet';
 import ChangeWithReasonSheet from '../components/ChangeWithReasonSheet';
+import AssignSheet from '../components/AssignSheet';
 
 const COMMENT_MAX = 500;
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -66,6 +69,8 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [reasonMode, setReasonMode] = useState(null); // 'RESOLVE' | 'CLOSE' | 'UNCLAIM' | null
   const [changeMode, setChangeMode] = useState(null); // 'PRIORITY' | 'TOPIC' | null
   const [topicOptions, setTopicOptions] = useState([]);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [agentOptions, setAgentOptions] = useState([]);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -170,6 +175,36 @@ export default function TicketDetailScreen({ route, navigation }) {
     setChangeMode(null);
   };
 
+  const openAssign = async () => {
+    if (ticket?.productId) {
+      try {
+        const res = await getAgentsWithCapacity(ticket.productId);
+        setAgentOptions(
+          (res.data ?? []).map((a) => ({
+            label: a.agentName ?? a.fullName ?? a.name ?? String(a.agentId ?? a.id),
+            value: a.agentId ?? a.id,
+          })),
+        );
+      } catch {
+        setAgentOptions([]);
+      }
+    }
+    setAssignOpen(true);
+  };
+
+  const onAssignConfirm = async ({ agentId, note }) => {
+    setActionBusy(true);
+    try {
+      await assignTicket(id, { targetAgentId: agentId, note });
+      setAssignOpen(false);
+      await load();
+    } catch (e) {
+      Alert.alert(e?.response?.data?.message || t('ticketDetail.actionFailed', 'İşlem başarısız.'));
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.full, { backgroundColor: theme.bgBody }]}>
@@ -263,6 +298,10 @@ export default function TicketDetailScreen({ route, navigation }) {
                 label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
               <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
                 label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
+              {hasRole('AGENT_ADMIN') && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
+                  label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
+              )}
             </View>
           </View>
         )}
@@ -414,6 +453,14 @@ export default function TicketDetailScreen({ route, navigation }) {
         busy={actionBusy}
         onCancel={() => setChangeMode(null)}
         onConfirm={onChangeConfirm}
+      />
+
+      <AssignSheet
+        visible={assignOpen}
+        agents={agentOptions}
+        busy={actionBusy}
+        onCancel={() => setAssignOpen(false)}
+        onConfirm={onAssignConfirm}
       />
     </KeyboardAvoidingView>
   );
