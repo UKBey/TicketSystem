@@ -97,13 +97,23 @@
     "errorLoadProducts": "Ürün listesi yüklenemedi.",
     "errorRequired": "Başlık ve açıklama zorunludur.",
     "errorSave": "Kayıt başarısız oldu.",
-    "errorDelete": "Silme işlemi başarısız oldu."
+    "errorDelete": "Silme işlemi başarısız oldu.",
+    "product": "Ürün",
+    "selectProduct": "Ürün seç",
+    "pickFirst": "Görüntülemek için bir ürün seçin.",
+    "titlePlaceholder": "Başlık",
+    "contentPlaceholder": "Çözüm / açıklama",
+    "topic": "Konu (opsiyonel)",
+    "deleteTitle": "Kaydı sil",
+    "createFailed": "Oluşturulamadı."
   },
   "login": {
     "subtitle": "Destek taleplerinizi kolayca oluşturun, takip edin ve yönetin.",
     "signIn": "Giriş Yap",
     "toggleTheme": "Koyu/açık modu değiştir",
-    "forgotPassword": "Şifrenizi mi unuttunuz?"
+    "forgotPassword": "Şifrenizi mi unuttunuz?",
+    "cancelled": "Giriş tamamlanmadı.",
+    "error": "Giriş sırasında bir hata oluştu."
   },
   "forgotPassword": {
     "title": "Şifrenizi sıfırlayın",
@@ -561,7 +571,31 @@
     "aiSummaryEmpty": "Henüz özet yok. Oluşturmak için butona tıklayın.",
     "aiSummaryError": "Özet oluşturulamadı. Lütfen tekrar deneyin.",
     "aiSummaryRateLimit": "Token limiti aşıldı. Lütfen {{seconds}} saniye bekleyip tekrar deneyin.",
-    "aiSummaryThrottle": "Çok hızlı istek attınız. Lütfen {{seconds}} saniye bekleyip tekrar deneyin."
+    "aiSummaryThrottle": "Çok hızlı istek attınız. Lütfen {{seconds}} saniye bekleyip tekrar deneyin.",
+    "title": "Bilet",
+    "error": "Bilet yüklenemedi.",
+    "product": "Ürün",
+    "topic": "Konu",
+    "customer": "Müşteri",
+    "comments": "Yorumlar",
+    "actions": "İşlemler",
+    "unclaim": "Bırak",
+    "takeInProgress": "İşleme Al",
+    "waitCustomer": "Müşteri Bekleniyor",
+    "close": "Kapat",
+    "assign": "Ata",
+    "reply": "Müşteriye yanıt",
+    "agent": "Agent",
+    "selectAgent": "Agent seç",
+    "assignTitle": "Bileti Ata",
+    "resolveTitle": "Bileti Çöz",
+    "closeTitle": "Bileti Kapat",
+    "unclaimTitle": "Bileti Bırak",
+    "newPriority": "Yeni öncelik",
+    "newTopic": "Yeni konu",
+    "statusFailed": "Durum güncellenemedi.",
+    "actionFailed": "İşlem başarısız.",
+    "worklog": "Süre Kayıtları"
   },
   "form": {
     "save": "Kaydet",
@@ -765,6 +799,7 @@
   },
   "profile": {
     "title": "Profil",
+    "role": "Rol",
     "subtitle": "Hesap bilgileriniz ve yetkili ürünleriniz.",
     "preferences": "Hesap ve Güvenlik",
     "language": "Dil Tercihi",
@@ -860,6 +895,8 @@
     "title": "Kullanıcı Yönetimi",
     "subtitle": "Sisteme yeni kullanıcı ekle ve rol ata.",
     "createUser": "Yeni Kullanıcı Oluştur",
+    "new": "Yeni",
+    "selectRole": "Rol seç",
     "form": {
       "title": "Yeni Kullanıcı Oluştur",
       "subtitle": "Kullanıcı Keycloak'a kaydedilir ve geçici şifre atanır.",
@@ -939,6 +976,70 @@
     "next": "Sonraki",
     "perPage": "{{count}} / sayfa",
     "previousPage": "Önceki sayfa",
-    "nextPage": "Sonraki sayfa"
+    "nextPage": "Sonraki sayfa",
+    "add": "Ekle",
+    "delete": "Sil",
+    "save": "Kaydet",
+    "select": "Seç"
+  },
+  "createTicket": {
+    "screenTitle": "Yeni Bilet",
+    "new": "Yeni",
+    "title": "Başlık",
+    "titlePlaceholder": "Kısa başlık",
+    "description": "Açıklama",
+    "descriptionPlaceholder": "Sorunu açıkla",
+    "priority": "Öncelik",
+    "product": "Ürün",
+    "selectProduct": "Ürün seç",
+    "topic": "Konu",
+    "selectTopic": "Konu seç",
+    "selectProductFirst": "Önce ürün seç",
+    "knownIssues": "Bilinen sorunlar",
+    "create": "Bilet Oluştur",
+    "required": "Başlık, ürün ve konu zorunludur.",
+    "failed": "Bilet oluşturulamadı."
+  },
+  "menu": {
+    "notifications": "Bildirimler",
+    "knownIssues": "Bilinen Sorunlar",
+    "profile": "Profil",
+    "twoFactor": "İki Adımlı Doğrulama",
+    "products": "Ürünler",
+    "notificationPrefs": "Bildirim Tercihleri",
+    "userManagement": "Kullanıcı Yönetimi",
+    "adminPanel": "Yönetim Paneli",
+    "darkMode": "Koyu tema",
+    "lightMode": "Açık tema",
+    "logout": "Çıkış Yap"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "empty": "Bildirim yok.",
+    "markAll": "Tümünü Oku",
+    "deleteTitle": "Bildirimi sil",
+    "deleteAll": "Tümünü Sil",
+    "deleteAllTitle": "Tüm bildirimleri sil",
+    "deleteAllConfirm": "Tüm bildirimler kalıcı olarak silinecek. Emin misiniz?"
+  },
+  "products": {
+    "title": "Ürünler",
+    "tickets": "Ürün Biletleri",
+    "topics": "Konular"
+  },
+  "reason": {
+    "label": "Sebep",
+    "note": "Not (opsiyonel)"
+  },
+  "worklog": {
+    "title": "Süre Kayıtları",
+    "add": "Süre Kaydı Ekle",
+    "minutes": "Dakika",
+    "description": "Açıklama (opsiyonel)",
+    "total": "Toplam",
+    "empty": "Kayıt yok.",
+    "deleteTitle": "Kaydı sil",
+    "invalidMinutes": "Geçerli bir dakika girin.",
+    "addFailed": "Eklenemedi."
   }
 }

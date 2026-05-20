@@ -97,13 +97,23 @@
     "errorLoadProducts": "Could not load product list.",
     "errorRequired": "Title and description are required.",
     "errorSave": "Save failed.",
-    "errorDelete": "Delete failed."
+    "errorDelete": "Delete failed.",
+    "product": "Product",
+    "selectProduct": "Select a product",
+    "pickFirst": "Select a product to view.",
+    "titlePlaceholder": "Title",
+    "contentPlaceholder": "Resolution / description",
+    "topic": "Topic (optional)",
+    "deleteTitle": "Delete entry",
+    "createFailed": "Could not create."
   },
   "login": {
     "subtitle": "Create, track, and manage your support requests with ease.",
     "signIn": "Sign In",
     "toggleTheme": "Toggle dark/light mode",
-    "forgotPassword": "Forgot your password?"
+    "forgotPassword": "Forgot your password?",
+    "cancelled": "Sign-in was not completed.",
+    "error": "An error occurred during sign-in."
   },
   "forgotPassword": {
     "title": "Reset your password",
@@ -561,7 +571,31 @@
     "aiSummaryEmpty": "No summary yet. Click the button to generate one.",
     "aiSummaryError": "Could not generate summary. Please try again.",
     "aiSummaryRateLimit": "Token limit reached. Please wait {{seconds}} seconds and try again.",
-    "aiSummaryThrottle": "Too many requests. Please wait {{seconds}} seconds and try again."
+    "aiSummaryThrottle": "Too many requests. Please wait {{seconds}} seconds and try again.",
+    "title": "Ticket",
+    "error": "Could not load ticket.",
+    "product": "Product",
+    "topic": "Topic",
+    "customer": "Customer",
+    "comments": "Comments",
+    "actions": "Actions",
+    "unclaim": "Unclaim",
+    "takeInProgress": "Take In Progress",
+    "waitCustomer": "Waiting for Customer",
+    "close": "Close",
+    "assign": "Assign",
+    "reply": "Reply to customer",
+    "agent": "Agent",
+    "selectAgent": "Select agent",
+    "assignTitle": "Assign Ticket",
+    "resolveTitle": "Resolve Ticket",
+    "closeTitle": "Close Ticket",
+    "unclaimTitle": "Release Ticket",
+    "newPriority": "New priority",
+    "newTopic": "New topic",
+    "statusFailed": "Could not update status.",
+    "actionFailed": "Action failed.",
+    "worklog": "Work Logs"
   },
   "form": {
     "save": "Save",
@@ -765,6 +799,7 @@
   },
   "profile": {
     "title": "Profile",
+    "role": "Role",
     "subtitle": "Your account information and authorized products.",
     "preferences": "Account & Security",
     "language": "Language Preference",
@@ -860,6 +895,8 @@
     "title": "User Management",
     "subtitle": "Create new users and assign roles to them.",
     "createUser": "Create New User",
+    "new": "New",
+    "selectRole": "Select role",
     "form": {
       "title": "Create New User",
       "subtitle": "The user will be registered in Keycloak with a temporary password.",
@@ -939,6 +976,70 @@
     "next": "Next",
     "perPage": "{{count}} / page",
     "previousPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "add": "Add",
+    "delete": "Delete",
+    "save": "Save",
+    "select": "Select"
+  },
+  "createTicket": {
+    "screenTitle": "New Ticket",
+    "new": "New",
+    "title": "Title",
+    "titlePlaceholder": "Short title",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe the issue",
+    "priority": "Priority",
+    "product": "Product",
+    "selectProduct": "Select a product",
+    "topic": "Topic",
+    "selectTopic": "Select a topic",
+    "selectProductFirst": "Select a product first",
+    "knownIssues": "Known issues",
+    "create": "Create Ticket",
+    "required": "Title, product and topic are required.",
+    "failed": "Could not create ticket."
+  },
+  "menu": {
+    "notifications": "Notifications",
+    "knownIssues": "Known Issues",
+    "profile": "Profile",
+    "twoFactor": "Two-Factor Authentication",
+    "products": "Products",
+    "notificationPrefs": "Notification Preferences",
+    "userManagement": "User Management",
+    "adminPanel": "Admin Panel",
+    "darkMode": "Dark theme",
+    "lightMode": "Light theme",
+    "logout": "Log Out"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications.",
+    "markAll": "Mark All Read",
+    "deleteTitle": "Delete notification",
+    "deleteAll": "Delete All",
+    "deleteAllTitle": "Delete all notifications",
+    "deleteAllConfirm": "All notifications will be permanently deleted. Are you sure?"
+  },
+  "products": {
+    "title": "Products",
+    "tickets": "Product Tickets",
+    "topics": "Topics"
+  },
+  "reason": {
+    "label": "Reason",
+    "note": "Note (optional)"
+  },
+  "worklog": {
+    "title": "Work Logs",
+    "add": "Add Work Log",
+    "minutes": "Minutes",
+    "description": "Description (optional)",
+    "total": "Total",
+    "empty": "No entries.",
+    "deleteTitle": "Delete entry",
+    "invalidMinutes": "Enter a valid number of minutes.",
+    "addFailed": "Could not add."
   }
 }
