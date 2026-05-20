@@ -438,7 +438,7 @@ docker logs --tail 50 data-prepper
 
 Tüm OpenSearch Dashboards saved object'leri tek dosyada:
 `observability/opensearch-dashboards.ndjson` — 3 index pattern (`otel-logs*`,
-`ss4o_traces-*`, `otel-metrics-*`), 2 dashboard ve 8 görsel.
+`ss4o_traces-*`, `otel-metrics-*`), 9 görsel ve 1 birleşik dashboard.
 Temiz bir OpenSearch'e veya re-import için:
 
 ```bash
@@ -446,7 +446,7 @@ curl -s -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true'
   -H 'osd-xsrf: true' -F file=@observability/opensearch-dashboards.ndjson
 ```
 
-Görüntüleme: OpenSearch Dashboards → Dashboard
-(compose'da `http://localhost/opensearch`, k8s'te `/opensearch`):
-- **OpenTelemetry Metrikleri** — metrik (Request Volume, API Response Time, Error Rate, Service Health)
-- **Ticket System Overview** — trace (endpoint'ler, HTTP hata kodları, istek hacmi, gecikme)
+Görüntüleme: OpenSearch Dashboards → Dashboard → **Ticket System Observability**
+(compose'da `http://localhost/opensearch`, k8s'te `/opensearch`) — metrik + trace + log
+tek panoda: Request Volume, API Response Time, Error Rate, Service Health, İstek Hacmi,
+HTTP Hata Kodları, En Çok Kullanılan Endpoint'ler, Ortalama Gecikme, Log Seviyeleri.
