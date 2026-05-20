@@ -442,7 +442,7 @@ export default function TicketListScreen({ navigation, route }) {
               {has('topic') && (
                 <View style={styles.pickerWrap}>
                   <PickerField
-                    label={t('ticket.filters.allTopics', 'Konu')}
+                    label={t('createTicket.topic', 'Konu')}
                     placeholder={
                       dProduct
                         ? t('ticket.filters.allTopics', 'Tüm konular')
@@ -459,7 +459,7 @@ export default function TicketListScreen({ navigation, route }) {
               {has('agent') && (
                 <View style={styles.pickerWrap}>
                   <PickerField
-                    label={t('ticket.filters.allAgents', 'Ajan')}
+                    label={t('ticketDetail.agent', 'Ajan')}
                     placeholder={t('ticket.filters.allAgents', 'Tüm ajanlar')}
                     value={dAgent}
                     onChange={setDAgent}
