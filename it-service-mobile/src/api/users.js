@@ -30,3 +30,24 @@ export const updateUserStatus = (id, active) =>
 /** Bir ürün için agent'ları kapasite bilgisiyle listeler (atama için). */
 export const getAgentsWithCapacity = (productId) =>
   api.get('/users/agents/capacity', { params: { productId } });
+
+// ---- Yönetim paneli — ürün yetkisi & agent limitleri ----
+
+/** Kullanıcıya ürün yetkisi ekler. Güncellenmiş kullanıcıyı döner. */
+export const assignProduct = (userId, productId) =>
+  api.post(`/users/${userId}/products/${productId}`);
+
+/** Kullanıcıdan ürün yetkisini kaldırır. Güncellenmiş kullanıcıyı döner. */
+export const removeProduct = (userId, productId) =>
+  api.delete(`/users/${userId}/products/${productId}`);
+
+/** Agent'ın ürün bazlı bilet limiti override'larını listeler. */
+export const getAgentLimits = (agentId) => api.get(`/agents/${agentId}/limits`);
+
+/** Agent'ın bir ürün için bilet limitini ayarlar. body: { useCustomLimit, maxActiveTickets }. */
+export const setAgentLimit = (agentId, productId, useCustomLimit, maxActiveTickets) =>
+  api.put(`/agents/${agentId}/limits/${productId}`, { useCustomLimit, maxActiveTickets });
+
+/** Agent'ın bir ürün için limit override'ını kaldırır. */
+export const deleteAgentLimit = (agentId, productId) =>
+  api.delete(`/agents/${agentId}/limits/${productId}`);

@@ -72,6 +72,14 @@ export default function MenuScreen({ navigation }) {
               onPress={() => navigation.navigate('UserManagement')}
             />
           )}
+          {isAdmin && (
+            <MenuRow
+              theme={theme}
+              icon="shield-checkmark-outline"
+              label={t('menu.adminPanel', 'Yönetim Paneli')}
+              onPress={() => navigation.navigate('AdminPanel')}
+            />
+          )}
           <MenuRow
             theme={theme}
             icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
