@@ -35,9 +35,27 @@ export function AuthProvider({ children }) {
       APP_ROLES.includes(r),
     );
     setRoles(tokenRoles);
+
+    // Ad/soyad token claim'lerinden alınır (given_name/family_name); yoksa
+    // tam ad ilk boşluktan bölünür — web ProfilePage ile aynı davranış.
+    const fullName = claims.name || claims.preferred_username || '';
+    let firstName = claims.given_name || '';
+    let lastName = claims.family_name || '';
+    if (!firstName && !lastName && fullName) {
+      const sp = fullName.indexOf(' ');
+      if (sp === -1) {
+        firstName = fullName;
+      } else {
+        firstName = fullName.slice(0, sp);
+        lastName = fullName.slice(sp + 1).trim();
+      }
+    }
+
     setUser({
       id: claims.sub,
-      name: claims.name || claims.preferred_username,
+      name: fullName,
+      firstName,
+      lastName,
       email: claims.email,
       username: claims.preferred_username,
     });
