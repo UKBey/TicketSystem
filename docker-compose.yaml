@@ -166,7 +166,7 @@ services:
 
   # Log ve telemetry verisi icin arama/veri deposu.
   opensearch:
-    image: opensearchproject/opensearch:2.18.0
+    image: opensearchproject/opensearch:3.6.0
     container_name: opensearch
     environment:
       - discovery.type=single-node
@@ -189,7 +189,7 @@ services:
 
   # OpenSearch verisini gorsellestirme arayuzu.
   opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.18.0
+    image: opensearchproject/opensearch-dashboards:3.6.0
     container_name: opensearch-dashboards
     ports:
       - "5601:5601"
@@ -211,7 +211,7 @@ services:
 
   # Telemetry verisini toplayip hedefe aktaran collector.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.116.0
+    image: otel/opentelemetry-collector-contrib:0.152.0
     container_name: otel-collector
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
@@ -225,13 +225,10 @@ services:
         condition: service_healthy
     networks:
       - it-service-net
-    healthcheck:
-      # 10ED = port 4317 hex (gRPC OTLP) — collector burada listen ediyor.
-      test: ["CMD-SHELL", "grep -q '00000000:10ED' /proc/net/tcp || grep -q '00000000:10ED' /proc/net/tcp6"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+    # NOT: otel/opentelemetry-collector-contrib distroless image — /bin/sh yok,
+    # CMD-SHELL pattern'i tanımıyor. health_check extension de config'de açık değil
+    # (port 13133 expose edilmemiş). Dependents (prometheus + backend) `service_started`
+    # ile yetiniyor: collector ~1-2sn'de up oluyor, OTLP exporter'lar transparent retry.
 
   # Metrik toplama ve saklama servisi.
   prometheus:
@@ -247,7 +244,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
       otel-collector:
-        condition: service_healthy
+        condition: service_started
     networks:
       - it-service-net
     healthcheck:
@@ -376,8 +373,9 @@ services:
       kafka:
         condition: service_healthy
       otel-collector:
-        # Telemetry kaybi olmamasi icin collector once ayaga kalkar.
-        condition: service_healthy
+        # Collector distroless image — healthcheck imkansiz (hicbir shell yok).
+        # Backend OTLP exporter zaten transparent retry yapar, baslangic gecikmesi gorunmez.
+        condition: service_started
       redis:
         condition: service_healthy
     networks:
@@ -510,7 +508,7 @@ services:
 
   # Kafka'dan log okuyup OpenSearch'e yazan Logstash servisi.
   logstash:
-    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.1
+    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
     container_name: logstash-consumer
     volumes:
       - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
