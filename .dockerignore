@@ -17,9 +17,8 @@ llm-service/target
 data-generator/target
 ticket-workflow-kjar/target
 k8s
-grafana
+data-prepper
 observability
-prometheus.yml
 otel-collector-config.yaml
 logstash.conf
 sonarqube_data

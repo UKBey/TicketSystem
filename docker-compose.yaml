@@ -18,7 +18,6 @@ volumes:
     # SonarQube log dosyalari.
   sonarqube_db_data:
     # SonarQube veritabani verileri.
-  grafana_data:
   redis_data:
     # Rate-limit bucket'lari ve gelecekte eklenecek cache/queue verisi.
 
@@ -219,7 +218,6 @@ services:
     ports:
       - "4317:4317"
       - "4318:4318"
-      - "8889:8889"
     depends_on:
       opensearch:
         condition: service_healthy
@@ -227,58 +225,23 @@ services:
       - it-service-net
     # NOT: otel/opentelemetry-collector-contrib distroless image — /bin/sh yok,
     # CMD-SHELL pattern'i tanımıyor. health_check extension de config'de açık değil
-    # (port 13133 expose edilmemiş). Dependents (prometheus + backend) `service_started`
-    # ile yetiniyor: collector ~1-2sn'de up oluyor, OTLP exporter'lar transparent retry.
+    # (port 13133 expose edilmemiş). Backend `service_started` ile yetiniyor:
+    # collector ~1-2sn'de up oluyor, OTLP exporter'lar transparent retry.
 
-  # Metrik toplama ve saklama servisi.
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    container_name: prometheus
-    ports:
-      - "9090:9090"
+  # OTel Collector'dan metrikleri OTLP/gRPC ile alip OpenSearch'e yazar.
+  # Collector'in opensearch exporter'i metrik desteklemedigi icin metrik yolu
+  # buradan gecer; trace ve log dogrudan opensearch exporter ile gider.
+  data-prepper:
+    image: opensearchproject/data-prepper:2.10.2
+    container_name: data-prepper
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      # Alert kurallari ayri dosyada — prometheus.yml `rule_files` glob'u ile yukler.
-      - ./prometheus-rules.yaml:/etc/prometheus/rules/ticketsystem-application.yaml:ro
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - ./data-prepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+      - ./data-prepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro
     depends_on:
-      otel-collector:
-        condition: service_started
-    networks:
-      - it-service-net
-    healthcheck:
-      # 2382 = port 9090 hex
-      test: ["CMD-SHELL", "grep -q '00000000:2382' /proc/net/tcp || grep -q '00000000:2382' /proc/net/tcp6"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-
-  # Metrik gorsellestime servisi.
-  grafana:
-    image: grafana/grafana:11.4.0
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      prometheus:
+      opensearch:
         condition: service_healthy
     networks:
       - it-service-net
-    healthcheck:
-      # 0BB8 = port 3000 hex
-      test: ["CMD-SHELL", "grep -q '00000000:0BB8' /proc/net/tcp || grep -q '00000000:0BB8' /proc/net/tcp6"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
   # Gozlemlenebilirlik katmani sonu.
 

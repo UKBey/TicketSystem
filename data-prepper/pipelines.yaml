@@ -1,0 +1,15 @@
+# OTel Collector'dan OTLP/gRPC ile gelen metrikleri OpenSearch'e yazar.
+# Akis: Backend -> OTel Collector (metrics pipeline) -> Data Prepper -> OpenSearch
+# Index: gunluk rotasyon (otel-metrics-YYYY.MM.dd) — Dashboards'ta otel-metrics-* pattern'i ile okunur.
+otel-metrics-pipeline:
+  source:
+    otel_metrics_source:
+      ssl: false
+      port: 21891
+  processor:
+    - otel_metrics:
+  sink:
+    - opensearch:
+        hosts: [ "http://opensearch:9200" ]
+        insecure: true
+        index: otel-metrics-%{yyyy.MM.dd}

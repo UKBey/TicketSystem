@@ -125,7 +125,7 @@ management:
         # `caches` ops icin manuel cache flush imkani — ozellikle env-driven SLA
         # ayarlari degistikten sonra DELETE /actuator/caches/{name} ile temizlenir.
         # SecurityConfig anonim erisimi yasaklar; JWT + role guard uygulanir.
-        include: health,info,metrics,prometheus,caches
+        include: health,info,metrics,caches
   endpoint:
     health:
       show-details: always

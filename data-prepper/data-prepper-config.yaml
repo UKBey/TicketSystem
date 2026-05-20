@@ -1,0 +1,3 @@
+# Data Prepper cekirdek (server) ayarlari — dev ortami.
+# SSL kapali: dev'de TLS sertifikasi yok. Uretimde acilmasi onerilir.
+ssl: false
