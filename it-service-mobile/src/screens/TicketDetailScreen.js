@@ -16,7 +16,14 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../auth/AuthContext';
-import { getTicket, getComments, postComment } from '../api/tickets';
+import {
+  getTicket,
+  getComments,
+  postComment,
+  claimTicket,
+  changeStatus,
+  closeTicket,
+} from '../api/tickets';
 import {
   formatDate,
   statusColor,
@@ -24,10 +31,12 @@ import {
   statusLabel,
   priorityLabel,
 } from '../utils/format';
+import { REASON_CODES } from '../constants/reasonCodes';
+import ReasonSheet from '../components/ReasonSheet';
 
 const COMMENT_MAX = 500;
 
-/** Bilet detayı — alanlar, yorum listesi ve yorum gönderme. */
+/** Bilet detayı — alanlar, aksiyonlar, yorum listesi ve yorum gönderme. */
 export default function TicketDetailScreen({ route }) {
   const { id } = route.params;
   const { theme } = useTheme();
@@ -46,6 +55,9 @@ export default function TicketDetailScreen({ route }) {
   const [commentType, setCommentType] = useState('EXTERNAL');
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  const [actionBusy, setActionBusy] = useState(false);
+  const [reasonMode, setReasonMode] = useState(null); // 'RESOLVE' | 'CLOSE' | null
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -99,6 +111,35 @@ export default function TicketDetailScreen({ route }) {
     }
   };
 
+  const runAction = async (fn, failMsg) => {
+    setActionBusy(true);
+    try {
+      const res = await fn();
+      if (res?.data) setTicket(res.data);
+    } catch (e) {
+      Alert.alert(e?.response?.data?.message || failMsg);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const doClaim = () =>
+    runAction(() => claimTicket(id), t('ticketDetail.claimFailed', 'Üstlenilemedi.'));
+  const doStatus = (status) =>
+    runAction(() => changeStatus(id, { status }), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
+
+  const onReasonConfirm = async ({ reasonCode, note }) => {
+    const isResolve = reasonMode === 'RESOLVE';
+    await runAction(
+      () =>
+        isResolve
+          ? changeStatus(id, { status: 'RESOLVED', reasonCode, note })
+          : closeTicket(id, { reasonCode, note }),
+      t('ticketDetail.actionFailed', 'İşlem başarısız.'),
+    );
+    setReasonMode(null);
+  };
+
   if (loading) {
     return (
       <View style={[styles.full, { backgroundColor: theme.bgBody }]}>
@@ -114,7 +155,10 @@ export default function TicketDetailScreen({ route }) {
     );
   }
 
-  const canComment = ticket.status !== 'CLOSED';
+  const status = ticket.status;
+  const canComment = status !== 'CLOSED';
+  const claimed = (ticket.claimers?.length ?? 0) > 0;
+  const showActions = isAgent && status !== 'CLOSED';
 
   return (
     <KeyboardAvoidingView
@@ -131,8 +175,8 @@ export default function TicketDetailScreen({ route }) {
         <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
           <View style={styles.row}>
             <Text style={[styles.id, { color: theme.textTertiary }]}>#{ticket.id}</Text>
-            <View style={[styles.badge, { backgroundColor: statusColor(ticket.status) }]}>
-              <Text style={styles.badgeText}>{statusLabel(ticket.status, t)}</Text>
+            <View style={[styles.badge, { backgroundColor: statusColor(status) }]}>
+              <Text style={styles.badgeText}>{statusLabel(status, t)}</Text>
             </View>
           </View>
           <Text style={[styles.title, { color: theme.textPrimary }]}>{ticket.title}</Text>
@@ -150,6 +194,36 @@ export default function TicketDetailScreen({ route }) {
           <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme}
             value={formatDate(ticket.createdAt)} />
         </View>
+
+        {showActions && (
+          <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+              {t('ticketDetail.actions', 'İşlemler')}
+            </Text>
+            <View style={styles.actionRow}>
+              {!claimed && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={doClaim}
+                  label={t('ticketDetail.claim', 'Üstlen')} />
+              )}
+              {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                  label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
+              )}
+              {status === 'IN_PROGRESS' && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
+                  label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
+              )}
+              {status !== 'RESOLVED' && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
+                  label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
+              )}
+              {status === 'RESOLVED' && (
+                <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('CLOSE')}
+                  label={t('ticketDetail.close', 'Kapat')} color={theme.textSecondary} />
+              )}
+            </View>
+          </View>
+        )}
 
         <Text style={[styles.section, { color: theme.textPrimary }]}>
           {t('ticketDetail.comments', 'Yorumlar')} ({comments.length})
@@ -242,6 +316,20 @@ export default function TicketDetailScreen({ route }) {
           </Text>
         </View>
       )}
+
+      <ReasonSheet
+        visible={reasonMode !== null}
+        title={
+          reasonMode === 'RESOLVE'
+            ? t('ticketDetail.resolveTitle', 'Bileti Çöz')
+            : t('ticketDetail.closeTitle', 'Bileti Kapat')
+        }
+        actionKey={reasonMode || 'RESOLVE'}
+        codes={REASON_CODES[reasonMode] || []}
+        busy={actionBusy}
+        onCancel={() => setReasonMode(null)}
+        onConfirm={onReasonConfirm}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -255,10 +343,26 @@ function Field({ label, value, theme, valueColor }) {
   );
 }
 
+function ActionBtn({ label, onPress, busy, theme, color }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      style={({ pressed }) => [
+        styles.actionBtn,
+        { backgroundColor: color || theme.primary, opacity: busy || pressed ? 0.6 : 1 },
+      ]}
+    >
+      <Text style={styles.actionBtnText}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   full: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 14, gap: 14 },
   card: { borderRadius: 12, borderWidth: 1, padding: 16, gap: 10 },
+  cardTitle: { fontSize: 14, fontWeight: '700' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   id: { fontSize: 12, fontWeight: '600' },
   title: { fontSize: 18, fontWeight: '700' },
@@ -268,6 +372,9 @@ const styles = StyleSheet.create({
   field: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
   fieldLabel: { fontSize: 13 },
   fieldValue: { fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actionBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9 },
+  actionBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   section: { fontSize: 16, fontWeight: '700', marginTop: 4 },
   comment: { borderRadius: 10, borderWidth: 1, padding: 12, gap: 4 },
   cAuthor: { fontSize: 13, fontWeight: '700' },

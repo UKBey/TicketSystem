@@ -31,3 +31,12 @@ export const getComments = (id) => api.get(`/tickets/${id}/comments`);
 
 /** Yeni yorum gönderir. body: { message, type } — type: 'EXTERNAL' | 'INTERNAL'. */
 export const postComment = (id, body) => api.post(`/tickets/${id}/comments`, body);
+
+/** Bileti üstlenir (claim). */
+export const claimTicket = (id) => api.put(`/tickets/${id}/claim`);
+
+/** Durum değiştirir. body: { status } veya { status:'RESOLVED', reasonCode, note }. */
+export const changeStatus = (id, body) => api.put(`/tickets/${id}/status`, body);
+
+/** Bileti kapatır. body: { reasonCode, note }. */
+export const closeTicket = (id, body) => api.put(`/tickets/${id}/close`, body);
