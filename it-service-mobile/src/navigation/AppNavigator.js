@@ -6,6 +6,7 @@ import TicketDetailScreen from '../screens/TicketDetailScreen';
 import CreateTicketScreen from '../screens/CreateTicketScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import KnownIssuesScreen from '../screens/KnownIssuesScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -48,6 +49,11 @@ export default function AppNavigator() {
         name="KnownIssues"
         component={KnownIssuesScreen}
         options={{ title: t('knownIssues.title', 'Bilinen Sorunlar') }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: t('profile.title', 'Profil') }}
       />
     </Stack.Navigator>
   );

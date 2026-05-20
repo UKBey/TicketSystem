@@ -107,6 +107,18 @@ export function AuthProvider({ children }) {
     if (rt) oidc.endSession(rt);
   }, [clearSession]);
 
+  // Profil güncellemesi sonrası token'ı tazeleyip user/roles'u yeniden türetir.
+  const refreshUser = useCallback(async () => {
+    const rt = refreshTokenRef.current;
+    if (!rt) return;
+    try {
+      const refreshed = await oidc.refresh(rt);
+      await applyTokens(refreshed);
+    } catch {
+      // yoksay — mevcut oturum geçerli kalır
+    }
+  }, [applyTokens]);
+
   const hasRole = useCallback((role) => roles.includes(role), [roles]);
 
   // Birincil rol önceliği — web ile aynı: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER.
@@ -127,6 +139,7 @@ export function AuthProvider({ children }) {
         roles,
         login,
         logout,
+        refreshUser,
         hasRole,
         getPrimaryRole,
       }}

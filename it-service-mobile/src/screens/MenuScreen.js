@@ -47,6 +47,12 @@ export default function MenuScreen({ navigation }) {
           />
           <MenuRow
             theme={theme}
+            icon="person-outline"
+            label={t('menu.profile', 'Profil')}
+            onPress={() => navigation.navigate('Profile')}
+          />
+          <MenuRow
+            theme={theme}
             icon={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
             label={mode === 'dark' ? t('menu.lightMode', 'Açık tema') : t('menu.darkMode', 'Koyu tema')}
             onPress={toggle}
