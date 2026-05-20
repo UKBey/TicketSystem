@@ -384,6 +384,14 @@ services:
       LLM_RATE_LIMIT_MAX_REQUESTS: ${LLM_RATE_LIMIT_MAX_REQUESTS:-1}
       LLM_RATE_LIMIT_DURATION_SECONDS: ${LLM_RATE_LIMIT_DURATION_SECONDS:-10}
       LLM_RATE_LIMIT_PATH_PATTERNS: ${LLM_RATE_LIMIT_PATH_PATTERNS:-/api/ai/**}
+
+      # OpenTelemetry — agent trace/metrik/log'lari OTLP ile collector'a gonderir.
+      # Metrik delta temporality: OpenSearch sum aggregation'lari rate() olmadan calisir.
+      OTEL_SERVICE_NAME: "llm-service"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_LOGS_EXPORTER: "otlp"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=llm-service,service.version=0.0.1,deployment.environment=development"
+      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
     depends_on:
       it-service-db:
         condition: service_healthy
@@ -391,6 +399,8 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - it-service-net
     healthcheck:

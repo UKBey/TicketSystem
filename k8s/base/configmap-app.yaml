@@ -85,3 +85,6 @@ data:
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
   OTEL_LOGS_EXPORTER: "otlp"
   OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=kubernetes"
+  # Metrik delta temporality — OpenSearch sum aggregation'ları rate() olmadan çalışır.
+  # Hem it-service-backend hem llm-service bu configmap'ten besleniyor.
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
