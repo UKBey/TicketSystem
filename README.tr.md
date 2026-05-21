@@ -29,7 +29,6 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 - [Dağıtım](#-dağıtım)
 - [Ekran Görüntüleri](#-ekran-görüntüleri)
 - [Dokümantasyon](#-dokümantasyon)
-- [Yol Haritası](#-yol-haritası)
 - [Lisans](#-lisans)
 
 ---
@@ -44,7 +43,7 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 
 ### SLA Yönetimi
 - Yapılandırılabilir çözüm ve uyarı eşikleriyle önceliğe göre SLA politikaları (`CRITICAL` / `HIGH` / `MEDIUM` / `LOW`)
-- SLA sayacı `WAITING_FOR_CUSTOMER` durumunda **duraklar** ve `IN_PROGRESS` durumunda yeniden başlar
+- SLA sayacı, ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar**, `IN_PROGRESS`'e dönünce kaldığı yerden devam eder ve ticket `CLOSED` olduğunda tamamen durur
 - Bir zamanlayıcı, yaklaşan ve ihlal edilen SLA'ları işaretler; arayüz renk kodlu geri sayım rozetleri gösterir
 
 ### İletişim ve Dosyalar
@@ -158,12 +157,11 @@ make logs s=it-service-backend   # tek bir servisin günlüklerini izler
 | Servis | URL |
 |---------|-----|
 | **Web uygulaması** | http://localhost |
-| API (Swagger UI) | http://localhost/api/swagger-ui.html |
+| API (Swagger UI) | http://localhost/swagger-ui/index.html |
 | Keycloak | http://localhost/auth |
 | Mailpit (yakalanan e-postalar) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 |
-| KIE Server (jBPM) | http://localhost:8180/kie-server/docs |
 | SonarQube (isteğe bağlı) | http://localhost:9000 |
 
 ### 4. Demo verilerini oluşturun
@@ -221,8 +219,7 @@ TicketSystemProject/
 ├── docs/                    # Mimari ve teknik dokümantasyon
 ├── docker-compose.yaml      # Tam yığın orkestrasyonu
 ├── Makefile                 # Kanonik komut giriş noktası
-├── RUNBOOK.md               # Operasyon ve olay müdahale kılavuzları
-└── CLAUDE.md                # Yapay zekâ asistanları için kod tabanı rehberi
+└── RUNBOOK.md               # Operasyon ve olay müdahale kılavuzları
 ```
 
 ---
@@ -278,24 +275,12 @@ _Ekran görüntüleri buraya eklenecek._
 | **[docs/WORKFLOW.md](docs/WORKFLOW.md)** | jBPM / BPMN ticket yaşam döngüsü iş akışı tasarımı |
 | **[docs/CICD.md](docs/CICD.md)** | CI/CD hattı tasarımı (GitHub Actions) |
 | **[RUNBOOK.md](RUNBOOK.md)** | Operasyon ve olay müdahale kılavuzları (DB yedeği, Keycloak yeniden içe aktarımı, Flyway onarımı...) |
-| **API referansı** | `http://localhost/api/swagger-ui.html` adresinde etkileşimli OpenAPI / Swagger UI |
-| **[CLAUDE.md](CLAUDE.md)** | Kod tabanı kuralları ve yapay zekâ kodlama asistanları için rehberlik |
-
----
-
-## 🗺 Yol Haritası
-
-Halihazırda mevcut olan altyapıdan yararlanan olası sonraki özellikler:
-
-- **Yapay Zekâ** — otomatik ticket sınıflandırması, temsilci yanıt önerileri, anlamsal yinelenen kayıt tespiti
-- **Gerçek Zamanlı** — canlı temsilci ↔ müşteri sohbeti, WebSocket ile iletilen bildirimler, mobil anlık bildirim (push)
-- **Üretkenlik** — hazır yanıtlar, ticket birleştirme/bağlama, toplu işlemler, etiketler
-- **Otomasyon** — kural motoru / makrolar, sırayla (round-robin) atama, onay iş akışları
-- **Entegrasyonlar** — gelen e-postadan ticket oluşturma, Slack/Teams, giden webhook'lar
-- **Raporlama** — CSAT anketleri, zamanlanmış rapor dışa aktarımları, herkese açık durum sayfası
+| **API referansı** | `http://localhost/swagger-ui/index.html` adresinde etkileşimli OpenAPI / Swagger UI |
 
 ---
 
 ## 📄 Lisans
 
-Eğitim / portföy amaçlı bir tam yığın proje olarak inşa edilmiştir. Lisanslama koşulları daha sonra belirlenecektir.
+© 2026 — Tüm hakları yazara aittir.
+
+Bu proje bir **eğitim ve portföy projesi** olarak geliştirilmiştir. Yalnızca **değerlendirme ve öğrenme amacıyla** paylaşılmaktadır. Yazarın önceden yazılı izni olmadan; tamamen veya kısmen, herhangi bir **ticari veya kâr amaçlı** kullanım, kopyalama, değiştirme, dağıtım ya da çalıştırma **yapılamaz**.

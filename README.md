@@ -29,7 +29,6 @@ Customers report technical problems, support agents resolve them under **SLA** r
 - [Deployment](#-deployment)
 - [Screenshots](#-screenshots)
 - [Documentation](#-documentation)
-- [Roadmap](#-roadmap)
 - [License](#-license)
 
 ---
@@ -44,7 +43,7 @@ Customers report technical problems, support agents resolve them under **SLA** r
 
 ### SLA Management
 - Per-priority SLA policies (`CRITICAL` / `HIGH` / `MEDIUM` / `LOW`) with configurable resolution and warning thresholds
-- SLA clock **pauses** on `WAITING_FOR_CUSTOMER` and resumes on `IN_PROGRESS`
+- SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED`, resumes on `IN_PROGRESS`, and stops permanently once the ticket is `CLOSED`
 - A scheduler flags approaching and breached SLAs; the UI shows colour-coded countdown badges
 
 ### Communication & Files
@@ -158,12 +157,11 @@ The first start pulls images, runs Flyway migrations and imports the Keycloak re
 | Service | URL |
 |---------|-----|
 | **Web application** | http://localhost |
-| API (Swagger UI) | http://localhost/api/swagger-ui.html |
+| API (Swagger UI) | http://localhost/swagger-ui/index.html |
 | Keycloak | http://localhost/auth |
 | Mailpit (captured e-mails) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 |
-| KIE Server (jBPM) | http://localhost:8180/kie-server/docs |
 | SonarQube (opt-in) | http://localhost:9000 |
 
 ### 4. Seed demo data
@@ -221,8 +219,7 @@ TicketSystemProject/
 ├── docs/                    # Architecture & technical documentation
 ├── docker-compose.yaml      # Full-stack orchestration
 ├── Makefile                 # Canonical command entry point
-├── RUNBOOK.md               # Operations & incident playbooks
-└── CLAUDE.md                # Codebase guide for AI assistants
+└── RUNBOOK.md               # Operations & incident playbooks
 ```
 
 ---
@@ -278,24 +275,12 @@ _Screenshots will be added here._
 | **[docs/WORKFLOW.md](docs/WORKFLOW.md)** | jBPM / BPMN ticket-lifecycle workflow design |
 | **[docs/CICD.md](docs/CICD.md)** | CI/CD pipeline design (GitHub Actions) |
 | **[RUNBOOK.md](RUNBOOK.md)** | Operations & incident playbooks (DB backup, Keycloak re-import, Flyway repair...) |
-| **API reference** | Interactive OpenAPI / Swagger UI at `http://localhost/api/swagger-ui.html` |
-| **[CLAUDE.md](CLAUDE.md)** | Codebase conventions & guidance for AI coding assistants |
-
----
-
-## 🗺 Roadmap
-
-Potential next features — leveraging infrastructure that is already in place:
-
-- **AI** — automatic ticket categorisation, agent reply suggestions, semantic duplicate detection
-- **Real-time** — live agent ↔ customer chat, WebSocket-pushed notifications, mobile push
-- **Productivity** — canned responses, ticket merge/link, bulk actions, tags
-- **Automation** — rule engine / macros, round-robin assignment, approval workflows
-- **Integrations** — inbound e-mail-to-ticket, Slack/Teams, outbound webhooks
-- **Reporting** — CSAT surveys, scheduled report exports, public status page
+| **API reference** | Interactive OpenAPI / Swagger UI at `http://localhost/swagger-ui/index.html` |
 
 ---
 
 ## 📄 License
 
-Built as an educational / portfolio full-stack project. Licensing terms to be defined.
+© 2026 — All rights reserved by the author.
+
+This project was developed as an **educational and portfolio project**. It is shared **solely for evaluation and learning purposes**. It may **not** be used, copied, modified, distributed, or deployed — in whole or in part — for any **commercial or for-profit purpose** without the prior written permission of the author.
