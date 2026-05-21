@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
-  const { theme, applyServerTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   // useEffect tek-seferlik calistigi icin theme'i closure'a hapsetmek istemiyoruz —
   // sync sirasinda guncel degeri okuyabilelim diye ref'te tutuyoruz.
   const themeRef = useRef(theme);
@@ -41,29 +41,17 @@ export function AuthProvider({ children }) {
     if (initCalled.current) return;
     initCalled.current = true;
 
-    // /users/sync sonrasi tema ve dil tercihlerini sunucu ile cift yonlu uzlastirir.
+    // /users/sync kullaniciyi JWT'den DB'ye senkronlar. Dil ve tema, kullanicinin
+    // Keycloak giris ekraninda sectigi degerlerdir (template.ftl bunlari localStorage'a
+    // yazar) — uygulama bu degerlerle acilir ve bu secim DB'ye YAZILIR. DB'deki onceki
+    // deger client'i ezmez; oncelik her zaman Keycloak ekranindaki secimdedir.
     const syncUserPreferences = () => {
       api.post('/users/sync')
-        .then((res) => {
-          // Dil: sunucuda gecerli bir tercih varsa ve mevcut dilden farkliysa onu uygula;
-          // yoksa cihazdaki mevcut dili sunucuya yaz.
-          const serverLang = res?.data?.preferredLanguage;
-          if (serverLang === 'en' || serverLang === 'tr') {
-            if (serverLang !== i18n.language) {
-              i18n.changeLanguage(serverLang);
-            }
-          } else {
-            const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
-            api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
-          }
-          // Tema: sunucudaki tercih kullanıcının "son seçimi" — UI'ı bununla hizala.
-          const serverTheme = res?.data?.preferredTheme;
-          if (serverTheme === 'light' || serverTheme === 'dark') {
-            applyServerTheme(serverTheme);
-          } else {
-            // Henüz kayıt yoksa localStorage'daki mevcut temayı backend'e yaz.
-            setTheme(themeRef.current);
-          }
+        .then(() => {
+          const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+          api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+          // setTheme temayi (gorsel degisiklik olmadan) ayarlar ve backend'e persist eder.
+          setTheme(themeRef.current);
         })
         .catch(err => console.error('Sync error:', err));
     };
@@ -108,7 +96,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
     };
-  }, [extractUserInfo, applyServerTheme, setTheme]);
+  }, [extractUserInfo, setTheme]);
 
   const refreshUser = useCallback(async () => {
     // Force-refresh token so updated claims (name/email) reach the client,

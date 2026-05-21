@@ -32,13 +32,6 @@ export function ThemeProvider({ children }) {
     document.cookie = 'theme=' + theme + '; path=/; max-age=31536000; samesite=lax';
   }, [theme]);
 
-  // Sunucudan gelen değeri sessizce uygula — API'ye geri yazma yok.
-  const applyServerTheme = useCallback((value) => {
-    if (value === 'dark' || value === 'light') {
-      setThemeState(value);
-    }
-  }, []);
-
   const persist = (value) => {
     // Login sayfasinda token yoktur; istek 401 doner ve api interceptor'i
     // kullaniciyi Keycloak login ekranina yonlendirir. Yalnizca kimlik
@@ -64,7 +57,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, applyServerTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

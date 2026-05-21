@@ -213,12 +213,12 @@ body {
   flex-shrink: 0;
 }
 
-/* Show correct icon per theme */
-.icon-moon { display: block; }
-.icon-sun  { display: none;  }
+/* Show the icon of the mode the toggle will switch TO (dark -> sun, light -> moon) */
+.icon-moon { display: none;  }
+.icon-sun  { display: block; }
 
-[data-theme="light"] .icon-moon { display: none;  }
-[data-theme="light"] .icon-sun  { display: block; }
+[data-theme="light"] .icon-moon { display: block; }
+[data-theme="light"] .icon-sun  { display: none;  }
 
 /* ── Language switcher ──────────────────────────────────────── */
 .lang-switcher {
