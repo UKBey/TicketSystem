@@ -1,5 +1,7 @@
 # 🎫 IT-Service Desk
 
+**English** · [Türkçe](README.tr.md)
+
 > A full-stack, multi-role **IT Service Management (ticketing) platform** — Keycloak-secured, jBPM-orchestrated, AI-assisted, and fully observable.
 
 ![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
@@ -272,6 +274,9 @@ _Screenshots will be added here._
 | Document | Purpose |
 |----------|---------|
 | **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System architecture, request flows, security model, design decisions |
+| **[docs/API.md](docs/API.md)** | REST API reference — endpoints, parameters and example responses |
+| **[docs/WORKFLOW.md](docs/WORKFLOW.md)** | jBPM / BPMN ticket-lifecycle workflow design |
+| **[docs/CICD.md](docs/CICD.md)** | CI/CD pipeline design (GitHub Actions) |
 | **[RUNBOOK.md](RUNBOOK.md)** | Operations & incident playbooks (DB backup, Keycloak re-import, Flyway repair...) |
 | **API reference** | Interactive OpenAPI / Swagger UI at `http://localhost/api/swagger-ui.html` |
 | **[CLAUDE.md](CLAUDE.md)** | Codebase conventions & guidance for AI coding assistants |

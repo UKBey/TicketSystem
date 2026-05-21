@@ -1,5 +1,7 @@
 # Architecture
 
+**English** · [Türkçe](ARCHITECTURE.tr.md)
+
 Technical architecture of the **IT-Service Desk** platform — a multi-role IT Service Management (ticketing) system. This document covers the system structure, the main runtime flows, the security model, and the key design decisions behind them.
 
 For setup and commands see the [README](../README.md); for operational procedures see the [RUNBOOK](../RUNBOOK.md).
