@@ -281,6 +281,8 @@ _Screenshots will be added here._
 
 ## 📄 License
 
-© 2026 — All rights reserved by the author.
+© 2026 Ukbe Taha ŞAHİNKAYA. All rights reserved.
 
 This project was developed as an **educational and portfolio project**. It is shared **solely for evaluation and learning purposes**. It may **not** be used, copied, modified, distributed, or deployed — in whole or in part — for any **commercial or for-profit purpose** without the prior written permission of the author.
+
+See the [LICENSE](LICENSE) file for the full terms.

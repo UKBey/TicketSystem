@@ -281,6 +281,8 @@ _Ekran görüntüleri buraya eklenecek._
 
 ## 📄 Lisans
 
-© 2026 — Tüm hakları yazara aittir.
+© 2026 Ukbe Taha ŞAHİNKAYA. Tüm hakları saklıdır.
 
 Bu proje bir **eğitim ve portföy projesi** olarak geliştirilmiştir. Yalnızca **değerlendirme ve öğrenme amacıyla** paylaşılmaktadır. Yazarın önceden yazılı izni olmadan; tamamen veya kısmen, herhangi bir **ticari veya kâr amaçlı** kullanım, kopyalama, değiştirme, dağıtım ya da çalıştırma **yapılamaz**.
+
+Tam koşullar için [LICENSE](LICENSE) dosyasına bakın.
