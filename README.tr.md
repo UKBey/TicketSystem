@@ -162,6 +162,7 @@ make logs s=it-service-backend   # tek bir servisin günlüklerini izler
 | Mailpit (yakalanan e-postalar) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 |
+| KIE Server (jBPM iş akışı API'si) | http://localhost:8180/kie-server/docs |
 | SonarQube (isteğe bağlı) | http://localhost:9000 |
 
 ### 4. Demo verilerini oluşturun

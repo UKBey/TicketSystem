@@ -162,6 +162,7 @@ The first start pulls images, runs Flyway migrations and imports the Keycloak re
 | Mailpit (captured e-mails) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 |
+| KIE Server (jBPM workflow API) | http://localhost:8180/kie-server/docs |
 | SonarQube (opt-in) | http://localhost:9000 |
 
 ### 4. Seed demo data
