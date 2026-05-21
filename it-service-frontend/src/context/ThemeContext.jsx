@@ -4,10 +4,20 @@ import api from '../services/api';
 
 const ThemeContext = createContext(null);
 
+// `theme` cookie'sinden light/dark degerini okur (yoksa null).
+function readThemeCookie() {
+  const match = document.cookie.match(/(?:^|;\s*)theme=(light|dark)(?:;|$)/);
+  return match ? match[1] : null;
+}
+
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
     const stored = localStorage.getItem('theme');
     if (stored === 'dark' || stored === 'light') return stored;
+    // localStorage origin'e (port'a) bagli — Keycloak giris sayfasina ulasmaz.
+    // Cookie domain'e bagli oldugu icin orada da gecerli; localStorage yoksa cookie'yi dene.
+    const cookieTheme = readThemeCookie();
+    if (cookieTheme === 'dark' || cookieTheme === 'light') return cookieTheme;
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     return 'light';
   });
@@ -17,6 +27,8 @@ export function ThemeProvider({ children }) {
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
     localStorage.setItem('theme', theme);
+    // Cookie domain-scoped — Keycloak giris temasi bu cookie'yi okur.
+    document.cookie = 'theme=' + theme + '; path=/; max-age=31536000; samesite=lax';
   }, [theme]);
 
   // Sunucudan gelen değeri sessizce uygula — API'ye geri yazma yok.

@@ -2,8 +2,11 @@ package com.ticketsystem.it_service_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "notifications")
@@ -21,8 +24,22 @@ public class Notification {
     @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    /**
+     * Legacy fully-rendered message text. Populated for pre-V33 rows only; new
+     * rows store {@link #messageKey} + {@link #messageArgs} and leave this null.
+     * Rendered at read time as a fallback when {@code messageKey} is null.
+     */
+    @Column(columnDefinition = "TEXT")
     private String message;
+
+    /** MessageSource key for the notification text (e.g. notification.ticket.created). */
+    @Column(name = "message_key", length = 160)
+    private String messageKey;
+
+    /** Ordered substitution arguments for {@link #messageKey}, stored as a JSON array. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "message_args", columnDefinition = "jsonb")
+    private List<String> messageArgs;
 
     @Column(name = "is_read")
     @Builder.Default

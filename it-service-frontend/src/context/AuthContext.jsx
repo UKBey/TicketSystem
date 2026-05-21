@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import keycloak from '../keycloak';
+import keycloak, { redirectToKeycloakLogin } from '../keycloak';
 import api from '../services/api';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
@@ -41,6 +41,33 @@ export function AuthProvider({ children }) {
     if (initCalled.current) return;
     initCalled.current = true;
 
+    // /users/sync sonrasi tema ve dil tercihlerini sunucu ile cift yonlu uzlastirir.
+    const syncUserPreferences = () => {
+      api.post('/users/sync')
+        .then((res) => {
+          // Dil: sunucuda gecerli bir tercih varsa ve mevcut dilden farkliysa onu uygula;
+          // yoksa cihazdaki mevcut dili sunucuya yaz.
+          const serverLang = res?.data?.preferredLanguage;
+          if (serverLang === 'en' || serverLang === 'tr') {
+            if (serverLang !== i18n.language) {
+              i18n.changeLanguage(serverLang);
+            }
+          } else {
+            const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+            api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
+          }
+          // Tema: sunucudaki tercih kullanıcının "son seçimi" — UI'ı bununla hizala.
+          const serverTheme = res?.data?.preferredTheme;
+          if (serverTheme === 'light' || serverTheme === 'dark') {
+            applyServerTheme(serverTheme);
+          } else {
+            // Henüz kayıt yoksa localStorage'daki mevcut temayı backend'e yaz.
+            setTheme(themeRef.current);
+          }
+        })
+        .catch(err => console.error('Sync error:', err));
+    };
+
     keycloak
       .init({
         onLoad: 'check-sso',
@@ -53,20 +80,7 @@ export function AuthProvider({ children }) {
         setInitialized(true);
         if (auth) {
           extractUserInfo();
-          api.post('/users/sync')
-            .then((res) => {
-              const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
-              api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
-              const serverTheme = res?.data?.preferredTheme;
-              if (serverTheme === 'light' || serverTheme === 'dark') {
-                // Sunucudaki tercih kullanıcının "son seçimi" — UI'ı bununla hizala.
-                applyServerTheme(serverTheme);
-              } else {
-                // Henüz kayıt yoksa localStorage'daki mevcut temayı backend'e yaz.
-                setTheme(themeRef.current);
-              }
-            })
-            .catch(err => console.error('Sync error:', err));
+          syncUserPreferences();
         }
         setLoading(false);
       })
@@ -86,18 +100,7 @@ export function AuthProvider({ children }) {
     keycloak.onAuthSuccess = () => {
       setAuthenticated(true);
       extractUserInfo();
-      api.post('/users/sync')
-        .then((res) => {
-          const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
-          api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
-          const serverTheme = res?.data?.preferredTheme;
-          if (serverTheme === 'light' || serverTheme === 'dark') {
-            applyServerTheme(serverTheme);
-          } else {
-            setTheme(themeRef.current);
-          }
-        })
-        .catch(err => console.error('Sync error:', err));
+      syncUserPreferences();
     };
 
     keycloak.onAuthLogout = () => {
@@ -119,8 +122,7 @@ export function AuthProvider({ children }) {
   }, [extractUserInfo]);
 
   const login = useCallback(() => {
-    const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
-    keycloak.login({ redirectUri: window.location.origin + '/', locale });
+    redirectToKeycloakLogin({ redirectUri: window.location.origin + '/' });
   }, []);
 
   const logout = useCallback(() => {

@@ -41,11 +41,26 @@ public class NotificationResponse {
     @Schema(description = "İlgili kayıt tipi", example = "TICKET")
     private String referenceType;
 
+    /**
+     * Maps a notification using its legacy stored {@code message} text as-is.
+     * Kept for callers that do not localize; the read path should prefer
+     * {@link #fromEntity(Notification, String)} to render in the requester's locale.
+     */
     public static NotificationResponse fromEntity(Notification n) {
+        return fromEntity(n, n.getMessage());
+    }
+
+    /**
+     * Maps a notification, using {@code renderedMessage} as the {@code message}
+     * field. The read path resolves the recipient's current language, renders the
+     * stored message key + args into {@code renderedMessage}, and passes it here so
+     * the JSON shape stays identical (a plain {@code message} string).
+     */
+    public static NotificationResponse fromEntity(Notification n, String renderedMessage) {
         return NotificationResponse.builder()
                 .id(n.getId())
                 .userId(n.getUserId())
-                .message(n.getMessage())
+                .message(renderedMessage)
                 .isRead(n.getIsRead())
                 .createdAt(n.getCreatedAt())
                 .type(n.getType())

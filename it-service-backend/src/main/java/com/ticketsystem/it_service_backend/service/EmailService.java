@@ -277,7 +277,7 @@ public class EmailService {
 
     private Locale resolveLocale(User user, String override) {
         if (override != null && !override.isBlank()) {
-            return Locale.forLanguageTag(override);
+            return supportedLocale(override);
         }
         return localeOf(user);
     }
@@ -515,9 +515,18 @@ public class EmailService {
 
     /** Returns the Locale matching the user's stored language preference. */
     private Locale localeOf(User user) {
-        String lang = user.getPreferredLanguage();
+        return supportedLocale(user.getPreferredLanguage());
+    }
+
+    /**
+     * Maps any raw language input to a supported, fully-translated Locale (en/tr).
+     * Guards against malformed values that {@link Locale#forLanguageTag} would
+     * otherwise turn into {@code Locale.ROOT} — which renders emails as raw keys.
+     */
+    private Locale supportedLocale(String lang) {
         if (lang == null || lang.isBlank()) return Locale.ENGLISH;
-        return Locale.forLanguageTag(lang);
+        String normalized = lang.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith("tr") ? Locale.forLanguageTag("tr") : Locale.ENGLISH;
     }
 
     /** Returns the color palette matching the user's stored theme preference. */

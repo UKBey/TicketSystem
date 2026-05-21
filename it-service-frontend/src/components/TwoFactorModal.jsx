@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Smartphone, Plus, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import userService from '../services/userService';
-import keycloak from '../keycloak';
+import { redirectToKeycloakLogin } from '../keycloak';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 function formatDate(epochMillis, lang) {
@@ -147,11 +147,9 @@ export default function TwoFactorModal({ open, onClose, lang }) {
     } catch {
       // sessionStorage erişilemezse bile akış devam etsin — mail kaçar, kritik değil.
     }
-    const locale = lang === 'tr' ? 'tr' : 'en';
-    keycloak.login({
-      action: 'CONFIGURE_TOTP',
+    redirectToKeycloakLogin({
       redirectUri: window.location.origin + '/profile',
-      locale,
+      action: 'CONFIGURE_TOTP',
     });
   };
 

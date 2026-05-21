@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Check } from 'lucide-react';
 import api from '../services/api';
+import keycloak from '../keycloak';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
@@ -41,10 +42,13 @@ export default function LanguageSwitcher() {
   const handleSelect = (code) => {
     i18n.changeLanguage(code);
     setOpen(false);
-    // Backend'deki kullanıcı kaydını da güncelle — bildirim ve mailler bu değeri kullanır
-    api.put('/users/me/language', null, { params: { lang: code } }).catch((err) => {
-      console.warn('Dil tercihi backend\'e kaydedilemedi:', err);
-    });
+    // Backend'deki kullanıcı kaydını da güncelle — bildirim ve mailler bu değeri kullanır.
+    // Login sayfasında token yok; bu durumda istek 401 doneceginden sunucuya yazmiyoruz.
+    if (keycloak.authenticated && keycloak.token) {
+      api.put('/users/me/language', null, { params: { lang: code } }).catch((err) => {
+        console.warn('Dil tercihi backend\'e kaydedilemedi:', err);
+      });
+    }
   };
 
   return (

@@ -28,6 +28,10 @@ public class LocalizationConfig {
         source.setBasenames("messages", "ValidationMessages");
         source.setDefaultEncoding("UTF-8");
         source.setUseCodeAsDefaultMessage(true);
+        // Deterministic fallback: never consult the host JVM locale — any unmatched
+        // locale resolves to messages_en.properties regardless of the server's locale.
+        source.setDefaultLocale(Locale.ENGLISH);
+        source.setFallbackToSystemLocale(false);
         return source;
     }
 }

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import keycloak from '../keycloak';
+import keycloak, { redirectToKeycloakLogin } from '../keycloak';
 import i18n from '../i18n';
 
 const api = axios.create({
@@ -15,11 +15,7 @@ function redirectToLoginOnce() {
   if (loginRedirectInProgress) return;
   loginRedirectInProgress = true;
 
-  const locale = i18n.language?.startsWith('tr') ? 'tr' : 'en';
-  keycloak.login({
-    redirectUri: window.location.href,
-    locale,
-  }).catch(() => {
+  redirectToKeycloakLogin({ redirectUri: window.location.href }).catch(() => {
     // If redirect fails, release the guard so the user can retry manually.
     loginRedirectInProgress = false;
   });

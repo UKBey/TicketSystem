@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -46,7 +47,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketCreated())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_CREATED,
-                        msg(customer, "notification.ticket.created", ticket.getId(), ticket.getTitle()),
+                        "notification.ticket.created", args(ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketCreated())) {
@@ -65,7 +66,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        msg(agent, "notification.ticket.assigned.agent", ticket.getId(), ticket.getTitle()),
+                        "notification.ticket.assigned.agent", args(ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             // NOT: email tetiği kasıtlı olarak yok — self-claim'de ajan zaten action
@@ -83,7 +84,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(agent.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
                 saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        msg(agent, "notification.ticket.assigned.agent", ticket.getId(), ticket.getTitle()),
+                        "notification.ticket.assigned.agent", args(ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketAssigned())) {
@@ -96,7 +97,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_ASSIGNED,
-                        msg(customer, "notification.ticket.assigned.customer", ticket.getId(), ticket.getTitle()),
+                        "notification.ticket.assigned.customer", args(ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
         });
@@ -109,8 +110,8 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
-                        msg(customer, "notification.ticket.status.changed",
-                                ticket.getId(), oldStatus, ticket.getStatus()),
+                        "notification.ticket.status.changed",
+                        args(ticket.getId(), oldStatus, ticket.getStatus()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnStatusChanged())) {
@@ -132,7 +133,7 @@ public class NotificationService {
                     NotificationPreference pref = getOrDefaultPreference(agent.getId());
                     if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                         saveNotification(agent.getId(), NotificationType.COMMENT_ADDED,
-                                msg(agent, "notification.comment.added.agent", ticket.getId()),
+                                "notification.comment.added.agent", args(ticket.getId()),
                                 ticket.getId());
                     }
                     if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -148,7 +149,7 @@ public class NotificationService {
                 NotificationPreference pref = getOrDefaultPreference(customer.getId());
                 if (Boolean.TRUE.equals(pref.getNotifyOnCommentAdded())) {
                     saveNotification(customer.getId(), NotificationType.COMMENT_ADDED,
-                            msg(customer, "notification.comment.added.customer", ticket.getId()),
+                            "notification.comment.added.customer", args(ticket.getId()),
                             ticket.getId());
                 }
                 if (Boolean.TRUE.equals(pref.getEmailOnCommentAdded())) {
@@ -175,7 +176,7 @@ public class NotificationService {
             NotificationPreference pref = getOrDefaultPreference(customer.getId());
             if (Boolean.TRUE.equals(pref.getNotifyOnTicketResolved())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_RESOLVED,
-                        msg(customer, "notification.ticket.resolved", ticket.getId(), ticket.getTitle()),
+                        "notification.ticket.resolved", args(ticket.getId(), ticket.getTitle()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnTicketResolved())) {
@@ -190,9 +191,12 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getNotificationsForUser(String userId, Pageable pageable) {
+        // The requester IS the recipient (userId is the JWT subject), so notifications
+        // are rendered at read time in the requester's current language preference.
+        Locale locale = resolveUserLocale(userId);
         return notificationRepository
                 .findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(NotificationResponse::fromEntity);
+                .map(n -> NotificationResponse.fromEntity(n, renderMessage(n, locale)));
     }
 
     @Transactional(readOnly = true)
@@ -299,7 +303,7 @@ public class NotificationService {
                         ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                         : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
                 if (shouldNotify) saveNotification(agent.getId(), type,
-                        msg(agent, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
+                        messageKey, args(ticket.getId(), ticket.getTitle()), ticket.getId());
                 if (shouldEmail) {
                     if (isWarning) runAfterCommit(() -> emailService.sendSlaWarningEmail(agent, ticket));
                     else           runAfterCommit(() -> emailService.sendSlaBreachedEmail(agent, ticket));
@@ -317,7 +321,7 @@ public class NotificationService {
                     ? Boolean.TRUE.equals(pref.getEmailOnSlaWarning())
                     : Boolean.TRUE.equals(pref.getEmailOnSlaBreached());
             if (shouldNotify) saveNotification(manager.getId(), type,
-                    msg(manager, messageKey, ticket.getId(), ticket.getTitle()), ticket.getId());
+                    messageKey, args(ticket.getId(), ticket.getTitle()), ticket.getId());
             if (shouldEmail) {
                 if (isWarning) runAfterCommit(() -> emailService.sendSlaWarningEmail(manager, ticket));
                 else           runAfterCommit(() -> emailService.sendSlaBreachedEmail(manager, ticket));
@@ -355,19 +359,61 @@ public class NotificationService {
                 .orElse(NotificationPreference.builder().userId(userId).build());
     }
 
-    /** Resolves a message key using the user's stored language preference. */
-    private String msg(User user, String key, Object... args) {
-        String lang = user.getPreferredLanguage();
-        Locale locale = (lang == null || lang.isBlank()) ? Locale.ENGLISH : Locale.forLanguageTag(lang);
-        return messageSource.getMessage(key, args, key, locale);
+    /**
+     * Builds the structured argument list for a notification message key. Every
+     * argument is converted to its String form so {@link java.text.MessageFormat}
+     * renders numeric IDs verbatim (e.g. ticket id 1234, not the locale-grouped
+     * "1,234") and so the list serializes cleanly to the {@code message_args} JSONB
+     * column. A {@code null} argument becomes an empty string.
+     */
+    private List<String> args(Object... values) {
+        return Arrays.stream(values)
+                .map(v -> v == null ? "" : String.valueOf(v))
+                .toList();
     }
 
+    /**
+     * Resolves a user's {@link Locale} from their stored {@code preferredLanguage}.
+     * Safe mapping: blank → English; starts with "tr" → Turkish; otherwise English.
+     */
+    private Locale resolveUserLocale(String userId) {
+        String lang = userRepository.findById(userId)
+                .map(User::getPreferredLanguage)
+                .orElse(null);
+        if (lang == null || lang.isBlank()) {
+            return Locale.ENGLISH;
+        }
+        return lang.toLowerCase(Locale.ROOT).startsWith("tr") ? Locale.forLanguageTag("tr") : Locale.ENGLISH;
+    }
+
+    /**
+     * Renders a notification's text in the given locale. Key-bearing rows (V33+)
+     * render the stored {@code messageKey} + {@code messageArgs}; pre-V33 rows fall
+     * back to their frozen legacy {@code message} text.
+     */
+    private String renderMessage(Notification n, Locale locale) {
+        if (n.getMessageKey() != null) {
+            Object[] argsArray = n.getMessageArgs() == null
+                    ? new Object[0]
+                    : n.getMessageArgs().toArray();
+            return messageSource.getMessage(n.getMessageKey(), argsArray, n.getMessageKey(), locale);
+        }
+        return n.getMessage();
+    }
+
+    /**
+     * Persists an in-app notification storing a localizable message KEY + ARGS
+     * (rendered at read time per the recipient's language). The legacy {@code message}
+     * column is left {@code null} for these V33+ rows.
+     */
     private void saveNotification(String userId, NotificationType type,
-                                  String message, Long referenceId) {
+                                  String messageKey, List<String> args, Long referenceId) {
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
-                .message(message)
+                .message(null)
+                .messageKey(messageKey)
+                .messageArgs(args)
                 .referenceId(referenceId)
                 .referenceType("TICKET")
                 .isRead(false)
