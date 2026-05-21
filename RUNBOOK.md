@@ -1,37 +1,37 @@
 # RUNBOOK.md
 
-IT-service ticketing sistemi oncall referansı. Kısa, kopyala-yapıştır odaklı.
+On-call reference for the IT-service ticketing system. Brief, copy-paste oriented.
 
 ---
 
-## 1. Servis haritası
+## 1. Service map
 
-| Servis                | Iç port         | Dış path          | Görev                                     | Loglar                                       |
+| Service               | Internal port   | External path     | Role                                      | Logs                                         |
 |-----------------------|-----------------|-------------------|-------------------------------------------|----------------------------------------------|
-| nginx-proxy           | 80              | `:80`             | Tek ingress, tüm trafik buradan           | `docker logs nginx-proxy`                    |
-| it-service-frontend   | 80              | `/`               | React SPA (Vite build, nginx ile servis)  | `docker logs it-service-frontend`            |
-| it-service-backend    | 8081            | `/api/*`          | Spring Boot 4 ana API                     | OpenSearch (Logstash); `docker logs it-service-backend` |
-| llm-service           | 8082            | `/api/ai/*`       | Groq destekli özetleme                    | `docker logs llm-service`                    |
+| nginx-proxy           | 80              | `:80`             | Single ingress, all traffic passes here   | `docker logs nginx-proxy`                    |
+| it-service-frontend   | 80              | `/`               | React SPA (Vite build, served by nginx)   | `docker logs it-service-frontend`            |
+| it-service-backend    | 8081            | `/api/*`          | Spring Boot 4 main API                    | OpenSearch (Logstash); `docker logs it-service-backend` |
+| llm-service           | 8082            | `/api/ai/*`       | Groq-powered summarization                | `docker logs llm-service`                    |
 | keycloak-iam          | 8080            | `/auth/*`         | OIDC IdP, LDAP federation                 | `docker logs keycloak-iam`                   |
-| openldap-server       | 389 (internal)  | (yok)             | Kullanıcı dizini                          | `docker logs openldap-server`                |
+| openldap-server       | 389 (internal)  | (none)            | User directory                            | `docker logs openldap-server`                |
 | it-service-db         | 5432            | `:5432` (dev)     | Postgres — `ticketdb` + `keycloakdb`      | `docker logs it-service-db`                  |
-| jbpm-db               | 5432            | `:5433` (dev)     | KIE Server process history Postgres'i     | `docker logs jbpm-db`                        |
+| jbpm-db               | 5432            | `:5433` (dev)     | KIE Server process history Postgres       | `docker logs jbpm-db`                        |
 | kie-server            | 8080            | `:8180` (dev)     | jBPM workflow engine (7.61.0.Final)       | `docker logs kie-server`                     |
 | redis                 | 6379            | `:6379` (dev)     | Rate-limit Bucket4j + cache               | `docker logs redis`                          |
 | mailpit               | 1025/8025       | `:8025` (dev)     | Dev SMTP sink                             | `docker logs mailpit`                        |
-| opensearch            | 9200            | `:9200` (dev)     | Log, trace ve metrik store                | `docker logs opensearch`                     |
-| opensearch-dashboards | 5601            | `/opensearch`     | Log/trace/metrik UI + dashboard'lar       | `docker logs opensearch-dashboards`          |
-| kafka                 | 9092            | `:9092` (dev)     | Log pipeline tampon (KRaft mode)          | `docker logs kafka-broker`                   |
+| opensearch            | 9200            | `:9200` (dev)     | Log, trace and metric store               | `docker logs opensearch`                     |
+| opensearch-dashboards | 5601            | `/opensearch`     | Log/trace/metric UI + dashboards          | `docker logs opensearch-dashboards`          |
+| kafka                 | 9092            | `:9092` (dev)     | Log pipeline buffer (KRaft mode)          | `docker logs kafka-broker`                   |
 | logstash              | -               | -                 | Kafka → OpenSearch                        | `docker logs logstash-consumer`              |
-| otel-collector        | 4317/4318       | -                 | Trace/metrik/log OTLP alıcı               | `docker logs otel-collector`                 |
-| data-prepper          | 21891           | -                 | OTLP metrik → OpenSearch                  | `docker logs data-prepper`                   |
-| sonarqube             | 9000            | `:9000` (dev)     | Code quality (yalnız CI)                  | `docker logs sonarqube`                      |
+| otel-collector        | 4317/4318       | -                 | Trace/metric/log OTLP receiver            | `docker logs otel-collector`                 |
+| data-prepper          | 21891           | -                 | OTLP metric → OpenSearch                  | `docker logs data-prepper`                   |
+| sonarqube             | 9000            | `:9000` (dev)     | Code quality (CI only)                    | `docker logs sonarqube`                      |
 
-K8s karşılıkları: `docker logs <name>` yerine `kubectl -n ticketsystem logs deploy/<name>` veya `make k8s-logs s=<name>`.
+K8s equivalents: instead of `docker logs <name>`, use `kubectl -n ticketsystem logs deploy/<name>` or `make k8s-logs s=<name>`.
 
 ---
 
-## 2. Sık yapılan ops işlemleri
+## 2. Common ops procedures
 
 ### DB backup / restore
 
@@ -47,7 +47,7 @@ kubectl -n ticketsystem exec -it sts/it-service-db -- \
   pg_dump -U ticketadmin -F c ticketdb > ticketdb-$(date +%F).dump
 ```
 
-Restore — önce scratch container'da doğrula, sonra swap:
+Restore — first verify in a scratch container, then swap:
 ```bash
 docker run -d --name pgrestore -e POSTGRES_PASSWORD=verify -p 55432:5432 postgres:15-alpine
 docker exec -i pgrestore createdb -U postgres ticketdb
@@ -67,7 +67,7 @@ docker compose up -d keycloak-iam
 K8s:
 ```bash
 kubectl -n ticketsystem rollout restart sts/keycloak-iam
-# Pod açılışında ConfigMap-mounted realm JSON yeniden okunur (KC_IMPORT wired)
+# The ConfigMap-mounted realm JSON is re-read on pod startup (KC_IMPORT wired)
 ```
 
 ### OpenLDAP LDIF re-import
@@ -77,15 +77,15 @@ docker exec -i openldap-server ldapmodify -x -D "cn=admin,dc=ticketsystem,dc=com
   -w "$LDAP_ADMIN_PASSWORD" < ldap-init/bootstrap.ldif
 ```
 
-### Flyway repair (migration fail oldu)
+### Flyway repair (migration failed)
 
-Belirti: backend log'unda `Migration V<n>__*.sql failed` + pod CrashLoopBackoff, `flyway_schema_history` satırında `success=false`.
+Symptom: `Migration V<n>__*.sql failed` in the backend log + pod CrashLoopBackoff, a `flyway_schema_history` row with `success=false`.
 
 ```bash
-# 1. Fail eden app'i durdur
+# 1. Stop the failed app
 kubectl -n ticketsystem scale deploy/it-service-backend --replicas=0
 
-# 2. Repair — one-shot maven container veya prod URL'sine karşı mvnw
+# 2. Repair — a one-shot maven container or mvnw against the prod URL
 cd it-service-backend
 ./mvnw flyway:repair \
   -Dflyway.url=jdbc:postgresql://<db-host>:5432/ticketdb \
@@ -93,32 +93,32 @@ cd it-service-backend
   -Dflyway.password=$PASSWORD \
   -Dflyway.schemas=public
 
-# 3. Corrective V<n+1>__*.sql yaz, commit, rebuild, redeploy
+# 3. Write a corrective V<n+1>__*.sql, commit, rebuild, redeploy
 kubectl -n ticketsystem scale deploy/it-service-backend --replicas=1
 ```
 
-`flyway_schema_history`'den manuel SATIR SİLME.
+Do NOT manually DELETE ROWS from `flyway_schema_history`.
 
 ### Redis flush (rate-limit reset)
 
-Bucket bazlı reset (tercih edilen):
+Per-bucket reset (preferred):
 ```bash
 docker exec -it redis redis-cli --scan --pattern 'bucket4j*' | xargs -L 100 docker exec -i redis redis-cli DEL
 ```
 
-Nükleer (tüm keyspace — cache de etkilenir):
+Nuclear (entire keyspace — cache is affected too):
 ```bash
 docker exec -it redis redis-cli FLUSHDB
 ```
 
-### Cache flush (DB-8 — env-driven SLA / config sonrası)
+### Cache flush (DB-8 — after env-driven SLA / config changes)
 
-Restart beklemeden cache temizle (admin rolü gerekli — actuator JWT-gated):
+Clear the cache without waiting for a restart (admin role required — actuator is JWT-gated):
 ```bash
-TOKEN=$(... AGENT_ADMIN veya MANAGER token ...)
+TOKEN=$(... AGENT_ADMIN or MANAGER token ...)
 curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
   https://<host>/actuator/caches/prioritySlaMetrics
-# Eviktelenecek diğer cache'ler: dashboardSummary, agentPerformance, statusDistribution,
+# Other caches to evict: dashboardSummary, agentPerformance, statusDistribution,
 # ticketTimeline, productMetrics, csatMetrics, worklogCompletion, rateLimitConfigs
 ```
 
@@ -126,25 +126,25 @@ curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 Compose:
 ```bash
-docker compose build kie-server     # Dockerfile-kie değiştiyse
+docker compose build kie-server     # if Dockerfile-kie changed
 docker compose up -d --force-recreate kie-server
-# KIE dev'de H2 → state silinir; kjar açılışta baked-in script ile fresh register olur
+# In KIE dev, H2 → state is wiped; the kjar registers fresh on startup via the baked-in script
 ```
 
 K8s:
 ```bash
 make k8s-redeploy-kjar
-# job/kjar-deploy'ı siler, sonra kubectl apply -k ile yeniden oluşturur
+# deletes job/kjar-deploy, then recreates it via kubectl apply -k
 ```
 
-Doğrula:
+Verify:
 ```bash
 curl -u kieserver:kieserver1! http://localhost:8180/kie-server/services/rest/server/containers | jq
 ```
 
-### `JBPM_KIE_SERVER_CALLBACK_TOKEN` rotasyonu
+### `JBPM_KIE_SERVER_CALLBACK_TOKEN` rotation
 
-Token 3 yerde paylaşılır: backend env, llm-service env (`TICKET_SERVICE_INTERNAL_TOKEN`), kie-server callback config. ÜÇÜ ATOMİK güncellenmeli.
+The token is shared in 3 places: backend env, llm-service env (`TICKET_SERVICE_INTERNAL_TOKEN`), kie-server callback config. ALL THREE must be updated ATOMICALLY.
 
 ```bash
 NEW=$(openssl rand -hex 32)
@@ -161,30 +161,30 @@ kubectl -n ticketsystem create secret generic app-secrets \
 kubectl -n ticketsystem rollout restart deploy/it-service-backend deploy/llm-service sts/kie-server
 ```
 
-### DB şifresi rotasyonu
+### DB password rotation
 
 ```bash
-# 1. DB içinde
+# 1. Inside the DB
 docker exec -it it-service-db psql -U postgres -c "ALTER USER ticketadmin WITH PASSWORD 'new-password';"
 
-# 2. Secret güncelle
+# 2. Update the secret
 kubectl -n ticketsystem patch secret app-secrets \
   --type=json -p='[{"op":"replace","path":"/data/SPRING_DATASOURCE_PASSWORD","value":"'$(echo -n new-password | base64)'"}]'
 
-# 3. Tüketicileri restart et
+# 3. Restart the consumers
 kubectl -n ticketsystem rollout restart deploy/it-service-backend deploy/llm-service sts/keycloak-iam
 ```
 
-Hikari sağlık kontrolü yeni pool kalkana kadar fail eder (~30s).
+The Hikari health check fails until the new pool comes up (~30s).
 
-### Yeni SealedSecret üret
+### Generate a new SealedSecret
 
 ```bash
-# Local'de plain Secret üret (COMMIT ETME)
+# Generate a plain Secret locally (DO NOT COMMIT)
 kubectl -n ticketsystem create secret generic app-secrets \
   --from-env-file=secrets.env --dry-run=client -o yaml > /tmp/app-secrets-plain.yaml
 
-# Cluster controller'a karşı seal et
+# Seal it against the cluster controller
 kubeseal --controller-namespace kube-system \
          --controller-name sealed-secrets-controller \
          -f /tmp/app-secrets-plain.yaml -o yaml > k8s/overlays/prod/app-secrets.sealed.yaml
@@ -193,62 +193,62 @@ rm /tmp/app-secrets-plain.yaml
 git add k8s/overlays/prod/app-secrets.sealed.yaml
 ```
 
-### Keycloak hostname değiştirme (OPS-8)
+### Changing the Keycloak hostname (OPS-8)
 
-Tek doğruluk kaynağı: `KEYCLOAK_FRONTEND_URL`. Değişikliğinde aşağıdaki yerleri SENKRON güncelle:
+Single source of truth: `KEYCLOAK_FRONTEND_URL`. When it changes, update the following places IN SYNC:
 
-- **Compose:** `.env` içinde `KEYCLOAK_FRONTEND_URL` (compose `JWT_ISSUER_URI`'yi türetiyor)
-- **K8s base:** `k8s/base/configmap-app.yaml` — 4 satır (`KEYCLOAK_FRONTEND_URL`, `KC_HOSTNAME_URL`, `KC_HOSTNAME_ADMIN_URL`, `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI`)
-- **K8s overlay:** ilgili overlay (`overlays/local|prod/patches/configmap-app-*.yaml`) — aynı 4 satır
+- **Compose:** `KEYCLOAK_FRONTEND_URL` in `.env` (compose derives `JWT_ISSUER_URI` from it)
+- **K8s base:** `k8s/base/configmap-app.yaml` — 4 lines (`KEYCLOAK_FRONTEND_URL`, `KC_HOSTNAME_URL`, `KC_HOSTNAME_ADMIN_URL`, `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI`)
+- **K8s overlay:** the relevant overlay (`overlays/local|prod/patches/configmap-app-*.yaml`) — the same 4 lines
 - **Ingress (prod):** `k8s/overlays/prod/patches/ingress-prod.yaml` `tls.hosts` + `rules.host`
-- **JWK_SET_URI:** in-cluster service hostname kullanır (`http://keycloak-iam:8080/...`); domain değişikliğinden ETKİLENMEZ — dokunma.
+- **JWK_SET_URI:** uses the in-cluster service hostname (`http://keycloak-iam:8080/...`); NOT AFFECTED by a domain change — don't touch it.
 
 ---
 
-## 3. Incident playbook'ları
+## 3. Incident playbooks
 
-### Backend 5xx sıçraması
+### Backend 5xx spike
 
 ```bash
-# 1. Sağlık snapshot
+# 1. Health snapshot
 curl -fsS https://<host>/actuator/health | jq
 kubectl -n ticketsystem get pods -l app=it-service-backend
 
-# 2. Sıcak log'lar
+# 2. Hot logs
 kubectl -n ticketsystem logs -f deploy/it-service-backend --tail=500 \
   | grep -iE 'ERROR|Exception|5[0-9][0-9]'
 
-# 3. Hikari pool saturation (DB-7 sonrası max=20 / idle=5)
+# 3. Hikari pool saturation (post DB-7: max=20 / idle=5)
 curl -fsS https://<host>/actuator/metrics/hikaricp.connections.usage | jq
-# active==max sürekliyse SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE'ı artır
+# If active==max persistently, increase SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE
 
-# 4. Postgres yavaş sorgular
+# 4. Postgres slow queries
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT pid, now()-query_start AS age, state, query FROM pg_stat_activity
    WHERE state='active' AND now()-query_start > interval '5s' ORDER BY age DESC LIMIT 20;"
 
-# 5. Runaway sorguyu kill et
+# 5. Kill the runaway query
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c "SELECT pg_terminate_backend(<pid>);"
 ```
 
-İlgili alert (OPS-5): **Backend5xxRate** — 5dk %2 üzerinde 5xx oranı.
+Related alert (OPS-5): **Backend5xxRate** — 5xx rate above 2% over 5 minutes.
 
-### SLA breach fırtınası
+### SLA breach storm
 
-Belirti: dashboard'lar kırmızı, `app.sla.policies` warning'leri log'a akıyor, **SLAWarningMailSpike** alert'i tetiklendi.
+Symptom: dashboards are red, `app.sla.policies` warnings are flooding the log, the **SLAWarningMailSpike** alert has fired.
 
 ```bash
-# Config beklenen saatlerle örtüşüyor mu (env vs application.yml default)
+# Does the config match the expected hours (env vs application.yml default)
 kubectl -n ticketsystem exec deploy/it-service-backend -- env | grep ^SLA_
 
-# Priority/status mass-update son 24 saatte var mı
+# Was there a priority/status mass-update in the last 24 hours
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT priority, COUNT(*) FROM tickets WHERE created_at > now()-interval '24 hours' GROUP BY 1;"
 
-# Son SLA migration var mı
+# Is there a recent SLA migration
 ls -t it-service-backend/src/main/resources/db/migration/ | head -5
 
-# SLA policy değişti ama cache stale — DB-8 flush (admin token ile)
+# SLA policy changed but cache is stale — DB-8 flush (with admin token)
 curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
   https://<host>/actuator/caches/prioritySlaMetrics
 ```
@@ -260,88 +260,88 @@ POD=$(kubectl -n ticketsystem get pod -l app=it-service-backend -o name | head -
 kubectl -n ticketsystem describe $POD | tail -50
 kubectl -n ticketsystem logs $POD --previous --tail=200
 
-# Yaygın sebepler:
-# - Liveness probe uygulama açılmadan ateşliyor; deployment yaml'ında
-#   initialDelaySeconds'ı artır (compose'da start_period 60s).
-# - Flyway lock: başka pod migration sırasında crash etti, lock takıldı.
+# Common causes:
+# - The liveness probe fires before the application has started up; increase
+#   initialDelaySeconds in the deployment yaml (start_period 60s in compose).
+# - Flyway lock: another pod crashed during migration and the lock is stuck.
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT * FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 5;"
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT * FROM pg_locks WHERE NOT granted;"
-# Flyway advisory lock'unda takıldıysa — holding session'ı kill et, sonra mvn flyway:repair
+# If stuck on the Flyway advisory lock — kill the holding session, then run mvn flyway:repair
 ```
 
-### Keycloak login fail
+### Keycloak login failure
 
 ```bash
-# 1. Issuer URI uyuşmazlığı — en yaygın (OPS-8 fix sonrası türetme: JWT_ISSUER = FRONTEND_URL + /realms/REALM)
+# 1. Issuer URI mismatch — the most common (post OPS-8 fix, derivation: JWT_ISSUER = FRONTEND_URL + /realms/REALM)
 kubectl -n ticketsystem exec deploy/it-service-backend -- env \
   | grep -E 'JWT_ISSUER_URI|JWK_SET_URI|KEYCLOAK_FRONTEND_URL'
-# JWT_ISSUER_URI dış host ile başlamalı (KC_HOSTNAME_URL ile aynı):
+# JWT_ISSUER_URI must start with the external host (same as KC_HOSTNAME_URL):
 # JWT_ISSUER_URI = https://<host>/auth/realms/TicketSystemRealm
 # JWK_SET_URI    = http://keycloak-iam:8080/auth/.../certs  (in-cluster, normal)
 
-# 2. LDAP bind fail → Keycloak log'unda "Could not connect to LDAP"
+# 2. LDAP bind failure → "Could not connect to LDAP" in the Keycloak log
 kubectl -n ticketsystem logs sts/keycloak-iam --tail=200 | grep -i ldap
 docker exec -it openldap-server ldapsearch -x -D "cn=admin,dc=ticketsystem,dc=com" \
   -w "$LDAP_ADMIN_PASSWORD" -b "dc=ticketsystem,dc=com" "(uid=*)" uid
 
-# 3. Discovery endpoint kontrolü
+# 3. Discovery endpoint check
 curl -fsS https://<host>/auth/realms/TicketSystemRealm/.well-known/openid-configuration | jq '.issuer'
 ```
 
-### Mail gönderilmiyor
+### Mail is not being sent
 
-**MailSendFailureSpike** veya **SecurityMailFailing** alert'i (OPS-5) tetiklendi.
+A **MailSendFailureSpike** or **SecurityMailFailing** alert (OPS-5) has fired.
 
 ```bash
-# Counter (B-3 sonrası)
+# Counter (post B-3)
 curl -fsS https://<host>/actuator/metrics/mail_send_total | jq
 
 # Status=failure breakdown
 curl -fsS 'https://<host>/actuator/metrics/mail_send_total?tag=status:failure' | jq
 
-# Kategori breakdown — özellikle security mail'leri (password_reset, twofa_*)
+# Category breakdown — especially security mails (password_reset, twofa_*)
 curl -fsS 'https://<host>/actuator/metrics/mail_send_total?tag=category:password_reset' | jq
 
-# Dev: Mailpit aç
+# Dev: open Mailpit
 start http://localhost:8025  # Windows
-# veya: xdg-open http://localhost:8025
+# or: xdg-open http://localhost:8025
 
 # Prod: SMTP creds + network egress
 kubectl -n ticketsystem exec deploy/it-service-backend -- \
   sh -c 'echo "QUIT" | timeout 5 nc -v $MAIL_HOST $MAIL_PORT'
 
-# JavaMail debug (geçici):
+# JavaMail debug (temporary):
 kubectl -n ticketsystem set env deploy/it-service-backend \
   SPRING_MAIL_PROPERTIES_MAIL_DEBUG=true
-# Bounce, fail eden bir send'i yakala, sonra unset
+# Bounce, capture a failing send, then unset
 ```
 
-### KIE Server ulaşılamıyor
+### KIE Server unreachable
 
-Beklenen davranış: Resilience4j circuit breaker açılır; ticket CRUD workflow sync olmadan devam eder. **KieServerCircuitBreakerOpen** alert'i tetiklendi.
+Expected behavior: the Resilience4j circuit breaker opens; ticket CRUD continues without workflow sync. The **KieServerCircuitBreakerOpen** alert has fired.
 
 ```bash
 # Circuit state
 curl -fsS https://<host>/actuator/metrics/resilience4j.circuitbreaker.state \
   | jq '.availableTags'
 
-# State transition'lar
+# State transitions
 curl -fsS 'https://<host>/actuator/metrics/resilience4j.circuitbreaker.calls?tag=name:kieServer'
 
-# Graceful degradation doğrula
+# Verify graceful degradation
 curl -fsS -XPOST https://<host>/api/tickets -H "Authorization: Bearer $TOKEN" \
   -d '{"title":"smoke","description":"...","priority":"LOW","categoryId":1}' | jq '.id'
-# 201 dönmeli; process_instance_id NULL olur — sonradan reconcile edilir
+# Should return 201; process_instance_id will be NULL — reconciled later
 
 # Recovery
 kubectl -n ticketsystem rollout restart sts/kie-server
-# kjar register doğrula
+# Verify kjar registration
 curl -u kieserver:$KIE_PASS http://<host>:8180/kie-server/services/rest/server/containers | jq
 ```
 
-### DB bağlantı saturation
+### DB connection saturation
 
 ```bash
 # Hikari + Postgres snapshot
@@ -351,27 +351,27 @@ curl -fsS https://<host>/actuator/metrics/hikaricp.connections.pending | jq '.me
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT count(*) FROM pg_stat_activity WHERE state != 'idle';"
 
-# Pool default'ları (application.yml — DB-7 sonrası):
+# Pool defaults (application.yml — post DB-7):
 #   max=20, idle=5, connection-timeout=5000ms, idle-timeout=300000ms, max-lifetime=1800000ms
 
-# Uzun sorguları bul
+# Find long-running queries
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c \
   "SELECT pid, now()-query_start AS age, state, left(query,80) FROM pg_stat_activity
    WHERE state='active' AND now()-xact_start > interval '30s' ORDER BY age DESC;"
 
-# Kill (önce cancel, gerekirse terminate)
+# Kill (cancel first, terminate if needed)
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c "SELECT pg_cancel_backend(<pid>);"
 docker exec -it it-service-db psql -U ticketadmin -d ticketdb -c "SELECT pg_terminate_backend(<pid>);"
 
-# Uzun vade: app-secrets'ta SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE artır + rollout.
-# Postgres max_connections destekliyor mu (default 100 — backend 20, Keycloak + llm-service gerisini paylaşır)
+# Long term: increase SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE in app-secrets + rollout.
+# Does Postgres max_connections support it (default 100 — backend 20, Keycloak + llm-service share the rest)
 ```
 
-İlgili alert (OPS-5): **DBPoolExhausted**.
+Related alert (OPS-5): **DBPoolExhausted**.
 
 ---
 
-## 4. Faydalı komutlar
+## 4. Useful commands
 
 ### kubectl
 
@@ -397,10 +397,10 @@ cd it-service-backend
 ./mvnw flyway:repair   -Dflyway.url=... -Dflyway.user=... -Dflyway.password=...
 ./mvnw flyway:validate -Dflyway.url=... -Dflyway.user=... -Dflyway.password=...
 ./mvnw test            -Dtest=ClassName#method
-./mvnw verify          # tam suite + JaCoCo gate (%75 LINE / %65 BRANCH — OPS-7)
+./mvnw verify          # full suite + JaCoCo gate (75% LINE / 65% BRANCH — OPS-7)
 ```
 
-### docker compose (servis bazlı)
+### docker compose (per service)
 
 ```bash
 docker compose up -d --no-deps --build it-service-backend
@@ -409,10 +409,10 @@ docker compose exec redis redis-cli
 docker compose logs -f --tail=200 it-service-backend
 docker compose restart keycloak-iam
 docker compose run --rm it-service-backend env | grep -i spring
-docker compose down -v          # TEHLİKE: volume'leri siler (Postgres data, LDAP, vb.)
+docker compose down -v          # DANGER: deletes volumes (Postgres data, LDAP, etc.)
 ```
 
-### Hızlı sağlık panosu
+### Quick health dashboard
 
 ```bash
 for svc in it-service-backend llm-service kie-server; do
@@ -421,32 +421,34 @@ for svc in it-service-backend llm-service kie-server; do
 done
 ```
 
-### OpenSearch'te metrik akışı
+### Metric flow in OpenSearch
 
 ```bash
-# otel-metrics-* index'i oluşmuş ve doküman alıyor mu
+# Has the otel-metrics-* index been created and is it receiving documents
 curl -fsS 'http://localhost:9200/_cat/indices/otel-metrics-*?v'
 
-# Toplam metrik doküman sayısı (akış canlıysa artar)
+# Total metric document count (grows while the flow is live)
 curl -fsS 'http://localhost:9200/otel-metrics-*/_count'
 
-# Akış kopuksa zinciri sırayla kontrol et: backend OTLP push → otel-collector → data-prepper → opensearch
+# If the flow is broken, check the chain in order: backend OTLP push → otel-collector → data-prepper → opensearch
 docker logs --tail 50 data-prepper
 ```
 
-### Dashboard'lar (OpenSearch Dashboards)
+### Dashboards (OpenSearch Dashboards)
 
-Tüm OpenSearch Dashboards saved object'leri tek dosyada:
-`observability/opensearch-dashboards.ndjson` — 3 index pattern (`otel-logs*`,
-`ss4o_traces-*`, `otel-metrics-*`), 9 görsel ve 1 birleşik dashboard.
-Temiz bir OpenSearch'e veya re-import için:
+All OpenSearch Dashboards saved objects in a single file:
+`observability/opensearch-dashboards.ndjson` — 3 index patterns (`otel-logs*`,
+`ss4o_traces-*`, `otel-metrics-*`), 9 visualizations and 1 combined dashboard.
+For a clean OpenSearch or for re-import:
 
 ```bash
 curl -s -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
   -H 'osd-xsrf: true' -F file=@observability/opensearch-dashboards.ndjson
 ```
 
-Görüntüleme: OpenSearch Dashboards → Dashboard → **Ticket System Observability**
-(compose'da `http://localhost/opensearch`, k8s'te `/opensearch`) — metrik + trace + log
-tek panoda: Request Volume, API Response Time, Error Rate, Service Health, İstek Hacmi,
-HTTP Hata Kodları, En Çok Kullanılan Endpoint'ler, Ortalama Gecikme, Log Seviyeleri.
+Viewing: OpenSearch Dashboards → Dashboard → **Ticket System Observability**
+(`http://localhost/opensearch` in compose, `/opensearch` in k8s) — metrics + traces + logs
+in one panel. The 9 visualization titles, exactly as they appear in OpenSearch
+Dashboards (five are in Turkish): Request Volume, API Response Time, Error Rate,
+Service Health, İstek Hacmi, HTTP Hata Kodları, En Çok Kullanılan Endpoint'ler,
+Ortalama Gecikme Tablosu, Log Seviyeleri.
