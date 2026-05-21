@@ -191,7 +191,7 @@ POST /api/auth/forgot-password
 | GET | `/api/tickets/by-product/{productId}` | Authenticated | Tickets for one product (role-scoped). |
 | GET | `/api/tickets/{id}` | Authenticated | Get one ticket with full detail. |
 | GET | `/api/tickets/{id}/sla-timer` | customer, agent, agent_admin | Live SLA timer info for a ticket. |
-| PUT | `/api/tickets/{id}/claim` | agent, agent_admin | Claim a ticket in `NEW`, `IN_PROGRESS` or `WAITING_FOR_CUSTOMER` status. |
+| PUT | `/api/tickets/{id}/claim` | agent, agent_admin | Claim a ticket in any status except `CLOSED`. |
 | DELETE | `/api/tickets/{id}/claim` | agent, agent_admin | Release the caller's own claim. |
 | PUT | `/api/tickets/{id}/assign` | agent_admin | Manually assign a ticket to a target agent. |
 | PUT | `/api/tickets/{id}/status` | customer, agent, agent_admin | Change ticket status. |
@@ -304,7 +304,7 @@ Returns a single `TicketResponseDTO` (same shape as the create response, includi
 
 ### Mutation endpoints — request bodies
 
-**PUT `/api/tickets/{id}/claim`** — no body. Allowed only while the ticket is `NEW`, `IN_PROGRESS` or `WAITING_FOR_CUSTOMER`; claiming a `RESOLVED` or `CLOSED` ticket returns `400`.
+**PUT `/api/tickets/{id}/claim`** — no body. Allowed in any status except `CLOSED`; claiming a `CLOSED` ticket returns `400`.
 
 **DELETE `/api/tickets/{id}/claim`** — Body `UnclaimRequestDTO`:
 `reasonCode` (string, required), `note` (string, required when `reasonCode` is `OTHER`).

@@ -551,13 +551,13 @@ class TicketServiceTest {
         }
 
     @Test
-    void claimTicket_whenTicketResolved_throwsBadRequest() {
+    void claimTicket_whenTicketClosed_throwsBadRequest() {
         Ticket existing = Ticket.builder()
                 .id(201L)
-                .title("Already resolved")
+                .title("Already closed")
                 .description("desc")
                 .priority("MEDIUM")
-                .status("RESOLVED")
+                .status("CLOSED")
                 .productId(10L)
                 .customerId("customer-1")
                 .build();

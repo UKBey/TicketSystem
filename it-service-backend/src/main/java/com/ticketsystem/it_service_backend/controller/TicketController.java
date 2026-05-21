@@ -253,7 +253,7 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
-    @Operation(summary = "Bileti claim al (NEW veya IN_PROGRESS statüsündeki bileti sahiplen)")
+    @Operation(summary = "Bileti claim al (CLOSED hariç her statüdeki bilet sahiplenebilir)")
     @PutMapping("/{id}/claim")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
     public ResponseEntity<TicketResponseDTO> claimTicket(

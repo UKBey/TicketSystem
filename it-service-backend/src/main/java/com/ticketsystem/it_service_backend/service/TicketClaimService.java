@@ -42,8 +42,9 @@ public class TicketClaimService {
     private final TicketAuditHelper auditHelper;
 
     /**
-     * Ajan bileti sahiplenir. NEW ise ilk claim — IN_PROGRESS'e geçer.
-     * IN_PROGRESS ise mevcut sahiplenilenlerle birlikte claim eklenir.
+     * Ajan bileti sahiplenir. CLOSED dışındaki her statüdeki bilet claim alınabilir.
+     * NEW ise ilk claim — IN_PROGRESS'e geçer; diğer statülerde statü değişmeden
+     * mevcut sahiplenilenlere yeni claim eklenir.
      */
     @Transactional
     public Ticket claimTicket(Long id, String agentId) {
@@ -51,7 +52,8 @@ public class TicketClaimService {
         Ticket ticket = loadTicket(id);
 
         String currentStatus = ticket.getStatus();
-        if (!"NEW".equals(currentStatus) && !"IN_PROGRESS".equals(currentStatus) && !"WAITING_FOR_CUSTOMER".equals(currentStatus)) {
+        // Kapalı bilet dışında her statüdeki bilet claim alınabilir (manuel assign ile tutarlı).
+        if ("CLOSED".equals(currentStatus)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "error.ticket.claim.invalid.status");
         }
