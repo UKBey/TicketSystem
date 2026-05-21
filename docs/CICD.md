@@ -15,8 +15,9 @@ The pipeline is built around a few deliberate principles:
   produced from code that has not passed the full test suite. CD is triggered by
   a *successful CI run*, not by a raw push, so a red build can never reach the
   registry.
-- **Fast feedback on pull requests.** CI runs on every PR targeting `main`, so
-  problems are caught before review, not after merge.
+- **Fast feedback on every change.** CI runs on every pull request targeting
+  `main` *and* on every push to `main`, so problems surface immediately —
+  whether the change arrives through a PR or a direct push.
 - **Reproducible local parity.** Every check the CI server runs can be run
   locally with a single command (`make ci`), so "works on my machine" and
   "passes in CI" mean the same thing.

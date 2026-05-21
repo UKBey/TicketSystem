@@ -255,15 +255,18 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 
 ## 📸 Screenshots
 
-<!-- Add screenshots under docs/screenshots/ and embed them here. Suggested set: -->
-<!-- - Login screen (with language/theme switch) -->
-<!-- - Customer "My Tickets" view -->
-<!-- - Ticket detail (conversation, SLA badge, AI summary) -->
-<!-- - Agent workspace / ticket pool -->
-<!-- - Manager dashboard -->
-<!-- - OpenSearch observability dashboard -->
+> Place the image files in `docs/screenshots/` using the names below, then embed them here.
 
-_Screenshots will be added here._
+| File | What it shows |
+|------|---------------|
+| `login.png` | Login screen — language and light/dark theme switcher |
+| `my-tickets.png` | Customer "My Tickets" list and the create-ticket modal |
+| `ticket-detail.png` | Ticket detail — conversation timeline, SLA countdown badge, AI summary, attachments |
+| `agent-workspace.png` | Agent workspace and the ticket pool |
+| `manager-dashboard.png` | Manager dashboard — KPI cards, charts, SLA metrics |
+| `observability.png` | OpenSearch "Ticket System Observability" dashboard |
+
+<!-- After adding a file, embed it like:  ![Login](docs/screenshots/login.png)  -->
 
 ---
 

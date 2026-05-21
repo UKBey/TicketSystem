@@ -20,7 +20,7 @@ On-call reference for the IT-service ticketing system. Brief, copy-paste oriente
 | redis                 | 6379            | `:6379` (dev)     | Rate-limit Bucket4j + cache               | `docker logs redis`                          |
 | mailpit               | 1025/8025       | `:8025` (dev)     | Dev SMTP sink                             | `docker logs mailpit`                        |
 | opensearch            | 9200            | `:9200` (dev)     | Log, trace and metric store               | `docker logs opensearch`                     |
-| opensearch-dashboards | 5601            | `/opensearch`     | Log/trace/metric UI + dashboards          | `docker logs opensearch-dashboards`          |
+| opensearch-dashboards | 5601            | `:5601` (dev)     | Log/trace/metric UI + dashboards          | `docker logs opensearch-dashboards`          |
 | kafka                 | 9092            | `:9092` (dev)     | Log pipeline buffer (KRaft mode)          | `docker logs kafka-broker`                   |
 | logstash              | -               | -                 | Kafka → OpenSearch                        | `docker logs logstash-consumer`              |
 | otel-collector        | 4317/4318       | -                 | Trace/metric/log OTLP receiver            | `docker logs otel-collector`                 |
@@ -447,7 +447,7 @@ curl -s -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true'
 ```
 
 Viewing: OpenSearch Dashboards → Dashboard → **Ticket System Observability**
-(`http://localhost/opensearch` in compose, `/opensearch` in k8s) — metrics + traces + logs
+(`http://localhost:5601` in compose, `/opensearch` in k8s) — metrics + traces + logs
 in one panel. The 9 visualization titles, exactly as they appear in OpenSearch
 Dashboards (five are in Turkish): Request Volume, API Response Time, Error Rate,
 Service Health, İstek Hacmi, HTTP Hata Kodları, En Çok Kullanılan Endpoint'ler,

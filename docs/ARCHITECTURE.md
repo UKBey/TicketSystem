@@ -233,7 +233,7 @@ The SLA deadline is computed at ticket creation from the per-priority policy. A 
 - marks tickets whose deadline has passed as **breached** and notifies agents + managers;
 - flags tickets approaching their warning threshold and notifies the assigned agents.
 
-The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` and resumes on return to `IN_PROGRESS`, so customer-side delays do not count against the support team. Pause/resume is mirrored into the jBPM process via signals.
+The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED` and resumes on return to `IN_PROGRESS`, so customer-side delays and time spent awaiting confirmation do not count against the support team. Once a ticket is `CLOSED` the SLA is finalised and the clock stops permanently. Pause/resume is mirrored into the jBPM process via signals.
 
 ### 7.4 AI Summary
 
@@ -305,8 +305,6 @@ flowchart LR
 - **Metrics** — exported with **delta temporality** and routed through Data Prepper, because the collector's OpenSearch exporter does not handle metrics. Delta temporality lets OpenSearch `sum` aggregations work without Prometheus-style `rate()`.
 - **Dashboards** — a combined "Ticket System Observability" dashboard (metrics + traces + logs) ships as saved objects in `observability/`.
 
-> Note: Prometheus/Grafana are intentionally **not** used — OpenSearch is the single observability backend.
-
 ---
 
 ## 12. Asynchronous Processing & Scheduling
@@ -355,7 +353,7 @@ Both are driven through the `Makefile` (`make up` / `make k8s-up`).
 
 ```mermaid
 flowchart LR
-    pr[Pull Request] --> ci[CI · GitHub Actions]
+    pr[Pull request / push to main] --> ci[CI · GitHub Actions]
     ci -->|backend verify| ci
     ci -->|llm-service build| ci
     ci -->|frontend lint/test/build| ci
@@ -363,7 +361,7 @@ flowchart LR
     cd --> hub[Build & push Docker images]
 ```
 
-- **CI** runs on every pull request: backend `mvnw verify` (unit + integration tests), llm-service build, and frontend lint + test + build.
+- **CI** runs on every pull request and every push to `main`: backend `mvnw verify` (unit + integration tests), llm-service build, frontend lint + test + build, and Kubernetes manifest validation (kustomize + kubeconform).
 - **CD** runs on successful CI on `main`: builds and pushes Docker images, tagged `latest` and the commit SHA for rollback.
 
 ---
@@ -376,7 +374,7 @@ flowchart LR
 | **Stateless JWT resource server** | Horizontal scalability and a clean separation between the identity provider and the API. |
 | **jBPM for the ticket lifecycle** | The lifecycle is an explicit, inspectable BPMN process rather than scattered `if/else` status logic. |
 | **Circuit breaker around the workflow engine** | The core ticketing API must stay available even if KIE Server is down. |
-| **Single observability backend (OpenSearch)** | Logs, traces and metrics in one place; Prometheus/Grafana removed to cut moving parts. |
+| **Single observability backend (OpenSearch)** | Logs, traces and metrics share one store and one query UI — fewer moving parts to operate. |
 | **Delta-temporality metrics via Data Prepper** | The OTEL collector's OpenSearch exporter cannot emit metrics; delta temporality makes OpenSearch aggregations work without `rate()`. |
 | **Flyway with `ddl-auto: validate`** | Schema is versioned, reviewable and reproducible; Hibernate can never silently change it. |
 | **Shared `ticketdb`, isolated Flyway history for llm-service** | The AI service reuses domain data without a cross-service call, while migrations stay independent. |

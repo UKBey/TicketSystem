@@ -255,15 +255,18 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 
 ## 📸 Ekran Görüntüleri
 
-<!-- Ekran görüntülerini docs/screenshots/ altına ekleyin ve burada gömün. Önerilen set: -->
-<!-- - Giriş ekranı (dil/tema değiştiriciyle) -->
-<!-- - Müşteri "Ticket'larım" görünümü -->
-<!-- - Ticket detayı (görüşme, SLA rozeti, yapay zekâ özeti) -->
-<!-- - Temsilci çalışma alanı / ticket havuzu -->
-<!-- - Yönetici panosu -->
-<!-- - OpenSearch gözlemlenebilirlik panosu -->
+> Görsel dosyalarını aşağıdaki adlarla `docs/screenshots/` altına koyun, ardından buraya gömün.
 
-_Ekran görüntüleri buraya eklenecek._
+| Dosya | Ne gösterir |
+|-------|-------------|
+| `login.png` | Giriş ekranı — dil ve açık/koyu tema değiştirici |
+| `my-tickets.png` | Müşteri "Ticket'larım" listesi ve ticket oluşturma modalı |
+| `ticket-detail.png` | Ticket detayı — görüşme akışı, SLA geri sayım rozeti, yapay zekâ özeti, ekler |
+| `agent-workspace.png` | Temsilci çalışma alanı ve ticket havuzu |
+| `manager-dashboard.png` | Yönetici panosu — KPI kartları, grafikler, SLA metrikleri |
+| `observability.png` | OpenSearch "Ticket System Observability" panosu |
+
+<!-- Dosyayı ekledikten sonra şöyle göm:  ![Login](docs/screenshots/login.png)  -->
 
 ---
 

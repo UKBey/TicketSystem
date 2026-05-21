@@ -233,7 +233,7 @@ SLA son tarihi, ticket oluşturulduğunda önceliğe göre politikadan hesaplan�
 - son tarihi geçmiş ticket'ları **ihlal edilmiş (breached)** olarak işaretler ve temsilcilere + yöneticilere bildirir;
 - uyarı eşiğine yaklaşan ticket'ları işaretler ve atanan temsilcilere bildirir.
 
-SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` durumundayken **duraklar** ve `IN_PROGRESS` durumuna dönüldüğünde yeniden başlar; böylece müşteri kaynaklı gecikmeler destek ekibinin aleyhine sayılmaz. Duraklatma/devam ettirme, sinyaller aracılığıyla jBPM sürecine de yansıtılır.
+SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar** ve `IN_PROGRESS` durumuna dönüldüğünde yeniden başlar; böylece müşteri kaynaklı gecikmeler ve onay bekleme süresi destek ekibinin aleyhine sayılmaz. Ticket `CLOSED` olduğunda SLA tamamen sonlanır ve sayaç kalıcı olarak durur. Duraklatma/devam ettirme, sinyaller aracılığıyla jBPM sürecine de yansıtılır.
 
 ### 7.4 Yapay Zekâ Özeti
 
@@ -305,8 +305,6 @@ flowchart LR
 - **Metrikler** — **delta zamansallığı (delta temporality)** ile dışa aktarılır ve Data Prepper üzerinden yönlendirilir; çünkü collector'ın OpenSearch dışa aktarıcısı metrikleri işlemez. Delta zamansallığı, OpenSearch `sum` agregasyonlarının Prometheus tarzı `rate()` olmadan çalışmasını sağlar.
 - **Panolar** — birleşik bir "Ticket System Observability" panosu (metrikler + izler + günlükler), `observability/` içinde kayıtlı nesneler olarak sunulur.
 
-> Not: Prometheus/Grafana bilinçli olarak **kullanılmaz** — OpenSearch tek gözlemlenebilirlik arka ucudur.
-
 ---
 
 ## 12. Asenkron İşleme ve Zamanlama
@@ -355,7 +353,7 @@ Her ikisi de `Makefile` (`make up` / `make k8s-up`) üzerinden yürütülür.
 
 ```mermaid
 flowchart LR
-    pr[Pull Request] --> ci[CI · GitHub Actions]
+    pr[Pull request / main'e push] --> ci[CI · GitHub Actions]
     ci -->|backend verify| ci
     ci -->|llm-service build| ci
     ci -->|frontend lint/test/build| ci
@@ -363,7 +361,7 @@ flowchart LR
     cd --> hub[Docker imajlarını derle ve gönder]
 ```
 
-- **CI** her pull request'te çalışır: backend `mvnw verify` (birim + entegrasyon testleri), llm-service derlemesi ve frontend lint + test + build.
+- **CI** her pull request'te ve `main`'e yapılan her push'ta çalışır: backend `mvnw verify` (birim + entegrasyon testleri), llm-service derlemesi, frontend lint + test + build ve Kubernetes manifest doğrulaması (kustomize + kubeconform).
 - **CD**, `main` üzerinde başarılı CI sonrasında çalışır: Docker imajlarını derler ve gönderir; geri alma (rollback) için `latest` ve commit SHA etiketleriyle işaretlenir.
 
 ---
@@ -376,7 +374,7 @@ flowchart LR
 | **Durumsuz JWT resource server** | Yatay ölçeklenebilirlik ve kimlik sağlayıcısı ile API arasında temiz bir ayrım. |
 | **Ticket yaşam döngüsü için jBPM** | Yaşam döngüsü, dağınık `if/else` durum mantığı yerine açık ve incelenebilir bir BPMN sürecidir. |
 | **İş akışı motoru çevresinde devre kesici** | Çekirdek ticket API'si, KIE Server kapalı olsa bile kullanılabilir kalmalıdır. |
-| **Tek gözlemlenebilirlik arka ucu (OpenSearch)** | Günlükler, izler ve metrikler tek bir yerde; hareketli parçaları azaltmak için Prometheus/Grafana kaldırıldı. |
+| **Tek gözlemlenebilirlik arka ucu (OpenSearch)** | Günlükler, izler ve metrikler tek bir depoyu ve tek bir sorgu arayüzünü paylaşır — işletilecek daha az hareketli parça. |
 | **Data Prepper üzerinden delta zamansallıklı metrikler** | OTEL collector'ın OpenSearch dışa aktarıcısı metrik üretemez; delta zamansallığı, OpenSearch agregasyonlarının `rate()` olmadan çalışmasını sağlar. |
 | **`ddl-auto: validate` ile Flyway** | Şema sürümlenmiş, incelenebilir ve yeniden üretilebilir; Hibernate onu asla sessizce değiştiremez. |
 | **Paylaşılan `ticketdb`, llm-service için izole Flyway geçmişi** | Yapay zekâ servisi, servisler arası bir çağrı olmadan alan verisini yeniden kullanır; migrasyonlar ise bağımsız kalır. |
