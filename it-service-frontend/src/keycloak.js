@@ -34,4 +34,17 @@ export async function redirectToKeycloakLogin({ redirectUri, action } = {}) {
   window.location.assign(url);
 }
 
+/**
+ * Keycloak oturumunu kapatir. login akisiyla simetrik olarak `kc_locale` ekler —
+ * boylece cikis sirasinda Keycloak bir sayfa render ederse uygulamanin diliyle gelir.
+ * `createLogoutUrl`, id_token_hint + post_logout_redirect_uri'yi zaten ekledigi icin
+ * `keycloak.logout()` ile ayni sessiz cikis davranisini korur.
+ */
+export async function redirectToKeycloakLogout({ redirectUri } = {}) {
+  const locale = resolveLanguage();
+  let url = await keycloak.createLogoutUrl({ redirectUri });
+  url += (url.includes('?') ? '&' : '?') + 'kc_locale=' + locale;
+  window.location.assign(url);
+}
+
 export default keycloak;

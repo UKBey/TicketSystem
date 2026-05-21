@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import keycloak, { redirectToKeycloakLogin } from '../keycloak';
+import keycloak, { redirectToKeycloakLogin, redirectToKeycloakLogout } from '../keycloak';
 import api from '../services/api';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
@@ -126,7 +126,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
-    keycloak.logout({ redirectUri: window.location.origin + '/' });
+    redirectToKeycloakLogout({ redirectUri: window.location.origin + '/' });
   }, []);
 
   const hasRole = useCallback(

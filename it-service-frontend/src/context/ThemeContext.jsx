@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import keycloak from '../keycloak';
 
 const ThemeContext = createContext(null);
 
@@ -39,6 +40,10 @@ export function ThemeProvider({ children }) {
   }, []);
 
   const persist = (value) => {
+    // Login sayfasinda token yoktur; istek 401 doner ve api interceptor'i
+    // kullaniciyi Keycloak login ekranina yonlendirir. Yalnizca kimlik
+    // dogrulanmissa sunucuya yaz — aksi halde tema sadece localStorage/cookie'de kalir.
+    if (!keycloak.authenticated || !keycloak.token) return;
     api.put('/users/me/theme', null, { params: { theme: value } }).catch((err) => {
       console.warn('Tema tercihi backend\'e kaydedilemedi:', err);
     });

@@ -1,7 +1,30 @@
 <!doctype html>
-<html lang="en" class="light">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Boyamadan once kayitli tema/dili uygula — yanlis tema flash'ini onler.
+         ThemeContext init mantigini birebir yansitir:
+         localStorage 'theme' -> 'theme' cookie -> prefers-color-scheme.
+         'theme' cookie'si ve 'language' anahtari Keycloak giris temasiyla paylasilir. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t !== 'dark' && t !== 'light') {
+            var m = document.cookie.match(/(?:^|;\s*)theme=(light|dark)(?:;|$)/);
+            t = m ? m[1] : null;
+          }
+          if (t !== 'dark' && t !== 'light') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          var el = document.documentElement;
+          el.classList.remove('light', 'dark');
+          el.classList.add(t);
+          var lang = localStorage.getItem('language');
+          if (lang === 'tr' || lang === 'en') el.setAttribute('lang', lang);
+        } catch (e) { /* localStorage/cookie erisilemezse sessizce devam et */ }
+      })();
+    </script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
