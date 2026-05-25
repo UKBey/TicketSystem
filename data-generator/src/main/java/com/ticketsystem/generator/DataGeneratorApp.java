@@ -18,18 +18,18 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Giriş noktası.
+ * Entry point.
  *
- * <p>Tek bir agent_admin hesabı ile aşağıdaki adımlar uygulanır:
+ * <p>The following steps are executed with a single agent_admin account:
  * <ol>
- *   <li>setup.json'daki agent + customer kullanıcıları yoksa oluşturulur (varsa atlanır).</li>
- *   <li>5 ürün × 5 topic × 2+ sıkça karşılaşılan sorun ekosistemi idempotent şekilde kurulur.</li>
- *   <li>tickets/*.json dosyalarından 50 bilet deklaratif olarak üretilir; her şablonun
- *       statüsüne göre tam yaşam döngüsü oynatılır (claim/comment/worklog/resolve/csat).</li>
- *   <li>Bilet tarihleri ve SLA alanları doğrudan DB'ye yazılarak son N gün içine dağıtılır.</li>
+ *   <li>Agent and customer users from setup.json are created if missing (skipped if they exist).</li>
+ *   <li>A 5 product x 5 topic x 2+ known-issue ecosystem is set up idempotently.</li>
+ *   <li>50 tickets are generated declaratively from tickets/*.json files; for each template
+ *       the full lifecycle is played out based on its status (claim/comment/worklog/resolve/csat).</li>
+ *   <li>Ticket dates and SLA fields are written directly to the DB so they spread across the last N days.</li>
  * </ol>
  *
- * Çalıştırma:
+ * Run:
  *   mvn package -q
  *   java -jar target/data-generator-1.0.0.jar
  */
@@ -38,11 +38,11 @@ public class DataGeneratorApp {
     private static final Logger log = LoggerFactory.getLogger(DataGeneratorApp.class);
 
     /**
-     * Generator akışını uçtan uca çalıştırır: agent_admin login, setup,
-     * ticket üretimi, ardından DB üzerinde tarih/SLA backfill.
+     * Runs the generator flow end to end: agent_admin login, setup,
+     * ticket generation, and then date/SLA backfill against the DB.
      *
-     * @param args komut satırı argümanları (kullanılmıyor)
-     * @throws Exception altyapı çağrılarından gelen herhangi bir hata
+     * @param args command-line arguments (unused)
+     * @throws Exception any error originating from infrastructure calls
      */
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();

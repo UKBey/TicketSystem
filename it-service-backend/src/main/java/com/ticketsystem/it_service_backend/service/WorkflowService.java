@@ -16,8 +16,8 @@ import java.util.Map;
 
 
 /**
- * Ticket tarafindaki workflow adimlarini tek servis uzerinde toplar.
- * TicketService bu katmanla jBPM ayrintilarindan ayristirilir.
+ * Centralizes ticket-side workflow steps under a single service.
+ * TicketService is decoupled from jBPM details through this layer.
  */
 @Service
 @RequiredArgsConstructor
@@ -46,13 +46,13 @@ public class WorkflowService {
 
 
     /**
-     * Yeni olusturulan bilet icin jBPM surec ornegini baslatir ve instance
-     * kimligini dondurur. SLA suresi ISO-8601 duration formatinda; callback
-     * URL'i ortam degiskeniyle birlikte process variable'lara konur.
+     * Starts the jBPM process instance for a newly created ticket and returns the
+     * instance ID. The SLA duration is sent in ISO-8601 format and the env-driven
+     * callback URL is placed alongside the other process variables.
      *
-     * @param ticket yeni bilet
-     * @return baslatilan process instance ID
-     * @throws RuntimeException KIE Server erisilmez veya hata donerse
+     * @param ticket the new ticket
+     * @return the started process instance ID
+     * @throws RuntimeException if the KIE Server is unreachable or returns an error
      */
     public Long startTicketWorkflow(Ticket ticket) {
         log.info("Ticket için workflow başlatılıyor. TicketId={}, Priority={}, CustomerId={}",
@@ -81,10 +81,11 @@ public class WorkflowService {
     }
 
     /**
-     * Bilet durumunu workflow degiskeni ile senkron tutar. {@code processInstanceId}
-     * yoksa sessizce atlanir. KIE Server hatalari sadece log'a yazilir.
+     * Keeps the ticket status in sync with the workflow variable. Silently
+     * skipped when {@code processInstanceId} is missing. KIE Server failures are
+     * only logged.
      *
-     * @param ticket guncel statu degerini tasiyan bilet
+     * @param ticket ticket carrying the current status
      */
     public void syncTicketStatus(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -99,11 +100,11 @@ public class WorkflowService {
     }
 
     /**
-     * Claim alan ajanın bilgisini workflow tarafına aktarır.
-     * Çok-agentli yapıda en son claim'i alan ajanın ID'si iletilir.
+     * Propagates the claiming agent to the workflow side.
+     * In the multi-agent model the ID of the latest claim holder is sent.
      *
-     * @param ticket bilet
-     * @param agentId atanan/claim alan ajan ID
+     * @param ticket ticket
+     * @param agentId ID of the assigned/claiming agent
      */
     public void syncTicketAssignment(Ticket ticket, String agentId) {
         if (ticket.getProcessInstanceId() == null) {
@@ -119,11 +120,11 @@ public class WorkflowService {
     }
 
     /**
-     * SLA sayac ilerleyisini durdurur ve o ana kadar gecen sureyi birikimli alana yazar.
-     * Halihazirda pause'lu ise no-op. {@code processInstanceId} yoksa sadece DB
-     * tarafinda durdurulur (workflow sinyali atlanir).
+     * Pauses the SLA counter and adds the elapsed segment to the cumulative field.
+     * No-op when already paused. When {@code processInstanceId} is missing, only
+     * the DB side is paused (the workflow signal is skipped).
      *
-     * @param ticket SLA'i duraklatilacak bilet
+     * @param ticket ticket whose SLA is being paused
      */
         public void pauseSla(Ticket ticket) {
         // Son baslangic noktasindan itibaren gecen sureyi toplama ekler.
@@ -161,11 +162,10 @@ public class WorkflowService {
     }
 
     /**
-     * SLA sayacini kalan sure uzerinden kaldigi yerden devam ettirir. Kalan
-     * sure mevcut priority ile yeniden hesaplanir ve jBPM tarafindaki timer
-     * yeniden zamanlanir.
+     * Resumes the SLA counter from the remaining duration. The remainder is
+     * recomputed against the current priority and the jBPM timer is rescheduled.
      *
-     * @param ticket SLA'i yeniden baslatilacak bilet
+     * @param ticket ticket whose SLA is being resumed
      */
             public void resumeSla(Ticket ticket) {
         ticket.setSlaPausedAt(null);
@@ -195,11 +195,11 @@ public class WorkflowService {
     }
 
     /**
-     * Bilet kapanisinda surece {@code ticket_closed} sinyali gondererek sonlandirir.
-     * Sinyal basarisiz olursa fallback olarak {@link KieServerAdapter#abortProcess}
-     * cagrilir. {@code processInstanceId} yoksa sessizce atlanir.
+     * Terminates the process by sending the {@code ticket_closed} signal on ticket
+     * closure. If the signal fails, {@link KieServerAdapter#abortProcess} is used
+     * as a fallback. Silently skipped when {@code processInstanceId} is missing.
      *
-     * @param ticket kapanan bilet
+     * @param ticket the closing ticket
      */
     public void closeTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -225,10 +225,10 @@ public class WorkflowService {
     }
 
     /**
-     * Silinen veya iptal edilen biletin surecini abort ederek kapatir.
-     * {@code processInstanceId} yoksa sessizce atlanir.
+     * Aborts the process for a deleted or cancelled ticket.
+     * Silently skipped when {@code processInstanceId} is missing.
      *
-     * @param ticket silinmek/iptal edilmek uzere olan bilet
+     * @param ticket the ticket about to be deleted or cancelled
      */
     public void abortTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -243,7 +243,7 @@ public class WorkflowService {
     }
 
     /**
-     * Milisaniye degerini ISO-8601 duration metnine cevirir.
+     * Converts a millisecond value to an ISO-8601 duration string.
      */
     private String msToIsoDuration(long ms) {
         long totalSeconds = ms / 1000;
@@ -261,27 +261,27 @@ public class WorkflowService {
 
 
     /**
-     * Biletin anlık SLA bilgisini ve görsel durumunu (slaState) istemci tarafı için hesaplar.
+     * Computes the ticket's live SLA information and visual state ({@code slaState}) for the client.
      *
-     * <p>slaState değerleri:
+     * <p>slaState values:
      * <ul>
-     *   <li>{@code "active"} — SLA sayacı çalışıyor (NEW, IN_PROGRESS)</li>
-     *   <li>{@code "paused"} — SLA duraklatıldı, kalan süre var (WAITING_FOR_CUSTOMER, RESOLVED)</li>
-     *   <li>{@code "expired"} — SLA süresi doldu (ihlal kaydı olsun ya da olmasın)</li>
-     *   <li>{@code "completed"} — Bilet kapandı, SLA artık izlenmiyor (CLOSED)</li>
+     *   <li>{@code "active"} — SLA counter is running (NEW, IN_PROGRESS)</li>
+     *   <li>{@code "paused"} — SLA paused with remaining time (WAITING_FOR_CUSTOMER, RESOLVED)</li>
+     *   <li>{@code "expired"} — SLA time has elapsed (whether or not a breach was recorded)</li>
+     *   <li>{@code "completed"} — Ticket closed, SLA no longer tracked (CLOSED)</li>
      * </ul>
      *
-     * <p>Karar önceliği:
+     * <p>Decision priority:
      * <ol>
-     *   <li>CLOSED → her zaman "completed" (ihlal kaydı DB'de korunur)</li>
+     *   <li>CLOSED → always "completed" (breach record is preserved in the DB)</li>
      *   <li>{@code slaBreached} → "expired"</li>
-     *   <li>Duraklı mod → remaining &gt; 0 ise "paused", değilse "expired"</li>
-     *   <li>Aktif mod → "active" ile geri sayım</li>
+     *   <li>Paused mode → "paused" when remaining &gt; 0, otherwise "expired"</li>
+     *   <li>Active mode → "active" with a live countdown</li>
      * </ol>
      *
-     * @param ticket SLA bilgisi hesaplanacak bilet
-     * @return {@code slaState}, {@code remainingMs}, {@code deadlineTimestamp} anahtarlarını
-     *         taşıyan map
+     * @param ticket ticket for which SLA information is being computed
+     * @return map carrying the {@code slaState}, {@code remainingMs} and
+     *         {@code deadlineTimestamp} keys
      */
     public java.util.Map<String, Object> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
         java.util.Map<String, Object> result = new java.util.HashMap<>();

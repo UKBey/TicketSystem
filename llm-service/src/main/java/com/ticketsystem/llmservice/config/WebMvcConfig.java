@@ -7,8 +7,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Spring MVC config — {@link RateLimitInterceptor}'i
- * {@link RateLimitProperties#getPathPatterns()} ile eslesen yollar uzerine kaydeder.
+ * Spring MVC config — registers the {@link RateLimitInterceptor} on the paths
+ * matched by {@link RateLimitProperties#getPathPatterns()}.
  */
 @Configuration
 @RequiredArgsConstructor
@@ -18,10 +18,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final RateLimitProperties rateLimitProperties;
 
     /**
-     * {@link RateLimitInterceptor}'i config'ten okunan yol desenleri üzerine
-     * kaydeder.
+     * Registers the {@link RateLimitInterceptor} on the path patterns read
+     * from config.
      *
-     * @param registry Spring MVC interceptor kayıt defteri
+     * @param registry Spring MVC interceptor registry
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

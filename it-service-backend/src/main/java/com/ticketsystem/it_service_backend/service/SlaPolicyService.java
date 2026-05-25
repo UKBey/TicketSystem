@@ -8,12 +8,12 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 /**
- * Önceliklere göre SLA hedef sürelerini ve uyarı eşiklerini sunar.
+ * Exposes SLA target durations and warning thresholds per priority.
  *
- * <p>Değerler {@code app.sla.policies} yapılandırmasından (env-driven) okunur;
- * eksik priority için tehlikesiz dahili default'lara düşer. SLA politikası
- * değişirse dashboard cache'lerini boşaltmak için
- * {@link #evictSlaDependentCaches} sağlanır.
+ * <p>Values are read from the {@code app.sla.policies} configuration (env-driven)
+ * and fall back to safe in-code defaults when a priority is missing.
+ * {@link #evictSlaDependentCaches} is provided to flush dashboard caches when
+ * the SLA policy changes.
  */
 @Service
 @RequiredArgsConstructor
@@ -22,11 +22,11 @@ public class SlaPolicyService {
     private final SlaProperties slaProperties;
 
     /**
-     * SLA policy degistiginde ilgili tum dashboard cache'lerini bosaltir.
-     * Su an SLA policy DB-backed bir admin endpoint'i ile guncellenmiyor (env-driven),
-     * ama ileride boyle bir akis eklenirse veya manuel ops flush gerekirse cagrilacak
-     * tek metod buradadir. Ayrica `/actuator/caches/{name}` DELETE ile de runtime flush
-     * yapilabilir (SecurityConfig admin rol gerektirir).
+     * Flushes all dashboard caches that depend on SLA policy when it changes.
+     * The SLA policy is currently env-driven (no DB-backed admin endpoint), but
+     * this is the single entry point to call if such a flow is ever added or if
+     * a manual ops flush is needed. Runtime flushes can also be triggered via
+     * DELETE on `/actuator/caches/{name}` (admin role required by SecurityConfig).
      */
     @Caching(evict = {
             @CacheEvict(value = CacheConfig.PRIORITY_SLA_METRICS, allEntries = true),
@@ -38,11 +38,11 @@ public class SlaPolicyService {
     }
 
     /**
-     * Verilen priority için SLA hedef süresini milisaniye olarak döner.
+     * Returns the SLA target duration for the given priority in milliseconds.
      *
-     * @param priority {@code CRITICAL/HIGH/MEDIUM/LOW} (case-insensitive); null/eşleşmeyen
-     *                 değer MEDIUM default'u olarak ele alınır
-     * @return SLA süresi (ms)
+     * @param priority {@code CRITICAL/HIGH/MEDIUM/LOW} (case-insensitive); null or
+     *                 unrecognized values fall back to the MEDIUM default
+     * @return SLA duration in ms
      */
     public long getSlaDurationMs(String priority) {
         if (priority == null) return defaultMs("MEDIUM");
@@ -54,21 +54,21 @@ public class SlaPolicyService {
     }
 
     /**
-     * SLA hedef süresini saat cinsinden döner (metrik aggregation'larında kullanılır).
+     * Returns the SLA target duration in hours (used by metric aggregations).
      *
-     * @param priority priority kodu
-     * @return saat cinsinden SLA süresi
+     * @param priority priority code
+     * @return SLA duration in hours
      */
     public int getResolutionHours(String priority) {
         return (int) (getSlaDurationMs(priority) / 3_600_000L);
     }
 
     /**
-     * Bildirim/uyarı (upcoming-breach) tetikleme eşiğini saat cinsinden döner.
-     * Konfigürasyon eksikse 2 saat default'u uygulanır.
+     * Returns the upcoming-breach notification/warning threshold in hours.
+     * Falls back to 2 hours when no configuration is present.
      *
-     * @param priority priority kodu
-     * @return uyarı eşiği (saat)
+     * @param priority priority code
+     * @return warning threshold in hours
      */
     public int getWarningThresholdHours(String priority) {
         if (priority == null) return 2;

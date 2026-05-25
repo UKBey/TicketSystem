@@ -3,12 +3,12 @@ package com.ticketsystem.llmservice.exception;
 import lombok.Getter;
 
 /**
- * Groq API token limiti aşıldığında fırlatılır.
+ * Thrown when the Groq API token limit is exceeded.
  */
 @Getter
 public class GroqRateLimitException extends RuntimeException {
 
-    /** Kaç saniye sonra tekrar denenebileceği (Groq'un bildirdiği değer) */
+    /** Number of seconds after which the request can be retried (value reported by Groq) */
     private final double retryAfterSeconds;
 
     public GroqRateLimitException(double retryAfterSeconds, String groqMessage) {

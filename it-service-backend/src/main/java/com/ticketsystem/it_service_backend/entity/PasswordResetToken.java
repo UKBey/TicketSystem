@@ -6,11 +6,12 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 /**
- * Şifre sıfırlama tek-kullanımlık token'ı — {@link User} ile ManyToOne.
+ * Single-use password-reset token — ManyToOne to {@link User}.
  *
- * <p>Plaintext token sadece kullanıcıya gönderilen mail içinde gezer; DB'de yalnızca
- * SHA-256 hash'i tutulur, böylece DB sızıntısı token'ları geçersiz kılmaz.
- * {@code usedAt} alanı token tüketildiğinde damgalanır; aynı token ikinci kez kullanılamaz.
+ * <p>The plaintext token only travels in the email sent to the user; the DB stores
+ * only its SHA-256 hash, so a DB leak does not compromise active tokens.
+ * {@code usedAt} is stamped when the token is consumed; the same token cannot be
+ * used twice.
  */
 @Entity
 @Table(name = "password_reset_tokens")
@@ -30,8 +31,8 @@ public class PasswordResetToken {
     private User user;
 
     /**
-     * Token'ın SHA-256 hash'i. Plaintext token sadece mail içinde uçar; DB'de
-     * yalnızca hash tutulur, böylece DB sızsa bile token kullanılamaz.
+     * SHA-256 hash of the token. The plaintext token only travels in the email;
+     * the DB stores only the hash, so even a DB leak does not yield a usable token.
      */
     @Column(name = "token_hash", nullable = false, unique = true, length = 255)
     private String tokenHash;
@@ -43,7 +44,7 @@ public class PasswordResetToken {
     private ZonedDateTime expiresAt;
 
     /**
-     * Token tüketildiğinde işaretlenir; bir token sadece bir kez kullanılabilir.
+     * Marked once the token has been consumed; each token may be used only once.
      */
     @Column(name = "used_at")
     private ZonedDateTime usedAt;

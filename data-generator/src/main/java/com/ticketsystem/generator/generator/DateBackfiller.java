@@ -13,17 +13,17 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * API üzerinden oluşturulan biletlerin tarihlerini ve SLA alanlarını
- * doğrudan PostgreSQL'e yazarak gerçekçi tarihsel veri üretir.
+ * Generates realistic historical data by writing the dates and SLA fields of
+ * tickets created via the API directly into PostgreSQL.
  *
- * Durum bazlı SLA backfill stratejisi:
- *   NEW               — SLA aktif, son (sla_duration * 0-80%) süresi içinde oluşturulmuş,
- *                        deadline gelecekte görünür.
- *   IN_PROGRESS       — SLA aktif, agent kısa süre önce claim almış;
- *                        sla_resumed_at son (remaining * 0-70%) içinde ayarlanır.
- *   WAITING_FOR_CUSTOMER — SLA duraklatılmış, bütçenin %20-75'i harcanmış.
- *   RESOLVED          — SLA duraklatılmış, bütçenin %30-95'i harcanmış.
- *   CLOSED            — SLA duraklatılmış (RESOLVED'dakiyle aynı), süreç tamamlanmış.
+ * Status-based SLA backfill strategy:
+ *   NEW               — SLA active, created within the last (sla_duration * 0-80%),
+ *                        deadline appears in the future.
+ *   IN_PROGRESS       — SLA active, the agent claimed recently;
+ *                        sla_resumed_at is set within the last (remaining * 0-70%).
+ *   WAITING_FOR_CUSTOMER — SLA paused, 20-75% of the budget spent.
+ *   RESOLVED          — SLA paused, 30-95% of the budget spent.
+ *   CLOSED            — SLA paused (same as RESOLVED), workflow completed.
  */
 public class DateBackfiller {
 
@@ -31,14 +31,16 @@ public class DateBackfiller {
     private static final Random RNG = new Random();
 
     /**
-     * Verilen bilet ID'lerinin {@code created_at} ve SLA alanlarını ({@code sla_deadline},
+     * Writes the {@code created_at} and SLA fields ({@code sla_deadline},
      * {@code sla_elapsed_ms}, {@code sla_paused_at}, {@code sla_resumed_at},
-     * {@code resolved_at}, {@code closed_at}) doğrudan PostgreSQL'e yazar.
+     * {@code resolved_at}, {@code closed_at}) of the given ticket IDs directly
+     * into PostgreSQL.
      *
-     * <p>Her bileti statüsüne göre farklı stratejiyle backfill eder; bağlantı
-     * hatasında işlem atlanır ve uyarı log'lanır ({@link Exception} fırlatılmaz).
+     * <p>Each ticket is backfilled with a different strategy depending on its status;
+     * on a connection error the operation is skipped and a warning is logged (no
+     * {@link Exception} is thrown).
      *
-     * @param ticketIds güncellenecek bilet ID'leri; boş liste no-op
+     * @param ticketIds ticket IDs to update; an empty list is a no-op
      */
     public void backfill(List<Long> ticketIds) {
         if (ticketIds.isEmpty()) {
@@ -198,7 +200,7 @@ public class DateBackfiller {
     }
 
     /**
-     * Bilet önceliğine göre SLA süresi (saat) — WorkflowService ile senkron.
+     * SLA duration (hours) by ticket priority — kept in sync with WorkflowService.
      */
     private int slaHoursForPriority(String priority) {
         if (priority == null) return 12;

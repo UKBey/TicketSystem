@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Agent + ürün için yapılandırılmış aktif-bilet limitinin yanıt modeli.
- * Özel limit ile ürün varsayılanından hesaplanan {@code effectiveLimit} değerini de içerir.
+ * Response model for the active-ticket limit configured on an agent + product pair.
+ * Also exposes the {@code effectiveLimit} computed from the custom limit and the product default.
  */
 @Schema(description = "Agent ürün limiti yanıt modeli")
 public class AgentProductLimitResponseDTO {

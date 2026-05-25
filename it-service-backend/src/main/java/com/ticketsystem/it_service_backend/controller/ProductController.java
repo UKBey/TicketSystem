@@ -23,11 +23,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Destek kategorisi (ürün) CRUD ve eşzamanlı bilet limiti REST kontrolcüsü.
+ * REST controller for support category (product) CRUD and concurrent ticket limits.
  *
- * <p>Listeleme/detay her kimliği doğrulanmış kullanıcıya açıktır ve rol bazında filtrelenir;
- * yazma operasyonları yalnızca {@code AGENT_ADMIN}/{@code MANAGER} rolüne aittir.
- * İş kuralları {@link ProductService} içinde uygulanır.
+ * <p>Listing and detail endpoints are open to any authenticated user and are filtered
+ * by role; write operations are restricted to the {@code AGENT_ADMIN}/{@code MANAGER} roles.
+ * Business rules are enforced inside {@link ProductService}.
  */
 @Log4j2
 @Tag(name = "Ürün Yönetimi", description = "Destek kategorilerinin (ürün) CRUD işlemleri ve agent yetkilendirmesi")
@@ -39,10 +39,10 @@ public class ProductController {
     private final ProductService productService;
 
     /**
-     * Belirtilen ürünün detayını döner; kullanıcı ürüne yetkili değilse {@code 403} döner.
+     * Returns the detail of the specified product; returns {@code 403} if the user is not authorized for it.
      *
-     * @param id ürün kimliği
-     * @return ürün DTO'su
+     * @param id product identifier
+     * @return product DTO
      */
     @Operation(summary = "Ürün detayı getir", description = "Belirtilen ürünü döner. Kullanıcı yetkili değilse 403 döner.")
     @GetMapping("/{id}")
@@ -57,9 +57,9 @@ public class ProductController {
     }
 
     /**
-     * Kullanıcının rolüne göre erişebileceği ürünlerin listesini döner.
+     * Returns the list of products the user can access based on their role.
      *
-     * @return rol bazlı filtrelenmiş ürün DTO listesi
+     * @return list of product DTOs filtered by role
      */
     @Operation(summary = "Tüm ürünleri listele",
             description = """
@@ -92,10 +92,10 @@ public class ProductController {
     }
 
     /**
-     * Sisteme yeni bir destek kategorisi/ürün ekler; varsayılan olarak {@code isActive=true} olur.
+     * Adds a new support category/product to the system; defaults to {@code isActive=true}.
      *
-     * @param product oluşturulacak ürünün alanları
-     * @return oluşturulan ürün DTO'su
+     * @param product fields of the product to create
+     * @return DTO of the created product
      */
     @Operation(summary = "Yeni ürün oluştur",
             description = "Sisteme yeni bir destek kategorisi/ürün ekler. Oluşturulan ürün varsayılan olarak aktif (`isActive=true`) olur.")
@@ -121,12 +121,12 @@ public class ProductController {
     }
 
     /**
-     * Belirtilen ürünü kalıcı olarak siler.
+     * Permanently deletes the specified product.
      *
-     * <p>Ürüne bağlı biletler varsa referans bütünlüğü bozulabilir; servis katmanında
-     * önlem alınmadığı sürece çağıran bu durumdan haberdar olmalıdır.
+     * <p>If the product is referenced by existing tickets, referential integrity may break;
+     * unless the service layer guards against this, the caller must be aware of it.
      *
-     * @param id silinecek ürünün kimliği
+     * @param id identifier of the product to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Ürünü sil",
@@ -151,11 +151,11 @@ public class ProductController {
     }
 
     /**
-     * Var olan bir ürünün adını ve aktiflik durumunu günceller.
+     * Updates the name and active status of an existing product.
      *
-     * @param id güncellenecek ürünün kimliği
-     * @param product yeni alan değerleri
-     * @return güncellenmiş ürün DTO'su
+     * @param id identifier of the product to update
+     * @param product new field values
+     * @return DTO of the updated product
      */
     @Operation(summary = "Ürünü güncelle",
             description = "Var olan bir ürünün adını ve aktiflik durumunu günceller.")
@@ -181,11 +181,11 @@ public class ProductController {
     }
 
     /**
-     * Belirtilen ürünün varsayılan eşzamanlı bilet limitini günceller; {@code null} limiti kaldırır.
+     * Updates the default concurrent ticket limit for the specified product; {@code null} removes the limit.
      *
-     * @param id limit güncellenecek ürünün kimliği
-     * @param request yeni {@code maxActiveTickets} değerini içeren istek (null ise limit kaldırılır)
-     * @return güncellenmiş ürün DTO'su
+     * @param id identifier of the product whose limit is being updated
+     * @param request request containing the new {@code maxActiveTickets} value (null to remove the limit)
+     * @return DTO of the updated product
      */
     @Operation(summary = "Ürünün maksimum eşzamanlı bilet limitini güncelle",
             description = "Belirtilen ürün için varsayılan eşzamanlı bilet limitini günceller. Null gönderilirse limit kaldırılır.")

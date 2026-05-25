@@ -9,8 +9,8 @@ import lombok.Data;
 
 @Data
 /**
- * "Şifremi unuttum" akışında sıfırlama bağlantısı talebi.
- * Bean Validation aktif; opsiyonel {@code language}/{@code theme} alanları mailin dil ve palet tercihini override eder.
+ * Reset-link request for the "forgot password" flow.
+ * Bean Validation is enforced; optional {@code language}/{@code theme} fields override the language and palette used in the email.
  */
 @Schema(description = "Şifre sıfırlama bağlantısı talebi")
 public class ForgotPasswordRequest {
@@ -22,16 +22,16 @@ public class ForgotPasswordRequest {
     private String email;
 
     /**
-     * İstemcinin o anki dili (ISO 639-1). Sağlanırsa mail bu dilde gönderilir;
-     * yoksa kullanıcının DB'deki preferred_language değerine düşülür.
+     * The client's current language (ISO 639-1). When provided, the email is sent in this language;
+     * otherwise it falls back to the user's preferred_language stored in the DB.
      */
     @Pattern(regexp = "^(en|tr)$", message = "must be 'en' or 'tr'")
     @Schema(description = "Mail dilini geçersiz kıl (opsiyonel)", example = "tr")
     private String language;
 
     /**
-     * İstemcinin o anki teması. Sağlanırsa mail bu palette ile basılır;
-     * yoksa kullanıcının DB'deki preferred_theme değerine düşülür.
+     * The client's current theme. When provided, the email is rendered with this palette;
+     * otherwise it falls back to the user's preferred_theme stored in the DB.
      */
     @Pattern(regexp = "^(light|dark)$", message = "must be 'light' or 'dark'")
     @Schema(description = "Mail temasını geçersiz kıl (opsiyonel)", example = "dark")

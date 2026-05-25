@@ -22,13 +22,13 @@ import java.util.regex.Pattern;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Bilet eklerinin (attachment) yükleme, listeleme, indirme ve silme akışlarını yönetir.
+ * Manages upload, listing, download and deletion flows for ticket attachments.
  *
- * <p>Dosya içeriği DB'de {@code bytea} olarak saklanır. Yükleme aşamasında boyut
- * (10 MB), uzantı whitelist'i ve metin tabanlı dosyalarda ERROR/WARNING anahtar
- * kelime + hassas veri (token, secret, private key blokları) kontrolleri uygulanır.
- * Başarılı işlemler {@link SimpMessagingTemplate} üzerinden ilgili ticket topic'ine
- * yayınlanır.
+ * <p>File content is stored in the DB as {@code bytea}. Uploads are validated against
+ * a size limit (10 MB), an extension whitelist, and — for text-based files —
+ * ERROR/WARNING keyword presence plus sensitive-data pattern checks (tokens, secrets,
+ * private key blocks). Successful operations are broadcast via
+ * {@link SimpMessagingTemplate} to the ticket topic.
  */
 @Log4j2
 @Service
@@ -48,22 +48,22 @@ public class AttachmentService {
             "(?s)-----BEGIN [A-Z ]+ PRIVATE KEY-----.*?-----END [A-Z ]+ PRIVATE KEY-----");
 
     /**
-     * Verilen bilete yeni bir dosya ekler. Yükleyenin bilet üzerinde mutation
-     * yetkisi olmalı; boyut ve uzantı kuralları sağlanmalı; .txt/.log dosyaları
-     * için ERROR/WARNING anahtar kelimeleri zorunludur ve hassas veri kalıbı
-     * (token, password, private key) içermemelidir.
+     * Adds a new attachment to the given ticket. The uploader must have mutation
+     * access to the ticket; size and extension rules must hold; .txt/.log files
+     * must contain ERROR/WARNING keywords and must not include sensitive-data
+     * patterns (tokens, passwords, private keys).
      *
-     * <p>Başarılı kayıttan sonra {@code /topic/tickets/{id}} kanalına attachment
-     * eklendi olayı yayınlanır.
+     * <p>After a successful save, an "attachment added" event is published on the
+     * {@code /topic/tickets/{id}} channel.
      *
-     * @param ticketId hedef bilet ID
-     * @param uploaderId yükleyen kullanıcının ID'si
-     * @param roles yetki doğrulamasında kullanılacak rol listesi
-     * @param file yüklenecek multipart dosya
-     * @return kaydedilmiş {@link Attachment}
-     * @throws IOException dosya içeriği okunamadığında
-     * @throws IllegalArgumentException boyut/uzantı/içerik kuralları ihlal edildiğinde
-     * @throws ResponseStatusException 403 — bilete mutation yetkisi yoksa
+     * @param ticketId target ticket ID
+     * @param uploaderId ID of the uploading user
+     * @param roles role list used for authorization
+     * @param file multipart file to upload
+     * @return the persisted {@link Attachment}
+     * @throws IOException when the file content cannot be read
+     * @throws IllegalArgumentException when size/extension/content rules are violated
+     * @throws ResponseStatusException 403 if the user lacks mutation access to the ticket
      */
     public Attachment uploadAttachment(Long ticketId, String uploaderId, List<String> roles, MultipartFile file) throws IOException {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
@@ -121,9 +121,9 @@ public class AttachmentService {
     }
 
     /**
-     * Bilete ait dosya metadata listesini döner. Kullanıcının bilete erişim
-     * yetkisi yoksa 403 fırlatır — IDOR riskini (başka biletin eklerini
-     * sıralı ID ile enumerate etmek) engeller.
+     * Returns the attachment metadata list for the ticket. Throws 403 when the
+     * user lacks access — this prevents the IDOR risk of enumerating another
+     * ticket's attachments via sequential IDs.
      */
     public List<Attachment> getTicketAttachments(Long ticketId, String userId, List<String> roles) {
         log.debug("Bilet ID: {} için ekli dosyalar çekiliyor. Kullanıcı: {}", ticketId, userId);
@@ -132,9 +132,9 @@ public class AttachmentService {
     }
 
     /**
-     * Tek bir dosyayı çeker. Önce dosyanın bağlı olduğu bilete kullanıcının
-     * erişim hakkı doğrulanır → başka kullanıcının dosyasını ID enumerate
-     * ederek indirme (IDOR) engellenir.
+     * Fetches a single attachment. The user's access to the parent ticket is
+     * verified first, which prevents IDOR-style downloads of another user's
+     * attachment via ID enumeration.
      */
     public Attachment getAttachment(Long id, String userId, List<String> roles) {
         Attachment attachment = attachmentRepository.findById(id)
@@ -149,15 +149,15 @@ public class AttachmentService {
     }
 
     /**
-     * Eki siler. AGENT_ADMIN her dosyayı silebilir; diğer rollerde yalnızca
-     * yükleyen kullanıcı silebilir. Bilet erişimi {@link #getAttachment} ile
-     * önceden doğrulanır.
+     * Deletes the attachment. AGENT_ADMIN can delete any attachment; other roles
+     * can only delete attachments they uploaded. Ticket access is verified up
+     * front via {@link #getAttachment}.
      *
-     * @param id silinecek attachment ID
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @throws IllegalArgumentException attachment bulunamazsa
-     * @throws ResponseStatusException 403 — yetki/sahiplik yoksa
+     * @param id attachment ID to delete
+     * @param userId user performing the action
+     * @param roles role list of the user
+     * @throws IllegalArgumentException when the attachment is not found
+     * @throws ResponseStatusException 403 on missing authorization/ownership
      */
     public void deleteAttachment(Long id, String userId, List<String> roles) {
         Attachment attachment = getAttachment(id, userId, roles);

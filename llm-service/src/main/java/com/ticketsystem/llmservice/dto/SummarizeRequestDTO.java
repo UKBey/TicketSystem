@@ -7,31 +7,31 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * it-service-backend'in llm-service'e gönderdiği tam ticket verisi.
- * Tüm ilgili alt veriler (yorumlar, worklog'lar vb.) bu DTO içinde taşınır.
+ * The full ticket payload that it-service-backend sends to llm-service.
+ * All related child data (comments, worklogs, etc.) is carried inside this DTO.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SummarizeRequestDTO {
 
-    /** Özetlenecek ticket'ın ID'si */
+    /** ID of the ticket to summarize */
     private Long ticketId;
 
-    /** Ticket'ın tüm verisi */
+    /** Full data of the ticket */
     private TicketDataDTO ticket;
 
-    /** Ticket'a ait yorumlar */
+    /** Comments attached to the ticket */
     private List<TicketDataDTO.CommentInfo> comments;
 
-    /** Ticket'a ait worklog'lar */
+    /** Worklogs attached to the ticket */
     private List<TicketDataDTO.WorklogInfo> worklogs;
 
-    /** Çözüm notu (varsa) */
+    /** Resolution note (if any) */
     private TicketDataDTO.ResolutionNoteInfo resolutionNote;
 
-    /** Biletin ürün/konusuna ait sıkça karşılaşılan sorunlar (bilgi tabanı kayıtları) */
+    /** Frequently encountered issues for the ticket's product/topic (knowledge base records) */
     private List<TicketDataDTO.KnownIssueInfo> knownIssues;
 
-    /** Özet dili: "tr" veya "en" (varsayılan: "tr") */
+    /** Summary language: "tr" or "en" (default: "tr") */
     private String language = "tr";
 }

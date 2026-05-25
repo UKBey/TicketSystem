@@ -4,8 +4,8 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * Tek bir ürün için toplulaştırılmış ticket/SLA/CSAT metrikleri.
- * {@link ProductMetricsDTO} içinde liste elemanı olarak manager dashboard'unda gösterilir.
+ * Aggregated ticket/SLA/CSAT metrics for a single product.
+ * Shown on the manager dashboard as an element of the list inside {@link ProductMetricsDTO}.
  */
 @Data
 @Builder

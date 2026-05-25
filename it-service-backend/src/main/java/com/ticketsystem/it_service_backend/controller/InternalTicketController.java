@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Servisler arası (internal) iletişim için ticket verisi endpoint'leri.
+ * Ticket data endpoints for service-to-service (internal) communication.
  *
- * <p>Bu endpoint'ler yalnızca {@code X-Internal-Token} header'ı ile erişilebilir
- * (SecurityConfig'de tanımlı; JWT zorunluluğu yoktur). Birincil tüketici, ticket'a
- * dair tüm bağlamı tek çağrıda alan LLM servisidir; iş mantığı için
- * {@link TicketService}'e ve ilgili repository'lere yetki devredilir.
+ * <p>These endpoints are only reachable with the {@code X-Internal-Token} header
+ * (configured in SecurityConfig; no JWT is required). The primary consumer is the
+ * LLM service, which fetches all the context for a ticket in a single call; business
+ * logic is delegated to {@link TicketService} and the relevant repositories.
  */
 @Log4j2
 @Tag(name = "Internal", description = "Servisler arası iletişim endpoint'leri (JWT gerektirmez, internal token gerektirir)")
@@ -52,13 +52,13 @@ public class InternalTicketController {
     private final KnownIssueRepository knownIssueRepository;
 
     /**
-     * LLM servisi için bir ticket'ın tüm verisini tek seferde döner.
+     * Returns all data for a ticket in a single call, intended for the LLM service.
      *
-     * <p>Yorumlar, worklog'lar, audit log, claim eden agent listesi, SLA bilgisi ve
-     * ilgili "bilinen sorun" kayıtları aynı yanıt içinde paketlenir.
+     * <p>Comments, worklogs, audit log, list of claiming agents, SLA information and
+     * matching known-issue records are bundled into the same response.
      *
-     * @param ticketId verisi istenen biletin kimliği
-     * @return {@code ticket}, {@code comments}, {@code worklogs}, {@code knownIssues} anahtarlarını içeren harita
+     * @param ticketId identifier of the ticket whose data is requested
+     * @return map containing the {@code ticket}, {@code comments}, {@code worklogs} and {@code knownIssues} keys
      */
     @Operation(summary = "Ticket'ın tüm verisini getir (internal)")
     @GetMapping("/{ticketId}/full")

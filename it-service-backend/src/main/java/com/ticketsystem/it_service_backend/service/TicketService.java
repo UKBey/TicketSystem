@@ -37,16 +37,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Bilet (ticket) yaşam döngüsünün merkez servisi.
+ * Central service for the ticket lifecycle.
  *
- * <p>Oluşturma, durum/öncelik/konu güncellemeleri ve listeleme/sayfalama akışlarını
- * yönetir. Statü geçişleri sabit bir state-machine ile doğrulanır; SLA
- * pause/resume {@link WorkflowService} ile jBPM tarafına ileri-geri senkronlanır.
- * Mutasyonlar için sıkı yetki kontrolü ({@link #validateMutationAccess}) ve
- * okuma için yetki filtresi ({@link #getTicketWithAuth}) uygulanır. Claim/unclaim
- * ve manuel atama işlemleri {@link TicketClaimService}'e delege edilir.
- * Bildirim ve audit kayıtları her başarılı işlemde {@link NotificationService}
- * ve {@link TicketAuditHelper} aracılığıyla yazılır.
+ * <p>Handles creation, status/priority/topic updates and listing/pagination
+ * flows. Status transitions are validated by a fixed state machine; SLA
+ * pause/resume is mirrored to the jBPM side through {@link WorkflowService}.
+ * Mutations go through strict authorization ({@link #validateMutationAccess})
+ * and reads through an authorization filter ({@link #getTicketWithAuth}).
+ * Claim/unclaim and manual assignment are delegated to {@link TicketClaimService}.
+ * Notifications and audit log entries are written on every successful operation
+ * via {@link NotificationService} and {@link TicketAuditHelper}.
  */
 @Log4j2
 @Service
@@ -86,19 +86,21 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Yeni bir bilet oluşturur.
+     * Creates a new ticket.
      *
-     * <p>Ürün yetkisi ({@code authorizedProducts}), ürün aktiflik durumu, konu
-     * ürün-eşleşmesi ve konu aktiflik durumu doğrulanır. Statü {@code NEW} ile
-     * başlar, SLA deadline'ı priority'ye göre hesaplanıp persist edilir. Açılış
-     * açıklaması ilk yorum olarak yazılır; bildirim ve {@link TicketCreatedEvent}
-     * yayınlanır (event listener jBPM sürecini başlatır).
+     * <p>Verifies product access ({@code authorizedProducts}), product active
+     * state, topic-to-product matching, and topic active state. The status starts
+     * at {@code NEW}, and the SLA deadline is computed from priority and persisted.
+     * The opening description is written as the first comment; a notification is
+     * sent and a {@link TicketCreatedEvent} is published (an event listener starts
+     * the jBPM process).
      *
-     * @param ticket istemciden gelen bilet bilgileri (productId, topicId, title vs.)
-     * @param customerId bileti açan müşterinin ID'si (otomatik atanır)
-     * @return persist edilmiş bilet
-     * @throws ResponseStatusException 400 topic eksik/mismatch, 403 ürün yetkisi yok,
-     *                                 404 topic yok, 422 ürün/konu pasifse
+     * @param ticket ticket payload from the client (productId, topicId, title, etc.)
+     * @param customerId ID of the customer opening the ticket (assigned automatically)
+     * @return the persisted ticket
+     * @throws ResponseStatusException 400 if topic is missing or mismatched,
+     *                                 403 if the user has no product access,
+     *                                 404 if the topic is not found, 422 if product/topic is inactive
      */
     @Transactional
     public Ticket createTicket(Ticket ticket, String customerId) {
@@ -160,13 +162,13 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Kullanıcının görebildiği tüm biletleri döner. AGENT_ADMIN tümünü görür;
-     * diğerleri yalnızca kendi müşteri olduğu veya yetkili ürünleri kapsamındaki
-     * biletleri görür. Kullanıcı yoksa boş liste döner.
+     * Returns all tickets visible to the user. AGENT_ADMIN sees everything; other
+     * roles see only tickets they own as customer or tickets under their authorized
+     * products. Returns an empty list when the user is missing.
      *
-     * @param userId istek yapan kullanıcı (null olabilir)
-     * @param roles kullanıcının rolleri
-     * @return görünür biletler
+     * @param userId requesting user (may be null)
+     * @param roles role list of the user
+     * @return visible tickets
      */
     @Transactional(readOnly = true)
     public List<Ticket> getAllTickets(String userId, List<String> roles) {
@@ -185,22 +187,22 @@ public class TicketService {
     }
 
     /**
-     * Verilen müşterinin tüm biletlerini döner (statüden bağımsız).
+     * Returns every ticket belonging to the given customer (regardless of status).
      *
-     * @param customerId müşteri ID
-     * @return müşterinin biletleri
+     * @param customerId customer ID
+     * @return the customer's tickets
      */
     public List<Ticket> getCustomerTickets(String customerId) {
         return ticketRepository.findByCustomerId(customerId);
     }
 
     /**
-     * Havuzdaki (NEW) biletleri ajanın yetkili olduğu ürünlerle kısıtlı olarak döner.
-     * AGENT_ADMIN tüm NEW biletleri görür.
+     * Returns the pool (NEW) tickets restricted to the agent's authorized products.
+     * AGENT_ADMIN sees every NEW ticket.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return pool biletleri
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return pool tickets
      */
     @Transactional(readOnly = true)
     public List<Ticket> getPoolTickets(String userId, List<String> roles) {
@@ -221,10 +223,10 @@ public class TicketService {
     }
 
     /**
-     * Ajanın bizzat claim aldığı biletleri döner.
+     * Returns tickets claimed by the agent.
      *
-     * @param agentId ajan ID
-     * @return claim alınmış biletler
+     * @param agentId agent ID
+     * @return claimed tickets
      */
     @Transactional(readOnly = true)
     public List<Ticket> getAgentClaimedTickets(String agentId) {
@@ -234,12 +236,12 @@ public class TicketService {
     }
 
     /**
-     * Ajanın yetkili olduğu ürünlerdeki aktif (IN_PROGRESS / WAITING_FOR_CUSTOMER) biletleri döner.
-     * Yeni "Team Tickets" panelini besler.
+     * Returns active tickets (IN_PROGRESS / WAITING_FOR_CUSTOMER) under the agent's
+     * authorized products. Feeds the new "Team Tickets" panel.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return aktif ekip biletleri
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return active team tickets
      */
     @Transactional(readOnly = true)
     public List<Ticket> getTeamTickets(String userId, List<String> roles) {
@@ -262,14 +264,14 @@ public class TicketService {
     }
 
     /**
-     * Belirli bir ürüne ait biletleri rol bazlı filtreyle döner. Ajan/yönetici
-     * tüm biletleri görür; müşteri sadece kendisinin biletlerini görür; diğer
-     * roller boş liste alır.
+     * Returns tickets for a specific product applying role-based filtering.
+     * Agent/admin see every ticket; customers see only their own; other roles
+     * receive an empty list.
      *
-     * @param productId hedef ürün ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return ürüne ait görünür biletler
+     * @param productId target product ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return visible tickets for the product
      */
     @Transactional(readOnly = true)
     public List<Ticket> getTicketsByProduct(Long productId, String userId, List<String> roles) {
@@ -287,14 +289,14 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Müşterinin biletlerini basit (status+priority) filtreyle sayfalı döner.
-     * {@link #getCustomerTicketsFiltered} sarmalayıcısıdır.
+     * Returns the customer's tickets with a simple (status+priority) filter, paginated.
+     * Wrapper around {@link #getCustomerTicketsFiltered}.
      *
-     * @param customerId müşteri ID
-     * @param status opsiyonel statü
-     * @param priority opsiyonel öncelik
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı bilet listesi
+     * @param customerId customer ID
+     * @param status optional status
+     * @param priority optional priority
+     * @param pageable pagination + sort
+     * @return paginated ticket list
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getCustomerTicketsPaged(String customerId, String status, String priority, Pageable pageable) {
@@ -303,14 +305,15 @@ public class TicketService {
     }
 
     /**
-     * Müşterinin biletlerini gelişmiş filtre seti ({@link TicketFilterDTO} —
-     * search, dateRange, slaStatus, agentIds, topicIds, productIds, statüler,
-     * öncelikler) ve özel sıralamalar (priority, slaDeadline) ile sayfalı döner.
+     * Returns the customer's tickets using the advanced filter set
+     * ({@link TicketFilterDTO} — search, dateRange, slaStatus, agentIds, topicIds,
+     * productIds, statuses, priorities) and custom sort fields (priority,
+     * slaDeadline), paginated.
      *
-     * @param customerId müşteri ID
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç
+     * @param customerId customer ID
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getCustomerTicketsFiltered(String customerId, TicketFilterDTO f, Pageable pageable) {
@@ -339,13 +342,13 @@ public class TicketService {
     }
 
     /**
-     * Havuz (NEW) biletlerini basit (priority) filtreyle sayfalı döner.
+     * Returns pool (NEW) tickets with a simple (priority) filter, paginated.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param priority opsiyonel öncelik filtresi
-     * @param pageable sayfalama
-     * @return sayfalı pool biletleri
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param priority optional priority filter
+     * @param pageable pagination
+     * @return paginated pool tickets
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getPoolTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
@@ -354,14 +357,15 @@ public class TicketService {
     }
 
     /**
-     * Havuz biletlerini gelişmiş {@link TicketFilterDTO} filtresiyle sayfalı döner.
-     * AGENT_ADMIN dahil tüm roller kendi yetkili ürünleriyle sınırlıdır.
+     * Returns pool tickets using the advanced {@link TicketFilterDTO} filter,
+     * paginated. Every role — AGENT_ADMIN included — is scoped to its own
+     * authorized products.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç (yetkili ürün yoksa boş sayfa)
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result (empty page when there are no authorized products)
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getPoolTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
@@ -397,13 +401,13 @@ public class TicketService {
     }
 
     /**
-     * Ajanın claim aldığı biletleri basit filtreyle sayfalı döner.
+     * Returns the agent's claimed tickets with a simple filter, paginated.
      *
-     * @param agentId ajan ID
-     * @param status opsiyonel statü filtresi
-     * @param priority opsiyonel öncelik filtresi
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç
+     * @param agentId agent ID
+     * @param status optional status filter
+     * @param priority optional priority filter
+     * @param pageable pagination + sort
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getAgentClaimedTicketsPaged(String agentId, String status, String priority, Pageable pageable) {
@@ -412,12 +416,12 @@ public class TicketService {
     }
 
     /**
-     * Ajanın claim aldığı biletleri gelişmiş filtre setiyle sayfalı döner.
+     * Returns the agent's claimed tickets using the advanced filter set, paginated.
      *
-     * @param agentId ajan ID
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç (hiç claim yoksa boş sayfa)
+     * @param agentId agent ID
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result (empty page when no claims exist)
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getAgentClaimedTicketsFiltered(String agentId, TicketFilterDTO f, Pageable pageable) {
@@ -447,13 +451,13 @@ public class TicketService {
     }
 
     /**
-     * Aktif "team" biletlerini basit (priority) filtreyle sayfalı döner.
+     * Returns active "team" tickets with a simple (priority) filter, paginated.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param priority opsiyonel öncelik
-     * @param pageable sayfalama
-     * @return sayfalı sonuç
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param priority optional priority
+     * @param pageable pagination
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getTeamTicketsPaged(String userId, List<String> roles, String priority, Pageable pageable) {
@@ -462,14 +466,15 @@ public class TicketService {
     }
 
     /**
-     * Aktif "team" biletlerini (NEW ve CLOSED hariç) gelişmiş filtre setiyle sayfalı
-     * döner. AGENT_ADMIN dahil tüm roller yetkili ürünleriyle sınırlıdır.
+     * Returns active "team" tickets (excluding NEW and CLOSED) using the advanced
+     * filter set, paginated. Every role — AGENT_ADMIN included — is scoped to its
+     * own authorized products.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getTeamTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
@@ -506,15 +511,15 @@ public class TicketService {
     }
 
     /**
-     * Kullanıcının yetkili olduğu tüm ürünlerdeki TÜM statülerdeki ticket'ları döner.
-     * {@link #getTeamTicketsFiltered}'ın aksine NEW/CLOSED'ları da içerir. "All Tickets"
-     * sayfası kullanır.
+     * Returns tickets in EVERY status across all of the user's authorized products.
+     * Unlike {@link #getTeamTicketsFiltered}, it includes NEW/CLOSED tickets.
+     * Used by the "All Tickets" page.
      *
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getAllAccessibleTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
@@ -550,15 +555,15 @@ public class TicketService {
     }
 
     /**
-     * Ürüne ait biletleri basit filtreyle sayfalı döner.
+     * Returns tickets for the product with a simple filter, paginated.
      *
-     * @param productId hedef ürün ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param status opsiyonel statü
-     * @param priority opsiyonel öncelik
-     * @param pageable sayfalama
-     * @return sayfalı sonuç
+     * @param productId target product ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param status optional status
+     * @param priority optional priority
+     * @param pageable pagination
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductPaged(Long productId, String userId, List<String> roles,
@@ -568,16 +573,16 @@ public class TicketService {
     }
 
     /**
-     * Ürüne ait biletleri gelişmiş filtre setiyle, rol bazlı yetki kontrolü uygulayarak
-     * sayfalı döner. Müşteri yalnızca kendi biletlerini görür; ajan/yönetici tüm
-     * ürünün biletlerini görür (ürün yetkisi varsa).
+     * Returns tickets for the product using the advanced filter set with role-based
+     * authorization, paginated. Customers see only their own tickets; agent/admin
+     * see every ticket on the product (provided they have product access).
      *
-     * @param productId hedef ürün ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @param f filtre kriterleri
-     * @param pageable sayfalama + sıralama
-     * @return sayfalı sonuç (yetki yoksa boş sayfa)
+     * @param productId target product ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @param f filter criteria
+     * @param pageable pagination + sort
+     * @return paginated result (empty page when authorization is missing)
      */
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductFiltered(Long productId, String userId, List<String> roles,
@@ -635,7 +640,7 @@ public class TicketService {
         return Page.empty(pageable);
     }
 
-    /** Herhangi bir "ekstra" filtre (search, dateFrom, dateTo, slaStatus, agentIds, topicIds, productId) aktif mi? */
+    /** Whether any "extra" filter (search, dateFrom, dateTo, slaStatus, agentIds, topicIds, productId) is active. */
     private boolean hasExtraFilters(TicketFilterDTO f) {
         return f.getSearch() != null && !f.getSearch().isBlank()
             || f.getCreatedAtFrom() != null
@@ -648,29 +653,29 @@ public class TicketService {
             || (f.getPriorities() != null && !f.getPriorities().isEmpty() && f.getPriorities().size() > 1);
     }
 
-    /** Agent filtresinin aktif olup olmadığını döner. */
+    /** Returns whether the agent filter is active. */
     private boolean hasAgentFilter(TicketFilterDTO f) {
         return f.getAgentIds() != null && !f.getAgentIds().isEmpty();
     }
 
-    /** Native IN(:agentIds) için: filtre kapalıyken eşleşmeyecek sentinel liste döner. */
+    /** For native IN(:agentIds): returns a sentinel list that matches nothing when the filter is off. */
     private List<String> agentIdsOrPlaceholder(TicketFilterDTO f) {
         return hasAgentFilter(f) ? f.getAgentIds() : List.of("__none__");
     }
 
-    /** Topic filtresinin aktif olup olmadığını döner. */
+    /** Returns whether the topic filter is active. */
     private boolean hasTopicFilter(TicketFilterDTO f) {
         return f.getTopicIds() != null && !f.getTopicIds().isEmpty();
     }
 
-    /** Native IN(:topicIds) için: filtre kapalıyken eşleşmeyecek sentinel liste döner. */
+    /** For native IN(:topicIds): returns a sentinel list that matches nothing when the filter is off. */
     private List<Long> topicIdsOrPlaceholder(TicketFilterDTO f) {
         return hasTopicFilter(f) ? f.getTopicIds() : List.of(-1L);
     }
 
     /**
-     * LOWER(t.title) LIKE :searchPattern için Java tarafında hazırlanan pattern.
-     * Boş/null ise null döner (filtre uygulanmaz).
+     * Pattern prepared on the Java side for LOWER(t.title) LIKE :searchPattern.
+     * Returns null when blank/null (filter is not applied).
      */
     private String toSearchPattern(String search) {
         if (search == null || search.isBlank()) return null;
@@ -679,13 +684,13 @@ public class TicketService {
 
     private static final List<String> ALL_STATUSES   = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED");
     private static final List<String> ALL_PRIORITIES = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
-    /** Team listesi kapsamı: NEW (havuzda) ve CLOSED (history'de) hariç tüm aktif statüler. */
+    /** Team list scope: all active statuses except NEW (in the pool) and CLOSED (in history). */
     private static final List<String> ACTIVE_TEAM_STATUSES = List.of("IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED");
     private static final List<String> ALL_SLA_STATUSES = List.of("BREACHED", "ACTIVE", "PAUSED");
 
     /**
-     * Native SQL query'lerde IN (:statuses) için kullanılır.
-     * Null/boş ise tüm statüsleri döner (filtre uygulanmaz).
+     * Used for IN (:statuses) in native SQL queries.
+     * Returns all statuses when null/empty (filter is not applied).
      */
     private List<String> statusesOrAll(TicketFilterDTO f) {
         List<String> s = f.getStatuses();
@@ -693,8 +698,9 @@ public class TicketService {
     }
 
     /**
-     * Team list query'lerinde kullanılır: kullanıcı statü seçtiyse onu, yoksa NEW/CLOSED hariç
-     * aktif team statülerini döner. NEW'ler Pool'da, CLOSED'lar History'de listelenir.
+     * Used by team-list queries: returns the user-selected statuses when present,
+     * otherwise the active team statuses (NEW/CLOSED excluded). NEW lives in the Pool
+     * and CLOSED lives in History.
      */
     private List<String> teamStatusesOrActive(TicketFilterDTO f) {
         List<String> s = f.getStatuses();
@@ -702,8 +708,8 @@ public class TicketService {
     }
 
     /**
-     * Native SQL query'lerde IN (:priorities) için kullanılır.
-     * Null/boş ise tüm öncelikleri döner (filtre uygulanmaz).
+     * Used for IN (:priorities) in native SQL queries.
+     * Returns all priorities when null/empty (filter is not applied).
      */
     private List<String> prioritiesOrAll(TicketFilterDTO f) {
         List<String> p = f.getPriorities();
@@ -711,10 +717,10 @@ public class TicketService {
     }
 
     /**
-     * Native SQL query'lerde IN (:filterProductIds) için kullanılır.
-     * Null/boş ise tüm ürün ID'lerini DB'den çekip döner (filtre uygulanmaz).
-     * Performans için: null ise çok büyük bir ID listesi yerine özel bir sentinel değer kullanılır.
-     * Burada null ise tüm ürünleri kapsayan bir liste döner.
+     * Used for IN (:filterProductIds) in native SQL queries.
+     * When null/empty, fetches every product ID from the DB and returns it (filter is not applied).
+     * Performance note: for null, the goal is to use a single sentinel instead of a large ID list.
+     * Here the null path returns a list covering every product.
      */
     private List<Long> productIdsOrAll(TicketFilterDTO f) {
         List<Long> p = f.getProductIds();
@@ -724,8 +730,8 @@ public class TicketService {
     }
 
     /**
-     * Native SQL query'lerde IN (:slaStatuses) için kullanılır.
-     * Null/boş ise tüm SLA statüslerini döner (filtre uygulanmaz).
+     * Used for IN (:slaStatuses) in native SQL queries.
+     * Returns all SLA statuses when null/empty (filter is not applied).
      */
     private List<String> slaStatusesOrAll(TicketFilterDTO f) {
         List<String> s = f.getSlaStatuses();
@@ -761,9 +767,9 @@ public class TicketService {
     }
 
     /**
-     * Native SQL sorgular için Pageable'daki JPQL field adlarını SQL column adlarına çevirir.
-     * Spring Data JPA native query'de sort field adını olduğu gibi SQL'e ekler,
-     * bu yüzden JPQL adı (createdAt) yerine SQL adı (created_at) kullanılmalı.
+     * Translates JPQL field names in Pageable to SQL column names for native SQL queries.
+     * Spring Data JPA passes the sort field name into the native SQL verbatim, so the
+     * SQL name (created_at) must be used instead of the JPQL name (createdAt).
      */
     private Pageable toNativePageable(Pageable pageable) {
         if (!pageable.getSort().isSorted()) {
@@ -789,12 +795,12 @@ public class TicketService {
     }
 
     /**
-     * Bileti ID üzerinden yetki kontrolü olmadan getirir. Yalnızca diğer servisler
-     * tarafından, ek yetki doğrulamasıyla birlikte kullanılması beklenir.
+     * Returns the ticket by ID without authorization checks. Expected to be used
+     * only by other services together with their own authorization step.
      *
-     * @param id bilet ID
-     * @return bilet
-     * @throws RuntimeException bilet bulunamazsa
+     * @param id ticket ID
+     * @return the ticket
+     * @throws RuntimeException if the ticket is not found
      */
     public Ticket getTicketById(Long id) {
         return ticketRepository.findById(id)
@@ -802,15 +808,15 @@ public class TicketService {
     }
 
     /**
-     * Bileti getirir ve okuma yetkisini doğrular. Müşteri yalnızca kendi biletini;
-     * AGENT/AGENT_ADMIN sadece yetkili ürünlerinin biletlerini görebilir.
+     * Returns the ticket after verifying read access. Customers can see only their
+     * own tickets; AGENT/AGENT_ADMIN can see tickets under their authorized products.
      *
-     * @param id hedef bilet ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return bilet
-     * @throws RuntimeException bilet bulunamazsa
-     * @throws ResponseStatusException 403 — okuma yetkisi yoksa
+     * @param id target ticket ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return the ticket
+     * @throws RuntimeException if the ticket is not found
+     * @throws ResponseStatusException 403 if read access is missing
      */
     @Transactional(readOnly = true)
     public Ticket getTicketWithAuth(Long id, String userId, List<String> roles) {
@@ -838,15 +844,15 @@ public class TicketService {
     }
 
     /**
-     * Yorum/dosya/worklog gibi mutasyon işlemleri için sıkı yetki denetimi.
-     * AGENT_ADMIN dahil tüm ajanlar için claim kontrolü yapılır; müşteri
-     * yalnızca kendi biletinde mutation yapabilir.
+     * Strict authorization check for mutating operations (comment, attachment,
+     * worklog, etc.). Every agent — AGENT_ADMIN included — must hold a claim;
+     * customers can mutate only their own tickets.
      *
-     * @param id hedef bilet ID
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return bilet (doğrulama geçmişse)
-     * @throws ResponseStatusException 403 — yetki/ownership/claim ihlali
+     * @param id target ticket ID
+     * @param userId acting user
+     * @param roles role list of the user
+     * @return the ticket (when validation passes)
+     * @throws ResponseStatusException 403 on authorization/ownership/claim violations
      */
     @Transactional(readOnly = true)
     public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
@@ -879,11 +885,11 @@ public class TicketService {
     }
 
     /**
-     * Ajanın belirtilen bileti claim alıp almadığını kontrol eder.
+     * Checks whether the agent has claimed the given ticket.
      *
-     * @param ticketId bilet ID
-     * @param agentId ajan ID
-     * @return claim mevcutsa {@code true}
+     * @param ticketId ticket ID
+     * @param agentId agent ID
+     * @return {@code true} when a claim exists
      */
     public boolean isAgentClaimer(Long ticketId, String agentId) {
         return ticketClaimService.isAgentClaimer(ticketId, agentId);
@@ -894,55 +900,55 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Bileti claim alır; {@link TicketClaimService#claimTicket} delegasyonu.
+     * Claims the ticket; delegates to {@link TicketClaimService#claimTicket}.
      *
-     * @param id bilet ID
-     * @param agentId ajan ID
-     * @return güncellenmiş bilet
+     * @param id ticket ID
+     * @param agentId agent ID
+     * @return the updated ticket
      */
     public Ticket claimTicket(Long id, String agentId) {
         return ticketClaimService.claimTicket(id, agentId);
     }
 
     /**
-     * Claim'i geri bırakır; {@link TicketClaimService#unclaimTicket(Long, String)} delegasyonu.
+     * Releases the claim; delegates to {@link TicketClaimService#unclaimTicket(Long, String)}.
      *
-     * @param id bilet ID
-     * @param agentId ajan ID
-     * @return güncellenmiş bilet
+     * @param id ticket ID
+     * @param agentId agent ID
+     * @return the updated ticket
      */
     public Ticket unclaimTicket(Long id, String agentId) {
         return ticketClaimService.unclaimTicket(id, agentId);
     }
 
     /**
-     * Sebepli unclaim;
-     * {@link TicketClaimService#unclaimTicket(Long, String, String, String)} delegasyonu.
+     * Unclaim with a reason; delegates to
+     * {@link TicketClaimService#unclaimTicket(Long, String, String, String)}.
      *
-     * @param id bilet ID
-     * @param agentId ajan ID
-     * @param reasonCode bırakma sebebi
-     * @param note serbest not (OTHER için zorunlu)
-     * @return güncellenmiş bilet
+     * @param id ticket ID
+     * @param agentId agent ID
+     * @param reasonCode release reason
+     * @param note free-form note (required for OTHER)
+     * @return the updated ticket
      */
     public Ticket unclaimTicket(Long id, String agentId, String reasonCode, String note) {
         return ticketClaimService.unclaimTicket(id, agentId, reasonCode, note);
     }
 
     /**
-     * Bileti kapatır; sebep kodu ve opsiyonel notu audit log'a yazılır.
+     * Closes the ticket; the reason code and optional note are written to the audit log.
      *
-     * <p>State-machine ve rol bazlı yetki doğrulanır; reason input kontrol edilir;
-     * SLA pause/resume gerekirse uygulanır; jBPM süreci {@code ticket_closed}
-     * sinyaliyle sonlandırılır.
+     * <p>The state machine and role-based authorization are validated, the reason
+     * input is checked, SLA pause/resume is applied if needed, and the jBPM
+     * process is terminated via the {@code ticket_closed} signal.
      *
-     * @param id bilet ID
-     * @param reasonCode kapatma sebebi (zorunlu)
-     * @param note açıklama notu (OTHER sebebinde zorunlu)
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return kapatılmış bilet
-     * @throws ResponseStatusException 400 statü/sebep, 403 yetki ihlali
+     * @param id ticket ID
+     * @param reasonCode close reason (required)
+     * @param note explanatory note (required when reason is OTHER)
+     * @param userId acting user
+     * @param roles role list of the user
+     * @return the closed ticket
+     * @throws ResponseStatusException 400 on status/reason, 403 on authorization
      */
     @Transactional
     public Ticket closeTicket(Long id, String reasonCode, String note, String userId, List<String> roles) {
@@ -972,22 +978,22 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Bilet statüsünü günceller. CLOSED hedefi için {@link #closeTicket}'a delege
-     * edilir; RESOLVED için reason input zorunludur.
+     * Updates the ticket status. CLOSED targets are delegated to {@link #closeTicket};
+     * RESOLVED requires a reason input.
      *
-     * <p>State-machine doğrulaması, rol/sahiplik kontrolü, SLA pause/resume
-     * orkestrasyonu, bildirim ve audit kaydı tek transaction içinde yapılır.
-     * Audit kaydı için action tipi (RESOLVE, REOPEN, WAITING, RESUME,
-     * STATUS_CHANGE) otomatik belirlenir.
+     * <p>State-machine validation, role/ownership checks, SLA pause/resume
+     * orchestration, notifications and audit recording all run inside a single
+     * transaction. The audit action type (RESOLVE, REOPEN, WAITING, RESUME,
+     * STATUS_CHANGE) is determined automatically.
      *
-     * @param id bilet ID
-     * @param newStatus yeni statü
-     * @param reasonCode sebep kodu (RESOLVED için zorunlu)
-     * @param note ek not (OTHER sebebinde zorunlu)
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return güncellenmiş bilet
-     * @throws ResponseStatusException 400 statü/sebep, 403 yetki ihlali
+     * @param id ticket ID
+     * @param newStatus new status
+     * @param reasonCode reason code (required for RESOLVED)
+     * @param note additional note (required when reason is OTHER)
+     * @param userId acting user
+     * @param roles role list of the user
+     * @return the updated ticket
+     * @throws ResponseStatusException 400 on status/reason, 403 on authorization
      */
     @Transactional
     public Ticket updateTicketStatus(Long id, String newStatus, String reasonCode, String note,
@@ -1030,19 +1036,19 @@ public class TicketService {
     }
 
     /**
-     * Bilet önceliğini günceller. Aktif SLA sayacı varsa önce duraklatılır ki
-     * elapsed süre doğru biriksin; yeni süreye göre {@code slaDeadline}
-     * yeniden hesaplanır. Duraklatılmış durumda jBPM timer dokunulmaz, sadece
-     * DB tarafındaki deadline yenilenir.
+     * Updates the ticket priority. If the SLA counter is active, it is paused first
+     * so the elapsed time accumulates correctly; {@code slaDeadline} is then
+     * recomputed against the new duration. When the SLA is paused, the jBPM timer
+     * is untouched and only the DB deadline is refreshed.
      *
-     * @param id bilet ID
-     * @param newPriority yeni priority (LOW/MEDIUM/HIGH/CRITICAL)
-     * @param reasonCode sebep kodu
-     * @param note açıklama
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return güncellenmiş bilet
-     * @throws ResponseStatusException 400 geçersiz priority, 403 erişim ihlali
+     * @param id ticket ID
+     * @param newPriority new priority (LOW/MEDIUM/HIGH/CRITICAL)
+     * @param reasonCode reason code
+     * @param note explanation
+     * @param userId acting user
+     * @param roles role list of the user
+     * @return the updated ticket
+     * @throws ResponseStatusException 400 on invalid priority, 403 on authorization
      */
     @Transactional
     public Ticket updateTicketPriority(Long id, String newPriority, String reasonCode, String note,
@@ -1096,18 +1102,19 @@ public class TicketService {
     }
 
     /**
-     * Bilet konusunu (topic) değiştirir. Yeni konu aynı ürünün altında ve aktif
-     * olmalıdır. Audit log'a eski ve yeni topic adları yazılır.
+     * Changes the ticket topic. The new topic must belong to the same product and
+     * be active. The previous and new topic names are written to the audit log.
      *
-     * @param id bilet ID
-     * @param newTopicId yeni topic ID (zorunlu)
-     * @param reasonCode sebep kodu
-     * @param note açıklama
-     * @param userId işlemi yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return güncellenmiş bilet
-     * @throws ResponseStatusException 400 topic eksik/mismatch/pasif, 404 topic yoksa,
-     *                                 403 erişim ihlali
+     * @param id ticket ID
+     * @param newTopicId new topic ID (required)
+     * @param reasonCode reason code
+     * @param note explanation
+     * @param userId acting user
+     * @param roles role list of the user
+     * @return the updated ticket
+     * @throws ResponseStatusException 400 if topic is missing/mismatched/inactive,
+     *                                 404 if the topic is not found,
+     *                                 403 on authorization
      */
     @Transactional
     public Ticket updateTicketTopic(Long id, Long newTopicId, String reasonCode, String note,
@@ -1207,9 +1214,9 @@ public class TicketService {
     }
 
     /**
-     * IN_PROGRESS → NEW geçişi: tüm claim'ler temizlenir, bilet havuza geri döner.
-     * Bu geçiş yalnızca AGENT_ADMIN yetkisi gerektirdiğinden, normal unclaim için
-     * DELETE /api/v1/tickets/{id}/claim kullanılmalıdır.
+     * IN_PROGRESS → NEW transition: every claim is cleared and the ticket returns
+     * to the pool. Because this transition requires AGENT_ADMIN authority, regular
+     * unclaim should go through DELETE /api/v1/tickets/{id}/claim instead.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
         if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {
@@ -1249,13 +1256,13 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Manuel atama; {@link TicketClaimService#assignTicket} delegasyonu.
+     * Manual assignment; delegates to {@link TicketClaimService#assignTicket}.
      *
-     * @param ticketId bilet ID
-     * @param targetAgentId atanacak ajan ID
-     * @param adminId işlemi yapan AGENT_ADMIN
-     * @param note opsiyonel açıklama
-     * @return atama sonrası bilet
+     * @param ticketId ticket ID
+     * @param targetAgentId agent to assign
+     * @param adminId acting AGENT_ADMIN
+     * @param note optional description
+     * @return the ticket after assignment
      */
     public Ticket assignTicket(Long ticketId, String targetAgentId, String adminId, String note) {
         return ticketClaimService.assignTicket(ticketId, targetAgentId, adminId, note);
@@ -1266,13 +1273,14 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Bileti ve tüm ilişkili kayıtları (claim, yorum, CSAT, worklog, attachment)
-     * siler. jBPM süreci varsa abort edilir; hata loglanır ama silmeyi engellemez.
+     * Deletes the ticket along with all related records (claim, comment, CSAT,
+     * worklog, attachment). If a jBPM process exists it is aborted; errors are
+     * logged but do not block deletion.
      *
-     * <p>Önemli: bu metod son kontrol noktası değildir — çağıran taraf (controller
-     * veya ProductService cascade) yetki kontrolü yapmalıdır.
+     * <p>Important: this method is not the final authorization gate — the caller
+     * (controller or ProductService cascade) must enforce authorization.
      *
-     * @param id silinecek bilet ID
+     * @param id ticket ID to delete
      */
     @Transactional
     public void deleteTicket(Long id) {
@@ -1298,11 +1306,11 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Verilen bilet için SLA timer bilgisini DB'den yükleyerek hesaplar.
+     * Loads the ticket from the DB and computes its SLA timer info.
      *
-     * @param id bilet ID
-     * @return SLA durum + kalan süre bilgisi (bkz. {@link WorkflowService#getSlaTimerInfo})
-     * @throws EntityNotFoundException bilet bulunamazsa
+     * @param id ticket ID
+     * @return SLA state + remaining time info (see {@link WorkflowService#getSlaTimerInfo})
+     * @throws EntityNotFoundException if the ticket is not found
      */
     public Map<String, Object> getSlaTimerInfo(Long id) {
         Ticket ticket = ticketRepository.findById(id)
@@ -1311,10 +1319,10 @@ public class TicketService {
     }
 
     /**
-     * Halihazırda yüklenmiş bir bilet için SLA timer bilgisini hesaplar.
+     * Computes SLA timer info for an already-loaded ticket.
      *
-     * @param ticket bilet entity'si
-     * @return SLA durum + kalan süre bilgisi
+     * @param ticket ticket entity
+     * @return SLA state + remaining time info
      */
     public Map<String, Object> getSlaTimerInfo(Ticket ticket) {
         return workflowService.getSlaTimerInfo(ticket);

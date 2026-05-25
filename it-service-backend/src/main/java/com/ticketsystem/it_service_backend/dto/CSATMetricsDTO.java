@@ -14,8 +14,8 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Manager analitik sayfasındaki CSAT detay yanıtı:
- * ortalama puan, puan dağılımı, aylık trend, öncelik kırılımı ve seçili yorumları taşır.
+ * Detailed CSAT response on the manager analytics page:
+ * carries the average rating, rating distribution, monthly trend, breakdown by priority and selected comments.
  */
 @Schema(description = "CSAT detaylı analitik metrikleri")
 public class CSATMetricsDTO {

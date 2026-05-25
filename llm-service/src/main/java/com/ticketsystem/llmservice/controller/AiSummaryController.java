@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Ticket için LLM tabanlı özet üretim ve okuma uç noktalarını sağlayan REST
- * kontrolcü. Tüm yollar {@code /api/v1/ai/summaries} altında, rate-limit
- * interceptor tarafından korunur.
+ * REST controller that provides LLM-based summary generation and read
+ * endpoints for tickets. All paths sit under {@code /api/v1/ai/summaries} and
+ * are protected by the rate-limit interceptor.
  */
 @Slf4j
 @Tag(name = "AI Özet", description = "Ticket verisi için LLM tabanlı özetleme işlemleri")
@@ -31,10 +31,10 @@ public class AiSummaryController {
     private final TicketDataFetcher ticketDataFetcher;
 
     /**
-     * Ham ticket verisi ile özet oluşturur.
+     * Creates a summary from raw ticket data.
      *
-     * @param request özetlenecek ticket verisi ve dil tercihi
-     * @return üretilen ve persiste edilen özet
+     * @param request ticket data to summarize and language preference
+     * @return the generated and persisted summary
      */
     @Operation(
             summary = "Ticket özeti oluştur (ham veri ile)",
@@ -49,11 +49,11 @@ public class AiSummaryController {
     }
 
     /**
-     * Ticket ID'si verilerek otomatik özet üretir; veriyi it-service-backend'den çeker.
+     * Generates a summary automatically given a ticket ID; fetches the data from it-service-backend.
      *
-     * @param ticketId özetlenecek ticket ID'si
-     * @param language özet dili ({@code tr} veya {@code en})
-     * @return üretilen ve persiste edilen özet
+     * @param ticketId ID of the ticket to summarize
+     * @param language summary language ({@code tr} or {@code en})
+     * @return the generated and persisted summary
      */
     @Operation(
             summary = "Ticket özetini otomatik oluştur",
@@ -70,10 +70,10 @@ public class AiSummaryController {
     }
 
     /**
-     * Belirtilen ticket'ın en son üretilmiş özetini döner.
+     * Returns the most recently generated summary for the given ticket.
      *
-     * @param ticketId sorgulanan ticket ID'si
-     * @return en son özet
+     * @param ticketId ID of the queried ticket
+     * @return the latest summary
      */
     @Operation(
             summary = "Ticket'ın en son özetini getir",
@@ -86,10 +86,10 @@ public class AiSummaryController {
     }
 
     /**
-     * Belirtilen ticket için üretilmiş tüm özetleri en yeniden eskiye listeler.
+     * Lists every summary generated for the given ticket, sorted from newest to oldest.
      *
-     * @param ticketId sorgulanan ticket ID'si
-     * @return özet listesi (boş olabilir)
+     * @param ticketId ID of the queried ticket
+     * @return list of summaries (may be empty)
      */
     @Operation(
             summary = "Ticket'ın tüm özetlerini listele",

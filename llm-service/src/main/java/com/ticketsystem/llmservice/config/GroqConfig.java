@@ -6,11 +6,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Groq API erişim ayarları — {@code application.yml} içindeki {@code groq.api.*}
- * altında tanımlanır.
+ * Groq API access settings — defined under {@code groq.api.*} in
+ * {@code application.yml}.
  *
- * <p>Endpoint URL'i, API anahtarı, kullanılacak model adı, maksimum üretilecek
- * token sayısı ve HTTP zaman aşımı bu sınıf üzerinden okunur.
+ * <p>The endpoint URL, API key, model name to use, maximum number of tokens
+ * to generate and the HTTP timeout are all read through this class.
  */
 @Configuration
 @ConfigurationProperties(prefix = "groq.api")

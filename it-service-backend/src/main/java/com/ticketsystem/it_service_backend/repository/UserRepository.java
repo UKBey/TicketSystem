@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link User} için JPA repository — rol/e-posta lookup'ları ve admin paneli için
- * native filtreli sayfalı listeleme sağlar (PK Keycloak UUID String).
+ * JPA repository for {@link User} — provides role/email lookups and a native,
+ * filtered, paged listing for the admin panel (the PK is the Keycloak UUID String).
  */
 public interface UserRepository extends JpaRepository<User, String> {
     List<User> findByRole(String role);
@@ -19,9 +19,9 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmailIgnoreCase(String email);
 
     /**
-     * Belirli ürüne yetkili ve verilen role sahip kullanıcıları döner.
-     * {@code user_products} köprüsü üzerinden DISTINCT join — aynı kullanıcının
-     * birden fazla ürün yetkisi varsa tek satır olarak gelir.
+     * Returns users with the given role who are authorized on the given product.
+     * DISTINCT join over the {@code user_products} bridge — a user with multiple
+     * product authorizations is still returned as a single row.
      */
     @Query("""
             SELECT DISTINCT u
@@ -34,9 +34,9 @@ public interface UserRepository extends JpaRepository<User, String> {
                                                    @Param("productId") Long productId);
 
     /**
-     * Admin panel için filtreli + sayfalı kullanıcı listesi.
-     * search: fullName veya email içinde case-insensitive arama (null ise filtre uygulanmaz)
-     * roles:  rol filtre listesi; filtre kapalıyken `roleFilterActive=false` ile gönderilir
+     * Filtered + paged user list for the admin panel.
+     * search: case-insensitive substring search over fullName or email (null disables the filter)
+     * roles:  role filter list; when the filter is off, pass {@code roleFilterActive=false}
      */
     @Query(value = """
             SELECT * FROM users u

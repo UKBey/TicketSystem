@@ -15,13 +15,14 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * SLA ihlali ve yaklasma uyarilarini periyodik olarak tarayan zamanlanmis is.
+ * Scheduled job that periodically scans for SLA breaches and upcoming-breach
+ * warnings.
  *
- * <p>Iki ayri job 15 dakikada bir calisir: deadline'i gecmis bilet ihlal
- * olarak isaretlenir ve atanan/sahibi olan kisilere bildirim gider; deadline'a
- * yaklasan biletler icin tek seferlik uyari damgasi atilir. Tarayici jBPM
- * akisindan bagimsiz calisir, bu sayede KIE Server kesintilerinde de SLA
- * gozlemi devam eder.
+ * <p>Two separate jobs run every 15 minutes: tickets past their deadline are
+ * marked as breached and a notification goes out to the assignee/owner;
+ * tickets approaching their deadline receive a one-shot warning timestamp.
+ * The scanner runs independently of the jBPM flow, so SLA observation
+ * continues even while the KIE Server is unavailable.
  */
 @Log4j2
 @Component
@@ -35,8 +36,9 @@ public class SlaNotificationScheduler {
     private final SlaPolicyService slaPolicyService;
 
     /**
-     * Deadline'ı geçmiş ama henüz slaBreached=false olan biletleri tespit eder,
-     * ihlal bayrağını set eder ve ilgili tarafları bildirir.
+     * Finds tickets whose deadline has passed but whose
+     * {@code slaBreached} flag is still false, sets the breach flag and
+     * notifies the involved parties.
      */
     @Transactional
     @Scheduled(fixedRate = 900_000)
@@ -57,12 +59,13 @@ public class SlaNotificationScheduler {
     }
 
     /**
-     * Deadline'ına yaklaşan, henüz ihlal edilmemiş biletler için uyarı gönderir.
-     * Uyarı eşiği her öncelik için SLA politikasından okunur.
+     * Sends warnings for tickets approaching their deadline that are not
+     * yet breached. The warning threshold is read from the SLA policy for
+     * each priority.
      *
-     * <p>İdempotency: yalnız {@code sla_warning_sent_at IS NULL} olan biletler
-     * tetiklenir, mail başarıyla kuyruğa alındıktan sonra timestamp damgalanır.
-     * Aynı bilete tekrar tarama yapılırsa atlanır.
+     * <p>Idempotency: only tickets with {@code sla_warning_sent_at IS NULL}
+     * are triggered; once the email is successfully queued the timestamp is
+     * stamped. Subsequent scans skip the same ticket.
      */
     @Transactional
     @Scheduled(fixedRate = 900_000)

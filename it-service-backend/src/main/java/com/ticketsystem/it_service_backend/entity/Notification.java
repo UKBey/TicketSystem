@@ -9,13 +9,15 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * In-app bildirim kaydı — bir {@link User}'a gönderilen WebSocket/UI mesajının kalıcı izi.
+ * In-app notification record — the persistent trace of a WebSocket/UI message
+ * delivered to a {@link User}.
  *
- * <p>Eski kayıtlar tam metin {@code message} taşırdı; V33'ten itibaren yeni satırlar
- * {@link #messageKey} + JSONB {@link #messageArgs} ile tutulur ve okunduğunda MessageSource
- * üzerinden lokal dile render edilir. {@code referenceType}/{@code referenceId} (örn.
- * "ticket"/{@code 42}) bildirimi ilgili kaynağa bağlar — UI tıklandığında o sayfaya yönlendirir.
- * E-posta da gönderildiyse {@code emailSent} damgalanır.
+ * <p>Older rows carried the fully rendered text in {@code message}; from V33 onwards
+ * new rows are stored as {@link #messageKey} + JSONB {@link #messageArgs} and
+ * rendered into the user's locale via MessageSource at read time.
+ * {@code referenceType}/{@code referenceId} (e.g. "ticket"/{@code 42}) link the
+ * notification to its source record — clicking it in the UI navigates to that page.
+ * {@code emailSent} is stamped if an email was also delivered.
  */
 @Entity
 @Table(name = "notifications")
@@ -62,11 +64,11 @@ public class Notification {
     @Builder.Default
     private NotificationType type = NotificationType.GENERAL;
 
-    /** Bildirimin işaret ettiği kaynağın ID'si (ör. ilgili {@link Ticket}'in id'si). */
+    /** ID of the resource this notification points to (e.g. the related {@link Ticket}'s id). */
     @Column(name = "reference_id")
     private Long referenceId;
 
-    /** Referans tipi etiketi: "ticket", "comment", "csat" vb. — UI yönlendirmesi için. */
+    /** Reference type tag: "ticket", "comment", "csat", etc. — used for UI navigation. */
     @Column(name = "reference_type", length = 50)
     private String referenceType;
 

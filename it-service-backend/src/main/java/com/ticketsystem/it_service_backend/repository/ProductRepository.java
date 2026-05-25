@@ -7,17 +7,18 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 /**
- * {@link Product} için JPA repository — temel CRUD'a ek olarak dashboard için
- * ürün bazında bilet/CSAT/SLA aggregate metriklerini tek native sorguda toplar.
+ * JPA repository for {@link Product} — on top of standard CRUD, aggregates
+ * per-product ticket / CSAT / SLA metrics for the dashboard in a single native query.
  */
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /**
-     * Aktif ürünler için toplam/açık ticket, ortalama çözüm saati, CSAT ortalaması,
-     * SLA breach sayısı ve oranını tek seferde döner. {@code days} null veya 0 ⇒
-     * tüm zamanlar; aksi halde son N gün içinde oluşturulan biletler.
-     * Dönüş kolonları sıralı: id, name, total_tickets, open_tickets, avg_resolution_hours,
-     * csat_average, sla_breach_count, sla_breach_percentage.
+     * Returns, for each active product, the total/open ticket counts, average
+     * resolution hours, CSAT average, SLA breach count and breach percentage in a
+     * single round-trip. {@code days} null or 0 means all time; otherwise it limits
+     * to tickets created within the last N days.
+     * Returned columns, in order: id, name, total_tickets, open_tickets,
+     * avg_resolution_hours, csat_average, sla_breach_count, sla_breach_percentage.
      */
     @Query(value = """
             SELECT

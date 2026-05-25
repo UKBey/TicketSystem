@@ -22,17 +22,17 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Per-client (IP bazli) rate-limit interceptor — Redis'te Bucket4j ProxyManager
- * ile yonetilir. llm-service'in herkese acik AI endpoint'lerini Groq API
- * kotasini koruyacak sekilde sinirlar.
+ * Per-client (IP-based) rate-limit interceptor — managed in Redis via the
+ * Bucket4j ProxyManager. Throttles llm-service's public AI endpoints in a way
+ * that protects the Groq API quota.
  *
- * <p>Limitler {@link RateLimitProperties} araciligiyla configlenebilir
- * (varsayilan: 10 saniyede 1 istek).
+ * <p>Limits are configurable through {@link RateLimitProperties}
+ * (default: one request per 10 seconds).
  *
- * <p>Istemci kimlik tespiti:
+ * <p>Client identification:
  * <ol>
- *   <li>{@code X-Forwarded-For} header'inin ilk degeri (nginx proxy ekler).</li>
- *   <li>Yoksa {@link HttpServletRequest#getRemoteAddr()}.</li>
+ *   <li>The first value of the {@code X-Forwarded-For} header (added by the nginx proxy).</li>
+ *   <li>Otherwise {@link HttpServletRequest#getRemoteAddr()}.</li>
  * </ol>
  */
 @Slf4j
@@ -47,15 +47,16 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final String BUCKET_KEY_PREFIX = "llm-rate-limit:";
 
     /**
-     * Her istek öncesinde çalışır; istemcinin Bucket4j kovasından 1 token tüketmeye
-     * çalışır. Token varsa istek geçirilir, yoksa {@code 429 Too Many Requests}
-     * yanıt yazılır ve {@code Retry-After} header'ı eklenir.
+     * Runs before every request; tries to consume one token from the client's
+     * Bucket4j bucket. If a token is available the request proceeds, otherwise
+     * a {@code 429 Too Many Requests} response is written and the
+     * {@code Retry-After} header is added.
      *
-     * @param request  gelen HTTP isteği
-     * @param response yazılacak HTTP yanıtı (429 durumunda doğrudan kullanılır)
-     * @param handler  hedef handler nesnesi (kullanılmaz)
-     * @return istek devam edebiliyorsa {@code true}, limit aşıldıysa {@code false}
-     * @throws IOException yanıt gövdesi yazılırken hata oluşursa
+     * @param request  incoming HTTP request
+     * @param response HTTP response to be written (used directly on 429)
+     * @param handler  target handler object (unused)
+     * @return {@code true} if the request may continue, {@code false} when the limit is exceeded
+     * @throws IOException if writing the response body fails
      */
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -94,9 +95,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * Reverse-proxy arkasinda calistigimiz icin gercek istemci IP'si
-     * {@code X-Forwarded-For} header'inin ilk girisidir. Yoksa servlet'in
-     * remote-addr'i kullanilir.
+     * Because we run behind a reverse proxy, the real client IP is the first
+     * entry of the {@code X-Forwarded-For} header. If it is missing the
+     * servlet's remote-addr is used.
      */
     private String extractClientId(HttpServletRequest request) {
         String forwardedFor = request.getHeader("X-Forwarded-For");
@@ -110,9 +111,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * "N istek / D saniye" yapisini Bucket4j'nin {@code Refill.intervally}
-     * (kova D saniyede bir tam kapasite ile yenilenir) ile karsilar — yani
-     * fixed-window davranisi.
+     * Maps the "N requests / D seconds" model onto Bucket4j's
+     * {@code Refill.intervally} (the bucket is fully refilled every D seconds) —
+     * i.e. fixed-window behavior.
      */
     private BucketConfiguration buildBucketConfiguration() {
         Bandwidth limit = Bandwidth.classic(

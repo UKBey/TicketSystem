@@ -13,11 +13,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Bilet kapanışı sonrası müşteri memnuniyet anketi (CSAT) yönetimi.
+ * Manages the post-resolution customer satisfaction (CSAT) survey.
  *
- * <p>Anket yalnızca biletin sahibi olan müşteri tarafından, RESOLVED veya CLOSED
- * statüsünde, bilet başına bir kez verilebilir. RESOLVED durumda yanıt gelirse
- * bilet otomatik olarak CLOSED durumuna taşınır.
+ * <p>Only the ticket's customer can submit a survey, only when the ticket is
+ * RESOLVED or CLOSED, and only once per ticket. When the response arrives while
+ * the ticket is RESOLVED, it is automatically moved to CLOSED.
  */
 @Log4j2
 @Service
@@ -28,18 +28,18 @@ public class CsatService {
     private final TicketService ticketService;
 
     /**
-     * Bir bilet için CSAT anket cevabını kaydeder.
+     * Persists a CSAT survey response for the given ticket.
      *
-     * <p>Sahiplik, statü (RESOLVED/CLOSED), tekil kayıt ve 1-5 puan aralığı
-     * doğrulanır. Bilet RESOLVED ise kayıt sonrasında CLOSED durumuna taşınır
-     * (CSAT_SUBMITTED reason kodu ile audit'lenir).
+     * <p>Ownership, status (RESOLVED/CLOSED), uniqueness and 1-5 rating range
+     * are all validated. When the ticket is RESOLVED, it is moved to CLOSED
+     * after the record is saved (audited with the CSAT_SUBMITTED reason code).
      *
-     * @param ticketId hedef bilet ID
-     * @param dto anket içeriği (rating + opsiyonel yorum)
-     * @param userId istemde bulunan müşteri ID
-     * @param roles kullanıcının rolleri
-     * @return kaydedilmiş {@link Csat}
-     * @throws ResponseStatusException 400 puan/statü/tekrar, 403 sahiplik ihlali
+     * @param ticketId target ticket ID
+     * @param dto survey payload (rating + optional comment)
+     * @param userId ID of the submitting customer
+     * @param roles role list of the user
+     * @return the persisted {@link Csat}
+     * @throws ResponseStatusException 400 on rating/status/duplicate, 403 on ownership
      */
     public Csat submitCsat(Long ticketId, CsatDTO dto, String userId, List<String> roles) {
         log.info("CSAT anketi gönderimi başlatıldı. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
@@ -88,24 +88,24 @@ public class CsatService {
     }
 
     /**
-     * Bir biletin halihazırda CSAT yanıtının olup olmadığını döner.
+     * Returns whether the given ticket already has a CSAT response.
      *
-     * @param ticketId bilet ID
-     * @return kayıt varsa {@code true}
+     * @param ticketId ticket ID
+     * @return {@code true} if a record exists
      */
     public boolean hasCsat(Long ticketId) {
         return csatRepository.existsByTicketId(ticketId);
     }
 
     /**
-     * Bir bilete ait CSAT kaydını döner. Yetki kontrolü {@link TicketService}
-     * üzerinden yapılır.
+     * Returns the CSAT record for a ticket. Authorization is delegated to
+     * {@link TicketService}.
      *
-     * @param ticketId hedef bilet ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return CSAT kaydı
-     * @throws ResponseStatusException 404 yoksa, 403 bilete erişim yoksa
+     * @param ticketId target ticket ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return the CSAT record
+     * @throws ResponseStatusException 404 if not found, 403 on ticket access denial
      */
     public Csat getCsatByTicketId(Long ticketId, String userId, List<String> roles) {
         log.debug("CSAT detay isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
@@ -121,10 +121,10 @@ public class CsatService {
     }
 
     /**
-     * Tüm CSAT kayıtlarını döner. Erişim yetkisi controller tarafında
-     * {@code @PreAuthorize} ile AGENT_ADMIN'e kısıtlıdır.
+     * Returns all CSAT records. Access is restricted to AGENT_ADMIN by
+     * {@code @PreAuthorize} on the controller.
      *
-     * @return tüm CSAT yanıtları
+     * @return all CSAT responses
      */
     public List<Csat> getAllCsats() {
         log.debug("Tüm CSAT anketlerini listeleme isteği (Agent admin).");

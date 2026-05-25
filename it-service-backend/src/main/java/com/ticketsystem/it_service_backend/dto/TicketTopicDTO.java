@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir ürünün altında bilet oluştururken seçilebilen talep konusunu temsil eder.
- * Bean Validation ile {@code name} alanı (notblank + size) kontrol edilir.
+ * Represents a selectable topic under a product when creating a ticket.
+ * Bean Validation enforces the {@code name} field (notblank + size).
  */
 @Schema(description = "Bir ürünün altındaki seçilebilir talep konusu")
 public class TicketTopicDTO {

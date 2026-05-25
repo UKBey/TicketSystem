@@ -14,26 +14,26 @@ import java.io.InputStream;
 import java.util.*;
 
 /**
- * Bilet üretimini setup.json'dan değil, classpath'teki <code>tickets/ticket-*.json</code>
- * dosyalarından okur. Her dosya bir biletin tüm yaşam döngüsünü deklaratif olarak tanımlar:
+ * Reads ticket generation not from setup.json but from <code>tickets/ticket-*.json</code>
+ * files on the classpath. Each file declaratively describes the full lifecycle of one ticket:
  *
  * <pre>
  * {
- *   "title": "...",                 // zorunlu
- *   "description": "...",           // zorunlu
+ *   "title": "...",                 // required
+ *   "description": "...",           // required
  *   "priority": "LOW|MEDIUM|HIGH|CRITICAL",
  *   "productName": "VPN ve Ağ",
  *   "topicName": "VPN Bağlantısı",
  *   "status": "NEW|IN_PROGRESS|WAITING_FOR_CUSTOMER|RESOLVED|CLOSED",
  *   "worklogs":  [{ "minutes": 30, "description": "..." }],
  *   "comments":  [{ "author": "agent|customer", "type": "INTERNAL|EXTERNAL", "message": "..." }],
- *   "resolutionNote": "...",        // RESOLVED/CLOSED için
- *   "csat":     { "rating": 5, "comment": "..." }  // CLOSED için
+ *   "resolutionNote": "...",        // for RESOLVED/CLOSED
+ *   "csat":     { "rating": 5, "comment": "..." }  // for CLOSED
  * }
  * </pre>
  *
- * Customer/agent atamaları setup.json'daki kullanıcı listesinden round-robin alınır.
- * Yorumlar rate-limit dostu olması için aşama sonunda round-robin kuyrukla gönderilir.
+ * Customer/agent assignments are taken round-robin from the user list in setup.json.
+ * Comments are sent through a round-robin queue at the end of the stage to stay rate-limit friendly.
  */
 public class TicketGenerator {
 
@@ -47,9 +47,9 @@ public class TicketGenerator {
     private final Map<String, Queue<CommentTask>> commentQueues = new LinkedHashMap<>();
 
     /**
-     * @param api    backend API istemcisi
-     * @param mapper ticket-*.json şablonlarını okumak için Jackson mapper
-     * @param setup  SetupGenerator çıktısı (kullanıcılar + ürün/topic ID map'leri)
+     * @param api    backend API client
+     * @param mapper Jackson mapper used to read ticket-*.json templates
+     * @param setup  SetupGenerator output (users + product/topic ID maps)
      */
     public TicketGenerator(ApiClient api, ObjectMapper mapper, SetupResult setup) {
         this.api     = api;
@@ -62,17 +62,17 @@ public class TicketGenerator {
     }
 
     /**
-     * Classpath'teki {@code tickets/ticket-NNN.json} şablonlarından bilet üretir
-     * ve her şablonun hedef statüsüne göre yaşam döngüsünü oynatır (claim,
-     * worklog, yorum, status update, CSAT).
+     * Generates tickets from the {@code tickets/ticket-NNN.json} templates on the classpath
+     * and plays out each template's lifecycle based on its target status (claim,
+     * worklog, comment, status update, CSAT).
      *
-     * <p>Customer/agent atamaları setup'tan round-robin alınır. Şablonlar
-     * CLOSED → RESOLVED → WAITING → IN_PROGRESS → NEW sırasıyla işlenir
-     * (agent başına aktif claim limitinin dolmaması için).
+     * <p>Customer/agent assignments are taken round-robin from the setup. Templates are
+     * processed in the order CLOSED → RESOLVED → WAITING → IN_PROGRESS → NEW
+     * (so the per-agent active-claim limit is not exhausted).
      *
-     * @return başarılı şekilde oluşturulmuş bilet ID'leri (DateBackfiller'a verilir)
-     * @throws IOException          şablon okuma veya API hatası
-     * @throws InterruptedException request temposu için yapılan {@code Thread.sleep} kesilirse
+     * @return IDs of successfully created tickets (handed to DateBackfiller)
+     * @throws IOException          template read or API error
+     * @throws InterruptedException if {@code Thread.sleep} (used for request pacing) is interrupted
      */
     public List<Long> generate() throws IOException, InterruptedException {
         log.info("=== Bilet üretimi başlıyor (JSON şablon tabanlı) ===");
@@ -185,8 +185,8 @@ public class TicketGenerator {
     }
 
     /**
-     * Status'ler için işlem sırası — kapanan biletler önce, böylece agent limiti
-     * dolmaz ve sonradan açılacak biletler için claim alınabilir.
+     * Processing order by status — closed tickets first, so the agent limit does not
+     * fill up and claims remain available for tickets that will be opened later.
      */
     private int statusPriority(JsonNode spec) {
         return switch (spec.path("status").asText("NEW").toUpperCase()) {
@@ -276,9 +276,9 @@ public class TicketGenerator {
     }
 
     /**
-     * Bilet statüsünü günceller. Backend RESOLVED'e geçişte reasonCode zorunluyor,
-     * CLOSED için ise ayrı endpoint var (CSAT akışında auto-CLOSE olduğu için burada
-     * doğrudan CLOSED göndermiyoruz).
+     * Updates the ticket status. The backend requires reasonCode on the transition to
+     * RESOLVED, and there is a separate endpoint for CLOSED (since CLOSED is auto-applied
+     * by the CSAT flow, we never send CLOSED directly here).
      */
     private boolean updateStatus(Long ticketId, String status, UserSession user,
                                   String reasonCode, String note) {

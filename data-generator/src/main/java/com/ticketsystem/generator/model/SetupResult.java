@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * SetupGenerator çıktısı — TicketGenerator'a aktarılır.
+ * Output of SetupGenerator — passed on to TicketGenerator.
  *
- * @param agentAdmin            agent_admin oturumu (config'ten gelir)
- * @param agents                Kurulum sırasında giriş yapılmış agent oturumları
- * @param customers             Kurulum sırasında giriş yapılmış customer oturumları
- * @param productByName         "Ürün adı" → product ID
- * @param topicByProductAndName "Ürün adı::Topic adı" → topic ID
+ * @param agentAdmin            agent_admin session (sourced from config)
+ * @param agents                agent sessions logged in during setup
+ * @param customers             customer sessions logged in during setup
+ * @param productByName         "product name" → product ID
+ * @param topicByProductAndName "product name::topic name" → topic ID
  */
 public record SetupResult(
         UserSession adminAgent,
@@ -21,11 +21,11 @@ public record SetupResult(
 ) {
 
     /**
-     * {@link #topicByProductAndName()} map'inin anahtarını üretir.
+     * Builds the key for the {@link #topicByProductAndName()} map.
      *
-     * @param productName ürün adı
-     * @param topicName   topic adı
-     * @return {@code "productName::topicName"} formatında composite anahtar
+     * @param productName product name
+     * @param topicName   topic name
+     * @return a composite key in the form {@code "productName::topicName"}
      */
     public static String topicKey(String productName, String topicName) {
         return productName + "::" + topicName;

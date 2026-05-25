@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * it-service-backend'den gelen ticket verisi.
- * Sadece LLM özetlemesi için gerekli alanlar alınır.
+ * Ticket data received from it-service-backend.
+ * Only the fields needed for LLM summarization are included.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -37,7 +37,7 @@ public class TicketDataDTO {
     private Map<String, Object> slaInfo;
 
     /**
-     * Ticket'ı üstlenen ajan kimliği.
+     * Identity of the agent who claimed the ticket.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -47,7 +47,7 @@ public class TicketDataDTO {
     }
 
     /**
-     * Ticket üzerindeki tek bir yorum (müşteri / ajan / dahili).
+     * A single comment on the ticket (customer / agent / internal).
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -59,7 +59,7 @@ public class TicketDataDTO {
     }
 
     /**
-     * Ajanın bilet üzerinde geçirdiği süreyi temsil eden worklog kaydı.
+     * Worklog record representing the time the agent spent on the ticket.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -71,7 +71,7 @@ public class TicketDataDTO {
     }
 
     /**
-     * Bilet kapatılırken bırakılan çözüm notu.
+     * Resolution note left when the ticket is closed.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -81,7 +81,7 @@ public class TicketDataDTO {
     }
 
     /**
-     * Bilet üzerinde yapılan tek bir aksiyonun denetim kaydı.
+     * Audit record of a single action performed on the ticket.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -94,8 +94,8 @@ public class TicketDataDTO {
     }
 
     /**
-     * Biletin ürün/konusuna bağlı "sıkça karşılaşılan sorun" kaydı.
-     * LLM, biletteki sorunu bu kayıtlarla karşılaştırıp eşleşme varsa belirtir.
+     * "Frequently encountered issue" record tied to the ticket's product/topic.
+     * The LLM compares the ticket's problem to these records and reports any match.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)

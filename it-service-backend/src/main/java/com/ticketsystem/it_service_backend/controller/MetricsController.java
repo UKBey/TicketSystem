@@ -27,11 +27,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Yönetici dashboard'u için KPI ve analitik metrikleri REST kontrolcüsü.
+ * REST controller for the manager dashboard's KPIs and analytic metrics.
  *
- * <p>{@code MANAGER} (ve bazı endpoint'lerde {@code AGENT_ADMIN}) rolüne özeldir.
- * Çoğu uç nokta Caffeine cache ile sarmalıdır; iş hesaplamaları
- * {@link MetricsService} tarafından yapılır.
+ * <p>Restricted to the {@code MANAGER} role (and {@code AGENT_ADMIN} on a few endpoints).
+ * Most endpoints are wrapped with a Caffeine cache; business calculations are
+ * performed by {@link MetricsService}.
  */
 @Log4j2
 @Tag(name = "Dashboard Metrikleri", description = "Sistem metrikleri, KPI'ları ve analitiği — Manager rolü için")
@@ -43,10 +43,10 @@ public class MetricsController {
     private final MetricsService metricsService;
 
     /**
-     * Dashboard özet metrikleri endpoint'i.
-     * KPI kartları (açık biletler, SLA breach, yanıt süresi, CSAT) için verileri döner.
+     * Dashboard summary metrics endpoint.
+     * Returns the data backing the KPI cards (open tickets, SLA breaches, response time, CSAT).
      *
-     * @return DashboardMetricsDTO — tüm dashboard KPI metrikleri
+     * @return DashboardMetricsDTO — all dashboard KPI metrics
      */
     @Operation(
             summary = "Dashboard özet metrikleri",
@@ -82,10 +82,10 @@ public class MetricsController {
     }
 
     /**
-     * Ticket durum dağılımı endpoint'i.
-     * Dashboard chart'ı için NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED ve CLOSED sayımlarını döner.
+     * Ticket status distribution endpoint.
+     * Returns the NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED and CLOSED counts for the dashboard chart.
      *
-     * @return StatusDistributionDTO — ticket durum dağılımı
+     * @return StatusDistributionDTO — ticket status distribution
      */
     @Operation(
             summary = "Ticket durum dağılımı",
@@ -120,10 +120,10 @@ public class MetricsController {
     }
 
     /**
-     * Ajan performans leaderboard endpoint'i.
-     * Dashboard tablosu için aktif ticket, çözüm hızı, CSAT, SLA breach ve worklog verilerini döner.
+     * Agent performance leaderboard endpoint.
+     * Returns active ticket load, resolution rate, CSAT, SLA breach and worklog data for the dashboard table.
      *
-     * @return AgentPerformanceDTO — agent leaderboard özeti
+     * @return AgentPerformanceDTO — agent leaderboard summary
      */
     @Operation(
             summary = "Ajan performans leaderboard",
@@ -158,11 +158,11 @@ public class MetricsController {
     }
 
     /**
-     * Ticket timeline metrikleri endpoint'i.
-     * Son N günün günlük ticket trend verilerini (oluşturulan, çözülen, kapalı, SLA breach) döner.
+     * Ticket timeline metrics endpoint.
+     * Returns daily ticket trend data for the last N days (created, resolved, closed, SLA breaches).
      *
-     * @param days Kaç günlük veri isteneceği (default 30, max 365)
-     * @return TicketTimelineDTO — günlük metriklerin timeline'ı
+     * @param days number of days of data to retrieve (default 30, max 365)
+     * @return TicketTimelineDTO — timeline of daily metrics
      */
     @Operation(
             summary = "Ticket timeline metrikleri",
@@ -199,10 +199,10 @@ public class MetricsController {
     }
 
     /**
-     * Priority-SLA metrikleri endpoint'i.
-     * Priority bazlı ticket hacmi, SLA hedefi, ortalama çözüm süresi, breach ve on-time oranlarını döner.
+     * Priority-SLA metrics endpoint.
+     * Returns per-priority ticket volume, SLA target, average resolution time, breach and on-time rates.
      *
-     * @return PrioritySLAMetricsDTO — priority detay metrikleri
+     * @return PrioritySLAMetricsDTO — detailed metrics per priority
      */
     @Operation(
             summary = "Priority-SLA metrikleri",
@@ -237,10 +237,10 @@ public class MetricsController {
     }
 
     /**
-     * Ürün bazında bilet metrikleri endpoint'i.
-     * Her aktif ürün için toplam bilet, açık bilet, ort. çözüm, CSAT ve SLA breach oranını döner.
+     * Per-product ticket metrics endpoint.
+     * For each active product, returns total tickets, open tickets, average resolution, CSAT and SLA breach rate.
      *
-     * @return ProductMetricsDTO — ürün detay metrikleri
+     * @return ProductMetricsDTO — detailed per-product metrics
      */
     @Operation(
             summary = "Ürün bazında bilet metrikleri",
@@ -275,11 +275,11 @@ public class MetricsController {
     }
 
     /**
-     * CSAT detaylı analitik endpoint'i.
-     * Son N ay için puan dağılımı, aylık trend, priority bazlı CSAT ve en iyi yorumları döner.
+     * CSAT detailed analytics endpoint.
+     * Returns score distribution, monthly trend, per-priority CSAT and top comments for the last N months.
      *
-     * @param months Analiz edilecek ay sayısı (default 3, max 12)
-     * @return CSATMetricsDTO — CSAT analitik özeti
+     * @param months number of months to analyze (default 3, max 12)
+     * @return CSATMetricsDTO — CSAT analytic summary
      */
     @Operation(
             summary = "CSAT detaylı analitik metrikleri",
@@ -316,10 +316,10 @@ public class MetricsController {
     }
 
     /**
-     * SLA breach uyarıları ve backlog metrikleri endpoint'i.
-     * Zaten aşılmış biletler, 4 saat içinde aşılacak biletler, uzun süre bekleyenler ve backlog özeti.
+     * SLA breach alerts and backlog metrics endpoint.
+     * Returns already-breached tickets, tickets at risk of breaching within 4 hours, long-pending tickets and a backlog summary.
      *
-     * @return AlertsBacklogDTO — alert listeleri ve backlog istatistikleri
+     * @return AlertsBacklogDTO — alert lists and backlog statistics
      */
     @Operation(
             summary = "SLA breach uyarıları ve backlog metrikleri",
@@ -354,11 +354,11 @@ public class MetricsController {
     }
 
     /**
-     * Worklog özeti ve bilet tamamlanma metrikleri endpoint'i.
-     * Agent bazında kayıtlı çalışma sürelerini ve dönem bilet tamamlanma istatistiklerini döner.
+     * Worklog summary and ticket completion metrics endpoint.
+     * Returns per-agent logged work time and ticket completion statistics for the period.
      *
-     * @param days Analiz edilecek gün sayısı (default 30, max 365)
-     * @return WorklogCompletionDTO — worklog özetleri ve tamamlanma oranları
+     * @param days number of days to analyze (default 30, max 365)
+     * @return WorklogCompletionDTO — worklog summaries and completion rates
      */
     @Operation(
             summary = "Worklog özeti ve bilet tamamlanma metrikleri",

@@ -16,11 +16,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Sıkça karşılaşılan sorun (known issue) yönetimi.
+ * Manages known issues.
  *
- * <p>Görüntüleme: kullanıcı ürüne yetkili olmalı; admin/manager her ürünü görür.
- * Yönetim (create/update/delete): yalnızca AGENT_ADMIN ve MANAGER. Bu kural
- * controller seviyesinde {@code @PreAuthorize} ile uygulanır.
+ * <p>Read access: the user must be authorized for the product; admin/manager see every product.
+ * Management (create/update/delete): restricted to AGENT_ADMIN and MANAGER. This rule is
+ * enforced at the controller level via {@code @PreAuthorize}.
  */
 @Log4j2
 @Service
@@ -37,17 +37,17 @@ public class KnownIssueService {
     // --------------------------------------------------------------------
 
     /**
-     * Bir ürüne (opsiyonel olarak belirli bir konuya) ait known issue kayıtlarını
-     * en yeni → en eski sırada döner. Müşteri/agent kullanıcısı için ürün yetkisi
-     * doğrulanır; admin/manager bypass eder.
+     * Returns known issue records for a product (optionally narrowed to a specific topic)
+     * ordered from newest to oldest. Product access is verified for customer/agent users;
+     * admin/manager bypass the check.
      *
-     * @param productId hedef ürün ID
-     * @param topicId opsiyonel konu filtresi
-     * @param activeOnly {@code true} ise sadece aktif kayıtlar
-     * @param userId yetki doğrulanacak kullanıcı (admin/manager için yoksayılır)
-     * @param roles kullanıcının rol listesi
-     * @return known issue listesi (boş olabilir)
-     * @throws ResponseStatusException 404 ürün yoksa, 403 kullanıcı yetkili değilse
+     * @param productId target product ID
+     * @param topicId optional topic filter
+     * @param activeOnly when {@code true}, returns only active records
+     * @param userId user whose access is being checked (ignored for admin/manager)
+     * @param roles role list of the user
+     * @return list of known issues (may be empty)
+     * @throws ResponseStatusException 404 if the product is missing, 403 if the user lacks access
      */
     @Transactional(readOnly = true)
     public List<KnownIssue> listByProduct(Long productId, Long topicId, boolean activeOnly,
@@ -66,13 +66,13 @@ public class KnownIssueService {
     }
 
     /**
-     * Tek bir known issue kaydını getirir; çağıran kullanıcının ürün yetkisi denetlenir.
+     * Returns a single known issue record; the caller's product access is verified.
      *
-     * @param id kayıt ID
-     * @param userId yetki doğrulanacak kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return ilgili {@link KnownIssue}
-     * @throws ResponseStatusException 404 yoksa, 403 ürün yetkisi olmazsa
+     * @param id record ID
+     * @param userId user whose access is being checked
+     * @param roles role list of the user
+     * @return the matching {@link KnownIssue}
+     * @throws ResponseStatusException 404 if not found, 403 if the user lacks product access
      */
     @Transactional(readOnly = true)
     public KnownIssue getById(Long id, String userId, List<String> roles) {
@@ -86,19 +86,19 @@ public class KnownIssueService {
     // --------------------------------------------------------------------
 
     /**
-     * Yeni bir known issue kaydı oluşturur.
+     * Creates a new known issue record.
      *
-     * <p>Topic verilirse ürünle eşleşmesi zorunludur. Başlık ve içerik trim edilir
-     * ve uzunluk limitleri (başlık 255, içerik 10.000) uygulanır.
+     * <p>When a topic is supplied, it must belong to the same product. Title and
+     * content are trimmed, and length limits (title 255, content 10,000) are enforced.
      *
-     * @param productId ait olduğu ürün ID
-     * @param topicId opsiyonel konu ID (varsa ürünün altında olmalı)
-     * @param title başlık (boş olamaz, max 255)
-     * @param content içerik (boş olamaz, max 10.000)
-     * @param isActive aktif/pasif (null ise varsayılan {@code true})
-     * @param createdBy oluşturan kullanıcının ID'si (audit için)
-     * @return kaydedilen kayıt
-     * @throws ResponseStatusException 404 ürün/konu yoksa, 400 doğrulama hataları
+     * @param productId ID of the owning product
+     * @param topicId optional topic ID (must belong to the product when set)
+     * @param title title (non-blank, max 255 chars)
+     * @param content content (non-blank, max 10,000 chars)
+     * @param isActive active flag (defaults to {@code true} when {@code null})
+     * @param createdBy ID of the creating user (for audit)
+     * @return the persisted record
+     * @throws ResponseStatusException 404 if product/topic missing, 400 on validation errors
      */
     @Transactional
     public KnownIssue create(Long productId, Long topicId, String title, String content,
@@ -122,16 +122,16 @@ public class KnownIssueService {
     }
 
     /**
-     * Kısmi güncelleme; yalnızca {@code null} olmayan alanlar değiştirilir.
-     * Topic değişiyorsa aynı ürünün altında olmak zorundadır.
+     * Partial update; only non-{@code null} fields are modified.
+     * If the topic changes, it must belong to the same product.
      *
-     * @param id güncellenecek kayıt ID
-     * @param topicId yeni konu (opsiyonel)
-     * @param title yeni başlık (opsiyonel)
-     * @param content yeni içerik (opsiyonel)
-     * @param isActive yeni aktif durumu (opsiyonel)
-     * @return güncellenmiş kayıt
-     * @throws ResponseStatusException 404 kayıt/konu yoksa, 400 doğrulama hataları
+     * @param id record ID to update
+     * @param topicId new topic (optional)
+     * @param title new title (optional)
+     * @param content new content (optional)
+     * @param isActive new active flag (optional)
+     * @return the updated record
+     * @throws ResponseStatusException 404 if record/topic missing, 400 on validation errors
      */
     @Transactional
     public KnownIssue update(Long id, Long topicId, String title, String content, Boolean isActive) {
@@ -157,10 +157,10 @@ public class KnownIssueService {
     }
 
     /**
-     * Known issue kaydını siler.
+     * Deletes the known issue record.
      *
-     * @param id silinecek kayıt ID
-     * @throws ResponseStatusException 404 — kayıt bulunamazsa
+     * @param id record ID to delete
+     * @throws ResponseStatusException 404 if the record is not found
      */
     @Transactional
     public void delete(Long id) {
@@ -185,8 +185,8 @@ public class KnownIssueService {
     }
 
     /**
-     * Kullanici icin urun erisim kontrolu. Admin/manager bypass eder; diger roller
-     * urunu authorizedProducts listesinde tasimak zorundadir.
+     * Product access check for a user. Admin/manager bypass the check; other roles
+     * must have the product in their authorizedProducts list.
      */
     private void ensureProductAccess(Long productId, String userId, List<String> roles) {
         if (roles != null && (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER"))) return;

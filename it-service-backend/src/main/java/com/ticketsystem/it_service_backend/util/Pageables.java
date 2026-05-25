@@ -4,22 +4,24 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 /**
- * Controller'larda tekrar eden "sortDir oku → Sort yarat → PageRequest sar" zincirini
- * tek satırda toplayan helper. {@code sortDir} sadece {@code "asc"} ise artan; diğer
- * tüm değerler için (default dahil) azalan sıralama uygulanır.
+ * Helper that collapses the repeated controller pattern "read sortDir →
+ * build Sort → wrap into PageRequest" into a single call. Ascending order
+ * is applied only when {@code sortDir} equals {@code "asc"}; every other
+ * value (including the default) yields descending order.
  */
 public final class Pageables {
 
     private Pageables() {}
 
     /**
-     * Tek satirda sirali bir {@link PageRequest} olusturur.
+     * Builds a sorted {@link PageRequest} in a single call.
      *
-     * @param page    sifir-tabanli sayfa indexi
-     * @param size    sayfa basina kayit sayisi
-     * @param sortBy  siralama yapilacak alan adi (entity alani)
-     * @param sortDir {@code "asc"} → artan, diger her sey (default dahil) → azalan
-     * @return verilen alan ve yone gore siralanmis sayfa istegi
+     * @param page    zero-based page index
+     * @param size    number of records per page
+     * @param sortBy  name of the entity field to sort by
+     * @param sortDir {@code "asc"} → ascending, anything else (including the
+     *                default) → descending
+     * @return a page request sorted by the given field and direction
      */
     public static PageRequest of(int page, int size, String sortBy, String sortDir) {
         Sort sort = "asc".equalsIgnoreCase(sortDir)

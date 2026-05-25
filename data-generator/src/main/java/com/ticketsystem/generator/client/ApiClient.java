@@ -11,12 +11,11 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Backend API'ye OkHttp + Keycloak JWT ile istek atan yardımcı sınıf.
+ * Helper class that sends requests to the backend API via OkHttp + Keycloak JWT.
  *
- * <p>JSON marshal/unmarshal Jackson üzerinden; başarısız yanıtlar
- * {@link ApiException} olarak fırlatılır. Generator'un tüm REST
- * çağrıları bu sınıf üzerinden geçer ve {@code /api/v1} prefix'i
- * baz URL'e otomatik eklenir.
+ * <p>JSON marshal/unmarshal is handled by Jackson; failed responses are thrown
+ * as {@link ApiException}. All of the generator's REST calls go through this
+ * class and the {@code /api/v1} prefix is automatically appended to the base URL.
  */
 public class ApiClient {
 
@@ -28,9 +27,9 @@ public class ApiClient {
     private final String baseUrl;
 
     /**
-     * Yeni bir API istemcisi oluşturur.
+     * Creates a new API client.
      *
-     * @param http   paylaşılan OkHttp client (timeout'lar app seviyesinde ayarlı)
+     * @param http   shared OkHttp client (timeouts configured at app level)
      * @param mapper Jackson {@link ObjectMapper}
      */
     public ApiClient(OkHttpClient http, ObjectMapper mapper) {
@@ -44,12 +43,12 @@ public class ApiClient {
     // ---------------------------------------------------------------
 
     /**
-     * GET çağrısı yapar ve JSON yanıtı döndürür.
+     * Performs a GET call and returns the JSON response.
      *
-     * @param path  {@code /api/v1} sonrasındaki path
-     * @param token JWT access token (Bearer header'a yazılır)
-     * @return ayrıştırılmış JSON yanıt; boş gövde için boş ObjectNode
-     * @throws IOException ağ hatası veya {@link ApiException} (HTTP 4xx/5xx)
+     * @param path  the path after {@code /api/v1}
+     * @param token JWT access token (written into the Bearer header)
+     * @return the parsed JSON response; an empty ObjectNode for an empty body
+     * @throws IOException on a network error or {@link ApiException} (HTTP 4xx/5xx)
      */
     public JsonNode get(String path, String token) throws IOException {
         Request request = new Request.Builder()
@@ -61,13 +60,13 @@ public class ApiClient {
     }
 
     /**
-     * POST çağrısı yapar; gövde Jackson ile JSON'a serileştirilir.
+     * Performs a POST call; the body is serialized to JSON via Jackson.
      *
-     * @param path  {@code /api/v1} sonrasındaki path
-     * @param body  serileştirilecek istek gövdesi ({@code null} → {@code "null"})
+     * @param path  the path after {@code /api/v1}
+     * @param body  the request body to serialize ({@code null} → {@code "null"})
      * @param token JWT access token
-     * @return ayrıştırılmış JSON yanıt
-     * @throws IOException ağ hatası veya {@link ApiException}
+     * @return the parsed JSON response
+     * @throws IOException on a network error or {@link ApiException}
      */
     public JsonNode post(String path, Object body, String token) throws IOException {
         String json = mapper.writeValueAsString(body);
@@ -80,13 +79,13 @@ public class ApiClient {
     }
 
     /**
-     * PUT çağrısı yapar; gövde Jackson ile JSON'a serileştirilir.
+     * Performs a PUT call; the body is serialized to JSON via Jackson.
      *
-     * @param path  {@code /api/v1} sonrasındaki path
-     * @param body  serileştirilecek istek gövdesi
+     * @param path  the path after {@code /api/v1}
+     * @param body  the request body to serialize
      * @param token JWT access token
-     * @return ayrıştırılmış JSON yanıt
-     * @throws IOException ağ hatası veya {@link ApiException}
+     * @return the parsed JSON response
+     * @throws IOException on a network error or {@link ApiException}
      */
     public JsonNode put(String path, Object body, String token) throws IOException {
         String json = mapper.writeValueAsString(body);
@@ -99,13 +98,13 @@ public class ApiClient {
     }
 
     /**
-     * DELETE çağrısı yapar; isteğe bağlı gövde gönderebilir.
+     * Performs a DELETE call; may optionally send a body.
      *
-     * @param path  {@code /api/v1} sonrasındaki path
-     * @param body  opsiyonel istek gövdesi; {@code null} ise gövdesiz DELETE
+     * @param path  the path after {@code /api/v1}
+     * @param body  optional request body; if {@code null}, performs a DELETE without a body
      * @param token JWT access token
-     * @return ayrıştırılmış JSON yanıt (genellikle boş ObjectNode)
-     * @throws IOException ağ hatası veya {@link ApiException}
+     * @return the parsed JSON response (usually an empty ObjectNode)
+     * @throws IOException on a network error or {@link ApiException}
      */
     public JsonNode delete(String path, Object body, String token) throws IOException {
         Request.Builder builder = new Request.Builder()
@@ -137,20 +136,20 @@ public class ApiClient {
         }
     }
 
-    /** API hata kodu ile birlikte fırlatılan exception. */
+    /** Exception thrown together with the API error code. */
     public static class ApiException extends IOException {
         private final int statusCode;
 
         /**
-         * @param statusCode HTTP durum kodu (4xx/5xx)
-         * @param message    yanıt gövdesi veya hata açıklaması
+         * @param statusCode HTTP status code (4xx/5xx)
+         * @param message    response body or error description
          */
         public ApiException(int statusCode, String message) {
             super("HTTP " + statusCode + ": " + message);
             this.statusCode = statusCode;
         }
 
-        /** @return yanıtın HTTP durum kodu. */
+        /** @return the HTTP status code of the response. */
         public int getStatusCode() { return statusCode; }
     }
 }

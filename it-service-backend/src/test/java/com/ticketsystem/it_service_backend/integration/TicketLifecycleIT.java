@@ -31,22 +31,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Bilet yasam dongusunun uctan uca entegrasyon testi.
+ * End-to-end integration test of the ticket lifecycle.
  *
- * <p>Bu test sinifi gercek bir PostgreSQL container (Testcontainers) uzerinde
- * calisir ve asagidaki senaryoyu dogrular:
+ * <p>This test class runs against a real PostgreSQL container
+ * (Testcontainers) and verifies the following scenario:
  * <ol>
- *     <li>CUSTOMER rolundeki kullanici yeni bir destek bileti olusturur.</li>
- *     <li>Biletin veritabaninda {@code NEW} statusuyle kaydedildigi dogrulanir.</li>
- *     <li>Biletin aciklama metninin ilk yorum olarak kaydedildigi dogrulanir.</li>
- *     <li>AGENT rolundeki kullanici bileti sahiplenir (claim).</li>
- *     <li>Biletin {@code IN_PROGRESS} statusune gecisi ve assigneeId atamasi dogrulanir.</li>
+ *     <li>A user with the CUSTOMER role creates a new support ticket.</li>
+ *     <li>The ticket is saved to the database with status {@code NEW}.</li>
+ *     <li>The ticket's description is stored as the first comment.</li>
+ *     <li>A user with the AGENT role claims the ticket.</li>
+ *     <li>The ticket transitions to {@code IN_PROGRESS} and the assignee
+ *         is set correctly.</li>
  * </ol>
  *
- * <p><strong>Not:</strong> Test sinifi {@code @Transactional} degildir. Her MockMvc
- * cagrisi uretim ortaminda oldugu gibi kendi transaction'inda calisir.
- * Bu yaklasim, transaction commit sonrasi tetiklenen event'lerin
- * (orn. {@code TicketCreatedEvent}) gercekci bicimde test edilmesini saglar.
+ * <p><strong>Note:</strong> The test class is not {@code @Transactional}.
+ * Each MockMvc call runs in its own transaction, exactly as in production.
+ * This way events triggered after a transaction commits (e.g.
+ * {@code TicketCreatedEvent}) are exercised realistically.
  */
 class TicketLifecycleIT extends BaseIntegrationTest {
 
@@ -86,9 +87,9 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     // =========================================================================
 
     /**
-     * Her testten once test verisi ekler. İş tablolarının temizliği
-     * {@link BaseIntegrationTest#truncateBusinessTables()} tarafından üst
-     * sınıfta yapılır ({@code @BeforeEach} parent-first sırasıyla çağrılır).
+     * Inserts test data before every test. Business tables are cleaned by
+     * {@link BaseIntegrationTest#truncateBusinessTables()} in the parent
+     * class ({@code @BeforeEach} runs parent-first).
      */
     @BeforeEach
     void seedTestData() {
@@ -246,19 +247,19 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     // =========================================================================
 
     /**
-     * CUSTOMER rolunde bir mock JWT token olusturur.
+     * Builds a mock JWT token for the CUSTOMER role.
      *
-     * <p>Uretilen token su claim'leri icerir:
+     * <p>The produced token carries the following claims:
      * <ul>
-     *     <li>{@code sub}: Kullanicinin benzersiz kimligi</li>
+     *     <li>{@code sub}: the user's unique id</li>
      *     <li>{@code realm_access.roles}: {@code ["CUSTOMER"]}</li>
      * </ul>
      *
-     * <p>{@code authorities} ayri olarak set edilir cunku
-     * {@code SecurityConfig.jwtAuthenticationConverter()} uretim ortaminda
-     * bu donusumu yapar. Test ortaminda Spring Security Test framework'u
-     * JWT'yi decode etmeden dogrudan kullanir, bu yuzden authority'lerin
-     * acikca belirtilmesi gerekir.
+     * <p>The {@code authorities} are set separately because in production
+     * {@code SecurityConfig.jwtAuthenticationConverter()} performs that
+     * conversion. The Spring Security Test framework consumes the JWT
+     * directly without decoding it, so the authorities must be declared
+     * explicitly here.
      */
     private static org.springframework.test.web.servlet.request.RequestPostProcessor
     jwtForCustomer(String userId) {
@@ -271,8 +272,8 @@ class TicketLifecycleIT extends BaseIntegrationTest {
     }
 
     /**
-     * AGENT rolunde bir mock JWT token olusturur.
-     * Yapisi {@code jwtForCustomer} ile aynidir, yalnizca rol farkliligi vardir.
+     * Builds a mock JWT token for the AGENT role.
+     * Identical in shape to {@code jwtForCustomer}, only the role differs.
      */
     private static org.springframework.test.web.servlet.request.RequestPostProcessor
     jwtForAgent(String userId) {

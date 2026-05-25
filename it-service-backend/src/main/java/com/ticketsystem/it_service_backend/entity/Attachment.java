@@ -7,11 +7,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 
 /**
- * Bir {@link Ticket}'a yüklenen ek dosya — içerik DB'de BYTEA olarak saklanır
- * (dosya sistemi / S3 yerine).
+ * An attachment uploaded to a {@link Ticket} — the content is stored in the DB as
+ * BYTEA (rather than on the filesystem or S3).
  *
- * <p>Müşteri veya agent yükleyebilir; {@code uploaderId} ilgili kullanıcının Keycloak
- * UUID'sidir. Bilete cascade ile bağlıdır — bilet silinirse ekler de düşer.
+ * <p>Either the customer or an agent may upload one; {@code uploaderId} is the
+ * corresponding user's Keycloak UUID. Bound to the ticket via cascade — if the ticket
+ * is deleted, its attachments are removed too.
  */
 @Entity
 @Table(name = "ticket_attachments")
@@ -40,7 +41,7 @@ public class Attachment {
     @Column(name = "file_type", nullable = false)
     private String fileType;
 
-    /** Ham dosya içeriği — PostgreSQL BYTEA olarak DB'de tutulur. */
+    /** Raw file content — stored in the DB as PostgreSQL BYTEA. */
     @Column(name = "content", nullable = false, columnDefinition = "BYTEA")
     private byte[] content;
 

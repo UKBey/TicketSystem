@@ -16,8 +16,8 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir ürüne (ve opsiyonel olarak bir topic'e) bağlı sıkça karşılaşılan sorun (KnownIssue) kayıt yanıtı / istek modeli.
- * Bean Validation ile {@code title} ve {@code content} alanları (notblank + size) doğrulanır.
+ * Response / request model for a KnownIssue entry attached to a product (and optionally a topic).
+ * Bean Validation enforces {@code title} and {@code content} (notblank + size).
  */
 @Schema(description = "Bir ürüne (ve opsiyonel olarak bir topic'e) bağlı sıkça karşılaşılan sorun.")
 public class KnownIssueDTO {

@@ -16,10 +16,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Oturum açan kullanıcının e-posta bildirim tercihlerini yöneten REST kontrolcüsü.
+ * REST controller that manages the authenticated user's email notification preferences.
  *
- * <p>Tüm endpoint'ler kullanıcının kendi tercihleri üzerinde çalışır; iş kuralları
- * {@link NotificationService} içindedir.
+ * <p>All endpoints operate on the calling user's own preferences; business rules
+ * live inside {@link NotificationService}.
  */
 @Log4j2
 @Tag(name = "Bildirim Tercihleri", description = "Kullanıcının e-posta bildirim tercihlerini yönetme işlemleri")
@@ -34,9 +34,9 @@ public class NotificationPreferenceController {
     private final NotificationService notificationService;
 
     /**
-     * Oturumdaki kullanıcının bildirim tercihlerini döner; kayıt yoksa varsayılan değerler döner.
+     * Returns the authenticated user's notification preferences; falls back to defaults if no record exists.
      *
-     * @return kullanıcının e-posta bildirim tercihleri
+     * @return the user's email notification preferences
      */
     @Operation(summary = "Bildirim tercihlerini getir",
             description = "Kullanıcının mevcut bildirim tercihlerini döner. " +
@@ -54,10 +54,10 @@ public class NotificationPreferenceController {
     }
 
     /**
-     * Kullanıcının e-posta bildirim tercihlerini günceller; {@code null} alanlar değişmeden kalır.
+     * Updates the user's email notification preferences; {@code null} fields are left unchanged.
      *
-     * @param request güncellenmek istenen alanları içeren kısmi DTO
-     * @return güncellenmiş tercih kümesi
+     * @param request partial DTO containing the fields to update
+     * @return the updated set of preferences
      */
     @Operation(summary = "Bildirim tercihlerini güncelle",
             description = "Kullanıcının e-posta bildirim tercihlerini günceller. " +

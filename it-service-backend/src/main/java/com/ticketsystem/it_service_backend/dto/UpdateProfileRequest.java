@@ -8,8 +8,8 @@ import lombok.Data;
 
 @Data
 /**
- * Kullanıcı kendi profilini (ad, soyad, e-posta) güncellerken gönderdiği istek.
- * Bean Validation aktif; tüm alanlar zorunludur ve e-posta format kontrolü yapılır.
+ * Request a user sends when updating their own profile (first name, last name, email).
+ * Bean Validation is enforced — all fields are required and the email format is checked.
  */
 @Schema(description = "Profil güncelleme isteği")
 public class UpdateProfileRequest {

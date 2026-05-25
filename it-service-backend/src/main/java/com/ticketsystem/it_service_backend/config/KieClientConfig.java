@@ -15,8 +15,8 @@ import lombok.extern.log4j.Log4j2;
 import java.time.Duration;
 
 /**
- * KIE Server ile REST baglantisini kuran istemciyi uygulama acilisinda olusturur.
- * Bu bean tum workflow servisleri tarafindan ortak kullanilir.
+ * Builds the REST client used to talk to the KIE Server at application
+ * startup. The bean is shared by all workflow services.
  */
 @Configuration
 @Log4j2
@@ -35,12 +35,14 @@ public class KieClientConfig {
     private Long timeout;
 
     /**
-     * KIE Server REST client'i — workflow servisinin tek baglanti noktasi.
+     * The KIE Server REST client — the workflow service's single connection
+     * point.
      *
-     * <p>JSON marshalling kullanir; konfigurasyon {@code jbpm.kie-server.*}
-     * property'lerinden okunur. Acilis sirasinda {@code getServerInfo()} ile
-     * baglanti dogrulanir, hata olursa uygulama yine baslar — workflow ozellikleri
-     * devre disi kalir ama API ayakta kalir.
+     * <p>Uses JSON marshalling and reads configuration from the
+     * {@code jbpm.kie-server.*} properties. At startup the connection is
+     * verified via {@code getServerInfo()}; on failure the application still
+     * starts — workflow features are disabled but the rest of the API stays
+     * up.
      */
     @Bean
     public KieServicesClient kieServicesClient() {
@@ -71,7 +73,8 @@ public class KieClientConfig {
     }
 
     /**
-     * KIE cagri hatalari arttiginda gecici olarak devreyi acip zincirleme arizayi onler.
+     * Opens the circuit briefly when KIE call failures spike, preventing
+     * cascading failures.
      */
     @Bean
     public CircuitBreaker kieServerCircuitBreaker() {

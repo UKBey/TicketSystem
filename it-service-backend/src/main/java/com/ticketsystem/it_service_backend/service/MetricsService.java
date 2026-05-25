@@ -54,13 +54,13 @@ import java.util.stream.Stream;
 import org.springframework.data.domain.PageRequest;
 
 /**
- * Yönetici dashboard'unu besleyen aggregate metrik hesaplamaları.
+ * Aggregate metric calculations that feed the manager dashboard.
  *
- * <p>Tüm sonuçlar Caffeine cache'lerinde tutulur (bkz. {@code CacheConfig};
- * varsayılan TTL 5 dakika). Hesaplamalar mümkün olduğunca tek native/JPQL
- * sorgusu ile yapılır; Java-side join'lerden kaçınılır. SLA hedef saatleri
- * env-driven {@link SlaPolicyService} üzerinden okunur, böylece cache
- * geçişlerinde değer flicker'ı yaşanmaz.
+ * <p>All results are kept in Caffeine caches (see {@code CacheConfig}; default
+ * TTL 5 minutes). Computations are pushed into single native/JPQL queries
+ * wherever possible, avoiding Java-side joins. SLA target hours are read from
+ * the env-driven {@link SlaPolicyService} so values don't flicker across
+ * cache transitions.
  */
 @Log4j2
 @Service
@@ -78,11 +78,11 @@ public class MetricsService {
     private final SlaPolicyService slaPolicyService;
 
     /**
-     * Dashboard özet metrikleri hesaplar.
-     * KPI kartları için gerekli temel veriler: toplam açık bilet, SLA breach,
-     * ortalama yanıt süresi, CSAT puanı ve priority dağılımı.
+     * Computes the dashboard summary metrics.
+     * Base data for the KPI cards: total open tickets, SLA breaches, average
+     * response time, CSAT score and priority distribution.
      *
-     * @return DashboardMetricsDTO — tüm KPI metrikleri
+     * @return DashboardMetricsDTO — all KPI metrics
      */
     private static final List<String> OPEN_STATUSES = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
 
@@ -134,9 +134,9 @@ public class MetricsService {
     }
 
         /**
-         * Ticket durum dağılımını hesaplar.
+         * Computes the ticket status distribution.
          *
-         * @return StatusDistributionDTO — tüm durumlar için ticket sayıları
+         * @return StatusDistributionDTO — ticket counts for every status
          */
         @Cacheable(STATUS_DISTRIBUTION)
         public StatusDistributionDTO getStatusDistribution() {
@@ -173,9 +173,9 @@ public class MetricsService {
         }
 
     /**
-     * Ajan performans leaderboard verisini hesaplar.
+     * Computes the agent performance leaderboard data.
      *
-     * @return AgentPerformanceDTO — agent satırları ve özet metrikler
+     * @return AgentPerformanceDTO — per-agent rows and summary metrics
      */
     @Cacheable(AGENT_PERFORMANCE)
     public AgentPerformanceDTO getAgentPerformance() {
@@ -248,10 +248,10 @@ public class MetricsService {
     }
 
     /**
-     * Aggregated query çıktısından DTO oluşturur. Eski Java-side join'leri
-     * (3 findAll + stream filter) gereksizleşti — tüm sayım/ortalamalar
-     * {@link com.ticketsystem.it_service_backend.repository.TicketRepository#findAgentPerformanceMetrics}
-     * SQL'inde yapıldı.
+     * Builds the DTO from the aggregated query output. The old Java-side joins
+     * (3 findAll + stream filter) are no longer needed — every count/average is
+     * computed inside
+     * {@link com.ticketsystem.it_service_backend.repository.TicketRepository#findAgentPerformanceMetrics}.
      */
     private AgentPerformanceItemDTO buildAgentPerformanceRow(User agent,
                                                              Object[] metricsRow,
@@ -300,11 +300,11 @@ public class MetricsService {
     }
 
     /**
-     * Son N güne ait günlük ticket timeline metriklerini hesaplar.
-     * Günlük oluşturulan, çözülen, kapalı bilet sayılarını ve SLA breach sayılarını döner.
-     * 
-     * @param days Kaç günlük veri isteneceği (default 30)
-     * @return TicketTimelineDTO — günlük metriklerin timeline'ı
+     * Computes the daily ticket timeline metrics over the last N days.
+     * Returns daily counts of created, resolved and closed tickets along with SLA breach counts.
+     *
+     * @param days number of days to include (defaults to 30)
+     * @return TicketTimelineDTO — timeline of daily metrics
      */
     @Cacheable(value = TICKET_TIMELINE, key = "#days")
     public TicketTimelineDTO getTicketTimeline(int days) {
@@ -361,13 +361,13 @@ public class MetricsService {
         }
 
     /**
-     * Priority bazlı SLA hedef ve performans metriklerini hesaplar.
-     * Her priority için ticket adedi, SLA hedef süresi, ortalama çözüm süresi,
-     * breach yüzdesi ve on-time yüzdesi döner. SLA hedef saatleri env-driven
-     * SlaPolicyService'ten okunur; days null/0 ⇒ tüm zamanlar.
+     * Computes SLA target and performance metrics per priority.
+     * For each priority returns ticket count, SLA target hours, average resolution
+     * time, breach percentage and on-time percentage. SLA target hours are read
+     * from the env-driven SlaPolicyService; days null/0 means all time.
      *
-     * @param days Pencere (gün); null veya 0 ise tüm zamanlar
-     * @return PrioritySLAMetricsDTO — priority detay satırları
+     * @param days window in days; null or 0 means all time
+     * @return PrioritySLAMetricsDTO — per-priority detail rows
      */
     @Cacheable(value = PRIORITY_SLA_METRICS, key = "#days == null ? 'all' : #days")
     public PrioritySLAMetricsDTO getPrioritySlaMetrics(Integer days) {
@@ -402,13 +402,13 @@ public class MetricsService {
     }
 
     /**
-     * Ürün bazında bilet metriklerini hesaplar.
-     * Her aktif ürün için toplam bilet, açık bilet, ortalama çözüm süresi,
-     * CSAT ortalaması ve SLA breach yüzdesi döner; toplam bilete göre azalan sıralıdır.
-     * days null/0 ⇒ tüm zamanlar.
+     * Computes per-product ticket metrics.
+     * For each active product returns total tickets, open tickets, average
+     * resolution time, CSAT average and SLA breach percentage, sorted by total
+     * tickets in descending order. days null/0 means all time.
      *
-     * @param days Pencere (gün); null veya 0 ise tüm zamanlar
-     * @return ProductMetricsDTO — ürün detay satırları
+     * @param days window in days; null or 0 means all time
+     * @return ProductMetricsDTO — per-product detail rows
      */
     @Cacheable(value = PRODUCT_METRICS, key = "#days == null ? 'all' : #days")
     public ProductMetricsDTO getProductMetrics(Integer days) {
@@ -438,12 +438,13 @@ public class MetricsService {
     }
 
     /**
-     * Belirtilen ay penceresi için CSAT metriklerini hesaplar: ortalama puan,
-     * puan dağılımı, ay-üzeri trend (UP/DOWN/STABLE), priority bazlı dağılım ve
-     * pozitif yorum top-5 örneği. {@code months} 1-12 arasında clamp'lenir.
+     * Computes CSAT metrics over the given month window: average score, rating
+     * distribution, month-over-month trend (UP/DOWN/STABLE), per-priority
+     * breakdown and a top-5 sample of positive comments. {@code months} is
+     * clamped between 1 and 12.
      *
-     * @param months pencere uzunluğu (ay) — 1 ile 12 arasında
-     * @return CSAT metrik özet DTO'su
+     * @param months window length in months — between 1 and 12
+     * @return CSAT metrics summary DTO
      */
     @Cacheable(value = CSAT_METRICS, key = "#months")
     public CSATMetricsDTO getCSATMetrics(int months) {
@@ -500,14 +501,15 @@ public class MetricsService {
     }
 
     /**
-     * Alert ve backlog panelini besleyen kompozit DTO'yu üretir.
+     * Builds the composite DTO that feeds the alerts and backlog panel.
      *
-     * <p>Üç alert listesi: (1) breached SLA top-10, (2) priority bazlı uyarı eşiği
-     * içine giren upcoming-breach top-10, (3) WAITING_FOR_CUSTOMER 3 günden uzun
-     * süren biletler. Backlog: atanmamış sayı, NEW sayısı, ortalama bekleme süresi.
-     * Müşteri adları tek {@code findAllById} ile çekilerek N+1 önlenir.
+     * <p>Three alert lists: (1) top-10 breached SLA, (2) top-10 upcoming-breach
+     * tickets falling inside the per-priority warning window, (3) tickets that
+     * have been in WAITING_FOR_CUSTOMER for more than 3 days. Backlog: unassigned
+     * count, NEW count, average waiting time. Customer names are fetched with a
+     * single {@code findAllById} to avoid N+1.
      *
-     * @return alert listeleri + backlog metriklerini taşıyan DTO
+     * @return DTO carrying alert lists and backlog metrics
      */
     public AlertsBacklogDTO getAlertsAndBacklog() {
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
@@ -606,15 +608,15 @@ public class MetricsService {
     }
 
     /**
-     * Worklog ve completion metriklerini hesaplar.
+     * Computes worklog and completion metrics.
      *
-     * <p>Verilen gün penceresi için her ajanın toplam worklog dakikası/kayıt sayısı
-     * ile genel completion rate (resolved+closed / created), ortalama çözüm süresi
-     * ve SLA uyumluluk oranı tek aggregated query ile döner. {@code days} 1-365
-     * arası clamp'lenir.
+     * <p>For the given day window, returns each agent's total worklog minutes and
+     * entry count along with the overall completion rate (resolved+closed / created),
+     * average resolution time and SLA compliance rate — all in a single aggregated
+     * query. {@code days} is clamped between 1 and 365.
      *
-     * @param days pencere (gün)
-     * @return worklog özetleri + completion oranları
+     * @param days window in days
+     * @return worklog summaries and completion rates
      */
     @Cacheable(value = WORKLOG_COMPLETION, key = "#days")
     public WorklogCompletionDTO getWorklogCompletion(int days) {

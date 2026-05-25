@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 /**
- * Kullanıcı şifre değiştirme isteği. Mevcut şifre doğrulaması servis katmanında yapılır.
- * Bean Validation ile yeni şifre min 8 karakter kontrol edilir.
+ * User password change request. Current-password verification is performed in the service layer.
+ * Bean Validation enforces a minimum length of 8 characters on the new password.
  */
 @Schema(description = "Şifre değiştirme isteği")
 public class ChangePasswordRequest {

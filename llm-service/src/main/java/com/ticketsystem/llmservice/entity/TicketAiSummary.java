@@ -6,8 +6,8 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 /**
- * Bir ticket için LLM tarafından üretilen özet kaydı.
- * Her summarize isteği yeni bir kayıt oluşturur; geçmiş özetler silinmez.
+ * Summary record produced by the LLM for a ticket.
+ * Every summarize request creates a new record; previous summaries are not deleted.
  */
 @Entity
 @Table(name = "ticket_ai_summaries")
@@ -22,23 +22,23 @@ public class TicketAiSummary {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** İlgili ticket'ın ID'si (it-service-backend'deki tickets.id) */
+    /** ID of the related ticket (tickets.id in it-service-backend) */
     @Column(name = "ticket_id", nullable = false)
     private Long ticketId;
 
-    /** Özeti üreten model adı (ör: llama3-8b-8192) */
+    /** Name of the model that produced the summary (e.g. llama3-8b-8192) */
     @Column(nullable = false, length = 100)
     private String model;
 
-    /** Groq'un raporladığı prompt token sayısı */
+    /** Prompt token count reported by Groq */
     @Column(name = "prompt_tokens")
     private Integer promptTokens;
 
-    /** Groq'un raporladığı completion token sayısı */
+    /** Completion token count reported by Groq */
     @Column(name = "completion_tokens")
     private Integer completionTokens;
 
-    /** LLM'in ürettiği özet metni */
+    /** Summary text produced by the LLM */
     @Column(nullable = false, columnDefinition = "TEXT")
     private String summary;
 

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.ZonedDateTime;
 
 /**
- * LLM özetleme sonucunu dönen yanıt modeli.
+ * Response model returning the result of LLM summarization.
  */
 @Data
 @Builder

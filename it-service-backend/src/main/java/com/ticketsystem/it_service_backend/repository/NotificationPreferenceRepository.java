@@ -7,8 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * {@link NotificationPreference} için JPA repository — kullanıcının bildirim tercihlerini
- * Keycloak UUID'siyle (PK) okur.
+ * JPA repository for {@link NotificationPreference} — reads a user's notification
+ * preferences by their Keycloak UUID (the PK).
  */
 @Repository
 public interface NotificationPreferenceRepository extends JpaRepository<NotificationPreference, String> {

@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Yeni kullanıcı oluşturma işlemi başarılı olduğunda dönen yanıt modeli.
+ * Response returned when a new user has been successfully created.
  *
- * <p>Keycloak'ta oluşturulan kullanıcının UUID'si ve atanan roller
- * frontend'e iletilir; bu sayede liste yenileme veya detay görüntüleme
- * işlemleri ek bir istek gerektirmeden yapılabilir.
+ * <p>The Keycloak UUID and assigned roles of the newly created user are
+ * passed back to the frontend so list refresh or detail view operations
+ * can happen without an extra round trip.
  */
 @Data
 @Builder

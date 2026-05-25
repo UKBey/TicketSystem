@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * it-service-backend'den ticket verisini çeken servis.
- * Internal endpoint üzerinden JWT gerektirmeden çalışır.
+ * Service that fetches ticket data from it-service-backend.
+ * Operates without JWT through the internal endpoint.
  */
 @Slf4j
 @Service
@@ -27,8 +27,8 @@ public class TicketDataFetcher {
     private final WebClient ticketServiceWebClient;
 
     /**
-     * Verilen ticketId için it-service-backend'den tam ticket verisini çeker
-     * ve SummarizeRequestDTO'ya dönüştürür.
+     * Fetches the full ticket data from it-service-backend for the given ticketId
+     * and converts it into a SummarizeRequestDTO.
      */
     public SummarizeRequestDTO fetchTicketData(Long ticketId, String language) {
         log.info("Ticket verisi çekiliyor. TicketId: {}", ticketId);

@@ -15,9 +15,9 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 /**
- * Manager alerts panelinde gösterilen tek bir uyarı bileti satırı.
- * {@link AlertsBacklogDTO} içindeki üç listeden (breached/upcoming/waiting) birinde yer alır;
- * hangi listede olduğuna göre {@code deadline}/{@code hoursUntilDeadline}/{@code hoursWaiting} alanları doldurulur.
+ * A single alert-ticket row shown on the manager alerts panel.
+ * Appears in one of the three lists inside {@link AlertsBacklogDTO} (breached/upcoming/waiting);
+ * the {@code deadline}/{@code hoursUntilDeadline}/{@code hoursWaiting} fields are populated based on which list it belongs to.
  */
 @Schema(description = "Bir alert ticket'ının özet bilgileri")
 public class AlertTicketItemDTO {

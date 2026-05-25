@@ -13,8 +13,8 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bilete yüklenen dosya ekinin metadata yanıtı; ad, MIME tipi ve yükleyen bilgilerini taşır.
- * Dosya içeriği bu DTO'ya dahil değildir, ayrı bir download endpoint'i üzerinden indirilir.
+ * Metadata response for a file attachment on a ticket — file name, MIME type and uploader info.
+ * The file content is not included in this DTO; it is fetched via a separate download endpoint.
  */
 @Schema(description = "Dosya eki metadata bilgisi — dosya içeriği bu DTO'da yer almaz, ayrı endpoint üzerinden indirilir")
 public class AttachmentDTO {

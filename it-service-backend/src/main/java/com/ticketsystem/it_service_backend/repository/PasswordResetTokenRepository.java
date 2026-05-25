@@ -10,16 +10,16 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 
 /**
- * {@link PasswordResetToken} için JPA repository — hash'lenmiş token lookup ve
- * yeni reset isteği geldiğinde kullanıcının açık token'larını toplu iptal etme.
+ * JPA repository for {@link PasswordResetToken} — hashed-token lookup, plus bulk
+ * invalidation of a user's outstanding tokens when a new reset request arrives.
  */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
     Optional<PasswordResetToken> findByTokenHash(String tokenHash);
 
     /**
-     * Kullanıcının halen geçerli (kullanılmamış + süresi dolmamış) token'larını
-     * iptal eder. Yeni reset isteği geldiğinde önceki linkleri devre dışı bırakmak için.
+     * Invalidates the user's currently valid (unused + unexpired) tokens.
+     * Called when a new reset request arrives, to deactivate the previous links.
      */
     @Modifying
     @Query("""

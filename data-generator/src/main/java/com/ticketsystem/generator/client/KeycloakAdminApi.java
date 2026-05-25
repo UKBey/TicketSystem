@@ -13,13 +13,13 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Keycloak Admin REST API'ye doğrudan erişim — yalnızca data-generator akışı içinde
- * required-action temizleme gibi düşük seviye operasyonlar için kullanılır.
+ * Direct access to the Keycloak Admin REST API — used only inside the data-generator
+ * flow for low-level operations such as clearing required actions.
  *
- * <p>Master realm üzerinde {@code admin-cli} ile password grant alarak token alır,
- * hedef realm'in {@code /admin/realms/.../users} endpoint'lerini çağırır. Token
- * basitçe ilk kullanımda alınır ve cache'lenir; bu generator akışı dakikalar sürmez,
- * refresh stratejisine ihtiyaç yoktur.
+ * <p>Obtains a token via password grant against the master realm with {@code admin-cli},
+ * then calls the target realm's {@code /admin/realms/.../users} endpoints. The token
+ * is simply fetched on first use and cached; the generator flow does not run for many
+ * minutes, so no refresh strategy is needed.
  */
 public class KeycloakAdminApi {
 
@@ -33,10 +33,10 @@ public class KeycloakAdminApi {
     private String cachedToken;
 
     /**
-     * Admin client'ı oluşturur; token URL'i master realm'den, kullanıcı URL'i
-     * ise hedef realm'den ({@link GeneratorConfig#KEYCLOAK_REALM}) türetilir.
+     * Creates the admin client; the token URL is derived from the master realm and the
+     * user URL from the target realm ({@link GeneratorConfig#KEYCLOAK_REALM}).
      *
-     * @param http   paylaşılan OkHttp client
+     * @param http   shared OkHttp client
      * @param mapper Jackson mapper
      */
     public KeycloakAdminApi(OkHttpClient http, ObjectMapper mapper) {
@@ -48,12 +48,12 @@ public class KeycloakAdminApi {
     }
 
     /**
-     * Kullanıcının {@code requiredActions} listesini temizler. Kullanıcı yoksa veya
-     * admin REST çağrısı başarısız olursa {@code false} döner — login fallback'i
-     * çalışmaz, bu durumda kullanıcı setup'tan atlanır.
+     * Clears the user's {@code requiredActions} list. Returns {@code false} if the
+     * user does not exist or the admin REST call fails — the login fallback will not
+     * run and the user is skipped during setup.
      *
-     * @param username temizlenecek kullanıcının Keycloak username'i
-     * @return işlem başarılıysa {@code true}; aksi halde {@code false}
+     * @param username Keycloak username of the user to clear
+     * @return {@code true} if the operation succeeded; {@code false} otherwise
      */
     public boolean clearRequiredActions(String username) {
         try {
@@ -113,7 +113,7 @@ public class KeycloakAdminApi {
     }
 
     /**
-     * Master realm üzerinden admin token alır. Tek seferlik — generator akışı kısa.
+     * Obtains an admin token via the master realm. One-shot — the generator flow is short.
      */
     private synchronized String token() throws IOException {
         if (cachedToken != null) return cachedToken;

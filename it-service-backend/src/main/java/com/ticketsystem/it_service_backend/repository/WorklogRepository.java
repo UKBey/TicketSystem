@@ -9,8 +9,8 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * {@link TicketWorklog} için JPA repository — bilet/agent bazında listeleme ve
- * dashboard için agent başına dakika toplamı.
+ * JPA repository for {@link TicketWorklog} — per-ticket / per-agent listing and a
+ * per-agent minute total for the dashboard.
  */
 public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
 
@@ -21,9 +21,9 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
     void deleteByTicketId(Long ticketId);
 
     /**
-     * Verilen tarihten beri agent başına toplam dakika ve worklog kayıt sayısı.
-     * Dönüş: her satır {@code [agent_id, total_minutes, worklog_count]}, en çok eforu
-     * harcayan en üstte.
+     * Total minutes and worklog count per agent since the given date.
+     * Returns: each row is {@code [agent_id, total_minutes, worklog_count]}, with
+     * the highest-effort agent at the top.
      */
     @Query("SELECT w.agentId, SUM(w.minutes), COUNT(w) " +
            "FROM TicketWorklog w " +

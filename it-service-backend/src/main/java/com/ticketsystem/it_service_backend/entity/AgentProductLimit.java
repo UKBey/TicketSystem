@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * Bir agent için tek bir {@link Product} bazında aktif bilet limit override'ı.
+ * Per-{@link Product} active-ticket limit override for a single agent.
  *
- * <p>Varsayılan olarak {@link Product#getMaxActiveTickets()} geçerlidir; bir agent
- * için {@code useCustomLimit=true} ise burada tutulan {@code maxActiveTickets} değeri
- * üstün gelir ve claim sırasında kontrol edilir. {@code (agent_id, product_id)} unique.
+ * <p>By default {@link Product#getMaxActiveTickets()} applies; when an agent has
+ * {@code useCustomLimit=true}, the {@code maxActiveTickets} value stored here takes
+ * precedence and is checked at claim time. {@code (agent_id, product_id)} is unique.
  */
 @Entity
 @Table(name = "agent_product_limits",
@@ -31,12 +31,12 @@ public class AgentProductLimit {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    /** true ise {@code maxActiveTickets} kullanılır; false ise ürünün varsayılan limiti geçerli. */
+    /** When true, {@code maxActiveTickets} is used; when false, the product's default limit applies. */
     @Column(name = "use_custom_limit", nullable = false)
     @Builder.Default
     private Boolean useCustomLimit = false;
 
-    /** Override aktifken bu agent'ın bu ürün için açabileceği maksimum aktif bilet sayısı. */
+    /** Maximum number of active tickets this agent may have on this product while the override is active. */
     @Column(name = "max_active_tickets")
     private Integer maxActiveTickets;
 }

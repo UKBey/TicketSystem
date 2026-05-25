@@ -31,11 +31,11 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * Anonim auth akışları — şifre sıfırlama REST kontrolcüsü.
+ * REST controller for anonymous auth flows — password reset.
  *
- * <p>Tüm endpoint'ler permit-list'tedir; yetkilendirme yerine email enumeration
- * koruması ve IP başına Bucket4j rate-limit uygulanır. Token üretimi/doğrulaması
- * ve Keycloak ile şifre değişimi {@link PasswordResetService}'e devredilir.
+ * <p>All endpoints are on the permit-list; instead of authorization, email enumeration
+ * protection and per-IP Bucket4j rate-limiting are applied. Token generation/validation
+ * and the actual Keycloak password change are delegated to {@link PasswordResetService}.
  */
 @Log4j2
 @Tag(name = "Authentication", description = "Anonim auth akışları (şifre sıfırlama)")
@@ -56,11 +56,11 @@ public class AuthController {
     private int forgotWindowSeconds;
 
     /**
-     * Şifre sıfırlama maili kuyruğa alır; enumeration koruması için sonuçtan bağımsız {@code 200} döner.
+     * Queues a password reset email; always returns {@code 200} regardless of the outcome to prevent enumeration.
      *
-     * @param body e-posta adresi ile opsiyonel dil/tema tercihi
-     * @param request rate-limit anahtarı olarak IP'yi çıkarmak için kullanılır
-     * @return {@code {"status":"ok"}} veya rate-limit aşıldıysa {@code 429}
+     * @param body the email address with an optional language/theme preference
+     * @param request used to extract the IP that serves as the rate-limit key
+     * @return {@code {"status":"ok"}}, or {@code 429} if the rate limit is exceeded
      */
     @Operation(
             summary = "Şifre sıfırlama linki iste",
@@ -83,10 +83,10 @@ public class AuthController {
     }
 
     /**
-     * Bir reset token'ının hâlâ geçerli (kullanılmamış ve süresi dolmamış) olup olmadığını kontrol eder.
+     * Checks whether a reset token is still valid (unused and not expired).
      *
-     * @param token e-posta linkinden gelen sıfırlama token'ı
-     * @return {@code {"valid": true|false}} biçiminde tek anahtarlı yanıt
+     * @param token the reset token from the email link
+     * @return single-key response of the form {@code {"valid": true|false}}
      */
     @Operation(
             summary = "Reset token geçerli mi?",
@@ -100,10 +100,10 @@ public class AuthController {
     }
 
     /**
-     * Tek kullanımlık token ile Keycloak şifresini sıfırlar; başarılı sıfırlamada token geçersizleşir.
+     * Resets the Keycloak password using a single-use token; the token becomes invalid on a successful reset.
      *
-     * @param body token, yeni parola ve opsiyonel dil/tema tercihi
-     * @return başarıda {@code {"status":"ok"}}; geçersiz token veya politika ihlalinde {@code 400} + hata kodu
+     * @param body the token, new password and optional language/theme preference
+     * @return {@code {"status":"ok"}} on success; {@code 400} with an error code on an invalid token or policy violation
      */
     @Operation(
             summary = "Token ile şifre sıfırla",
@@ -133,8 +133,8 @@ public class AuthController {
     // ------------------------------------------------------------------
 
     /**
-     * IP başına Bucket4j ile rate-limit. Mevcut JWT-tabanlı RateLimitInterceptor
-     * anonim endpoint'leri atlar; bu yüzden burada manuel bucket çalıştırılır.
+     * Per-IP rate-limit with Bucket4j. The existing JWT-based RateLimitInterceptor
+     * skips anonymous endpoints, so a manual bucket is run here.
      */
     private boolean consumeForgotPasswordBucket(String ip) {
         BucketProxy bucket = bucketProxyManager.builder().build(

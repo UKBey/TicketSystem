@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Kullanıcının Keycloak'a kayıtlı TOTP (authenticator) cihazının özet yanıtı.
- * Profil ekranındaki "iki adımlı doğrulama" listesinde gösterilir; silme isteğinde {@code id} kullanılır.
+ * Summary response for a TOTP (authenticator) device registered against the user in Keycloak.
+ * Shown in the "two-factor authentication" list on the profile screen; deletion requests use {@code id}.
  */
 @Schema(description = "Kullanıcının kayıtlı TOTP (authenticator) cihazı özet bilgisi")
 public class TotpCredentialDTO {

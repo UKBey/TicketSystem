@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Manuel atama UI'ında bir ajanın mevcut yük ve kapasite bilgisini gösteren özet.
- * {@code isFull=true} olduğunda atama seçeneği devre dışı bırakılır.
+ * Summary showing an agent's current load and capacity on the manual-assignment UI.
+ * When {@code isFull=true} the assignment option is disabled.
  */
 @Schema(description = "Agent kapasite bilgisi — atama UI'ı için")
 public class AgentCapacityDTO {

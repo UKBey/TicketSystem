@@ -12,13 +12,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Her HTTP istegi icin bir satir erisim logu yazan {@link OncePerRequestFilter}.
+ * A {@link OncePerRequestFilter} that writes one access-log line per HTTP
+ * request.
  *
- * <p>{@code @Order(1)} ile zincirin en basina yerlestirilir, boylece sure
- * olcumune Spring Security ve interceptor'larin maliyeti de dahil olur. Status
- * koduna gore log seviyesi ayarlanir: 5xx {@code ERROR}, 4xx {@code WARN}, geri
- * kalan {@code INFO}. {@code /actuator} prefixli istekler (saglik probe'lari) log
- * gurultusunu azaltmak icin atlanir.
+ * <p>Placed at the head of the chain with {@code @Order(1)} so the duration
+ * measurement includes the cost of Spring Security and the interceptors.
+ * The log level is chosen based on the status code: 5xx logs at
+ * {@code ERROR}, 4xx at {@code WARN}, everything else at {@code INFO}.
+ * Requests prefixed with {@code /actuator} (health probes) are skipped to
+ * reduce log noise.
  */
 @Log4j2
 @Component
@@ -26,9 +28,10 @@ import java.io.IOException;
 public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
     /**
-     * Saglik / metrik probe'larini logdan dislar.
+     * Excludes health / metric probes from the log.
      *
-     * @return {@code true} ise istek loglanmaz (yalnizca {@code /actuator/*})
+     * @return {@code true} if the request should not be logged (only for
+     *         {@code /actuator/*})
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

@@ -5,11 +5,12 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Bir agent'ın bir {@link Ticket}'ı sahiplenme kaydı.
+ * Record of an agent claiming a {@link Ticket}.
  *
- * <p>{@link Ticket} ⇄ agent ilişkisi many-to-many olarak bu köprü tablosunda tutulur —
- * yani aynı bilete birden fazla agent claim atabilir. {@code (ticket_id, agent_id)}
- * unique constraint'i ile aynı agent aynı bileti iki kez sahiplenemez.
+ * <p>The {@link Ticket} ⇄ agent relationship is modeled many-to-many through this
+ * bridge table — multiple agents can claim the same ticket. The
+ * {@code (ticket_id, agent_id)} unique constraint prevents the same agent from
+ * claiming the same ticket twice.
  */
 @Entity
 @Table(name = "ticket_claims",
@@ -29,7 +30,7 @@ public class TicketClaim {
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
-    /** Sahiplenen agent'ın Keycloak UUID'si — {@link User#id}'ye karşılık gelir. */
+    /** Keycloak UUID of the claiming agent — corresponds to {@link User#id}. */
     @Column(name = "agent_id", nullable = false, length = 255)
     private String agentId;
 

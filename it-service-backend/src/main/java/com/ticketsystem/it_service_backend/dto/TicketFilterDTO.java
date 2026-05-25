@@ -6,111 +6,111 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * Tüm ticket listeleme endpoint'lerinde kullanılan filtre parametrelerini taşır.
- * Null değerler "filtre uygulanmadı" anlamına gelir.
+ * Filter parameters shared by every ticket-listing endpoint.
+ * Null values mean "no filter applied".
  */
 @Data
 @Builder
 public class TicketFilterDTO {
 
-    /** Başlıkta aranacak metin (case-insensitive, LIKE %search%) */
+    /** Text to search for in the title (case-insensitive, LIKE %search%). */
     private String search;
 
     /**
-     * Bilet durumu — çoklu seçim destekler (NEW, IN_PROGRESS, vb.).
-     * Boş/null liste = filtre uygulanmaz.
+     * Ticket status — supports multi-select (NEW, IN_PROGRESS, etc.).
+     * An empty/null list means no filter is applied.
      */
     private List<String> statuses;
 
     /**
-     * Öncelik seviyesi — çoklu seçim destekler (CRITICAL, HIGH, MEDIUM, LOW).
-     * Boş/null liste = filtre uygulanmaz.
+     * Priority level — supports multi-select (CRITICAL, HIGH, MEDIUM, LOW).
+     * An empty/null list means no filter is applied.
      */
     private List<String> priorities;
 
     /**
-     * Ürün ID filtresi — çoklu seçim destekler.
-     * Boş/null liste = filtre uygulanmaz.
+     * Product ID filter — supports multi-select.
+     * An empty/null list means no filter is applied.
      */
     private List<Long> productIds;
 
     /**
-     * Atanan agent ID'leri — çoklu seçim destekler.
-     * Boş/null liste = filtre uygulanmaz.
+     * Assigned agent IDs — supports multi-select.
+     * An empty/null list means no filter is applied.
      */
     private List<String> agentIds;
 
     /**
-     * Talep konusu ID'leri — çoklu seçim destekler.
-     * Boş/null liste = filtre uygulanmaz.
+     * Topic IDs — supports multi-select.
+     * An empty/null list means no filter is applied.
      */
     private List<Long> topicIds;
 
     /**
-     * SLA durumu — çoklu seçim destekler (BREACHED, ACTIVE, PAUSED).
-     * Boş/null liste = filtre uygulanmaz.
+     * SLA status — supports multi-select (BREACHED, ACTIVE, PAUSED).
+     * An empty/null list means no filter is applied.
      */
     private List<String> slaStatuses;
 
-    /** Oluşturulma tarihi başlangıcı (dahil) */
+    /** Creation date lower bound (inclusive). */
     private ZonedDateTime createdAtFrom;
 
-    /** Oluşturulma tarihi bitişi (dahil) */
+    /** Creation date upper bound (inclusive). */
     private ZonedDateTime createdAtTo;
 
     // -------------------------------------------------------------------------
-    // Geriye dönük uyumluluk — tek değer setter'ları
+    // Backwards compatibility — single-value setters
     // -------------------------------------------------------------------------
 
-    /** Tek status değeri set eder (geriye dönük uyumluluk). */
+    /** Sets a single status value (kept for backwards compatibility). */
     public void setStatus(String status) {
         this.statuses = (status != null && !status.isBlank())
                 ? java.util.List.of(status) : null;
     }
 
-    /** Tek priority değeri set eder (geriye dönük uyumluluk). */
+    /** Sets a single priority value (kept for backwards compatibility). */
     public void setPriority(String priority) {
         this.priorities = (priority != null && !priority.isBlank())
                 ? java.util.List.of(priority) : null;
     }
 
-    /** Tek productId değeri set eder (geriye dönük uyumluluk). */
+    /** Sets a single productId value (kept for backwards compatibility). */
     public void setProductId(Long productId) {
         this.productIds = (productId != null) ? java.util.List.of(productId) : null;
     }
 
-    /** Tek slaStatus değeri set eder (geriye dönük uyumluluk). */
+    /** Sets a single slaStatus value (kept for backwards compatibility). */
     public void setSlaStatus(String slaStatus) {
         this.slaStatuses = (slaStatus != null && !slaStatus.isBlank())
                 ? java.util.List.of(slaStatus) : null;
     }
 
-    /** Aktif status listesini null-safe döner. */
+    /** Returns the active status list in a null-safe way. */
     public List<String> getStatuses() {
         return (statuses != null && !statuses.isEmpty()) ? statuses : null;
     }
 
-    /** Aktif priority listesini null-safe döner. */
+    /** Returns the active priority list in a null-safe way. */
     public List<String> getPriorities() {
         return (priorities != null && !priorities.isEmpty()) ? priorities : null;
     }
 
-    /** Aktif productId listesini null-safe döner. */
+    /** Returns the active productId list in a null-safe way. */
     public List<Long> getProductIds() {
         return (productIds != null && !productIds.isEmpty()) ? productIds : null;
     }
 
-    /** Aktif slaStatus listesini null-safe döner. */
+    /** Returns the active slaStatus list in a null-safe way. */
     public List<String> getSlaStatuses() {
         return (slaStatuses != null && !slaStatuses.isEmpty()) ? slaStatuses : null;
     }
 
-    /** Aktif agentId listesini null-safe döner. */
+    /** Returns the active agentId list in a null-safe way. */
     public List<String> getAgentIds() {
         return (agentIds != null && !agentIds.isEmpty()) ? agentIds : null;
     }
 
-    /** Aktif topicId listesini null-safe döner. */
+    /** Returns the active topicId list in a null-safe way. */
     public List<Long> getTopicIds() {
         return (topicIds != null && !topicIds.isEmpty()) ? topicIds : null;
     }

@@ -50,15 +50,18 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final String GLOBAL_ENDPOINT_KEY = "GLOBAL_API";
 
     /**
-     * Yapilandirma okunur, agent JWT'sinden kullanici kimligi cikarilir ve ilgili
-     * bucket'tan bir token tuketilir.
+     * Reads the configuration, extracts the user identity from the agent JWT
+     * and consumes a token from the matching bucket.
      *
-     * <p>Token yoksa istemci anonim olarak gecirilir (gerekli kontrol Security
-     * Filter Chain'de yapilir). Bucket bos ise {@code HTTP 429} ve
-     * {@code Retry-After} header'i ile JSON gövdesi dondurulur. Yapilandirma
-     * devre disi veya tanimsiz ise interceptor sessizce gecirir.
+     * <p>If there is no token the client is allowed through as anonymous
+     * (the Security Filter Chain enforces any required authentication).
+     * When the bucket is empty the response is {@code HTTP 429} with a
+     * {@code Retry-After} header and a JSON body. If the configuration is
+     * disabled or missing the interceptor silently passes the request
+     * through.
      *
-     * @return {@code true} → istek devam etsin; {@code false} → 429 yazildi, zincir kesilsin
+     * @return {@code true} → let the request continue; {@code false} → 429
+     *         was written, break the chain
      */
     @Override
     public boolean preHandle(HttpServletRequest request,

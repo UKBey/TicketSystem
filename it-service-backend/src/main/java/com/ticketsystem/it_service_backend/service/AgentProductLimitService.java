@@ -17,11 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Bir ajan + ürün kombinasyonu için özel eşzamanlı bilet limitini yönetir.
+ * Manages the per-agent + product custom concurrent ticket limit.
  *
- * <p>Custom limit set edilmediğinde ajan, ürünün varsayılan {@code maxActiveTickets}
- * değerini kullanır. {@code useCustomLimit=false} gönderildiğinde mevcut özel limit
- * kaydı silinir ve ajan default'a düşer. AGENT_ADMIN tarafından kullanılır.
+ * <p>When no custom limit is set, the agent uses the product's default
+ * {@code maxActiveTickets}. Sending {@code useCustomLimit=false} deletes the
+ * existing custom record and the agent falls back to the default. Used by
+ * AGENT_ADMIN.
  */
 @Log4j2
 @Service
@@ -33,10 +34,10 @@ public class AgentProductLimitService {
     private final UserRepository userRepository;
 
     /**
-     * Verilen ajanın tüm ürün-spesifik özel limit kayıtlarını DTO listesi olarak döner.
+     * Returns the agent's per-product custom limit records as a DTO list.
      *
-     * @param agentId ajan ID
-     * @return limit kayıtlarının DTO listesi (boş olabilir)
+     * @param agentId agent ID
+     * @return list of limit DTOs (may be empty)
      */
     @Transactional(readOnly = true)
     public List<AgentProductLimitResponseDTO> getAgentLimits(String agentId) {
@@ -47,19 +48,19 @@ public class AgentProductLimitService {
     }
 
     /**
-     * Bir ajan + ürün eşleşmesi için özel limiti ayarlar veya kaldırır.
+     * Sets or removes the custom limit for an agent + product pairing.
      *
-     * <p>{@code useCustomLimit=false} verilirse mevcut özel limit silinir ve
-     * ajan ürünün default limitine düşer. {@code true} verilirse
-     * {@code maxActiveTickets} zorunludur.
+     * <p>If {@code useCustomLimit=false} is supplied, the existing custom record
+     * is deleted and the agent falls back to the product's default limit. If
+     * {@code true}, {@code maxActiveTickets} is required.
      *
-     * @param agentId ajan ID
-     * @param productId ürün ID
-     * @param useCustomLimit özel limit aktif mi
-     * @param maxActiveTickets özel limit aktifse uygulanacak değer
-     * @return son durumu yansıtan DTO
-     * @throws ResponseStatusException 404 — ajan veya ürün bulunamazsa
-     * @throws IllegalArgumentException özel limit istenip değer verilmezse
+     * @param agentId agent ID
+     * @param productId product ID
+     * @param useCustomLimit whether the custom limit is active
+     * @param maxActiveTickets value to apply when the custom limit is active
+     * @return DTO reflecting the resulting state
+     * @throws ResponseStatusException 404 if agent or product is not found
+     * @throws IllegalArgumentException if a custom limit is requested without a value
      */
     @Transactional
     public AgentProductLimitResponseDTO setAgentLimit(String agentId, Long productId, boolean useCustomLimit,
@@ -101,10 +102,11 @@ public class AgentProductLimitService {
     }
 
     /**
-     * Belirtilen ajan + ürün özel limit kaydını siler. Kayıt yoksa sessiz no-op.
+     * Deletes the custom limit record for the given agent + product pairing.
+     * Silently no-ops when no record exists.
      *
-     * @param agentId ajan ID
-     * @param productId ürün ID
+     * @param agentId agent ID
+     * @param productId product ID
      */
     @Transactional
     public void deleteAgentLimit(String agentId, Long productId) {

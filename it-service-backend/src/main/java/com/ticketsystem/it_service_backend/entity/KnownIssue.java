@@ -8,8 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.OffsetDateTime;
 
 /**
- * Sıkça karşılaşılan sorun (known issue) — bir ürüne (ve opsiyonel topic'e) bağlı
- * bilgi tabanı kaydı. Kullanıcılar bilet açmadan önce çözümü buradan bulabilir.
+ * Known issue — a knowledge-base entry tied to a product (and optionally a topic).
+ * Users can find a resolution here before opening a ticket.
  */
 @Entity
 @Table(name = "known_issues")

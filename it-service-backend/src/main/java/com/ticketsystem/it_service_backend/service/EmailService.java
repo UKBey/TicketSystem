@@ -16,14 +16,14 @@ import org.springframework.stereotype.Service;
 import java.util.Locale;
 
 /**
- * Bilet ve hesap güvenliği olayları için HTML formatlı e-posta üretimi ve gönderimi.
+ * Builds and sends HTML emails for ticket and account-security events.
  *
- * <p>Tüm {@code send*} metotları {@code @Async} çalışır; alıcı kullanıcının
- * {@code preferredLanguage} ve {@code preferredTheme} alanlarına göre yerelleştirilmiş
- * mesajlar ve light/dark renk paleti uygulanır. Gönderim {@link JavaMailSender}
- * üzerinden (dev ortamında Mailpit) yapılır; geçici hatalar için en fazla 3 deneme
- * uygulanır. Başarı / hata / atlama durumları {@code mail_send_total} sayacında
- * kategori bazlı izlenir.
+ * <p>All {@code send*} methods run {@code @Async}; messages are localized and a
+ * light/dark color palette is applied based on the recipient's
+ * {@code preferredLanguage} and {@code preferredTheme}. Delivery goes through
+ * {@link JavaMailSender} (Mailpit in dev) with up to 3 retry attempts on transient
+ * failures. Success / failure / skipped outcomes are tracked per category in the
+ * {@code mail_send_total} counter.
  */
 @Log4j2
 @Service
@@ -65,10 +65,10 @@ public class EmailService {
     // -------------------------------------------------------------------------
 
     /**
-     * Yeni bilet oluşturulduğunda müşteriye onay maili gönderir (async).
+     * Sends a confirmation email to the customer when a new ticket is created (async).
      *
-     * @param customer alıcı müşteri (dil/tema tercihleri okunur)
-     * @param ticket konu olan bilet
+     * @param customer recipient customer (language/theme preferences are read from this)
+     * @param ticket the related ticket
      */
     @Async
     public void sendTicketCreatedEmail(User customer, Ticket ticket) {
@@ -83,10 +83,10 @@ public class EmailService {
     }
 
     /**
-     * Ajana manuel atama bildirim maili gönderir (async).
+     * Sends a manual-assignment notification email to the agent (async).
      *
-     * @param agent atanan ajan
-     * @param ticket atanan bilet
+     * @param agent the assigned agent
+     * @param ticket the assigned ticket
      */
     @Async
     public void sendTicketAssignedEmail(User agent, Ticket ticket) {
@@ -101,12 +101,12 @@ public class EmailService {
     }
 
     /**
-     * Bilet statü değişikliği bildirim mailini müşteriye gönderir (async).
+     * Sends a ticket status-change notification email to the customer (async).
      *
-     * @param customer alıcı müşteri
-     * @param ticket bilet referansı
-     * @param oldStatus önceki statü
-     * @param newStatus yeni statü
+     * @param customer recipient customer
+     * @param ticket ticket reference
+     * @param oldStatus previous status
+     * @param newStatus new status
      */
     @Async
     public void sendStatusChangedEmail(User customer, Ticket ticket, String oldStatus, String newStatus) {
@@ -121,12 +121,12 @@ public class EmailService {
     }
 
     /**
-     * Bilete yeni yorum eklendiğinde karşı tarafa bildirim maili gönderir (async).
+     * Sends a notification email to the other party when a new comment is added (async).
      *
-     * @param recipient alıcı kullanıcı
-     * @param ticket bilet referansı
-     * @param commentMessage yorum metni (HTML escape edilir)
-     * @param commenterName yorumu yazanın görünür adı (HTML escape edilir)
+     * @param recipient recipient user
+     * @param ticket ticket reference
+     * @param commentMessage comment text (HTML-escaped)
+     * @param commenterName commenter display name (HTML-escaped)
      */
     @Async
     public void sendCommentAddedEmail(User recipient, Ticket ticket, String commentMessage, String commenterName) {
@@ -141,10 +141,10 @@ public class EmailService {
     }
 
     /**
-     * SLA yaklaşan ihlali (warning eşiği) için uyarı maili gönderir (async).
+     * Sends a warning email for an upcoming SLA breach (warning threshold) (async).
      *
-     * @param recipient alıcı (ajan veya manager)
-     * @param ticket konu olan bilet
+     * @param recipient recipient (agent or manager)
+     * @param ticket the related ticket
      */
     @Async
     public void sendSlaWarningEmail(User recipient, Ticket ticket) {
@@ -159,10 +159,10 @@ public class EmailService {
     }
 
     /**
-     * SLA ihlali gerçekleştiğinde uyarı maili gönderir (async).
+     * Sends an alert email when an SLA breach has occurred (async).
      *
-     * @param recipient alıcı (ajan veya manager)
-     * @param ticket ihlal eden bilet
+     * @param recipient recipient (agent or manager)
+     * @param ticket the breached ticket
      */
     @Async
     public void sendSlaBreachedEmail(User recipient, Ticket ticket) {
@@ -177,10 +177,10 @@ public class EmailService {
     }
 
     /**
-     * Bilet RESOLVED durumuna geçtiğinde müşteriye bilgilendirme maili gönderir (async).
+     * Sends an informational email to the customer when a ticket transitions to RESOLVED (async).
      *
-     * @param customer alıcı müşteri
-     * @param ticket çözümlenen bilet
+     * @param customer recipient customer
+     * @param ticket the resolved ticket
      */
     @Async
     public void sendTicketResolvedEmail(User customer, Ticket ticket) {
@@ -195,18 +195,18 @@ public class EmailService {
     }
 
     /**
-     * Şifre sıfırlama bağlantısı içeren mail. Ticket-bağlamlı diğer mail'lerin
-     * aksine bilet referansı yoktur; bu yüzden ayrı bir basit HTML şablonu kullanır.
+     * Password-reset email containing the reset link. Unlike the other ticket-scoped
+     * emails there is no ticket reference, so this uses a separate, simpler HTML template.
      *
-     * <p>{@code languageOverride} / {@code themeOverride} verilirse — kullanıcı
-     * o anki tarayıcı oturumunda hangi dil/temayı kullanıyorsa mail o şekilde
-     * basılır. Null/boş geçilirse kullanıcının DB'deki tercihine düşülür.
+     * <p>If {@code languageOverride} / {@code themeOverride} is supplied, the email is
+     * rendered using whichever language/theme the user is currently running in their
+     * browser session. When null/blank, the user's stored DB preference is used.
      *
-     * @param recipient alıcı kullanıcı
-     * @param resetUrl reset linki (token query parametresi dahil)
-     * @param ttlMinutes link geçerlilik süresi (dakika), mail gövdesinde gösterilir
-     * @param languageOverride istemcinin o anki dili (en/tr) veya {@code null}
-     * @param themeOverride istemcinin o anki teması (light/dark) veya {@code null}
+     * @param recipient recipient user
+     * @param resetUrl reset link (with the token query parameter)
+     * @param ttlMinutes link validity period (minutes), displayed in the body
+     * @param languageOverride the client's current language (en/tr), or {@code null}
+     * @param themeOverride the client's current theme (light/dark), or {@code null}
      */
     @Async
     public void sendPasswordResetEmail(User recipient, String resetUrl, int ttlMinutes,
@@ -219,14 +219,14 @@ public class EmailService {
     }
 
     /**
-     * Şifre başarıyla değiştirildiğinde gönderilen güvenlik bildirimi.
-     * Hem profil sayfasındaki "şifre değiştir" hem de forgot-password reset
-     * akışlarının sonunda tetiklenir. Yetkisiz değişiklik tespiti için kullanıcının
-     * fark etmesini sağlar — silent password change'i önler.
+     * Security notification sent when the password has been successfully changed.
+     * Triggered at the end of both the profile-page "change password" and the
+     * forgot-password reset flows. Lets the user spot unauthorized changes — prevents
+     * silent password changes.
      *
-     * @param recipient alıcı kullanıcı
-     * @param languageOverride istemcinin o anki dili veya {@code null} (DB tercihi)
-     * @param themeOverride istemcinin o anki teması veya {@code null} (DB tercihi)
+     * @param recipient recipient user
+     * @param languageOverride client's current language, or {@code null} (DB preference)
+     * @param themeOverride client's current theme, or {@code null} (DB preference)
      */
     @Async
     public void sendPasswordChangedEmail(User recipient, String languageOverride, String themeOverride) {
@@ -241,10 +241,10 @@ public class EmailService {
     }
 
     /**
-     * Hesaba yeni bir 2FA cihazı eklendiğinde gönderilen güvenlik bildirimi.
+     * Security notification sent when a new 2FA device is added to the account.
      *
-     * @param recipient alıcı kullanıcı
-     * @param deviceLabel cihaz etiketi; null/boş ise yerelleştirilmiş "isimsiz cihaz"
+     * @param recipient recipient user
+     * @param deviceLabel device label; localized "unnamed device" when null/blank
      */
     @Async
     public void send2FADeviceAddedEmail(User recipient, String deviceLabel) {
@@ -262,10 +262,10 @@ public class EmailService {
     }
 
     /**
-     * Hesaptan bir 2FA cihazı kaldırıldığında gönderilen güvenlik bildirimi.
+     * Security notification sent when a 2FA device is removed from the account.
      *
-     * @param recipient alıcı kullanıcı
-     * @param deviceLabel cihaz etiketi; null/boş ise yerelleştirilmiş "isimsiz cihaz"
+     * @param recipient recipient user
+     * @param deviceLabel device label; localized "unnamed device" when null/blank
      */
     @Async
     public void send2FADeviceRemovedEmail(User recipient, String deviceLabel) {
@@ -283,9 +283,9 @@ public class EmailService {
     }
 
     /**
-     * Ortak güvenlik bildirimi şablonu — bilet referansı olmayan, gövdesi tek
-     * paragraf + kırmızı uyarı kutusu olan mail'ler için (password changed,
-     * 2FA added/removed).
+     * Shared security-notification template — for emails without a ticket
+     * reference whose body is a single paragraph plus a red warning box
+     * (password changed, 2FA added/removed).
      */
     private String buildSecurityNotificationHtml(Locale locale, Palette p, User recipient,
                                                  String title, String body, String warning) {
@@ -639,8 +639,9 @@ public class EmailService {
     }
 
     /**
-     * Renk paleti — kullanıcının tema tercihine göre buildHtml içine enjekte edilir.
-     * Inline CSS şart, çünkü çoğu mail istemcisi <style> ya da CSS değişkenlerini düşürür.
+     * Color palette — injected into buildHtml based on the user's theme preference.
+     * Inline CSS is required because most mail clients strip {@code <style>} blocks
+     * and CSS variables.
      */
     private enum Palette {
         LIGHT(

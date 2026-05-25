@@ -7,11 +7,12 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 /**
- * Bilete yorum ekleme isteği gövdesi. Önceden {@code Map<String,String>} olarak
- * alınıyordu; bu sınıf Swagger schema'sını ve compile-time tür güvenliğini sağlar.
+ * Request body for adding a comment to a ticket. Previously accepted as a raw
+ * {@code Map<String,String>}; this class provides a Swagger schema and
+ * compile-time type safety.
  *
- * <p>Iş kuralı (mesaj uzunluğu, geçerli yorum tipleri) servis katmanında da
- * doğrulanır — burada DTO seviyesinde Bean Validation defense-in-depth.
+ * <p>Business rules (message length, valid comment types) are also enforced
+ * in the service layer — Bean Validation here is defense-in-depth at the DTO level.
  */
 @Data
 @Builder

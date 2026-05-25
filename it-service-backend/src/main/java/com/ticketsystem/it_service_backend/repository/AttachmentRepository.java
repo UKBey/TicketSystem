@@ -5,7 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 /**
- * {@link Attachment} için JPA repository — bilet ekleri üzerinde CRUD ve bilet-bazlı listeleme/silme.
+ * JPA repository for {@link Attachment} — CRUD over ticket attachments plus
+ * per-ticket listing and bulk deletion.
  */
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findByTicketId(Long ticketId);

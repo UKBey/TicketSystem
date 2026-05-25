@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * jBPM callback endpoint'ine gelen olay yukunun DTO karsiligidir.
+ * DTO for the event payload delivered to the jBPM callback endpoint.
  */
 @Data
 @Schema(description = "jBPM workflow callback olay yükü — KIE Server'dan backend'e gelen dahili bildirim")

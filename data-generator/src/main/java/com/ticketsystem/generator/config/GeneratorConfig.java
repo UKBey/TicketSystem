@@ -1,11 +1,11 @@
 package com.ticketsystem.generator.config;
 
 /**
- * Generator çalışma ayarları.
+ * Generator runtime settings.
  *
- * <p>Kullanıcı listesi ve veri içeriği artık {@code src/main/resources/setup.json}
- * ve {@code src/main/resources/tickets/*.json} dosyalarından okunur.
- * Buradan yalnızca tek bir <em>agent_admin</em> hesabı ve operasyonel knob'lar yönetilir.
+ * <p>The user list and data content are now read from {@code src/main/resources/setup.json}
+ * and {@code src/main/resources/tickets/*.json}.
+ * Only a single <em>agent_admin</em> account and operational knobs are managed here.
  */
 public class GeneratorConfig {
 
@@ -39,19 +39,19 @@ public class GeneratorConfig {
     // ---------------------------------------------------------------
     // İstek temposu
     // ---------------------------------------------------------------
-    /** İki API isteği arasındaki bekleme (ms). */
+    /** Delay between two API requests (ms). */
     public static final long DELAY_MS = 600;
 
-    /** Yorum turları arası bekleme (ms) — backend yorum cooldown'ı 5 sn. */
+    /** Delay between comment rounds (ms) — backend comment cooldown is 5 sec. */
     public static final long COMMENT_DELAY_MS = 5500;
 
-    /** 429 alındığında bekleme süresi (ms). */
+    /** Wait time after receiving a 429 (ms). */
     public static final long RATE_LIMIT_BACKOFF_MS = 6000;
 
-    /** 429 alındığında deneme sayısı. */
+    /** Number of retries after receiving a 429. */
     public static final int RATE_LIMIT_RETRY_COUNT = 3;
 
-    /** Token yenileme eşiği (saniye). */
+    /** Token refresh threshold (seconds). */
     public static final int TOKEN_REFRESH_THRESHOLD_SEC = 30;
 
     // ---------------------------------------------------------------
@@ -61,6 +61,6 @@ public class GeneratorConfig {
     public static final String DB_USER     = "ticketadmin";
     public static final String DB_PASSWORD = "321654";
 
-    /** Biletlerin oluşturulma tarihleri kaç gün geriye yayılsın. */
+    /** How many days back ticket creation dates should be spread across. */
     public static final int DATE_SPREAD_DAYS = 7;
 }

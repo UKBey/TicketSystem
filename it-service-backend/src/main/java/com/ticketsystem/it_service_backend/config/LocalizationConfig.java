@@ -11,25 +11,26 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * i18n yapilandirmasi — backend mesaj bundle'larinin ve istemci locale
- * cozumunun tek noktasi.
+ * i18n configuration — the single entry point for backend message bundles and
+ * client locale resolution.
  *
- * <p>Locale {@code Accept-Language} header'indan okunur (frontend bunu
- * {@code users.preferred_language}'a gore set eder). Desteklenen diller
- * Ingilizce ve Turkce. {@code messages.properties} backend mesajlari,
- * {@code ValidationMessages.properties} ise {@code @Valid} kisitlama mesajlari
- * icindir. JVM locale'i goz ardi edilir; eslesmeyen istek deterministik olarak
- * Ingilizce'ye duser.
+ * <p>The locale is read from the {@code Accept-Language} header (the frontend
+ * sets it based on {@code users.preferred_language}). Supported languages are
+ * English and Turkish. {@code messages.properties} holds backend messages and
+ * {@code ValidationMessages.properties} holds {@code @Valid} constraint
+ * messages. The JVM locale is ignored; an unmatched request falls back
+ * deterministically to English.
  */
 @Configuration
 public class LocalizationConfig {
 
     /**
-     * {@code Accept-Language} header'ina dayanan {@link LocaleResolver}.
+     * A {@link LocaleResolver} backed by the {@code Accept-Language} header.
      *
-     * <p>Default locale {@code en}; desteklenen liste {@code en} ve {@code tr}.
-     * Cookie / session yerine header tercih edildi cunku frontend her istekte
-     * kullanicinin tercih ettigi dili dogrudan gonderir.
+     * <p>The default locale is {@code en}; the supported list is {@code en}
+     * and {@code tr}. The header was preferred over cookies or sessions
+     * because the frontend sends the user's preferred language directly on
+     * every request.
      */
     @Bean
     public LocaleResolver localeResolver() {
@@ -40,12 +41,12 @@ public class LocalizationConfig {
     }
 
     /**
-     * Iki resource bundle'i tek {@link MessageSource} altinda toplar.
+     * Combines two resource bundles under a single {@link MessageSource}.
      *
-     * <p>{@code useCodeAsDefaultMessage=true} ile bilinmeyen anahtarlarda
-     * exception yerine anahtarin kendisi dondurulur — geriye donuk uyumluluk
-     * icin. {@code fallbackToSystemLocale=false}, host JVM'inin locale'i ne
-     * olursa olsun davranisi sabit tutar.
+     * <p>With {@code useCodeAsDefaultMessage=true} unknown keys return the key
+     * itself instead of throwing an exception — kept for backwards
+     * compatibility. {@code fallbackToSystemLocale=false} keeps behaviour
+     * stable regardless of the host JVM's locale.
      */
     @Bean
     public MessageSource messageSource() {

@@ -14,8 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bilet detay yanıtı — UI'da gösterilen tüm alanları içerir (claimers, SLA durumu, audit log).
- * Hem listeleme hem tekil bilet sorgularında döner; {@code fromEntity} yardımcıları çağırı katmanından populate edilir.
+ * Ticket detail response — contains all fields shown in the UI (claimers, SLA status, audit log).
+ * Returned by both list and single-ticket queries; the {@code fromEntity} helpers are populated from the caller layer.
  */
 @Schema(description = "Bilet detay yanıtı — listeleme ve tekil sorgularda döner")
 public class TicketResponseDTO {

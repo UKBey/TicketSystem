@@ -15,14 +15,14 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Servisin dışarıya yaptığı HTTP çağrıları için {@link WebClient} bean'lerini sağlar.
+ * Provides {@link WebClient} beans for the outbound HTTP calls the service makes.
  *
- * <p>İki ayrı istemci tanımlanır:
+ * <p>Two separate clients are defined:
  * <ul>
- *   <li>{@code groqWebClient} — Groq API'ye doğru, Authorization header'ı ve
- *       özel timeout'larla.</li>
- *   <li>{@code ticketServiceWebClient} — it-service-backend'in internal
- *       endpoint'lerine doğru, {@code X-Internal-Token} ile.</li>
+ *   <li>{@code groqWebClient} — targets the Groq API with an Authorization
+ *       header and custom timeouts.</li>
+ *   <li>{@code ticketServiceWebClient} — targets the internal endpoints of
+ *       it-service-backend with the {@code X-Internal-Token} header.</li>
  * </ul>
  */
 @Configuration
@@ -38,8 +38,8 @@ public class WebClientConfig {
     private String internalToken;
 
     /**
-     * Groq API çağrıları için WebClient.
-     * Authorization header'ı otomatik eklenir.
+     * WebClient for Groq API calls.
+     * The Authorization header is added automatically.
      */
     @Bean("groqWebClient")
     public WebClient groqWebClient() {
@@ -59,7 +59,7 @@ public class WebClientConfig {
     }
 
     /**
-     * it-service-backend'e internal çağrılar için WebClient.
+     * WebClient for internal calls to it-service-backend.
      */
     @Bean("ticketServiceWebClient")
     public WebClient ticketServiceWebClient() {

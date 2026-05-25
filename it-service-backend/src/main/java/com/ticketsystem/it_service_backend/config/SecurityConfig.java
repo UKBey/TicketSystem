@@ -26,21 +26,23 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * OAuth2 Resource Server yapilandirmasi — backend'in tum guvenlik politikasinin
- * tek dogru kaynagi.
+ * OAuth2 Resource Server configuration — the single source of truth for the
+ * backend's entire security policy.
  *
- * <p>Stateless JWT dogrulamasi, CSRF kapali, method-level security acik. Iki
- * paralel yetkilendirme yolu vardir:
+ * <p>Stateless JWT validation, CSRF disabled, method-level security enabled.
+ * There are two parallel authorization paths:
  * <ol>
- *   <li><b>Kullanici endpoint'leri</b> — {@code Bearer} JWT zorunludur;
- *       {@code realm_access.roles} {@code ROLE_*} authority'lerine cevrilir.</li>
- *   <li><b>Internal endpoint'ler</b> ({@code /api/v1/internal/**}) — JWT yerine
- *       sabit {@code X-Internal-Token} header'iyla korunur; sadece KIE Server
- *       callback'i icin kullanilir.</li>
+ *   <li><b>User endpoints</b> — a {@code Bearer} JWT is required and
+ *       {@code realm_access.roles} is translated into {@code ROLE_*}
+ *       authorities.</li>
+ *   <li><b>Internal endpoints</b> ({@code /api/v1/internal/**}) — protected by
+ *       a static {@code X-Internal-Token} header instead of a JWT; used only by
+ *       the KIE Server callback.</li>
  * </ol>
  *
- * <p>Swagger, actuator health/info/metrics ve auth giris endpoint'leri anonime
- * acilir. {@code /actuator/caches/**} sadece admin rolleriyle erisilebilir.
+ * <p>Swagger, actuator health/info/metrics and the auth entry endpoints are
+ * exposed anonymously. {@code /actuator/caches/**} is reachable only by admin
+ * roles.
  */
 @Configuration
 @EnableWebSecurity
@@ -51,27 +53,28 @@ public class SecurityConfig {
     private String internalApiToken;
 
     /**
-     * S-10 — Explicit CORS allow-list. Bu projede frontend ve backend nginx ile
-     * ayni origin'den servis edildigi icin pratik bir CORS senaryosu yok; bean
-     * yine de tanimli ki ileride bir mobile/3rd-party istemci eklenirse origin
-     * acikca whitelist'lensin. Default'a guvenmek kapsam disi kayma riski tasir.
+     * S-10 — Explicit CORS allow-list. In this project the frontend and backend
+     * are served from the same origin through nginx, so there is no practical
+     * CORS scenario today; the bean is still defined so that any future
+     * mobile or third-party client must be explicitly whitelisted. Relying on
+     * defaults risks scope creep.
      *
-     * Origin'ler {@code app.cors.allowed-origins} ile genisletilebilir; default
-     * yalniz ana proxy URL'lerini kapsar.
+     * Origins can be extended via {@code app.cors.allowed-origins}; the default
+     * only covers the main proxy URLs.
      */
     @Value("${app.cors.allowed-origins:http://localhost,http://ticketsystem.local}")
     private String allowedOrigins;
 
     /**
-     * S-10 — Whitelist tabanli CORS yapilandirmasi.
+     * S-10 — Whitelist-based CORS configuration.
      *
-     * <p>Yalnizca {@code /api/v1/**} icin uygulanir. Sadece {@code GET/POST/PUT/
-     * PATCH/DELETE/OPTIONS} method'larina ve {@code Authorization},
-     * {@code Content-Type}, {@code X-Requested-With} header'larina izin verilir.
-     * {@code allowCredentials=false} — kimlik dogrulama Bearer header ile gelir,
-     * cookie kullanilmaz. Preflight cevabi 1 saat cache'lenir.
+     * <p>Applied only to {@code /api/v1/**}. Allows only the {@code GET/POST/
+     * PUT/PATCH/DELETE/OPTIONS} methods and the {@code Authorization},
+     * {@code Content-Type}, {@code X-Requested-With} headers.
+     * {@code allowCredentials=false} — authentication arrives via the Bearer
+     * header, no cookies are used. Preflight responses are cached for 1 hour.
      *
-     * @return tum API path'lerine uygulanan CORS kaynak yapilandirmasi
+     * @return CORS source configuration applied to all API paths
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -92,14 +95,14 @@ public class SecurityConfig {
     }
 
     /**
-     * Ana {@link SecurityFilterChain} — anonim, internal-token ve JWT yollarini
-     * birlestiren tek filter zinciri.
+     * The primary {@link SecurityFilterChain} — a single filter chain that
+     * combines the anonymous, internal-token and JWT paths.
      *
-     * <p>Permit-list: Swagger, actuator health/info/metrics, auth endpoint'leri ve
-     * WebSocket handshake. {@code /api/v1/internal/**}
-     * {@link #hasValidInternalToken(String)} kontrolune girer. Geri kalan tum
-     * endpoint'lerde {@code Bearer} JWT zorunludur ve session
-     * {@link SessionCreationPolicy#STATELESS} olarak isaretlenir.
+     * <p>Permit-list: Swagger, actuator health/info/metrics, the auth
+     * endpoints and the WebSocket handshake. {@code /api/v1/internal/**}
+     * goes through {@link #hasValidInternalToken(String)}. Every remaining
+     * endpoint requires a {@code Bearer} JWT and the session is marked as
+     * {@link SessionCreationPolicy#STATELESS}.
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -146,13 +149,14 @@ public class SecurityConfig {
     }
 
     /**
-     * Keycloak {@code realm_access.roles} listesini Spring Security
-     * {@code ROLE_*} authority'lerine cevirir.
+     * Translates the Keycloak {@code realm_access.roles} list into Spring
+     * Security {@code ROLE_*} authorities.
      *
-     * <p>Rol isimleri buyuk harfe normalize edilir; ornek olarak
-     * {@code "agent_admin"} authority {@code "ROLE_AGENT_ADMIN"} olur. Eger token
-     * {@code realm_access} claim'i tasimiyorsa bos authority listesi dondurulur
-     * (anonim degil, ama yetkisiz).
+     * <p>Role names are normalized to upper case; for example the
+     * {@code "agent_admin"} role becomes the {@code "ROLE_AGENT_ADMIN"}
+     * authority. If the token does not carry a {@code realm_access} claim an
+     * empty authority list is returned (the request is authenticated but
+     * unauthorized rather than anonymous).
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {

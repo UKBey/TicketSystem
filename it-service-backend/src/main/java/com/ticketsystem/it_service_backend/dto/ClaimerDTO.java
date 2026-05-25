@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Bir bilete claim atan ajanı temsil eden özet model.
- * {@link TicketResponseDTO#getClaimers()} listesinin elemanları olarak kullanılır.
+ * Lightweight model representing an agent who has claimed a ticket.
+ * Used as elements of the {@link TicketResponseDTO#getClaimers()} list.
  */
 @Data
 @Builder

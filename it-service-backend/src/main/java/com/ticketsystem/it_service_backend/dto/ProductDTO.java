@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Ürün/destek kategorisini temsil eden hafif DTO; bilet oluşturma akışı ve admin sayfalarında kullanılır.
- * {@link com.ticketsystem.it_service_backend.entity.Product} entity'sinden türetilir.
+ * Lightweight DTO representing a product/support category — used by the ticket creation flow and admin pages.
+ * Derived from the {@link com.ticketsystem.it_service_backend.entity.Product} entity.
  */
 @Schema(description = "Ürün/destek kategorisi bilgi modeli")
 public class ProductDTO {

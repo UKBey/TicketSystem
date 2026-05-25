@@ -22,17 +22,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Sistemi setup.json'daki şablona göre hazırlar.
+ * Prepares the system according to the template in setup.json.
  *
  * <ul>
- *   <li>setup.json'daki agent ve customer kullanıcılarına yalnızca <em>login dener</em>;
- *       kullanıcı oluşturma adımı yoktur. Hesapların Keycloak'ta önceden hazır olması
- *       beklenir. Login başarısız olan kullanıcılar uyarıyla atlanır.</li>
- *   <li>Ürünleri / topic'leri / sıkça karşılaşılan sorunları idempotent şekilde oluşturur.</li>
- *   <li>Yetkilerini (authorizedProducts) login olabilen tüm agent ve customer'lara dağıtır.</li>
+ *   <li>Only <em>attempts to log in</em> the agent and customer users defined in setup.json;
+ *       there is no user-creation step. The accounts are expected to be pre-provisioned in
+ *       Keycloak. Users whose login fails are skipped with a warning.</li>
+ *   <li>Creates products / topics / known issues idempotently.</li>
+ *   <li>Assigns authorizedProducts to every agent and customer that was able to log in.</li>
  * </ul>
  *
- * Re-run güvenli: ürün/topic/issue varsa atlanır.
+ * Safe to re-run: products/topics/issues are skipped if they already exist.
  */
 public class SetupGenerator {
 
@@ -45,10 +45,10 @@ public class SetupGenerator {
     private final KeycloakAdminApi keycloakAdmin;
 
     /**
-     * @param api        backend API çağrıları için istemci
-     * @param mapper     setup.json'ı okumak için Jackson mapper
-     * @param http       per-user {@link KeycloakTokenClient}'lar için paylaşılan OkHttp
-     * @param adminAgent ürün/topic/yetki işlemlerini yürüten agent_admin oturumu
+     * @param api        client for backend API calls
+     * @param mapper     Jackson mapper used to read setup.json
+     * @param http       shared OkHttp used by per-user {@link KeycloakTokenClient}s
+     * @param adminAgent the agent_admin session that performs product/topic/authorization operations
      */
     public SetupGenerator(ApiClient api, ObjectMapper mapper, OkHttpClient http, UserSession adminAgent) {
         this.api           = api;
@@ -59,14 +59,14 @@ public class SetupGenerator {
     }
 
     /**
-     * setup.json şablonuna göre sistemi hazırlar: kullanıcı oturumları, önceki
-     * generator ürünlerinin temizliği, ürün/topic/known-issue oluşturma ve
-     * yetki dağıtımı.
+     * Prepares the system according to the setup.json template: user sessions,
+     * cleanup of products from prior generator runs, product/topic/known-issue
+     * creation and authorization assignment.
      *
-     * @return TicketGenerator'a aktarılacak {@link SetupResult}
-     * @throws IOException          API veya setup.json okuma hatası
-     * @throws InterruptedException request temposu için yapılan {@code Thread.sleep} kesilirse
-     * @throws IllegalStateException hiçbir agent ya da customer login olamadıysa
+     * @return the {@link SetupResult} to be passed on to TicketGenerator
+     * @throws IOException          API or setup.json read error
+     * @throws InterruptedException if {@code Thread.sleep} (used for request pacing) is interrupted
+     * @throws IllegalStateException if no agent or no customer was able to log in
      */
     public SetupResult setup() throws IOException, InterruptedException {
         log.info("=== Sistem kurulumu başlıyor ===");
@@ -141,9 +141,9 @@ public class SetupGenerator {
     }
 
     /**
-     * Login dener; "Account is not fully set up" hatası gelirse master admin REST ile
-     * kullanıcının required-actions listesini temizleyip login'i tek sefer tekrar dener.
-     * Diğer hatalarda (şifre yanlış, kullanıcı yok) sessizce atlanır — yalnızca WARN basar.
+     * Attempts to log in; if an "Account is not fully set up" error occurs, clears the user's
+     * required-actions list via the master admin REST API and retries the login exactly once.
+     * Other errors (wrong password, unknown user) are silently skipped — only a WARN is logged.
      */
     private UserSession loginWithRecovery(String username, String password, String role) {
         LoginAttempt first = tryLoginOnce(username, password, role);

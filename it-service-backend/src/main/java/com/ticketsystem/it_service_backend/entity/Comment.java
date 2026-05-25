@@ -5,11 +5,12 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 /**
- * Bir {@link Ticket} altındaki yorum.
+ * A comment on a {@link Ticket}.
  *
- * <p>{@code type = INTERNAL} (yalnızca agent/admin görür) veya {@code EXTERNAL}
- * (müşteriye de görünür) olabilir; tip eksikse {@code @PrePersist} EXTERNAL atar.
- * {@code authorId} doğrudan Keycloak UUID'sidir (FK değil), {@link User#id}'ye karşılık gelir.
+ * <p>{@code type} can be {@code INTERNAL} (visible only to agents/admins) or
+ * {@code EXTERNAL} (also visible to the customer); if the type is missing,
+ * {@code @PrePersist} defaults it to EXTERNAL. {@code authorId} is the Keycloak UUID
+ * directly (not an FK) and corresponds to {@link User#id}.
  */
 @Entity
 @Table(name = "ticket_comments")
@@ -34,7 +35,7 @@ public class Comment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
-    /** INTERNAL (yalnız agent/admin görür) veya EXTERNAL (müşteriye de görünür). */
+    /** INTERNAL (visible only to agents/admins) or EXTERNAL (also visible to the customer). */
     @Column(nullable = false, length = 10)
     private String type; // INTERNAL veya EXTERNAL
 

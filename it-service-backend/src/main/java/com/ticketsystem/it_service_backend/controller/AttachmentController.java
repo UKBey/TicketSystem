@@ -27,11 +27,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Bilet ekleri için yükleme, listeleme, indirme ve silme REST kontrolcüsü.
+ * REST controller for uploading, listing, downloading and deleting ticket attachments.
  *
- * <p>Müşteri, agent ve agent admin rolleri kendi kapsamlarındaki biletlere dosya ekleyebilir;
- * boyut/MIME doğrulamaları ve sahiplik kontrolleri {@link AttachmentService}'tedir.
- * Dosya içerikleri {@code BYTEA} olarak veritabanında saklanır.
+ * <p>Customers, agents and agent admins can attach files to tickets within their own scope;
+ * size/MIME validation and ownership checks live in {@link AttachmentService}.
+ * File contents are stored in the database as {@code BYTEA}.
  */
 @Log4j2
 @Tag(name = "Dosya Yönetimi", description = "Biletlere dosya eki yükleme, listeleme, indirme ve silme işlemleri")
@@ -43,12 +43,12 @@ public class AttachmentController {
     private final AttachmentService attachmentService;
 
     /**
-     * Bilete dosya ekler; boyut, tip ve yetki kontrolleri servis katmanında uygulanır.
+     * Attaches a file to the ticket; size, type and authorization checks are enforced in the service layer.
      *
-     * @param ticketId dosyanın ekleneceği biletin kimliği
-     * @param file yüklenecek {@link MultipartFile} (maks. 10 MB)
-     * @return oluşturulan ek metadata DTO'su
-     * @throws IOException dosya akışı okunamadığında
+     * @param ticketId identifier of the ticket the file will be attached to
+     * @param file the {@link MultipartFile} to upload (max. 10 MB)
+     * @return DTO of the created attachment metadata
+     * @throws IOException when the file stream cannot be read
      */
     // Bilete dosya ekler; boyut, tip ve yetki kontrolleri servis katmaninda calisir.
     @Operation(summary = "Dosya yükle",
@@ -95,10 +95,10 @@ public class AttachmentController {
     }
 
     /**
-     * Bilete bağlı tüm dosya metadata kayıtlarını döner; dosya içeriği bu uç noktadan dönmez.
+     * Returns all attachment metadata records linked to the ticket; the file content is not returned by this endpoint.
      *
-     * @param ticketId dosyaları listelenecek biletin kimliği
-     * @return ek metadata DTO listesi
+     * @param ticketId identifier of the ticket whose attachments are listed
+     * @return list of attachment metadata DTOs
      */
     // Bilete bagli tum dosya metaverilerini listeler.
     @Operation(summary = "Biletin dosyalarını listele",
@@ -127,10 +127,10 @@ public class AttachmentController {
     }
 
     /**
-     * Dosya içeriğini orijinal MIME tipi ve {@code Content-Disposition: attachment} ile indirir.
+     * Downloads the file content with its original MIME type and {@code Content-Disposition: attachment}.
      *
-     * @param id indirilecek dosyanın kimliği
-     * @return ham bayt içeriği ve uygun başlıklar
+     * @param id identifier of the file to download
+     * @return raw byte content with the appropriate headers
      */
     // Dosya icerigini MIME tipi ve dosya adi bilgisiyle birlikte indirir.
     @Operation(summary = "Dosya indir",
@@ -162,9 +162,9 @@ public class AttachmentController {
     }
 
     /**
-     * Bir dosya ekini rol/sahiplik kurallarına göre kalıcı olarak siler.
+     * Permanently deletes a file attachment subject to role and ownership rules.
      *
-     * @param id silinecek dosyanın kimliği
+     * @param id identifier of the file to delete
      * @return {@code 204 No Content}
      */
     // Dosyayi rol/sahiplik kurallarina gore siler.

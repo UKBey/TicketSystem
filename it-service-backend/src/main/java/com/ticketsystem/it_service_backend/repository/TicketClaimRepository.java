@@ -9,8 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link TicketClaim} için JPA repository — bilet ↔ agent çoka-çok bağ tablosu üzerinde
- * sahiplenme kayıtlarını sorgular, aktif yük (CLOSED hariç) sayımı ve toplu ID lookup'ları sağlar.
+ * JPA repository for {@link TicketClaim} — queries claim records on the ticket ↔ agent
+ * many-to-many bridge, and provides active-workload counts (excluding CLOSED) plus
+ * bulk ID lookups.
  */
 public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> {
 
@@ -29,8 +30,8 @@ public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> 
     long countByTicketId(Long ticketId);
 
         /**
-         * Bir ajanın belirli ürün altındaki aktif (CLOSED dışı) bilet sayısı.
-         * {@code AgentProductLimit} kontrolünde ve claim öncesi limit doğrulamada kullanılır.
+         * Counts an agent's active (non-CLOSED) tickets under a given product.
+         * Used in {@code AgentProductLimit} checks and pre-claim limit validation.
          */
         @Query("""
                         SELECT COUNT(tc)
@@ -43,13 +44,13 @@ public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> 
         long countActiveTicketsByAgentAndProduct(@Param("agentId") String agentId,
                                                                                          @Param("productId") Long productId);
 
-    /** Ajanın sahiplendiği tüm biletlerin ID listesini döner (ticket sayfalama sorgularında IN-list olarak). */
+    /** Returns the ID list of all tickets claimed by an agent (used as an IN-list in ticket paging queries). */
     @Query("SELECT tc.ticket.id FROM TicketClaim tc WHERE tc.agentId = :agentId")
     List<Long> findTicketIdsByAgentId(@Param("agentId") String agentId);
 
     /**
-     * Birden fazla ajan için sahiplenilen bilet ID'lerini toplu döner.
-     * Dönüş: her satır {@code [agent_id, ticket_id]}; N+1 sorgu kaçınmak için.
+     * Returns the claimed ticket IDs for multiple agents in a single query.
+     * Returns: each row is {@code [agent_id, ticket_id]}; used to avoid N+1 queries.
      */
     @Query("SELECT tc.agentId, tc.ticket.id FROM TicketClaim tc WHERE tc.agentId IN :agentIds")
     List<Object[]> findAgentIdAndTicketIdByAgentIdIn(@Param("agentIds") List<String> agentIds);

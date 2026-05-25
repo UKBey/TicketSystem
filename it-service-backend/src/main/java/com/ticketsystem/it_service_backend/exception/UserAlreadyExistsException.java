@@ -1,11 +1,13 @@
 package com.ticketsystem.it_service_backend.exception;
 
 /**
- * Keycloak'ta aynı email veya username ile kayıtlı bir kullanıcı zaten mevcutsa fırlatılır.
+ * Thrown when a user with the same email or username is already registered
+ * in Keycloak.
  *
- * <p>{@code field} alanı frontend'in hangi form alanında hata göstereceğini belirler
- * ("email" veya "username"). {@link GlobalExceptionHandler} bu exception'ı
- * {@code 409 Conflict} olarak işler.
+ * <p>The {@code field} value tells the frontend which form field should
+ * display the error ({@code "email"} or {@code "username"}).
+ * {@link GlobalExceptionHandler} maps this exception to
+ * {@code 409 Conflict}.
  */
 public class UserAlreadyExistsException extends RuntimeException {
 
@@ -13,8 +15,10 @@ public class UserAlreadyExistsException extends RuntimeException {
     private final String value;
 
     /**
-     * @param field cakisma yasanan alan adi ({@code "email"} veya {@code "username"})
-     * @param value cakisan deger; istemciye sadece hata mesaji icinde dolayli sekilde donulur
+     * @param field name of the field in conflict ({@code "email"} or
+     *              {@code "username"})
+     * @param value the conflicting value; returned to the client only
+     *              indirectly inside the error message
      */
     public UserAlreadyExistsException(String field, String value) {
         super(String.format("User already exists with %s: %s", field, value));
@@ -22,12 +26,12 @@ public class UserAlreadyExistsException extends RuntimeException {
         this.value = value;
     }
 
-    /** @return cakisan form alaninin adi */
+    /** @return name of the conflicting form field */
     public String getField() {
         return field;
     }
 
-    /** @return kullanicinin gondermek istedigi cakisan deger */
+    /** @return the conflicting value the user attempted to submit */
     public String getValue() {
         return value;
     }

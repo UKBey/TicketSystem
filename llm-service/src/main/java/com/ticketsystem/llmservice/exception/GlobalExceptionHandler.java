@@ -10,22 +10,23 @@ import java.net.URI;
 import java.time.Instant;
 
 /**
- * REST katmanında ortaya çıkan istisnaları tek noktadan yakalayıp RFC 7807
- * {@link ProblemDetail} formatında istemciye dönen global hata yakalayıcı.
+ * Global exception handler that catches exceptions arising in the REST layer
+ * at a single point and returns them to the client as RFC 7807
+ * {@link ProblemDetail} responses.
  *
- * <p>Groq rate-limit, kaynak bulunamadı ve beklenmedik çalışma zamanı hatalarına
- * uygun HTTP durum kodlarını ve mesajları üretir.
+ * <p>Produces appropriate HTTP status codes and messages for Groq rate-limit,
+ * resource-not-found and unexpected runtime errors.
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * Groq token limiti aşıldığında 429 yanıt döner ve {@code retryAfterSeconds}
-     * alanını {@link ProblemDetail} üzerine yazar.
+     * Returns a 429 response when the Groq token limit is exceeded and writes
+     * the {@code retryAfterSeconds} field onto the {@link ProblemDetail}.
      *
-     * @param ex yakalanan rate-limit istisnası
-     * @return 429 Too Many Requests gövdesi
+     * @param ex the caught rate-limit exception
+     * @return 429 Too Many Requests body
      */
     @ExceptionHandler(GroqRateLimitException.class)
     public ProblemDetail handleRateLimit(GroqRateLimitException ex) {
@@ -41,11 +42,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * "Kaynak bulunamadı" semantiğini taşıyan {@link IllegalArgumentException}
-     * çağrılarını 404 yanıta dönüştürür.
+     * Converts {@link IllegalArgumentException}s that carry "resource not found"
+     * semantics into 404 responses.
      *
-     * @param ex yakalanan istisna
-     * @return 404 Not Found gövdesi
+     * @param ex the caught exception
+     * @return 404 Not Found body
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleNotFound(IllegalArgumentException ex) {
@@ -57,11 +58,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Diğer tüm beklenmeyen çalışma zamanı hatalarını 500 yanıta dönüştürür ve
-     * stack trace'i loglar.
+     * Converts all other unexpected runtime errors into 500 responses and logs
+     * the stack trace.
      *
-     * @param ex yakalanan istisna
-     * @return 500 Internal Server Error gövdesi
+     * @param ex the caught exception
+     * @return 500 Internal Server Error body
      */
     @ExceptionHandler(RuntimeException.class)
     public ProblemDetail handleRuntime(RuntimeException ex) {

@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Kullanıcı bildirimlerinin (in-app) listeleme, okundu işaretleme ve silme REST kontrolcüsü.
+ * REST controller for listing, marking as read and deleting in-app user notifications.
  *
- * <p>Tüm endpoint'ler oturum açan kullanıcının kendi bildirimleri üzerinde çalışır;
- * sahiplik denetimi {@link NotificationService} tarafındadır.
+ * <p>All endpoints operate on the calling user's own notifications; ownership checks
+ * are enforced by {@link NotificationService}.
  */
 @Log4j2
 @Tag(name = "Bildirim Yönetimi", description = "Kullanıcı bildirimleri ve okundu işaretleme işlemleri")
@@ -42,11 +42,11 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     /**
-     * Oturum açan kullanıcının bildirimlerini en yeniden eskiye sayfalı şekilde döner.
+     * Returns the authenticated user's notifications paginated from newest to oldest.
      *
-     * @param page sayfa indeksi (0 tabanlı)
-     * @param size sayfa boyutu (1-500 arası)
-     * @return bildirimlerin sayfalı listesi
+     * @param page page index (0-based)
+     * @param size page size (between 1 and 500)
+     * @return paginated list of notifications
      */
     @Operation(summary = "Bildirimleri listele", description = "Oturum açmış kullanıcının bildirimlerini sayfalı şekilde getirir.")
     @ApiResponses({
@@ -68,9 +68,9 @@ public class NotificationController {
     }
 
     /**
-     * Kullanıcının okunmamış bildirim sayısını döner.
+     * Returns the user's unread notification count.
      *
-     * @return {@code {"count": N}} biçiminde tek anahtarlı yanıt
+     * @return single-key response of the form {@code {"count": N}}
      */
     @Operation(summary = "Okunmamış bildirim sayısı", description = "Kullanıcının okunmamış bildirim sayısını döner.")
     @ApiResponse(responseCode = "200", description = "Sayı başarıyla döndü")
@@ -82,9 +82,9 @@ public class NotificationController {
     }
 
     /**
-     * Belirtilen bildirimi "okundu" olarak işaretler.
+     * Marks the specified notification as "read".
      *
-     * @param id bildirim kimliği
+     * @param id notification identifier
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Bildirimi okundu işaretle", description = "Belirtilen bildirimi okundu olarak işaretler.")
@@ -105,7 +105,7 @@ public class NotificationController {
     }
 
     /**
-     * Kullanıcının tüm bildirimlerini tek seferde okundu işaretler.
+     * Marks all of the user's notifications as read in a single call.
      *
      * @return {@code 204 No Content}
      */
@@ -120,9 +120,9 @@ public class NotificationController {
     }
 
     /**
-     * Belirtilen bildirimi kalıcı olarak siler; yalnızca sahibi silebilir.
+     * Permanently deletes the specified notification; only the owner can delete it.
      *
-     * @param id silinecek bildirimin kimliği
+     * @param id identifier of the notification to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Bildirimi sil", description = "Belirtilen bildirimi kalıcı olarak siler. Yalnızca bildirimin sahibi silebilir.")
@@ -141,7 +141,7 @@ public class NotificationController {
     }
 
     /**
-     * Kullanıcının tüm bildirimlerini tek seferde kalıcı olarak siler.
+     * Permanently deletes all of the user's notifications in a single call.
      *
      * @return {@code 204 No Content}
      */

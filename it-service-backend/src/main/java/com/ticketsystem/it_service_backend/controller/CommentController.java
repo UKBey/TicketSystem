@@ -27,11 +27,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Bilete bağlı yorum (EXTERNAL/INTERNAL) ekleme ve listeleme REST kontrolcüsü.
+ * REST controller for adding and listing comments (EXTERNAL/INTERNAL) on tickets.
  *
- * <p>Tüm endpoint'ler kimlik doğrulaması gerektirir; rol bazlı yetki kontrolleri
- * (müşteri kendi biletine, agent atandığı bilete vb.) {@link CommentService}
- * tarafında uygulanır.
+ * <p>All endpoints require authentication; role-based authorization checks
+ * (customer on their own ticket, agent on assigned ticket, etc.) are enforced
+ * by {@link CommentService}.
  */
 @Log4j2
 @Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan müşteri yanıtları ve dahili notların yönetimi")
@@ -48,11 +48,11 @@ public class CommentController {
     private final UserRepository userRepository;
 
     /**
-     * Bilete yeni bir yorum ekler; yetki kuralları {@link CommentService} içinde uygulanır.
+     * Adds a new comment to the ticket; authorization rules are applied inside {@link CommentService}.
      *
-     * @param ticketId yorum eklenecek biletin kimliği
-     * @param body yorum metni ve tipi ({@code EXTERNAL} / {@code INTERNAL})
-     * @return oluşturulan yorum DTO'su
+     * @param ticketId identifier of the ticket the comment is added to
+     * @param body comment text and type ({@code EXTERNAL} / {@code INTERNAL})
+     * @return DTO of the created comment
      */
     // Bilete yeni yorum ekler ve yetki kurallarini servis katmaninda uygular.
     @Operation(summary = "Bilete yorum ekle",
@@ -102,13 +102,13 @@ public class CommentController {
     }
 
     /**
-     * Biletin yorum geçmişini, rol bazlı görünürlük filtresiyle döner.
+     * Returns the ticket's comment history, filtered by role-based visibility.
      *
-     * <p>Müşteri yalnızca {@code EXTERNAL} yorumları görür; agent/agent admin
-     * her iki tipi de görür.
+     * <p>Customers see only {@code EXTERNAL} comments; agents and agent admins
+     * see both types.
      *
-     * @param ticketId yorumları listelenecek biletin kimliği
-     * @return rol filtrelemesi uygulanmış yorum DTO listesi
+     * @param ticketId identifier of the ticket whose comments will be listed
+     * @return list of comment DTOs after role-based filtering
      */
     // Biletin yorum gecmisini, rol kurallarina gore filtrelenmis sekilde listeler.
     @Operation(summary = "Biletin yorumlarını listele",

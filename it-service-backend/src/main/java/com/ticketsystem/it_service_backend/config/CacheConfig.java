@@ -9,14 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Caffeine-tabanli in-process cache yapilandirmasi.
+ * Caffeine-based in-process cache configuration.
  *
- * <p>{@code @EnableCaching} ile birlikte calisir; dashboard metrik servisleri ve
- * rate-limit config servisi cache anahtarlarini buradaki sabitlerle paylasir.
- * Tum cache'ler ortak bir TTL (5 dakika {@code expireAfterWrite}) ve
- * {@code maximumSize=500} ile yonetilir. Cache invalidation icin {@code @CacheEvict}
- * (config guncellemeleri) ve {@code DELETE /actuator/caches/{name}} (manuel flush)
- * kullanilir.
+ * <p>Works alongside {@code @EnableCaching}; the dashboard metrics services
+ * and the rate-limit config service share cache keys via the constants
+ * defined here. Every cache is governed by a common TTL
+ * ({@code expireAfterWrite=5 minutes}) and {@code maximumSize=500}. Cache
+ * invalidation uses {@code @CacheEvict} (on configuration updates) and
+ * {@code DELETE /actuator/caches/{name}} (for manual flushes).
  */
 @Configuration
 public class CacheConfig {
@@ -37,11 +37,12 @@ public class CacheConfig {
     public static final String RATE_LIMIT_CONFIGS     = "rateLimitConfigs";
 
     /**
-     * Onceden tanimli isimlerle bir {@link CaffeineCacheManager} kurar.
+     * Builds a {@link CaffeineCacheManager} with a pre-declared name list.
      *
-     * <p>Listede olmayan bir cache adi {@code @Cacheable} ile kullanilamaz —
-     * sessizce pas gecmek yerine erken hata vermek tercih edildi. Caffeine
-     * yapilandirmasi {@code expireAfterWrite=5m}, {@code maximumSize=500}.
+     * <p>A cache name absent from the list cannot be used with
+     * {@code @Cacheable} — failing fast is preferred over silently no-oping.
+     * The Caffeine configuration is {@code expireAfterWrite=5m},
+     * {@code maximumSize=500}.
      */
     @Bean
     public CacheManager cacheManager() {

@@ -8,8 +8,8 @@ import lombok.Data;
 
 @Data
 /**
- * Mail ile gelen tek kullanımlık token üzerinden şifreyi yenileme isteği.
- * Bean Validation aktif (token uzunluk, şifre min 8); opsiyonel {@code language}/{@code theme} onay mailini etkiler.
+ * Request to reset the password using the one-time token delivered by email.
+ * Bean Validation is enforced (token length, password min 8); optional {@code language}/{@code theme} affect the confirmation email.
  */
 @Schema(description = "Token ile şifre sıfırlama isteği")
 public class ResetPasswordRequest {
@@ -25,16 +25,16 @@ public class ResetPasswordRequest {
     private String newPassword;
 
     /**
-     * İstemcinin o anki dili — başarı sonrası gönderilen "şifre değiştirildi"
-     * mailinin dilini belirler. Verilmezse DB tercihine düşülür.
+     * The client's current language — determines the language of the
+     * "password changed" email sent on success. Falls back to the DB preference if absent.
      */
     @Pattern(regexp = "^(en|tr)$", message = "must be 'en' or 'tr'")
     @Schema(description = "Onay mailinin dili (opsiyonel)", example = "tr")
     private String language;
 
     /**
-     * İstemcinin o anki teması — başarı sonrası gönderilen "şifre değiştirildi"
-     * mailinin palettini belirler. Verilmezse DB tercihine düşülür.
+     * The client's current theme — determines the palette of the
+     * "password changed" email sent on success. Falls back to the DB preference if absent.
      */
     @Pattern(regexp = "^(light|dark)$", message = "must be 'light' or 'dark'")
     @Schema(description = "Onay mailinin teması (opsiyonel)", example = "dark")

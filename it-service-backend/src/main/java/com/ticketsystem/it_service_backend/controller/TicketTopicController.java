@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Bir ürüne bağlı talep konularının (topic) CRUD REST kontrolcüsü.
+ * REST controller for the CRUD of ticket topics that belong to a product.
  *
- * <p>Listeleme açıktır; oluşturma/güncelleme/silme yalnızca {@code AGENT_ADMIN} ve
- * {@code MANAGER} rolleri tarafından yapılır. İş kuralları {@link TicketTopicService}'tedir.
+ * <p>Listing is open; creation, update and deletion are restricted to the
+ * {@code AGENT_ADMIN} and {@code MANAGER} roles. Business rules live in {@link TicketTopicService}.
  */
 @Log4j2
 @Tag(name = "Talep Konusu Yönetimi", description = "Bir ürüne bağlı talep konularının CRUD işlemleri")
@@ -29,11 +29,11 @@ public class TicketTopicController {
     private final TicketTopicService topicService;
 
     /**
-     * Bir ürüne tanımlı talep konularını listeler; varsayılan olarak yalnızca aktif kayıtlar döner.
+     * Lists the topics defined for a product; by default only active records are returned.
      *
-     * @param productId ürün kimliği
-     * @param includeInactive {@code true} ise pasif konular da dahil edilir
-     * @return talep konusu DTO listesi
+     * @param productId product identifier
+     * @param includeInactive when {@code true}, inactive topics are also included
+     * @return list of ticket topic DTOs
      */
     @Operation(summary = "Bir ürünün talep konularını listele",
             description = "Varsayılan olarak yalnızca aktif konuları döner. `includeInactive=true` ile pasif olanlar da gelir.")
@@ -46,11 +46,11 @@ public class TicketTopicController {
     }
 
     /**
-     * Belirtilen ürün altında yeni bir talep konusu oluşturur.
+     * Creates a new ticket topic under the specified product.
      *
-     * @param productId ürün kimliği
-     * @param body konu adı ve aktiflik bayrağı
-     * @return oluşturulan talep konusu DTO'su
+     * @param productId product identifier
+     * @param body topic name and active flag
+     * @return DTO of the created topic
      */
     @Operation(summary = "Yeni talep konusu oluştur")
     @PostMapping("/api/v1/products/{productId}/topics")
@@ -64,11 +64,11 @@ public class TicketTopicController {
     }
 
     /**
-     * Mevcut bir talep konusunun adını veya aktiflik durumunu günceller.
+     * Updates the name or active status of an existing topic.
      *
-     * @param id güncellenecek konunun kimliği
-     * @param body yeni ad ve aktiflik bayrağı
-     * @return güncellenmiş talep konusu DTO'su
+     * @param id identifier of the topic to update
+     * @param body new name and active flag
+     * @return DTO of the updated topic
      */
     @Operation(summary = "Talep konusunu güncelle (ad veya aktiflik)")
     @PutMapping("/api/v1/topics/{id}")
@@ -82,9 +82,9 @@ public class TicketTopicController {
     }
 
     /**
-     * Talep konusunu kalıcı olarak siler.
+     * Permanently deletes the topic.
      *
-     * @param id silinecek konunun kimliği
+     * @param id identifier of the topic to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Talep konusunu sil")

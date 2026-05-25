@@ -17,16 +17,16 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * STOMP {@code CONNECT} frame'lerini Keycloak JWT'si ile dogrulayan kanal
- * interceptor'i.
+ * Channel interceptor that authenticates STOMP {@code CONNECT} frames using
+ * the Keycloak JWT.
  *
- * <p>HTTP upgrade asamasi {@link com.ticketsystem.it_service_backend.config.SecurityConfig}
- * tarafindan {@code /ws/**} icin permit-all olarak isaretlenmistir; gercek
- * kimlik dogrulama burada gerceklesir. {@code Authorization: Bearer <token>}
- * native header okunur, {@link JwtDecoder} ile dogrulanir ve gecerli ise
- * STOMP session principal'i set edilir. Eksik veya gecersiz token
- * {@link MessagingException} ile reddedilir; istemci frame seviyesinde hata
- * alir.
+ * <p>The HTTP upgrade step is marked permit-all for {@code /ws/**} by
+ * {@link com.ticketsystem.it_service_backend.config.SecurityConfig}; the
+ * real authentication happens here. The native {@code Authorization: Bearer
+ * <token>} header is read, validated through {@link JwtDecoder} and, on
+ * success, set as the STOMP session principal. Missing or invalid tokens
+ * are rejected with a {@link MessagingException} and the client receives a
+ * frame-level error.
  */
 @Log4j2
 @Component
@@ -36,9 +36,9 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final JwtDecoder jwtDecoder;
 
     /**
-     * Yalnizca {@link StompCommand#CONNECT} frame'lerinde devreye girer; diger
-     * STOMP komutlari (SUBSCRIBE, SEND vs.) zaten authenticated session
-     * uzerinden gelir.
+     * Engages only on {@link StompCommand#CONNECT} frames; other STOMP
+     * commands (SUBSCRIBE, SEND, etc.) already arrive on an authenticated
+     * session.
      */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {

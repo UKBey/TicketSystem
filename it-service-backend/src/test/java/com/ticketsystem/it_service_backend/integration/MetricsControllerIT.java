@@ -12,12 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tüm MetricsController endpoint'lerinin entegrasyon testleri.
+ * Integration tests covering every MetricsController endpoint.
  *
- * <p>Gerçek PostgreSQL container (Testcontainers) üzerinde çalışır.
- * Veritabanı boşken her endpoint sıfır/boş değerler döner; hata fırlamamalıdır.
- * Her endpoint için yetki kontrolleri MANAGER, AGENT_ADMIN, CUSTOMER ve AGENT
- * rolleriyle doğrulanır.
+ * <p>Runs against a real PostgreSQL container (Testcontainers). With an
+ * empty database each endpoint must return zero/empty values and must not
+ * throw. Authorization for each endpoint is verified with the MANAGER,
+ * AGENT_ADMIN, CUSTOMER and AGENT roles.
  */
 @DisplayName("MetricsController — Tüm Endpoint Entegrasyon Testleri")
 class MetricsControllerIT extends BaseIntegrationTest {

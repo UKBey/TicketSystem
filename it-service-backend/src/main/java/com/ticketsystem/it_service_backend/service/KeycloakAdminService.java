@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Keycloak Admin REST API üzerinden kullanıcı ve rol yönetimi işlemlerini gerçekleştirir.
+ * Performs user and role management operations via the Keycloak Admin REST API.
  *
- * <p>Bu servis yalnızca Keycloak tarafındaki işlemleri kapsar. Yerel veritabanı
- * senkronizasyonu {@link UserService#createUserWithKeycloak} tarafından yönetilir.
+ * <p>This service covers only Keycloak-side operations. Local database
+ * synchronization is handled by {@link UserService#createUserWithKeycloak}.
  */
 @Log4j2
 @Service
@@ -46,8 +46,8 @@ public class KeycloakAdminService {
     private String serverUrl;
 
     /**
-     * Direct-grant ile şifre doğrulamak için kullanılan public client. Frontend'in
-     * kullandığı clientId — {@code directAccessGrantsEnabled: true} olmalı.
+     * Public client used to verify passwords via direct-grant. This is the
+     * clientId used by the frontend — {@code directAccessGrantsEnabled: true} must be set.
      */
     @Value("${keycloak.user-client-id:ticket-frontend}")
     private String userClientId;
@@ -57,8 +57,8 @@ public class KeycloakAdminService {
             .build();
 
     /**
-     * Sistem rolleri — atanabilir rol listesinden filtrelenir.
-     * Bu roller Keycloak'ın iç işleyişine aittir, kullanıcıya atanmamalıdır.
+     * System roles — filtered out from the assignable role list.
+     * These roles belong to Keycloak internals and must not be assigned to users.
      */
     private static final Set<String> SYSTEM_ROLES = Set.of(
             "offline_access",
@@ -70,13 +70,13 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve
-     * istenen realm rollerini eşler.
+     * Creates a new user in the Keycloak realm, assigns a temporary password,
+     * and maps the requested realm roles.
      *
-     * @param request kullanıcı bilgileri ve atanacak roller
-     * @return oluşturulan kullanıcının Keycloak UUID'si
-     * @throws UserAlreadyExistsException email veya username çakışması durumunda
-     * @throws RuntimeException           Keycloak API beklenmedik hata döndürdüğünde
+     * @param request user details and roles to assign
+     * @return the Keycloak UUID of the created user
+     * @throws UserAlreadyExistsException when email or username conflicts
+     * @throws RuntimeException           when the Keycloak API returns an unexpected error
      */
     public String createUser(CreateUserRequest request) {
         log.info("Keycloak'ta kullanıcı oluşturuluyor. Username: {}, Email: {}",
@@ -142,11 +142,11 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Realm'deki kullanıcıya atanabilir rolleri döner.
-     * Keycloak sistem rolleri ({@code offline_access}, {@code uma_authorization},
-     * {@code default-roles-*}) listeden çıkarılır.
+     * Returns the roles in the realm that can be assigned to users.
+     * Keycloak system roles ({@code offline_access}, {@code uma_authorization},
+     * {@code default-roles-*}) are excluded from the list.
      *
-     * @return atanabilir {@link RoleRepresentation} listesi
+     * @return list of assignable {@link RoleRepresentation} entries
      */
     public List<RoleRepresentation> getAssignableRoles() {
         log.debug("Atanabilir roller çekiliyor. Realm: {}", realm);
@@ -170,7 +170,7 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Verilen email adresine sahip bir kullanıcının Keycloak'ta mevcut olup olmadığını kontrol eder.
+     * Checks whether a user with the given email already exists in Keycloak.
      */
     public boolean existsByEmail(String email) {
         boolean exists = !keycloakAdminClient.realm(realm)
@@ -182,7 +182,7 @@ public class KeycloakAdminService {
     }
 
     /**
-     * Verilen username'e sahip bir kullanıcının Keycloak'ta mevcut olup olmadığını kontrol eder.
+     * Checks whether a user with the given username already exists in Keycloak.
      */
     public boolean existsByUsername(String username) {
         boolean exists = !keycloakAdminClient.realm(realm)
@@ -198,13 +198,13 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Kullanıcının Keycloak realm rollerini günceller.
+     * Updates the user's Keycloak realm roles.
      *
-     * <p>Mevcut tüm atanabilir roller önce kaldırılır, ardından yeni roller atanır.
-     * Bu yaklaşım idempotent bir güncelleme sağlar.
+     * <p>All currently assignable roles are removed first, then the new roles are
+     * assigned. This approach ensures an idempotent update.
      *
-     * @param keycloakId güncellenecek kullanıcının Keycloak UUID'si
-     * @param newRoles   atanacak yeni rol isimleri listesi
+     * @param keycloakId Keycloak UUID of the user to update
+     * @param newRoles   list of new role names to assign
      */
     public void updateUserRoles(String keycloakId, List<String> newRoles) {
         log.info("Kullanıcı rolleri güncelleniyor. ID: {}, Yeni roller: {}", keycloakId, newRoles);
@@ -241,12 +241,12 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Keycloak'ta kullanıcının {@code enabled} durumunu günceller.
-     * Disabled kullanıcı login yapamaz; mevcut oturumları sonraki token
-     * yenilemesinde geçersiz kalır.
+     * Updates the user's {@code enabled} status in Keycloak.
+     * A disabled user cannot log in, and existing sessions are invalidated
+     * on the next token refresh.
      *
-     * @param keycloakId güncellenecek kullanıcının Keycloak UUID'si
-     * @param enabled    {@code true} → aktif, {@code false} → pasif
+     * @param keycloakId Keycloak UUID of the user to update
+     * @param enabled    {@code true} to activate, {@code false} to deactivate
      */
     public void setUserEnabled(String keycloakId, boolean enabled) {
         log.info("Keycloak kullanıcı durumu güncelleniyor. ID: {}, enabled: {}", keycloakId, enabled);
@@ -261,11 +261,11 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Kullanıcının kimlik bilgilerini Keycloak tarafında günceller (firstName, lastName, email).
-     * Email değişirse {@code emailVerified} false'a çekilir; sonraki girişte Keycloak
-     * doğrulama akışını tetikler.
+     * Updates the user's identity attributes on the Keycloak side (firstName, lastName, email).
+     * If the email changes, {@code emailVerified} is reset to false so Keycloak
+     * triggers its verification flow on the next login.
      *
-     * @throws UserAlreadyExistsException yeni email başka bir kullanıcıda kayıtlıysa
+     * @throws UserAlreadyExistsException if the new email is already registered to another user
      */
     public void updateUserProfile(String keycloakId, String firstName, String lastName, String email) {
         log.info("Keycloak profil güncelleniyor. ID: {}", keycloakId);
@@ -299,9 +299,9 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Verilen kullanıcı adı / şifre kombinasyonunu Keycloak'ın token endpoint'ine
-     * direct-grant isteği atarak doğrular. 200 dönerse şifre doğrudur; 401/400 dönerse
-     * yanlıştır.
+     * Verifies the given username / password combination by sending a direct-grant
+     * request to Keycloak's token endpoint. A 200 response means the password is
+     * correct; 401/400 means it is invalid.
      */
     public boolean verifyPassword(String username, String password) {
         String tokenUrl = serverUrl + "/realms/" + realm + "/protocol/openid-connect/token";
@@ -330,9 +330,9 @@ public class KeycloakAdminService {
     }
 
     /**
-     * Kullanıcının şifresini kalıcı (non-temporary) olarak değiştirir.
-     * Keycloak realm-level şifre politikasını ihlal ederse {@link InvalidPasswordException}
-     * fırlatılır.
+     * Changes the user's password permanently (non-temporary).
+     * Throws {@link InvalidPasswordException} if the new password violates the
+     * realm-level password policy in Keycloak.
      */
     public void changeUserPassword(String keycloakId, String newPassword) {
         log.info("Şifre güncelleniyor. ID: {}", keycloakId);
@@ -361,8 +361,8 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Kullanıcının kayıtlı tüm TOTP (authenticator app) credential'larını döner.
-     * Diğer credential tipleri (password, recovery-code vb.) filtrelenir.
+     * Returns all TOTP (authenticator app) credentials registered for the user.
+     * Other credential types (password, recovery-code, etc.) are filtered out.
      */
     public List<CredentialRepresentation> listOtpCredentials(String keycloakId) {
         log.debug("TOTP credential listesi isteniyor. ID: {}", keycloakId);
@@ -372,7 +372,7 @@ public class KeycloakAdminService {
     }
 
     /**
-     * Kullanıcının belirli bir credential'ını siler. Tipik kullanım: TOTP cihazı kaldırma.
+     * Removes a specific credential from the user. Typical use case: removing a TOTP device.
      */
     public void removeCredential(String keycloakId, String credentialId) {
         log.info("Credential siliniyor. ID: {}, CredentialID: {}", keycloakId, credentialId);
@@ -385,12 +385,12 @@ public class KeycloakAdminService {
     // -------------------------------------------------------------------------
 
     /**
-     * Keycloak'tan kullanıcıyı siler.
+     * Deletes the user from Keycloak.
      *
-     * <p>Yerel DB kaydı başarısız olduğunda Keycloak tarafındaki kaydı geri almak
-     * (compensating transaction) için {@link UserService} tarafından çağrılır.
+     * <p>Called by {@link UserService} as a compensating transaction to roll back
+     * the Keycloak-side record when the local DB insert fails.
      *
-     * @param keycloakId silinecek kullanıcının Keycloak UUID'si
+     * @param keycloakId Keycloak UUID of the user to delete
      */
     public void deleteUser(String keycloakId) {
         log.warn("Keycloak kullanıcısı siliniyor (compensating action). ID: {}", keycloakId);
@@ -448,8 +448,8 @@ public class KeycloakAdminService {
     }
 
     /**
-     * Keycloak 409 Conflict yanıtında hangi alanın çakıştığını belirler ve
-     * uygun {@link UserAlreadyExistsException} fırlatır.
+     * Determines which field caused a Keycloak 409 Conflict response and
+     * throws the appropriate {@link UserAlreadyExistsException}.
      */
     private void resolveConflict(UsersResource usersResource, CreateUserRequest request) {
         // Email çakışmasını önce kontrol et (daha kritik)

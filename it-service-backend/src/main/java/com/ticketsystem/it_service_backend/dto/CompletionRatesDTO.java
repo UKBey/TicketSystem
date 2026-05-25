@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Seçilen dönemde biletlerin tamamlanma oranları ile çözüm/SLA istatistikleri.
- * Manager raporlarında {@link WorklogCompletionDTO} içinde döndürülür.
+ * Ticket completion rates and resolution/SLA statistics for the selected period.
+ * Returned inside {@link WorklogCompletionDTO} on manager reports.
  */
 @Schema(description = "Bilet tamamlanma oranları ve çözüm istatistikleri")
 public class CompletionRatesDTO {

@@ -7,27 +7,27 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Keycloak JWT'sinden rol/kullanici alanlarini normalize ederek cikaran
- * yardimci sinif.
+ * Helper that extracts and normalizes role/user fields from a Keycloak JWT.
  *
- * <p>{@code SecurityConfig}'in {@code JwtAuthenticationConverter}'i ile
- * benzer mantigi uygular; ancak burada {@code ROLE_} on eki temizlenir ve
- * cikti Spring authority'leri yerine duz {@code String} listesi olur.
- * Controller / servis katmaninda "kullanicinin yetkisi nedir?" sorusuna
- * cevap vermek icin kullanilir.
+ * <p>Applies logic similar to the {@code JwtAuthenticationConverter} in
+ * {@code SecurityConfig}; however the {@code ROLE_} prefix is stripped here
+ * and the output is a plain {@code String} list rather than Spring
+ * authorities. Used by the controller / service layer to answer
+ * "what authority does the user have?".
  */
 public class JwtUtils {
 
     /**
-     * Token'in {@code realm_access.roles} claim'inden rol listesini cikarir.
+     * Extracts the role list from the token's {@code realm_access.roles}
+     * claim.
      *
-     * <p>Tum rol isimleri buyuk harfe cevrilir ve {@code ROLE_} on eki varsa
-     * kaldirilir; boylece {@code "ROLE_agent"} ve {@code "agent"} ayni cikar:
-     * {@code "AGENT"}. {@code realm_access} yoksa veya {@code roles} alani
-     * eksikse bos liste doner.
+     * <p>All role names are upper-cased and the {@code ROLE_} prefix is
+     * stripped if present, so {@code "ROLE_agent"} and {@code "agent"} both
+     * come out as {@code "AGENT"}. If {@code realm_access} is missing or the
+     * {@code roles} field is absent an empty list is returned.
      *
-     * @param jwt dogrulanmis Keycloak access token'i
-     * @return on eksiz, buyuk harfli rol adlari
+     * @param jwt the validated Keycloak access token
+     * @return upper-cased role names without the prefix
      */
     @SuppressWarnings("unchecked")
     public static List<String> extractRoles(Jwt jwt) {

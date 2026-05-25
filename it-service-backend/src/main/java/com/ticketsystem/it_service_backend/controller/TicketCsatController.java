@@ -26,11 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Bilet kapanışında müşteri memnuniyet (CSAT) anketleri için REST kontrolcüsü.
+ * REST controller for customer satisfaction (CSAT) surveys submitted at ticket closure.
  *
- * <p>Müşteri yalnızca kendi {@code RESOLVED} biletine anket gönderir;
- * sonuçları okuma yetkisi {@code AGENT_ADMIN} rolüne aittir. İş kuralları
- * {@link CsatService}'te uygulanır.
+ * <p>A customer can submit a survey only for their own {@code RESOLVED} ticket;
+ * reading the results is restricted to the {@code AGENT_ADMIN} role. Business rules
+ * are enforced in {@link CsatService}.
  */
 @Tag(name = "Ticket CSAT", description = "Bilet kapanışında doldurulan müşteri memnuniyet anketleri (1-5 puan)")
 @RestController
@@ -41,11 +41,11 @@ public class TicketCsatController {
     private final CsatService csatService;
 
     /**
-     * Müşterinin CSAT anketini kaydeder ve bileti {@code CLOSED} statüsüne geçirir.
+     * Saves the customer's CSAT survey and moves the ticket into the {@code CLOSED} status.
      *
-     * @param id biletin kimliği
-     * @param csatDTO 1-5 arası puan ve opsiyonel yorum
-     * @return oluşturulan {@link Csat} kaydı
+     * @param id ticket identifier
+     * @param csatDTO rating between 1 and 5 and an optional comment
+     * @return the created {@link Csat} record
      */
     @Operation(summary = "CSAT anketi gönder",
             description = """
@@ -77,10 +77,10 @@ public class TicketCsatController {
     }
 
     /**
-     * Belirtilen biletin CSAT anket sonucunu döner.
+     * Returns the CSAT survey result for the specified ticket.
      *
-     * @param id biletin kimliği
-     * @return ilgili {@link Csat} kaydı; yoksa 404
+     * @param id ticket identifier
+     * @return the matching {@link Csat} record; 404 if none exists
      */
     @Operation(summary = "CSAT detayını getir",
             description = "Belirtilen biletin müşteri memnuniyet anket sonucunu getirir.")
@@ -102,9 +102,9 @@ public class TicketCsatController {
     }
 
     /**
-     * Sistemdeki tüm CSAT anket sonuçlarını döner; raporlama/yönetim amaçlıdır.
+     * Returns all CSAT survey results in the system; intended for reporting and management.
      *
-     * @return tüm {@link Csat} kayıtlarının listesi
+     * @return list of all {@link Csat} records
      */
     @Operation(summary = "Tüm CSAT anketlerini listele",
             description = "Sistemdeki tüm müşteri memnuniyet sonuçlarını getirir. Raporlama ve yönetim amaçlıdır.")

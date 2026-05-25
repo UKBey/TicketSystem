@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link Csat} için JPA repository — temel CRUD'a ek olarak dashboard KPI'ları için
- * ortalama puan, dağılım ve priority bazlı aggregate sorguları sunar.
+ * JPA repository for {@link Csat} — on top of standard CRUD, exposes aggregate
+ * queries (average rating, distribution, per-priority breakdown) for dashboard KPIs.
  */
 public interface CsatRepository extends JpaRepository<Csat, Long> {
 
@@ -22,21 +22,21 @@ public interface CsatRepository extends JpaRepository<Csat, Long> {
 
     void deleteByTicketId(Long ticketId);
 
-    /** Dashboard KPI için tüm zamanların genel CSAT puan ortalamasını döner. */
+    /** Returns the all-time average CSAT rating for the dashboard KPI. */
     @Query("SELECT AVG(CAST(c.rating AS double)) FROM Csat c")
     Double findAverageRating();
 
-    /** Belirli tarihten itibaren CSAT puan ortalaması. */
+    /** Returns the average CSAT rating from the given date onwards. */
     @Query("SELECT AVG(CAST(c.rating AS double)) FROM Csat c WHERE c.createdAt >= :since")
     Double findAverageRatingSince(@Param("since") ZonedDateTime since);
 
-    /** Belirli tarihten itibaren puana göre yanıt dağılımı: her satır {@code [rating, count]}. */
+    /** Response distribution by rating from the given date onwards: each row is {@code [rating, count]}. */
     @Query("SELECT c.rating, COUNT(c) FROM Csat c WHERE c.createdAt >= :since GROUP BY c.rating ORDER BY c.rating")
     List<Object[]> findRatingDistributionSince(@Param("since") ZonedDateTime since);
 
     /**
-     * Bilet önceliği bazında CSAT ortalaması — {@code tickets} ile native join.
-     * Dönüş: her satır {@code [priority, avg_rating, count]}.
+     * Average CSAT rating broken down by ticket priority — native join against
+     * {@code tickets}. Returns: each row is {@code [priority, avg_rating, count]}.
      */
     @Query(value = """
             SELECT t.priority, AVG(CAST(c.rating AS FLOAT)), COUNT(c.id)
@@ -48,8 +48,9 @@ public interface CsatRepository extends JpaRepository<Csat, Long> {
     List<Object[]> findAverageRatingByPrioritySince(@Param("since") ZonedDateTime since);
 
     /**
-     * Yüksek puanlı (≥4) ve anlamlı yorum (5+ karakter) içeren son CSAT'lerin yorum metinleri.
-     * {@link Pageable} ile limit verilir — landing/dashboard'da "müşteri sesi" kutucuğu için.
+     * Comment text from recent CSATs with a high rating (≥4) and a meaningful
+     * comment (5+ characters). The limit is applied via {@link Pageable} — used by
+     * the "voice of the customer" panel on the landing/dashboard.
      */
     @Query("SELECT c.comment FROM Csat c WHERE c.comment IS NOT NULL AND LENGTH(c.comment) > 5 AND c.rating >= 4 AND c.createdAt >= :since ORDER BY c.createdAt DESC")
     List<String> findTopPositiveCommentsSince(@Param("since") ZonedDateTime since, Pageable pageable);

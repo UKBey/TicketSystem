@@ -5,11 +5,11 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 /**
- * Bir agent'ın {@link Ticket} üzerinde harcadığı çalışma süresi kaydı.
+ * Worklog entry capturing the time an agent has spent on a {@link Ticket}.
  *
- * <p>Dakika cinsinden tutulur ve dashboard'larda toplam efor / agent verimlilik
- * raporları için aggregate edilir. Bir bilet birden fazla worklog'a sahip olabilir
- * (aynı agent farklı zamanlarda ekleyebilir).
+ * <p>Stored in minutes and aggregated on dashboards for total-effort and
+ * agent-productivity reports. A single ticket can have many worklogs — the same agent
+ * may add entries at different times.
  */
 @Entity
 @Table(name = "ticket_worklogs")
@@ -30,7 +30,7 @@ public class TicketWorklog {
     @Column(name = "agent_id", nullable = false, length = 36)
     private String agentId;
 
-    /** Harcanan süre — dakika cinsinden. */
+    /** Time spent — in minutes. */
     @Column(nullable = false)
     private Integer minutes;
 

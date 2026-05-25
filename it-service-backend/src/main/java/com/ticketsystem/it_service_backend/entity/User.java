@@ -7,13 +7,14 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * Sistem kullanıcısı — Keycloak'ta tanımlı kimliklerin uygulama tarafındaki yansıması.
+ * System user — the application-side mirror of identities defined in Keycloak.
  *
- * <p>ID, Keycloak UUID'si olarak gelir (generated değil). {@link Product} ile many-to-many
- * yetki ilişkisi {@code user_products} köprü tablosu üzerinden kurulur — müşteri sadece
- * yetkili olduğu ürünler için bilet açabilir, agent yalnızca yetkili ürünlerdeki biletleri
- * sahiplenebilir. Dil ve tema tercihleri (V21+) burada tutulur; rol bilgisi Keycloak ile
- * paralel olarak DB'de de cache'lenir.
+ * <p>The ID arrives as a Keycloak UUID (not generated). The many-to-many authorization
+ * relationship with {@link Product} is established through the {@code user_products}
+ * bridge table — a customer can only open tickets for products they are authorized on,
+ * and an agent can only claim tickets on products they are authorized on. Language and
+ * theme preferences (V21+) live here; role information is also cached in the DB
+ * alongside Keycloak.
  */
 @Entity
 @Table(name = "users")
@@ -41,16 +42,16 @@ public class User {
     private Boolean isActive = true;
 
     /**
-     * Kullanıcının tercih ettiği dil kodu (ISO 639-1).
-     * Desteklenen değerler: "en" (varsayılan), "tr"
+     * The user's preferred language code (ISO 639-1).
+     * Supported values: "en" (default), "tr".
      */
     @Column(name = "preferred_language", length = 5, nullable = false)
     @Builder.Default
     private String preferredLanguage = "en";
 
     /**
-     * Kullanıcının tercih ettiği tema. Desteklenen değerler: "light" (varsayılan), "dark".
-     * Mail şablonları bu değere göre açık/koyu renk paleti seçer.
+     * The user's preferred theme. Supported values: "light" (default), "dark".
+     * Email templates pick a light or dark color palette based on this value.
      */
     @Column(name = "preferred_theme", length = 10, nullable = false)
     @Builder.Default

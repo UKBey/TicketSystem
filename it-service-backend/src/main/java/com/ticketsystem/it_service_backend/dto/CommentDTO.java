@@ -13,8 +13,8 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir bilet yorumunun yanıt modeli — EXTERNAL (müşteriye görünür) ve INTERNAL (ajan/manager not) tiplerini birleştirir.
- * Bilet detay ekranındaki sohbet akışında listelenir; yazar adı/rolü sunucu tarafında çözümlenir.
+ * Response model for a ticket comment — covers both EXTERNAL (visible to customer) and INTERNAL (agent/manager note) types.
+ * Listed in the chat thread on the ticket detail screen; author name/role are resolved server-side.
  */
 @Schema(description = "Bilet yorumu yanıt modeli — hem müşteri yanıtı hem dahili notları kapsar")
 public class CommentDTO {

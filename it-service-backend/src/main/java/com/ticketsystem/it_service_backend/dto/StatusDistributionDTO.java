@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Biletlerin durumlara (NEW, IN_PROGRESS, vb.) göre dağılımı.
- * Dashboard'un pie/bar chart bileşeni tarafından tüketilen sayım yanıtı.
+ * Distribution of tickets by status (NEW, IN_PROGRESS, etc.).
+ * Count response consumed by the dashboard's pie/bar chart component.
  */
 @Schema(description = "Bilet durum dağılımı — dashboard chart verisi")
 public class StatusDistributionDTO {

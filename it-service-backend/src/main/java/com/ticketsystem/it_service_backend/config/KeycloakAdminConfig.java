@@ -8,15 +8,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Keycloak Admin Client bean'ini yapılandırır.
+ * Configures the Keycloak Admin Client bean.
  *
- * <p>Backend, kullanıcı oluşturma ve rol atama işlemleri için Keycloak Admin REST API'ye
- * {@code client_credentials} grant type ile erişir. Bu yaklaşım için {@code ticket-client}
- * üzerinde {@code serviceAccountsEnabled: true} ve {@code realm-management} client'ından
- * {@code manage-users} + {@code view-users} rollerinin atanmış olması gerekir.
+ * <p>The backend talks to the Keycloak Admin REST API via the
+ * {@code client_credentials} grant type to create users and assign roles.
+ * This requires {@code serviceAccountsEnabled: true} on {@code ticket-client}
+ * and the {@code manage-users} + {@code view-users} roles from the
+ * {@code realm-management} client to be assigned.
  *
- * <p>Bu bean {@link com.ticketsystem.it_service_backend.service.KeycloakAdminService}
- * tarafından constructor injection ile kullanılır.
+ * <p>The bean is consumed by
+ * {@link com.ticketsystem.it_service_backend.service.KeycloakAdminService}
+ * via constructor injection.
  */
 @Configuration
 @Log4j2
@@ -35,13 +37,16 @@ public class KeycloakAdminConfig {
     private String clientSecret;
 
     /**
-     * Keycloak Admin REST client'ini {@code client_credentials} grant ile kurar.
+     * Builds the Keycloak Admin REST client with the
+     * {@code client_credentials} grant.
      *
-     * <p>Acilista bir access token alinarak baglanti dogrulanir; secret veya
-     * eksik rol gibi sorunlar uygulama acilirken erken yakalanir. Hata olsa bile
-     * baslatma surdurulur — sadece kullanici yonetimi endpoint'leri etkilenir.
+     * <p>An access token is fetched at startup to verify the connection;
+     * issues such as a wrong secret or missing role are caught early during
+     * boot. The application keeps starting even on failure — only the user
+     * management endpoints are affected.
      *
-     * @return uygulama yasam donguusunce paylasilan {@link Keycloak} client'i
+     * @return the {@link Keycloak} client shared for the application's
+     *         lifetime
      */
     @Bean
     public Keycloak keycloakAdminClient() {

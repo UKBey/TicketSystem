@@ -4,12 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * IT-servisi tarafından desteklenen ürün (örn. "ERP", "CRM").
+ * A product supported by IT services (e.g. "ERP", "CRM").
  *
- * <p>{@link User} ile {@code user_products} köprüsü üzerinden many-to-many yetkilendirme
- * ilişkisi vardır; {@link Ticket}, {@link TicketTopic}, {@link KnownIssue} ve
- * {@link AgentProductLimit} bu ürünü referans alır. Soft-delete pattern'i için
- * {@code isActive} bayrağı kullanılır — kayıt silinmez, deaktive edilir.
+ * <p>Has a many-to-many authorization relationship with {@link User} via the
+ * {@code user_products} bridge; {@link Ticket}, {@link TicketTopic},
+ * {@link KnownIssue} and {@link AgentProductLimit} all reference this product. The
+ * {@code isActive} flag implements a soft-delete pattern — records are deactivated
+ * rather than deleted.
  */
 @Entity
 @Table(name = "products")
@@ -31,7 +32,7 @@ public class Product {
     @Builder.Default
     private Boolean isActive = true;
 
-    /** Bu ürün için bir agent'ın aynı anda sahiplenebileceği maks. aktif bilet sayısı (varsayılan limit). */
+    /** Default cap on the number of active tickets a single agent may hold for this product at one time. */
     @Column(name = "max_active_tickets")
     private Integer maxActiveTickets;
 }

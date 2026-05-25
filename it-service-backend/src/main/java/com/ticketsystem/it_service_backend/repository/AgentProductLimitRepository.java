@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link AgentProductLimit} için JPA repository — agent başına ürün-özel
- * aktif bilet limit override'larını okur, ürün silinince ilgili override'ları temizler.
+ * JPA repository for {@link AgentProductLimit} — reads per-agent product-specific
+ * active-ticket limit overrides and clears related overrides when a product is deleted.
  */
 public interface AgentProductLimitRepository extends JpaRepository<AgentProductLimit, Long> {
 

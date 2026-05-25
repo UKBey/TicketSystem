@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Groq API chat completion isteği.
- * Referans: https://console.groq.com/docs/api-reference#chat-create
+ * Groq API chat completion request.
+ * Reference: https://console.groq.com/docs/api-reference#chat-create
  */
 @Data
 @Builder
@@ -18,31 +18,31 @@ import java.util.List;
 @AllArgsConstructor
 public class GroqChatRequest {
 
-    /** Model adı (ör: llama3-8b-8192) */
+    /** Model name (e.g. llama3-8b-8192) */
     private String model;
 
-    /** Mesaj dizisi */
+    /** Message sequence */
     private List<Message> messages;
 
-    /** Maksimum üretilecek token sayısı */
+    /** Maximum number of tokens to generate */
     @JsonProperty("max_tokens")
     private Integer maxTokens;
 
-    /** Sıcaklık (0.0 - 2.0, varsayılan: 1.0) */
+    /** Temperature (0.0 - 2.0, default: 1.0) */
     private Double temperature;
 
     /**
-     * Groq sohbet mesajı — rol ve içerik çiftini taşır.
+     * Groq chat message — carries the role and content pair.
      */
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Message {
-        /** Rol: system, user, assistant */
+        /** Role: system, user, assistant */
         private String role;
 
-        /** Mesaj içeriği */
+        /** Message content */
         private String content;
     }
 }

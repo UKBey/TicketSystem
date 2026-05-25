@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Manager dashboard'un üst KPI kartlarını besleyen özet metrik yanıtı.
- * Açık bilet sayıları, SLA ihlal oranı, ortalama yanıt süresi ve öncelik dağılımı içerir.
+ * Summary metrics that feed the top KPI cards on the manager dashboard.
+ * Contains open ticket counts, SLA breach rate, average response time and priority distribution.
  */
 @Schema(description = "Dashboard özet metrikleri — KPI kartları için temel veriler")
 public class DashboardMetricsDTO {

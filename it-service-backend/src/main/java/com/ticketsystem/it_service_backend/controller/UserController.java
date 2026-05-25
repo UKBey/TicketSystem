@@ -44,12 +44,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Kullanıcı yönetimi için ana REST kontrolcüsü.
+ * Main REST controller for user management.
  *
- * <p>Self-servis akışlar (profil, şifre, 2FA, dil/tema tercihi) ve admin işlemleri
- * (kullanıcı oluşturma, rol güncelleme, aktif/pasif yapma, ürün yetki atama) buradadır.
- * Keycloak ile entegrasyon {@link KeycloakAdminService}, iş kuralları
- * {@link UserService} tarafına devredilir.
+ * <p>Hosts self-service flows (profile, password, 2FA, language/theme preference)
+ * and admin operations (user creation, role updates, activate/deactivate, product
+ * authorization assignments). Keycloak integration is delegated to
+ * {@link KeycloakAdminService} and business rules to {@link UserService}.
  */
 @Log4j2
 @Tag(name = "Kullanıcı Yönetimi", description = "Keycloak senkronizasyonu, kullanıcı listeleme ve ürün yetki atamaları")
@@ -65,12 +65,12 @@ public class UserController {
     private final EmailService emailService;
 
     /**
-     * UI girişinden sonra JWT'deki kimlik bilgilerini yerel kullanıcı tablosuna eşitler.
+     * Synchronizes the identity claims from the JWT into the local users table after UI login.
      *
-     * <p>Kullanıcı yoksa yaratılır, varsa güncellenir; rol önceliği
-     * {@code AGENT_ADMIN > MANAGER > AGENT > CUSTOMER} sırasıyla belirlenir.
+     * <p>Creates the user when absent and updates them otherwise; the role priority is
+     * {@code AGENT_ADMIN > MANAGER > AGENT > CUSTOMER}.
      *
-     * @return senkronize edilen kullanıcı DTO'su
+     * @return DTO of the synchronized user
      */
     // UI girisinden sonra kullaniciyi yerel veritabaniyla esitlemek icin cagrilir.
     @Operation(summary = "Kullanıcı senkronizasyonu",
@@ -124,8 +124,8 @@ public class UserController {
     }
 
     /**
-     * JWT'den fullName oluşturur. given_name veya family_name null ise
-     * preferred_username'i fallback olarak kullanır.
+     * Builds the full name from the JWT. When {@code given_name} or {@code family_name}
+     * is null, falls back to {@code preferred_username}.
      */
     private String buildFullName(Jwt jwt) {
         String given  = jwt.getClaimAsString("given_name");
@@ -143,9 +143,9 @@ public class UserController {
     }
 
     /**
-     * Sistemdeki tüm {@code AGENT} rolündeki kullanıcıları yetkili ürünleriyle birlikte döner.
+     * Returns all users in the {@code AGENT} role together with the products they are authorized for.
      *
-     * @return ajan kullanıcıların DTO listesi
+     * @return list of agent user DTOs
      */
     @Operation(summary = "Tüm ajanları listele",
             description = "Sistemdeki `AGENT` rolündeki tüm kullanıcıları yetkili oldukları ürün bilgileriyle birlikte getirir.")
@@ -167,12 +167,12 @@ public class UserController {
     }
 
     /**
-     * Belirtilen ürün için yetkili agent'ları, aktif bilet sayısı ve limit bilgisiyle döner.
+     * Returns the agents authorized for the given product, with their active ticket count and limit.
      *
-     * <p>Atama UI'sının agent seçim listesi bu uç noktadan beslenir.
+     * <p>The agent selection list of the assignment UI is populated from this endpoint.
      *
-     * @param productId ürün kimliği
-     * @return kapasite bilgisi içeren agent DTO listesi
+     * @param productId product identifier
+     * @return list of agent DTOs including capacity information
      */
     @Operation(summary = "Agent'ları kapasite bilgileriyle listele",
             description = "Belirtilen ürün için yetkili agent'ları, mevcut aktif bilet sayıları ve limitleriyle birlikte döner. Atama UI'ı için kullanılır.")
@@ -194,10 +194,10 @@ public class UserController {
     }
 
     /**
-     * Belirtilen Keycloak kimliğine sahip kullanıcının detaylı bilgilerini döner.
+     * Returns detailed information about the user with the given Keycloak identifier.
      *
-     * @param id Keycloak kullanıcı kimliği (UUID)
-     * @return kullanıcı DTO'su
+     * @param id Keycloak user identifier (UUID)
+     * @return user DTO
      */
     @Operation(summary = "Kullanıcı detayı getir",
             description = "Belirtilen Keycloak ID'ye sahip kullanıcının detaylı bilgilerini döner.")
@@ -220,13 +220,13 @@ public class UserController {
     }
 
     /**
-     * Kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak listeler.
+     * Lists users paginated, with optional name/email search and role filters.
      *
-     * @param search isim veya e-posta üzerinde serbest metin filtresi
-     * @param role rol filtresi (çoklu)
-     * @param page sayfa indeksi (0 tabanlı)
-     * @param size sayfa boyutu (1-500)
-     * @return {@code content}, {@code totalElements}, {@code totalPages}, {@code page}, {@code size} alanlarıyla harita
+     * @param search free-text filter over name or email
+     * @param role role filter (multiple)
+     * @param page page index (0-based)
+     * @param size page size (1-500)
+     * @return map containing the {@code content}, {@code totalElements}, {@code totalPages}, {@code page} and {@code size} fields
      */
     @Operation(summary = "Tüm kullanıcıları listele (sayfalı + filtreli)",
             description = "Sistemdeki kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak getirir.")
@@ -257,10 +257,10 @@ public class UserController {
     }
 
     /**
-     * Oturum açan kullanıcının ad, soyad ve e-posta bilgilerini Keycloak ve yerel DB'de günceller.
+     * Updates the authenticated user's first name, last name and email in Keycloak and the local DB.
      *
-     * @param request yeni ad, soyad ve e-posta
-     * @return güncellenmiş kullanıcı DTO'su
+     * @param request new first name, last name and email
+     * @return DTO of the updated user
      */
     @Operation(summary = "Profil bilgilerini güncelle",
             description = """
@@ -285,11 +285,11 @@ public class UserController {
     }
 
     /**
-     * Oturum açan kullanıcının şifresini Keycloak üzerinde değiştirir; mevcut şifre direct-grant ile doğrulanır.
+     * Changes the authenticated user's password in Keycloak; the current password is verified via direct-grant.
      *
-     * @param request mevcut ve yeni şifre
+     * @param request current and new password
      * @return {@code 204 No Content}
-     * @throws WrongCurrentPasswordException mevcut şifre yanlışsa
+     * @throws WrongCurrentPasswordException if the current password is wrong
      */
     @Operation(summary = "Şifreyi değiştir",
             description = """
@@ -325,9 +325,9 @@ public class UserController {
     }
 
     /**
-     * Oturum açan kullanıcının kayıtlı TOTP cihazlarını döner.
+     * Returns the authenticated user's registered TOTP devices.
      *
-     * @return cihaz DTO listesi (id, etiket, oluşturulma zamanı)
+     * @return list of device DTOs (id, label, created timestamp)
      */
     @Operation(summary = "2FA cihazlarını listele",
             description = """
@@ -353,9 +353,9 @@ public class UserController {
     }
 
     /**
-     * Oturum açan kullanıcının belirli bir TOTP cihazını siler ve bildirim maili gönderir.
+     * Deletes a specific TOTP device of the authenticated user and sends a notification email.
      *
-     * @param credentialId Keycloak credential kimliği
+     * @param credentialId Keycloak credential identifier
      * @return {@code 204 No Content}
      */
     @Operation(summary = "2FA cihazı sil",
@@ -390,8 +390,8 @@ public class UserController {
     }
 
     /**
-     * Keycloak {@code CONFIGURE_TOTP} akışı tamamlandığında frontend tarafından çağrılır;
-     * en son eklenen TOTP cihazına bildirim maili tetikler.
+     * Called by the frontend when the Keycloak {@code CONFIGURE_TOTP} flow completes;
+     * triggers a notification email for the most recently added TOTP device.
      *
      * @return {@code 204 No Content}
      */
@@ -425,10 +425,10 @@ public class UserController {
     }
 
     /**
-     * Kullanıcının tercih ettiği arayüz/email dilini günceller.
+     * Updates the user's preferred UI/email language.
      *
-     * @param lang dil kodu ({@code en} veya {@code tr})
-     * @return güncellenmiş kullanıcı DTO'su
+     * @param lang language code ({@code en} or {@code tr})
+     * @return DTO of the updated user
      */
     @Operation(summary = "Kullanıcı dil tercihini güncelle",
             description = "Kullanıcının tercih ettiği dili günceller. Desteklenen değerler: `en`, `tr`.")
@@ -449,10 +449,10 @@ public class UserController {
     }
 
     /**
-     * Kullanıcının arayüz/email tema tercihini günceller.
+     * Updates the user's UI/email theme preference.
      *
-     * @param theme tema değeri ({@code light} veya {@code dark})
-     * @return güncellenmiş kullanıcı DTO'su
+     * @param theme theme value ({@code light} or {@code dark})
+     * @return DTO of the updated user
      */
     @Operation(summary = "Kullanıcı tema tercihini güncelle",
             description = "Kullanıcının arayüz ve mail temasını günceller. Desteklenen değerler: `light`, `dark`.")
@@ -473,11 +473,11 @@ public class UserController {
     }
 
     /**
-     * Ajana belirtilen ürün için destek yetkisi ekler ({@code authorizedProducts} listesi güncellenir).
+     * Grants the agent support authorization for the specified product (the {@code authorizedProducts} list is updated).
      *
-     * @param userId hedef ajanın Keycloak kimliği
-     * @param productId atanacak ürünün kimliği
-     * @return güncellenmiş ajan DTO'su
+     * @param userId Keycloak identifier of the target agent
+     * @param productId identifier of the product to assign
+     * @return DTO of the updated agent
      */
     @Operation(summary = "Ajana ürün ata",
             description = "Belirtilen ajana belirtilen ürün grubunun destek taleplerini görebilme ve sahiplenme yetkisi verir. "
@@ -505,11 +505,11 @@ public class UserController {
     }
 
     /**
-     * Ajanın belirtilen ürün üzerindeki destek yetkisini kaldırır.
+     * Revokes the agent's support authorization for the specified product.
      *
-     * @param userId hedef ajanın Keycloak kimliği
-     * @param productId yetkisi kaldırılacak ürünün kimliği
-     * @return güncellenmiş ajan DTO'su
+     * @param userId Keycloak identifier of the target agent
+     * @param productId identifier of the product to remove authorization for
+     * @return DTO of the updated agent
      */
     @Operation(summary = "Ajandan ürün yetkisi kaldır",
             description = "Ajanın belirtilen ürün grubu üzerindeki destek yetkisini iptal eder. "
@@ -537,15 +537,15 @@ public class UserController {
     }
 
     // -------------------------------------------------------------------------
-    // Admin — Kullanıcı Oluşturma & Rol Yönetimi
+    // Admin — User creation & role management
     // -------------------------------------------------------------------------
 
     /**
-     * Kullanıcıyı soft-delete ile deaktive eder veya yeniden aktive eder; admin kendini deaktive edemez.
+     * Soft-deletes (deactivates) or reactivates the user; an admin cannot deactivate themselves.
      *
-     * @param userId hedef kullanıcının Keycloak kimliği
-     * @param active {@code true}: aktive et, {@code false}: deaktive et
-     * @return güncellenmiş kullanıcı DTO'su; admin kendini deaktive ederse {@code 400}
+     * @param userId Keycloak identifier of the target user
+     * @param active {@code true}: reactivate, {@code false}: deactivate
+     * @return DTO of the updated user; {@code 400} if the admin tries to deactivate themselves
      */
     @Operation(
             summary = "Kullanıcı aktif/pasif durumunu güncelle (Admin)",
@@ -585,11 +585,11 @@ public class UserController {
     }
 
     /**
-     * Belirtilen kullanıcının Keycloak realm rollerini değiştirir; mevcut roller kaldırılır.
+     * Replaces the user's Keycloak realm roles; existing roles are removed first.
      *
-     * @param userId hedef kullanıcının Keycloak kimliği
-     * @param roles atanacak rollerin listesi (boş olamaz)
-     * @return güncellenmiş kullanıcı DTO'su; liste boşsa {@code 400}
+     * @param userId Keycloak identifier of the target user
+     * @param roles list of roles to assign (cannot be empty)
+     * @return DTO of the updated user; {@code 400} if the list is empty
      */
     @Operation(
             summary = "Kullanıcı rollerini güncelle (Admin)",
@@ -629,10 +629,10 @@ public class UserController {
     }
 
     /**
-     * Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve yerel DB'yi senkronize eder.
+     * Creates a new user in the Keycloak realm, sets a temporary password and syncs the local DB.
      *
-     * @param request kullanıcı bilgileri, geçici şifre ve atanacak roller
-     * @return oluşturulan kullanıcı bilgisini içeren yanıt ({@code 201 Created})
+     * @param request user information, temporary password and roles to assign
+     * @return response containing the created user's information ({@code 201 Created})
      */
     @Operation(
             summary = "Yeni kullanıcı oluştur (Admin)",
@@ -716,9 +716,9 @@ public class UserController {
     }
 
     /**
-     * Keycloak realm'inde kullanıcılara atanabilir rollerin listesini döner; sistem rolleri filtrelenir.
+     * Returns the list of roles assignable to users in the Keycloak realm; system roles are filtered out.
      *
-     * @return rol adlarından oluşan liste
+     * @return list of role names
      */
     @Operation(
             summary = "Atanabilir rolleri listele (Admin)",

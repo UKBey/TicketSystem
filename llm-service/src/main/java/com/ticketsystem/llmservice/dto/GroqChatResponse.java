@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * Groq API chat completion yanıtı.
+ * Groq API chat completion response.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -19,7 +19,7 @@ public class GroqChatResponse {
     private Usage usage;
 
     /**
-     * Tek bir tamamlama seçeneği — mesaj ve bitirme nedenini taşır.
+     * A single completion choice — carries the message and the finish reason.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,7 +31,7 @@ public class GroqChatResponse {
     }
 
     /**
-     * Üretilen mesaj — rol ve içerik bilgisini taşır.
+     * Generated message — carries the role and content.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -41,7 +41,7 @@ public class GroqChatResponse {
     }
 
     /**
-     * Groq'un raporladığı token kullanım istatistikleri.
+     * Token usage statistics reported by Groq.
      */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -13,8 +13,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Manager dashboard'unda öncelik seviyelerinin SLA performansını listeleyen wrapper yanıt.
- * Her öncelik için bir {@link PriorityDetailDTO} satırı barındırır.
+ * Wrapper response listing SLA performance per priority on the manager dashboard.
+ * Contains one {@link PriorityDetailDTO} row per priority level.
  */
 @Schema(description = "Priority-SLA metrikleri yanıtı")
 public class PrioritySLAMetricsDTO {

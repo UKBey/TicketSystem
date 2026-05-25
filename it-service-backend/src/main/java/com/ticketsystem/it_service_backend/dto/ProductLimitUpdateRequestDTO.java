@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir ürünün varsayılan maksimum aktif bilet limitini güncellemek için kullanılan istek modeli.
- * Null değer "limitsiz" anlamına gelir.
+ * Request model for updating a product's default maximum active-ticket limit.
+ * A null value means "unlimited".
  */
 @Schema(description = "Ürün için maksimum aktif bilet limiti güncelleme modeli")
 public class ProductLimitUpdateRequestDTO {

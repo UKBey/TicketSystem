@@ -13,42 +13,42 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZonedDateTime;
 
 /**
- * {@link Notification} için JPA repository — kullanıcı başına sayfalı listeleme,
- * okundu işaretleme ve scheduler tetiklemeli otomatik temizlik (retention) sorgularını sağlar.
+ * JPA repository for {@link Notification} — provides per-user paged listing,
+ * mark-as-read operations and scheduler-driven retention/cleanup queries.
  */
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    /** Kullanıcının bildirimleri yeniden eskiye doğru sayfalanır ({@link Pageable}). */
+    /** Pages the user's notifications newest-first ({@link Pageable}). */
     Page<Notification> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
     long countByUserIdAndIsReadFalse(String userId);
 
-    /** Kullanıcının tüm bildirimlerini okundu olarak işaretler (tek UPDATE). */
+    /** Marks all of the user's notifications as read (single UPDATE). */
     @Modifying
     @Transactional
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId")
     void markAllAsReadByUserId(@Param("userId") String userId);
 
-    /** Kullanıcının tüm bildirimlerini siler. */
+    /** Deletes all notifications belonging to the user. */
     @Modifying
     @Transactional
     @Query("DELETE FROM Notification n WHERE n.userId = :userId")
     void deleteAllByUserId(@Param("userId") String userId);
 
-    /** Belirli bir bildirimi yalnızca sahibi silebilir — sahiplik kontrolü sorgu içinde. */
+    /** Only the owner may delete a given notification — the ownership check is in the query. */
     @Modifying
     @Transactional
     @Query("DELETE FROM Notification n WHERE n.id = :id AND n.userId = :userId")
     int deleteByIdAndUserId(@Param("id") Long id, @Param("userId") String userId);
 
-    /** Okunmuş ve belirtilen tarihten önce oluşturulmuş bildirimleri siler (otomatik temizlik). */
+    /** Deletes notifications that are read and were created before the given cutoff (auto-cleanup). */
     @Modifying
     @Transactional
     @Query("DELETE FROM Notification n WHERE n.isRead = true AND n.createdAt < :cutoff")
     int deleteReadBefore(@Param("cutoff") ZonedDateTime cutoff);
 
-    /** Okunmamış ve belirtilen tarihten önce oluşturulmuş bildirimleri siler (otomatik temizlik). */
+    /** Deletes notifications that are unread and were created before the given cutoff (auto-cleanup). */
     @Modifying
     @Transactional
     @Query("DELETE FROM Notification n WHERE n.isRead = false AND n.createdAt < :cutoff")

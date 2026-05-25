@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * SLA metriklerini hesaplayan native-SQL repository — {@code JdbcTemplate} kullanır,
- * JPA entity'sine bağlı değildir. {@link SlaPolicyJpaRepository} ile karıştırılmamalı:
- * o politikaları okur, bu ise aggregate raporu üretir.
+ * Native-SQL repository that computes SLA metrics — uses {@code JdbcTemplate} and is
+ * not tied to any JPA entity. Should not be confused with {@link SlaPolicyJpaRepository}:
+ * that one reads policies, while this one produces the aggregate report.
  */
 @Repository
 @RequiredArgsConstructor
@@ -19,11 +19,11 @@ public class SLAPolicyRepository {
     private final JdbcTemplate jdbcTemplate;
 
     /**
-     * Priority bazlı SLA metriklerini hesaplar. SLA hedef saatleri çağıran tarafından
-     * (env-driven SlaPolicyService) verilir — tek doğruluk kaynağı.
+     * Computes SLA metrics broken down by priority. The SLA target hours are supplied
+     * by the caller (the env-driven SlaPolicyService) — the single source of truth.
      *
-     * @param priorityHours CRITICAL/HIGH/MEDIUM/LOW → hedef saat haritası
-     * @param days          Sayım penceresi; null veya 0 ⇒ tüm zamanlar
+     * @param priorityHours map of CRITICAL/HIGH/MEDIUM/LOW → target hours
+     * @param days          counting window; null or 0 means all time
      */
     public List<Object[]> findPrioritySlaMetrics(Map<String, Integer> priorityHours, Integer days) {
         Integer dayWindow = (days != null && days > 0) ? days : null;

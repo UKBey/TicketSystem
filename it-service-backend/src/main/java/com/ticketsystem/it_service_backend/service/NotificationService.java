@@ -27,15 +27,16 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Bilet olayları için bildirim orkestrasyonu.
+ * Notification orchestration for ticket events.
  *
- * <p>Her olayda alıcının {@link com.ticketsystem.it_service_backend.entity.NotificationPreference}
- * ayarlarına göre üç kanal değerlendirilir: in-app feed (DB kaydı), e-posta
- * ({@link EmailService} aracılığıyla SMTP) ve STOMP üzerinden WebSocket
- * yayını ({@link com.ticketsystem.it_service_backend.websocket.WebSocketNotificationListener}
- * tarafından dinlenir). Email tetikleri açık transaction içindeyse {@code afterCommit}
- * fazına ertelenir — rollback'te mail gitmez. Bildirimler okundu/okunmadı ve
- * yaş eşiklerine göre her gece otomatik temizlenir.
+ * <p>For every event, three channels are evaluated against the recipient's
+ * {@link com.ticketsystem.it_service_backend.entity.NotificationPreference} settings:
+ * the in-app feed (DB row), email (via {@link EmailService} over SMTP), and the
+ * STOMP WebSocket broadcast (consumed by
+ * {@link com.ticketsystem.it_service_backend.websocket.WebSocketNotificationListener}).
+ * Email triggers fired inside an open transaction are deferred to the
+ * {@code afterCommit} phase — so emails do not leak on rollback. A nightly job
+ * cleans up notifications based on read/unread status and age thresholds.
  */
 @Log4j2
 @Service
@@ -54,11 +55,11 @@ public class NotificationService {
     // -------------------------------------------------------------------------
 
     /**
-     * Yeni bilet oluşturulduğunda müşteriye (sahibe) in-app + opsiyonel mail
-     * bildirimi tetikler. Kullanıcı tercihleri her iki kanal için ayrı ayrı kontrol
-     * edilir.
+     * Triggers in-app and optional email notification for the customer (owner)
+     * when a new ticket is created. User preferences are checked independently
+     * for each channel.
      *
-     * @param ticket yeni oluşturulan bilet
+     * @param ticket the newly created ticket
      */
     public void notifyTicketCreated(Ticket ticket) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
@@ -75,12 +76,13 @@ public class NotificationService {
     }
 
     /**
-     * Claim alan ajana in-app bildirim kaydeder. Self-claim akışında ajan kendisi
-     * action yaptığı için mail tetiklenmez — kendisi adına claim atan başkası yok,
-     * ekstra mail spam'ı oluşturur. In-app notification feed için kayıt yeterli.
+     * Records an in-app notification for the agent who claimed the ticket. No email
+     * is fired in the self-claim flow — the agent is acting themselves, so there is
+     * no third party, and extra mail would just be spam. The in-app feed entry is
+     * enough.
      *
-     * @param ticket claim alınan bilet
-     * @param agentId claim'i alan ajan ID
+     * @param ticket the claimed ticket
+     * @param agentId ID of the claiming agent
      */
     public void notifyTicketClaimed(Ticket ticket, String agentId) {
         userRepository.findById(agentId).ifPresent(agent -> {
@@ -96,12 +98,12 @@ public class NotificationService {
     }
 
     /**
-     * Agent Admin tarafından manuel atama yapıldığında çağrılır.
-     * Hedef agent'a ve müşteriye ayrı bildirimler gönderir.
+     * Called when an Agent Admin manually assigns a ticket.
+     * Sends separate notifications to the target agent and the customer.
      *
-     * @param ticket atanan bilet
-     * @param targetAgentId atanan ajan ID
-     * @param adminId atamayı yapan AGENT_ADMIN ID
+     * @param ticket the assigned ticket
+     * @param targetAgentId ID of the assigned agent
+     * @param adminId ID of the AGENT_ADMIN making the assignment
      */
     public void notifyTicketAssigned(Ticket ticket, String targetAgentId, String adminId) {
         // 1. Hedef agent'a bildirim gönder
@@ -131,11 +133,11 @@ public class NotificationService {
     }
 
     /**
-     * Statü değişikliği bildirimi (CLOSE/RESOLVE dışı) müşteriye in-app + opsiyonel
-     * mail tetikler.
+     * Triggers an in-app and optional email status-change notification to the
+     * customer (excluding CLOSE/RESOLVE, which have their own paths).
      *
-     * @param ticket statüsü değişen bilet (yeni statü {@code ticket.getStatus()}'tedir)
-     * @param oldStatus önceki statü
+     * @param ticket the ticket whose status changed (the new status is on {@code ticket.getStatus()})
+     * @param oldStatus previous status
      */
     public void notifyStatusChanged(Ticket ticket, String oldStatus) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
@@ -154,12 +156,12 @@ public class NotificationService {
     }
 
     /**
-     * Bilete eklenen EXTERNAL yorum sonrası karşı tarafı bildirir. Yazar müşteriyse
-     * tüm claim sahiplerine, yazar ajansa müşteriye gider. INTERNAL yorumlar
-     * bildirim üretmez.
+     * Notifies the other party after an EXTERNAL comment is added. When the author
+     * is the customer, all claim holders are notified; when the author is an agent,
+     * the customer is notified. INTERNAL comments produce no notifications.
      *
-     * @param ticket yorumun ait olduğu bilet
-     * @param comment yeni yorum
+     * @param ticket the ticket the comment belongs to
+     * @param comment the new comment
      */
     public void notifyCommentAdded(Ticket ticket, Comment comment) {
         if (!"EXTERNAL".equals(comment.getType())) return;
@@ -202,10 +204,10 @@ public class NotificationService {
     }
 
     /**
-     * SLA uyarı eşiği aşıldığında tüm claim sahibi ajanlara ve manager'lara
-     * uyarı bildirimi gönderir.
+     * Sends an SLA warning notification to every claim holder agent and every
+     * manager when the warning threshold is crossed.
      *
-     * @param ticket uyarı eşiğine giren bilet
+     * @param ticket the ticket that entered the warning window
      */
     public void notifySlaWarning(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_WARNING,
@@ -213,10 +215,10 @@ public class NotificationService {
     }
 
     /**
-     * SLA ihlali oluştuğunda tüm claim sahibi ajanlara ve manager'lara ihlal
-     * bildirimi gönderir.
+     * Sends an SLA-breached notification to every claim holder agent and every
+     * manager when an SLA breach occurs.
      *
-     * @param ticket SLA'i ihlal eden bilet
+     * @param ticket the ticket that breached its SLA
      */
     public void notifySlaBreached(Ticket ticket) {
         notifyStaffAboutSla(ticket, NotificationType.SLA_BREACHED,
@@ -224,10 +226,10 @@ public class NotificationService {
     }
 
     /**
-     * Bilet RESOLVED durumuna geçtiğinde müşteriye in-app + opsiyonel mail
-     * bildirimi gönderir.
+     * Sends an in-app and optional email notification to the customer when a
+     * ticket transitions to RESOLVED.
      *
-     * @param ticket çözümlenen bilet
+     * @param ticket the resolved ticket
      */
     public void notifyTicketResolved(Ticket ticket) {
         userRepository.findById(ticket.getCustomerId()).ifPresent(customer -> {
@@ -248,13 +250,14 @@ public class NotificationService {
     // -------------------------------------------------------------------------
 
     /**
-     * Kullanıcının bildirimlerini en yeniden eskiye sayfalı döner. Mesajlar,
-     * okuma anında kullanıcının dil tercihine göre i18n key + args üzerinden
-     * render edilir; pre-V33 satırlar saklı {@code message} kolonunu kullanır.
+     * Returns the user's notifications newest-to-oldest, paginated. Messages are
+     * rendered at read time from the i18n key + args according to the user's
+     * language preference; pre-V33 rows fall back to the stored {@code message}
+     * column.
      *
-     * @param userId alıcı kullanıcı ID
-     * @param pageable sayfalama
-     * @return localize edilmiş bildirim sayfası
+     * @param userId recipient user ID
+     * @param pageable pagination
+     * @return localized notification page
      */
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getNotificationsForUser(String userId, Pageable pageable) {
@@ -267,10 +270,10 @@ public class NotificationService {
     }
 
     /**
-     * Kullanıcının okunmamış bildirim sayısını döner (badge için).
+     * Returns the user's unread notification count (for the badge).
      *
-     * @param userId hedef kullanıcı
-     * @return okunmamış kayıt sayısı
+     * @param userId target user
+     * @return unread record count
      */
     @Transactional(readOnly = true)
     public long getUnreadCount(String userId) {
@@ -278,11 +281,11 @@ public class NotificationService {
     }
 
     /**
-     * Bir bildirimi okundu olarak işaretler.
+     * Marks a single notification as read.
      *
-     * @param notificationId hedef bildirim
-     * @param userId istek yapan kullanıcı (sahip olmalı)
-     * @throws ResponseStatusException 404 bildirim yoksa, 403 başka kullanıcıya aitse
+     * @param notificationId target notification
+     * @param userId requesting user (must be the owner)
+     * @throws ResponseStatusException 404 if not found, 403 if owned by another user
      */
     @Transactional
     public void markAsRead(Long notificationId, String userId) {
@@ -298,9 +301,9 @@ public class NotificationService {
     }
 
     /**
-     * Kullanıcının tüm bildirimlerini tek SQL'de okundu olarak işaretler.
+     * Marks every notification belonging to the user as read in a single SQL statement.
      *
-     * @param userId hedef kullanıcı
+     * @param userId target user
      */
     @Transactional
     public void markAllAsRead(String userId) {
@@ -308,12 +311,12 @@ public class NotificationService {
     }
 
     /**
-     * Bir bildirimi siler; başka kullanıcının kaydı 404 ile döner (ownership
-     * kontrolü tek DELETE sorgusunda yapılır).
+     * Deletes a notification; records belonging to another user return 404
+     * (ownership is checked in the same DELETE statement).
      *
-     * @param notificationId silinecek bildirim
-     * @param userId istek yapan kullanıcı
-     * @throws ResponseStatusException 404 — bulunamadı veya yetki yok
+     * @param notificationId notification to delete
+     * @param userId requesting user
+     * @throws ResponseStatusException 404 if not found or not authorized
      */
     @Transactional
     public void deleteNotification(Long notificationId, String userId) {
@@ -326,9 +329,9 @@ public class NotificationService {
     }
 
     /**
-     * Kullanıcının tüm bildirimlerini siler ("clear all" akışı).
+     * Deletes every notification belonging to the user (the "clear all" flow).
      *
-     * @param userId hedef kullanıcı
+     * @param userId target user
      */
     @Transactional
     public void deleteAllNotifications(String userId) {
@@ -336,10 +339,10 @@ public class NotificationService {
     }
 
     /**
-     * Otomatik temizlik:
-     *  - Okunmuş bildirimler: 48 saat sonra silinir
-     *  - Okunmamış bildirimler: 240 saat (10 gün) sonra silinir
-     * Her gece 02:00'de çalışır.
+     * Automatic cleanup:
+     *  - Read notifications: deleted after 48 hours
+     *  - Unread notifications: deleted after 240 hours (10 days)
+     * Runs every night at 02:00.
      */
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
@@ -353,11 +356,11 @@ public class NotificationService {
     }
 
     /**
-     * Kullanıcının bildirim tercihlerini döner; hiç kayıt yoksa varsayılan
-     * (tümü açık) DTO döner.
+     * Returns the user's notification preferences; falls back to the default
+     * (all enabled) DTO when no row exists.
      *
-     * @param userId hedef kullanıcı
-     * @return bildirim tercih DTO'su
+     * @param userId target user
+     * @return notification preferences DTO
      */
     @Transactional(readOnly = true)
     public NotificationPreferenceResponse getPreferences(String userId) {
@@ -367,12 +370,13 @@ public class NotificationService {
     }
 
     /**
-     * Kullanıcının bildirim tercihlerini kısmen günceller. Yalnızca request'te
-     * verilen alanlar değişir; diğerleri korunur. Hiç kayıt yoksa yenisi oluşturulur.
+     * Partially updates the user's notification preferences. Only the fields
+     * supplied in the request are changed; the rest are preserved. A new row is
+     * created if none exists.
      *
-     * @param userId hedef kullanıcı
-     * @param req güncellenecek alanları içeren DTO ({@code null} field = no-op)
-     * @return son durumu yansıtan DTO
+     * @param userId target user
+     * @param req DTO carrying the fields to update ({@code null} field = no-op)
+     * @return DTO reflecting the final state
      */
     @Transactional
     public NotificationPreferenceResponse updatePreferences(String userId,
@@ -443,12 +447,13 @@ public class NotificationService {
     }
 
     /**
-     * Email tetiklerini transaction commit'ten SONRA çalıştır — eğer aktif bir
-     * transaction varsa. Bu sayede parent transaction rollback olursa mail gitmez;
-     * @Async metodun side-effect'i commit edilmemiş DB değişikliği için tetiklenmez.
+     * Runs email triggers AFTER a transaction commit — when an active transaction
+     * exists. This guarantees that no email goes out if the parent transaction
+     * rolls back; the side effect of the @Async method is not triggered for an
+     * uncommitted DB change.
      *
-     * <p>Aktif transaction yoksa (örn. scheduler dışı transaction-less akış) görev
-     * anında çalıştırılır — eski davranışla birebir.
+     * <p>When no active transaction exists (e.g. a transactionless flow outside the
+     * scheduler), the task runs immediately — identical to the previous behavior.
      */
     private void runAfterCommit(Runnable task) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {

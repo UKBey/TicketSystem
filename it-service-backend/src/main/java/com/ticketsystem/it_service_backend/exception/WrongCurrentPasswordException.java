@@ -1,9 +1,9 @@
 package com.ticketsystem.it_service_backend.exception;
 
 /**
- * Kullanıcı şifre değiştirme akışında mevcut şifresini yanlış girdiğinde fırlatılır.
- * Keycloak token endpoint'ine direct-grant ile yapılan doğrulama başarısız olursa
- * tetiklenir.
+ * Thrown when, during the password change flow, the user supplies the wrong
+ * current password. Triggered when the direct-grant verification against
+ * the Keycloak token endpoint fails.
  */
 public class WrongCurrentPasswordException extends RuntimeException {
     public WrongCurrentPasswordException() {

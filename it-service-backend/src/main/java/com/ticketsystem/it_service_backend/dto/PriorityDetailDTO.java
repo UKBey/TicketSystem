@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Tek bir öncelik seviyesi için SLA performans satırı; {@link PrioritySLAMetricsDTO} içinde listelenir.
- * Hedef süre, ortalama çözüm süresi ve breach yüzdeleri gibi karşılaştırma verilerini taşır.
+ * SLA performance row for a single priority level — listed inside {@link PrioritySLAMetricsDTO}.
+ * Carries comparison data such as target duration, average resolution time and breach percentages.
  */
 @Schema(description = "Priority bazlı SLA metrik detay satırı")
 public class PriorityDetailDTO {

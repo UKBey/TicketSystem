@@ -16,22 +16,22 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 /**
- * Springdoc / OpenAPI 3 belge yapilandirmasi.
+ * Springdoc / OpenAPI 3 document configuration.
  *
- * <p>Swagger UI'da gosterilen meta veriyi (baslik, aciklama, surum, server'lar,
- * tag'ler) ve global guvenlik semasini ({@code bearerAuth} — JWT) tanimlar.
- * Calistirildiginda {@code /v3/api-docs} JSON'unu ve {@code /swagger-ui.html}
- * arayuzunu uretir.
+ * <p>Defines the metadata shown in Swagger UI (title, description, version,
+ * servers, tags) and the global security scheme ({@code bearerAuth} — JWT).
+ * At runtime it produces the {@code /v3/api-docs} JSON and the
+ * {@code /swagger-ui.html} interface.
  */
 @Configuration
 public class OpenApiConfig {
 
     /**
-     * Tum servis icin OpenAPI 3 dokumanini olusturur.
+     * Builds the OpenAPI 3 document for the whole service.
      *
-     * <p>{@code bearerAuth} HTTP-bearer guvenlik semasi global olarak isaretlenir;
-     * Swagger UI'daki "Authorize" butonu Keycloak'tan alinan JWT'yi tum
-     * endpoint'ler icin ekler.
+     * <p>The {@code bearerAuth} HTTP-bearer security scheme is marked
+     * globally; the "Authorize" button in Swagger UI attaches the Keycloak
+     * JWT to every endpoint.
      */
     @Bean
     public OpenAPI customOpenAPI() {

@@ -8,17 +8,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link TicketAiSummary} kayıtları için JPA repository.
+ * JPA repository for {@link TicketAiSummary} records.
  *
- * <p>Bir ticket'a ait özet geçmişine erişim sağlar — özetler silinmez, her
- * üretim yeni bir satır oluşturur.
+ * <p>Provides access to a ticket's summary history — summaries are never
+ * deleted, every generation creates a new row.
  */
 @Repository
 public interface TicketAiSummaryRepository extends JpaRepository<TicketAiSummary, Long> {
 
-    /** Bir ticket'ın tüm özetlerini en yeniden eskiye sıralar */
+    /** Lists all summaries of a ticket sorted from newest to oldest */
     List<TicketAiSummary> findByTicketIdOrderByCreatedAtDesc(Long ticketId);
 
-    /** Bir ticket'ın en son özetini döner */
+    /** Returns the most recent summary of a ticket */
     Optional<TicketAiSummary> findFirstByTicketIdOrderByCreatedAtDesc(Long ticketId);
 }

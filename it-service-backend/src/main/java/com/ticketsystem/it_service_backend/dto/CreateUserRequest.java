@@ -10,11 +10,11 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * Yeni kullanıcı oluşturma isteği için DTO.
+ * DTO for creating a new user.
  *
- * <p>Tüm alanlar zorunludur. {@code password} en az 8 karakter olmalıdır;
- * güç kontrolü (büyük harf + rakam) frontend tarafında da uygulanır.
- * {@code roles} listesi en az bir eleman içermelidir.
+ * <p>All fields are required. {@code password} must be at least 8 characters;
+ * strength checks (uppercase letter + digit) are also enforced on the frontend.
+ * The {@code roles} list must contain at least one entry.
  */
 @Data
 @Schema(description = "Yeni kullanıcı oluşturma isteği")
@@ -52,9 +52,9 @@ public class CreateUserRequest {
     private List<String> roles;
 
     /**
-     * Şifre geçici mi (true → kullanıcı ilk girişte değiştirmek zorunda)
-     * yoksa kalıcı mı? Varsayılan: true. Yalnızca veri üretici (data-generator)
-     * gibi otomatik akışlarda kalıcı şifre tercih edilir.
+     * Whether the password is temporary (true → the user must change it on first
+     * login) or permanent. Defaults to true. Permanent passwords are only used
+     * by automated flows such as the data generator.
      */
     @Schema(description = "Şifre geçici mi? Varsayılan true; data-generator gibi otomasyonlar false geçer.",
             example = "true", defaultValue = "true")

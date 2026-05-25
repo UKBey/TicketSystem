@@ -24,10 +24,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * AuthController — forgot/reset password endpoint entegrasyon testleri.
+ * AuthController — integration tests for the forgot/reset password
+ * endpoints.
  *
- * <p>Gerçek PostgreSQL ve Redis container'ları üzerinde çalışır. Keycloak
- * Admin servisi mock'lanır ki gerçek Keycloak'a istek atılmasın.
+ * <p>Runs against real PostgreSQL and Redis containers. The Keycloak Admin
+ * service is mocked so that no request reaches the real Keycloak.
  */
 @DisplayName("AuthController — Password Reset Entegrasyon Testleri")
 class AuthControllerIT extends BaseIntegrationTest {

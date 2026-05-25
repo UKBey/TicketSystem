@@ -14,8 +14,8 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir endpoint icin yapilandirilmis rate limit kuralinin yanit modeli.
- * Admin panelinde Bucket4j ayarlarini gostermek icin kullanilir.
+ * Response model for the rate-limit rule configured on an endpoint.
+ * Used by the admin panel to display Bucket4j settings.
  */
 @Schema(description = "Rate limit konfigurasyonu yaniti")
 public class RateLimitConfigResponseDTO {

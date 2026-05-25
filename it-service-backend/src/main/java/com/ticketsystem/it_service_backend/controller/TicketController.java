@@ -47,12 +47,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Bilet (ticket) yaşam döngüsü için ana REST kontrolcüsü.
+ * Main REST controller for the ticket lifecycle.
  *
- * <p>Müşteri, agent, agent admin ve manager rollerine farklı endpoint'ler sunar:
- * oluşturma, listeleme, sahiplenme (claim), atama, statü/öncelik/topic değişikliği
- * ve kapatma. İş kuralları {@link TicketService}'e delege edilir; bu sınıf yalnızca
- * HTTP/JSON eşlemesi ve rol bazlı yetkilendirme ile ilgilenir.
+ * <p>Exposes role-specific endpoints for customers, agents, agent admins and managers:
+ * creation, listing, claiming, assignment, status/priority/topic changes and closing.
+ * Business rules are delegated to {@link TicketService}; this class only handles
+ * HTTP/JSON mapping and role-based authorization.
  */
 @Log4j2
 @Tag(name = "Bilet Yönetimi", description = "Destek biletlerinin oluşturulması, listelenmesi, sahiplenilmesi ve yönetimi")
@@ -69,10 +69,10 @@ public class TicketController {
     private final ProductRepository productRepository;
 
     /**
-     * Yeni bilet oluşturur ve jBPM süreç akışını başlatır.
+     * Creates a new ticket and starts the jBPM workflow process.
      *
-     * @param dto başlık, açıklama, öncelik, ürün ve topic bilgisi
-     * @return oluşturulan biletin DTO temsili
+     * @param dto title, description, priority, product and topic information
+     * @return DTO representation of the created ticket
      */
     @Operation(summary = "Yeni bilet oluştur")
     @PostMapping
@@ -99,16 +99,16 @@ public class TicketController {
     }
 
     /**
-     * Biletleri rol ve filtre kriterlerine göre sayfalı şekilde listeler.
+     * Lists tickets paginated according to role and filter criteria.
      *
-     * <p>Müşteri yalnızca kendi biletlerini; agent/agent admin yetkili oldukları
-     * tüm aktif biletleri görür.
+     * <p>Customers see only their own tickets; agents and agent admins see all active
+     * tickets they are authorized for.
      *
-     * @param page sayfa indeksi (0 tabanlı)
-     * @param size sayfa boyutu (1-500)
-     * @param sortBy sıralama alanı
+     * @param page page index (0-based)
+     * @param size page size (1-500)
+     * @param sortBy sort field
      * @param sortDir {@code asc} / {@code desc}
-     * @return sayfalı bilet DTO listesi
+     * @return paginated list of ticket DTOs
      */
     @Operation(summary = "Biletleri listele — sayfalama + filtreleme (role göre filtrelenir)")
     @GetMapping
@@ -147,11 +147,11 @@ public class TicketController {
     }
 
     /**
-     * Havuzdaki ({@code NEW}, henüz claim'lenmemiş) biletleri sayfalı şekilde listeler.
+     * Lists pool tickets ({@code NEW}, not yet claimed) in a paginated manner.
      *
-     * @param page sayfa indeksi
-     * @param size sayfa boyutu (1-500)
-     * @return havuzdaki biletlerin sayfalı listesi
+     * @param page page index
+     * @param size page size (1-500)
+     * @return paginated list of pool tickets
      */
     @Operation(summary = "Havuzdaki biletleri listele — sayfalama + filtreleme (NEW statüsü)")
     @GetMapping("/pool")
@@ -184,11 +184,11 @@ public class TicketController {
     }
 
     /**
-     * Oturum açan agent'ın claim aldığı biletleri sayfalı şekilde listeler.
+     * Lists the tickets claimed by the authenticated agent in a paginated manner.
      *
-     * @param page sayfa indeksi
-     * @param size sayfa boyutu (1-500)
-     * @return agent'a atanmış biletlerin sayfalı listesi
+     * @param page page index
+     * @param size page size (1-500)
+     * @return paginated list of tickets assigned to the agent
      */
     @Operation(summary = "Ajanın claim aldığı biletleri listele — sayfalama + filtreleme")
     @GetMapping("/my-assigned")
@@ -221,11 +221,11 @@ public class TicketController {
     }
 
     /**
-     * Agent'ın yetkili olduğu ürünlerdeki aktif biletleri sayfalı şekilde listeler.
+     * Lists active tickets across the products the agent is authorized for, in a paginated manner.
      *
-     * @param page sayfa indeksi
-     * @param size sayfa boyutu (1-500)
-     * @return takım görünümündeki biletlerin sayfalı listesi
+     * @param page page index
+     * @param size page size (1-500)
+     * @return paginated list of tickets in the team view
      */
     @Operation(summary = "Ajanın yetkili ürünlerindeki aktif biletleri listele — sayfalama + filtreleme")
     @GetMapping("/team")
@@ -259,11 +259,11 @@ public class TicketController {
     }
 
     /**
-     * Agent/Agent Admin "All Tickets" sayfası için tüm statüleri içeren bilet listesi.
+     * Ticket list for the Agent/Agent Admin "All Tickets" page, including every status.
      *
-     * @param page sayfa indeksi
-     * @param size sayfa boyutu (1-500)
-     * @return erişilebilir tüm biletlerin sayfalı listesi
+     * @param page page index
+     * @param size page size (1-500)
+     * @return paginated list of all accessible tickets
      */
     @Operation(summary = "Yetkili olunan tüm ürünlerdeki tüm statülerdeki biletler — sayfalama + filtreleme",
             description = "Agent/Agent Admin için 'All Tickets' sayfasının veri kaynağı. NEW ve CLOSED dahil tüm statüleri içerir.")
@@ -298,10 +298,10 @@ public class TicketController {
     }
 
     /**
-     * Belirtilen biletin detayını döner; sahiplik/yetki denetimi servis katmanındadır.
+     * Returns the detail of the specified ticket; ownership and authorization checks live in the service layer.
      *
-     * @param id biletin kimliği
-     * @return bilet DTO temsili (audit log, claim, SLA bilgileriyle birlikte)
+     * @param id ticket identifier
+     * @return ticket DTO representation (with audit log, claims and SLA information)
      */
     @Operation(summary = "Bilet detayı getir")
     @GetMapping("/{id}")
@@ -314,10 +314,10 @@ public class TicketController {
     }
 
     /**
-     * Bileti çağıran agent için sahiplenir (claim). {@code CLOSED} hariç tüm statülerde mümkündür.
+     * Claims the ticket for the calling agent. Allowed in every status except {@code CLOSED}.
      *
-     * @param id sahiplenilecek biletin kimliği
-     * @return güncel claim bilgisini içeren bilet DTO'su
+     * @param id identifier of the ticket to claim
+     * @return ticket DTO with the updated claim information
      */
     @Operation(summary = "Bileti claim al (CLOSED hariç her statüdeki bilet sahiplenebilir)")
     @PutMapping("/{id}/claim")
@@ -333,11 +333,11 @@ public class TicketController {
     }
 
     /**
-     * Çağıran agent'ın claim'ini bırakır; yalnızca kendi claim'i geri verilir.
+     * Releases the calling agent's claim; only the agent's own claim is given back.
      *
-     * @param id biletin kimliği
-     * @param dto bırakma sebebi (reasonCode) ve opsiyonel not
-     * @return güncel claim listesini içeren bilet DTO'su
+     * @param id ticket identifier
+     * @param dto reason code for the release and an optional note
+     * @return ticket DTO with the updated claim list
      */
     @Operation(summary = "Claim'i bırak (sadece kendi claim'ini geri verir)")
     @DeleteMapping("/{id}/claim")
@@ -355,11 +355,11 @@ public class TicketController {
         }
 
     /**
-     * Agent Admin'in bileti hedef agent'a manuel atamasını gerçekleştirir.
+     * Performs a manual assignment of the ticket to the target agent by an Agent Admin.
      *
-     * @param id atanacak biletin kimliği
-     * @param request hedef agent kimliği ve opsiyonel not
-     * @return atama sonrası güncel bilet DTO'su
+     * @param id identifier of the ticket to assign
+     * @param request target agent identifier and an optional note
+     * @return ticket DTO after the assignment
      */
     @Operation(summary = "Bileti agent'a manuel olarak ata (Agent Admin)",
             description = "Agent Admin rolüne sahip kullanıcılar, belirtilen bileti hedef agent'a atayabilir. Kapasite kontrolü yapılır.")
@@ -394,11 +394,11 @@ public class TicketController {
     }
 
     /**
-     * Bileti {@code CLOSED} statüsüne geçirir; sebep kodu ve açıklama notu zorunludur.
+     * Moves the ticket into the {@code CLOSED} status; the reason code and an explanatory note are required.
      *
-     * @param id kapatılacak biletin kimliği
-     * @param dto kapatma sebep kodu ve notu
-     * @return kapatılmış bilet DTO'su
+     * @param id identifier of the ticket to close
+     * @param dto closing reason code and note
+     * @return DTO of the closed ticket
      */
         @Operation(summary = "Bileti kapat (not zorunlu)")
         @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -415,11 +415,11 @@ public class TicketController {
     }
 
     /**
-     * Biletin statüsünü günceller; {@code RESOLVED}'a geçişte reasonCode zorunludur.
+     * Updates the ticket's status; a reason code is required when transitioning to {@code RESOLVED}.
      *
-     * @param id biletin kimliği
-     * @param body yeni statü, sebep kodu ve opsiyonel not
-     * @return güncellenmiş bilet DTO'su
+     * @param id ticket identifier
+     * @param body new status, reason code and optional note
+     * @return DTO of the updated ticket
      */
     @Operation(summary = "Bilet statüsü güncelle (RESOLVED'a geçişte reasonCode zorunlu)")
     @PutMapping("/{id}/status")
@@ -438,11 +438,11 @@ public class TicketController {
     }
 
     /**
-     * Biletin önceliğini günceller; sebep kodu zorunludur ({@code OTHER} ise not da zorunludur).
+     * Updates the ticket's priority; a reason code is required (a note is also required if it is {@code OTHER}).
      *
-     * @param id biletin kimliği
-     * @param dto yeni öncelik, sebep kodu ve opsiyonel not
-     * @return güncellenmiş bilet DTO'su
+     * @param id ticket identifier
+     * @param dto new priority, reason code and optional note
+     * @return DTO of the updated ticket
      */
     @Operation(summary = "Bilet önceliği güncelle (sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/priority")
@@ -461,13 +461,13 @@ public class TicketController {
     }
 
     /**
-     * Biletin konusunu (topic) aynı ürüne bağlı aktif bir topic ile değiştirir.
+     * Changes the ticket's topic to an active topic that belongs to the same product.
      *
-     * <p>Sebep kodu zorunludur; {@code OTHER} ise not da zorunludur.
+     * <p>A reason code is required; a note is also required when the reason is {@code OTHER}.
      *
-     * @param id biletin kimliği
-     * @param dto yeni topic kimliği, sebep kodu ve opsiyonel not
-     * @return güncellenmiş bilet DTO'su
+     * @param id ticket identifier
+     * @param dto new topic identifier, reason code and optional note
+     * @return DTO of the updated ticket
      */
     @Operation(summary = "Bilet konusunu güncelle (aynı ürüne bağlı aktif bir topic; sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/topic")
@@ -486,9 +486,9 @@ public class TicketController {
     }
 
     /**
-     * Bileti veritabanından kalıcı olarak siler; yalnızca {@code AGENT_ADMIN} çağırabilir.
+     * Permanently deletes the ticket from the database; only callable by {@code AGENT_ADMIN}.
      *
-     * @param id silinecek biletin kimliği
+     * @param id identifier of the ticket to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Bileti sil (AGENT_ADMIN yetkisi gerekir)")
@@ -503,12 +503,12 @@ public class TicketController {
     }
 
     /**
-     * Belirtilen ürüne ait biletleri rol/yetki filtresiyle sayfalı şekilde listeler.
+     * Lists the tickets for the given product, paginated and filtered by role-based authorization.
      *
-     * @param productId ürün kimliği
-     * @param page sayfa indeksi
-     * @param size sayfa boyutu (1-500)
-     * @return ürüne ait biletlerin sayfalı listesi
+     * @param productId product identifier
+     * @param page page index
+     * @param size page size (1-500)
+     * @return paginated list of tickets for the product
      */
     @Operation(summary = "Ürüne ait biletleri listele — sayfalama + filtreleme")
     @GetMapping("/by-product/{productId}")
@@ -541,10 +541,10 @@ public class TicketController {
     }
 
     /**
-     * Biletin SLA zamanlayıcı bilgisini (kalan süre, hedef, breach durumu vs.) döner.
+     * Returns the ticket's SLA timer information (remaining time, target, breach status, etc.).
      *
-     * @param id biletin kimliği
-     * @return SLA bilgilerini içeren anahtar-değer haritası
+     * @param id ticket identifier
+     * @return key-value map containing the SLA information
      */
     @Operation(summary = "SLA zamanlayıcı bilgisi")
     @GetMapping("/{id}/sla-timer")

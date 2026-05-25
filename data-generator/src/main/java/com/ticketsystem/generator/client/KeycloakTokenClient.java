@@ -11,12 +11,12 @@ import java.io.IOException;
 import java.time.Instant;
 
 /**
- * Keycloak'tan kullanıcı adı/şifre ile token alır ve otomatik yeniler.
+ * Obtains a token from Keycloak with username/password and refreshes it automatically.
  *
- * <p>{@code TicketSystemRealm} üzerindeki {@code ticket-frontend} client'ı ile
- * password grant kullanılır. Token süresinin dolmasına yakın
- * ({@link GeneratorConfig#TOKEN_REFRESH_THRESHOLD_SEC} saniye kala) refresh
- * token ile yenilenir; refresh başarısız olursa yeniden login denenir.
+ * <p>Uses password grant via the {@code ticket-frontend} client on the
+ * {@code TicketSystemRealm} realm. Shortly before the token expires
+ * ({@link GeneratorConfig#TOKEN_REFRESH_THRESHOLD_SEC} seconds out) it is refreshed
+ * using the refresh token; if the refresh fails, a fresh login is attempted.
  */
 public class KeycloakTokenClient {
 
@@ -33,11 +33,11 @@ public class KeycloakTokenClient {
     private Instant expiresAt;
 
     /**
-     * Yeni bir token client oluşturur; token endpoint URL'i {@link GeneratorConfig}
-     * üzerindeki realm bilgilerinden türetilir.
+     * Creates a new token client; the token endpoint URL is derived from the realm
+     * settings on {@link GeneratorConfig}.
      *
-     * @param http   paylaşılan OkHttp client
-     * @param mapper token yanıtını çözmek için Jackson mapper'ı
+     * @param http   shared OkHttp client
+     * @param mapper Jackson mapper used to parse the token response
      */
     public KeycloakTokenClient(OkHttpClient http, ObjectMapper mapper) {
         this.http    = http;
@@ -48,11 +48,11 @@ public class KeycloakTokenClient {
     }
 
     /**
-     * Belirtilen kullanıcı için token alır.
+     * Obtains a token for the given user.
      *
-     * @param username Keycloak kullanıcı adı
-     * @param password kullanıcının şifresi
-     * @throws IOException token endpoint hata döndürürse veya ağ erişimi başarısız olursa
+     * @param username Keycloak username
+     * @param password the user's password
+     * @throws IOException if the token endpoint returns an error or network access fails
      */
     public void login(String username, String password) throws IOException {
         this.username = username;
@@ -62,13 +62,13 @@ public class KeycloakTokenClient {
     }
 
     /**
-     * Geçerli access token'ı döner; gerekirse yeniler.
+     * Returns the current access token, refreshing it if necessary.
      *
-     * <p>Refresh token varsa önce o denenir; başarısız olursa username/password
-     * ile yeniden login yapılır.
+     * <p>If a refresh token is available it is tried first; if that fails, a fresh
+     * login is performed with the stored username/password.
      *
-     * @return aktif JWT access token
-     * @throws IOException hem refresh hem fresh login başarısız olursa
+     * @return the active JWT access token
+     * @throws IOException if both refresh and fresh login fail
      */
     public String getToken() throws IOException {
         if (accessToken == null || isExpiringSoon()) {

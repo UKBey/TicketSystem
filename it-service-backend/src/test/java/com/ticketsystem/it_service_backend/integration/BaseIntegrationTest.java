@@ -18,24 +18,28 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Tum entegrasyon testlerinin miras aldigi soyut temel sinif.
+ * Abstract base class inherited by every integration test.
  *
- * <p>Sorumluluklar:
+ * <p>Responsibilities:
  * <ul>
- *     <li>Paylasilmis bir PostgreSQL Testcontainer olusturur ve yasam dongusunu yonetir.</li>
- *     <li>{@code @DynamicPropertySource} ile Spring datasource ayarlarini container'a yonlendirir.</li>
- *     <li>Dis servisleri (jBPM KIE Server) {@code @MockitoBean} ile stub eder; SPOF'u onler.</li>
- *     <li>Flyway migrasyonlari otomatik olarak container uzerinde calisir.</li>
- *     <li>{@code MockMvc} ile HTTP testlerine hazir altyapi sunar.</li>
+ *     <li>Spins up a shared PostgreSQL Testcontainer and manages its
+ *         lifecycle.</li>
+ *     <li>Routes Spring datasource settings to the container via
+ *         {@code @DynamicPropertySource}.</li>
+ *     <li>Stubs external services (jBPM KIE Server) with
+ *         {@code @MockitoBean} to remove any single point of failure.</li>
+ *     <li>Runs Flyway migrations on the container automatically.</li>
+ *     <li>Provides ready-to-use {@code MockMvc} infrastructure for HTTP
+ *         tests.</li>
  * </ul>
  *
- * <p><strong>Guvenlik:</strong> Keycloak/JWT dogrulamasi test profilinde devre disi
- * birakilir. Her test metodu {@code SecurityMockMvcRequestPostProcessors.jwt()} ile
- * mock JWT token kullanarak kimlik dogrulamasi yapar.
+ * <p><strong>Security:</strong> Keycloak/JWT validation is disabled in the
+ * test profile. Each test method authenticates with a mock JWT token via
+ * {@code SecurityMockMvcRequestPostProcessors.jwt()}.
  *
- * <p><strong>Singleton Container Deseni:</strong> Container {@code static} olarak tanimlanir
- * ve tum IT siniflari arasinda paylasilir. Bu, her test sinifi icin yeni container
- * baslatma maliyetini ortadan kaldirir.
+ * <p><strong>Singleton container pattern:</strong> The container is
+ * declared {@code static} and shared across every IT class, removing the
+ * cost of spinning up a new container per test class.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -53,8 +57,8 @@ public abstract class BaseIntegrationTest {
                     .withPassword("testpass");
 
     /**
-     * Rate-limit interceptor'unun Redis baglantisi icin paylasilan container.
-     * Tum IT siniflari arasinda yeniden kullanilir (singleton pattern).
+     * Shared container for the rate-limit interceptor's Redis connection.
+     * Reused across every IT class (singleton pattern).
      */
     @SuppressWarnings("resource")
     static GenericContainer<?> REDIS =
@@ -62,9 +66,9 @@ public abstract class BaseIntegrationTest {
                     .withExposedPorts(6379);
 
     /**
-     * Spring Boot baglam olusturulmadan once, Testcontainer'lerin gercek
-     * JDBC URL'ini, kullanici adini, sifresini ve Redis host/port'unu Spring
-     * property'lerine enjekte eder.
+     * Before the Spring Boot context is built, injects the live Testcontainer
+     * JDBC URL, username, password and the Redis host/port into the Spring
+     * properties.
      */
     @DynamicPropertySource
     static void configureTestContainers(DynamicPropertyRegistry registry) {
@@ -88,17 +92,18 @@ public abstract class BaseIntegrationTest {
     // =========================================================================
 
     /**
-     * KieServicesClient: KieClientConfig sinifi uygulama baslatilirken
-     * {@code KieServicesFactory.newKieServicesClient()} cagirir ve sunucuya
-     * ping atar. Bu mock, gercek KIE Server baglantisinini onler.
+     * KieServicesClient: at startup KieClientConfig calls
+     * {@code KieServicesFactory.newKieServicesClient()} and pings the
+     * server. This mock prevents the real KIE Server connection.
      */
     @MockitoBean
     protected KieServicesClient kieServicesClient;
 
     /**
-     * KieServerAdapter: WorkflowService -> KieServerAdapter -> KieServicesClient
-     * zincirini tamamen stub eder. Boylece bilet olusturma sirasinda tetiklenen
-     * {@code WorkflowEventListener.onTicketCreated()} cagrisinda hata olmaz.
+     * KieServerAdapter: fully stubs the WorkflowService → KieServerAdapter
+     * → KieServicesClient chain. This way the
+     * {@code WorkflowEventListener.onTicketCreated()} call triggered during
+     * ticket creation does not fail.
      */
     @MockitoBean
     protected KieServerAdapter kieServerAdapter;
@@ -117,10 +122,11 @@ public abstract class BaseIntegrationTest {
     protected JdbcTemplate jdbcTemplate;
 
     /**
-     * Her test öncesi iş tablolarını temizler. Postgres container singleton
-     * olarak paylaşıldığı için bir IT sınıfının bıraktığı veri sonraki sınıfın
-     * "boş DB" varsayımını kıramamalı. Flyway tarafından yönetilen referans
-     * tablolar (örn. {@code sla_policies}) korunur.
+     * Truncates the business tables before every test. Because the
+     * Postgres container is shared as a singleton, data left behind by one
+     * IT class must not break the next class's "empty DB" assumption.
+     * Reference tables managed by Flyway (e.g. {@code sla_policies}) are
+     * preserved.
      */
     @BeforeEach
     void truncateBusinessTables() {

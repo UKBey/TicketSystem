@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Belirli bir dönemde tek bir ajanın worklog özet satırı (toplam dakika, giriş sayısı, ortalama).
- * {@link WorklogCompletionDTO#getAgentWorklogs()} listesinde manager raporlarında gösterilir.
+ * Worklog summary row for a single agent over a given period (total minutes, entry count, average).
+ * Shown on manager reports as an element of {@link WorklogCompletionDTO#getAgentWorklogs()}.
  */
 @Schema(description = "Agent bazında worklog özeti")
 public class WorklogSummaryItemDTO {

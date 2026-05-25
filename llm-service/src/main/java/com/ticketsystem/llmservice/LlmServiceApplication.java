@@ -4,20 +4,20 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * llm-service mikroservisinin Spring Boot giriş noktası.
+ * Spring Boot entry point for the llm-service microservice.
  *
- * <p>Bu servis it-service-backend'den ticket verisini çekip Groq LLM API'ye
- * gönderir, üretilen özetleri paylaşılan {@code ticketdb} veritabanına yazar.
- * Backend ile aynı şemayı kullanır ancak ayrı bir Flyway tarihçe tablosuna
- * sahiptir.
+ * <p>This service fetches ticket data from it-service-backend, sends it to the
+ * Groq LLM API and writes the generated summaries to the shared {@code ticketdb}
+ * database. It uses the same schema as the backend but has its own Flyway
+ * history table.
  */
 @SpringBootApplication
 public class LlmServiceApplication {
 
     /**
-     * Spring Boot uygulamasını başlatır.
+     * Starts the Spring Boot application.
      *
-     * @param args komut satırı argümanları
+     * @param args command-line arguments
      */
     public static void main(String[] args) {
         SpringApplication.run(LlmServiceApplication.class, args);

@@ -21,20 +21,20 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.time.Duration;
 
 /**
- * Redis configuration — bugun rate-limit bucket'lari icin kullanilir,
- * yarin cache / queue / oturum gibi ihtiyaclar icin de hazirdir.
+ * Redis configuration — today it backs the rate-limit buckets, tomorrow it is
+ * ready for cache, queue or session needs.
  *
- * <p>Spring Boot'un {@code spring.data.redis.*} auto-config'i
- * {@link RedisConnectionFactory} ve {@code StringRedisTemplate} bean'lerini
- * zaten saglar. Buradaki ek bean'ler:
+ * <p>Spring Boot's {@code spring.data.redis.*} auto-configuration already
+ * provides the {@link RedisConnectionFactory} and {@code StringRedisTemplate}
+ * beans. The extra beans defined here are:
  * <ul>
- *   <li>{@link RedisTemplate}<{@code String, Object}> — JSON serializer ile;
- *       DTO/Map gibi yapilar Redis'e kolayca yazilabilsin diye.</li>
- *   <li>Raw Lettuce {@link RedisClient} ve {@link StatefulRedisConnection} —
- *       Bucket4j ProxyManager bunlari ister; Spring'in
- *       {@code LettuceConnectionFactory}'sinden alinamiyor.</li>
- *   <li>{@link LettuceBasedProxyManager} — rate-limit interceptor'unun ihtiyaci
- *       olan distributed Bucket4j proxy manager'i.</li>
+ *   <li>{@link RedisTemplate}<{@code String, Object}> — wired with a JSON
+ *       serializer so DTO/Map structures can be written to Redis easily.</li>
+ *   <li>Raw Lettuce {@link RedisClient} and {@link StatefulRedisConnection} —
+ *       required by the Bucket4j ProxyManager and not obtainable from Spring's
+ *       {@code LettuceConnectionFactory}.</li>
+ *   <li>{@link LettuceBasedProxyManager} — the distributed Bucket4j proxy
+ *       manager consumed by the rate-limit interceptor.</li>
  * </ul>
  */
 @Log4j2
@@ -54,8 +54,8 @@ public class RedisConfig {
     private Duration timeout;
 
     /**
-     * JSON-serialized RedisTemplate — DTO/Map degerlerini Redis'te insanin
-     * okuyabilecegi formatta saklamak icin. Cache/queue eklenirken bunu kullan.
+     * JSON-serialized RedisTemplate — stores DTO/Map values in a human-readable
+     * format in Redis. Reach for this when wiring up cache or queue code.
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -72,9 +72,9 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j Lettuce entegrasyonu Spring Data Redis'in soyutlamasi yerine
-     * Lettuce'in kendi {@link RedisClient}'ina ihtiyac duyar. Ayri bir baglanti
-     * kurulur — Spring'in connection factory'si ile karismaz.
+     * The Bucket4j Lettuce integration needs Lettuce's own {@link RedisClient}
+     * rather than the Spring Data Redis abstraction. A separate connection is
+     * established here so it does not interfere with Spring's connection factory.
      */
     @Bean(destroyMethod = "shutdown")
     public RedisClient bucketRedisClient() {
@@ -90,8 +90,8 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j key=String, value=byte[] codec'i ister. ProxyManager
-     * tek bir paylasilan baglanti uzerinden tum istekleri sirayla pipelinelar.
+     * Bucket4j requires a key=String, value=byte[] codec. The ProxyManager
+     * pipelines every request over a single shared connection.
      */
     @Bean(destroyMethod = "close")
     public StatefulRedisConnection<String, byte[]> bucketRedisConnection(RedisClient client) {
@@ -99,12 +99,12 @@ public class RedisConfig {
     }
 
     /**
-     * Distributed token-bucket proxy manager. Her bucket Redis'te bir anahtar
-     * olarak yasar; istek geldikce CAS (compare-and-swap) ile guncellenir.
+     * Distributed token-bucket proxy manager. Each bucket lives as a key in
+     * Redis and is updated via CAS (compare-and-swap) on every request.
      *
-     * <p>Bucket TTL'i Bucket4j tarafindan kullanim hizina gore ayarlanir
-     * (basedOnTimeForRefillingBucketUpToMax). Bos kalan bucket'lar 10 dakika
-     * sonra Redis'ten dusurulur — bellek sismez.
+     * <p>The bucket TTL is sized by Bucket4j based on the refill rate
+     * (basedOnTimeForRefillingBucketUpToMax). Idle buckets are evicted from
+     * Redis after 10 minutes so memory does not balloon.
      */
     @Bean
     public ProxyManager<String> bucketProxyManager(StatefulRedisConnection<String, byte[]> connection) {

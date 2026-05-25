@@ -9,12 +9,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * {@code application.yml} icindeki {@code app.sla.*} bolumunu tasiyan
- * konfigurasyon binding'i.
+ * Configuration binding that carries the {@code app.sla.*} section of
+ * {@code application.yml}.
  *
- * <p>{@code SlaPolicyService} bu degerleri okur ve oncelik bazli SLA cozum
- * suresi / uyari esigini buradan alir. Yeni bir oncelik eklemek icin sadece
- * {@code application.yml}'a satir eklemek yeterli — kod degisikligi gerekmez.
+ * <p>{@code SlaPolicyService} reads these values and pulls priority-based
+ * SLA resolution times and warning thresholds from here. To add a new
+ * priority, just append a line in {@code application.yml} — no code change
+ * is needed.
  */
 @Component
 @ConfigurationProperties(prefix = "app.sla")
@@ -25,9 +26,10 @@ public class SlaProperties {
     private Map<String, PolicyConfig> policies = new HashMap<>();
 
     /**
-     * Tek bir oncelik (CRITICAL/HIGH/MEDIUM/LOW) icin SLA esiklerini tutar.
-     * {@code resolutionHours} cozumun toplam suresi, {@code warningThresholdHours}
-     * ise deadline'a kac saat kala uyari yayilacagini belirler.
+     * Holds the SLA thresholds for a single priority
+     * (CRITICAL/HIGH/MEDIUM/LOW). {@code resolutionHours} is the total
+     * resolution time; {@code warningThresholdHours} is how many hours before
+     * the deadline the warning is emitted.
      */
     @Getter
     @Setter

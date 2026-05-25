@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Bilet mutation'larında ortak kullanılan audit-log kaydı + WebSocket broadcast'i
- * + reason input doğrulaması. TicketService'i sadeleştirmek için ayrıldı; çoklu
- * mutation servisinin (claim, status, priority, topic, assign) paylaştığı yardımcıdır.
+ * Shared helper used by ticket mutations for audit-log recording, WebSocket
+ * broadcasting and reason-input validation. Extracted to keep TicketService lean;
+ * shared across multiple mutation services (claim, status, priority, topic, assign).
  */
 @Log4j2
 @Component
@@ -25,16 +25,16 @@ public class TicketAuditHelper {
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * Reason code'suz bir audit kaydı yazar; çoğu otomatik geçiş (örn. CLAIM, CREATE)
-     * için kullanılır. {@link #record(Ticket, String, String, String, String, String, String)}
-     * çeşidine delege eder.
+     * Records an audit entry without a reason code; used by most automatic
+     * transitions (e.g. CLAIM, CREATE). Delegates to the
+     * {@link #record(Ticket, String, String, String, String, String, String)} variant.
      *
-     * @param ticket audit'lenen bilet
-     * @param actorId işlemi yapan kullanıcı ID
-     * @param actionType eylem tipi (CREATE / CLAIM / STATUS_CHANGE vs.)
-     * @param note serbest not (opsiyonel)
-     * @param previousState değişim öncesi durum/değer
-     * @param newState değişim sonrası durum/değer
+     * @param ticket the audited ticket
+     * @param actorId ID of the acting user
+     * @param actionType action type (CREATE / CLAIM / STATUS_CHANGE etc.)
+     * @param note free-form note (optional)
+     * @param previousState state/value before the change
+     * @param newState state/value after the change
      */
     public void record(Ticket ticket, String actorId, String actionType, String note,
                        String previousState, String newState) {
@@ -42,17 +42,16 @@ public class TicketAuditHelper {
     }
 
     /**
-     * Audit log satırını yazar ve {@code /topic/tickets/{id}} kanalına bir
-     * "ticket updated" WebSocket olayı yayınlar — UI'nin yeniden fetch etmesini
-     * tetiklemek için yeterlidir.
+     * Persists the audit-log row and broadcasts a "ticket updated" WebSocket event
+     * to the {@code /topic/tickets/{id}} channel — enough to make the UI refetch.
      *
-     * @param ticket audit'lenen bilet
-     * @param actorId işlemi yapan kullanıcı ID
-     * @param actionType eylem tipi (RESOLVE, UNCLAIM, STATUS_CHANGE vb.)
-     * @param reasonCode sabit sebep kodu (opsiyonel)
-     * @param note ek not, OTHER sebebinde zorunlu
-     * @param previousState önceki durum
-     * @param newState yeni durum
+     * @param ticket the audited ticket
+     * @param actorId ID of the acting user
+     * @param actionType action type (RESOLVE, UNCLAIM, STATUS_CHANGE etc.)
+     * @param reasonCode canonical reason code (optional)
+     * @param note additional note; required when the reason is OTHER
+     * @param previousState previous state
+     * @param newState new state
      */
     public void record(Ticket ticket, String actorId, String actionType, String reasonCode,
                        String note, String previousState, String newState) {
@@ -70,11 +69,12 @@ public class TicketAuditHelper {
     }
 
     /**
-     * Sebep input'unu doğrular: kod boş olamaz; "OTHER" seçildiyse not zorunludur.
+     * Validates reason input: the code must be non-blank, and if "OTHER" is selected
+     * a note is required.
      *
-     * @param reasonCode sebep kodu
-     * @param note serbest not (OTHER için zorunlu)
-     * @throws ResponseStatusException 400 — kural ihlali durumunda
+     * @param reasonCode reason code
+     * @param note free-form note (required for OTHER)
+     * @throws ResponseStatusException 400 when the rule is violated
      */
     public void validateReasonInput(String reasonCode, String note) {
         if (reasonCode == null || reasonCode.isBlank()) {

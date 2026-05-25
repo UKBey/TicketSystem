@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Bilet üzerinde harcanan süre (worklog) CRUD endpoint'lerini barındıran REST kontrolcüsü.
+ * REST controller hosting the CRUD endpoints for time logged against a ticket (worklog).
  *
- * <p>Yalnızca {@code AGENT} ve {@code AGENT_ADMIN} rolleri erişebilir; sahiplik ve
- * atama denetimleri {@link WorklogService} içinde uygulanır.
+ * <p>Only the {@code AGENT} and {@code AGENT_ADMIN} roles can access these endpoints;
+ * ownership and assignment checks are enforced inside {@link WorklogService}.
  */
 @Log4j2
 @Tag(name = "Ticket Worklog", description = "Agent ve Agent Admin'ların bilet üzerinde harcadıkları sürenin takibi")
@@ -47,11 +47,11 @@ public class TicketWorklogController {
     private final WorklogService worklogService;
 
     /**
-     * Belirtilen bilete yeni bir iş kaydı ekler; agent yalnızca atandığı bilete ekleyebilir.
+     * Adds a new worklog to the specified ticket; an agent can only add one to a ticket assigned to them.
      *
-     * @param id biletin kimliği
-     * @param dto süre ve açıklama bilgisi
-     * @return oluşturulan worklog DTO'su ({@code 201 Created})
+     * @param id ticket identifier
+     * @param dto duration and description
+     * @return DTO of the created worklog ({@code 201 Created})
      */
     @Operation(summary = "Worklog ekle",
             description = "Belirtilen bilete yeni bir iş kaydı (süre + açıklama) ekler. "
@@ -79,10 +79,10 @@ public class TicketWorklogController {
     }
 
     /**
-     * Belirtilen biletin worklog'larını kronolojik sırada döner; rol bazında filtrelenir.
+     * Returns the ticket's worklogs in chronological order; filtered by role.
      *
-     * @param id biletin kimliği
-     * @return ilgili biletin worklog DTO listesi
+     * @param id ticket identifier
+     * @return list of worklog DTOs for the ticket
      */
     @Operation(summary = "Bilete ait worklogları listele",
             description = "Belirtilen biletin tüm iş kayıtlarını kronolojik sırada getirir. "
@@ -110,9 +110,9 @@ public class TicketWorklogController {
     }
 
     /**
-     * Sistemdeki tüm biletlere ait worklog kayıtlarını döner; raporlama amaçlıdır.
+     * Returns the worklog records for every ticket in the system; intended for reporting.
      *
-     * @return tüm worklog DTO'larının listesi
+     * @return list of all worklog DTOs
      */
     @Operation(summary = "Tüm worklogları listele",
             description = "Sistemdeki tüm biletlere ait iş kayıtlarını getirir. Raporlama ve yönetim amaçlıdır.")
@@ -135,12 +135,12 @@ public class TicketWorklogController {
     }
 
     /**
-     * Bir worklog'un süre ve açıklamasını günceller; yalnızca kaydı oluşturan agent yapabilir.
+     * Updates a worklog's duration and description; only the agent who created it can update it.
      *
-     * @param id biletin kimliği
-     * @param worklogId güncellenecek worklog'un kimliği
-     * @param dto yeni süre ve açıklama
-     * @return güncellenmiş worklog DTO'su
+     * @param id ticket identifier
+     * @param worklogId identifier of the worklog to update
+     * @param dto the new duration and description
+     * @return DTO of the updated worklog
      */
     @Operation(summary = "Worklog güncelle",
             description = "Mevcut bir iş kaydının süre ve açıklamasını günceller. "
@@ -171,10 +171,10 @@ public class TicketWorklogController {
     }
 
     /**
-     * Bir worklog'u kalıcı olarak siler; agent yalnızca kendi kaydını, agent admin hepsini silebilir.
+     * Permanently deletes a worklog; an agent can only delete their own record, an agent admin can delete any.
      *
-     * @param id biletin kimliği
-     * @param worklogId silinecek worklog'un kimliği
+     * @param id ticket identifier
+     * @param worklogId identifier of the worklog to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Worklog sil",

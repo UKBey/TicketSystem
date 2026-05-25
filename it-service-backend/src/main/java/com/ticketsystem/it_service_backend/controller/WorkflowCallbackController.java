@@ -22,11 +22,11 @@ import java.security.MessageDigest;
 import java.time.ZonedDateTime;
 
 /**
- * jBPM KIE Server'ından gelen süreç olaylarını alan dahili (internal) REST kontrolcüsü.
+ * Internal REST controller that receives process events from the jBPM KIE Server.
  *
- * <p>JWT yerine sabit {@code X-Internal-Token} başlığıyla korunur; SLA ihlali ve süreç
- * tamamlanması olayları üzerinde işlem yapar ve gerekirse {@link NotificationService}
- * üzerinden bildirim tetikler.
+ * <p>Secured with the fixed {@code X-Internal-Token} header instead of JWT; handles
+ * SLA breach and process completion events and triggers notifications via
+ * {@link NotificationService} when needed.
  */
 @Log4j2
 @Tag(name = "Workflow Callback", description = "jBPM KIE Server'dan gelen dahili SLA ihlali ve süreç olayları (Internal API)")
@@ -42,14 +42,14 @@ public class WorkflowCallbackController {
     private String expectedToken;
 
     /**
-     * jBPM süreç olayı bildirimini işler ({@code SLA_BREACHED} / {@code PROCESS_COMPLETED}).
+     * Handles a jBPM process event notification ({@code SLA_BREACHED} / {@code PROCESS_COMPLETED}).
      *
-     * <p>Token sabit zamanlı karşılaştırma ile doğrulanır; eşleşmezse {@code 401} döner.
-     * Aynı bilet için SLA breach callback'i tekrarlanırsa idempotent davranılır.
+     * <p>The token is verified with a constant-time comparison; a mismatch returns {@code 401}.
+     * The handler is idempotent if the SLA breach callback for the same ticket is delivered repeatedly.
      *
-     * @param headerToken servisler arası kimlik doğrulama token'ı
-     * @param callback olay tipi, bilet kimliği ve süreç bilgisi
-     * @return düz metin işlem sonucu; {@code 400}/{@code 401}/{@code 404} hata durumlarında uygun statü
+     * @param headerToken inter-service authentication token
+     * @param callback event type, ticket identifier and process information
+     * @return plain-text outcome; {@code 400}/{@code 401}/{@code 404} on the corresponding error cases
      */
     @Operation(summary = "jBPM süreç olayı bildirimi",
             description = """
@@ -133,8 +133,8 @@ public class WorkflowCallbackController {
     }
 
     /**
-     * Constant-time token karşılaştırması. MessageDigest.isEqual byte-uzunluklarına
-     * bakmaksızın sabit sürede çalışır → cevap süresinden token sızdırılamaz.
+     * Constant-time token comparison. {@code MessageDigest.isEqual} runs in constant
+     * time regardless of the byte lengths, so the token cannot leak through response timing.
      */
     private static boolean constantTimeEquals(String a, String b) {
         if (a == null || b == null) return false;

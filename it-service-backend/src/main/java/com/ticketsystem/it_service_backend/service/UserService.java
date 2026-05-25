@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Yerel {@code users} tablosu ile Keycloak arasındaki kullanıcı senkronizasyonu ve
- * kullanıcı yönetim akışları.
+ * User-management flows and synchronization between the local {@code users} table
+ * and Keycloak.
  *
- * <p>Kullanıcı oluşturma Keycloak'ta önce yapılıp yerel DB'ye senkronlanır;
- * DB tarafı başarısız olursa Keycloak kaydı compensating action ile silinir.
- * Rol/profil/şifre değişiklikleri her zaman Keycloak'a yazılır, ardından yerel DB
- * güncellenir. Aktiflik (soft-delete) için iki tarafa da {@code enabled/is_active}
- * yazılır.
+ * <p>User creation happens in Keycloak first, then is synchronized to the local DB;
+ * if the DB write fails, the Keycloak record is removed via a compensating action.
+ * Role/profile/password changes are always written to Keycloak first, then mirrored
+ * to the local DB. Activation status (soft-delete) writes {@code enabled/is_active}
+ * to both sides.
  */
 @Log4j2
 @Service
@@ -46,22 +46,22 @@ public class UserService {
     private final KeycloakAdminService keycloakAdminService;
 
     /**
-     * Keycloak'ta yeni bir kullanıcı oluşturur ve yerel veritabanıyla senkronize eder.
+     * Creates a new user in Keycloak and synchronizes it with the local database.
      *
-     * <p><b>İş akışı:</b>
+     * <p><b>Workflow:</b>
      * <ol>
-     *   <li>Email ve username çakışması ön kontrolü yapılır.</li>
-     *   <li>Keycloak'ta kullanıcı oluşturulur, geçici şifre atanır, roller eşlenir.</li>
-     *   <li>Yerel {@code users} tablosuna senkronizasyon kaydı atılır.</li>
+     *   <li>Pre-check for email and username conflicts.</li>
+     *   <li>Create the Keycloak user, set a temporary password, map roles.</li>
+     *   <li>Persist a sync record into the local {@code users} table.</li>
      * </ol>
      *
-     * <p><b>Compensating transaction:</b> Keycloak kaydı başarılı olup yerel DB kaydı
-     * başarısız olursa Keycloak'taki kullanıcı silinerek tutarsız durum önlenir.
-     * Keycloak harici bir sistem olduğundan tam 2PC mümkün değildir.
+     * <p><b>Compensating transaction:</b> If the Keycloak record is created but the
+     * local DB write fails, the Keycloak user is deleted to avoid an inconsistent
+     * state. Because Keycloak is external, true 2PC is not feasible.
      *
-     * @param request kullanıcı bilgileri ve atanacak roller
-     * @return oluşturulan kullanıcının özet bilgileri
-     * @throws UserAlreadyExistsException email veya username zaten mevcutsa
+     * @param request user details and roles to assign
+     * @return summary of the created user
+     * @throws UserAlreadyExistsException if email or username already exists
      */
     public UserCreationResponseDTO createUserWithKeycloak(CreateUserRequest request) {
         log.info("Kullanıcı oluşturma işlemi başlatıldı. Username: {}, Email: {}",
@@ -112,9 +112,9 @@ public class UserService {
     }
 
     /**
-     * Rol listesinden en yüksek öncelikli rolü belirler.
-     * Öncelik sırası: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER
-     * Liste boş veya null ise null döner — varsayılan olarak CUSTOMER atanmaz.
+     * Resolves the highest-priority role from a list.
+     * Priority order: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER.
+     * Returns null when the list is empty or null — CUSTOMER is not assumed as a default.
      */
     private String resolveHighestRole(List<String> roles) {
         if (roles == null || roles.isEmpty()) return null;
@@ -126,12 +126,12 @@ public class UserService {
     }
 
     /**
-     * Bir kullanıcıyı yerel DB ile senkron tutar. Mevcut kayıt varsa email/ad/rol
-     * alanları güncellenir; yoksa yeni kayıt yazılır. JWT'den gelen rol her zaman
-     * doğrudan yazılır (null ise yerel rol de null'a çekilir).
+     * Keeps a user in sync with the local DB. If an existing record is found, its
+     * email/full-name/role fields are updated; otherwise a new row is written. The
+     * role from the JWT is always written through as-is (null clears the local role).
      *
-     * @param user senkron edilecek kullanıcı temsili
-     * @return persist edilmiş kullanıcı
+     * @param user user representation to synchronize
+     * @return the persisted user
      */
     @Transactional
     public User syncUser(User user) {
@@ -152,33 +152,33 @@ public class UserService {
     }
 
     /**
-     * Yerel DB'de AGENT rolüne sahip tüm kullanıcıları döner.
+     * Returns all users with the AGENT role in the local DB.
      *
-     * @return AGENT kullanıcı listesi
+     * @return list of AGENT users
      */
     public List<User> getAgents() {
         return userRepository.findByRole("AGENT");
     }
 
     /**
-     * Tüm yerel kullanıcı kayıtlarını döner. Çağrı yetkisi controller tarafında
-     * kontrol edilir.
+     * Returns every local user record. Caller authorization is enforced at the
+     * controller layer.
      *
-     * @return tüm kullanıcılar
+     * @return all users
      */
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     /**
-     * Arama metni ve rol filtresine göre sayfalı kullanıcı listesi döner.
-     * Sıralama her zaman {@code full_name ASC} olarak uygulanır (native query).
+     * Returns a paginated user list filtered by search text and role.
+     * Sorting is always applied as {@code full_name ASC} (native query).
      *
-     * @param search ad/email LIKE filtresi (null/boş ise yok sayılır)
-     * @param roles aktif rol filtresi (null/boş ise yok sayılır)
-     * @param page sayfa indexi (0-tabanlı)
-     * @param size sayfa başına kayıt sayısı
-     * @return sayfalı sonuç
+     * @param search name/email LIKE filter (ignored when null/blank)
+     * @param roles active role filter (ignored when null/empty)
+     * @param page 0-based page index
+     * @param size records per page
+     * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<User> getUsersFiltered(String search, java.util.List<String> roles, int page, int size) {
@@ -191,12 +191,12 @@ public class UserService {
     }
 
     /**
-     * Kullanıcıyı ID üzerinden getirir ve {@code authorizedProducts} koleksiyonunu
-     * transaction içinde initialize eder (lazy-loading hatasını önler).
+     * Returns the user by ID and initializes the {@code authorizedProducts}
+     * collection inside the transaction (avoids lazy-loading errors).
      *
      * @param id Keycloak subject (UUID)
-     * @return kullanıcı (yetkili ürünler dahil)
-     * @throws RuntimeException kullanıcı bulunamazsa
+     * @return the user (with authorized products eagerly loaded)
+     * @throws RuntimeException if the user is not found
      */
     @Transactional(readOnly = true)
     public User getUserById(String id) {
@@ -215,13 +215,13 @@ public class UserService {
     }
 
     /**
-     * Bir ürünü kullanıcının yetkili ürün listesine ekler. Kullanıcı zaten
-     * yetkili ise idempotent çalışır (mevcut durum korunur).
+     * Adds a product to the user's authorized list. Idempotent — the current
+     * state is preserved if the user already has access.
      *
-     * @param userId hedef kullanıcı ID
-     * @param productId atanacak ürün ID
-     * @return güncellenmiş kullanıcı
-     * @throws RuntimeException kullanıcı veya ürün bulunamazsa
+     * @param userId target user ID
+     * @param productId product ID to assign
+     * @return the updated user
+     * @throws RuntimeException if user or product is not found
      */
     @Transactional
     public User assignProductToUser(String userId, Long productId) {
@@ -248,8 +248,8 @@ public class UserService {
     }
 
     /**
-     * Kullanıcının Keycloak profilini günceller ve yerel DB ile senkronize eder.
-     * firstName + lastName birleştirilerek {@code users.full_name} kolonuna yazılır.
+     * Updates the user's Keycloak profile and synchronizes the local DB.
+     * firstName + lastName are concatenated into the {@code users.full_name} column.
      */
     @Transactional
     public User updateProfile(String userId, String firstName, String lastName, String email) {
@@ -267,13 +267,13 @@ public class UserService {
     }
 
     /**
-     * Kullanıcının dil tercihini günceller. Yalnızca {@code en} ve {@code tr}
-     * desteklenir; diğer değerler 400 ile reddedilir.
+     * Updates the user's preferred language. Only {@code en} and {@code tr} are
+     * supported; other values are rejected with 400.
      *
-     * @param userId hedef kullanıcı ID
-     * @param lang dil kodu (en/tr)
-     * @return güncellenmiş kullanıcı
-     * @throws ResponseStatusException 400 — desteklenmeyen dil
+     * @param userId target user ID
+     * @param lang language code (en/tr)
+     * @return the updated user
+     * @throws ResponseStatusException 400 on an unsupported language
      */
     @Transactional
     public User updatePreferredLanguage(String userId, String lang) {
@@ -289,13 +289,13 @@ public class UserService {
     }
 
     /**
-     * Kullanıcının tema tercihini günceller. Yalnızca {@code light} ve {@code dark}
-     * desteklenir; diğer değerler 400 ile reddedilir.
+     * Updates the user's preferred theme. Only {@code light} and {@code dark} are
+     * supported; other values are rejected with 400.
      *
-     * @param userId hedef kullanıcı ID
-     * @param theme tema kodu (light/dark)
-     * @return güncellenmiş kullanıcı
-     * @throws ResponseStatusException 400 — desteklenmeyen tema
+     * @param userId target user ID
+     * @param theme theme code (light/dark)
+     * @return the updated user
+     * @throws ResponseStatusException 400 on an unsupported theme
      */
     @Transactional
     public User updatePreferredTheme(String userId, String theme) {
@@ -311,12 +311,12 @@ public class UserService {
     }
 
     /**
-     * Bir ürünü kullanıcının yetkili ürün listesinden çıkarır. Ürün listede
-     * yoksa idempotent çalışır.
+     * Removes a product from the user's authorized list. Idempotent — does
+     * nothing if the product is not in the list.
      *
-     * @param userId hedef kullanıcı ID
-     * @param productId kaldırılacak ürün ID
-     * @return güncellenmiş kullanıcı
+     * @param userId target user ID
+     * @param productId product ID to remove
+     * @return the updated user
      */
     @Transactional
     public User removeProductFromUser(String userId, Long productId) {        log.info("Ürün yetki kaldırma işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
@@ -331,12 +331,12 @@ public class UserService {
     }
 
     /**
-     * Kullanıcıyı soft-delete ile deaktive eder.
-     * Keycloak'ta {@code enabled=false} yapılır, yerel DB'de {@code is_active=false} yazılır.
-     * Ticket'lara dokunulmaz.
+     * Soft-deletes the user (deactivation).
+     * Sets {@code enabled=false} in Keycloak and {@code is_active=false} in the local DB.
+     * Tickets are left untouched.
      *
-     * @param userId deaktive edilecek kullanıcının Keycloak UUID'si
-     * @return güncellenmiş kullanıcı
+     * @param userId Keycloak UUID of the user to deactivate
+     * @return the updated user
      */
     @Transactional
     public User deactivateUser(String userId) {
@@ -350,11 +350,11 @@ public class UserService {
     }
 
     /**
-     * Deaktive edilmiş kullanıcıyı yeniden aktive eder.
-     * Keycloak'ta {@code enabled=true} yapılır, yerel DB'de {@code is_active=true} yazılır.
+     * Reactivates a previously deactivated user.
+     * Sets {@code enabled=true} in Keycloak and {@code is_active=true} in the local DB.
      *
-     * @param userId aktive edilecek kullanıcının Keycloak UUID'si
-     * @return güncellenmiş kullanıcı
+     * @param userId Keycloak UUID of the user to reactivate
+     * @return the updated user
      */
     @Transactional
     public User reactivateUser(String userId) {
@@ -368,11 +368,11 @@ public class UserService {
     }
 
     /**
-     * Kullanıcının rollerini Keycloak'ta günceller ve yerel veritabanını senkronize eder.
+     * Updates the user's roles in Keycloak and synchronizes the local database.
      *
-     * @param userId   güncellenecek kullanıcının Keycloak UUID'si
-     * @param newRoles atanacak yeni rol isimleri listesi
-     * @return güncellenmiş kullanıcı bilgileri
+     * @param userId   Keycloak UUID of the user to update
+     * @param newRoles list of new role names to assign
+     * @return the updated user record
      */
     @Transactional
     public User updateUserRoles(String userId, List<String> newRoles) {
@@ -394,15 +394,15 @@ public class UserService {
     }
 
     /**
-     * Verilen ürün için yetkili tüm ajanların anlık kapasite görüntüsünü döner.
+     * Returns a live capacity snapshot for every agent authorized on the product.
      *
-     * <p>Her ajan için: ürün-spesifik özel limit varsa onu, yoksa ürünün
-     * varsayılan limitini "effective limit" olarak alır; mevcut aktif bilet
-     * sayısını ölçer ve {@code isFull} bayrağını hesaplar.
+     * <p>For each agent: the "effective limit" is the product-specific custom limit
+     * when present, otherwise the product's default; the current active ticket
+     * count is measured and {@code isFull} is computed.
      *
-     * @param productId hedef ürün ID
-     * @return her ajan için kapasite bilgisi
-     * @throws EntityNotFoundException ürün bulunamazsa
+     * @param productId target product ID
+     * @return per-agent capacity information
+     * @throws EntityNotFoundException if the product is not found
      */
     @Transactional(readOnly = true)
     public List<AgentCapacityDTO> getAgentsWithCapacity(Long productId) {

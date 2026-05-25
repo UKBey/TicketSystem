@@ -5,8 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 /**
- * {@link TicketAuditLog} için JPA repository — bilet bazlı denetim kayıtlarını
- * en yeni → en eski sırada listeler; action_type filtresiyle de sorgulanabilir.
+ * JPA repository for {@link TicketAuditLog} — lists per-ticket audit log entries
+ * newest-first; can also be filtered by action_type.
  */
 public interface TicketAuditLogRepository extends JpaRepository<TicketAuditLog, Long> {
 

@@ -12,8 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir ajanın bilet claim'ini bırakırken (unclaim) gönderdiği istek.
- * Sebep kodu zorunludur (Bean Validation aktif); {@code reasonCode=OTHER} ise serbest metin de zorunlu olur.
+ * Request sent when an agent releases a ticket claim (unclaim).
+ * A reason code is required (Bean Validation enforced); when {@code reasonCode=OTHER} a free-text note is required too.
  */
 @Schema(description = "Unclaim (bırakma) isteği — sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class UnclaimRequestDTO {

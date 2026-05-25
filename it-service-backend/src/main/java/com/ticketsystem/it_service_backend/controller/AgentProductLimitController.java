@@ -15,11 +15,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Agent bazında ürün limit override'larının REST kontrolcüsü.
+ * REST controller for per-agent product limit overrides.
  *
- * <p>{@code AGENT_ADMIN} ve {@code MANAGER} rolleri, belirli bir agent için varsayılan
- * ürün limitlerini özelleştirip silebilir. İş kuralları {@link AgentProductLimitService}
- * tarafında çözümlenir.
+ * <p>The {@code AGENT_ADMIN} and {@code MANAGER} roles can customize and delete the default
+ * product limits for a specific agent. Business rules are resolved by
+ * {@link AgentProductLimitService}.
  */
 @Log4j2
 @Tag(name = "Agent Ürün Limitleri", description = "Agent bazında ürün limit override yönetimi")
@@ -31,10 +31,10 @@ public class AgentProductLimitController {
     private final AgentProductLimitService agentProductLimitService;
 
     /**
-     * Belirtilen agent için tanımlı tüm ürün limit override kayıtlarını döner.
+     * Returns all product limit override records defined for the given agent.
      *
-     * @param agentId agent kimliği (Keycloak UUID)
-     * @return agent'in tüm ürün limit override'larının listesi
+     * @param agentId agent identifier (Keycloak UUID)
+     * @return list of all product limit overrides for the agent
      */
     @Operation(summary = "Agent limitlerini listele", description = "Belirtilen agent için tüm ürün limit override'larını döner.")
     @GetMapping
@@ -47,12 +47,12 @@ public class AgentProductLimitController {
     }
 
     /**
-     * Belirli bir ürün için agent override limitini oluşturur veya günceller.
+     * Creates or updates the agent override limit for a specific product.
      *
-     * @param agentId agent kimliği
-     * @param productId ürün kimliği
-     * @param request {@code useCustomLimit} bayrağı ve isteğe bağlı {@code maxActiveTickets} değeri
-     * @return oluşturulan/güncellenen limit kaydı
+     * @param agentId agent identifier
+     * @param productId product identifier
+     * @param request the {@code useCustomLimit} flag and the optional {@code maxActiveTickets} value
+     * @return the created or updated limit record
      */
     @Operation(summary = "Agent limitini ayarla", description = "Belirli bir ürün için agent override limitini oluşturur veya günceller.")
     @PutMapping("/{productId}")
@@ -72,11 +72,11 @@ public class AgentProductLimitController {
     }
 
     /**
-     * Belirtilen agent/ürün override kaydını kalıcı olarak siler.
+     * Permanently deletes the override record for the given agent/product pair.
      *
-     * @param agentId agent kimliği
-     * @param productId ürün kimliği
-     * @return {@code 204 No Content} silme başarılıysa
+     * @param agentId agent identifier
+     * @param productId product identifier
+     * @return {@code 204 No Content} if the deletion was successful
      */
     @Operation(summary = "Agent limitini sil", description = "Belirtilen agent/product override kaydını siler.")
     @DeleteMapping("/{productId}")

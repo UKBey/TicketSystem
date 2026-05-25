@@ -8,27 +8,27 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Ticket verisinden LLM prompt'u oluşturur.
+ * Builds the LLM prompt from ticket data.
  *
- * <p>Özetin amacı: bileti devralan bir temsilcinin geçmişi tek tek okumadan
- * <em>sohbette ne yaşandığını</em>, <em>çözüme ulaşılıp ulaşılmadığını</em> ve
- * ulaşılmadıysa <em>nasıl ulaşılabileceğini</em> kavrayabilmesidir. Ayrıca biletin
- * ürün/konusuna ait "bilinen sorun" kayıtları prompt'a verilir; LLM aynı sorun
- * kayıtlıysa bunu belirtir.
+ * <p>The purpose of the summary is to let an agent taking over the ticket grasp
+ * <em>what happened in the conversation</em>, <em>whether a resolution was reached</em>
+ * and, if not, <em>how it can be reached</em> — without reading the entire history.
+ * "Known issue" records belonging to the ticket's product/topic are also passed
+ * into the prompt; if the same issue is on record, the LLM flags it.
  */
 @Component
 public class PromptBuilder {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    /** Prompt'u şişirmemek için her bilinen sorun içeriği bu uzunlukta kırpılır. */
+    /** Each known issue body is trimmed to this length so the prompt does not balloon. */
     private static final int KNOWN_ISSUE_CONTENT_MAX = 700;
 
-    /** Prompt'a en fazla bu kadar bilinen sorun kaydı eklenir (en yeniler önce). */
+    /** At most this many known issue records are added to the prompt (newest first). */
     private static final int MAX_KNOWN_ISSUES = 8;
 
     /**
-     * System prompt — LLM'e rolünü, amacını ve beklenen çıktı formatını tanımlar.
+     * System prompt — defines the LLM's role, purpose and expected output format.
      */
     public String buildSystemPrompt(String language) {
         if ("en".equalsIgnoreCase(language)) {
@@ -127,7 +127,7 @@ public class PromptBuilder {
     }
 
     /**
-     * Ticket verisini okunabilir bir metin bloğuna dönüştürür.
+     * Converts the ticket data into a readable text block.
      */
     public String buildUserPrompt(SummarizeRequestDTO req) {
         TicketDataDTO t = req.getTicket();
@@ -233,8 +233,8 @@ public class PromptBuilder {
     }
 
     /**
-     * Biletin ürün/konusuna ait bilinen sorun kayıtlarını prompt'a ekler.
-     * Liste boşsa LLM'in eşleşme uydurmaması için bunu açıkça belirtir.
+     * Appends the known issue records for the ticket's product/topic to the prompt.
+     * If the list is empty it states so explicitly, to keep the LLM from inventing a match.
      */
     private void appendKnownIssues(StringBuilder sb, List<TicketDataDTO.KnownIssueInfo> knownIssues) {
         sb.append("\n--- BU ÜRÜN/KONU İÇİN KAYITLI BİLİNEN SORUNLAR ---\n");
@@ -252,7 +252,7 @@ public class PromptBuilder {
         }
     }
 
-    /** Uzun bilinen sorun içeriklerini prompt sınırını aşmamak için kısaltır. */
+    /** Shortens long known issue contents so they do not exceed the prompt limit. */
     private String trim(String text) {
         String cleaned = text.replaceAll("\\s+", " ").trim();
         if (cleaned.length() <= KNOWN_ISSUE_CONTENT_MAX) {

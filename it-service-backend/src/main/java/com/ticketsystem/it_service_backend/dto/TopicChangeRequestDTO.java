@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Bir biletin talep konusunu (topic) değiştirmek için gönderilen istek.
- * Yeni topic ID'si ve sebep kodu zorunludur (Bean Validation aktif); {@code reasonCode=OTHER} ise serbest metin de zorunlu olur.
+ * Request to change a ticket's topic.
+ * The new topic ID and a reason code are required (Bean Validation enforced); when {@code reasonCode=OTHER} a free-text note is required too.
  */
 @Schema(description = "Bilet konusu güncelleme isteği — yeni topic, sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class TopicChangeRequestDTO {

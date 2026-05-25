@@ -18,11 +18,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * "Sıkça karşılaşılan sorunlar" bilgi tabanı için REST kontrolcüsü.
+ * REST controller for the "known issues" knowledge base.
  *
- * <p>Listeleme ve detay: kullanıcı ürüne yetkili olmalı ({@code AGENT_ADMIN}/{@code MANAGER}
- * her şeyi görür). Yazma operasyonları yalnızca {@code AGENT_ADMIN} ve {@code MANAGER}
- * tarafından yapılır; iş kuralları {@link KnownIssueService}'tedir.
+ * <p>Listing and detail: the user must be authorized for the product ({@code AGENT_ADMIN}/{@code MANAGER}
+ * see everything). Write operations are restricted to {@code AGENT_ADMIN} and {@code MANAGER};
+ * business rules live in {@link KnownIssueService}.
  */
 @Log4j2
 @Tag(name = "Sıkça Karşılaşılan Sorunlar", description = "Ürüne (ve opsiyonel topic'e) bağlı bilgi tabanı CRUD'u")
@@ -33,12 +33,12 @@ public class KnownIssueController {
     private final KnownIssueService knownIssueService;
 
     /**
-     * Bir ürüne ait sıkça karşılaşılan sorunları (opsiyonel topic filtresiyle) listeler.
+     * Lists the known issues for a product (with an optional topic filter).
      *
-     * @param productId ürün kimliği
-     * @param topicId opsiyonel topic filtresi
-     * @param includeInactive {@code true} ise pasif kayıtlar da dahil edilir
-     * @return rol/yetki bazlı filtrelenmiş DTO listesi
+     * @param productId product identifier
+     * @param topicId optional topic filter
+     * @param includeInactive when {@code true}, inactive records are also included
+     * @return list of DTOs filtered by role-based authorization
      */
     @Operation(summary = "Bir ürünün sıkça karşılaşılan sorunlarını listele",
             description = "Varsayılan olarak yalnızca aktif kayıtlar gelir. `includeInactive=true` pasif olanları da dahil eder. "
@@ -56,10 +56,10 @@ public class KnownIssueController {
     }
 
     /**
-     * Tek bir sıkça karşılaşılan sorun kaydını döner; kullanıcı ürüne yetkili olmalıdır.
+     * Returns a single known issue record; the user must be authorized for the product.
      *
-     * @param id kayıt kimliği
-     * @return ilgili DTO
+     * @param id record identifier
+     * @return the matching DTO
      */
     @Operation(summary = "Tek bir sıkça karşılaşılan sorun kaydını getir")
     @GetMapping("/api/v1/known-issues/{id}")
@@ -73,11 +73,11 @@ public class KnownIssueController {
     }
 
     /**
-     * Belirtilen ürün altında yeni bir sıkça karşılaşılan sorun kaydı oluşturur.
+     * Creates a new known issue record under the specified product.
      *
-     * @param productId ürün kimliği
-     * @param body başlık, içerik, opsiyonel topic ve aktiflik bayrağı
-     * @return oluşturulan DTO
+     * @param productId product identifier
+     * @param body title, content, optional topic and active flag
+     * @return DTO of the created record
      */
     @Operation(summary = "Yeni sıkça karşılaşılan sorun oluştur")
     @PostMapping("/api/v1/products/{productId}/known-issues")
@@ -95,11 +95,11 @@ public class KnownIssueController {
     }
 
     /**
-     * Mevcut bir sıkça karşılaşılan sorun kaydının alanlarını günceller.
+     * Updates the fields of an existing known issue record.
      *
-     * @param id güncellenecek kaydın kimliği
-     * @param body yeni topic, başlık, içerik ve aktiflik değeri
-     * @return güncellenmiş DTO
+     * @param id identifier of the record to update
+     * @param body new topic, title, content and active value
+     * @return DTO of the updated record
      */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını güncelle")
     @PutMapping("/api/v1/known-issues/{id}")
@@ -113,9 +113,9 @@ public class KnownIssueController {
     }
 
     /**
-     * Sıkça karşılaşılan sorun kaydını kalıcı olarak siler.
+     * Permanently deletes a known issue record.
      *
-     * @param id silinecek kaydın kimliği
+     * @param id identifier of the record to delete
      * @return {@code 204 No Content}
      */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını sil")

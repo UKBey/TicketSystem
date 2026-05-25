@@ -22,18 +22,18 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Uygulama genelindeki tum exception'lari merkezden ele alan
- * {@link RestControllerAdvice}.
+ * {@link RestControllerAdvice} that handles every exception in the
+ * application from a single place.
  *
- * <p>Her exception turu bir HTTP statusune ve standart {@link ErrorResponse}
- * govdesine eslestirilir; istemci her zaman ayni JSON sekli ile karsilasir.
- * Mesajlar {@link MessageSource} uzerinden istemcinin locale'ine gore
- * cevrilir; bundle'da olmayan anahtarlar olduklari gibi geri donulur
- * (geriye-donuk uyumluluk amaciyla).
+ * <p>Each exception type is mapped to an HTTP status and the standard
+ * {@link ErrorResponse} body; the client always sees the same JSON shape.
+ * Messages are translated to the client's locale through
+ * {@link MessageSource}; keys missing from the bundle are returned as-is
+ * (for backwards compatibility).
  *
- * <p>Beklenen is kurali hatalari (ornek: {@link ResponseStatusException},
- * dogrulama hatalari) {@code WARN} seviyesinde, beklenmeyen hatalar
- * {@code ERROR} seviyesinde loglanir.
+ * <p>Expected business-rule errors (for example
+ * {@link ResponseStatusException}, validation errors) are logged at
+ * {@code WARN}; unexpected errors are logged at {@code ERROR}.
  */
 @Log4j2 // Uygulama genelindeki hatalari merkezden loglayip standart hata cevabi uretir.
 @RestControllerAdvice
@@ -49,9 +49,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Servis katmaninin bilerek firlattigi {@link ResponseStatusException}'lari
-     * orijinal status koduyla istemciye iletir; {@code reason} alani i18n
-     * anahtari olarak yorumlanir.
+     * Forwards {@link ResponseStatusException}s deliberately thrown by the
+     * service layer to the client with their original status code; the
+     * {@code reason} field is interpreted as an i18n key.
      */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
@@ -68,9 +68,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Servis katmanindan gelen {@link IllegalArgumentException}'lari HTTP
-     * {@code 400 Bad Request} olarak dondurur. Mesaj bir i18n anahtari ise
-     * cevirisi denenir.
+     * Returns {@link IllegalArgumentException}s raised from the service
+     * layer as HTTP {@code 400 Bad Request}. If the message is an i18n key
+     * a translation is attempted.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
@@ -87,9 +87,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * {@code @Valid} ile isaretli body parametrelerinde dogrulama hatasi
-     * oldugunda HTTP {@code 400} doner; her field icin lokalize edilmis hata
-     * mesaji {@code fieldErrors} map'i altinda istemciye iletilir.
+     * Returns HTTP {@code 400} when a body parameter annotated with
+     * {@code @Valid} fails validation; localized per-field error messages
+     * are returned to the client under the {@code fieldErrors} map.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
@@ -112,10 +112,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * {@code @RequestParam} / {@code @PathVariable} uzerindeki Bean Validation
-     * kisitlamalari (ornek {@code @Max}, {@code @Pattern}) tetiklendiginde HTTP
-     * {@code 400} doner. {@link MethodArgumentNotValidException} ile karistirilmamali —
-     * o body validation icin atilir.
+     * Returns HTTP {@code 400} when Bean Validation constraints on
+     * {@code @RequestParam} / {@code @PathVariable} (such as {@code @Max},
+     * {@code @Pattern}) are triggered. Not to be confused with
+     * {@link MethodArgumentNotValidException} — that one is thrown for body
+     * validation.
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
@@ -139,9 +140,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Spring Security'nin firlattigi {@link AccessDeniedException}'i HTTP
-     * {@code 403 Forbidden} olarak dondurur. Denetim amacli olarak deneme
-     * kaydedilir; istemciye detay sizdirilmaz.
+     * Returns the {@link AccessDeniedException} thrown by Spring Security as
+     * HTTP {@code 403 Forbidden}. The attempt is recorded for audit
+     * purposes; no detail is leaked to the client.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
@@ -158,9 +159,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Keycloak'ta email/username cakismasi durumunda HTTP {@code 409 Conflict}
-     * doner. {@code fieldErrors} map'i frontend'in hangi form alaninda hata
-     * gostermesi gerektigini soyler.
+     * Returns HTTP {@code 409 Conflict} when an email/username clash occurs
+     * in Keycloak. The {@code fieldErrors} map tells the frontend which
+     * form field should display the error.
      */
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
@@ -177,9 +178,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Sifre degistirme akisinda mevcut sifre yanlis girilirse HTTP
-     * {@code 400 Bad Request} doner; {@code currentPassword} field'i ozellikle
-     * isaretlenir, frontend hata mesajini ilgili input altinda gosterir.
+     * Returns HTTP {@code 400 Bad Request} when the current password is
+     * entered incorrectly during the password change flow; the
+     * {@code currentPassword} field is flagged explicitly so the frontend
+     * shows the error under the corresponding input.
      */
     @ExceptionHandler(WrongCurrentPasswordException.class)
     public ResponseEntity<ErrorResponse> handleWrongCurrentPassword(WrongCurrentPasswordException ex) {
@@ -195,9 +197,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Keycloak realm sifre politikasinin ihlal edildigi durumda HTTP
-     * {@code 400 Bad Request} doner; {@code newPassword} field'inin altinda
-     * politika mesaji gosterilir.
+     * Returns HTTP {@code 400 Bad Request} when the Keycloak realm password
+     * policy is violated; the policy message is displayed under the
+     * {@code newPassword} field.
      */
     @ExceptionHandler(InvalidPasswordException.class)
     public ResponseEntity<ErrorResponse> handleInvalidPassword(InvalidPasswordException ex) {
@@ -213,8 +215,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Agent / urun kapasite limiti asildiginda HTTP {@code 409 Conflict}
-     * doner; mesaj exception'in tasidigi i18n anahtarindan cevrilir.
+     * Returns HTTP {@code 409 Conflict} when the agent / product capacity
+     * limit is exceeded; the message is translated from the i18n key
+     * carried by the exception.
      */
     @ExceptionHandler(TicketLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleTicketLimitExceededException(TicketLimitExceededException ex) {
@@ -230,9 +233,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Bilinmeyen URI / yanlis path geldiginde standart HTTP {@code 404 Not Found}
-     * cevabi uretir; varsayilan Spring hata sayfasi yerine ortak JSON formatini
-     * korur.
+     * Produces a standard HTTP {@code 404 Not Found} response for an
+     * unknown URI / wrong path, preserving the common JSON format instead
+     * of falling back to the default Spring error page.
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
@@ -247,9 +250,9 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Beklenmeyen tum hatalari yakalayan son guvenlik agi — HTTP
-     * {@code 500 Internal Server Error}. Stacktrace tam olarak loglanir,
-     * istemciye yalnizca ozet mesaj donulur.
+     * Last-resort safety net for every unexpected error — HTTP
+     * {@code 500 Internal Server Error}. The stack trace is logged in
+     * full and only a summary message is returned to the client.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * CSAT (müşteri memnuniyeti) anketi gönderim isteği; çözülen bilete 1–5 puan ve opsiyonel yorum eklemek için kullanılır.
+ * CSAT survey submission — used to attach a 1–5 rating and an optional comment to a resolved ticket.
  */
 @Schema(description = "Müşteri memnuniyet anketi (CSAT) isteği")
 public class CsatDTO {

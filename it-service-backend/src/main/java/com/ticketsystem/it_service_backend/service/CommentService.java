@@ -24,14 +24,14 @@ import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 
 /**
- * Bilet yorum (comment) ekleme ve listeleme akışı.
+ * Handles ticket comment creation and listing.
  *
- * <p>EXTERNAL yorumlar her iki tarafça da görülebilir; INTERNAL yorumlar yalnızca
- * ajanlara açıktır. Kullanıcı başına basit bir in-memory cooldown ve maks. uzunluk
- * doğrulaması uygulanır (config: {@code app.comments.*}). Kayıttan sonra
- * {@link NotificationService} bildirim üretir ve STOMP üzerinden ilgili topic'e
- * yayın yapılır. Müşteri WAITING_FOR_CUSTOMER bir bilete yorum yazarsa statü
- * otomatik IN_PROGRESS'e çekilir.
+ * <p>EXTERNAL comments are visible to both parties; INTERNAL comments are visible
+ * only to agents. A simple per-user in-memory cooldown and a maximum-length check
+ * are applied (config: {@code app.comments.*}). After persistence,
+ * {@link NotificationService} produces a notification and a STOMP broadcast is
+ * sent on the ticket topic. When a customer comments on a WAITING_FOR_CUSTOMER
+ * ticket, the status is automatically moved back to IN_PROGRESS.
  */
 @Log4j2
 @Service
@@ -57,20 +57,20 @@ public class CommentService {
     private int maxMessageLength;
 
     /**
-     * Bilete yeni bir yorum ekler.
+     * Adds a new comment to a ticket.
      *
-     * <p>Doğrulamalar: uzunluk (config'e bağlı), per-user cooldown, mutasyon yetkisi
-     * ve INTERNAL yorum sadece ajan rolleriyle. Başarılı kayıttan sonra bildirim
-     * ve WebSocket olayı tetiklenir; müşteri WAITING_FOR_CUSTOMER bilete yazdıysa
-     * statü IN_PROGRESS'e çekilir.
+     * <p>Validations: length (config-driven), per-user cooldown, mutation access,
+     * and INTERNAL comments only by agent roles. After persistence, a notification
+     * and WebSocket event are triggered; when a customer comments on a
+     * WAITING_FOR_CUSTOMER ticket, the status is moved to IN_PROGRESS.
      *
-     * @param ticketId hedef bilet ID
-     * @param message yorum metni
-     * @param type yorum tipi (EXTERNAL veya INTERNAL); null/boşsa EXTERNAL
-     * @param userId yorumu yazan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return kaydedilmiş {@link Comment}
-     * @throws ResponseStatusException 400 uzunluk, 429 cooldown, 403 yetki ihlali
+     * @param ticketId target ticket ID
+     * @param message comment text
+     * @param type comment type (EXTERNAL or INTERNAL); EXTERNAL when null/blank
+     * @param userId user authoring the comment
+     * @param roles role list of the user
+     * @return the persisted {@link Comment}
+     * @throws ResponseStatusException 400 on length, 429 on cooldown, 403 on authorization
      */
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
@@ -134,15 +134,15 @@ public class CommentService {
     }
 
     /**
-     * Verilen biletin yorumlarını eskiye-yeniye sıralı döner. Müşteri rolünde
-     * INTERNAL yorumlar filtrelenir. Bilet erişim yetkisi {@link TicketService} ile
-     * doğrulanır.
+     * Returns the ticket's comments in oldest-to-newest order. INTERNAL comments
+     * are filtered out for customer-only callers. Ticket access is verified via
+     * {@link TicketService}.
      *
-     * @param ticketId hedef bilet ID
-     * @param userId istek yapan kullanıcı
-     * @param roles kullanıcının rolleri
-     * @return yorum listesi
-     * @throws ResponseStatusException 403 — bilete erişim yoksa
+     * @param ticketId target ticket ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return list of comments
+     * @throws ResponseStatusException 403 if the user has no ticket access
      */
     public List<Comment> getCommentsByTicketId(Long ticketId, String userId, List<String> roles) {
         log.debug("Yorum listeleme işlemi. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);

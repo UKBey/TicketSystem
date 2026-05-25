@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link TicketTopic} için JPA repository — ürün bazında topic listeleme;
- * {@code isActive=true} varyantı yeni bilet form'unda kullanılır (soft-delete aware).
+ * JPA repository for {@link TicketTopic} — per-product topic listing; the
+ * {@code isActive=true} variant is used by the new-ticket form (soft-delete aware).
  */
 public interface TicketTopicRepository extends JpaRepository<TicketTopic, Long> {
 

@@ -5,11 +5,11 @@ import com.ticketsystem.generator.client.KeycloakTokenClient;
 import java.io.IOException;
 
 /**
- * Bir kullanıcının generator oturum bilgilerini tutar.
+ * Holds a user's generator session information.
  *
- * <p>Username, rol ve token client'ı immutable; arka tarafta {@code /users/sync}
- * çağrısının döndürdüğü backend user ID setter ile sonradan atanır.
- * Token alımı {@link KeycloakTokenClient} üzerinden lazımsa yenilenerek yapılır.
+ * <p>Username, role and the token client are immutable; the backend user ID
+ * returned by the {@code /users/sync} call is assigned later via the setter.
+ * Token retrieval goes through {@link KeycloakTokenClient}, refreshing as needed.
  */
 public class UserSession {
 
@@ -19,9 +19,9 @@ public class UserSession {
     private String userId;
 
     /**
-     * @param username    Keycloak / backend kullanıcı adı
-     * @param role        gösterim/akış amaçlı rol etiketi (örn. {@code AGENT}, {@code CUSTOMER})
-     * @param tokenClient bu kullanıcıya bağlı, login edilmiş Keycloak token client
+     * @param username    Keycloak / backend username
+     * @param role        role label for display/flow purposes (e.g. {@code AGENT}, {@code CUSTOMER})
+     * @param tokenClient logged-in Keycloak token client bound to this user
      */
     public UserSession(String username, String role, KeycloakTokenClient tokenClient) {
         this.username    = username;
@@ -30,20 +30,20 @@ public class UserSession {
     }
 
     /**
-     * @return geçerli access token; süresi dolmuşsa otomatik yenilenir
-     * @throws IOException token yenileme/login başarısız olursa
+     * @return the current access token; refreshed automatically if it has expired
+     * @throws IOException if token refresh/login fails
      */
     public String getToken() throws IOException {
         return tokenClient.getToken();
     }
 
-    /** @return Keycloak kullanıcı adı. */
+    /** @return the Keycloak username. */
     public String getUsername() { return username; }
-    /** @return rol etiketi (örn. {@code AGENT}, {@code CUSTOMER}, {@code AGENT_ADMIN}). */
+    /** @return the role label (e.g. {@code AGENT}, {@code CUSTOMER}, {@code AGENT_ADMIN}). */
     public String getRole()     { return role; }
-    /** @return backend tarafından atanmış user ID; sync edilmemişse {@code null}. */
+    /** @return the user ID assigned by the backend; {@code null} if not yet synced. */
     public String getUserId()   { return userId; }
-    /** @param userId backend {@code /users/sync} yanıtından alınan user ID. */
+    /** @param userId the user ID returned by the backend {@code /users/sync} response. */
     public void setUserId(String userId) { this.userId = userId; }
 
     @Override

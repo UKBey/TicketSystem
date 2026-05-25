@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Atanmamış ve NEW durumundaki biletler için backlog özet metrikleri.
- * {@link AlertsBacklogDTO} içinde dashboard alerts paneline servis edilir.
+ * Backlog summary metrics for unassigned and NEW tickets.
+ * Served to the dashboard alerts panel inside {@link AlertsBacklogDTO}.
  */
 @Schema(description = "Bilet birikimi ve atanmamış ticket metrikleri")
 public class BacklogMetricsDTO {

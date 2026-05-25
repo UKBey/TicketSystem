@@ -8,14 +8,14 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Rate-limit ayarlari — application.yml'den okunur, hardcoded degil.
+ * Rate-limit settings — read from application.yml, not hardcoded.
  *
  * <ul>
  *   <li>{@code enabled}: kill-switch (false -> interceptor pass-through).</li>
- *   <li>{@code maxRequests} / {@code durationSeconds}: token-bucket semantiği —
- *       "her durationSeconds icinde en fazla maxRequests istek". Varsayilan
- *       1/10sn (yani 10 saniyede 1 istek).</li>
- *   <li>{@code pathPatterns}: hangi URL desenlerine uygulanacak.</li>
+ *   <li>{@code maxRequests} / {@code durationSeconds}: token-bucket semantics —
+ *       "at most maxRequests requests per durationSeconds". Defaults to
+ *       1/10s (one request every 10 seconds).</li>
+ *   <li>{@code pathPatterns}: which URL patterns it applies to.</li>
  * </ul>
  */
 @Component

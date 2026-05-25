@@ -4,12 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * Bir {@link Product} altındaki bilet konusu/kategorisi (örn. "Kurulum", "Lisans").
+ * Ticket topic/category under a {@link Product} (e.g. "Installation", "License").
  *
- * <p>{@link Ticket} bir topic'e referans verir ve oluşturma anında topic adı
- * {@link Ticket#getTopicNameSnapshot()} olarak da snapshot'lanır. {@code isActive=false}
- * topic'leri yeni biletlerde gösterilmez ama mevcut biletlerin referansı korunur.
- * {@code (product_id, name)} unique — aynı ürün altında aynı isimli topic olmaz.
+ * <p>{@link Ticket} references a topic, and at creation time the topic name is also
+ * snapshotted as {@link Ticket#getTopicNameSnapshot()}. Topics with {@code isActive=false}
+ * are hidden when opening new tickets, but existing tickets keep their reference.
+ * {@code (product_id, name)} is unique — two topics with the same name cannot exist
+ * under the same product.
  */
 @Entity
 @Table(name = "ticket_topics",

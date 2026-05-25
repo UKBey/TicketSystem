@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Ticket özetleme iş mantığını yöneten servis.
+ * Service that manages the ticket summarization business logic.
  */
 @Slf4j
 @Service
@@ -26,10 +26,10 @@ public class AiSummaryService {
     private final TicketAiSummaryRepository summaryRepository;
 
     /**
-     * Verilen ticket verisi için Groq API'yi çağırır, özeti üretir ve veritabanına kaydeder.
+     * Calls the Groq API for the given ticket data, generates the summary and persists it.
      *
-     * @param request Ticket verisi ve dil tercihi
-     * @return Kaydedilen özet
+     * @param request Ticket data and language preference
+     * @return Persisted summary
      */
     @Transactional
     public AiSummaryResponseDTO summarize(SummarizeRequestDTO request) {
@@ -70,7 +70,7 @@ public class AiSummaryService {
     }
 
     /**
-     * Bir ticket'ın en son özetini döner.
+     * Returns the most recent summary for a ticket.
      */
     @Transactional(readOnly = true)
     public AiSummaryResponseDTO getLatestSummary(Long ticketId) {
@@ -81,7 +81,7 @@ public class AiSummaryService {
     }
 
     /**
-     * Bir ticket'ın tüm özetlerini en yeniden eskiye sıralı döner.
+     * Returns all summaries of a ticket sorted from newest to oldest.
      */
     @Transactional(readOnly = true)
     public List<AiSummaryResponseDTO> getAllSummaries(Long ticketId) {

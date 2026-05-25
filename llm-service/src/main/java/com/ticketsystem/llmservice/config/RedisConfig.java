@@ -21,8 +21,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.time.Duration;
 
 /**
- * Redis configuration — bugun rate-limit bucket'lari icin kullanilir, yarin
- * cache / queue gibi ihtiyaclar icin de hazirdir. Backend ile ayni desen.
+ * Redis configuration — used today for rate-limit buckets, ready tomorrow for
+ * cache / queue use cases. Same pattern as the backend.
  */
 @Slf4j
 @Configuration
@@ -41,11 +41,11 @@ public class RedisConfig {
     private Duration timeout;
 
     /**
-     * Genel amaclı cache / değer depolama için JSON serileştirmeli
-     * {@link RedisTemplate} bean'i.
+     * General-purpose {@link RedisTemplate} bean with JSON serialization for
+     * cache / value storage.
      *
-     * @param connectionFactory Spring Data Redis bağlantı fabrikası
-     * @return string anahtar + JSON değer template'i
+     * @param connectionFactory Spring Data Redis connection factory
+     * @return string-key + JSON-value template
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -62,11 +62,11 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j ProxyManager'in kullandığı düşük seviyeli Lettuce
-     * {@link RedisClient} bean'i. Spring Data Redis'ten ayrı tutulur çünkü
-     * Bucket4j {@code byte[]} value codec ister.
+     * Low-level Lettuce {@link RedisClient} bean used by the Bucket4j
+     * ProxyManager. Kept separate from Spring Data Redis because Bucket4j
+     * requires a {@code byte[]} value codec.
      *
-     * @return yapılandırılmış Lettuce istemcisi
+     * @return configured Lettuce client
      */
     @Bean(destroyMethod = "shutdown")
     public RedisClient bucketRedisClient() {
@@ -82,11 +82,11 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j için string anahtar + {@code byte[]} value codec'li
-     * uzun ömürlü Lettuce bağlantısı.
+     * Long-lived Lettuce connection for Bucket4j with a string-key +
+     * {@code byte[]}-value codec.
      *
-     * @param client {@link #bucketRedisClient()} bean'i
-     * @return paylaşımlı Redis bağlantısı
+     * @param client the {@link #bucketRedisClient()} bean
+     * @return shared Redis connection
      */
     @Bean(destroyMethod = "close")
     public StatefulRedisConnection<String, byte[]> bucketRedisConnection(RedisClient client) {
@@ -94,12 +94,12 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j {@link LettuceBasedProxyManager} bean'i — kovaların Redis'te
-     * dağıtık olarak yönetilmesini sağlar. Son yazımdan 10 dk sonra TTL ile
-     * temizlenir.
+     * Bucket4j {@link LettuceBasedProxyManager} bean — manages buckets in a
+     * distributed fashion in Redis. Entries expire 10 minutes after the last
+     * write via TTL.
      *
-     * @param connection {@link #bucketRedisConnection(RedisClient)} bean'i
-     * @return rate-limit interceptor'in kullanacağı proxy manager
+     * @param connection the {@link #bucketRedisConnection(RedisClient)} bean
+     * @return proxy manager used by the rate-limit interceptor
      */
     @Bean
     public ProxyManager<String> bucketProxyManager(StatefulRedisConnection<String, byte[]> connection) {

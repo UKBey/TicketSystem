@@ -19,12 +19,12 @@ import java.time.ZonedDateTime;
 import java.util.Base64;
 
 /**
- * "Forgot password" akışını yönetir. Token üretimi, mail tetiği, validate ve
- * consume tek yerden geçer. Plaintext token sadece mail içinde uçar; DB'de
- * yalnızca SHA-256 hash saklanır.
+ * Drives the "forgot password" flow. Token generation, email delivery,
+ * validation and consumption all flow through here. The plaintext token only
+ * travels inside the email; the DB stores nothing but the SHA-256 hash.
  *
- * <p>Token tüketilene kadar kullanıcının mevcut şifresi değişmez; sadece
- * resetPassword başarıyla çalışırsa Keycloak'taki şifre güncellenir.
+ * <p>The user's existing password is not changed until the token is consumed;
+ * the Keycloak password is updated only on a successful resetPassword call.
  */
 @Log4j2
 @Service
@@ -46,13 +46,14 @@ public class PasswordResetService {
     private String frontendBaseUrl;
 
     /**
-     * Verilen email için reset token üretir ve maille gönderir. Email enumeration'ı
-     * önlemek için, email kayıtlı olmasa veya kullanıcı pasif olsa bile sessiz
-     * şekilde başarılı döner — çağıran taraf hep aynı yanıtı vermelidir.
+     * Generates a reset token for the given email and emails it out. To prevent
+     * email enumeration, the call returns silently with success even if the email
+     * is not registered or the user is inactive — the caller must always return
+     * the same response.
      *
-     * @param email reset isteği yapılan email
-     * @param languageOverride istemcinin o anki dili (en/tr); null ise DB tercihine düşülür
-     * @param themeOverride    istemcinin o anki teması (light/dark); null ise DB tercihine düşülür
+     * @param email email the reset is being requested for
+     * @param languageOverride client's current language (en/tr); falls back to the DB preference when null
+     * @param themeOverride    client's current theme (light/dark); falls back to the DB preference when null
      */
     @Transactional
     public void requestPasswordReset(String email, String languageOverride, String themeOverride) {
@@ -92,11 +93,11 @@ public class PasswordResetService {
     }
 
     /**
-     * Token'ın hâlâ geçerli olup olmadığını sorgular. Frontend reset sayfasını
-     * açtığında, kullanıcıdan parola istemeden önce çağrılır.
+     * Checks whether the token is still valid. Called by the frontend reset page
+     * before prompting the user for a password.
      *
-     * @param plainToken kullanıcının elinde olan düz metin token
-     * @return token bulunduysa ve hâlâ geçerliyse {@code true}
+     * @param plainToken plaintext token held by the user
+     * @return {@code true} if the token exists and is still valid
      */
     @Transactional(readOnly = true)
     public boolean isTokenValid(String plainToken) {
@@ -107,19 +108,21 @@ public class PasswordResetService {
     }
 
     /**
-     * Token'ı tüketir ve Keycloak'taki şifreyi günceller. Token geçersizse veya
-     * süresi dolmuşsa {@link InvalidResetTokenException} fırlatılır; şifre politikası
-     * ihlali için {@link InvalidPasswordException} Keycloak servisinden propage edilir.
+     * Consumes the token and updates the password in Keycloak. When the token is
+     * invalid or expired, {@link InvalidResetTokenException} is thrown; password
+     * policy violations are propagated as {@link InvalidPasswordException} from the
+     * Keycloak service.
      *
-     * <p>Şifre değişimi Keycloak'a kadar başarıyla gidene kadar token "used" olarak
-     * işaretlenmez — böylece Keycloak hatasında kullanıcı aynı linki tekrar deneyebilir.
+     * <p>The token is not marked "used" until the password change succeeds all the
+     * way through Keycloak — this lets the user retry with the same link if
+     * Keycloak rejects the change.
      *
-     * @param plainToken kullanıcının elindeki düz metin token
-     * @param newPassword yeni şifre (boş olamaz; Keycloak politikalarına uymalı)
-     * @param languageOverride başarı mailinin dili (opsiyonel)
-     * @param themeOverride    başarı mailinin teması (opsiyonel)
-     * @throws InvalidResetTokenException token eksik/yok/süresi dolmuş/kullanılmışsa
-     * @throws InvalidPasswordException şifre boşsa veya Keycloak politikasını ihlal ediyorsa
+     * @param plainToken plaintext token held by the user
+     * @param newPassword new password (non-blank; must satisfy Keycloak policy)
+     * @param languageOverride language for the success email (optional)
+     * @param themeOverride    theme for the success email (optional)
+     * @throws InvalidResetTokenException if the token is missing/unknown/expired/used
+     * @throws InvalidPasswordException if the password is blank or violates Keycloak policy
      */
     @Transactional
     public void resetPassword(String plainToken, String newPassword,

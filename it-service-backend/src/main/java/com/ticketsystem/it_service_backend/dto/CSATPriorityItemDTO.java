@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 /**
- * Tek bir öncelik seviyesi için CSAT özeti (ortalama puan ve yanıt sayısı).
- * {@link CSATMetricsDTO#getByPriority()} map'inin değerleri olarak kullanılır.
+ * CSAT summary for a single priority level (average rating and response count).
+ * Used as the values of the {@link CSATMetricsDTO#getByPriority()} map.
  */
 @Schema(description = "Bir priority seviyesi için CSAT özeti")
 public class CSATPriorityItemDTO {

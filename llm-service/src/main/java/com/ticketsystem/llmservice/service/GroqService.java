@@ -19,7 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Groq API ile iletişimi yöneten servis.
+ * Service that handles communication with the Groq API.
  */
 @Slf4j
 @Service
@@ -37,12 +37,12 @@ public class GroqService {
             Pattern.compile("try again in ([\\d.]+)s", Pattern.CASE_INSENSITIVE);
 
     /**
-     * Groq API'ye chat completion isteği gönderir ve yanıtı döner.
+     * Sends a chat completion request to the Groq API and returns the response.
      *
-     * @param systemPrompt LLM'e rolünü tanımlayan sistem mesajı
-     * @param userPrompt   Özetlenecek ticket verisi
-     * @return Groq API yanıtı
-     * @throws GroqRateLimitException token limiti aşıldığında
+     * @param systemPrompt System message defining the LLM's role
+     * @param userPrompt   Ticket data to be summarized
+     * @return Groq API response
+     * @throws GroqRateLimitException when the token limit is exceeded
      */
     public GroqChatResponse complete(String systemPrompt, String userPrompt) {
         GroqChatRequest request = GroqChatRequest.builder()
@@ -105,8 +105,8 @@ public class GroqService {
     }
 
     /**
-     * Groq hata gövdesini parse eder.
-     * rate_limit_exceeded ise GroqRateLimitException, diğerleri RuntimeException döner.
+     * Parses the Groq error body.
+     * Returns GroqRateLimitException for rate_limit_exceeded, RuntimeException otherwise.
      */
     private RuntimeException parseGroqError(String body) {
         try {

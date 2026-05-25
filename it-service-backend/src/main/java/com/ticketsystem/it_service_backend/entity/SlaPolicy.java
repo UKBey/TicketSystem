@@ -5,13 +5,13 @@ import lombok.*;
 import java.time.ZonedDateTime;
 
 /**
- * Bilet önceliğine göre SLA hedeflerini tanımlayan politika.
+ * Policy defining SLA targets per ticket priority.
  *
- * <p>Her {@code priority} için bir satır (unique) — {@link Ticket} oluşturulurken
- * hedef çözüm süresi buradan okunur ve {@code slaDeadline} hesaplanır.
- * {@code warningThresholdHours} ise deadline'a yaklaşıldığında uyarı bildirimi
- * tetiklemek için scheduler tarafından kullanılır. Uygulama tarafında
- * {@code app.sla.policies} config'i ile yan yana çalışır.
+ * <p>One row per {@code priority} (unique) — on {@link Ticket} creation the target
+ * resolution duration is read from here and {@code slaDeadline} is computed.
+ * {@code warningThresholdHours} is consulted by the scheduler to trigger a warning
+ * notification as the deadline approaches. Runs alongside the
+ * {@code app.sla.policies} configuration on the application side.
  */
 @Entity
 @Table(name = "sla_policies")
@@ -26,17 +26,17 @@ public class SlaPolicy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Öncelik seviyesi: LOW, MEDIUM, HIGH, CRITICAL */
+    /** Priority level: LOW, MEDIUM, HIGH, CRITICAL. */
     @Column(nullable = false, unique = true, length = 10)
     private String priority;
 
-    /** Hedef çözüm süresi (saat) */
+    /** Target resolution duration (hours). */
     @Column(name = "target_resolution_hours", nullable = false)
     private Integer targetResolutionHours;
 
     /**
-     * Deadline'a bu kadar saat kala uyarı bildirimi gönderilir.
-     * Varsayılan: 2 saat.
+     * The warning notification is sent this many hours before the deadline.
+     * Default: 2 hours.
      */
     @Column(name = "warning_threshold_hours", nullable = false)
     @Builder.Default

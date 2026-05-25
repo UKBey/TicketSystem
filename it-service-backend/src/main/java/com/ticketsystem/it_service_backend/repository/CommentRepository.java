@@ -7,7 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * {@link Comment} için JPA repository — bilet yorumlarını kronolojik sırada listeler ve toplu siler.
+ * JPA repository for {@link Comment} — lists ticket comments in chronological order
+ * and supports bulk deletion.
  */
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {

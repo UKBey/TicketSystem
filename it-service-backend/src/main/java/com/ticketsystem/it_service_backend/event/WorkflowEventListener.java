@@ -13,12 +13,13 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 
 /**
- * Bilet event'lerini jBPM workflow servisine bagleyen koprü.
+ * Bridge that connects ticket events to the jBPM workflow service.
  *
- * <p>Listener {@code AFTER_COMMIT} fazinda calisir; boylece workflow yalnizca
- * bilet basariyla veritabanina yazildiktan sonra baslatilir ve rollback edilen
- * islemler icin gereksiz KIE cagrisi yapilmaz. KIE Server hatasi olusursa bilet
- * yine de kullanim icin hazirdir — workflow olmadan da bilet yasayabilir.
+ * <p>The listener runs in the {@code AFTER_COMMIT} phase so the workflow is
+ * only started once the ticket is successfully written to the database, and
+ * no needless KIE call is issued for rolled-back transactions. If the KIE
+ * Server fails the ticket is still usable — a ticket can live without its
+ * workflow.
  */
 @Component
 @RequiredArgsConstructor
@@ -30,14 +31,15 @@ public class WorkflowEventListener {
 
 
     /**
-     * {@link TicketCreatedEvent} sonrasi KIE Server'da yeni bir
-     * {@code ticket-lifecycle} process instance baslatir ve donen
-     * {@code processInstanceId}'yi ayri transaction'da bilete yazar.
+     * On a {@link TicketCreatedEvent} starts a new
+     * {@code ticket-lifecycle} process instance in the KIE Server and writes
+     * the returned {@code processInstanceId} back onto the ticket in a
+     * separate transaction.
      *
-     * <p>{@code REQUIRES_NEW} kullanildi cunku original transaction commit
-     * edildigi icin event tetiklendi; ayni transaction'a katilmak mumkun degil.
-     * Workflow basarisiz olursa hata loglanir ama exception yutulur — bilet
-     * yasamini surdurur.
+     * <p>{@code REQUIRES_NEW} is used because the event fires after the
+     * original transaction has committed; joining that transaction is no
+     * longer possible. If the workflow fails the error is logged but the
+     * exception is swallowed — the ticket lives on.
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
