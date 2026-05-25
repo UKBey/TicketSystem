@@ -195,7 +195,7 @@ make dev-frontend  # run the web frontend on the host (Vite :3000)
 make dev-mobile    # start the Expo dev server for the mobile app
 ```
 
-The Vite dev server proxies `/api` → `localhost:8081` and the WebSocket endpoint accordingly.
+The Vite dev server proxies `/api/v1` → `localhost:8081` and the WebSocket endpoint accordingly.
 
 ---
 

@@ -24,7 +24,7 @@ public class TicketTopicController {
 
     @Operation(summary = "Bir ürünün talep konularını listele",
             description = "Varsayılan olarak yalnızca aktif konuları döner. `includeInactive=true` ile pasif olanlar da gelir.")
-    @GetMapping("/api/products/{productId}/topics")
+    @GetMapping("/api/v1/products/{productId}/topics")
     public ResponseEntity<List<TicketTopicDTO>> listByProduct(
             @PathVariable Long productId,
             @RequestParam(name = "includeInactive", defaultValue = "false") boolean includeInactive) {
@@ -33,7 +33,7 @@ public class TicketTopicController {
     }
 
     @Operation(summary = "Yeni talep konusu oluştur")
-    @PostMapping("/api/products/{productId}/topics")
+    @PostMapping("/api/v1/products/{productId}/topics")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<TicketTopicDTO> create(
             @PathVariable Long productId,
@@ -44,7 +44,7 @@ public class TicketTopicController {
     }
 
     @Operation(summary = "Talep konusunu güncelle (ad veya aktiflik)")
-    @PutMapping("/api/topics/{id}")
+    @PutMapping("/api/v1/topics/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<TicketTopicDTO> update(
             @PathVariable Long id,
@@ -55,7 +55,7 @@ public class TicketTopicController {
     }
 
     @Operation(summary = "Talep konusunu sil")
-    @DeleteMapping("/api/topics/{id}")
+    @DeleteMapping("/api/v1/topics/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("Talep konusu silme isteği. ID: {}", id);

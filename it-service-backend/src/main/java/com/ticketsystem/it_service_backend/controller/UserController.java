@@ -46,7 +46,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 @Tag(name = "Kullanıcı Yönetimi", description = "Keycloak senkronizasyonu, kullanıcı listeleme ve ürün yetki atamaları")
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Validated
 public class UserController {
@@ -603,7 +603,7 @@ public class UserController {
                     
                     **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
                     
-                    **Kullanım:** `POST /api/users/admin/create` endpoint'inde `roles` alanını
+                    **Kullanım:** `POST /api/v1/users/admin/create` endpoint'inde `roles` alanını
                     doldurmak için bu endpoint'ten dinamik olarak rol listesi çekilir.
                     """,
             security = @SecurityRequirement(name = "bearerAuth"),

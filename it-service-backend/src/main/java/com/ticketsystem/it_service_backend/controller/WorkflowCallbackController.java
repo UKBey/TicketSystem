@@ -24,7 +24,7 @@ import java.time.ZonedDateTime;
 @Log4j2
 @Tag(name = "Workflow Callback", description = "jBPM KIE Server'dan gelen dahili SLA ihlali ve süreç olayları (Internal API)")
 @RestController
-@RequestMapping("/api/internal/workflow")
+@RequestMapping("/api/v1/internal/workflow")
 @RequiredArgsConstructor
 public class WorkflowCallbackController {
 

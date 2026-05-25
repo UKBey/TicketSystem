@@ -34,7 +34,7 @@ public class WorkflowService {
     @Value("${jbpm.kie-server.process-id:com.ticketsystem.workflow.ticket-lifecycle}")
     private String processId;
 
-    @Value("${jbpm.kie-server.callback-base-url:http://host.docker.internal:8081/api/internal/workflow/callback}")
+    @Value("${jbpm.kie-server.callback-base-url:http://host.docker.internal:8081/api/v1/internal/workflow/callback}")
     private String callbackBaseUrl;
 
     @Value("${jbpm.kie-server.callback-token}")

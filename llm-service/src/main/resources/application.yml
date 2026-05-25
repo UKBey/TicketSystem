@@ -65,4 +65,4 @@ app:
     duration-seconds: ${LLM_RATE_LIMIT_DURATION_SECONDS:10}
     # Sadece pahalı Groq cağrisini yapan "generate" endpoint'i throttle edilir.
     # Latest/list GET'leri DB'den okur — rate-limit'e tabi degildir.
-    path-patterns: ${LLM_RATE_LIMIT_PATH_PATTERNS:/api/ai/summaries/tickets/*/generate}
+    path-patterns: ${LLM_RATE_LIMIT_PATH_PATTERNS:/api/v1/ai/summaries/tickets/*/generate}

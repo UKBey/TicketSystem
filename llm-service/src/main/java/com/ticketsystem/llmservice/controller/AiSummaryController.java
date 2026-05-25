@@ -18,7 +18,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = "AI Özet", description = "Ticket verisi için LLM tabanlı özetleme işlemleri")
 @RestController
-@RequestMapping("/api/ai/summaries")
+@RequestMapping("/api/v1/ai/summaries")
 @RequiredArgsConstructor
 public class AiSummaryController {
 

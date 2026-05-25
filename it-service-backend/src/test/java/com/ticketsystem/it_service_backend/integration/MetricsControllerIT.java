@@ -28,17 +28,17 @@ class MetricsControllerIT extends BaseIntegrationTest {
     private static final SimpleGrantedAuthority CUSTOMER    = new SimpleGrantedAuthority("ROLE_CUSTOMER");
 
     // =========================================================================
-    // GET /api/metrics/dashboard-summary
+    // GET /api/v1/metrics/dashboard-summary
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/dashboard-summary")
+    @DisplayName("GET /api/v1/metrics/dashboard-summary")
     class DashboardSummary {
 
         @Test
         @DisplayName("MANAGER → 200, response structure correct")
         void manager_gets200WithValidStructure() throws Exception {
-            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalOpenTickets").value(isA(Number.class)))
                     .andExpect(jsonPath("$.slaBreachedCount").value(isA(Number.class)))
@@ -50,7 +50,7 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Boş DB → sıfır değerler, hata yok")
         void emptyDatabase_returnsZeroDefaults() throws Exception {
-            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/dashboard-summary").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalOpenTickets").value(0))
                     .andExpect(jsonPath("$.slaBreachedCount").value(0))
@@ -60,30 +60,30 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/dashboard-summary").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/dashboard-summary").with(jwt().authorities(AGENT)))
+            mockMvc.perform(get("/api/v1/metrics/dashboard-summary").with(jwt().authorities(AGENT)))
                     .andExpect(status().isForbidden());
         }
     }
 
     // =========================================================================
-    // GET /api/metrics/status-distribution
+    // GET /api/v1/metrics/status-distribution
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/status-distribution")
+    @DisplayName("GET /api/v1/metrics/status-distribution")
     class StatusDistribution {
 
         @Test
         @DisplayName("MANAGER → 200, distribution fields present")
         void manager_gets200WithFields() throws Exception {
-            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/status-distribution").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.newCount").value(isA(Number.class)))
                     .andExpect(jsonPath("$.inProgressCount").value(isA(Number.class)))
@@ -94,7 +94,7 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Boş DB → tüm sayımlar sıfır")
         void emptyDatabase_allCountsZero() throws Exception {
-            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/status-distribution").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalCount").value(0));
         }
@@ -102,30 +102,30 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/status-distribution").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/status-distribution").with(jwt().authorities(AGENT)))
+            mockMvc.perform(get("/api/v1/metrics/status-distribution").with(jwt().authorities(AGENT)))
                     .andExpect(status().isForbidden());
         }
     }
 
     // =========================================================================
-    // GET /api/metrics/agent-performance
+    // GET /api/v1/metrics/agent-performance
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/agent-performance")
+    @DisplayName("GET /api/v1/metrics/agent-performance")
     class AgentPerformance {
 
         @Test
         @DisplayName("MANAGER → 200, agents list returned")
         void manager_gets200WithAgentsList() throws Exception {
-            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.agents").isArray())
                     .andExpect(jsonPath("$.totalAgents").value(isA(Number.class)));
@@ -134,37 +134,37 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("AGENT_ADMIN → 200")
         void agentAdmin_gets200() throws Exception {
-            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(AGENT_ADMIN)))
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(AGENT_ADMIN)))
                     .andExpect(status().isOk());
         }
 
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/agent-performance").with(jwt().authorities(AGENT)))
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(AGENT)))
                     .andExpect(status().isForbidden());
         }
     }
 
     // =========================================================================
-    // GET /api/metrics/ticket-timeline
+    // GET /api/v1/metrics/ticket-timeline
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/ticket-timeline")
+    @DisplayName("GET /api/v1/metrics/ticket-timeline")
     class TicketTimeline {
 
         @Test
         @DisplayName("MANAGER, default days → 200, timeline array")
         void manager_defaultDays_gets200WithTimeline() throws Exception {
-            mockMvc.perform(get("/api/metrics/ticket-timeline").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/ticket-timeline").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.timeline").isArray());
         }
@@ -172,7 +172,7 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("MANAGER, days=7 → 200, array")
         void manager_customDays_gets200() throws Exception {
-            mockMvc.perform(get("/api/metrics/ticket-timeline?days=7").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/ticket-timeline?days=7").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.timeline").isArray());
         }
@@ -180,23 +180,23 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/ticket-timeline").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/ticket-timeline").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
     }
 
     // =========================================================================
-    // GET /api/metrics/priority-sla-metrics
+    // GET /api/v1/metrics/priority-sla-metrics
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/priority-sla-metrics")
+    @DisplayName("GET /api/v1/metrics/priority-sla-metrics")
     class PrioritySlaMetrics {
 
         @Test
         @DisplayName("MANAGER → 200, priorityMetrics array")
         void manager_gets200WithPriorityList() throws Exception {
-            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/priority-sla-metrics").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.priorityMetrics").isArray());
         }
@@ -204,30 +204,30 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/priority-sla-metrics").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/priority-sla-metrics").with(jwt().authorities(AGENT)))
+            mockMvc.perform(get("/api/v1/metrics/priority-sla-metrics").with(jwt().authorities(AGENT)))
                     .andExpect(status().isForbidden());
         }
     }
 
     // =========================================================================
-    // GET /api/metrics/product-metrics
+    // GET /api/v1/metrics/product-metrics
     // =========================================================================
 
     @Nested
-    @DisplayName("GET /api/metrics/product-metrics")
+    @DisplayName("GET /api/v1/metrics/product-metrics")
     class ProductMetrics {
 
         @Test
         @DisplayName("MANAGER → 200, productMetrics array")
         void manager_gets200WithProductList() throws Exception {
-            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/product-metrics").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.productMetrics").isArray());
         }
@@ -235,7 +235,7 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Boş DB → boş liste, hata yok")
         void emptyDatabase_returnsEmptyList() throws Exception {
-            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(MANAGER)))
+            mockMvc.perform(get("/api/v1/metrics/product-metrics").with(jwt().authorities(MANAGER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.productMetrics").isArray());
         }
@@ -243,14 +243,14 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("CUSTOMER → 403")
         void customer_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(CUSTOMER)))
+            mockMvc.perform(get("/api/v1/metrics/product-metrics").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
-            mockMvc.perform(get("/api/metrics/product-metrics").with(jwt().authorities(AGENT)))
+            mockMvc.perform(get("/api/v1/metrics/product-metrics").with(jwt().authorities(AGENT)))
                     .andExpect(status().isForbidden());
         }
     }

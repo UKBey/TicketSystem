@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Log4j2
 @Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan müşteri yanıtları ve dahili notların yönetimi")
 @RestController
-@RequestMapping("/api/tickets/{ticketId}/comments")
+@RequestMapping("/api/v1/tickets/{ticketId}/comments")
 @RequiredArgsConstructor
 // S-6: defense-in-depth — SecurityConfig zaten anonim erisimi yasakliyor; method-level
 // auth check'i kodda gorunur kilar. Rol bazli kontrol (kim yorum yazip okuyabilir)

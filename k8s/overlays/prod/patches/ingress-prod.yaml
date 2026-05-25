@@ -9,7 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/affinity: cookie
     nginx.ingress.kubernetes.io/session-cookie-name: TS_AFFINITY
-    nginx.ingress.kubernetes.io/session-cookie-path: /api/ws
+    nginx.ingress.kubernetes.io/session-cookie-path: /api/v1/ws
 spec:
   tls:
     - hosts:

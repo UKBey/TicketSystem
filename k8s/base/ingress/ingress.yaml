@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/component: ingress
   annotations:
     # Buffer/timeout knobs lifted from nginx/nginx.conf so WebSocket upgrades
-    # (STOMP under /api/ws/**) survive the longer Spring Boot handshakes.
+    # (STOMP under /api/v1/ws/**) survive the longer Spring Boot handshakes.
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-body-size: "20m"
@@ -17,15 +17,15 @@ spec:
     - host: ticketsystem.local
       http:
         paths:
-          # /api/ai/* longest-prefix önce — yoksa generic /api kuralı yakalar.
-          - path: /api/ai
+          # /api/v1/ai/* longest-prefix önce — yoksa generic /api/v1 kuralı yakalar.
+          - path: /api/v1/ai
             pathType: Prefix
             backend:
               service:
                 name: llm-service
                 port:
                   number: 8082
-          - path: /api
+          - path: /api/v1
             pathType: Prefix
             backend:
               service:

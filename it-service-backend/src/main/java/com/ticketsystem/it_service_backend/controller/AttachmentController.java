@@ -29,7 +29,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 @Tag(name = "Dosya Yönetimi", description = "Biletlere dosya eki yükleme, listeleme, indirme ve silme işlemleri")
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class AttachmentController {
 
@@ -48,7 +48,7 @@ public class AttachmentController {
                     - Metin tabanlı dosyalarda password, token, secret, API key ve private key benzeri hassas kalıplar engellenir
                     
                     Dosya metadata'sı (`id`, `fileName`, `fileType`, `uploaderId`, `createdAt`) yanıt olarak döner.
-                    Dosya içeriği bu endpoint'ten dönmez; indirmek için `GET /api/attachments/{id}` kullanılır.
+                    Dosya içeriği bu endpoint'ten dönmez; indirmek için `GET /api/v1/attachments/{id}` kullanılır.
                     """)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Dosya başarıyla yüklendi",

@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 @Log4j2
 @Tag(name = "Bilet Yönetimi", description = "Destek biletlerinin oluşturulması, listelenmesi, sahiplenilmesi ve yönetimi")
 @RestController
-@RequestMapping("/api/tickets")
+@RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
 @Validated
 public class TicketController {

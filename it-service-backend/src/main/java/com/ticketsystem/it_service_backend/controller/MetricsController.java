@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Log4j2
 @Tag(name = "Dashboard Metrikleri", description = "Sistem metrikleri, KPI'ları ve analitiği — Manager rolü için")
 @RestController
-@RequestMapping("/api/metrics")
+@RequestMapping("/api/v1/metrics")
 @RequiredArgsConstructor
 public class MetricsController {
 

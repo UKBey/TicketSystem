@@ -25,7 +25,7 @@ import java.util.Map;
 @Log4j2
 @Tag(name = "Bildirim Yönetimi", description = "Kullanıcı bildirimleri ve okundu işaretleme işlemleri")
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 @Validated
 // S-6: defense-in-depth — endpoint'ler kullanici-bazli filtreleme yapiyor (servis

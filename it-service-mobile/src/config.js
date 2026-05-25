@@ -24,8 +24,8 @@ function resolveHost() {
 
 export const HOST = resolveHost();
 
-/** Backend REST API kökü — nginx üzerinden /api. */
-export const API_BASE_URL = `${HOST}/api`;
+/** Backend REST API kökü — nginx üzerinden /api/v1. */
+export const API_BASE_URL = `${HOST}/api/v1`;
 
 /** Keycloak — nginx üzerinden /auth (KC_HTTP_RELATIVE_PATH=/auth). */
 export const KEYCLOAK_URL = `${HOST}/auth`;

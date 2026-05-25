@@ -17,7 +17,7 @@ export function useTicketWebSocket(ticketId, { onComment, onAttachment, onTicket
     if (!ticketId) return undefined;
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const brokerURL = `${protocol}://${window.location.host}/api/ws`;
+    const brokerURL = `${protocol}://${window.location.host}/api/v1/ws`;
 
     const handleEvent = (message) => {
       let event;

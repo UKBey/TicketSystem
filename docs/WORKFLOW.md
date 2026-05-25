@@ -283,9 +283,9 @@ not call KIE).
 When `Timer_SlaDeadline` fires, the `RestTask_SlaCallback` REST work item POSTs
 to the backend.
 
-- **Endpoint:** `POST /api/internal/workflow/callback`
-  (`WorkflowCallbackController`, base path `/api/internal/workflow`).
-- **Auth:** the endpoint is under `/api/internal/**`, which **bypasses JWT**.
+- **Endpoint:** `POST /api/v1/internal/workflow/callback`
+  (`WorkflowCallbackController`, base path `/api/v1/internal/workflow`).
+- **Auth:** the endpoint is under `/api/v1/internal/**`, which **bypasses JWT**.
   The BPMN process builds the URL as `callbackBaseUrl?token=<callback-token>`;
   the controller validates the `X-Internal-Token` header against
   `jbpm.kie-server.callback-token`. Comparison is **constant-time**

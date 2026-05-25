@@ -34,7 +34,7 @@ public class TicketDataFetcher {
         log.info("Ticket verisi çekiliyor. TicketId: {}", ticketId);
 
         JsonNode root = ticketServiceWebClient.get()
-                .uri("/api/internal/tickets/{id}/full", ticketId)
+                .uri("/api/v1/internal/tickets/{id}/full", ticketId)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, resp ->
                         resp.bodyToMono(String.class).map(body ->

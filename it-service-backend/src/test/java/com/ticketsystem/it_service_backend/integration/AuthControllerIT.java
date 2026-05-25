@@ -52,7 +52,7 @@ class AuthControllerIT extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /api/auth/forgot-password")
+    @DisplayName("POST /api/v1/auth/forgot-password")
     class ForgotPassword {
 
         @Test
@@ -60,7 +60,7 @@ class AuthControllerIT extends BaseIntegrationTest {
         void knownEmail_creates_token() throws Exception {
             seedUser();
 
-            mockMvc.perform(post("/api/auth/forgot-password")
+            mockMvc.perform(post("/api/v1/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of("email", EMAIL))))
                     .andExpect(status().isOk())
@@ -75,7 +75,7 @@ class AuthControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Bilinmeyen email → 200 (enumeration koruması), token yok")
         void unknownEmail_returnsOk_noToken() throws Exception {
-            mockMvc.perform(post("/api/auth/forgot-password")
+            mockMvc.perform(post("/api/v1/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of("email", "ghost@example.com"))))
                     .andExpect(status().isOk())
@@ -89,7 +89,7 @@ class AuthControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Geçersiz email formatı → 400")
         void invalidEmail_returnsBadRequest() throws Exception {
-            mockMvc.perform(post("/api/auth/forgot-password")
+            mockMvc.perform(post("/api/v1/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of("email", "not-an-email"))))
                     .andExpect(status().isBadRequest());
@@ -97,13 +97,13 @@ class AuthControllerIT extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /api/auth/reset-password")
+    @DisplayName("POST /api/v1/auth/reset-password")
     class ResetPassword {
 
         @Test
         @DisplayName("Geçersiz token → 400 + INVALID_OR_EXPIRED_TOKEN")
         void invalidToken_returnsError() throws Exception {
-            mockMvc.perform(post("/api/auth/reset-password")
+            mockMvc.perform(post("/api/v1/auth/reset-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of(
                                     "token", "this-token-does-not-exist-aaaaaaaaaa",
@@ -118,7 +118,7 @@ class AuthControllerIT extends BaseIntegrationTest {
         @Test
         @DisplayName("Çok kısa şifre → 400 validation hatası")
         void shortPassword_returnsValidationError() throws Exception {
-            mockMvc.perform(post("/api/auth/reset-password")
+            mockMvc.perform(post("/api/v1/auth/reset-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of(
                                     "token", "aaaaaaaaaaaaaaaaaaaaaa",
@@ -131,13 +131,13 @@ class AuthControllerIT extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /api/auth/reset-password/validate")
+    @DisplayName("GET /api/v1/auth/reset-password/validate")
     class ValidateToken {
 
         @Test
         @DisplayName("Bilinmeyen token → valid=false")
         void unknownToken_returnsFalse() throws Exception {
-            mockMvc.perform(get("/api/auth/reset-password/validate")
+            mockMvc.perform(get("/api/v1/auth/reset-password/validate")
                             .param("token", "definitely-not-in-db"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.valid").value(false));
@@ -155,7 +155,7 @@ class AuthControllerIT extends BaseIntegrationTest {
             doNothing().when(keycloakAdminService).changeUserPassword(anyString(), anyString());
 
             // 1. Reset isteği
-            mockMvc.perform(post("/api/auth/forgot-password")
+            mockMvc.perform(post("/api/v1/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of("email", EMAIL))))
                     .andExpect(status().isOk());
@@ -169,7 +169,7 @@ class AuthControllerIT extends BaseIntegrationTest {
             assert tokens != null && tokens == 1;
 
             // 3. Geçersiz plaintext ile reset deneyince INVALID dönmeli
-            mockMvc.perform(post("/api/auth/reset-password")
+            mockMvc.perform(post("/api/v1/auth/reset-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(Map.of(
                                     "token", "wrong-plaintext-aaaaaaaaaaaaaaaa",

@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @Log4j2
 @Tag(name = "Internal", description = "Servisler arası iletişim endpoint'leri (JWT gerektirmez, internal token gerektirir)")
 @RestController
-@RequestMapping("/api/internal/tickets")
+@RequestMapping("/api/v1/internal/tickets")
 @RequiredArgsConstructor
 public class InternalTicketController {
 

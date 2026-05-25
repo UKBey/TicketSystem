@@ -27,5 +27,5 @@ public class RateLimitProperties {
     private boolean enabled = true;
     private int maxRequests = 1;
     private int durationSeconds = 10;
-    private List<String> pathPatterns = List.of("/api/ai/**");
+    private List<String> pathPatterns = List.of("/api/v1/ai/**");
 }

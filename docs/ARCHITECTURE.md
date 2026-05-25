@@ -125,8 +125,8 @@ flowchart TB
 | Path | Target |
 |------|--------|
 | `/` | `it-service-frontend` (static SPA) |
-| `/api/` | `it-service-backend:8081` |
-| `/api/ai/` | `llm-service:8082` |
+| `/api/v1/` | `it-service-backend:8081` |
+| `/api/v1/ai/` | `llm-service:8082` |
 | `/auth/` | `keycloak-iam:8080` |
 
 ---
@@ -158,7 +158,7 @@ flowchart TB
 The backend follows a conventional Spring layered architecture under `com.ticketsystem.it_service_backend`:
 
 ```
-controller/   REST endpoints under /api/** — validation, HTTP mapping
+controller/   REST endpoints under /api/v1/** — validation, HTTP mapping
 service/      Business logic (TicketService, SlaPolicyService, WorkflowService,
               NotificationService, EmailService, MetricsService, KeycloakAdminService...)
 repository/   Spring Data JPA repositories
@@ -194,7 +194,7 @@ sequenceDiagram
     SPA->>KC: Redirect to login (OIDC, ui/kc_locale)
     KC->>LDAP: Validate credentials
     KC-->>SPA: Authorization code → JWT (access + refresh)
-    SPA->>API: POST /api/users/sync (Bearer JWT)
+    SPA->>API: POST /api/v1/users/sync (Bearer JWT)
     API->>API: Validate JWT signature (realm JWK set)
     API->>API: Map realm_access.roles → ROLE_* authorities
     API->>DB: Upsert local user record
@@ -213,7 +213,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant KIE as KIE Server (jBPM)
 
-    Customer->>API: POST /api/tickets
+    Customer->>API: POST /api/v1/tickets
     API->>DB: Persist ticket (status NEW, SLA deadline computed)
     API->>KIE: Start process instance (ticket-lifecycle)
     KIE-->>API: processInstanceId
@@ -221,7 +221,7 @@ sequenceDiagram
     API->>API: Publish TicketCreatedEvent (async notifications)
     API-->>Customer: 201 Created
 
-    Note over API,KIE: KIE calls back to /api/internal/workflow/callback<br/>(X-Internal-Token) as the process advances
+    Note over API,KIE: KIE calls back to /api/v1/internal/workflow/callback<br/>(X-Internal-Token) as the process advances
 ```
 
 If KIE Server is unavailable the call is wrapped in a **circuit breaker** — the ticket is still created and the `processInstanceId` is reconciled later, so the workflow engine never blocks the core API.
@@ -237,7 +237,7 @@ The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED` 
 
 ### 7.4 AI Summary
 
-The frontend calls `llm-service` (via `/api/ai/`). The service collects the ticket, its comments, worklogs, resolution note and audit history, builds a language-specific prompt, calls the Groq API, and persists the summary. A dedicated per-IP rate limit protects this comparatively expensive endpoint.
+The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the ticket, its comments, worklogs, resolution note and audit history, builds a language-specific prompt, calls the Groq API, and persists the summary. A dedicated per-IP rate limit protects this comparatively expensive endpoint.
 
 ---
 
@@ -249,7 +249,7 @@ The frontend calls `llm-service` (via `/api/ai/`). The service collects the tick
 | **User federation** | OpenLDAP — Keycloak's user storage; LDAP groups map to realm roles |
 | **2FA** | TOTP (authenticator app) configurable per user |
 | **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` |
-| **Authorization — internal endpoints** | `/api/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
+| **Authorization — internal endpoints** | `/api/v1/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
 | **Roles** | `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER` |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
@@ -275,7 +275,7 @@ Core tables include `tickets`, `users`, `products`, `ticket_comments`, `ticket_w
 Every ticket is backed by a jBPM **process instance** of `com.ticketsystem.workflow.ticket-lifecycle`, deployed as a kjar to the KIE Server container `ticket-workflow`.
 
 - **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals.
-- **KIE → Backend:** the process calls back to `/api/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header.
+- **KIE → Backend:** the process calls back to `/api/v1/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header.
 - **Resilience:** all KIE calls are wrapped in a Resilience4j **circuit breaker** — workflow outages degrade gracefully and never block the ticket API.
 
 ---

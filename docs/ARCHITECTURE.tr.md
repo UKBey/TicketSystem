@@ -125,8 +125,8 @@ flowchart TB
 | Yol | Hedef |
 |------|--------|
 | `/` | `it-service-frontend` (statik SPA) |
-| `/api/` | `it-service-backend:8081` |
-| `/api/ai/` | `llm-service:8082` |
+| `/api/v1/` | `it-service-backend:8081` |
+| `/api/v1/ai/` | `llm-service:8082` |
 | `/auth/` | `keycloak-iam:8080` |
 
 ---
@@ -158,7 +158,7 @@ flowchart TB
 Backend, `com.ticketsystem.it_service_backend` altında geleneksel bir Spring katmanlı mimarisini izler:
 
 ```
-controller/   /api/** altındaki REST uç noktaları — doğrulama, HTTP eşleme
+controller/   /api/v1/** altındaki REST uç noktaları — doğrulama, HTTP eşleme
 service/      İş mantığı (TicketService, SlaPolicyService, WorkflowService,
               NotificationService, EmailService, MetricsService, KeycloakAdminService...)
 repository/   Spring Data JPA repository'leri
@@ -194,7 +194,7 @@ sequenceDiagram
     SPA->>KC: Girişe yönlendir (OIDC, ui/kc_locale)
     KC->>LDAP: Kimlik bilgilerini doğrula
     KC-->>SPA: Yetkilendirme kodu → JWT (access + refresh)
-    SPA->>API: POST /api/users/sync (Bearer JWT)
+    SPA->>API: POST /api/v1/users/sync (Bearer JWT)
     API->>API: JWT imzasını doğrula (realm JWK seti)
     API->>API: realm_access.roles → ROLE_* yetkileri eşle
     API->>DB: Yerel kullanıcı kaydını upsert et
@@ -213,7 +213,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant KIE as KIE Server (jBPM)
 
-    Customer->>API: POST /api/tickets
+    Customer->>API: POST /api/v1/tickets
     API->>DB: Ticket'ı kalıcılaştır (durum NEW, SLA son tarihi hesaplanır)
     API->>KIE: Süreç örneğini başlat (ticket-lifecycle)
     KIE-->>API: processInstanceId
@@ -221,7 +221,7 @@ sequenceDiagram
     API->>API: TicketCreatedEvent yayınla (asenkron bildirimler)
     API-->>Customer: 201 Created
 
-    Note over API,KIE: Süreç ilerledikçe KIE, /api/internal/workflow/callback<br/>uç noktasını geri çağırır (X-Internal-Token)
+    Note over API,KIE: Süreç ilerledikçe KIE, /api/v1/internal/workflow/callback<br/>uç noktasını geri çağırır (X-Internal-Token)
 ```
 
 KIE Server kullanılamıyorsa çağrı bir **devre kesici (circuit breaker)** ile sarılır — ticket yine de oluşturulur ve `processInstanceId` daha sonra mutabık kılınır; böylece iş akışı motoru çekirdek API'yi asla bloklamaz.
@@ -237,7 +237,7 @@ SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **d
 
 ### 7.4 Yapay Zekâ Özeti
 
-Frontend, `llm-service`'i (`/api/ai/` üzerinden) çağırır. Servis; ticket'ı, yorumlarını, çalışma kayıtlarını, çözüm notunu ve denetim geçmişini toplar, dile özgü bir komut istemi (prompt) oluşturur, Groq API'yi çağırır ve özeti kalıcılaştırır. Görece maliyetli olan bu uç noktayı, IP başına ayrılmış bir hız sınırı korur.
+Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket'ı, yorumlarını, çalışma kayıtlarını, çözüm notunu ve denetim geçmişini toplar, dile özgü bir komut istemi (prompt) oluşturur, Groq API'yi çağırır ve özeti kalıcılaştırır. Görece maliyetli olan bu uç noktayı, IP başına ayrılmış bir hız sınırı korur.
 
 ---
 
@@ -249,7 +249,7 @@ Frontend, `llm-service`'i (`/api/ai/` üzerinden) çağırır. Servis; ticket'ı
 | **Kullanıcı federasyonu** | OpenLDAP — Keycloak'ın kullanıcı deposu; LDAP grupları realm rollerine eşlenir |
 | **2FA** | Kullanıcı başına yapılandırılabilir TOTP (kimlik doğrulayıcı uygulama) |
 | **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` |
-| **Yetkilendirme — dahili uç noktalar** | `/api/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
+| **Yetkilendirme — dahili uç noktalar** | `/api/v1/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
 | **Roller** | `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER` |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
@@ -275,7 +275,7 @@ Frontend, `llm-service`'i (`/api/ai/` üzerinden) çağırır. Servis; ticket'ı
 Her ticket, KIE Server konteyneri `ticket-workflow`'a bir kjar olarak dağıtılan `com.ticketsystem.workflow.ticket-lifecycle` jBPM **süreç örneği** ile desteklenir.
 
 - **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, durum ve atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır.
-- **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/internal/workflow/callback` uç noktasını geri çağırır.
+- **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/v1/internal/workflow/callback` uç noktasını geri çağırır.
 - **Dayanıklılık:** tüm KIE çağrıları bir Resilience4j **devre kesici (circuit breaker)** ile sarılır — iş akışı kesintileri zarif biçimde derecelenir ve ticket API'sini asla bloklamaz.
 
 ---

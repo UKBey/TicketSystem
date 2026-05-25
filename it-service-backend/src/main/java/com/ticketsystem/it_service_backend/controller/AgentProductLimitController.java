@@ -17,7 +17,7 @@ import java.util.List;
 @Log4j2
 @Tag(name = "Agent Ürün Limitleri", description = "Agent bazında ürün limit override yönetimi")
 @RestController
-@RequestMapping("/api/agents/{agentId}/limits")
+@RequestMapping("/api/v1/agents/{agentId}/limits")
 @RequiredArgsConstructor
 public class AgentProductLimitController {
 

@@ -34,7 +34,7 @@ public class KnownIssueController {
     @Operation(summary = "Bir ürünün sıkça karşılaşılan sorunlarını listele",
             description = "Varsayılan olarak yalnızca aktif kayıtlar gelir. `includeInactive=true` pasif olanları da dahil eder. "
                     + "`topicId` parametresiyle belirli bir topic'e filtrelenebilir.")
-    @GetMapping("/api/products/{productId}/known-issues")
+    @GetMapping("/api/v1/products/{productId}/known-issues")
     public ResponseEntity<List<KnownIssueDTO>> listByProduct(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long productId,
@@ -47,7 +47,7 @@ public class KnownIssueController {
     }
 
     @Operation(summary = "Tek bir sıkça karşılaşılan sorun kaydını getir")
-    @GetMapping("/api/known-issues/{id}")
+    @GetMapping("/api/v1/known-issues/{id}")
     public ResponseEntity<KnownIssueDTO> getOne(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id) {
@@ -58,7 +58,7 @@ public class KnownIssueController {
     }
 
     @Operation(summary = "Yeni sıkça karşılaşılan sorun oluştur")
-    @PostMapping("/api/products/{productId}/known-issues")
+    @PostMapping("/api/v1/products/{productId}/known-issues")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<KnownIssueDTO> create(
             @AuthenticationPrincipal Jwt jwt,
@@ -73,7 +73,7 @@ public class KnownIssueController {
     }
 
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını güncelle")
-    @PutMapping("/api/known-issues/{id}")
+    @PutMapping("/api/v1/known-issues/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<KnownIssueDTO> update(
             @PathVariable Long id,
@@ -84,7 +84,7 @@ public class KnownIssueController {
     }
 
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını sil")
-    @DeleteMapping("/api/known-issues/{id}")
+    @DeleteMapping("/api/v1/known-issues/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("Sıkça karşılaşılan sorun silme isteği. ID: {}", id);

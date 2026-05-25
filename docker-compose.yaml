@@ -249,7 +249,7 @@ services:
     build: ./it-service-backend
     image: ${DOCKERHUB_USERNAME:-local}/it-service-backend:${IMAGE_TAG:-latest}
     container_name: it-service-backend
-    # Backend portu disariya kapali — nginx uzerinden /api/ path'i ile erisim.
+    # Backend portu disariya kapali — nginx uzerinden /api/v1/ path'i ile erisim.
     environment:
       SERVER_PORT: "8081"
       # Swagger/OpenAPI dev için açık (default kapalı); compose dev workflow değişmez.
@@ -359,7 +359,7 @@ services:
     build: ./llm-service
     image: ${DOCKERHUB_USERNAME:-local}/llm-service:${IMAGE_TAG:-latest}
     container_name: llm-service
-    # Port dışarıya kapalı — nginx üzerinden /api/ai/ path'i ile erişim.
+    # Port dışarıya kapalı — nginx üzerinden /api/v1/ai/ path'i ile erişim.
     environment:
       SERVER_PORT: "8082"
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
@@ -381,7 +381,7 @@ services:
       LLM_RATE_LIMIT_ENABLED: ${LLM_RATE_LIMIT_ENABLED:-true}
       LLM_RATE_LIMIT_MAX_REQUESTS: ${LLM_RATE_LIMIT_MAX_REQUESTS:-1}
       LLM_RATE_LIMIT_DURATION_SECONDS: ${LLM_RATE_LIMIT_DURATION_SECONDS:-10}
-      LLM_RATE_LIMIT_PATH_PATTERNS: ${LLM_RATE_LIMIT_PATH_PATTERNS:-/api/ai/**}
+      LLM_RATE_LIMIT_PATH_PATTERNS: ${LLM_RATE_LIMIT_PATH_PATTERNS:-/api/v1/ai/**}
 
       # OpenTelemetry — agent trace/metrik/log'lari OTLP ile collector'a gonderir.
       # Metrik delta temporality: OpenSearch sum aggregation'lari rate() olmadan calisir.

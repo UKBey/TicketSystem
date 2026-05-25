@@ -49,7 +49,7 @@ data:
   JBPM_KIE_SERVER_CONTAINER_ID: "ticket-workflow"
   JBPM_KIE_SERVER_PROCESS_ID: "com.ticketsystem.workflow.ticket-lifecycle"
   JBPM_KIE_SERVER_TIMEOUT: "30000"
-  JBPM_KIE_SERVER_CALLBACK_BASE_URL: "http://it-service-backend:8081/api/internal/workflow/callback"
+  JBPM_KIE_SERVER_CALLBACK_BASE_URL: "http://it-service-backend:8081/api/v1/internal/workflow/callback"
 
   # ---- Mail (Mailpit) ----
   MAIL_HOST: "mailpit"
@@ -79,7 +79,7 @@ data:
   LLM_RATE_LIMIT_ENABLED: "true"
   LLM_RATE_LIMIT_MAX_REQUESTS: "1"
   LLM_RATE_LIMIT_DURATION_SECONDS: "10"
-  LLM_RATE_LIMIT_PATH_PATTERNS: "/api/ai/summaries/tickets/*/generate"
+  LLM_RATE_LIMIT_PATH_PATTERNS: "/api/v1/ai/summaries/tickets/*/generate"
 
   # ---- OpenTelemetry ----
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"

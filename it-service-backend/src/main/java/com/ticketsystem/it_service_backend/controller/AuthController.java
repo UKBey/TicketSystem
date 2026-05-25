@@ -37,7 +37,7 @@ import java.util.Map;
 @Log4j2
 @Tag(name = "Authentication", description = "Anonim auth akışları (şifre sıfırlama)")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

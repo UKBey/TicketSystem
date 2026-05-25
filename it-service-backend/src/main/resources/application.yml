@@ -169,4 +169,4 @@ jbpm:
     process-id: ${JBPM_KIE_SERVER_PROCESS_ID:com.ticketsystem.workflow.ticket-lifecycle}
     timeout: ${JBPM_KIE_SERVER_TIMEOUT:30000}
     callback-token: ${JBPM_KIE_SERVER_CALLBACK_TOKEN}
-    callback-base-url: ${JBPM_KIE_SERVER_CALLBACK_BASE_URL:http://host.docker.internal:8081/api/internal/workflow/callback}
+    callback-base-url: ${JBPM_KIE_SERVER_CALLBACK_BASE_URL:http://host.docker.internal:8081/api/v1/internal/workflow/callback}

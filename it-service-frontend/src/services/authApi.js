@@ -6,7 +6,7 @@ import i18n from '../i18n';
 // to Keycloak login — that's wrong for password-reset pages, which must
 // stay accessible without a session.
 const authApi = axios.create({
-  baseURL: '/api/auth',
+  baseURL: '/api/v1/auth',
   headers: {
     'Content-Type': 'application/json',
   },

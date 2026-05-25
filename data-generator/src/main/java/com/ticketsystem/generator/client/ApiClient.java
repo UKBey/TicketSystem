@@ -25,7 +25,7 @@ public class ApiClient {
     public ApiClient(OkHttpClient http, ObjectMapper mapper) {
         this.http    = http;
         this.mapper  = mapper;
-        this.baseUrl = GeneratorConfig.BASE_URL + "/api";
+        this.baseUrl = GeneratorConfig.BASE_URL + "/api/v1";
     }
 
     // ---------------------------------------------------------------

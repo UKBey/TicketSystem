@@ -83,12 +83,12 @@ class GlobalExceptionHandlerTest {
     void handlesNoResourceFoundException() {
         // error.resource.not.found key'i için çeviri simüle et
         when(messageSource.getMessage(eq("error.resource.not.found"), any(), any(Locale.class)))
-                .thenReturn("İstenen kaynak bulunamadı: /api/tickets/42");
+                .thenReturn("İstenen kaynak bulunamadı: /api/v1/tickets/42");
 
         NoResourceFoundException exception = new NoResourceFoundException(
             HttpMethod.GET,
             "ticket",
-            "/api/tickets/42"
+            "/api/v1/tickets/42"
         );
 
         var response = handler.handleNoResourceFoundException(exception);
@@ -96,7 +96,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getBody().getStatus());
-        assertEquals("İstenen kaynak bulunamadı: /api/tickets/42", response.getBody().getMessage());
+        assertEquals("İstenen kaynak bulunamadı: /api/v1/tickets/42", response.getBody().getMessage());
     }
 
     @Test

@@ -59,7 +59,7 @@ public class SecurityConfig {
         cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
-        src.registerCorsConfiguration("/api/**", cfg);
+        src.registerCorsConfiguration("/api/v1/**", cfg);
         return src;
     }
 
@@ -79,16 +79,16 @@ public class SecurityConfig {
                 "/actuator/info",
                 "/actuator/metrics",
                 "/actuator/metrics/**",
-                "/api/auth/login",
-                "/api/auth/register",
-                "/api/auth/forgot-password",
-                "/api/auth/reset-password",
-                "/api/auth/reset-password/validate",
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password",
+                "/api/v1/auth/reset-password/validate",
                 "/ws/**")
             .permitAll()
 
             // Internal endpoint'ler sadece servisler arasi token ile erisilebilir.
-            .requestMatchers("/api/internal/**")
+            .requestMatchers("/api/v1/internal/**")
             .access((authentication, context) ->
                 new AuthorizationDecision(hasValidInternalToken(context.getRequest().getHeader("X-Internal-Token"))))
 

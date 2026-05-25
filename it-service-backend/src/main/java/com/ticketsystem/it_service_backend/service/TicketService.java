@@ -924,7 +924,7 @@ public class TicketService {
     /**
      * IN_PROGRESS → NEW geçişi: tüm claim'ler temizlenir, bilet havuza geri döner.
      * Bu geçiş yalnızca AGENT_ADMIN yetkisi gerektirdiğinden, normal unclaim için
-     * DELETE /api/tickets/{id}/claim kullanılmalıdır.
+     * DELETE /api/v1/tickets/{id}/claim kullanılmalıdır.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
         if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {

@@ -3,7 +3,7 @@ import keycloak, { redirectToKeycloakLogin } from '../keycloak';
 import i18n from '../i18n';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },

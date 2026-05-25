@@ -151,7 +151,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         ));
 
         MvcResult createResult = mockMvc.perform(
-                        post("/api/tickets")
+                        post("/api/v1/tickets")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(ticketRequestJson)
                                 .with(jwtForCustomer(CUSTOMER_ID))
@@ -211,7 +211,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         // =====================================================================
 
         mockMvc.perform(
-                        put("/api/tickets/{id}/claim", ticketId)
+                        put("/api/v1/tickets/{id}/claim", ticketId)
                                 .with(jwtForAgent(AGENT_ID))
                 )
                 .andDo(print())

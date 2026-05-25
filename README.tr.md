@@ -195,7 +195,7 @@ make dev-frontend  # web frontend'i ana makinede çalıştırır (Vite :3000)
 make dev-mobile    # mobil uygulama için Expo geliştirme sunucusunu başlatır
 ```
 
-Vite geliştirme sunucusu `/api` isteklerini `localhost:8081` adresine, WebSocket uç noktasını da buna uygun şekilde proxy'ler.
+Vite geliştirme sunucusu `/api/v1` isteklerini `localhost:8081` adresine, WebSocket uç noktasını da buna uygun şekilde proxy'ler.
 
 ---
 

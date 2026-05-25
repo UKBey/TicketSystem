@@ -25,13 +25,13 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api/ws': {
+      '/api/v1/ws': {
         target: 'ws://localhost:8081',
         ws: true,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ws/, '/ws'),
+        rewrite: (path) => path.replace(/^\/api\/v1\/ws/, '/ws'),
       },
-      '/api': {
+      '/api/v1': {
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false,

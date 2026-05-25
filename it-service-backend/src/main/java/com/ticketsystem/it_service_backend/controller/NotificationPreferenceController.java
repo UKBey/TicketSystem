@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Log4j2
 @Tag(name = "Bildirim Tercihleri", description = "Kullanıcının e-posta bildirim tercihlerini yönetme işlemleri")
 @RestController
-@RequestMapping("/api/notification-preferences")
+@RequestMapping("/api/v1/notification-preferences")
 @RequiredArgsConstructor
 // S-6: defense-in-depth — kullanici kendi tercihlerini okur/yazar; class-level
 // isAuthenticated SecurityConfig'in JWT zorunlulugunu kodda gorunur kilar.

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 @Log4j2
 @Tag(name = "Ticket Worklog", description = "Agent ve Agent Admin'ların bilet üzerinde harcadıkları sürenin takibi")
 @RestController
-@RequestMapping("/api/tickets")
+@RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
 public class TicketWorklogController {
 

@@ -34,7 +34,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(rateLimitInterceptor)
                 // Appends rate limit logic to all API endpoints for global spam protection.
                 // The interceptor resolves the logical endpointKey from the URI, falling back to GLOBAL_API.
-                .addPathPatterns("/api/**");
-        // To exclude endpoints, use .excludePathPatterns("/api/some-path")
+                .addPathPatterns("/api/v1/**");
+        // To exclude endpoints, use .excludePathPatterns("/api/v1/some-path")
     }
 }
