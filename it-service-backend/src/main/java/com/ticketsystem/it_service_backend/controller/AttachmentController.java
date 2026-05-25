@@ -26,6 +26,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Bilet ekleri için yükleme, listeleme, indirme ve silme REST kontrolcüsü.
+ *
+ * <p>Müşteri, agent ve agent admin rolleri kendi kapsamlarındaki biletlere dosya ekleyebilir;
+ * boyut/MIME doğrulamaları ve sahiplik kontrolleri {@link AttachmentService}'tedir.
+ * Dosya içerikleri {@code BYTEA} olarak veritabanında saklanır.
+ */
 @Log4j2
 @Tag(name = "Dosya Yönetimi", description = "Biletlere dosya eki yükleme, listeleme, indirme ve silme işlemleri")
 @RestController
@@ -35,6 +42,14 @@ public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
+    /**
+     * Bilete dosya ekler; boyut, tip ve yetki kontrolleri servis katmanında uygulanır.
+     *
+     * @param ticketId dosyanın ekleneceği biletin kimliği
+     * @param file yüklenecek {@link MultipartFile} (maks. 10 MB)
+     * @return oluşturulan ek metadata DTO'su
+     * @throws IOException dosya akışı okunamadığında
+     */
     // Bilete dosya ekler; boyut, tip ve yetki kontrolleri servis katmaninda calisir.
     @Operation(summary = "Dosya yükle",
             description = """
@@ -79,6 +94,12 @@ public class AttachmentController {
         return ResponseEntity.ok(AttachmentDTO.fromEntity(attachment));
     }
 
+    /**
+     * Bilete bağlı tüm dosya metadata kayıtlarını döner; dosya içeriği bu uç noktadan dönmez.
+     *
+     * @param ticketId dosyaları listelenecek biletin kimliği
+     * @return ek metadata DTO listesi
+     */
     // Bilete bagli tum dosya metaverilerini listeler.
     @Operation(summary = "Biletin dosyalarını listele",
             description = "Belirtilen bilete yüklenmiş tüm dosyaların metadata listesini getirir. Dosya içerikleri bu endpoint'ten dönmez.")
@@ -105,6 +126,12 @@ public class AttachmentController {
                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Dosya içeriğini orijinal MIME tipi ve {@code Content-Disposition: attachment} ile indirir.
+     *
+     * @param id indirilecek dosyanın kimliği
+     * @return ham bayt içeriği ve uygun başlıklar
+     */
     // Dosya icerigini MIME tipi ve dosya adi bilgisiyle birlikte indirir.
     @Operation(summary = "Dosya indir",
             description = "Belirtilen ID'ye sahip dosyanın içeriğini orijinal MIME tipi ve dosya adıyla birlikte indirir. "
@@ -134,6 +161,12 @@ public class AttachmentController {
                 .body(attachment.getContent());
     }
 
+    /**
+     * Bir dosya ekini rol/sahiplik kurallarına göre kalıcı olarak siler.
+     *
+     * @param id silinecek dosyanın kimliği
+     * @return {@code 204 No Content}
+     */
     // Dosyayi rol/sahiplik kurallarina gore siler.
     @Operation(summary = "Dosya sil",
             description = "Yüklenen dosyayı kalıcı olarak siler. Müşteri yalnızca kendi yüklediği dosyayı silebilir, "

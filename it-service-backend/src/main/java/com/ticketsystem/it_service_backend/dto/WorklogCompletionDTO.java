@@ -12,6 +12,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Manager raporlarındaki "worklog ve tamamlanma" yanıtı;
+ * dönem ajan worklog özetlerini ({@link WorklogSummaryItemDTO}) ve tamamlanma oranlarını taşır.
+ */
 @Schema(description = "Worklog özeti ve bilet tamamlanma metrikleri")
 public class WorklogCompletionDTO {
 

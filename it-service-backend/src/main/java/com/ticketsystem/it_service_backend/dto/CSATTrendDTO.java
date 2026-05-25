@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bu ay ile geçen ayın CSAT ortalamalarını karşılaştırıp yön (UP/DOWN/STABLE) bilgisi üretir.
+ * {@link CSATMetricsDTO#getTrend()} alanında manager dashboard'una taşınır.
+ */
 @Schema(description = "CSAT puan trendi — bu ay ile geçen ay karşılaştırması")
 public class CSATTrendDTO {
 

@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Manuel atama UI'ında bir ajanın mevcut yük ve kapasite bilgisini gösteren özet.
+ * {@code isFull=true} olduğunda atama seçeneği devre dışı bırakılır.
+ */
 @Schema(description = "Agent kapasite bilgisi — atama UI'ı için")
 public class AgentCapacityDTO {
     

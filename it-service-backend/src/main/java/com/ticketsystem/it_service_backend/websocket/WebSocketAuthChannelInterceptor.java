@@ -16,6 +16,18 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * STOMP {@code CONNECT} frame'lerini Keycloak JWT'si ile dogrulayan kanal
+ * interceptor'i.
+ *
+ * <p>HTTP upgrade asamasi {@link com.ticketsystem.it_service_backend.config.SecurityConfig}
+ * tarafindan {@code /ws/**} icin permit-all olarak isaretlenmistir; gercek
+ * kimlik dogrulama burada gerceklesir. {@code Authorization: Bearer <token>}
+ * native header okunur, {@link JwtDecoder} ile dogrulanir ve gecerli ise
+ * STOMP session principal'i set edilir. Eksik veya gecersiz token
+ * {@link MessagingException} ile reddedilir; istemci frame seviyesinde hata
+ * alir.
+ */
 @Log4j2
 @Component
 @RequiredArgsConstructor
@@ -23,6 +35,11 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtDecoder jwtDecoder;
 
+    /**
+     * Yalnizca {@link StompCommand#CONNECT} frame'lerinde devreye girer; diger
+     * STOMP komutlari (SUBSCRIBE, SEND vs.) zaten authenticated session
+     * uzerinden gelir.
+     */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);

@@ -34,6 +34,14 @@ public class KieClientConfig {
     @Value("${jbpm.kie-server.timeout:30000}")
     private Long timeout;
 
+    /**
+     * KIE Server REST client'i — workflow servisinin tek baglanti noktasi.
+     *
+     * <p>JSON marshalling kullanir; konfigurasyon {@code jbpm.kie-server.*}
+     * property'lerinden okunur. Acilis sirasinda {@code getServerInfo()} ile
+     * baglanti dogrulanir, hata olursa uygulama yine baslar — workflow ozellikleri
+     * devre disi kalir ama API ayakta kalir.
+     */
     @Bean
     public KieServicesClient kieServicesClient() {
         log.info("KIE Server bağlantısı yapılandırılıyor: {}", kieServerUrl);

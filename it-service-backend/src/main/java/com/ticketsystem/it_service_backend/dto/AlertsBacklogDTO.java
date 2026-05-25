@@ -12,6 +12,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Manager dashboard'unun "alerts" panelini besleyen yanıt;
+ * SLA ihlal etmiş/yaklaşan ve uzun süredir müşteri bekleyen biletleri ile backlog özetini barındırır.
+ */
 @Schema(description = "SLA breach uyarıları ve backlog metrikleri")
 public class AlertsBacklogDTO {
 

@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Partial-update payload for notification preferences; only non-null booleans are
+ * applied so the UI can toggle a single channel without sending the full state.
+ */
 @Schema(description = "Notification preference update request — null fields are left unchanged")
 public class UpdateNotificationPreferenceRequest {
 

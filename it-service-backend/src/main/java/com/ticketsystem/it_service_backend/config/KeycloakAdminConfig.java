@@ -34,6 +34,15 @@ public class KeycloakAdminConfig {
     @Value("${keycloak.admin.client-secret}")
     private String clientSecret;
 
+    /**
+     * Keycloak Admin REST client'ini {@code client_credentials} grant ile kurar.
+     *
+     * <p>Acilista bir access token alinarak baglanti dogrulanir; secret veya
+     * eksik rol gibi sorunlar uygulama acilirken erken yakalanir. Hata olsa bile
+     * baslatma surdurulur — sadece kullanici yonetimi endpoint'leri etkilenir.
+     *
+     * @return uygulama yasam donguusunce paylasilan {@link Keycloak} client'i
+     */
     @Bean
     public Keycloak keycloakAdminClient() {
         log.info("Keycloak Admin Client yapılandırılıyor. Server: {}, Realm: {}, ClientId: {}",

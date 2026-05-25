@@ -7,6 +7,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+/**
+ * Kullanıcı kendi profilini (ad, soyad, e-posta) güncellerken gönderdiği istek.
+ * Bean Validation aktif; tüm alanlar zorunludur ve e-posta format kontrolü yapılır.
+ */
 @Schema(description = "Profil güncelleme isteği")
 public class UpdateProfileRequest {
 

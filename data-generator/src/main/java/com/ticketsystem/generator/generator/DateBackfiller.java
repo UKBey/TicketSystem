@@ -30,6 +30,16 @@ public class DateBackfiller {
     private static final Logger log = LoggerFactory.getLogger(DateBackfiller.class);
     private static final Random RNG = new Random();
 
+    /**
+     * Verilen bilet ID'lerinin {@code created_at} ve SLA alanlarını ({@code sla_deadline},
+     * {@code sla_elapsed_ms}, {@code sla_paused_at}, {@code sla_resumed_at},
+     * {@code resolved_at}, {@code closed_at}) doğrudan PostgreSQL'e yazar.
+     *
+     * <p>Her bileti statüsüne göre farklı stratejiyle backfill eder; bağlantı
+     * hatasında işlem atlanır ve uyarı log'lanır ({@link Exception} fırlatılmaz).
+     *
+     * @param ticketIds güncellenecek bilet ID'leri; boş liste no-op
+     */
     public void backfill(List<Long> ticketIds) {
         if (ticketIds.isEmpty()) {
             log.info("Geriye çekilecek bilet yok.");

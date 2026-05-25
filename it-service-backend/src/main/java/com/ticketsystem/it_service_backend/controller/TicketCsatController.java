@@ -25,6 +25,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Bilet kapanışında müşteri memnuniyet (CSAT) anketleri için REST kontrolcüsü.
+ *
+ * <p>Müşteri yalnızca kendi {@code RESOLVED} biletine anket gönderir;
+ * sonuçları okuma yetkisi {@code AGENT_ADMIN} rolüne aittir. İş kuralları
+ * {@link CsatService}'te uygulanır.
+ */
 @Tag(name = "Ticket CSAT", description = "Bilet kapanışında doldurulan müşteri memnuniyet anketleri (1-5 puan)")
 @RestController
 @RequestMapping("/api/v1/tickets")
@@ -33,6 +40,13 @@ public class TicketCsatController {
 
     private final CsatService csatService;
 
+    /**
+     * Müşterinin CSAT anketini kaydeder ve bileti {@code CLOSED} statüsüne geçirir.
+     *
+     * @param id biletin kimliği
+     * @param csatDTO 1-5 arası puan ve opsiyonel yorum
+     * @return oluşturulan {@link Csat} kaydı
+     */
     @Operation(summary = "CSAT anketi gönder",
             description = """
                     Müşteri, çözülen bilet (`RESOLVED` statüsünde) için memnuniyet anketi doldurur.
@@ -62,6 +76,12 @@ public class TicketCsatController {
         return ResponseEntity.ok(csatService.submitCsat(id, csatDTO, userId, roles));
     }
 
+    /**
+     * Belirtilen biletin CSAT anket sonucunu döner.
+     *
+     * @param id biletin kimliği
+     * @return ilgili {@link Csat} kaydı; yoksa 404
+     */
     @Operation(summary = "CSAT detayını getir",
             description = "Belirtilen biletin müşteri memnuniyet anket sonucunu getirir.")
     @ApiResponses({
@@ -81,6 +101,11 @@ public class TicketCsatController {
         return ResponseEntity.ok(csatService.getCsatByTicketId(id, userId, roles));
     }
 
+    /**
+     * Sistemdeki tüm CSAT anket sonuçlarını döner; raporlama/yönetim amaçlıdır.
+     *
+     * @return tüm {@link Csat} kayıtlarının listesi
+     */
     @Operation(summary = "Tüm CSAT anketlerini listele",
             description = "Sistemdeki tüm müşteri memnuniyet sonuçlarını getirir. Raporlama ve yönetim amaçlıdır.")
     @ApiResponses({

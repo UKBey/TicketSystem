@@ -50,6 +50,7 @@ public class PasswordResetService {
      * önlemek için, email kayıtlı olmasa veya kullanıcı pasif olsa bile sessiz
      * şekilde başarılı döner — çağıran taraf hep aynı yanıtı vermelidir.
      *
+     * @param email reset isteği yapılan email
      * @param languageOverride istemcinin o anki dili (en/tr); null ise DB tercihine düşülür
      * @param themeOverride    istemcinin o anki teması (light/dark); null ise DB tercihine düşülür
      */
@@ -93,6 +94,9 @@ public class PasswordResetService {
     /**
      * Token'ın hâlâ geçerli olup olmadığını sorgular. Frontend reset sayfasını
      * açtığında, kullanıcıdan parola istemeden önce çağrılır.
+     *
+     * @param plainToken kullanıcının elinde olan düz metin token
+     * @return token bulunduysa ve hâlâ geçerliyse {@code true}
      */
     @Transactional(readOnly = true)
     public boolean isTokenValid(String plainToken) {
@@ -110,8 +114,12 @@ public class PasswordResetService {
      * <p>Şifre değişimi Keycloak'a kadar başarıyla gidene kadar token "used" olarak
      * işaretlenmez — böylece Keycloak hatasında kullanıcı aynı linki tekrar deneyebilir.
      *
+     * @param plainToken kullanıcının elindeki düz metin token
+     * @param newPassword yeni şifre (boş olamaz; Keycloak politikalarına uymalı)
      * @param languageOverride başarı mailinin dili (opsiyonel)
      * @param themeOverride    başarı mailinin teması (opsiyonel)
+     * @throws InvalidResetTokenException token eksik/yok/süresi dolmuş/kullanılmışsa
+     * @throws InvalidPasswordException şifre boşsa veya Keycloak politikasını ihlal ediyorsa
      */
     @Transactional
     public void resetPassword(String plainToken, String newPassword,

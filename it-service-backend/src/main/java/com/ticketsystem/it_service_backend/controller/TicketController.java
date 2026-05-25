@@ -46,6 +46,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Bilet (ticket) yaşam döngüsü için ana REST kontrolcüsü.
+ *
+ * <p>Müşteri, agent, agent admin ve manager rollerine farklı endpoint'ler sunar:
+ * oluşturma, listeleme, sahiplenme (claim), atama, statü/öncelik/topic değişikliği
+ * ve kapatma. İş kuralları {@link TicketService}'e delege edilir; bu sınıf yalnızca
+ * HTTP/JSON eşlemesi ve rol bazlı yetkilendirme ile ilgilenir.
+ */
 @Log4j2
 @Tag(name = "Bilet Yönetimi", description = "Destek biletlerinin oluşturulması, listelenmesi, sahiplenilmesi ve yönetimi")
 @RestController
@@ -60,6 +68,12 @@ public class TicketController {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
 
+    /**
+     * Yeni bilet oluşturur ve jBPM süreç akışını başlatır.
+     *
+     * @param dto başlık, açıklama, öncelik, ürün ve topic bilgisi
+     * @return oluşturulan biletin DTO temsili
+     */
     @Operation(summary = "Yeni bilet oluştur")
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -84,6 +98,18 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(saved, false, roles));
     }
 
+    /**
+     * Biletleri rol ve filtre kriterlerine göre sayfalı şekilde listeler.
+     *
+     * <p>Müşteri yalnızca kendi biletlerini; agent/agent admin yetkili oldukları
+     * tüm aktif biletleri görür.
+     *
+     * @param page sayfa indeksi (0 tabanlı)
+     * @param size sayfa boyutu (1-500)
+     * @param sortBy sıralama alanı
+     * @param sortDir {@code asc} / {@code desc}
+     * @return sayfalı bilet DTO listesi
+     */
     @Operation(summary = "Biletleri listele — sayfalama + filtreleme (role göre filtrelenir)")
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
@@ -120,6 +146,13 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Havuzdaki ({@code NEW}, henüz claim'lenmemiş) biletleri sayfalı şekilde listeler.
+     *
+     * @param page sayfa indeksi
+     * @param size sayfa boyutu (1-500)
+     * @return havuzdaki biletlerin sayfalı listesi
+     */
     @Operation(summary = "Havuzdaki biletleri listele — sayfalama + filtreleme (NEW statüsü)")
     @GetMapping("/pool")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -150,6 +183,13 @@ public class TicketController {
         return ResponseEntity.ok(pool.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Oturum açan agent'ın claim aldığı biletleri sayfalı şekilde listeler.
+     *
+     * @param page sayfa indeksi
+     * @param size sayfa boyutu (1-500)
+     * @return agent'a atanmış biletlerin sayfalı listesi
+     */
     @Operation(summary = "Ajanın claim aldığı biletleri listele — sayfalama + filtreleme")
     @GetMapping("/my-assigned")
     public ResponseEntity<Page<TicketResponseDTO>> getMyAssignedTickets(
@@ -180,6 +220,13 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Agent'ın yetkili olduğu ürünlerdeki aktif biletleri sayfalı şekilde listeler.
+     *
+     * @param page sayfa indeksi
+     * @param size sayfa boyutu (1-500)
+     * @return takım görünümündeki biletlerin sayfalı listesi
+     */
     @Operation(summary = "Ajanın yetkili ürünlerindeki aktif biletleri listele — sayfalama + filtreleme")
     @GetMapping("/team")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -211,6 +258,13 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Agent/Agent Admin "All Tickets" sayfası için tüm statüleri içeren bilet listesi.
+     *
+     * @param page sayfa indeksi
+     * @param size sayfa boyutu (1-500)
+     * @return erişilebilir tüm biletlerin sayfalı listesi
+     */
     @Operation(summary = "Yetkili olunan tüm ürünlerdeki tüm statülerdeki biletler — sayfalama + filtreleme",
             description = "Agent/Agent Admin için 'All Tickets' sayfasının veri kaynağı. NEW ve CLOSED dahil tüm statüleri içerir.")
     @GetMapping("/all")
@@ -243,6 +297,12 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Belirtilen biletin detayını döner; sahiplik/yetki denetimi servis katmanındadır.
+     *
+     * @param id biletin kimliği
+     * @return bilet DTO temsili (audit log, claim, SLA bilgileriyle birlikte)
+     */
     @Operation(summary = "Bilet detayı getir")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponseDTO> getTicket(
@@ -253,6 +313,12 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Bileti çağıran agent için sahiplenir (claim). {@code CLOSED} hariç tüm statülerde mümkündür.
+     *
+     * @param id sahiplenilecek biletin kimliği
+     * @return güncel claim bilgisini içeren bilet DTO'su
+     */
     @Operation(summary = "Bileti claim al (CLOSED hariç her statüdeki bilet sahiplenebilir)")
     @PutMapping("/{id}/claim")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -266,6 +332,13 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Çağıran agent'ın claim'ini bırakır; yalnızca kendi claim'i geri verilir.
+     *
+     * @param id biletin kimliği
+     * @param dto bırakma sebebi (reasonCode) ve opsiyonel not
+     * @return güncel claim listesini içeren bilet DTO'su
+     */
     @Operation(summary = "Claim'i bırak (sadece kendi claim'ini geri verir)")
     @DeleteMapping("/{id}/claim")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -281,6 +354,13 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
         }
 
+    /**
+     * Agent Admin'in bileti hedef agent'a manuel atamasını gerçekleştirir.
+     *
+     * @param id atanacak biletin kimliği
+     * @param request hedef agent kimliği ve opsiyonel not
+     * @return atama sonrası güncel bilet DTO'su
+     */
     @Operation(summary = "Bileti agent'a manuel olarak ata (Agent Admin)",
             description = "Agent Admin rolüne sahip kullanıcılar, belirtilen bileti hedef agent'a atayabilir. Kapasite kontrolü yapılır.")
     @ApiResponses({
@@ -313,6 +393,13 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Bileti {@code CLOSED} statüsüne geçirir; sebep kodu ve açıklama notu zorunludur.
+     *
+     * @param id kapatılacak biletin kimliği
+     * @param dto kapatma sebep kodu ve notu
+     * @return kapatılmış bilet DTO'su
+     */
         @Operation(summary = "Bileti kapat (not zorunlu)")
         @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
         public ResponseEntity<TicketResponseDTO> closeTicket(
@@ -327,6 +414,13 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Biletin statüsünü günceller; {@code RESOLVED}'a geçişte reasonCode zorunludur.
+     *
+     * @param id biletin kimliği
+     * @param body yeni statü, sebep kodu ve opsiyonel not
+     * @return güncellenmiş bilet DTO'su
+     */
     @Operation(summary = "Bilet statüsü güncelle (RESOLVED'a geçişte reasonCode zorunlu)")
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
@@ -343,6 +437,13 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Biletin önceliğini günceller; sebep kodu zorunludur ({@code OTHER} ise not da zorunludur).
+     *
+     * @param id biletin kimliği
+     * @param dto yeni öncelik, sebep kodu ve opsiyonel not
+     * @return güncellenmiş bilet DTO'su
+     */
     @Operation(summary = "Bilet önceliği güncelle (sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/priority")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -359,6 +460,15 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Biletin konusunu (topic) aynı ürüne bağlı aktif bir topic ile değiştirir.
+     *
+     * <p>Sebep kodu zorunludur; {@code OTHER} ise not da zorunludur.
+     *
+     * @param id biletin kimliği
+     * @param dto yeni topic kimliği, sebep kodu ve opsiyonel not
+     * @return güncellenmiş bilet DTO'su
+     */
     @Operation(summary = "Bilet konusunu güncelle (aynı ürüne bağlı aktif bir topic; sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/topic")
     @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
@@ -375,6 +485,12 @@ public class TicketController {
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
+    /**
+     * Bileti veritabanından kalıcı olarak siler; yalnızca {@code AGENT_ADMIN} çağırabilir.
+     *
+     * @param id silinecek biletin kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Bileti sil (AGENT_ADMIN yetkisi gerekir)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('AGENT_ADMIN')")
@@ -386,6 +502,14 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Belirtilen ürüne ait biletleri rol/yetki filtresiyle sayfalı şekilde listeler.
+     *
+     * @param productId ürün kimliği
+     * @param page sayfa indeksi
+     * @param size sayfa boyutu (1-500)
+     * @return ürüne ait biletlerin sayfalı listesi
+     */
     @Operation(summary = "Ürüne ait biletleri listele — sayfalama + filtreleme")
     @GetMapping("/by-product/{productId}")
     public ResponseEntity<Page<TicketResponseDTO>> getTicketsByProduct(
@@ -416,6 +540,12 @@ public class TicketController {
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
+    /**
+     * Biletin SLA zamanlayıcı bilgisini (kalan süre, hedef, breach durumu vs.) döner.
+     *
+     * @param id biletin kimliği
+     * @return SLA bilgilerini içeren anahtar-değer haritası
+     */
     @Operation(summary = "SLA zamanlayıcı bilgisi")
     @GetMapping("/{id}/sla-timer")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")

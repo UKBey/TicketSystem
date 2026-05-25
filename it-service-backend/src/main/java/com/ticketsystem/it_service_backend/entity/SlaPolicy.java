@@ -4,6 +4,15 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
 
+/**
+ * Bilet önceliğine göre SLA hedeflerini tanımlayan politika.
+ *
+ * <p>Her {@code priority} için bir satır (unique) — {@link Ticket} oluşturulurken
+ * hedef çözüm süresi buradan okunur ve {@code slaDeadline} hesaplanır.
+ * {@code warningThresholdHours} ise deadline'a yaklaşıldığında uyarı bildirimi
+ * tetiklemek için scheduler tarafından kullanılır. Uygulama tarafında
+ * {@code app.sla.policies} config'i ile yan yana çalışır.
+ */
 @Entity
 @Table(name = "sla_policies")
 @Getter

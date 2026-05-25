@@ -12,6 +12,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Agent + ürün için yapılandırılmış aktif-bilet limitinin yanıt modeli.
+ * Özel limit ile ürün varsayılanından hesaplanan {@code effectiveLimit} değerini de içerir.
+ */
 @Schema(description = "Agent ürün limiti yanıt modeli")
 public class AgentProductLimitResponseDTO {
 

@@ -7,6 +7,10 @@ import lombok.Data;
 
 @Data
 @Builder
+/**
+ * Bir öncelik seviyesi için yapılandırılmış SLA politikasının yanıt modeli (hedef saat ve uyarı eşiği).
+ * Admin yönetim ekranlarında ve SlaPolicyService'in dış API'lerinde kullanılır.
+ */
 @Schema(description = "SLA politikası bilgisi")
 public class SlaPolicyResponseDTO {
 

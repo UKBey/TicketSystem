@@ -5,6 +5,13 @@ import lombok.*;
 
 import java.time.ZonedDateTime;
 
+/**
+ * Şifre sıfırlama tek-kullanımlık token'ı — {@link User} ile ManyToOne.
+ *
+ * <p>Plaintext token sadece kullanıcıya gönderilen mail içinde gezer; DB'de yalnızca
+ * SHA-256 hash'i tutulur, böylece DB sızıntısı token'ları geçersiz kılmaz.
+ * {@code usedAt} alanı token tüketildiğinde damgalanır; aynı token ikinci kez kullanılamaz.
+ */
 @Entity
 @Table(name = "password_reset_tokens")
 @Getter

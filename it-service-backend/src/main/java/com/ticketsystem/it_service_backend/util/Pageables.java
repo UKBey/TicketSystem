@@ -12,6 +12,15 @@ public final class Pageables {
 
     private Pageables() {}
 
+    /**
+     * Tek satirda sirali bir {@link PageRequest} olusturur.
+     *
+     * @param page    sifir-tabanli sayfa indexi
+     * @param size    sayfa basina kayit sayisi
+     * @param sortBy  siralama yapilacak alan adi (entity alani)
+     * @param sortDir {@code "asc"} → artan, diger her sey (default dahil) → azalan
+     * @return verilen alan ve yone gore siralanmis sayfa istegi
+     */
     public static PageRequest of(int page, int size, String sortBy, String sortDir) {
         Sort sort = "asc".equalsIgnoreCase(sortDir)
                 ? Sort.by(sortBy).ascending()

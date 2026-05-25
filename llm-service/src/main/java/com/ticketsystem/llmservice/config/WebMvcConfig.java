@@ -17,6 +17,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final RateLimitInterceptor rateLimitInterceptor;
     private final RateLimitProperties rateLimitProperties;
 
+    /**
+     * {@link RateLimitInterceptor}'i config'ten okunan yol desenleri üzerine
+     * kaydeder.
+     *
+     * @param registry Spring MVC interceptor kayıt defteri
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)

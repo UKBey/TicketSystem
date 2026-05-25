@@ -6,6 +6,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+/**
+ * Kullanıcı şifre değiştirme isteği. Mevcut şifre doğrulaması servis katmanında yapılır.
+ * Bean Validation ile yeni şifre min 8 karakter kontrol edilir.
+ */
 @Schema(description = "Şifre değiştirme isteği")
 public class ChangePasswordRequest {
 

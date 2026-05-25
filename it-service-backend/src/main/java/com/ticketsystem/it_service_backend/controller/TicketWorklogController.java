@@ -31,6 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Bilet üzerinde harcanan süre (worklog) CRUD endpoint'lerini barındıran REST kontrolcüsü.
+ *
+ * <p>Yalnızca {@code AGENT} ve {@code AGENT_ADMIN} rolleri erişebilir; sahiplik ve
+ * atama denetimleri {@link WorklogService} içinde uygulanır.
+ */
 @Log4j2
 @Tag(name = "Ticket Worklog", description = "Agent ve Agent Admin'ların bilet üzerinde harcadıkları sürenin takibi")
 @RestController
@@ -40,6 +46,13 @@ public class TicketWorklogController {
 
     private final WorklogService worklogService;
 
+    /**
+     * Belirtilen bilete yeni bir iş kaydı ekler; agent yalnızca atandığı bilete ekleyebilir.
+     *
+     * @param id biletin kimliği
+     * @param dto süre ve açıklama bilgisi
+     * @return oluşturulan worklog DTO'su ({@code 201 Created})
+     */
     @Operation(summary = "Worklog ekle",
             description = "Belirtilen bilete yeni bir iş kaydı (süre + açıklama) ekler. "
                     + "Agent yalnızca üzerine atanmış bilete worklog ekleyebilir.")
@@ -65,6 +78,12 @@ public class TicketWorklogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(WorklogResponseDTO.fromEntity(saved));
     }
 
+    /**
+     * Belirtilen biletin worklog'larını kronolojik sırada döner; rol bazında filtrelenir.
+     *
+     * @param id biletin kimliği
+     * @return ilgili biletin worklog DTO listesi
+     */
     @Operation(summary = "Bilete ait worklogları listele",
             description = "Belirtilen biletin tüm iş kayıtlarını kronolojik sırada getirir. "
                     + "Agent yalnızca kendine atanmış biletin workloglarını görebilir, Manager tüm biletleri görebilir.")
@@ -90,6 +109,11 @@ public class TicketWorklogController {
                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Sistemdeki tüm biletlere ait worklog kayıtlarını döner; raporlama amaçlıdır.
+     *
+     * @return tüm worklog DTO'larının listesi
+     */
     @Operation(summary = "Tüm worklogları listele",
             description = "Sistemdeki tüm biletlere ait iş kayıtlarını getirir. Raporlama ve yönetim amaçlıdır.")
     @ApiResponses({
@@ -110,6 +134,14 @@ public class TicketWorklogController {
                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Bir worklog'un süre ve açıklamasını günceller; yalnızca kaydı oluşturan agent yapabilir.
+     *
+     * @param id biletin kimliği
+     * @param worklogId güncellenecek worklog'un kimliği
+     * @param dto yeni süre ve açıklama
+     * @return güncellenmiş worklog DTO'su
+     */
     @Operation(summary = "Worklog güncelle",
             description = "Mevcut bir iş kaydının süre ve açıklamasını günceller. "
                     + "Yalnızca worklogu oluşturan agent güncelleyebilir.")
@@ -138,6 +170,13 @@ public class TicketWorklogController {
         return ResponseEntity.ok(WorklogResponseDTO.fromEntity(updated));
     }
 
+    /**
+     * Bir worklog'u kalıcı olarak siler; agent yalnızca kendi kaydını, agent admin hepsini silebilir.
+     *
+     * @param id biletin kimliği
+     * @param worklogId silinecek worklog'un kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Worklog sil",
             description = "Bir iş kaydını kalıcı olarak siler. Agent yalnızca kendi oluşturduğu worklogu silebilir, Agent Admin hepsini silebilir.")
     @ApiResponses({

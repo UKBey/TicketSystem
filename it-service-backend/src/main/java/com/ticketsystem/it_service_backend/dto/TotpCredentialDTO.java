@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Kullanıcının Keycloak'a kayıtlı TOTP (authenticator) cihazının özet yanıtı.
+ * Profil ekranındaki "iki adımlı doğrulama" listesinde gösterilir; silme isteğinde {@code id} kullanılır.
+ */
 @Schema(description = "Kullanıcının kayıtlı TOTP (authenticator) cihazı özet bilgisi")
 public class TotpCredentialDTO {
 

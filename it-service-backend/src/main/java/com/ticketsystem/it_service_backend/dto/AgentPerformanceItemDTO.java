@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Tek bir ajanın performans satırı; leaderboard tablosunda bir kullanıcıya karşılık gelir.
+ * Aktif ticket, çözüm sayıları, ortalama süreler ve CSAT gibi KPI'ları taşır.
+ */
 @Schema(description = "Agent performans satırı — dashboard leaderboard verisi")
 public class AgentPerformanceItemDTO {
 

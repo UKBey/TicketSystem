@@ -16,6 +16,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Bir ajan + ürün kombinasyonu için özel eşzamanlı bilet limitini yönetir.
+ *
+ * <p>Custom limit set edilmediğinde ajan, ürünün varsayılan {@code maxActiveTickets}
+ * değerini kullanır. {@code useCustomLimit=false} gönderildiğinde mevcut özel limit
+ * kaydı silinir ve ajan default'a düşer. AGENT_ADMIN tarafından kullanılır.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -25,6 +32,12 @@ public class AgentProductLimitService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Verilen ajanın tüm ürün-spesifik özel limit kayıtlarını DTO listesi olarak döner.
+     *
+     * @param agentId ajan ID
+     * @return limit kayıtlarının DTO listesi (boş olabilir)
+     */
     @Transactional(readOnly = true)
     public List<AgentProductLimitResponseDTO> getAgentLimits(String agentId) {
         log.debug("Agent limitleri getiriliyor. Agent: {}", agentId);
@@ -33,6 +46,21 @@ public class AgentProductLimitService {
                 .toList();
     }
 
+    /**
+     * Bir ajan + ürün eşleşmesi için özel limiti ayarlar veya kaldırır.
+     *
+     * <p>{@code useCustomLimit=false} verilirse mevcut özel limit silinir ve
+     * ajan ürünün default limitine düşer. {@code true} verilirse
+     * {@code maxActiveTickets} zorunludur.
+     *
+     * @param agentId ajan ID
+     * @param productId ürün ID
+     * @param useCustomLimit özel limit aktif mi
+     * @param maxActiveTickets özel limit aktifse uygulanacak değer
+     * @return son durumu yansıtan DTO
+     * @throws ResponseStatusException 404 — ajan veya ürün bulunamazsa
+     * @throws IllegalArgumentException özel limit istenip değer verilmezse
+     */
     @Transactional
     public AgentProductLimitResponseDTO setAgentLimit(String agentId, Long productId, boolean useCustomLimit,
                                                       Integer maxActiveTickets) {
@@ -72,6 +100,12 @@ public class AgentProductLimitService {
         return AgentProductLimitResponseDTO.fromEntity(saved);
     }
 
+    /**
+     * Belirtilen ajan + ürün özel limit kaydını siler. Kayıt yoksa sessiz no-op.
+     *
+     * @param agentId ajan ID
+     * @param productId ürün ID
+     */
     @Transactional
     public void deleteAgentLimit(String agentId, Long productId) {
         log.info("Agent limit siliniyor. Agent: {}, Product: {}", agentId, productId);

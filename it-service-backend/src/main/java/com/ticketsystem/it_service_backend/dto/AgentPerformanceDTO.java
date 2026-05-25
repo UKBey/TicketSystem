@@ -13,6 +13,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Agent performans özeti yanıtı; manager dashboard'undaki leaderboard endpoint'i tarafından döner.
+ * Genel toplamlar ve ajan satırlarının listesini ({@link AgentPerformanceItemDTO}) taşır.
+ */
 @Schema(description = "Agent performans özeti — dashboard leaderboard response'u")
 public class AgentPerformanceDTO {
 

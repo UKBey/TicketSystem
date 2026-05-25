@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Tek bir öncelik seviyesi için SLA performans satırı; {@link PrioritySLAMetricsDTO} içinde listelenir.
+ * Hedef süre, ortalama çözüm süresi ve breach yüzdeleri gibi karşılaştırma verilerini taşır.
+ */
 @Schema(description = "Priority bazlı SLA metrik detay satırı")
 public class PriorityDetailDTO {
 

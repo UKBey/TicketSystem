@@ -7,6 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+/**
+ * Destek bileti — sistemin ana iş nesnesi.
+ *
+ * <p>{@link User} (müşteri), {@link Product} ve {@link TicketTopic} ile ilişkilidir.
+ * Sahiplenme {@link TicketClaim} üzerinden many-to-many olarak tutulur; yorumlar ve
+ * ekler ayrı tablolarda ({@link Comment}, {@link Attachment}). Yaşam döngüsü jBPM
+ * süreç motoruyla senkronize edilir ({@code processInstanceId}) ve SLA durumu
+ * denormalize alanlarla ({@code slaDeadline}, {@code slaBreached}, {@code slaElapsedMs})
+ * tutulur.
+ */
 @Entity
 @Table(name = "tickets")
 @Getter
@@ -26,9 +36,11 @@ public class Ticket {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    /** Yaşam döngüsü durumu: NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED, CLOSED. */
     @Column(nullable = false, length = 30)
     private String status;
 
+    /** Öncelik: LOW, MEDIUM, HIGH, CRITICAL — SLA hedef süresini belirler. */
     @Column(nullable = false, length = 10)
     private String priority;
 
@@ -38,9 +50,14 @@ public class Ticket {
     @Column(name = "topic_id")
     private Long topicId;
 
+    /**
+     * Topic adının bilet oluşturulduğu andaki snapshot'ı. {@link TicketTopic} silinse
+     * ya da yeniden adlandırılsa bile bilet detayında orijinal isim görünür.
+     */
     @Column(name = "topic_name_snapshot")
     private String topicNameSnapshot;
 
+    /** Keycloak UUID'si — {@link User#id}'ye karşılık gelir (FK değil, denormalize). */
     @Column(name = "customer_id", nullable = false, length = 36)
     private String customerId;
 
@@ -58,10 +75,12 @@ public class Ticket {
     @Column(name = "sla_warning_sent_at")
     private ZonedDateTime slaWarningSentAt;
 
+    /** SLA sayacının şu ana kadar geçen kümülatif süresi (ms) — duraklatma toplamasıyla güncellenir. */
     @Column(name = "sla_elapsed_ms")
     @Builder.Default
     private Long slaElapsedMs = 0L;
 
+    /** Sayacın duraklatıldığı an; non-null iken SLA sayacı durmuş demektir (WAITING_FOR_CUSTOMER). */
     @Column(name = "sla_paused_at")
     private ZonedDateTime slaPausedAt;
 
@@ -77,6 +96,7 @@ public class Ticket {
     @Column(name = "closed_at")
     private ZonedDateTime closedAt;
 
+    /** jBPM KIE Server'da bu bilete bağlı süreç örneği — null ise süreç başlatılmamış. */
     @Column(name = "process_instance_id")
     private Long processInstanceId;
 

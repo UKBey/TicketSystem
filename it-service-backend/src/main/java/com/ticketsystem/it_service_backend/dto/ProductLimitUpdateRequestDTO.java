@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bir ürünün varsayılan maksimum aktif bilet limitini güncellemek için kullanılan istek modeli.
+ * Null değer "limitsiz" anlamına gelir.
+ */
 @Schema(description = "Ürün için maksimum aktif bilet limiti güncelleme modeli")
 public class ProductLimitUpdateRequestDTO {
 

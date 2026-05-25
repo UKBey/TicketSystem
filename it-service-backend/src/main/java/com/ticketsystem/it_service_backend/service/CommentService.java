@@ -23,6 +23,16 @@ import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Bilet yorum (comment) ekleme ve listeleme akışı.
+ *
+ * <p>EXTERNAL yorumlar her iki tarafça da görülebilir; INTERNAL yorumlar yalnızca
+ * ajanlara açıktır. Kullanıcı başına basit bir in-memory cooldown ve maks. uzunluk
+ * doğrulaması uygulanır (config: {@code app.comments.*}). Kayıttan sonra
+ * {@link NotificationService} bildirim üretir ve STOMP üzerinden ilgili topic'e
+ * yayın yapılır. Müşteri WAITING_FOR_CUSTOMER bir bilete yorum yazarsa statü
+ * otomatik IN_PROGRESS'e çekilir.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -46,6 +56,22 @@ public class CommentService {
     @Value("${app.comments.max-length:500}")
     private int maxMessageLength;
 
+    /**
+     * Bilete yeni bir yorum ekler.
+     *
+     * <p>Doğrulamalar: uzunluk (config'e bağlı), per-user cooldown, mutasyon yetkisi
+     * ve INTERNAL yorum sadece ajan rolleriyle. Başarılı kayıttan sonra bildirim
+     * ve WebSocket olayı tetiklenir; müşteri WAITING_FOR_CUSTOMER bilete yazdıysa
+     * statü IN_PROGRESS'e çekilir.
+     *
+     * @param ticketId hedef bilet ID
+     * @param message yorum metni
+     * @param type yorum tipi (EXTERNAL veya INTERNAL); null/boşsa EXTERNAL
+     * @param userId yorumu yazan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return kaydedilmiş {@link Comment}
+     * @throws ResponseStatusException 400 uzunluk, 429 cooldown, 403 yetki ihlali
+     */
     @Transactional
     public Comment addComment(Long ticketId, String message, String type, String userId, List<String> roles) {
         log.info("Yorum ekleme işlemi. Bilet ID: {}, Kullanıcı: {}, Tip: {}", ticketId, userId, type);
@@ -107,6 +133,17 @@ public class CommentService {
         messagingTemplate.convertAndSend(destination, TicketWebSocketEvent.commentAdded(dto));
     }
 
+    /**
+     * Verilen biletin yorumlarını eskiye-yeniye sıralı döner. Müşteri rolünde
+     * INTERNAL yorumlar filtrelenir. Bilet erişim yetkisi {@link TicketService} ile
+     * doğrulanır.
+     *
+     * @param ticketId hedef bilet ID
+     * @param userId istek yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return yorum listesi
+     * @throws ResponseStatusException 403 — bilete erişim yoksa
+     */
     public List<Comment> getCommentsByTicketId(Long ticketId, String userId, List<String> roles) {
         log.debug("Yorum listeleme işlemi. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 

@@ -36,6 +36,9 @@ public class TicketDataDTO {
     private List<AuditLogInfo> auditLogs;
     private Map<String, Object> slaInfo;
 
+    /**
+     * Ticket'ı üstlenen ajan kimliği.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ClaimerInfo {
@@ -43,6 +46,9 @@ public class TicketDataDTO {
         private String agentName;
     }
 
+    /**
+     * Ticket üzerindeki tek bir yorum (müşteri / ajan / dahili).
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CommentInfo {
@@ -52,6 +58,9 @@ public class TicketDataDTO {
         private ZonedDateTime createdAt;
     }
 
+    /**
+     * Ajanın bilet üzerinde geçirdiği süreyi temsil eden worklog kaydı.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class WorklogInfo {
@@ -61,6 +70,9 @@ public class TicketDataDTO {
         private ZonedDateTime createdAt;
     }
 
+    /**
+     * Bilet kapatılırken bırakılan çözüm notu.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ResolutionNoteInfo {
@@ -68,6 +80,9 @@ public class TicketDataDTO {
         private ZonedDateTime createdAt;
     }
 
+    /**
+     * Bilet üzerinde yapılan tek bir aksiyonun denetim kaydı.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AuditLogInfo {

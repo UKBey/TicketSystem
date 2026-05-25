@@ -13,6 +13,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bilet detay yanıtı — UI'da gösterilen tüm alanları içerir (claimers, SLA durumu, audit log).
+ * Hem listeleme hem tekil bilet sorgularında döner; {@code fromEntity} yardımcıları çağırı katmanından populate edilir.
+ */
 @Schema(description = "Bilet detay yanıtı — listeleme ve tekil sorgularda döner")
 public class TicketResponseDTO {
 

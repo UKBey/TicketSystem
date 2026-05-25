@@ -43,6 +43,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Kullanıcı yönetimi için ana REST kontrolcüsü.
+ *
+ * <p>Self-servis akışlar (profil, şifre, 2FA, dil/tema tercihi) ve admin işlemleri
+ * (kullanıcı oluşturma, rol güncelleme, aktif/pasif yapma, ürün yetki atama) buradadır.
+ * Keycloak ile entegrasyon {@link KeycloakAdminService}, iş kuralları
+ * {@link UserService} tarafına devredilir.
+ */
 @Log4j2
 @Tag(name = "Kullanıcı Yönetimi", description = "Keycloak senkronizasyonu, kullanıcı listeleme ve ürün yetki atamaları")
 @RestController
@@ -56,6 +64,14 @@ public class UserController {
     private final UserRepository userRepository;
     private final EmailService emailService;
 
+    /**
+     * UI girişinden sonra JWT'deki kimlik bilgilerini yerel kullanıcı tablosuna eşitler.
+     *
+     * <p>Kullanıcı yoksa yaratılır, varsa güncellenir; rol önceliği
+     * {@code AGENT_ADMIN > MANAGER > AGENT > CUSTOMER} sırasıyla belirlenir.
+     *
+     * @return senkronize edilen kullanıcı DTO'su
+     */
     // UI girisinden sonra kullaniciyi yerel veritabaniyla esitlemek icin cagrilir.
     @Operation(summary = "Kullanıcı senkronizasyonu",
             description = """
@@ -126,6 +142,11 @@ public class UserController {
         return email != null ? email : "Unknown";
     }
 
+    /**
+     * Sistemdeki tüm {@code AGENT} rolündeki kullanıcıları yetkili ürünleriyle birlikte döner.
+     *
+     * @return ajan kullanıcıların DTO listesi
+     */
     @Operation(summary = "Tüm ajanları listele",
             description = "Sistemdeki `AGENT` rolündeki tüm kullanıcıları yetkili oldukları ürün bilgileriyle birlikte getirir.")
     @ApiResponses({
@@ -145,6 +166,14 @@ public class UserController {
                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Belirtilen ürün için yetkili agent'ları, aktif bilet sayısı ve limit bilgisiyle döner.
+     *
+     * <p>Atama UI'sının agent seçim listesi bu uç noktadan beslenir.
+     *
+     * @param productId ürün kimliği
+     * @return kapasite bilgisi içeren agent DTO listesi
+     */
     @Operation(summary = "Agent'ları kapasite bilgileriyle listele",
             description = "Belirtilen ürün için yetkili agent'ları, mevcut aktif bilet sayıları ve limitleriyle birlikte döner. Atama UI'ı için kullanılır.")
     @ApiResponses({
@@ -164,6 +193,12 @@ public class UserController {
         return ResponseEntity.ok(agents);
     }
 
+    /**
+     * Belirtilen Keycloak kimliğine sahip kullanıcının detaylı bilgilerini döner.
+     *
+     * @param id Keycloak kullanıcı kimliği (UUID)
+     * @return kullanıcı DTO'su
+     */
     @Operation(summary = "Kullanıcı detayı getir",
             description = "Belirtilen Keycloak ID'ye sahip kullanıcının detaylı bilgilerini döner.")
     @ApiResponses({
@@ -184,6 +219,15 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    /**
+     * Kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak listeler.
+     *
+     * @param search isim veya e-posta üzerinde serbest metin filtresi
+     * @param role rol filtresi (çoklu)
+     * @param page sayfa indeksi (0 tabanlı)
+     * @param size sayfa boyutu (1-500)
+     * @return {@code content}, {@code totalElements}, {@code totalPages}, {@code page}, {@code size} alanlarıyla harita
+     */
     @Operation(summary = "Tüm kullanıcıları listele (sayfalı + filtreli)",
             description = "Sistemdeki kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak getirir.")
     @ApiResponses({
@@ -212,6 +256,12 @@ public class UserController {
         ));
     }
 
+    /**
+     * Oturum açan kullanıcının ad, soyad ve e-posta bilgilerini Keycloak ve yerel DB'de günceller.
+     *
+     * @param request yeni ad, soyad ve e-posta
+     * @return güncellenmiş kullanıcı DTO'su
+     */
     @Operation(summary = "Profil bilgilerini güncelle",
             description = """
                     Oturum açan kullanıcının ad, soyad ve e-posta bilgilerini Keycloak üzerinde günceller
@@ -234,6 +284,13 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(updated));
     }
 
+    /**
+     * Oturum açan kullanıcının şifresini Keycloak üzerinde değiştirir; mevcut şifre direct-grant ile doğrulanır.
+     *
+     * @param request mevcut ve yeni şifre
+     * @return {@code 204 No Content}
+     * @throws WrongCurrentPasswordException mevcut şifre yanlışsa
+     */
     @Operation(summary = "Şifreyi değiştir",
             description = """
                     Oturum açan kullanıcının şifresini değiştirir. Önce mevcut şifre Keycloak token
@@ -267,6 +324,11 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Oturum açan kullanıcının kayıtlı TOTP cihazlarını döner.
+     *
+     * @return cihaz DTO listesi (id, etiket, oluşturulma zamanı)
+     */
     @Operation(summary = "2FA cihazlarını listele",
             description = """
                     Oturum açan kullanıcının kayıtlı TOTP (authenticator app) cihazlarını döner.
@@ -290,6 +352,12 @@ public class UserController {
         return ResponseEntity.ok(devices);
     }
 
+    /**
+     * Oturum açan kullanıcının belirli bir TOTP cihazını siler ve bildirim maili gönderir.
+     *
+     * @param credentialId Keycloak credential kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "2FA cihazı sil",
             description = """
                     Oturum açan kullanıcının belirli bir TOTP cihazını siler. Sonraki girişte
@@ -321,6 +389,12 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Keycloak {@code CONFIGURE_TOTP} akışı tamamlandığında frontend tarafından çağrılır;
+     * en son eklenen TOTP cihazına bildirim maili tetikler.
+     *
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "2FA cihaz eklendi bildirimi",
             description = """
                     Keycloak CONFIGURE_TOTP akışı tamamlandığında frontend bu endpoint'i
@@ -350,6 +424,12 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Kullanıcının tercih ettiği arayüz/email dilini günceller.
+     *
+     * @param lang dil kodu ({@code en} veya {@code tr})
+     * @return güncellenmiş kullanıcı DTO'su
+     */
     @Operation(summary = "Kullanıcı dil tercihini güncelle",
             description = "Kullanıcının tercih ettiği dili günceller. Desteklenen değerler: `en`, `tr`.")
     @ApiResponses({
@@ -368,6 +448,12 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    /**
+     * Kullanıcının arayüz/email tema tercihini günceller.
+     *
+     * @param theme tema değeri ({@code light} veya {@code dark})
+     * @return güncellenmiş kullanıcı DTO'su
+     */
     @Operation(summary = "Kullanıcı tema tercihini güncelle",
             description = "Kullanıcının arayüz ve mail temasını günceller. Desteklenen değerler: `light`, `dark`.")
     @ApiResponses({
@@ -386,6 +472,13 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    /**
+     * Ajana belirtilen ürün için destek yetkisi ekler ({@code authorizedProducts} listesi güncellenir).
+     *
+     * @param userId hedef ajanın Keycloak kimliği
+     * @param productId atanacak ürünün kimliği
+     * @return güncellenmiş ajan DTO'su
+     */
     @Operation(summary = "Ajana ürün ata",
             description = "Belirtilen ajana belirtilen ürün grubunun destek taleplerini görebilme ve sahiplenme yetkisi verir. "
                     + "Atama sonrası ajanın `authorizedProducts` listesi güncellenir.")
@@ -411,6 +504,13 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(user));
     }
 
+    /**
+     * Ajanın belirtilen ürün üzerindeki destek yetkisini kaldırır.
+     *
+     * @param userId hedef ajanın Keycloak kimliği
+     * @param productId yetkisi kaldırılacak ürünün kimliği
+     * @return güncellenmiş ajan DTO'su
+     */
     @Operation(summary = "Ajandan ürün yetkisi kaldır",
             description = "Ajanın belirtilen ürün grubu üzerindeki destek yetkisini iptal eder. "
                     + "Bu işlemden sonra ajan o ürüne ait yeni biletleri göremez ve sahiplenemez.")
@@ -440,6 +540,13 @@ public class UserController {
     // Admin — Kullanıcı Oluşturma & Rol Yönetimi
     // -------------------------------------------------------------------------
 
+    /**
+     * Kullanıcıyı soft-delete ile deaktive eder veya yeniden aktive eder; admin kendini deaktive edemez.
+     *
+     * @param userId hedef kullanıcının Keycloak kimliği
+     * @param active {@code true}: aktive et, {@code false}: deaktive et
+     * @return güncellenmiş kullanıcı DTO'su; admin kendini deaktive ederse {@code 400}
+     */
     @Operation(
             summary = "Kullanıcı aktif/pasif durumunu güncelle (Admin)",
             description = """
@@ -477,6 +584,13 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(updated));
     }
 
+    /**
+     * Belirtilen kullanıcının Keycloak realm rollerini değiştirir; mevcut roller kaldırılır.
+     *
+     * @param userId hedef kullanıcının Keycloak kimliği
+     * @param roles atanacak rollerin listesi (boş olamaz)
+     * @return güncellenmiş kullanıcı DTO'su; liste boşsa {@code 400}
+     */
     @Operation(
             summary = "Kullanıcı rollerini güncelle (Admin)",
             description = """
@@ -514,6 +628,12 @@ public class UserController {
         return ResponseEntity.ok(UserDTO.fromEntity(updatedUser));
     }
 
+    /**
+     * Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve yerel DB'yi senkronize eder.
+     *
+     * @param request kullanıcı bilgileri, geçici şifre ve atanacak roller
+     * @return oluşturulan kullanıcı bilgisini içeren yanıt ({@code 201 Created})
+     */
     @Operation(
             summary = "Yeni kullanıcı oluştur (Admin)",
             description = """
@@ -595,6 +715,11 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Keycloak realm'inde kullanıcılara atanabilir rollerin listesini döner; sistem rolleri filtrelenir.
+     *
+     * @return rol adlarından oluşan liste
+     */
     @Operation(
             summary = "Atanabilir rolleri listele (Admin)",
             description = """

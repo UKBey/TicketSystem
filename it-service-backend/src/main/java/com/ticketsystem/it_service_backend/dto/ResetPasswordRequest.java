@@ -7,6 +7,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+/**
+ * Mail ile gelen tek kullanımlık token üzerinden şifreyi yenileme isteği.
+ * Bean Validation aktif (token uzunluk, şifre min 8); opsiyonel {@code language}/{@code theme} onay mailini etkiler.
+ */
 @Schema(description = "Token ile şifre sıfırlama isteği")
 public class ResetPasswordRequest {
 

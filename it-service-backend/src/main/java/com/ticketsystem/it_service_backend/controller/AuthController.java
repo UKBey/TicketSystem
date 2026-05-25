@@ -31,8 +31,11 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * Anonim auth akışları — şifre sıfırlama. Tüm endpoint'ler permit-list'tedir;
- * yetkilendirme yerine email enumeration koruması + IP başına Bucket4j rate-limit.
+ * Anonim auth akışları — şifre sıfırlama REST kontrolcüsü.
+ *
+ * <p>Tüm endpoint'ler permit-list'tedir; yetkilendirme yerine email enumeration
+ * koruması ve IP başına Bucket4j rate-limit uygulanır. Token üretimi/doğrulaması
+ * ve Keycloak ile şifre değişimi {@link PasswordResetService}'e devredilir.
  */
 @Log4j2
 @Tag(name = "Authentication", description = "Anonim auth akışları (şifre sıfırlama)")
@@ -52,6 +55,13 @@ public class AuthController {
     @Value("${app.password-reset.rate-limit.window-seconds:3600}")
     private int forgotWindowSeconds;
 
+    /**
+     * Şifre sıfırlama maili kuyruğa alır; enumeration koruması için sonuçtan bağımsız {@code 200} döner.
+     *
+     * @param body e-posta adresi ile opsiyonel dil/tema tercihi
+     * @param request rate-limit anahtarı olarak IP'yi çıkarmak için kullanılır
+     * @return {@code {"status":"ok"}} veya rate-limit aşıldıysa {@code 429}
+     */
     @Operation(
             summary = "Şifre sıfırlama linki iste",
             description = "Email kayıtlıysa tek kullanımlık reset linki gönderilir. "
@@ -72,6 +82,12 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
+    /**
+     * Bir reset token'ının hâlâ geçerli (kullanılmamış ve süresi dolmamış) olup olmadığını kontrol eder.
+     *
+     * @param token e-posta linkinden gelen sıfırlama token'ı
+     * @return {@code {"valid": true|false}} biçiminde tek anahtarlı yanıt
+     */
     @Operation(
             summary = "Reset token geçerli mi?",
             description = "Frontend reset sayfası açıldığında, kullanıcıya parola "
@@ -83,6 +99,12 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("valid", valid));
     }
 
+    /**
+     * Tek kullanımlık token ile Keycloak şifresini sıfırlar; başarılı sıfırlamada token geçersizleşir.
+     *
+     * @param body token, yeni parola ve opsiyonel dil/tema tercihi
+     * @return başarıda {@code {"status":"ok"}}; geçersiz token veya politika ihlalinde {@code 400} + hata kodu
+     */
     @Operation(
             summary = "Token ile şifre sıfırla",
             description = "Geçerli bir token ve yeni parola ile Keycloak'taki şifre "

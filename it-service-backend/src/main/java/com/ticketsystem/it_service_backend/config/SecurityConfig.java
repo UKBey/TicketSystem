@@ -25,6 +25,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * OAuth2 Resource Server yapilandirmasi — backend'in tum guvenlik politikasinin
+ * tek dogru kaynagi.
+ *
+ * <p>Stateless JWT dogrulamasi, CSRF kapali, method-level security acik. Iki
+ * paralel yetkilendirme yolu vardir:
+ * <ol>
+ *   <li><b>Kullanici endpoint'leri</b> — {@code Bearer} JWT zorunludur;
+ *       {@code realm_access.roles} {@code ROLE_*} authority'lerine cevrilir.</li>
+ *   <li><b>Internal endpoint'ler</b> ({@code /api/v1/internal/**}) — JWT yerine
+ *       sabit {@code X-Internal-Token} header'iyla korunur; sadece KIE Server
+ *       callback'i icin kullanilir.</li>
+ * </ol>
+ *
+ * <p>Swagger, actuator health/info/metrics ve auth giris endpoint'leri anonime
+ * acilir. {@code /actuator/caches/**} sadece admin rolleriyle erisilebilir.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -45,6 +62,17 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost,http://ticketsystem.local}")
     private String allowedOrigins;
 
+    /**
+     * S-10 — Whitelist tabanli CORS yapilandirmasi.
+     *
+     * <p>Yalnizca {@code /api/v1/**} icin uygulanir. Sadece {@code GET/POST/PUT/
+     * PATCH/DELETE/OPTIONS} method'larina ve {@code Authorization},
+     * {@code Content-Type}, {@code X-Requested-With} header'larina izin verilir.
+     * {@code allowCredentials=false} — kimlik dogrulama Bearer header ile gelir,
+     * cookie kullanilmaz. Preflight cevabi 1 saat cache'lenir.
+     *
+     * @return tum API path'lerine uygulanan CORS kaynak yapilandirmasi
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
@@ -63,6 +91,16 @@ public class SecurityConfig {
         return src;
     }
 
+    /**
+     * Ana {@link SecurityFilterChain} — anonim, internal-token ve JWT yollarini
+     * birlestiren tek filter zinciri.
+     *
+     * <p>Permit-list: Swagger, actuator health/info/metrics, auth endpoint'leri ve
+     * WebSocket handshake. {@code /api/v1/internal/**}
+     * {@link #hasValidInternalToken(String)} kontrolune girer. Geri kalan tum
+     * endpoint'lerde {@code Bearer} JWT zorunludur ve session
+     * {@link SessionCreationPolicy#STATELESS} olarak isaretlenir.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -107,6 +145,15 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Keycloak {@code realm_access.roles} listesini Spring Security
+     * {@code ROLE_*} authority'lerine cevirir.
+     *
+     * <p>Rol isimleri buyuk harfe normalize edilir; ornek olarak
+     * {@code "agent_admin"} authority {@code "ROLE_AGENT_ADMIN"} olur. Eger token
+     * {@code realm_access} claim'i tasimiyorsa bos authority listesi dondurulur
+     * (anonim degil, ama yetkisiz).
+     */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();

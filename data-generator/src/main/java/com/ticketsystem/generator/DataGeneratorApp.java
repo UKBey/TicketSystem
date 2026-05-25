@@ -37,6 +37,13 @@ public class DataGeneratorApp {
 
     private static final Logger log = LoggerFactory.getLogger(DataGeneratorApp.class);
 
+    /**
+     * Generator akışını uçtan uca çalıştırır: agent_admin login, setup,
+     * ticket üretimi, ardından DB üzerinde tarih/SLA backfill.
+     *
+     * @param args komut satırı argümanları (kullanılmıyor)
+     * @throws Exception altyapı çağrılarından gelen herhangi bir hata
+     */
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
 

@@ -18,6 +18,9 @@ public class GroqChatResponse {
     private List<Choice> choices;
     private Usage usage;
 
+    /**
+     * Tek bir tamamlama seçeneği — mesaj ve bitirme nedenini taşır.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Choice {
@@ -27,6 +30,9 @@ public class GroqChatResponse {
         private String finishReason;
     }
 
+    /**
+     * Üretilen mesaj — rol ve içerik bilgisini taşır.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Message {
@@ -34,6 +40,9 @@ public class GroqChatResponse {
         private String content;
     }
 
+    /**
+     * Groq'un raporladığı token kullanım istatistikleri.
+     */
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Usage {

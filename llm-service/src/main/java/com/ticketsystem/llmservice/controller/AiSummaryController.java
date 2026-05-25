@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Ticket için LLM tabanlı özet üretim ve okuma uç noktalarını sağlayan REST
+ * kontrolcü. Tüm yollar {@code /api/v1/ai/summaries} altında, rate-limit
+ * interceptor tarafından korunur.
+ */
 @Slf4j
 @Tag(name = "AI Özet", description = "Ticket verisi için LLM tabanlı özetleme işlemleri")
 @RestController
@@ -25,6 +30,12 @@ public class AiSummaryController {
     private final AiSummaryService aiSummaryService;
     private final TicketDataFetcher ticketDataFetcher;
 
+    /**
+     * Ham ticket verisi ile özet oluşturur.
+     *
+     * @param request özetlenecek ticket verisi ve dil tercihi
+     * @return üretilen ve persiste edilen özet
+     */
     @Operation(
             summary = "Ticket özeti oluştur (ham veri ile)",
             description = "Gönderilen ticket verisi Groq LLM'e iletilir, üretilen özet veritabanına kaydedilir ve döner."
@@ -37,6 +48,13 @@ public class AiSummaryController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Ticket ID'si verilerek otomatik özet üretir; veriyi it-service-backend'den çeker.
+     *
+     * @param ticketId özetlenecek ticket ID'si
+     * @param language özet dili ({@code tr} veya {@code en})
+     * @return üretilen ve persiste edilen özet
+     */
     @Operation(
             summary = "Ticket özetini otomatik oluştur",
             description = "Ticket ID'si verilir; llm-service it-service-backend'den veriyi çeker, Groq'a gönderir ve özeti kaydeder."
@@ -51,6 +69,12 @@ public class AiSummaryController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Belirtilen ticket'ın en son üretilmiş özetini döner.
+     *
+     * @param ticketId sorgulanan ticket ID'si
+     * @return en son özet
+     */
     @Operation(
             summary = "Ticket'ın en son özetini getir",
             description = "Belirtilen ticket için en son oluşturulan özeti döner."
@@ -61,6 +85,12 @@ public class AiSummaryController {
         return ResponseEntity.ok(aiSummaryService.getLatestSummary(ticketId));
     }
 
+    /**
+     * Belirtilen ticket için üretilmiş tüm özetleri en yeniden eskiye listeler.
+     *
+     * @param ticketId sorgulanan ticket ID'si
+     * @return özet listesi (boş olabilir)
+     */
     @Operation(
             summary = "Ticket'ın tüm özetlerini listele",
             description = "Belirtilen ticket için oluşturulmuş tüm özetleri en yeniden eskiye sıralı döner."

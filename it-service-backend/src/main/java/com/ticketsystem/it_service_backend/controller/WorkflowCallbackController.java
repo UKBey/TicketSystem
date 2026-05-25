@@ -21,6 +21,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.ZonedDateTime;
 
+/**
+ * jBPM KIE Server'ından gelen süreç olaylarını alan dahili (internal) REST kontrolcüsü.
+ *
+ * <p>JWT yerine sabit {@code X-Internal-Token} başlığıyla korunur; SLA ihlali ve süreç
+ * tamamlanması olayları üzerinde işlem yapar ve gerekirse {@link NotificationService}
+ * üzerinden bildirim tetikler.
+ */
 @Log4j2
 @Tag(name = "Workflow Callback", description = "jBPM KIE Server'dan gelen dahili SLA ihlali ve süreç olayları (Internal API)")
 @RestController
@@ -34,6 +41,16 @@ public class WorkflowCallbackController {
     @Value("${jbpm.kie-server.callback-token}")
     private String expectedToken;
 
+    /**
+     * jBPM süreç olayı bildirimini işler ({@code SLA_BREACHED} / {@code PROCESS_COMPLETED}).
+     *
+     * <p>Token sabit zamanlı karşılaştırma ile doğrulanır; eşleşmezse {@code 401} döner.
+     * Aynı bilet için SLA breach callback'i tekrarlanırsa idempotent davranılır.
+     *
+     * @param headerToken servisler arası kimlik doğrulama token'ı
+     * @param callback olay tipi, bilet kimliği ve süreç bilgisi
+     * @return düz metin işlem sonucu; {@code 400}/{@code 401}/{@code 404} hata durumlarında uygun statü
+     */
     @Operation(summary = "jBPM süreç olayı bildirimi",
             description = """
                     jBPM KIE Server, SLA zaman aşımı veya süreç tamamlanması gibi olayları bu endpoint üzerinden backend'e bildirir.

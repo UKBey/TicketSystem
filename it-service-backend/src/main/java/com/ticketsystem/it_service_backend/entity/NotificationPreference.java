@@ -5,6 +5,14 @@ import lombok.*;
 
 import java.time.ZonedDateTime;
 
+/**
+ * Bir {@link User}'ın bildirim tercihleri — her olay türü için ayrı ayrı e-posta ve
+ * in-app bildirim açma/kapama bayrakları.
+ *
+ * <p>{@code userId} hem PK hem de {@link User#id}'ye karşılık gelen Keycloak UUID'sidir
+ * (1:1 ilişki, ayrı sequence yok). {@link com.ticketsystem.it_service_backend.service.NotificationService}
+ * bildirim göndermeden önce bu kayda bakarak ilgili kanalı atlayıp atlamayacağına karar verir.
+ */
 @Entity
 @Table(name = "user_notification_preferences")
 @Getter
@@ -14,6 +22,7 @@ import java.time.ZonedDateTime;
 @Builder
 public class NotificationPreference {
 
+    /** Hem PK hem de {@link User#id}'ye eşit — Keycloak UUID'si. */
     @Id
     @Column(length = 36)
     private String userId;

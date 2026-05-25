@@ -32,6 +32,13 @@ public class KeycloakAdminApi {
     private final String adminUsersUrl;
     private String cachedToken;
 
+    /**
+     * Admin client'ı oluşturur; token URL'i master realm'den, kullanıcı URL'i
+     * ise hedef realm'den ({@link GeneratorConfig#KEYCLOAK_REALM}) türetilir.
+     *
+     * @param http   paylaşılan OkHttp client
+     * @param mapper Jackson mapper
+     */
     public KeycloakAdminApi(OkHttpClient http, ObjectMapper mapper) {
         this.http   = http;
         this.mapper = mapper;
@@ -44,6 +51,9 @@ public class KeycloakAdminApi {
      * Kullanıcının {@code requiredActions} listesini temizler. Kullanıcı yoksa veya
      * admin REST çağrısı başarısız olursa {@code false} döner — login fallback'i
      * çalışmaz, bu durumda kullanıcı setup'tan atlanır.
+     *
+     * @param username temizlenecek kullanıcının Keycloak username'i
+     * @return işlem başarılıysa {@code true}; aksi halde {@code false}
      */
     public boolean clearRequiredActions(String username) {
         try {

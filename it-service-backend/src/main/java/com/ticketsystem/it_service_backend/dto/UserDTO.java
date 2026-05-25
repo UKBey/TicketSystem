@@ -14,6 +14,11 @@ import java.util.stream.Collectors;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Kullanıcı yanıt modeli; Keycloak senkronizasyonu sonrası backend tarafında oluşturulan
+ * {@link com.ticketsystem.it_service_backend.entity.User} kaydından türetilir.
+ * Rol, dil/tema tercihi ve yetkili ürün listesini taşır.
+ */
 @Schema(description = "Kullanıcı bilgi modeli — Keycloak senkronizasyonu sonrası döner")
 public class UserDTO {
 

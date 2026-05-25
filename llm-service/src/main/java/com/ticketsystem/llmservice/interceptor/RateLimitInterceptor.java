@@ -46,6 +46,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private static final String BUCKET_KEY_PREFIX = "llm-rate-limit:";
 
+    /**
+     * Her istek öncesinde çalışır; istemcinin Bucket4j kovasından 1 token tüketmeye
+     * çalışır. Token varsa istek geçirilir, yoksa {@code 429 Too Many Requests}
+     * yanıt yazılır ve {@code Retry-After} header'ı eklenir.
+     *
+     * @param request  gelen HTTP isteği
+     * @param response yazılacak HTTP yanıtı (429 durumunda doğrudan kullanılır)
+     * @param handler  hedef handler nesnesi (kullanılmaz)
+     * @return istek devam edebiliyorsa {@code true}, limit aşıldıysa {@code false}
+     * @throws IOException yanıt gövdesi yazılırken hata oluşursa
+     */
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,

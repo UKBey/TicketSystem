@@ -3,6 +3,10 @@ package com.ticketsystem.it_service_backend.dto;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Tek bir ürün için toplulaştırılmış ticket/SLA/CSAT metrikleri.
+ * {@link ProductMetricsDTO} içinde liste elemanı olarak manager dashboard'unda gösterilir.
+ */
 @Data
 @Builder
 public class ProductDetailDTO {

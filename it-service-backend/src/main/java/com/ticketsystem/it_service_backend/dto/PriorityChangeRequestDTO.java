@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bir biletin önceliğini değiştirmek için gönderilen istek (örn. MEDIUM → HIGH).
+ * Hem yeni öncelik hem sebep kodu zorunludur (Bean Validation aktif); {@code reasonCode=OTHER} ise serbest metin de zorunlu olur.
+ */
 @Schema(description = "Bilet önceliği güncelleme isteği — yeni öncelik, sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class PriorityChangeRequestDTO {
 

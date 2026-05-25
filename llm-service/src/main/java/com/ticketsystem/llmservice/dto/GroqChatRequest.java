@@ -31,6 +31,9 @@ public class GroqChatRequest {
     /** Sıcaklık (0.0 - 2.0, varsayılan: 1.0) */
     private Double temperature;
 
+    /**
+     * Groq sohbet mesajı — rol ve içerik çiftini taşır.
+     */
     @Data
     @Builder
     @NoArgsConstructor

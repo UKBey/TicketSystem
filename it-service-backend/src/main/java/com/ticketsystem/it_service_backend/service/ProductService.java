@@ -17,6 +17,14 @@ import java.util.List;
 
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Ürün CRUD'u ve kullanıcı bazlı ürün erişim kontrolü.
+ *
+ * <p>Müşteri/ajan kullanıcısı yalnızca {@code authorized_products} ilişkisinde
+ * yer alan ürünleri görebilir; AGENT_ADMIN ve MANAGER tüm ürünleri görür. Ürün
+ * silme cascade davranır: bağlı tüm biletler {@link TicketService#deleteTicket}
+ * çağrılarıyla silinir ve ajan-özel limit kayıtları temizlenir.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -28,6 +36,17 @@ public class ProductService {
     private final TicketRepository ticketRepository;
     private final AgentProductLimitRepository agentProductLimitRepository;
 
+    /**
+     * Ürünü ID üzerinden, çağıran kullanıcının yetki kontrolü ile döner.
+     * AGENT_ADMIN / MANAGER bypass eder; diğer roller için
+     * {@code user.authorizedProducts} listesinde bulunma şartı aranır.
+     *
+     * @param id ürün ID
+     * @param userId istek yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return ürün
+     * @throws ResponseStatusException 404 ürün/kullanıcı yoksa, 403 yetki yoksa
+     */
     @Transactional(readOnly = true)
     public Product getProductById(Long id, String userId, List<String> roles) {
         Product product = productRepository.findById(id)
@@ -47,6 +66,15 @@ public class ProductService {
         return product;
     }
 
+    /**
+     * Kullanıcının görebildiği tüm ürünleri döner. AGENT_ADMIN / MANAGER tüm
+     * ürünleri alır; diğer roller yalnızca kendi {@code authorizedProducts}
+     * listelerindekileri alır. Kullanıcı ID'si yoksa boş liste döner.
+     *
+     * @param userId istek yapan kullanıcı (null olabilir)
+     * @param roles kullanıcının rolleri
+     * @return görülebilen ürünler
+     */
     @Transactional(readOnly = true)
     public List<Product> getAllProducts(String userId, List<String> roles) {
         log.debug("Ürün listeleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
@@ -72,6 +100,12 @@ public class ProductService {
         return authProducts;
     }
 
+    /**
+     * Yeni bir ürün oluşturur. {@code isActive} null gelirse {@code true} atanır.
+     *
+     * @param product oluşturulacak ürün (id eşittir DB tarafından üretilir)
+     * @return persist edilmiş ürün
+     */
     public Product createProduct(Product product) {
         log.info("Yeni ürün oluşturuluyor: {}", product.getName());
         if (product.getIsActive() == null) {
@@ -82,6 +116,16 @@ public class ProductService {
         return savedProduct;
     }
 
+    /**
+     * Ürünü ve ona bağlı tüm bilet/limit kayıtlarını cascade silinir.
+     *
+     * <p>Önce ürüne ait biletlerin ID'leri toplanır ve her biri
+     * {@link TicketService#deleteTicket} ile (yorum, attachment, claim vb.
+     * temizlenmesi için) silinir; ardından ajan-özel limit kayıtları ve
+     * ürünün kendisi silinir.
+     *
+     * @param id silinecek ürün ID
+     */
     @Transactional
     public void deleteProduct(Long id) {
         log.info("Ürün siliniyor. ID: {}", id);
@@ -102,6 +146,15 @@ public class ProductService {
         log.info("Ürün başarıyla silindi. ID: {}", id);
     }
 
+    /**
+     * Ürünü kısmi olarak günceller. Yalnızca {@code null} olmayan alanlar uygulanır;
+     * {@code maxActiveTickets} özellikle {@code null} gönderilirse limit kaldırılır.
+     *
+     * @param id güncellenecek ürün ID
+     * @param updatedProduct kısmi yeni değerler
+     * @return güncellenmiş ürün
+     * @throws RuntimeException ürün bulunamazsa
+     */
     public Product updateProduct(Long id, Product updatedProduct) {
         log.info("Ürün güncelleniyor. ID: {}", id);
         Product existingProduct = productRepository.findById(id)
@@ -130,6 +183,16 @@ public class ProductService {
         return savedProduct;
     }
 
+    /**
+     * Ürünün varsayılan eşzamanlı bilet limitini değiştirir; {@code null} ise limit
+     * tamamen kaldırılır. Pozitif olmayan değer kabul edilmez.
+     *
+     * @param productId ürün ID
+     * @param limit yeni limit veya {@code null} (limitsiz)
+     * @return güncellenmiş ürün
+     * @throws IllegalArgumentException limit 1'in altındaysa
+     * @throws ResponseStatusException 404 — ürün bulunamazsa
+     */
     @Transactional
     public Product updateMaxActiveTickets(Long productId, Integer limit) {
         log.info("Ürün eşzamanlı bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);

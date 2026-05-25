@@ -12,6 +12,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Bir ürüne ait talep konularının (ticket topic) CRUD yönetimi.
+ *
+ * <p>Konu adı ürün içinde benzersizdir (case-insensitive). Listeleme açık olduğu
+ * için yetki kontrolü controller seviyesinde yapılır; yönetim (create/update/delete)
+ * yalnızca AGENT_ADMIN / MANAGER rolündedir.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -20,6 +27,14 @@ public class TicketTopicService {
     private final TicketTopicRepository topicRepository;
     private final ProductRepository productRepository;
 
+    /**
+     * Verilen ürünün altındaki talep konularını ada göre sıralı döner.
+     *
+     * @param productId hedef ürün ID
+     * @param activeOnly {@code true} ise sadece aktif konular listelenir
+     * @return konu listesi (boş olabilir)
+     * @throws ResponseStatusException 404 — ürün bulunamazsa
+     */
     @Transactional(readOnly = true)
     public List<TicketTopic> listByProduct(Long productId, boolean activeOnly) {
         ensureProductExists(productId);
@@ -28,12 +43,30 @@ public class TicketTopicService {
                 : topicRepository.findByProductIdOrderByNameAsc(productId);
     }
 
+    /**
+     * Tek bir konu kaydını ID üzerinden getirir.
+     *
+     * @param id konu ID
+     * @return ilgili {@link TicketTopic}
+     * @throws ResponseStatusException 404 — konu bulunamazsa
+     */
     @Transactional(readOnly = true)
     public TicketTopic getById(Long id) {
         return topicRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.topic.not.found"));
     }
 
+    /**
+     * Yeni bir talep konusu oluşturur.
+     *
+     * <p>Ad trim edilir, aynı ürünün altında case-insensitive duplicate kontrolü yapılır.
+     *
+     * @param productId konunun ait olacağı ürün ID
+     * @param name konu adı; boş bırakılamaz
+     * @param isActive aktif/pasif durumu; {@code null} ise varsayılan {@code true}
+     * @return oluşturulan kayıt
+     * @throws ResponseStatusException 404 ürün yoksa, 400 ad boşsa, 409 ad çakışırsa
+     */
     @Transactional
     public TicketTopic create(Long productId, String name, Boolean isActive) {
         ensureProductExists(productId);
@@ -55,6 +88,16 @@ public class TicketTopicService {
         return saved;
     }
 
+    /**
+     * Mevcut bir konu kaydını kısmi olarak günceller; yalnızca {@code null} olmayan
+     * alanlar değiştirilir. Ad değişiyorsa case-insensitive duplicate kontrolü uygulanır.
+     *
+     * @param id güncellenecek konu ID
+     * @param name yeni ad (opsiyonel)
+     * @param isActive yeni aktif/pasif durumu (opsiyonel)
+     * @return güncellenmiş kayıt
+     * @throws ResponseStatusException 404 yoksa, 400 ad boşsa, 409 ad çakışırsa
+     */
     @Transactional
     public TicketTopic update(Long id, String name, Boolean isActive) {
         TicketTopic existing = getById(id);
@@ -80,6 +123,13 @@ public class TicketTopicService {
         return saved;
     }
 
+    /**
+     * Konu kaydını siler. Konuya bağlı biletlerin {@code topicId} alanları
+     * (referential integrity) DB constraint'ine göre davranır.
+     *
+     * @param id silinecek konu ID
+     * @throws ResponseStatusException 404 — konu bulunamazsa
+     */
     @Transactional
     public void delete(Long id) {
         TicketTopic existing = getById(id);

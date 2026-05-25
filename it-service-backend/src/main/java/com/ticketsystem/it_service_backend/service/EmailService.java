@@ -15,6 +15,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.Locale;
 
+/**
+ * Bilet ve hesap güvenliği olayları için HTML formatlı e-posta üretimi ve gönderimi.
+ *
+ * <p>Tüm {@code send*} metotları {@code @Async} çalışır; alıcı kullanıcının
+ * {@code preferredLanguage} ve {@code preferredTheme} alanlarına göre yerelleştirilmiş
+ * mesajlar ve light/dark renk paleti uygulanır. Gönderim {@link JavaMailSender}
+ * üzerinden (dev ortamında Mailpit) yapılır; geçici hatalar için en fazla 3 deneme
+ * uygulanır. Başarı / hata / atlama durumları {@code mail_send_total} sayacında
+ * kategori bazlı izlenir.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -54,6 +64,12 @@ public class EmailService {
     // Public send methods — each resolves messages using the recipient's locale
     // -------------------------------------------------------------------------
 
+    /**
+     * Yeni bilet oluşturulduğunda müşteriye onay maili gönderir (async).
+     *
+     * @param customer alıcı müşteri (dil/tema tercihleri okunur)
+     * @param ticket konu olan bilet
+     */
     @Async
     public void sendTicketCreatedEmail(User customer, Ticket ticket) {
         Locale locale = localeOf(customer);
@@ -66,6 +82,12 @@ public class EmailService {
         send(customer.getEmail(), subject, body, Category.TICKET_CREATED);
     }
 
+    /**
+     * Ajana manuel atama bildirim maili gönderir (async).
+     *
+     * @param agent atanan ajan
+     * @param ticket atanan bilet
+     */
     @Async
     public void sendTicketAssignedEmail(User agent, Ticket ticket) {
         Locale locale = localeOf(agent);
@@ -78,6 +100,14 @@ public class EmailService {
         send(agent.getEmail(), subject, body, Category.TICKET_ASSIGNED);
     }
 
+    /**
+     * Bilet statü değişikliği bildirim mailini müşteriye gönderir (async).
+     *
+     * @param customer alıcı müşteri
+     * @param ticket bilet referansı
+     * @param oldStatus önceki statü
+     * @param newStatus yeni statü
+     */
     @Async
     public void sendStatusChangedEmail(User customer, Ticket ticket, String oldStatus, String newStatus) {
         Locale locale = localeOf(customer);
@@ -90,6 +120,14 @@ public class EmailService {
         send(customer.getEmail(), subject, body, Category.STATUS_CHANGED);
     }
 
+    /**
+     * Bilete yeni yorum eklendiğinde karşı tarafa bildirim maili gönderir (async).
+     *
+     * @param recipient alıcı kullanıcı
+     * @param ticket bilet referansı
+     * @param commentMessage yorum metni (HTML escape edilir)
+     * @param commenterName yorumu yazanın görünür adı (HTML escape edilir)
+     */
     @Async
     public void sendCommentAddedEmail(User recipient, Ticket ticket, String commentMessage, String commenterName) {
         Locale locale = localeOf(recipient);
@@ -102,6 +140,12 @@ public class EmailService {
         send(recipient.getEmail(), subject, body, Category.COMMENT_ADDED);
     }
 
+    /**
+     * SLA yaklaşan ihlali (warning eşiği) için uyarı maili gönderir (async).
+     *
+     * @param recipient alıcı (ajan veya manager)
+     * @param ticket konu olan bilet
+     */
     @Async
     public void sendSlaWarningEmail(User recipient, Ticket ticket) {
         Locale locale = localeOf(recipient);
@@ -114,6 +158,12 @@ public class EmailService {
         send(recipient.getEmail(), subject, body, Category.SLA_WARNING);
     }
 
+    /**
+     * SLA ihlali gerçekleştiğinde uyarı maili gönderir (async).
+     *
+     * @param recipient alıcı (ajan veya manager)
+     * @param ticket ihlal eden bilet
+     */
     @Async
     public void sendSlaBreachedEmail(User recipient, Ticket ticket) {
         Locale locale = localeOf(recipient);
@@ -126,6 +176,12 @@ public class EmailService {
         send(recipient.getEmail(), subject, body, Category.SLA_BREACHED);
     }
 
+    /**
+     * Bilet RESOLVED durumuna geçtiğinde müşteriye bilgilendirme maili gönderir (async).
+     *
+     * @param customer alıcı müşteri
+     * @param ticket çözümlenen bilet
+     */
     @Async
     public void sendTicketResolvedEmail(User customer, Ticket ticket) {
         Locale locale = localeOf(customer);
@@ -145,6 +201,12 @@ public class EmailService {
      * <p>{@code languageOverride} / {@code themeOverride} verilirse — kullanıcı
      * o anki tarayıcı oturumunda hangi dil/temayı kullanıyorsa mail o şekilde
      * basılır. Null/boş geçilirse kullanıcının DB'deki tercihine düşülür.
+     *
+     * @param recipient alıcı kullanıcı
+     * @param resetUrl reset linki (token query parametresi dahil)
+     * @param ttlMinutes link geçerlilik süresi (dakika), mail gövdesinde gösterilir
+     * @param languageOverride istemcinin o anki dili (en/tr) veya {@code null}
+     * @param themeOverride istemcinin o anki teması (light/dark) veya {@code null}
      */
     @Async
     public void sendPasswordResetEmail(User recipient, String resetUrl, int ttlMinutes,
@@ -161,6 +223,10 @@ public class EmailService {
      * Hem profil sayfasındaki "şifre değiştir" hem de forgot-password reset
      * akışlarının sonunda tetiklenir. Yetkisiz değişiklik tespiti için kullanıcının
      * fark etmesini sağlar — silent password change'i önler.
+     *
+     * @param recipient alıcı kullanıcı
+     * @param languageOverride istemcinin o anki dili veya {@code null} (DB tercihi)
+     * @param themeOverride istemcinin o anki teması veya {@code null} (DB tercihi)
      */
     @Async
     public void sendPasswordChangedEmail(User recipient, String languageOverride, String themeOverride) {
@@ -176,6 +242,9 @@ public class EmailService {
 
     /**
      * Hesaba yeni bir 2FA cihazı eklendiğinde gönderilen güvenlik bildirimi.
+     *
+     * @param recipient alıcı kullanıcı
+     * @param deviceLabel cihaz etiketi; null/boş ise yerelleştirilmiş "isimsiz cihaz"
      */
     @Async
     public void send2FADeviceAddedEmail(User recipient, String deviceLabel) {
@@ -194,6 +263,9 @@ public class EmailService {
 
     /**
      * Hesaptan bir 2FA cihazı kaldırıldığında gönderilen güvenlik bildirimi.
+     *
+     * @param recipient alıcı kullanıcı
+     * @param deviceLabel cihaz etiketi; null/boş ise yerelleştirilmiş "isimsiz cihaz"
      */
     @Async
     public void send2FADeviceRemovedEmail(User recipient, String deviceLabel) {

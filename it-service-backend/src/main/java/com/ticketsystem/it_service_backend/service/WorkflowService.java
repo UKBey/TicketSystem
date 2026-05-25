@@ -45,7 +45,15 @@ public class WorkflowService {
     }
 
 
-    // Yeni olusturulan bilet icin surec baslatir ve instance kimligini dondurur.
+    /**
+     * Yeni olusturulan bilet icin jBPM surec ornegini baslatir ve instance
+     * kimligini dondurur. SLA suresi ISO-8601 duration formatinda; callback
+     * URL'i ortam degiskeniyle birlikte process variable'lara konur.
+     *
+     * @param ticket yeni bilet
+     * @return baslatilan process instance ID
+     * @throws RuntimeException KIE Server erisilmez veya hata donerse
+     */
     public Long startTicketWorkflow(Ticket ticket) {
         log.info("Ticket için workflow başlatılıyor. TicketId={}, Priority={}, CustomerId={}",
                 ticket.getId(), ticket.getPriority(), ticket.getCustomerId());
@@ -73,7 +81,10 @@ public class WorkflowService {
     }
 
     /**
-     * Bilet durumunu workflow degiskeni ile senkron tutar.
+     * Bilet durumunu workflow degiskeni ile senkron tutar. {@code processInstanceId}
+     * yoksa sessizce atlanir. KIE Server hatalari sadece log'a yazilir.
+     *
+     * @param ticket guncel statu degerini tasiyan bilet
      */
     public void syncTicketStatus(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -90,6 +101,9 @@ public class WorkflowService {
     /**
      * Claim alan ajanın bilgisini workflow tarafına aktarır.
      * Çok-agentli yapıda en son claim'i alan ajanın ID'si iletilir.
+     *
+     * @param ticket bilet
+     * @param agentId atanan/claim alan ajan ID
      */
     public void syncTicketAssignment(Ticket ticket, String agentId) {
         if (ticket.getProcessInstanceId() == null) {
@@ -105,7 +119,11 @@ public class WorkflowService {
     }
 
     /**
-     * SLA sayaç ilerleyisini durdurur ve o ana kadar gecen sureyi birikimli alana yazar.
+     * SLA sayac ilerleyisini durdurur ve o ana kadar gecen sureyi birikimli alana yazar.
+     * Halihazirda pause'lu ise no-op. {@code processInstanceId} yoksa sadece DB
+     * tarafinda durdurulur (workflow sinyali atlanir).
+     *
+     * @param ticket SLA'i duraklatilacak bilet
      */
         public void pauseSla(Ticket ticket) {
         // Son baslangic noktasindan itibaren gecen sureyi toplama ekler.
@@ -143,7 +161,11 @@ public class WorkflowService {
     }
 
     /**
-     * SLA sayacini kalan sure uzerinden kaldigi yerden devam ettirir.
+     * SLA sayacini kalan sure uzerinden kaldigi yerden devam ettirir. Kalan
+     * sure mevcut priority ile yeniden hesaplanir ve jBPM tarafindaki timer
+     * yeniden zamanlanir.
+     *
+     * @param ticket SLA'i yeniden baslatilacak bilet
      */
             public void resumeSla(Ticket ticket) {
         ticket.setSlaPausedAt(null);
@@ -173,7 +195,11 @@ public class WorkflowService {
     }
 
     /**
-     * Bilet kapanisinda sureci sinyal gondererek sonlandirir.
+     * Bilet kapanisinda surece {@code ticket_closed} sinyali gondererek sonlandirir.
+     * Sinyal basarisiz olursa fallback olarak {@link KieServerAdapter#abortProcess}
+     * cagrilir. {@code processInstanceId} yoksa sessizce atlanir.
+     *
+     * @param ticket kapanan bilet
      */
     public void closeTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -200,6 +226,9 @@ public class WorkflowService {
 
     /**
      * Silinen veya iptal edilen biletin surecini abort ederek kapatir.
+     * {@code processInstanceId} yoksa sessizce atlanir.
+     *
+     * @param ticket silinmek/iptal edilmek uzere olan bilet
      */
     public void abortTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -234,17 +263,25 @@ public class WorkflowService {
     /**
      * Biletin anlık SLA bilgisini ve görsel durumunu (slaState) istemci tarafı için hesaplar.
      *
-     * slaState değerleri:
-     *   "active"    — SLA sayacı çalışıyor (NEW, IN_PROGRESS)
-     *   "paused"    — SLA duraklatıldı, kalan süre var (WAITING_FOR_CUSTOMER, RESOLVED)
-     *   "expired"   — SLA s��resi doldu (ihlal kaydı olsun ya da olmasın)
-     *   "completed" — Bilet kapandı, SLA artık izlenmiyor (CLOSED)
+     * <p>slaState değerleri:
+     * <ul>
+     *   <li>{@code "active"} — SLA sayacı çalışıyor (NEW, IN_PROGRESS)</li>
+     *   <li>{@code "paused"} — SLA duraklatıldı, kalan süre var (WAITING_FOR_CUSTOMER, RESOLVED)</li>
+     *   <li>{@code "expired"} — SLA süresi doldu (ihlal kaydı olsun ya da olmasın)</li>
+     *   <li>{@code "completed"} — Bilet kapandı, SLA artık izlenmiyor (CLOSED)</li>
+     * </ul>
      *
-     * Karar önceliği:
-     *   1. CLOSED         → her zaman "completed"  (ihlal kaydı DB'de korunur, badge etkilenmez)
-     *   2. slaBreached    → "expired"
-     *   3. Duraklı mod    → remaining > 0 ise "paused", değilse "expired"
-     *   4. Aktif mod      → "active" ile geri sayım
+     * <p>Karar önceliği:
+     * <ol>
+     *   <li>CLOSED → her zaman "completed" (ihlal kaydı DB'de korunur)</li>
+     *   <li>{@code slaBreached} → "expired"</li>
+     *   <li>Duraklı mod → remaining &gt; 0 ise "paused", değilse "expired"</li>
+     *   <li>Aktif mod → "active" ile geri sayım</li>
+     * </ol>
+     *
+     * @param ticket SLA bilgisi hesaplanacak bilet
+     * @return {@code slaState}, {@code remainingMs}, {@code deadlineTimestamp} anahtarlarını
+     *         taşıyan map
      */
     public java.util.Map<String, Object> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
         java.util.Map<String, Object> result = new java.util.HashMap<>();

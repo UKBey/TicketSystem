@@ -26,6 +26,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Yönetici dashboard'u için KPI ve analitik metrikleri REST kontrolcüsü.
+ *
+ * <p>{@code MANAGER} (ve bazı endpoint'lerde {@code AGENT_ADMIN}) rolüne özeldir.
+ * Çoğu uç nokta Caffeine cache ile sarmalıdır; iş hesaplamaları
+ * {@link MetricsService} tarafından yapılır.
+ */
 @Log4j2
 @Tag(name = "Dashboard Metrikleri", description = "Sistem metrikleri, KPI'ları ve analitiği — Manager rolü için")
 @RestController

@@ -26,6 +26,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Bilete bağlı yorum (EXTERNAL/INTERNAL) ekleme ve listeleme REST kontrolcüsü.
+ *
+ * <p>Tüm endpoint'ler kimlik doğrulaması gerektirir; rol bazlı yetki kontrolleri
+ * (müşteri kendi biletine, agent atandığı bilete vb.) {@link CommentService}
+ * tarafında uygulanır.
+ */
 @Log4j2
 @Tag(name = "Yorum Yönetimi", description = "Biletlere yapılan müşteri yanıtları ve dahili notların yönetimi")
 @RestController
@@ -40,6 +47,13 @@ public class CommentController {
     private final CommentService commentService;
     private final UserRepository userRepository;
 
+    /**
+     * Bilete yeni bir yorum ekler; yetki kuralları {@link CommentService} içinde uygulanır.
+     *
+     * @param ticketId yorum eklenecek biletin kimliği
+     * @param body yorum metni ve tipi ({@code EXTERNAL} / {@code INTERNAL})
+     * @return oluşturulan yorum DTO'su
+     */
     // Bilete yeni yorum ekler ve yetki kurallarini servis katmaninda uygular.
     @Operation(summary = "Bilete yorum ekle",
             description = """
@@ -87,6 +101,15 @@ public class CommentController {
         return ResponseEntity.ok(convertToDto(comment));
     }
 
+    /**
+     * Biletin yorum geçmişini, rol bazlı görünürlük filtresiyle döner.
+     *
+     * <p>Müşteri yalnızca {@code EXTERNAL} yorumları görür; agent/agent admin
+     * her iki tipi de görür.
+     *
+     * @param ticketId yorumları listelenecek biletin kimliği
+     * @return rol filtrelemesi uygulanmış yorum DTO listesi
+     */
     // Biletin yorum gecmisini, rol kurallarina gore filtrelenmis sekilde listeler.
     @Operation(summary = "Biletin yorumlarını listele",
             description = """

@@ -7,6 +7,10 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bilete worklog (harcanan iş süresi) eklemek veya güncellemek için kullanılan istek modeli.
+ * Dakika cinsinden süre ve opsiyonel açıklama içerir; agent endpoint'lerinde tüketilir.
+ */
 @Schema(description = "İş kaydı (worklog) oluşturma/güncelleme isteği")
 public class WorklogRequestDTO {
 

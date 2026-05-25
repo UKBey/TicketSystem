@@ -44,6 +44,12 @@ public class SetupGenerator {
     private final UserSession adminAgent;
     private final KeycloakAdminApi keycloakAdmin;
 
+    /**
+     * @param api        backend API çağrıları için istemci
+     * @param mapper     setup.json'ı okumak için Jackson mapper
+     * @param http       per-user {@link KeycloakTokenClient}'lar için paylaşılan OkHttp
+     * @param adminAgent ürün/topic/yetki işlemlerini yürüten agent_admin oturumu
+     */
     public SetupGenerator(ApiClient api, ObjectMapper mapper, OkHttpClient http, UserSession adminAgent) {
         this.api           = api;
         this.mapper        = mapper;
@@ -52,6 +58,16 @@ public class SetupGenerator {
         this.keycloakAdmin = new KeycloakAdminApi(http, mapper);
     }
 
+    /**
+     * setup.json şablonuna göre sistemi hazırlar: kullanıcı oturumları, önceki
+     * generator ürünlerinin temizliği, ürün/topic/known-issue oluşturma ve
+     * yetki dağıtımı.
+     *
+     * @return TicketGenerator'a aktarılacak {@link SetupResult}
+     * @throws IOException          API veya setup.json okuma hatası
+     * @throws InterruptedException request temposu için yapılan {@code Thread.sleep} kesilirse
+     * @throws IllegalStateException hiçbir agent ya da customer login olamadıysa
+     */
     public SetupResult setup() throws IOException, InterruptedException {
         log.info("=== Sistem kurulumu başlıyor ===");
 

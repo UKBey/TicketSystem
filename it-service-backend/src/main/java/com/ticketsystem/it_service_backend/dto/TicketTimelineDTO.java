@@ -12,6 +12,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Belirli bir zaman aralığındaki günlük ticket trendlerinin wrapper yanıtı.
+ * Dashboard'un line chart'ı için {@link DailyMetricsDTO} listesini taşır.
+ */
 @Schema(description = "Ticket timeline — günlük trend metrikleri")
 public class TicketTimelineDTO {
 

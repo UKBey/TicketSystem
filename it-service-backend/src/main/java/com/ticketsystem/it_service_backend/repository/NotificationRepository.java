@@ -12,13 +12,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 
+/**
+ * {@link Notification} için JPA repository — kullanıcı başına sayfalı listeleme,
+ * okundu işaretleme ve scheduler tetiklemeli otomatik temizlik (retention) sorgularını sağlar.
+ */
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    /** Kullanıcının bildirimleri yeniden eskiye doğru sayfalanır ({@link Pageable}). */
     Page<Notification> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
 
     long countByUserIdAndIsReadFalse(String userId);
 
+    /** Kullanıcının tüm bildirimlerini okundu olarak işaretler (tek UPDATE). */
     @Modifying
     @Transactional
     @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId")

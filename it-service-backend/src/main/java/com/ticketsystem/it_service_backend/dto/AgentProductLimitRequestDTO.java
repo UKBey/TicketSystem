@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Agent + ürün ikilisi için özel aktif-bilet limiti tanımlama isteği.
+ * Agent admin sayfası tarafından kullanılır; {@code useCustomLimit=false} ise ürünün varsayılanı uygulanır.
+ */
 @Schema(description = "Agent için ürün bazlı özel limit ayarlama modeli")
 public class AgentProductLimitRequestDTO {
 

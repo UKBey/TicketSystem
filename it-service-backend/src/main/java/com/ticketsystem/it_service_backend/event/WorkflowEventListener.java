@@ -12,6 +12,14 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 
+/**
+ * Bilet event'lerini jBPM workflow servisine bagleyen koprü.
+ *
+ * <p>Listener {@code AFTER_COMMIT} fazinda calisir; boylece workflow yalnizca
+ * bilet basariyla veritabanina yazildiktan sonra baslatilir ve rollback edilen
+ * islemler icin gereksiz KIE cagrisi yapilmaz. KIE Server hatasi olusursa bilet
+ * yine de kullanim icin hazirdir — workflow olmadan da bilet yasayabilir.
+ */
 @Component
 @RequiredArgsConstructor
 @Log4j2
@@ -21,6 +29,16 @@ public class WorkflowEventListener {
     private final TicketRepository ticketRepository;
 
 
+    /**
+     * {@link TicketCreatedEvent} sonrasi KIE Server'da yeni bir
+     * {@code ticket-lifecycle} process instance baslatir ve donen
+     * {@code processInstanceId}'yi ayri transaction'da bilete yazar.
+     *
+     * <p>{@code REQUIRES_NEW} kullanildi cunku original transaction commit
+     * edildigi icin event tetiklendi; ayni transaction'a katilmak mumkun degil.
+     * Workflow basarisiz olursa hata loglanir ama exception yutulur — bilet
+     * yasamini surdurur.
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onTicketCreated(TicketCreatedEvent event) {

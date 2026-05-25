@@ -12,6 +12,11 @@ import java.time.Instant;
 
 /**
  * Keycloak'tan kullanıcı adı/şifre ile token alır ve otomatik yeniler.
+ *
+ * <p>{@code TicketSystemRealm} üzerindeki {@code ticket-frontend} client'ı ile
+ * password grant kullanılır. Token süresinin dolmasına yakın
+ * ({@link GeneratorConfig#TOKEN_REFRESH_THRESHOLD_SEC} saniye kala) refresh
+ * token ile yenilenir; refresh başarısız olursa yeniden login denenir.
  */
 public class KeycloakTokenClient {
 
@@ -27,6 +32,13 @@ public class KeycloakTokenClient {
     private String refreshToken;
     private Instant expiresAt;
 
+    /**
+     * Yeni bir token client oluşturur; token endpoint URL'i {@link GeneratorConfig}
+     * üzerindeki realm bilgilerinden türetilir.
+     *
+     * @param http   paylaşılan OkHttp client
+     * @param mapper token yanıtını çözmek için Jackson mapper'ı
+     */
     public KeycloakTokenClient(OkHttpClient http, ObjectMapper mapper) {
         this.http    = http;
         this.mapper  = mapper;
@@ -35,7 +47,13 @@ public class KeycloakTokenClient {
                 + "/protocol/openid-connect/token";
     }
 
-    /** Belirtilen kullanıcı için token alır. */
+    /**
+     * Belirtilen kullanıcı için token alır.
+     *
+     * @param username Keycloak kullanıcı adı
+     * @param password kullanıcının şifresi
+     * @throws IOException token endpoint hata döndürürse veya ağ erişimi başarısız olursa
+     */
     public void login(String username, String password) throws IOException {
         this.username = username;
         this.password = password;
@@ -43,7 +61,15 @@ public class KeycloakTokenClient {
         log.info("Token alındı: {}", username);
     }
 
-    /** Geçerli access token'ı döner; gerekirse yeniler. */
+    /**
+     * Geçerli access token'ı döner; gerekirse yeniler.
+     *
+     * <p>Refresh token varsa önce o denenir; başarısız olursa username/password
+     * ile yeniden login yapılır.
+     *
+     * @return aktif JWT access token
+     * @throws IOException hem refresh hem fresh login başarısız olursa
+     */
     public String getToken() throws IOException {
         if (accessToken == null || isExpiringSoon()) {
             if (refreshToken != null) {

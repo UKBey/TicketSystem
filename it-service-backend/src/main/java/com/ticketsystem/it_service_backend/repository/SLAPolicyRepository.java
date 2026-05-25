@@ -7,6 +7,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * SLA metriklerini hesaplayan native-SQL repository — {@code JdbcTemplate} kullanır,
+ * JPA entity'sine bağlı değildir. {@link SlaPolicyJpaRepository} ile karıştırılmamalı:
+ * o politikaları okur, bu ise aggregate raporu üretir.
+ */
 @Repository
 @RequiredArgsConstructor
 public class SLAPolicyRepository {

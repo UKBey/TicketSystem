@@ -50,7 +50,13 @@ public class KieServerAdapter {
     // Surec ornegi yasam dongusu islemleri.
 
     /**
-     * Verilen process tanimi icin yeni bir surec ornegi baslatir.
+     * Verilen process tanimi icin yeni bir surec ornegi baslatir. Circuit
+     * breaker acikken cagri kabul edilmez ve {@link RuntimeException} firlatilir.
+     *
+     * @param processId baslatilacak process tanim ID'si
+     * @param variables surece gecirilecek baslangic degiskenleri
+     * @return olusturulan process instance ID
+     * @throws RuntimeException KIE Server erisilmezse veya breaker acikken
      */
     public Long startProcess(String processId, Map<String, Object> variables) {
         log.info("jBPM süreci başlatılıyor: processId={}, containerId={}, variables={}", processId, containerId, variables);
@@ -72,7 +78,12 @@ public class KieServerAdapter {
     }
 
     /**
-     * Calisan surecin degiskenlerinden birini gunceller.
+     * Calisan surecin degiskenlerinden birini gunceller. Hata durumunda log
+     * yazilir; cagrici tarafa exception propage edilmez (best-effort).
+     *
+     * @param processInstanceId hedef process instance ID
+     * @param variableName guncellenecek degisken adi
+     * @param value yeni deger
      */
     public void setProcessVariable(Long processInstanceId, String variableName, Object value) {
         log.debug("Süreç değişkeni güncelleniyor: processInstanceId={}, variable={}={}", processInstanceId, variableName, value);
@@ -93,7 +104,11 @@ public class KieServerAdapter {
     }
 
     /**
-     * Surec orneginin mevcut durum bilgisini getirir.
+     * Surec orneginin mevcut durum bilgisini getirir. Bulunamazsa veya breaker
+     * acikken {@code null} doner.
+     *
+     * @param processInstanceId hedef process instance ID
+     * @return process instance veya {@code null}
      */
     public ProcessInstance getProcessInstance(Long processInstanceId) {
         Supplier<ProcessInstance> decoratedCall = CircuitBreaker.decorateSupplier(circuitBreaker, () ->
@@ -110,7 +125,9 @@ public class KieServerAdapter {
     }
 
     /**
-     * Calisan sureci iptal ederek sonlandirir.
+     * Calisan sureci iptal ederek sonlandirir. Hata propage edilmez (best-effort).
+     *
+     * @param processInstanceId iptal edilecek process instance ID
      */
     public void abortProcess(Long processInstanceId) {
         log.info("jBPM süreci iptal ediliyor: processInstanceId={}", processInstanceId);
@@ -128,7 +145,11 @@ public class KieServerAdapter {
     }
 
     /**
-     * Surec degiskenini tekil olarak okur.
+     * Surec degiskenini tekil olarak okur. Hata durumunda {@code null} doner.
+     *
+     * @param processInstanceId hedef process instance ID
+     * @param variableName okunacak degisken adi
+     * @return degisken degeri veya {@code null}
      */
     public Object getProcessVariable(Long processInstanceId, String variableName) {
         try {
@@ -143,7 +164,12 @@ public class KieServerAdapter {
     // Surece olay sinyali gonderme islemleri.
 
     /**
-     * Surec ornegine isimli bir sinyal gonderir.
+     * Surec ornegine isimli bir sinyal gonderir. Hata propage edilmez; sadece
+     * loglanir (best-effort).
+     *
+     * @param processInstanceId hedef process instance ID
+     * @param signalName sinyal adi (BPMN tarafindan tanimli)
+     * @param data sinyal payload'i (opsiyonel)
      */
     public void signalProcessInstance(Long processInstanceId, String signalName, Object data) {
         log.info("jBPM sürece sinyal gönderiliyor: processInstanceId={}, signal={}, data={}",
@@ -167,7 +193,11 @@ public class KieServerAdapter {
     // Human task sorgu ve tamamlama islemleri.
 
     /**
-     * Surec ornegine ait aktif task listesini dondurur.
+     * Surec ornegine ait aktif task (Ready/Reserved/InProgress) listesini dondurur.
+     * Hata durumunda bos liste doner.
+     *
+     * @param processInstanceId hedef process instance ID
+     * @return en fazla 100 aktif task; hata olursa bos liste
      */
     public List<TaskSummary> getActiveTasks(Long processInstanceId) {
         try {
@@ -184,6 +214,11 @@ public class KieServerAdapter {
 
     /**
      * Task'i claim/start/complete adimlariyla tek akis halinde sonlandirir.
+     *
+     * @param taskId hedef human task ID
+     * @param userId task'i tamamlayan kullanici
+     * @param output complete asamasinda gonderilecek cikti map'i
+     * @throws RuntimeException KIE Server erisilmezse veya breaker acikken
      */
     public void claimAndCompleteTask(Long taskId, String userId, Map<String, Object> output) {
         log.info("jBPM task tamamlanıyor: taskId={}, user={}", taskId, userId);
@@ -209,6 +244,10 @@ public class KieServerAdapter {
 
     /**
      * Surecte aktif timer varsa bir sonraki tetikleme zamanini milisaniye olarak dondurur.
+     * Birden fazla timer varsa ilk kayda bakilir (tek SLA timer'i beklendigi icin).
+     *
+     * @param processInstanceId hedef process instance ID
+     * @return next-fire-time epoch ms; aktif timer yoksa veya hata olursa {@code null}
      */
     public Long getActiveTimerDeadline(Long processInstanceId) {
         Supplier<Long> decoratedCall = CircuitBreaker.decorateSupplier(circuitBreaker, () -> {

@@ -7,6 +7,14 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
+/**
+ * Önceliklere göre SLA hedef sürelerini ve uyarı eşiklerini sunar.
+ *
+ * <p>Değerler {@code app.sla.policies} yapılandırmasından (env-driven) okunur;
+ * eksik priority için tehlikesiz dahili default'lara düşer. SLA politikası
+ * değişirse dashboard cache'lerini boşaltmak için
+ * {@link #evictSlaDependentCaches} sağlanır.
+ */
 @Service
 @RequiredArgsConstructor
 public class SlaPolicyService {
@@ -29,6 +37,13 @@ public class SlaPolicyService {
         // Method body bos; @CacheEvict aspect'i flush'i yapar.
     }
 
+    /**
+     * Verilen priority için SLA hedef süresini milisaniye olarak döner.
+     *
+     * @param priority {@code CRITICAL/HIGH/MEDIUM/LOW} (case-insensitive); null/eşleşmeyen
+     *                 değer MEDIUM default'u olarak ele alınır
+     * @return SLA süresi (ms)
+     */
     public long getSlaDurationMs(String priority) {
         if (priority == null) return defaultMs("MEDIUM");
         SlaProperties.PolicyConfig cfg = slaProperties.getPolicies().get(priority.toUpperCase());
@@ -38,10 +53,23 @@ public class SlaPolicyService {
         return defaultMs(priority.toUpperCase());
     }
 
+    /**
+     * SLA hedef süresini saat cinsinden döner (metrik aggregation'larında kullanılır).
+     *
+     * @param priority priority kodu
+     * @return saat cinsinden SLA süresi
+     */
     public int getResolutionHours(String priority) {
         return (int) (getSlaDurationMs(priority) / 3_600_000L);
     }
 
+    /**
+     * Bildirim/uyarı (upcoming-breach) tetikleme eşiğini saat cinsinden döner.
+     * Konfigürasyon eksikse 2 saat default'u uygulanır.
+     *
+     * @param priority priority kodu
+     * @return uyarı eşiği (saat)
+     */
     public int getWarningThresholdHours(String priority) {
         if (priority == null) return 2;
         SlaProperties.PolicyConfig cfg = slaProperties.getPolicies().get(priority.toUpperCase());

@@ -21,6 +21,15 @@ import java.util.regex.Pattern;
 
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Bilet eklerinin (attachment) yükleme, listeleme, indirme ve silme akışlarını yönetir.
+ *
+ * <p>Dosya içeriği DB'de {@code bytea} olarak saklanır. Yükleme aşamasında boyut
+ * (10 MB), uzantı whitelist'i ve metin tabanlı dosyalarda ERROR/WARNING anahtar
+ * kelime + hassas veri (token, secret, private key blokları) kontrolleri uygulanır.
+ * Başarılı işlemler {@link SimpMessagingTemplate} üzerinden ilgili ticket topic'ine
+ * yayınlanır.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -38,6 +47,24 @@ public class AttachmentService {
         private static final Pattern PRIVATE_KEY_BLOCK_PATTERN = Pattern.compile(
             "(?s)-----BEGIN [A-Z ]+ PRIVATE KEY-----.*?-----END [A-Z ]+ PRIVATE KEY-----");
 
+    /**
+     * Verilen bilete yeni bir dosya ekler. Yükleyenin bilet üzerinde mutation
+     * yetkisi olmalı; boyut ve uzantı kuralları sağlanmalı; .txt/.log dosyaları
+     * için ERROR/WARNING anahtar kelimeleri zorunludur ve hassas veri kalıbı
+     * (token, password, private key) içermemelidir.
+     *
+     * <p>Başarılı kayıttan sonra {@code /topic/tickets/{id}} kanalına attachment
+     * eklendi olayı yayınlanır.
+     *
+     * @param ticketId hedef bilet ID
+     * @param uploaderId yükleyen kullanıcının ID'si
+     * @param roles yetki doğrulamasında kullanılacak rol listesi
+     * @param file yüklenecek multipart dosya
+     * @return kaydedilmiş {@link Attachment}
+     * @throws IOException dosya içeriği okunamadığında
+     * @throws IllegalArgumentException boyut/uzantı/içerik kuralları ihlal edildiğinde
+     * @throws ResponseStatusException 403 — bilete mutation yetkisi yoksa
+     */
     public Attachment uploadAttachment(Long ticketId, String uploaderId, List<String> roles, MultipartFile file) throws IOException {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         String extension = getFileExtension(fileName);
@@ -121,6 +148,17 @@ public class AttachmentService {
         return attachment;
     }
 
+    /**
+     * Eki siler. AGENT_ADMIN her dosyayı silebilir; diğer rollerde yalnızca
+     * yükleyen kullanıcı silebilir. Bilet erişimi {@link #getAttachment} ile
+     * önceden doğrulanır.
+     *
+     * @param id silinecek attachment ID
+     * @param userId işlemi yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @throws IllegalArgumentException attachment bulunamazsa
+     * @throws ResponseStatusException 403 — yetki/sahiplik yoksa
+     */
     public void deleteAttachment(Long id, String userId, List<String> roles) {
         Attachment attachment = getAttachment(id, userId, roles);
 

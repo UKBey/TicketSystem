@@ -12,6 +12,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Bilet kapanışı sonrası müşteri memnuniyet anketi (CSAT) yönetimi.
+ *
+ * <p>Anket yalnızca biletin sahibi olan müşteri tarafından, RESOLVED veya CLOSED
+ * statüsünde, bilet başına bir kez verilebilir. RESOLVED durumda yanıt gelirse
+ * bilet otomatik olarak CLOSED durumuna taşınır.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -20,6 +27,20 @@ public class CsatService {
     private final CsatRepository csatRepository;
     private final TicketService ticketService;
 
+    /**
+     * Bir bilet için CSAT anket cevabını kaydeder.
+     *
+     * <p>Sahiplik, statü (RESOLVED/CLOSED), tekil kayıt ve 1-5 puan aralığı
+     * doğrulanır. Bilet RESOLVED ise kayıt sonrasında CLOSED durumuna taşınır
+     * (CSAT_SUBMITTED reason kodu ile audit'lenir).
+     *
+     * @param ticketId hedef bilet ID
+     * @param dto anket içeriği (rating + opsiyonel yorum)
+     * @param userId istemde bulunan müşteri ID
+     * @param roles kullanıcının rolleri
+     * @return kaydedilmiş {@link Csat}
+     * @throws ResponseStatusException 400 puan/statü/tekrar, 403 sahiplik ihlali
+     */
     public Csat submitCsat(Long ticketId, CsatDTO dto, String userId, List<String> roles) {
         log.info("CSAT anketi gönderimi başlatıldı. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
@@ -66,10 +87,26 @@ public class CsatService {
         return savedCsat;
     }
 
+    /**
+     * Bir biletin halihazırda CSAT yanıtının olup olmadığını döner.
+     *
+     * @param ticketId bilet ID
+     * @return kayıt varsa {@code true}
+     */
     public boolean hasCsat(Long ticketId) {
         return csatRepository.existsByTicketId(ticketId);
     }
 
+    /**
+     * Bir bilete ait CSAT kaydını döner. Yetki kontrolü {@link TicketService}
+     * üzerinden yapılır.
+     *
+     * @param ticketId hedef bilet ID
+     * @param userId istek yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return CSAT kaydı
+     * @throws ResponseStatusException 404 yoksa, 403 bilete erişim yoksa
+     */
     public Csat getCsatByTicketId(Long ticketId, String userId, List<String> roles) {
         log.debug("CSAT detay isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
 
@@ -83,6 +120,12 @@ public class CsatService {
                 });
     }
 
+    /**
+     * Tüm CSAT kayıtlarını döner. Erişim yetkisi controller tarafında
+     * {@code @PreAuthorize} ile AGENT_ADMIN'e kısıtlıdır.
+     *
+     * @return tüm CSAT yanıtları
+     */
     public List<Csat> getAllCsats() {
         log.debug("Tüm CSAT anketlerini listeleme isteği (Agent admin).");
         return csatRepository.findAll();

@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
 
+/**
+ * Müşteri memnuniyet anketi (CSAT) — {@link Ticket} kapandıktan sonra müşterinin
+ * verdiği 1-5 arası puan ve opsiyonel yorum.
+ *
+ * <p>{@code ticket_id} unique — her bilet için yalnızca bir anket kaydedilebilir.
+ * Dashboard KPI'leri (ortalama puan, priority/product bazlı dağılım) buradan beslenir.
+ */
 @Entity
 @Table(name = "csat_surveys")
 @Getter
@@ -20,6 +27,7 @@ public class Csat {
     @Column(name = "ticket_id", unique = true, nullable = false)
     private Long ticketId;
 
+    /** 1-5 arası tamsayı puan (5 = en yüksek memnuniyet). */
     @Column(nullable = false)
     private Integer rating;
 

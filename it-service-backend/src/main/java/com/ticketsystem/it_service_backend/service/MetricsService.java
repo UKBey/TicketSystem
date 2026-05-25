@@ -53,6 +53,15 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.data.domain.PageRequest;
 
+/**
+ * Yönetici dashboard'unu besleyen aggregate metrik hesaplamaları.
+ *
+ * <p>Tüm sonuçlar Caffeine cache'lerinde tutulur (bkz. {@code CacheConfig};
+ * varsayılan TTL 5 dakika). Hesaplamalar mümkün olduğunca tek native/JPQL
+ * sorgusu ile yapılır; Java-side join'lerden kaçınılır. SLA hedef saatleri
+ * env-driven {@link SlaPolicyService} üzerinden okunur, böylece cache
+ * geçişlerinde değer flicker'ı yaşanmaz.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -428,6 +437,14 @@ public class MetricsService {
                 .build();
     }
 
+    /**
+     * Belirtilen ay penceresi için CSAT metriklerini hesaplar: ortalama puan,
+     * puan dağılımı, ay-üzeri trend (UP/DOWN/STABLE), priority bazlı dağılım ve
+     * pozitif yorum top-5 örneği. {@code months} 1-12 arasında clamp'lenir.
+     *
+     * @param months pencere uzunluğu (ay) — 1 ile 12 arasında
+     * @return CSAT metrik özet DTO'su
+     */
     @Cacheable(value = CSAT_METRICS, key = "#months")
     public CSATMetricsDTO getCSATMetrics(int months) {
         int safeMonths = Math.max(1, Math.min(months, 12));
@@ -482,6 +499,16 @@ public class MetricsService {
                 .build();
     }
 
+    /**
+     * Alert ve backlog panelini besleyen kompozit DTO'yu üretir.
+     *
+     * <p>Üç alert listesi: (1) breached SLA top-10, (2) priority bazlı uyarı eşiği
+     * içine giren upcoming-breach top-10, (3) WAITING_FOR_CUSTOMER 3 günden uzun
+     * süren biletler. Backlog: atanmamış sayı, NEW sayısı, ortalama bekleme süresi.
+     * Müşteri adları tek {@code findAllById} ile çekilerek N+1 önlenir.
+     *
+     * @return alert listeleri + backlog metriklerini taşıyan DTO
+     */
     public AlertsBacklogDTO getAlertsAndBacklog() {
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
         List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
@@ -578,6 +605,17 @@ public class MetricsService {
                 .build();
     }
 
+    /**
+     * Worklog ve completion metriklerini hesaplar.
+     *
+     * <p>Verilen gün penceresi için her ajanın toplam worklog dakikası/kayıt sayısı
+     * ile genel completion rate (resolved+closed / created), ortalama çözüm süresi
+     * ve SLA uyumluluk oranı tek aggregated query ile döner. {@code days} 1-365
+     * arası clamp'lenir.
+     *
+     * @param days pencere (gün)
+     * @return worklog özetleri + completion oranları
+     */
     @Cacheable(value = WORKLOG_COMPLETION, key = "#days")
     public WorklogCompletionDTO getWorklogCompletion(int days) {
         int safeDays = Math.max(1, Math.min(days, 365));

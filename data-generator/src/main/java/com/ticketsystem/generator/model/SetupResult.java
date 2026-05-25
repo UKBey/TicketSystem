@@ -20,6 +20,13 @@ public record SetupResult(
         Map<String, Long> topicByProductAndName
 ) {
 
+    /**
+     * {@link #topicByProductAndName()} map'inin anahtarını üretir.
+     *
+     * @param productName ürün adı
+     * @param topicName   topic adı
+     * @return {@code "productName::topicName"} formatında composite anahtar
+     */
     public static String topicKey(String productName, String topicName) {
         return productName + "::" + topicName;
     }

@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bir bileti CLOSED durumuna geçirirken gönderilen istek.
+ * Sebep kodu zorunludur (Bean Validation aktif); {@code reasonCode=OTHER} ise serbest metin de zorunlu olur.
+ */
 @Schema(description = "Close ticket isteği — sebep kodu (zorunlu) ve opsiyonel açıklama")
 public class CloseTicketRequestDTO {
 

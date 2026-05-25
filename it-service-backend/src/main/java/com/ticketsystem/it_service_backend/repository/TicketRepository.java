@@ -9,30 +9,36 @@ import org.springframework.data.repository.query.Param;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+/**
+ * {@link Ticket} için JPA repository — temel CRUD'un üstüne, rol bazlı (müşteri / agent /
+ * agent_admin) sayfalı + filtreli listeleme, SLA-urgency sıralama, dashboard aggregate'leri
+ * ve scheduler için SLA breach/uyarı sorgularını kapsayan geniş bir API sunar.
+ *
+ * <p>Filtreli "full" varyantlar tek native sorguda search/status/priority/product/agent/topic/SLA
+ * /date filtrelerini birleştirir; daha eski JPQL varyantları geriye uyumluluk için duruyor.
+ */
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
-    // Musterinin olusturdugu biletleri listeler.
+    /** Müşterinin oluşturduğu tüm biletleri döner. */
     List<Ticket> findByCustomerId(String customerId);
 
-    // Havuzdaki (NEW) ve henuz sahiplenilmemis kayitlari getirir.
+    /** Verilen status'teki biletleri döner (genelde "NEW" = sahiplenilmemiş havuz için). */
     List<Ticket> findByStatus(String status);
 
-    // Agentin yetkili oldugu urunlere ait NEW biletleri getirir.
+    /** Ajanın yetkili olduğu ürünlere ait, verilen status'teki biletler. */
     List<Ticket> findByStatusAndProductIdIn(String status, List<Long> productIds);
 
-    // Belirtilen urun listesine ait tum biletleri statuden bagimsiz dondurur.
+    /** Verilen ürün listesine ait tüm biletler — status bağımsız. */
     List<Ticket> findByProductIdIn(List<Long> productIds);
 
-    // Tek bir urune ait tum biletleri dondurur (urun detay sayfasi icin).
     List<Ticket> findByProductId(Long productId);
 
-    // Musteri + urun kombinasyonuna ait biletleri dondurur.
     List<Ticket> findByCustomerIdAndProductId(String customerId, Long productId);
 
-    // Karma rolde kullanicinin hem sahip oldugu hem yetkili oldugu urun biletlerini birlestirir.
+    /** Karma rol: kullanıcının hem kendi açtığı biletler hem yetkili olduğu ürünlerdeki biletler (union). */
     List<Ticket> findByCustomerIdOrProductIdIn(String customerId, List<Long> productIds);
 
-    // Agentin yetkili oldugu urunlerde NEW olmayan ve CLOSED olmayan aktif biletleri dondurur.
+    /** Ajanın yetkili olduğu ürünlerdeki NEW ve CLOSED dışı (yani aktif) biletler. */
     @Query("SELECT t FROM Ticket t WHERE t.productId IN :productIds AND t.status NOT IN ('NEW', 'CLOSED')")
     List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
 
@@ -325,7 +331,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
 
-    // Musteri biletleri — status ve priority filtresi ile sayfalama
+    /** Müşteri biletleri — status + priority filtreli sayfalama (legacy JPQL varyant). */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
@@ -338,10 +344,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Musteri biletleri — SLA urgency sirasi ile
-    // Grup 0: expired (slaBreached=true) → slaDeadline ASC (en uzun suredir expired = en kucuk deadline = en urgent)
-    // Grup 1: aktif sayac (slaBreached=false, slaPausedAt IS NULL) → slaDeadline ASC (en az suresi kalan = en urgent)
-    // Grup 2: dondurulmus (slaBreached=false, slaPausedAt IS NOT NULL) → slaDeadline ASC
+    /**
+     * Müşteri biletleri — SLA aciliyet sırasıyla sayfalanır.
+     * Grup 0: süresi geçmiş ({@code slaBreached=true}) — deadline ASC (en uzun süre geçen = en acil).
+     * Grup 1: aktif sayaç ({@code slaBreached=false}, paused değil) — deadline ASC (kalan süre az = acil).
+     * Grup 2: dondurulmuş ({@code slaPausedAt IS NOT NULL}) — deadline ASC.
+     */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
@@ -403,7 +411,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Havuz (NEW) biletleri — yetkili urunler + priority filtresi ile sayfalama
+    /** Havuz (NEW) biletleri — ajanın yetkili olduğu ürünler içinden priority filtresi ile sayfalı. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
@@ -441,7 +449,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Havuz (NEW) biletleri — SLA urgency sirasi ile
+    /** Havuz (NEW) biletleri — SLA aciliyet sırasıyla sayfalanır (bkz. {@link #findByCustomerIdFilteredOrderBySlaUrgencyAsc}). */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
@@ -504,7 +512,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Ajanin claim aldigi biletler — status ve priority filtresi ile sayfalama
+    /**
+     * Ajanın claim aldığı biletler — çağıran tarafça {@code ticket_claims} sorgusundan elde
+     * edilen ID listesi parametre olarak verilir; bu method sadece bilet kısmını sayfalar.
+     */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
@@ -545,7 +556,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Takim biletleri (aktif) — yetkili urunler + priority filtresi ile sayfalama
+    /** Takım biletleri — ajanın yetkili olduğu ürünler + status + priority filtreli sayfalama. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
@@ -586,7 +597,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Takim biletleri — AGENT_ADMIN icin tum urunler
+    /** Takım biletleri — AGENT_ADMIN tüm ürünler için aktif biletleri (NEW/CLOSED hariç) sayfalar. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
@@ -618,7 +629,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Urun biletleri — agent/admin icin status + priority filtresi ile sayfalama
+    /** Ürün biletleri (agent/admin) — tek ürün için status + priority filtresi ile sayfalama. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
@@ -659,7 +670,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Urun biletleri — musteri icin (sadece kendi biletleri)
+    /** Ürün biletleri (müşteri perspektifi) — yalnızca verilen customer'a ait, ürün bazlı sayfalama. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
@@ -910,42 +921,48 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // -------------------------------------------------------------------------
 
-    // Tum ticket durumlarinin dagilimini doner.
+    /** Tüm biletlerin status bazında dağılımı: her satır {@code [status, count]}. */
     @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")
     List<Object[]> countTicketsGroupedByStatus();
 
-    // Acik biletlerin toplam sayisi
+    /** Verilen status'lerdeki toplam bilet sayısı (genelde "açık" statu listesi). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses")
     Long countByStatusIn(@Param("statuses") List<String> statuses);
 
-    // Acik biletler arasinda SLA ihlali yapanlarin sayisi
+    /** Verilen status'lerdeki biletler arasında SLA ihlali (breached) işaretli olanların sayısı. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true")
     Long countSlaBreachedByStatusIn(@Param("statuses") List<String> statuses);
 
-    // Son 24 saat icinde acik biletler arasinda olusturulanlarin sayisi
+    /** Verilen tarihten beri oluşturulmuş ve status filtresine uyan biletlerin sayısı (KPI için). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since")
     Long countCreatedSinceByStatusIn(@Param("statuses") List<String> statuses,
                                       @Param("since") java.time.ZonedDateTime since);
 
-    // Acik biletlerin priority dagilimi
+    /** Verilen status'lerdeki biletlerin priority bazlı dağılımı: her satır {@code [priority, count]}. */
     @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses GROUP BY t.priority")
     List<Object[]> countByStatusInGroupByPriority(@Param("statuses") List<String> statuses);
 
+    /** RESOLVED bilet ortalama çözüm süresi (saat) — tüm zamanlar. */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL", nativeQuery = true)
     Double findAvgResolutionHoursForResolved();
 
+    /** Verilen tarihten beri oluşturulan toplam bilet sayısı. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.createdAt >= :since")
     long countCreatedSince(@Param("since") ZonedDateTime since);
 
+    /** Verilen tarihten beri RESOLVED'a geçirilen bilet sayısı. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = 'RESOLVED' AND t.resolvedAt >= :since")
     long countResolvedSince(@Param("since") ZonedDateTime since);
 
+    /** Verilen tarihten beri CLOSED'a alınmış bilet sayısı. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = 'CLOSED' AND t.closedAt >= :since")
     long countClosedSince(@Param("since") ZonedDateTime since);
 
+    /** Verilen tarihten beri çözülmüş bilet ortalama çözüm süresi (saat). */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL", nativeQuery = true)
     Double avgResolutionHoursSince(@Param("since") ZonedDateTime since);
 
+    /** Verilen tarih aralığında çözülen biletlerde SLA uyum oranı (%) — breach edilmeyenlerin yüzdesi. */
     @Query(value = "SELECT (COUNT(CASE WHEN t.sla_breached = false THEN 1 END) * 100.0) / NULLIF(COUNT(t.id), 0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since", nativeQuery = true)
     Double slaComplianceRateSince(@Param("since") ZonedDateTime since);
 
@@ -970,13 +987,15 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             """, nativeQuery = true)
     List<Object[]> findWorklogCompletionAggregates(@Param("since") ZonedDateTime since);
 
-    // Alert sorgulari
+    /** Açık + SLA breach edilmiş biletler, deadline'a göre artan (alert sayfası ve scheduler için). */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTickets(@Param("statuses") List<String> statuses, Pageable pageable);
 
+    /** {@code before} tarihinden önce deadline'lı, henüz breach olmamış ve duraklatılmamış biletler. */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTickets(@Param("statuses") List<String> statuses, @Param("before") ZonedDateTime before, Pageable pageable);
 
+    /** {@link #findUpcomingBreachTickets} varyantı — priority filtresiyle daraltır (kritik öncelikli scheduler için). */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTicketsByPriority(@Param("statuses") List<String> statuses, @Param("priorities") List<String> priorities, @Param("before") ZonedDateTime before, Pageable pageable);
 
@@ -995,22 +1014,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                      @Param("before") ZonedDateTime before,
                                                      Pageable pageable);
 
+    /** WAITING_FOR_CUSTOMER'da çok uzun süredir bekleyen biletler (escalation alert için). */
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 
-    // Claim olmayan biletler = status NEW
+    /** Hiç claim almamış biletlerin sayısı — verilen status filtresi içinde (genelde NEW). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
     long countUnassignedByStatusIn(@Param("statuses") List<String> statuses);
 
     long countByStatus(String status);
 
+    /**
+     * SLA deadline'ı geçmiş ama henüz {@code slaBreached=true} olarak damgalanmamış biletler.
+     * Scheduler bunları bulup breach flag'i set eder ve bildirim atar.
+     */
     @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline < :now AND t.status IN :statuses")
     List<Ticket> findOverdueUnmarkedTickets(@Param("now") ZonedDateTime now,
                                             @Param("statuses") List<String> statuses);
 
+    /** Açık biletlerin oluşturulma anından bugüne kadar geçen ortalama bekleme süresi (saat). */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.created_at)) / 3600.0) FROM tickets t WHERE t.status IN (:statuses) AND t.created_at IS NOT NULL", nativeQuery = true)
     Double avgWaitingHoursForOpen(@Param("statuses") List<String> statuses);
 
+    /**
+     * Son N gün için günlük bilet timeline'ı — her gün için oluşturulan, çözülen, kapatılan
+     * ve SLA breach edilen sayıları döner. PostgreSQL {@code generate_series} ile bilet
+     * olmayan günler de 0 değeriyle satır olarak gelir (UI grafiklerinde gap olmasın diye).
+     * Dönüş kolonları: {@code [metric_date, created, resolved, closed, sla_breach]}.
+     */
     @Query(value = """
         WITH date_range AS (
             SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date

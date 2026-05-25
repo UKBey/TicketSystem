@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
+/**
+ * {@link PasswordResetToken} için JPA repository — hash'lenmiş token lookup ve
+ * yeni reset isteği geldiğinde kullanıcının açık token'larını toplu iptal etme.
+ */
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
 
     Optional<PasswordResetToken> findByTokenHash(String tokenHash);

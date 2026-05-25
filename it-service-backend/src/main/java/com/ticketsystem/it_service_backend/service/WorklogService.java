@@ -13,6 +13,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Bilet üzerinde geçirilen çalışma süresinin (worklog) yönetimi.
+ *
+ * <p>Worklog kaydı/güncellemesi sadece bileti claim almış ajan tarafından yapılabilir;
+ * CLOSED bilete yeni kayıt eklenemez veya mevcut kayıt değiştirilemez. AGENT_ADMIN
+ * listeleme/silme aşamasında bypass yetkisine sahiptir.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -23,7 +30,14 @@ public class WorklogService {
     private final TicketClaimRepository ticketClaimRepository;
 
     /**
-     * Atanmis agentin ilgili bilete sure ve aciklama kaydi eklemesini saglar.
+     * Atanmış ajanın bilete süre + açıklama kaydı eklemesini sağlar. Dakika
+     * pozitif olmalı, ajan bileti claim almış olmalı ve bilet CLOSED olmamalıdır.
+     *
+     * @param ticketId hedef bilet ID
+     * @param dto dakika ve açıklama
+     * @param agentId kaydı oluşturan ajan
+     * @return kaydedilmiş {@link TicketWorklog}
+     * @throws ResponseStatusException 400 dakika/statü, 403 claim yoksa
      */
     public TicketWorklog addWorklog(Long ticketId, WorklogRequestDTO dto, String agentId) {
         log.info("Worklog ekleme isteği. Bilet ID: {}, Agent: {}", ticketId, agentId);
@@ -64,7 +78,15 @@ public class WorklogService {
     }
 
     /**
-     * Bilete bagli worklog kayitlarini, rol kurallarina uygun sekilde listeler.
+     * Bilete bağlı worklog kayıtlarını rol kurallarına göre listeler.
+     * AGENT_ADMIN her şeyi görür; AGENT yalnızca claim aldığı biletlerin
+     * worklog'larını görebilir; diğer roller erişemez.
+     *
+     * @param ticketId hedef bilet ID
+     * @param userId istek yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return worklog listesi
+     * @throws ResponseStatusException 403 — yetkili değilse
      */
     public List<TicketWorklog> getWorklogsByTicket(Long ticketId, String userId, List<String> roles) {
         log.debug("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", ticketId, userId);
@@ -95,7 +117,10 @@ public class WorklogService {
     }
 
     /**
-     * Tum worklog kayitlarini yonetici ekrani icin dondurur.
+     * Tüm worklog kayıtlarını yönetici ekranı için döner. Yetki controller
+     * tarafında {@code @PreAuthorize} ile yönetilir.
+     *
+     * @return tüm worklog'lar
      */
     public List<TicketWorklog> getAllWorklogs() {
         log.debug("Tüm worklogları listeleme isteği (Manager).");
@@ -103,7 +128,16 @@ public class WorklogService {
     }
 
     /**
-     * Worklog kaydini gunceller; sahiplik ve bilet durumu kosullari zorunludur.
+     * Worklog kaydını kısmi olarak günceller. Yalnızca kaydı oluşturan ajan
+     * değiştirebilir; kayıt URL'deki bilete ait olmalı; CLOSED bilette değişiklik
+     * kabul edilmez; minutes alanı verilmişse pozitif olmalıdır.
+     *
+     * @param ticketId URL'deki bilet ID
+     * @param worklogId güncellenecek kayıt ID
+     * @param dto kısmi yeni değerler (minutes/description)
+     * @param agentId işlemi yapan ajan
+     * @return güncellenmiş kayıt
+     * @throws ResponseStatusException 404 yoksa, 400 mismatch/statü, 403 sahip değilse
      */
     public TicketWorklog updateWorklog(Long ticketId, Long worklogId, WorklogRequestDTO dto, String agentId) {
         log.info("Worklog güncelleme isteği. Worklog ID: {}, Agent: {}", worklogId, agentId);
@@ -158,7 +192,13 @@ public class WorklogService {
     }
 
     /**
-     * Worklog kaydini rol ve sahiplik kurallarina gore siler.
+     * Worklog kaydını siler. AGENT_ADMIN her kaydı; AGENT yalnızca kendi
+     * oluşturduğu kaydı silebilir; diğer roller erişemez.
+     *
+     * @param worklogId silinecek kayıt ID
+     * @param userId işlemi yapan kullanıcı
+     * @param roles kullanıcının rolleri
+     * @throws ResponseStatusException 404 yoksa, 403 yetki/sahiplik ihlali
      */
     public void deleteWorklog(Long worklogId, String userId, List<String> roles) {
         log.info("Worklog silme isteği. Worklog ID: {}, Kullanıcı: {}", worklogId, userId);

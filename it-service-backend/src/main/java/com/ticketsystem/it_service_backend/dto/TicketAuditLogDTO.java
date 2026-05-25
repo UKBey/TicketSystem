@@ -13,6 +13,10 @@ import java.time.ZonedDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bir bilet üzerinde gerçekleştirilen aksiyonun (claim/unclaim/close) denetim kaydı.
+ * {@link TicketResponseDTO#getAuditLogs()} listesinde UI'a taşınır.
+ */
 @Schema(description = "Bilet denetim günlüğü kaydı — bir aksiyonun detayı")
 public class TicketAuditLogDTO {
 

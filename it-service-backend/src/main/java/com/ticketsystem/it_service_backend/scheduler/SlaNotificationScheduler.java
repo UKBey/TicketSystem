@@ -14,6 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+/**
+ * SLA ihlali ve yaklasma uyarilarini periyodik olarak tarayan zamanlanmis is.
+ *
+ * <p>Iki ayri job 15 dakikada bir calisir: deadline'i gecmis bilet ihlal
+ * olarak isaretlenir ve atanan/sahibi olan kisilere bildirim gider; deadline'a
+ * yaklasan biletler icin tek seferlik uyari damgasi atilir. Tarayici jBPM
+ * akisindan bagimsiz calisir, bu sayede KIE Server kesintilerinde de SLA
+ * gozlemi devam eder.
+ */
 @Log4j2
 @Component
 @RequiredArgsConstructor

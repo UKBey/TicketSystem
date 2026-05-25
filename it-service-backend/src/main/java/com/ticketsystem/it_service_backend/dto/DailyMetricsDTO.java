@@ -12,6 +12,10 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Tek bir güne ait ticket metrikleri (oluşturulan, çözülen, kapatılan, SLA breach).
+ * Dashboard timeline chart'ında {@link TicketTimelineDTO} listesinin bir elemanı olarak döner.
+ */
 @Schema(description = "Günlük ticket metrikleri — timeline chart verisi")
 public class DailyMetricsDTO {
 

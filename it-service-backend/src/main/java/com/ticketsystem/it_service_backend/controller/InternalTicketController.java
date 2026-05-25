@@ -29,8 +29,11 @@ import java.util.stream.Collectors;
 
 /**
  * Servisler arası (internal) iletişim için ticket verisi endpoint'leri.
- * Bu endpoint'ler yalnızca X-Internal-Token header'ı ile erişilebilir
- * (SecurityConfig'de tanımlı).
+ *
+ * <p>Bu endpoint'ler yalnızca {@code X-Internal-Token} header'ı ile erişilebilir
+ * (SecurityConfig'de tanımlı; JWT zorunluluğu yoktur). Birincil tüketici, ticket'a
+ * dair tüm bağlamı tek çağrıda alan LLM servisidir; iş mantığı için
+ * {@link TicketService}'e ve ilgili repository'lere yetki devredilir.
  */
 @Log4j2
 @Tag(name = "Internal", description = "Servisler arası iletişim endpoint'leri (JWT gerektirmez, internal token gerektirir)")
@@ -50,7 +53,12 @@ public class InternalTicketController {
 
     /**
      * LLM servisi için bir ticket'ın tüm verisini tek seferde döner.
-     * Yorumlar, worklog'lar, çözüm notu ve audit log dahildir.
+     *
+     * <p>Yorumlar, worklog'lar, audit log, claim eden agent listesi, SLA bilgisi ve
+     * ilgili "bilinen sorun" kayıtları aynı yanıt içinde paketlenir.
+     *
+     * @param ticketId verisi istenen biletin kimliği
+     * @return {@code ticket}, {@code comments}, {@code worklogs}, {@code knownIssues} anahtarlarını içeren harita
      */
     @Operation(summary = "Ticket'ın tüm verisini getir (internal)")
     @GetMapping("/{ticketId}/full")

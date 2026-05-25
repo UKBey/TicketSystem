@@ -14,6 +14,17 @@ import reactor.netty.http.client.HttpClient;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Servisin dışarıya yaptığı HTTP çağrıları için {@link WebClient} bean'lerini sağlar.
+ *
+ * <p>İki ayrı istemci tanımlanır:
+ * <ul>
+ *   <li>{@code groqWebClient} — Groq API'ye doğru, Authorization header'ı ve
+ *       özel timeout'larla.</li>
+ *   <li>{@code ticketServiceWebClient} — it-service-backend'in internal
+ *       endpoint'lerine doğru, {@code X-Internal-Token} ile.</li>
+ * </ul>
+ */
 @Configuration
 @RequiredArgsConstructor
 public class WebClientConfig {

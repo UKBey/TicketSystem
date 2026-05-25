@@ -14,6 +14,10 @@ import java.time.ZonedDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Kullanıcı bildirimi yanıt modeli; in-app bildirim listesi ve WebSocket push payload'ı olarak kullanılır.
+ * {@code message} alanı alıcının diline göre {@link #fromEntity(Notification, String)} ile render edilir.
+ */
 @Schema(description = "Kullanıcı bildirimi yanıt modeli")
 public class NotificationResponse {
 

@@ -8,6 +8,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+/**
+ * "Şifremi unuttum" akışında sıfırlama bağlantısı talebi.
+ * Bean Validation aktif; opsiyonel {@code language}/{@code theme} alanları mailin dil ve palet tercihini override eder.
+ */
 @Schema(description = "Şifre sıfırlama bağlantısı talebi")
 public class ForgotPasswordRequest {
 

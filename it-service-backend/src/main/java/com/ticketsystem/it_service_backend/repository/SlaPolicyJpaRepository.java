@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * {@link SlaPolicy} için JPA repository — öncelik bazında SLA hedef saatlerini sağlar.
+ */
 @Repository
 public interface SlaPolicyJpaRepository extends JpaRepository<SlaPolicy, Long> {
 

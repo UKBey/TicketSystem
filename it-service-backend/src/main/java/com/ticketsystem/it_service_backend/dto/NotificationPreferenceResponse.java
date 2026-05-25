@@ -11,6 +11,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Response payload exposing a user's notification preferences for both email and
+ * in-app channels. Returned by the preferences endpoint and used by the frontend
+ * settings UI; defaults are produced via {@link #defaults()} when no row exists.
+ */
 @Schema(description = "User notification preferences for email and in-app channels")
 public class NotificationPreferenceResponse {
 

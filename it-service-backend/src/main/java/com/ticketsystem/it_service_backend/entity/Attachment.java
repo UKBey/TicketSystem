@@ -6,6 +6,13 @@ import java.time.ZonedDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 
+/**
+ * Bir {@link Ticket}'a yüklenen ek dosya — içerik DB'de BYTEA olarak saklanır
+ * (dosya sistemi / S3 yerine).
+ *
+ * <p>Müşteri veya agent yükleyebilir; {@code uploaderId} ilgili kullanıcının Keycloak
+ * UUID'sidir. Bilete cascade ile bağlıdır — bilet silinirse ekler de düşer.
+ */
 @Entity
 @Table(name = "ticket_attachments")
 @Getter
@@ -33,6 +40,7 @@ public class Attachment {
     @Column(name = "file_type", nullable = false)
     private String fileType;
 
+    /** Ham dosya içeriği — PostgreSQL BYTEA olarak DB'de tutulur. */
     @Column(name = "content", nullable = false, columnDefinition = "BYTEA")
     private byte[] content;
 

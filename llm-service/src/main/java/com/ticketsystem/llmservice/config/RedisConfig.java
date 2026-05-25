@@ -40,6 +40,13 @@ public class RedisConfig {
     @Value("${spring.data.redis.timeout:5s}")
     private Duration timeout;
 
+    /**
+     * Genel amaclı cache / değer depolama için JSON serileştirmeli
+     * {@link RedisTemplate} bean'i.
+     *
+     * @param connectionFactory Spring Data Redis bağlantı fabrikası
+     * @return string anahtar + JSON değer template'i
+     */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -54,6 +61,13 @@ public class RedisConfig {
         return template;
     }
 
+    /**
+     * Bucket4j ProxyManager'in kullandığı düşük seviyeli Lettuce
+     * {@link RedisClient} bean'i. Spring Data Redis'ten ayrı tutulur çünkü
+     * Bucket4j {@code byte[]} value codec ister.
+     *
+     * @return yapılandırılmış Lettuce istemcisi
+     */
     @Bean(destroyMethod = "shutdown")
     public RedisClient bucketRedisClient() {
         RedisURI.Builder uriBuilder = RedisURI.builder()
@@ -67,11 +81,26 @@ public class RedisConfig {
         return RedisClient.create(uriBuilder.build());
     }
 
+    /**
+     * Bucket4j için string anahtar + {@code byte[]} value codec'li
+     * uzun ömürlü Lettuce bağlantısı.
+     *
+     * @param client {@link #bucketRedisClient()} bean'i
+     * @return paylaşımlı Redis bağlantısı
+     */
     @Bean(destroyMethod = "close")
     public StatefulRedisConnection<String, byte[]> bucketRedisConnection(RedisClient client) {
         return client.connect(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
     }
 
+    /**
+     * Bucket4j {@link LettuceBasedProxyManager} bean'i — kovaların Redis'te
+     * dağıtık olarak yönetilmesini sağlar. Son yazımdan 10 dk sonra TTL ile
+     * temizlenir.
+     *
+     * @param connection {@link #bucketRedisConnection(RedisClient)} bean'i
+     * @return rate-limit interceptor'in kullanacağı proxy manager
+     */
     @Bean
     public ProxyManager<String> bucketProxyManager(StatefulRedisConnection<String, byte[]> connection) {
         return LettuceBasedProxyManager.builderFor(connection)

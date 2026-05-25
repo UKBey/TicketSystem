@@ -9,11 +9,20 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * {@link User} için JPA repository — rol/e-posta lookup'ları ve admin paneli için
+ * native filtreli sayfalı listeleme sağlar (PK Keycloak UUID String).
+ */
 public interface UserRepository extends JpaRepository<User, String> {
     List<User> findByRole(String role);
 
     Optional<User> findByEmailIgnoreCase(String email);
-    
+
+    /**
+     * Belirli ürüne yetkili ve verilen role sahip kullanıcıları döner.
+     * {@code user_products} köprüsü üzerinden DISTINCT join — aynı kullanıcının
+     * birden fazla ürün yetkisi varsa tek satır olarak gelir.
+     */
     @Query("""
             SELECT DISTINCT u
             FROM User u
@@ -21,7 +30,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             WHERE u.role = :role
                 AND p.id = :productId
             """)
-    List<User> findByRoleAndAuthorizedProductsId(@Param("role") String role, 
+    List<User> findByRoleAndAuthorizedProductsId(@Param("role") String role,
                                                    @Param("productId") Long productId);
 
     /**

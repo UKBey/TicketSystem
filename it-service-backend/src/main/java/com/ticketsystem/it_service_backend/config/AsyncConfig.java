@@ -17,6 +17,12 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 @Configuration
 public class AsyncConfig implements AsyncConfigurer {
 
+    /**
+     * {@code @Async} icindeki yakalanmamis hatalari log4j'e yonlendiren handler.
+     *
+     * <p>Hata Spring'in default'unda {@code stderr}'a basar; burada method
+     * imzasi ve sinif adiyla birlikte yapilandirilmis bicimde loglaniyor.
+     */
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (throwable, method, params) ->

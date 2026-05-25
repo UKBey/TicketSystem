@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Açık biletlerin öncelik seviyelerine (CRITICAL/HIGH/MEDIUM/LOW) göre sayımı.
+ * Dashboard donut/bar chart'larında kullanılır.
+ */
 @Schema(description = "Priority dağılımı metrikleri")
 public class PriorityMetricsDTO {
 

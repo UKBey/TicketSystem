@@ -44,7 +44,14 @@ public class TicketClaimService {
     /**
      * Ajan bileti sahiplenir. CLOSED dışındaki her statüdeki bilet claim alınabilir.
      * NEW ise ilk claim — IN_PROGRESS'e geçer; diğer statülerde statü değişmeden
-     * mevcut sahiplenilenlere yeni claim eklenir.
+     * mevcut sahiplenilenlere yeni claim eklenir. Ürün yetkisi ve effective
+     * (ürün varsayılan + özel override) limit kontrolleri uygulanır.
+     *
+     * @param id claim alınacak bilet ID
+     * @param agentId işlemi yapan ajan
+     * @return güncellenmiş bilet
+     * @throws ResponseStatusException 400 statü, 403 ürün yetkisi, 409 zaten claim'li
+     * @throws TicketLimitExceededException ajan limiti dolduysa
      */
     @Transactional
     public Ticket claimTicket(Long id, String agentId) {
@@ -108,13 +115,29 @@ public class TicketClaimService {
         return ticket;
     }
 
-    /** Ajan kendi claim'ini geri bırakır. Son claim ise bilet NEW'e döner. */
+    /**
+     * Ajan kendi claim'ini geri bırakır. Son claim ise bilet NEW'e döner.
+     *
+     * @param id bilet ID
+     * @param agentId işlemi yapan ajan
+     * @return güncellenmiş bilet
+     */
     @Transactional
     public Ticket unclaimTicket(Long id, String agentId) {
         return unclaimTicket(id, agentId, null, null);
     }
 
-    /** Ajan kendi claim'ini geri bırakır; sebep kodu ve opsiyonel notu audit log'a yazılır. */
+    /**
+     * Ajan kendi claim'ini geri bırakır; sebep kodu ve opsiyonel notu audit log'a yazılır.
+     * Son claim bırakıldığında bilet NEW havuzuna geri döner ve jBPM tarafı senkronize edilir.
+     *
+     * @param id bilet ID
+     * @param agentId işlemi yapan ajan
+     * @param reasonCode bırakma sebebi (boş olamaz)
+     * @param note serbest not (OTHER sebebinde zorunlu)
+     * @return güncellenmiş bilet
+     * @throws ResponseStatusException 400 — ajanın aktif claim'i yoksa veya reason hatalıysa
+     */
     @Transactional
     public Ticket unclaimTicket(Long id, String agentId, String reasonCode, String note) {
         log.info("Unclaim isteği. Bilet: {}, Ajan: {}, Sebep: {}", id, agentId, reasonCode);
@@ -146,8 +169,19 @@ public class TicketClaimService {
     }
 
     /**
-     * Agent Admin tarafından belirtilen bileti hedef agent'a manuel olarak atar.
-     * Kapasite kontrolü, yetki doğrulaması ve audit log kaydı içerir.
+     * Agent Admin tarafından belirtilen bileti hedef ajana manuel olarak atar.
+     *
+     * <p>Hem admin'in hem de hedef ajanın ürün yetkisi doğrulanır, effective
+     * limit kontrol edilir. NEW bilette ilk atamada statü IN_PROGRESS'e geçer.
+     * Hedef ajan zaten claim'li ise idempotent biter (mevcut bilet döner).
+     *
+     * @param ticketId hedef bilet ID
+     * @param targetAgentId atanacak ajan ID
+     * @param adminId atamayı yapan AGENT_ADMIN
+     * @param note opsiyonel açıklama (audit'e yazılır)
+     * @return atama sonrası bilet
+     * @throws ResponseStatusException 400 CLOSED/limit, 403 yetki ihlali
+     * @throws EntityNotFoundException admin/agent/ürün bulunamazsa
      */
     @Transactional
     public Ticket assignTicket(Long ticketId, String targetAgentId, String adminId, String note) {
@@ -225,6 +259,13 @@ public class TicketClaimService {
         return ticket;
     }
 
+    /**
+     * Verilen ajanın belirtilen biletin aktif claim sahibi olup olmadığını döner.
+     *
+     * @param ticketId bilet ID
+     * @param agentId ajan ID
+     * @return claim mevcutsa {@code true}
+     */
     public boolean isAgentClaimer(Long ticketId, String agentId) {
         return ticketClaimRepository.existsByTicketIdAndAgentId(ticketId, agentId);
     }

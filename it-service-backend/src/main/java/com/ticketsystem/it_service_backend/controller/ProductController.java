@@ -22,6 +22,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Destek kategorisi (ürün) CRUD ve eşzamanlı bilet limiti REST kontrolcüsü.
+ *
+ * <p>Listeleme/detay her kimliği doğrulanmış kullanıcıya açıktır ve rol bazında filtrelenir;
+ * yazma operasyonları yalnızca {@code AGENT_ADMIN}/{@code MANAGER} rolüne aittir.
+ * İş kuralları {@link ProductService} içinde uygulanır.
+ */
 @Log4j2
 @Tag(name = "Ürün Yönetimi", description = "Destek kategorilerinin (ürün) CRUD işlemleri ve agent yetkilendirmesi")
 @RestController
@@ -31,6 +38,12 @@ public class ProductController {
 
     private final ProductService productService;
 
+    /**
+     * Belirtilen ürünün detayını döner; kullanıcı ürüne yetkili değilse {@code 403} döner.
+     *
+     * @param id ürün kimliği
+     * @return ürün DTO'su
+     */
     @Operation(summary = "Ürün detayı getir", description = "Belirtilen ürünü döner. Kullanıcı yetkili değilse 403 döner.")
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> getProductById(
@@ -43,6 +56,11 @@ public class ProductController {
         return ResponseEntity.ok(ProductDTO.fromEntity(product));
     }
 
+    /**
+     * Kullanıcının rolüne göre erişebileceği ürünlerin listesini döner.
+     *
+     * @return rol bazlı filtrelenmiş ürün DTO listesi
+     */
     @Operation(summary = "Tüm ürünleri listele",
             description = """
                     Kullanıcının rolüne göre erişebileceği ürün/kategori listesini döner:
@@ -73,6 +91,12 @@ public class ProductController {
                 .collect(Collectors.toList()));
     }
 
+    /**
+     * Sisteme yeni bir destek kategorisi/ürün ekler; varsayılan olarak {@code isActive=true} olur.
+     *
+     * @param product oluşturulacak ürünün alanları
+     * @return oluşturulan ürün DTO'su
+     */
     @Operation(summary = "Yeni ürün oluştur",
             description = "Sisteme yeni bir destek kategorisi/ürün ekler. Oluşturulan ürün varsayılan olarak aktif (`isActive=true`) olur.")
     @ApiResponses({
@@ -96,6 +120,15 @@ public class ProductController {
         return ResponseEntity.ok(ProductDTO.fromEntity(created));
     }
 
+    /**
+     * Belirtilen ürünü kalıcı olarak siler.
+     *
+     * <p>Ürüne bağlı biletler varsa referans bütünlüğü bozulabilir; servis katmanında
+     * önlem alınmadığı sürece çağıran bu durumdan haberdar olmalıdır.
+     *
+     * @param id silinecek ürünün kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Ürünü sil",
             description = "Belirtilen ürünü sistemden kalıcı olarak kaldırır. **Dikkat:** Ürüne bağlı biletler varsa referans bütünlüğü bozulabilir.")
     @ApiResponses({
@@ -117,6 +150,13 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Var olan bir ürünün adını ve aktiflik durumunu günceller.
+     *
+     * @param id güncellenecek ürünün kimliği
+     * @param product yeni alan değerleri
+     * @return güncellenmiş ürün DTO'su
+     */
     @Operation(summary = "Ürünü güncelle",
             description = "Var olan bir ürünün adını ve aktiflik durumunu günceller.")
     @ApiResponses({
@@ -140,6 +180,13 @@ public class ProductController {
         return ResponseEntity.ok(ProductDTO.fromEntity(updated));
     }
 
+    /**
+     * Belirtilen ürünün varsayılan eşzamanlı bilet limitini günceller; {@code null} limiti kaldırır.
+     *
+     * @param id limit güncellenecek ürünün kimliği
+     * @param request yeni {@code maxActiveTickets} değerini içeren istek (null ise limit kaldırılır)
+     * @return güncellenmiş ürün DTO'su
+     */
     @Operation(summary = "Ürünün maksimum eşzamanlı bilet limitini güncelle",
             description = "Belirtilen ürün için varsayılan eşzamanlı bilet limitini günceller. Null gönderilirse limit kaldırılır.")
     @ApiResponses({

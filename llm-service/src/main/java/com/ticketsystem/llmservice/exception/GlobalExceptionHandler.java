@@ -9,10 +9,24 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.net.URI;
 import java.time.Instant;
 
+/**
+ * REST katmanında ortaya çıkan istisnaları tek noktadan yakalayıp RFC 7807
+ * {@link ProblemDetail} formatında istemciye dönen global hata yakalayıcı.
+ *
+ * <p>Groq rate-limit, kaynak bulunamadı ve beklenmedik çalışma zamanı hatalarına
+ * uygun HTTP durum kodlarını ve mesajları üretir.
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Groq token limiti aşıldığında 429 yanıt döner ve {@code retryAfterSeconds}
+     * alanını {@link ProblemDetail} üzerine yazar.
+     *
+     * @param ex yakalanan rate-limit istisnası
+     * @return 429 Too Many Requests gövdesi
+     */
     @ExceptionHandler(GroqRateLimitException.class)
     public ProblemDetail handleRateLimit(GroqRateLimitException ex) {
         log.warn("Groq rate limit: {}s sonra tekrar denenebilir", ex.getRetryAfterSeconds());
@@ -26,6 +40,13 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    /**
+     * "Kaynak bulunamadı" semantiğini taşıyan {@link IllegalArgumentException}
+     * çağrılarını 404 yanıta dönüştürür.
+     *
+     * @param ex yakalanan istisna
+     * @return 404 Not Found gövdesi
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleNotFound(IllegalArgumentException ex) {
         log.warn("Kaynak bulunamadı: {}", ex.getMessage());
@@ -35,6 +56,13 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    /**
+     * Diğer tüm beklenmeyen çalışma zamanı hatalarını 500 yanıta dönüştürür ve
+     * stack trace'i loglar.
+     *
+     * @param ex yakalanan istisna
+     * @return 500 Internal Server Error gövdesi
+     */
     @ExceptionHandler(RuntimeException.class)
     public ProblemDetail handleRuntime(RuntimeException ex) {
         log.error("Beklenmeyen hata: {}", ex.getMessage(), ex);

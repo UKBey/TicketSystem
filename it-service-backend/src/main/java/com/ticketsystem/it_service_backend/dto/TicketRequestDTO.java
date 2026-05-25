@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bilet oluşturma isteği; başlık, açıklama, öncelik ve ürün/topic referansını taşır.
+ * Müşterinin bilet açma endpoint'i tarafından kullanılır; açıklama aynı zamanda ilk yorum olarak kaydedilir.
+ */
 @Schema(description = "Yeni destek bileti oluşturma isteğinin veri modeli")
 public class TicketRequestDTO {
 

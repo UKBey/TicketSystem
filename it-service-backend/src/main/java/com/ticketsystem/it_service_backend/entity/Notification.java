@@ -8,6 +8,15 @@ import org.hibernate.type.SqlTypes;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+/**
+ * In-app bildirim kaydı — bir {@link User}'a gönderilen WebSocket/UI mesajının kalıcı izi.
+ *
+ * <p>Eski kayıtlar tam metin {@code message} taşırdı; V33'ten itibaren yeni satırlar
+ * {@link #messageKey} + JSONB {@link #messageArgs} ile tutulur ve okunduğunda MessageSource
+ * üzerinden lokal dile render edilir. {@code referenceType}/{@code referenceId} (örn.
+ * "ticket"/{@code 42}) bildirimi ilgili kaynağa bağlar — UI tıklandığında o sayfaya yönlendirir.
+ * E-posta da gönderildiyse {@code emailSent} damgalanır.
+ */
 @Entity
 @Table(name = "notifications")
 @Getter
@@ -53,9 +62,11 @@ public class Notification {
     @Builder.Default
     private NotificationType type = NotificationType.GENERAL;
 
+    /** Bildirimin işaret ettiği kaynağın ID'si (ör. ilgili {@link Ticket}'in id'si). */
     @Column(name = "reference_id")
     private Long referenceId;
 
+    /** Referans tipi etiketi: "ticket", "comment", "csat" vb. — UI yönlendirmesi için. */
     @Column(name = "reference_type", length = 50)
     private String referenceType;
 

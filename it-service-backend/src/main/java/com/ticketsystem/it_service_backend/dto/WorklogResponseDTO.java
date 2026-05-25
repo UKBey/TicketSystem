@@ -9,6 +9,10 @@ import java.time.ZonedDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bilete bağlı worklog kaydının yanıt modeli; ajanın girdiği süre, açıklama ve zaman damgalarını taşır.
+ * {@link com.ticketsystem.it_service_backend.entity.TicketWorklog} entity'sinden türetilir.
+ */
 @Schema(description = "İş kaydı (worklog) yanıt modeli")
 public class WorklogResponseDTO {
 

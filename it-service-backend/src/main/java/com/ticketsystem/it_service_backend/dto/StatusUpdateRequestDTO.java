@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Bilet durum geçişi (örn. NEW → IN_PROGRESS, IN_PROGRESS → RESOLVED) isteği.
+ * Hedef durum zorunludur (Bean Validation aktif); RESOLVED'a geçişte ek olarak {@code reasonCode} da zorunludur.
+ */
 @Schema(description = "Bilet durum güncelleme isteği. RESOLVED'a geçişte reasonCode zorunludur.")
 public class StatusUpdateRequestDTO {
 

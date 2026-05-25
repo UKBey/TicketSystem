@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
 
+/**
+ * Bir {@link Ticket} altındaki yorum.
+ *
+ * <p>{@code type = INTERNAL} (yalnızca agent/admin görür) veya {@code EXTERNAL}
+ * (müşteriye de görünür) olabilir; tip eksikse {@code @PrePersist} EXTERNAL atar.
+ * {@code authorId} doğrudan Keycloak UUID'sidir (FK değil), {@link User#id}'ye karşılık gelir.
+ */
 @Entity
 @Table(name = "ticket_comments")
 @Getter
@@ -27,6 +34,7 @@ public class Comment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
+    /** INTERNAL (yalnız agent/admin görür) veya EXTERNAL (müşteriye de görünür). */
     @Column(nullable = false, length = 10)
     private String type; // INTERNAL veya EXTERNAL
 

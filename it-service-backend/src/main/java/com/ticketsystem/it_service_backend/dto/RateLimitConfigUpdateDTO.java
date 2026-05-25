@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Admin panelinden bir endpoint'in rate limit kuralini guncellemek icin kullanilan istek.
+ * Tum alanlar zorunludur (Bean Validation aktif); {@code enabled=false} kill switch gorevi gorur.
+ */
 @Schema(description = "Rate limit konfigurasyonu guncelleme istegi")
 public class RateLimitConfigUpdateDTO {
 

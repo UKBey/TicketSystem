@@ -22,6 +22,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * Kullanıcı bildirimlerinin (in-app) listeleme, okundu işaretleme ve silme REST kontrolcüsü.
+ *
+ * <p>Tüm endpoint'ler oturum açan kullanıcının kendi bildirimleri üzerinde çalışır;
+ * sahiplik denetimi {@link NotificationService} tarafındadır.
+ */
 @Log4j2
 @Tag(name = "Bildirim Yönetimi", description = "Kullanıcı bildirimleri ve okundu işaretleme işlemleri")
 @RestController
@@ -35,6 +41,13 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
+    /**
+     * Oturum açan kullanıcının bildirimlerini en yeniden eskiye sayfalı şekilde döner.
+     *
+     * @param page sayfa indeksi (0 tabanlı)
+     * @param size sayfa boyutu (1-500 arası)
+     * @return bildirimlerin sayfalı listesi
+     */
     @Operation(summary = "Bildirimleri listele", description = "Oturum açmış kullanıcının bildirimlerini sayfalı şekilde getirir.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bildirimler başarıyla listelendi")
@@ -54,6 +67,11 @@ public class NotificationController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * Kullanıcının okunmamış bildirim sayısını döner.
+     *
+     * @return {@code {"count": N}} biçiminde tek anahtarlı yanıt
+     */
     @Operation(summary = "Okunmamış bildirim sayısı", description = "Kullanıcının okunmamış bildirim sayısını döner.")
     @ApiResponse(responseCode = "200", description = "Sayı başarıyla döndü")
     @GetMapping("/unread-count")
@@ -63,6 +81,12 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
+    /**
+     * Belirtilen bildirimi "okundu" olarak işaretler.
+     *
+     * @param id bildirim kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Bildirimi okundu işaretle", description = "Belirtilen bildirimi okundu olarak işaretler.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Bildirim okundu işaretlendi"),
@@ -80,6 +104,11 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Kullanıcının tüm bildirimlerini tek seferde okundu işaretler.
+     *
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Tüm bildirimleri okundu işaretle", description = "Kullanıcının tüm bildirimlerini okundu olarak işaretler.")
     @ApiResponse(responseCode = "204", description = "Tüm bildirimler okundu işaretlendi")
     @PostMapping("/read-all")
@@ -90,6 +119,12 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Belirtilen bildirimi kalıcı olarak siler; yalnızca sahibi silebilir.
+     *
+     * @param id silinecek bildirimin kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Bildirimi sil", description = "Belirtilen bildirimi kalıcı olarak siler. Yalnızca bildirimin sahibi silebilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Bildirim silindi"),
@@ -105,6 +140,11 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Kullanıcının tüm bildirimlerini tek seferde kalıcı olarak siler.
+     *
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Tüm bildirimleri sil", description = "Kullanıcının tüm bildirimlerini kalıcı olarak siler.")
     @ApiResponse(responseCode = "204", description = "Tüm bildirimler silindi")
     @DeleteMapping

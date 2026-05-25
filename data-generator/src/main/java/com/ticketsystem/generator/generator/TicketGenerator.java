@@ -46,6 +46,11 @@ public class TicketGenerator {
 
     private final Map<String, Queue<CommentTask>> commentQueues = new LinkedHashMap<>();
 
+    /**
+     * @param api    backend API istemcisi
+     * @param mapper ticket-*.json şablonlarını okumak için Jackson mapper
+     * @param setup  SetupGenerator çıktısı (kullanıcılar + ürün/topic ID map'leri)
+     */
     public TicketGenerator(ApiClient api, ObjectMapper mapper, SetupResult setup) {
         this.api     = api;
         this.mapper  = mapper;
@@ -56,6 +61,19 @@ public class TicketGenerator {
         for (UserSession u : setup.agents())    commentQueues.put(u.getUsername(), new LinkedList<>());
     }
 
+    /**
+     * Classpath'teki {@code tickets/ticket-NNN.json} şablonlarından bilet üretir
+     * ve her şablonun hedef statüsüne göre yaşam döngüsünü oynatır (claim,
+     * worklog, yorum, status update, CSAT).
+     *
+     * <p>Customer/agent atamaları setup'tan round-robin alınır. Şablonlar
+     * CLOSED → RESOLVED → WAITING → IN_PROGRESS → NEW sırasıyla işlenir
+     * (agent başına aktif claim limitinin dolmaması için).
+     *
+     * @return başarılı şekilde oluşturulmuş bilet ID'leri (DateBackfiller'a verilir)
+     * @throws IOException          şablon okuma veya API hatası
+     * @throws InterruptedException request temposu için yapılan {@code Thread.sleep} kesilirse
+     */
     public List<Long> generate() throws IOException, InterruptedException {
         log.info("=== Bilet üretimi başlıyor (JSON şablon tabanlı) ===");
 

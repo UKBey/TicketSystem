@@ -24,6 +24,16 @@ import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 
+/**
+ * Yerel {@code users} tablosu ile Keycloak arasındaki kullanıcı senkronizasyonu ve
+ * kullanıcı yönetim akışları.
+ *
+ * <p>Kullanıcı oluşturma Keycloak'ta önce yapılıp yerel DB'ye senkronlanır;
+ * DB tarafı başarısız olursa Keycloak kaydı compensating action ile silinir.
+ * Rol/profil/şifre değişiklikleri her zaman Keycloak'a yazılır, ardından yerel DB
+ * güncellenir. Aktiflik (soft-delete) için iki tarafa da {@code enabled/is_active}
+ * yazılır.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
@@ -115,6 +125,14 @@ public class UserService {
         return null;
     }
 
+    /**
+     * Bir kullanıcıyı yerel DB ile senkron tutar. Mevcut kayıt varsa email/ad/rol
+     * alanları güncellenir; yoksa yeni kayıt yazılır. JWT'den gelen rol her zaman
+     * doğrudan yazılır (null ise yerel rol de null'a çekilir).
+     *
+     * @param user senkron edilecek kullanıcı temsili
+     * @return persist edilmiş kullanıcı
+     */
     @Transactional
     public User syncUser(User user) {
         log.info("Kullanıcı senkronizasyon işlemi (Service). ID: {}, Email: {}", user.getId(), user.getEmail());
@@ -133,14 +151,35 @@ public class UserService {
         });
     }
 
+    /**
+     * Yerel DB'de AGENT rolüne sahip tüm kullanıcıları döner.
+     *
+     * @return AGENT kullanıcı listesi
+     */
     public List<User> getAgents() {
         return userRepository.findByRole("AGENT");
     }
 
+    /**
+     * Tüm yerel kullanıcı kayıtlarını döner. Çağrı yetkisi controller tarafında
+     * kontrol edilir.
+     *
+     * @return tüm kullanıcılar
+     */
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+    /**
+     * Arama metni ve rol filtresine göre sayfalı kullanıcı listesi döner.
+     * Sıralama her zaman {@code full_name ASC} olarak uygulanır (native query).
+     *
+     * @param search ad/email LIKE filtresi (null/boş ise yok sayılır)
+     * @param roles aktif rol filtresi (null/boş ise yok sayılır)
+     * @param page sayfa indexi (0-tabanlı)
+     * @param size sayfa başına kayıt sayısı
+     * @return sayfalı sonuç
+     */
     @Transactional(readOnly = true)
     public Page<User> getUsersFiltered(String search, java.util.List<String> roles, int page, int size) {
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
@@ -151,6 +190,14 @@ public class UserService {
         return userRepository.findFiltered(roleFilterActive, roleList, searchParam, pageable);
     }
 
+    /**
+     * Kullanıcıyı ID üzerinden getirir ve {@code authorizedProducts} koleksiyonunu
+     * transaction içinde initialize eder (lazy-loading hatasını önler).
+     *
+     * @param id Keycloak subject (UUID)
+     * @return kullanıcı (yetkili ürünler dahil)
+     * @throws RuntimeException kullanıcı bulunamazsa
+     */
     @Transactional(readOnly = true)
     public User getUserById(String id) {
         log.debug("Kullanıcı verisi çekiliyor. ID: {}", id);
@@ -167,6 +214,15 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Bir ürünü kullanıcının yetkili ürün listesine ekler. Kullanıcı zaten
+     * yetkili ise idempotent çalışır (mevcut durum korunur).
+     *
+     * @param userId hedef kullanıcı ID
+     * @param productId atanacak ürün ID
+     * @return güncellenmiş kullanıcı
+     * @throws RuntimeException kullanıcı veya ürün bulunamazsa
+     */
     @Transactional
     public User assignProductToUser(String userId, Long productId) {
         log.info("Ürün atama işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
@@ -210,6 +266,15 @@ public class UserService {
         return saved;
     }
 
+    /**
+     * Kullanıcının dil tercihini günceller. Yalnızca {@code en} ve {@code tr}
+     * desteklenir; diğer değerler 400 ile reddedilir.
+     *
+     * @param userId hedef kullanıcı ID
+     * @param lang dil kodu (en/tr)
+     * @return güncellenmiş kullanıcı
+     * @throws ResponseStatusException 400 — desteklenmeyen dil
+     */
     @Transactional
     public User updatePreferredLanguage(String userId, String lang) {
         if (!"en".equals(lang) && !"tr".equals(lang)) {
@@ -223,6 +288,15 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Kullanıcının tema tercihini günceller. Yalnızca {@code light} ve {@code dark}
+     * desteklenir; diğer değerler 400 ile reddedilir.
+     *
+     * @param userId hedef kullanıcı ID
+     * @param theme tema kodu (light/dark)
+     * @return güncellenmiş kullanıcı
+     * @throws ResponseStatusException 400 — desteklenmeyen tema
+     */
     @Transactional
     public User updatePreferredTheme(String userId, String theme) {
         if (!"light".equals(theme) && !"dark".equals(theme)) {
@@ -236,6 +310,14 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Bir ürünü kullanıcının yetkili ürün listesinden çıkarır. Ürün listede
+     * yoksa idempotent çalışır.
+     *
+     * @param userId hedef kullanıcı ID
+     * @param productId kaldırılacak ürün ID
+     * @return güncellenmiş kullanıcı
+     */
     @Transactional
     public User removeProductFromUser(String userId, Long productId) {        log.info("Ürün yetki kaldırma işlemi başlatıldı (Service). Kullanıcı: {}, Ürün ID: {}", userId, productId);
         User user = getUserById(userId);
@@ -311,6 +393,17 @@ public class UserService {
         return savedUser;
     }
 
+    /**
+     * Verilen ürün için yetkili tüm ajanların anlık kapasite görüntüsünü döner.
+     *
+     * <p>Her ajan için: ürün-spesifik özel limit varsa onu, yoksa ürünün
+     * varsayılan limitini "effective limit" olarak alır; mevcut aktif bilet
+     * sayısını ölçer ve {@code isFull} bayrağını hesaplar.
+     *
+     * @param productId hedef ürün ID
+     * @return her ajan için kapasite bilgisi
+     * @throws EntityNotFoundException ürün bulunamazsa
+     */
     @Transactional(readOnly = true)
     public List<AgentCapacityDTO> getAgentsWithCapacity(Long productId) {
         log.debug("Agent kapasite listesi istendi. Product ID: {}", productId);

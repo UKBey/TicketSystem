@@ -6,6 +6,15 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
+/**
+ * Sistem kullanıcısı — Keycloak'ta tanımlı kimliklerin uygulama tarafındaki yansıması.
+ *
+ * <p>ID, Keycloak UUID'si olarak gelir (generated değil). {@link Product} ile many-to-many
+ * yetki ilişkisi {@code user_products} köprü tablosu üzerinden kurulur — müşteri sadece
+ * yetkili olduğu ürünler için bilet açabilir, agent yalnızca yetkili ürünlerdeki biletleri
+ * sahiplenebilir. Dil ve tema tercihleri (V21+) burada tutulur; rol bilgisi Keycloak ile
+ * paralel olarak DB'de de cache'lenir.
+ */
 @Entity
 @Table(name = "users")
 @Getter

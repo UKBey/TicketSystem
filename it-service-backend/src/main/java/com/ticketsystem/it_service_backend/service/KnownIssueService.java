@@ -36,6 +36,19 @@ public class KnownIssueService {
     // Read
     // --------------------------------------------------------------------
 
+    /**
+     * Bir ürüne (opsiyonel olarak belirli bir konuya) ait known issue kayıtlarını
+     * en yeni → en eski sırada döner. Müşteri/agent kullanıcısı için ürün yetkisi
+     * doğrulanır; admin/manager bypass eder.
+     *
+     * @param productId hedef ürün ID
+     * @param topicId opsiyonel konu filtresi
+     * @param activeOnly {@code true} ise sadece aktif kayıtlar
+     * @param userId yetki doğrulanacak kullanıcı (admin/manager için yoksayılır)
+     * @param roles kullanıcının rol listesi
+     * @return known issue listesi (boş olabilir)
+     * @throws ResponseStatusException 404 ürün yoksa, 403 kullanıcı yetkili değilse
+     */
     @Transactional(readOnly = true)
     public List<KnownIssue> listByProduct(Long productId, Long topicId, boolean activeOnly,
                                           String userId, List<String> roles) {
@@ -52,6 +65,15 @@ public class KnownIssueService {
                 : knownIssueRepository.findByProductIdOrderByCreatedAtDesc(productId);
     }
 
+    /**
+     * Tek bir known issue kaydını getirir; çağıran kullanıcının ürün yetkisi denetlenir.
+     *
+     * @param id kayıt ID
+     * @param userId yetki doğrulanacak kullanıcı
+     * @param roles kullanıcının rolleri
+     * @return ilgili {@link KnownIssue}
+     * @throws ResponseStatusException 404 yoksa, 403 ürün yetkisi olmazsa
+     */
     @Transactional(readOnly = true)
     public KnownIssue getById(Long id, String userId, List<String> roles) {
         KnownIssue issue = findOrThrow(id);
@@ -63,6 +85,21 @@ public class KnownIssueService {
     // Write
     // --------------------------------------------------------------------
 
+    /**
+     * Yeni bir known issue kaydı oluşturur.
+     *
+     * <p>Topic verilirse ürünle eşleşmesi zorunludur. Başlık ve içerik trim edilir
+     * ve uzunluk limitleri (başlık 255, içerik 10.000) uygulanır.
+     *
+     * @param productId ait olduğu ürün ID
+     * @param topicId opsiyonel konu ID (varsa ürünün altında olmalı)
+     * @param title başlık (boş olamaz, max 255)
+     * @param content içerik (boş olamaz, max 10.000)
+     * @param isActive aktif/pasif (null ise varsayılan {@code true})
+     * @param createdBy oluşturan kullanıcının ID'si (audit için)
+     * @return kaydedilen kayıt
+     * @throws ResponseStatusException 404 ürün/konu yoksa, 400 doğrulama hataları
+     */
     @Transactional
     public KnownIssue create(Long productId, Long topicId, String title, String content,
                              Boolean isActive, String createdBy) {
@@ -84,6 +121,18 @@ public class KnownIssueService {
         return saved;
     }
 
+    /**
+     * Kısmi güncelleme; yalnızca {@code null} olmayan alanlar değiştirilir.
+     * Topic değişiyorsa aynı ürünün altında olmak zorundadır.
+     *
+     * @param id güncellenecek kayıt ID
+     * @param topicId yeni konu (opsiyonel)
+     * @param title yeni başlık (opsiyonel)
+     * @param content yeni içerik (opsiyonel)
+     * @param isActive yeni aktif durumu (opsiyonel)
+     * @return güncellenmiş kayıt
+     * @throws ResponseStatusException 404 kayıt/konu yoksa, 400 doğrulama hataları
+     */
     @Transactional
     public KnownIssue update(Long id, Long topicId, String title, String content, Boolean isActive) {
         KnownIssue existing = findOrThrow(id);
@@ -107,6 +156,12 @@ public class KnownIssueService {
         return saved;
     }
 
+    /**
+     * Known issue kaydını siler.
+     *
+     * @param id silinecek kayıt ID
+     * @throws ResponseStatusException 404 — kayıt bulunamazsa
+     */
     @Transactional
     public void delete(Long id) {
         KnownIssue existing = findOrThrow(id);

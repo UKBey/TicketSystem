@@ -11,6 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+/**
+ * Agent Admin'in bir bileti belirli bir ajana manuel atamak için kullandığı istek.
+ * Hedef agent ID'si zorunludur (Bean Validation aktif); not opsiyoneldir.
+ */
 @Schema(description = "Manuel bilet atama isteği — Agent Admin tarafından kullanılır")
 public class AssignTicketRequestDTO {
 

@@ -23,14 +23,17 @@ public class RateLimitConfigService {
     private int durationSeconds = 60;
     private boolean enabled = true;
 
+    /** Setter populated by Spring's {@code @ConfigurationProperties} binder. */
     public void setMaxRequests(int maxRequests) {
         this.maxRequests = maxRequests;
     }
 
+    /** Setter populated by Spring's {@code @ConfigurationProperties} binder. */
     public void setDurationSeconds(int durationSeconds) {
         this.durationSeconds = durationSeconds;
     }
 
+    /** Setter populated by Spring's {@code @ConfigurationProperties} binder. */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }

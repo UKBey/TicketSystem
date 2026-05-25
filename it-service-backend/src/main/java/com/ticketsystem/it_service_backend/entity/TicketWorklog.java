@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
 
+/**
+ * Bir agent'ın {@link Ticket} üzerinde harcadığı çalışma süresi kaydı.
+ *
+ * <p>Dakika cinsinden tutulur ve dashboard'larda toplam efor / agent verimlilik
+ * raporları için aggregate edilir. Bir bilet birden fazla worklog'a sahip olabilir
+ * (aynı agent farklı zamanlarda ekleyebilir).
+ */
 @Entity
 @Table(name = "ticket_worklogs")
 @Getter
@@ -23,6 +30,7 @@ public class TicketWorklog {
     @Column(name = "agent_id", nullable = false, length = 36)
     private String agentId;
 
+    /** Harcanan süre — dakika cinsinden. */
     @Column(nullable = false)
     private Integer minutes;
 

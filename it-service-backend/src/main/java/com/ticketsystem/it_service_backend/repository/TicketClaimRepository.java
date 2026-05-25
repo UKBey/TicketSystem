@@ -8,6 +8,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * {@link TicketClaim} için JPA repository — bilet ↔ agent çoka-çok bağ tablosu üzerinde
+ * sahiplenme kayıtlarını sorgular, aktif yük (CLOSED hariç) sayımı ve toplu ID lookup'ları sağlar.
+ */
 public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> {
 
     List<TicketClaim> findByTicketId(Long ticketId);
@@ -24,6 +28,10 @@ public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> 
 
     long countByTicketId(Long ticketId);
 
+        /**
+         * Bir ajanın belirli ürün altındaki aktif (CLOSED dışı) bilet sayısı.
+         * {@code AgentProductLimit} kontrolünde ve claim öncesi limit doğrulamada kullanılır.
+         */
         @Query("""
                         SELECT COUNT(tc)
                         FROM TicketClaim tc
@@ -35,11 +43,14 @@ public interface TicketClaimRepository extends JpaRepository<TicketClaim, Long> 
         long countActiveTicketsByAgentAndProduct(@Param("agentId") String agentId,
                                                                                          @Param("productId") Long productId);
 
-    // Ajanin sahiplendig biletlerin ID listesini dondurur.
+    /** Ajanın sahiplendiği tüm biletlerin ID listesini döner (ticket sayfalama sorgularında IN-list olarak). */
     @Query("SELECT tc.ticket.id FROM TicketClaim tc WHERE tc.agentId = :agentId")
     List<Long> findTicketIdsByAgentId(@Param("agentId") String agentId);
 
-    // Birden fazla ajan icin sahiplenilen bilet ID'lerini toplu ceker.
+    /**
+     * Birden fazla ajan için sahiplenilen bilet ID'lerini toplu döner.
+     * Dönüş: her satır {@code [agent_id, ticket_id]}; N+1 sorgu kaçınmak için.
+     */
     @Query("SELECT tc.agentId, tc.ticket.id FROM TicketClaim tc WHERE tc.agentId IN :agentIds")
     List<Object[]> findAgentIdAndTicketIdByAgentIdIn(@Param("agentIds") List<String> agentIds);
 }

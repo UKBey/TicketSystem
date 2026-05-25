@@ -18,10 +18,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * "Sıkça karşılaşılan sorunlar" bilgi tabanı endpoint'leri.
+ * "Sıkça karşılaşılan sorunlar" bilgi tabanı için REST kontrolcüsü.
  *
- * <p>Listeleme ve detay: kullanıcı ürüne yetkili olmalı (AGENT_ADMIN/MANAGER her şeyi görür).
- * Yazma operasyonları: yalnızca AGENT_ADMIN ve MANAGER.
+ * <p>Listeleme ve detay: kullanıcı ürüne yetkili olmalı ({@code AGENT_ADMIN}/{@code MANAGER}
+ * her şeyi görür). Yazma operasyonları yalnızca {@code AGENT_ADMIN} ve {@code MANAGER}
+ * tarafından yapılır; iş kuralları {@link KnownIssueService}'tedir.
  */
 @Log4j2
 @Tag(name = "Sıkça Karşılaşılan Sorunlar", description = "Ürüne (ve opsiyonel topic'e) bağlı bilgi tabanı CRUD'u")
@@ -31,6 +32,14 @@ public class KnownIssueController {
 
     private final KnownIssueService knownIssueService;
 
+    /**
+     * Bir ürüne ait sıkça karşılaşılan sorunları (opsiyonel topic filtresiyle) listeler.
+     *
+     * @param productId ürün kimliği
+     * @param topicId opsiyonel topic filtresi
+     * @param includeInactive {@code true} ise pasif kayıtlar da dahil edilir
+     * @return rol/yetki bazlı filtrelenmiş DTO listesi
+     */
     @Operation(summary = "Bir ürünün sıkça karşılaşılan sorunlarını listele",
             description = "Varsayılan olarak yalnızca aktif kayıtlar gelir. `includeInactive=true` pasif olanları da dahil eder. "
                     + "`topicId` parametresiyle belirli bir topic'e filtrelenebilir.")
@@ -46,6 +55,12 @@ public class KnownIssueController {
         return ResponseEntity.ok(items.stream().map(KnownIssueDTO::fromEntity).toList());
     }
 
+    /**
+     * Tek bir sıkça karşılaşılan sorun kaydını döner; kullanıcı ürüne yetkili olmalıdır.
+     *
+     * @param id kayıt kimliği
+     * @return ilgili DTO
+     */
     @Operation(summary = "Tek bir sıkça karşılaşılan sorun kaydını getir")
     @GetMapping("/api/v1/known-issues/{id}")
     public ResponseEntity<KnownIssueDTO> getOne(
@@ -57,6 +72,13 @@ public class KnownIssueController {
         return ResponseEntity.ok(KnownIssueDTO.fromEntity(item));
     }
 
+    /**
+     * Belirtilen ürün altında yeni bir sıkça karşılaşılan sorun kaydı oluşturur.
+     *
+     * @param productId ürün kimliği
+     * @param body başlık, içerik, opsiyonel topic ve aktiflik bayrağı
+     * @return oluşturulan DTO
+     */
     @Operation(summary = "Yeni sıkça karşılaşılan sorun oluştur")
     @PostMapping("/api/v1/products/{productId}/known-issues")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
@@ -72,6 +94,13 @@ public class KnownIssueController {
         return ResponseEntity.ok(KnownIssueDTO.fromEntity(created));
     }
 
+    /**
+     * Mevcut bir sıkça karşılaşılan sorun kaydının alanlarını günceller.
+     *
+     * @param id güncellenecek kaydın kimliği
+     * @param body yeni topic, başlık, içerik ve aktiflik değeri
+     * @return güncellenmiş DTO
+     */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını güncelle")
     @PutMapping("/api/v1/known-issues/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
@@ -83,6 +112,12 @@ public class KnownIssueController {
         return ResponseEntity.ok(KnownIssueDTO.fromEntity(updated));
     }
 
+    /**
+     * Sıkça karşılaşılan sorun kaydını kalıcı olarak siler.
+     *
+     * @param id silinecek kaydın kimliği
+     * @return {@code 204 No Content}
+     */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını sil")
     @DeleteMapping("/api/v1/known-issues/{id}")
     @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
