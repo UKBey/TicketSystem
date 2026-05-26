@@ -289,18 +289,87 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 
 ## 📸 Screenshots
 
-> Place the image files in `docs/screenshots/` using the names below, then embed them here.
+### Authentication
 
-| File | What it shows |
-|------|---------------|
-| `login.png` | Login screen — language and light/dark theme switcher |
-| `my-tickets.png` | Customer "My Tickets" list and the create-ticket modal |
-| `ticket-detail.png` | Ticket detail — conversation timeline, SLA countdown badge, AI summary, attachments |
-| `agent-workspace.png` | Agent workspace and the ticket pool |
-| `manager-dashboard.png` | Manager dashboard — KPI cards, charts, SLA metrics |
-| `observability.png` | OpenSearch "Ticket System Observability" dashboard |
+![Login screen with language and light/dark theme switcher](docs/screenshots/login.png)
+*Login — language and light/dark theme switcher.*
 
-<!-- After adding a file, embed it like:  ![Login](docs/screenshots/login.png)  -->
+![TOTP 2FA prompt during sign-in](docs/screenshots/login-2fa.png)
+*TOTP 2FA prompt during sign-in.*
+
+![Forgot password flow](docs/screenshots/forgot-password.png)
+*Forgot password — request a reset link by e-mail.*
+
+### Customer
+
+![Customer My Tickets — Active tab](docs/screenshots/customer-my-tickets-active.png)
+*My Tickets → **Active** tab — non-closed tickets, status filter scoped to active statuses.*
+
+![Customer My Tickets — Closed tab](docs/screenshots/customer-my-tickets-closed.png)
+*My Tickets → **Closed** tab — only CLOSED tickets, status filter hidden.*
+
+![Create ticket modal](docs/screenshots/customer-create-ticket.png)
+*Create-ticket modal — product, topic and priority selection.*
+
+![Customer ticket detail](docs/screenshots/customer-ticket-detail.png)
+*Ticket detail — conversation timeline, SLA countdown badge and attachments.*
+
+![CSAT survey after resolution](docs/screenshots/customer-csat.png)
+*CSAT survey shown after a ticket is RESOLVED — 1-5 rating + comment.*
+
+### Agent / Agent Admin
+
+![Agent Workspace](docs/screenshots/agent-workspace.png)
+*Workspace — tickets the agent has claimed.*
+
+![Ticket pool](docs/screenshots/agent-pool.png)
+*Pool — unclaimed tickets ready to be picked up.*
+
+![Team view](docs/screenshots/agent-team.png)
+*Team — Agent Admin's view of every agent's queue.*
+
+![Agent ticket detail](docs/screenshots/agent-ticket-detail.png)
+*Ticket detail from the agent's perspective — internal note tab and worklog panel.*
+
+![AI summary modal](docs/screenshots/agent-ai-summary.png)
+*AI summary modal — Groq-generated ticket summary.*
+
+![Agent Admin panel overview](docs/screenshots/admin-admin-panel.png)
+*Agent Admin panel — entry point to user / product / SLA / rate-limit management.*
+
+![User management](docs/screenshots/admin-user-management.png)
+*User management — Keycloak roles, agent capacity and product authorizations.*
+
+![Product & topic configuration](docs/screenshots/admin-product-panel.png)
+*Product & topic configuration — CRUD on the categories customers can file tickets against.*
+
+![Known issues knowledge base](docs/screenshots/admin-known-issues.png)
+*Known issues editor — the knowledge base attached to every product/topic.*
+
+### Manager
+
+![Dashboard KPI cards](docs/screenshots/manager-dashboard-kpis.png)
+*Dashboard — KPI cards: open tickets, SLA breaches, average response time, CSAT.*
+
+![Dashboard charts](docs/screenshots/manager-dashboard-charts.png)
+*Status distribution and ticket-timeline charts.*
+
+![Agent performance leaderboard](docs/screenshots/manager-dashboard-agents.png)
+*Agent performance leaderboard — workload, throughput, CSAT and SLA stats per agent.*
+
+### Account & Notifications
+
+![Profile page](docs/screenshots/profile-page.png)
+*Profile — language / theme preferences, password change and 2FA management.*
+
+![Notification dropdown](docs/screenshots/notification-dropdown.png)
+*In-app notification feed (bell icon) — live STOMP updates with unread badge.*
+
+![Notification preferences](docs/screenshots/notification-preferences.png)
+*Per-event notification preferences — choose which events trigger an e-mail.*
+
+![Mailpit captured e-mail](docs/screenshots/mailpit-email.png)
+*Captured ticket / SLA e-mail in Mailpit (the dev SMTP catcher).*
 
 ---
 

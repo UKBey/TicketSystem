@@ -289,18 +289,87 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 
 ## 📸 Ekran Görüntüleri
 
-> Görsel dosyalarını aşağıdaki adlarla `docs/screenshots/` altına koyun, ardından buraya gömün.
+### Kimlik Doğrulama
 
-| Dosya | Ne gösterir |
-|-------|-------------|
-| `login.png` | Giriş ekranı — dil ve açık/koyu tema değiştirici |
-| `my-tickets.png` | Müşteri "Ticket'larım" listesi ve ticket oluşturma modalı |
-| `ticket-detail.png` | Ticket detayı — görüşme akışı, SLA geri sayım rozeti, yapay zekâ özeti, ekler |
-| `agent-workspace.png` | Temsilci çalışma alanı ve ticket havuzu |
-| `manager-dashboard.png` | Yönetici panosu — KPI kartları, grafikler, SLA metrikleri |
-| `observability.png` | OpenSearch "Ticket System Observability" panosu |
+![Giriş — dil ve tema değiştirici](docs/screenshots/login.png)
+*Giriş — dil ve açık/koyu tema değiştirici.*
 
-<!-- Dosyayı ekledikten sonra şöyle göm:  ![Login](docs/screenshots/login.png)  -->
+![Girişte TOTP 2FA istemi](docs/screenshots/login-2fa.png)
+*Girişte TOTP 2FA istemi.*
+
+![Şifre sıfırlama isteği](docs/screenshots/forgot-password.png)
+*Şifre sıfırlama — e-posta ile sıfırlama bağlantısı isteme.*
+
+### Müşteri
+
+![Ticket'larım — Aktif sekmesi](docs/screenshots/customer-my-tickets-active.png)
+*Ticket'larım → **Aktif** sekmesi — CLOSED olmayan biletler, status filtresi aktif statülerle sınırlı.*
+
+![Ticket'larım — Kapalı sekmesi](docs/screenshots/customer-my-tickets-closed.png)
+*Ticket'larım → **Kapalı** sekmesi — yalnız CLOSED biletler, status filtresi gizli.*
+
+![Ticket oluşturma modalı](docs/screenshots/customer-create-ticket.png)
+*Ticket oluşturma modalı — ürün, konu ve öncelik seçimi.*
+
+![Müşteri ticket detayı](docs/screenshots/customer-ticket-detail.png)
+*Ticket detayı — görüşme akışı, SLA geri sayım rozeti ve ek dosyalar.*
+
+![Çözüm sonrası CSAT anketi](docs/screenshots/customer-csat.png)
+*Çözüm (RESOLVED) sonrası CSAT anketi — 1-5 puan + yorum.*
+
+### Temsilci / Temsilci Yöneticisi
+
+![Temsilci Çalışma Alanı](docs/screenshots/agent-workspace.png)
+*Çalışma Alanı — temsilcinin sahiplendiği biletler.*
+
+![Ticket havuzu](docs/screenshots/agent-pool.png)
+*Havuz — sahiplenilmemiş, alınmaya hazır biletler.*
+
+![Takım görünümü](docs/screenshots/agent-team.png)
+*Takım — Temsilci Yöneticisinin tüm ajanların kuyruğunu izlediği görünüm.*
+
+![Temsilci ticket detayı](docs/screenshots/agent-ticket-detail.png)
+*Temsilci tarafında ticket detayı — internal note sekmesi ve worklog paneli.*
+
+![AI özet modalı](docs/screenshots/agent-ai-summary.png)
+*AI özet modalı — Groq tarafından üretilen ticket özeti.*
+
+![Temsilci Yöneticisi paneli](docs/screenshots/admin-admin-panel.png)
+*Temsilci Yöneticisi paneli — kullanıcı / ürün / SLA / rate-limit yönetimine giriş.*
+
+![Kullanıcı yönetimi](docs/screenshots/admin-user-management.png)
+*Kullanıcı yönetimi — Keycloak rolleri, agent kapasitesi ve ürün yetkileri.*
+
+![Ürün & konu konfigürasyonu](docs/screenshots/admin-product-panel.png)
+*Ürün & konu konfigürasyonu — müşterilerin bilet açabileceği kategorilerin CRUD'u.*
+
+![Sıkça karşılaşılan sorunlar editörü](docs/screenshots/admin-known-issues.png)
+*Sıkça karşılaşılan sorunlar editörü — her ürün/konuya bağlı bilgi tabanı.*
+
+### Yönetici
+
+![Dashboard KPI kartları](docs/screenshots/manager-dashboard-kpis.png)
+*Dashboard — KPI kartları: açık biletler, SLA ihlali, ortalama yanıt süresi, CSAT.*
+
+![Dashboard grafikleri](docs/screenshots/manager-dashboard-charts.png)
+*Status dağılımı ve ticket timeline grafikleri.*
+
+![Ajan performans tablosu](docs/screenshots/manager-dashboard-agents.png)
+*Ajan performans tablosu — iş yükü, çözüm hızı, CSAT ve SLA istatistikleri.*
+
+### Hesap & Bildirimler
+
+![Profil sayfası](docs/screenshots/profile-page.png)
+*Profil — dil / tema tercihi, şifre değişikliği ve 2FA yönetimi.*
+
+![Bildirim dropdown'u](docs/screenshots/notification-dropdown.png)
+*Uygulama içi bildirim akışı (zil ikonu) — STOMP canlı güncellemeleri, okunmamış sayacı.*
+
+![Bildirim tercihleri](docs/screenshots/notification-preferences.png)
+*Olay bazlı bildirim tercihleri — hangi olayların e-posta tetikleyeceğini seç.*
+
+![Mailpit'te yakalanmış e-posta](docs/screenshots/mailpit-email.png)
+*Mailpit'te (geliştirme SMTP yakalayıcısı) yakalanmış ticket / SLA e-postası.*
 
 ---
 
