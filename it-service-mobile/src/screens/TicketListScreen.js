@@ -77,7 +77,11 @@ export default function TicketListScreen({ navigation, route }) {
   const endpoint = route.params?.endpoint || '/tickets';
   const baseStatus = route.params?.status; // History → CLOSED (kilitli)
   const filterCfg = route.params?.filters || ['status', 'priority', 'date'];
-  const statusOptions = route.params?.statusOptions || STATUSES;
+  // When the tab restricts the available statuses (e.g. customer "Active" excludes
+  // CLOSED), we use that list as the default scope so an empty filter never falls
+  // back to "all statuses" and leaks the wrong tickets into the tab.
+  const routeStatusOptions = route.params?.statusOptions;
+  const statusOptions = routeStatusOptions || STATUSES;
   const has = (f) => filterCfg.includes(f);
 
   const [tickets, setTickets] = useState([]);
@@ -148,7 +152,12 @@ export default function TicketListScreen({ navigation, route }) {
       else setLoading(true);
       setError(null);
       try {
-        const status = baseStatus ? [baseStatus] : statusF;
+        // Resolution order: locked baseStatus → user-selected filter → tab's scope (statusOptions) → no restriction.
+        let status;
+        if (baseStatus) status = [baseStatus];
+        else if (statusF.length) status = statusF;
+        else if (routeStatusOptions) status = routeStatusOptions;
+        else status = [];
         let dateFrom;
         if (dateF != null) {
           const d = new Date();
@@ -180,7 +189,7 @@ export default function TicketListScreen({ navigation, route }) {
         setRefreshing(false);
       }
     },
-    [endpoint, baseStatus, statusF, priorityF, slaF, productF, topicF, agentF, dateF, debouncedSearch, t],
+    [endpoint, baseStatus, routeStatusOptions, statusF, priorityF, slaF, productF, topicF, agentF, dateF, debouncedSearch, t],
   );
 
   useFocusEffect(

@@ -65,7 +65,8 @@ function tabsForRole(role, t) {
       menu,
     ];
   }
-  // CUSTOMER (ve varsayılan)
+  // CUSTOMER (ve varsayılan) — "Biletlerim" CLOSED hariç tüm statüleri kapsar;
+  // CLOSED biletler ayrı "Geçmiş" sekmesinde gösterilir.
   return [
     {
       name: 'MyTickets',
@@ -74,6 +75,7 @@ function tabsForRole(role, t) {
       endpoint: '/tickets',
       canCreate: true,
       filters: ['status', 'priority', 'date'],
+      statusOptions: ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'],
     },
     { ...history, endpoint: '/tickets', filters: ['priority', 'date'] },
     menu,

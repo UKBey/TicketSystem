@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTicketList } from '../../hooks/useTicketList';
@@ -6,6 +6,9 @@ import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 import CreateTicketModal from '../../components/CreateTicketModal';
+
+const ACTIVE_STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
+const CLOSED_STATUSES = ['CLOSED'];
 
 export default function MyTickets() {
   const { t } = useTranslation();
@@ -16,6 +19,14 @@ export default function MyTickets() {
     { key: 'active', label: t('ticket.myTickets.tabActive') },
     { key: 'closed', label: t('ticket.myTickets.tabClosed') },
   ];
+
+  // Default status scope per tab. The user's own status filter (if any) still
+  // overrides this in useTicketList; we only narrow the *unfiltered* default
+  // so the active tab never shows CLOSED and vice versa.
+  const extraParams = useMemo(
+    () => ({ status: tab === 'closed' ? CLOSED_STATUSES : ACTIVE_STATUSES }),
+    [tab],
+  );
 
   const {
     tickets, totalPages, totalItems, loading, error,
@@ -31,11 +42,12 @@ export default function MyTickets() {
     dateTo, setDateTo,
     clearFilters,
     refetch,
-  } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc' });
+  } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc', extraParams });
 
   const handleTabChange = (tabKey) => {
     setTab(tabKey);
-    setStatus(tabKey === 'closed' ? 'CLOSED' : '');
+    // Drop any user-selected status filter — the new tab's scope takes over.
+    setStatus([]);
   };
 
   return (
@@ -96,6 +108,7 @@ export default function MyTickets() {
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
           hideStatus={tab === 'closed'}
+          statusOptions={ACTIVE_STATUSES}
           hideAgent
         />
 
