@@ -4,6 +4,7 @@
         build build-backend build-frontend \
         test test-backend test-frontend \
         verify \
+        javadoc javadoc-backend javadoc-llm \
         sonar sonar-up sonar-down \
         lint install clean \
         gen gen-k8s gen-build gen-run \
@@ -58,6 +59,13 @@ help:
 	@echo  Kapsam (Coverage):
 	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
 	@echo                       Rapor: it-service-backend/target/site/jacoco/index.html
+	@echo.
+	@echo  Dokumantasyon (Javadoc):
+	@echo    javadoc          - Tum servisler icin Javadoc HTML uretir (backend + llm-service)
+	@echo    javadoc-backend  - Sadece backend Javadoc'unu uretir
+	@echo                       Rapor: it-service-backend/target/reports/apidocs/index.html
+	@echo    javadoc-llm      - Sadece llm-service Javadoc'unu uretir
+	@echo                       Rapor: llm-service/target/reports/apidocs/index.html
 	@echo.
 	@echo  Kod Kalitesi (SonarQube):
 	@echo    sonar-up         - SonarQube container'ini baslatir (http://localhost:9000)
@@ -165,6 +173,23 @@ lint:
 
 verify:
 	cd $(BACKEND_DIR) && mvnw.cmd verify
+
+# --- Javadoc ---
+# Plugin yapilandirmasi (doclint=none) pom.xml'de tanimli; ekstra flag gerekmez.
+
+javadoc: javadoc-backend javadoc-llm
+	@echo.
+	@echo ================================================================
+	@echo  Javadoc uretildi:
+	@echo    Backend     : $(BACKEND_DIR)/target/reports/apidocs/index.html
+	@echo    LLM service : llm-service/target/reports/apidocs/index.html
+	@echo ================================================================
+
+javadoc-backend:
+	cd $(BACKEND_DIR) && mvnw.cmd javadoc:javadoc
+
+javadoc-llm:
+	cd llm-service && ..\$(BACKEND_DIR)\mvnw.cmd javadoc:javadoc
 
 # --- SonarQube ---
 
