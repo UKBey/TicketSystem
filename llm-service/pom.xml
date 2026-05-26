@@ -143,6 +143,13 @@
                     <failOnError>false</failOnError>
                     <failOnWarnings>false</failOnWarnings>
                     <quiet>true</quiet>
+                    <!--
+                        Backend (Spring Boot 4) ile ayni cikti yolunu ($PROJECT/target/reports/apidocs)
+                        kullanmak icin reportOutputDirectory acikca verilir. Eski plugin
+                        surumleri varsayilan olarak target/site/apidocs'a yaziyor.
+                    -->
+                    <reportOutputDirectory>${project.build.directory}/reports</reportOutputDirectory>
+                    <destDir>apidocs</destDir>
                 </configuration>
             </plugin>
         </plugins>
