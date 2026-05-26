@@ -1,141 +1,184 @@
 package com.ticketsystem.generator.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Generator runtime settings.
  *
- * <p>Values are resolved in priority order:
- * <ol>
- *   <li>OS environment variable (e.g. {@code ADMIN_AGENT_PASSWORD})</li>
- *   <li>Property from {@code data-generator/.env} (or {@code ./.env} when run from {@code data-generator/})</li>
- *   <li>Hardcoded fallback (the value shipped in this file)</li>
- * </ol>
- *
- * <p>The user list and data content are read from {@code src/main/resources/setup.json}
- * and {@code src/main/resources/tickets/*.json}. Only a single <em>agent_admin</em>
- * account and operational knobs are managed here.
+ * <p>Credentials (admin, master, DB and the seed agents/customers) are loaded once at
+ * class init from {@code data-generator/users.json} when that file is present. Anything
+ * not overridden there falls back to the hardcoded defaults below. The user list and
+ * structural data still live in {@code src/main/resources/setup.json}.
  */
 public class GeneratorConfig {
 
-    private static final Properties DOT_ENV = loadDotEnv();
+    /** Single source of truth for all login credentials (admin + master + DB + agents/customers). */
+    public static final Path USERS_FILE_NAME = Paths.get("users.json");
+
+    private static final UsersFile USERS = UsersFile.load();
 
     // ---------------------------------------------------------------
     // Server address
     // ---------------------------------------------------------------
-    public static final String BASE_URL = env("BASE_URL", "http://localhost");
+    public static final String BASE_URL = "http://localhost";
 
     // ---------------------------------------------------------------
     // Keycloak
     // ---------------------------------------------------------------
-    public static final String KEYCLOAK_URL    = env("KEYCLOAK_URL",    BASE_URL + "/auth");
-    public static final String KEYCLOAK_REALM  = env("KEYCLOAK_REALM",  "TicketSystemRealm");
-    public static final String KEYCLOAK_CLIENT = env("KEYCLOAK_CLIENT", "ticket-frontend");
+    public static final String KEYCLOAK_URL    = BASE_URL + "/auth";
+    public static final String KEYCLOAK_REALM  = "TicketSystemRealm";
+    public static final String KEYCLOAK_CLIENT = "ticket-frontend";
 
     // ---------------------------------------------------------------
     // Agent admin (single account) — creates the remaining users,
     // adds products/topics/issues and authorizes them.
     // ---------------------------------------------------------------
-    public static final String ADMIN_AGENT_USERNAME = env("ADMIN_AGENT_USERNAME", "aatest");
-    public static final String ADMIN_AGENT_PASSWORD = env("ADMIN_AGENT_PASSWORD", "321654");
+    public static final String ADMIN_AGENT_USERNAME = USERS.username("adminAgent", "aatest");
+    public static final String ADMIN_AGENT_PASSWORD = USERS.password("adminAgent", "321654");
 
     // ---------------------------------------------------------------
     // Keycloak master realm admin — used only to clear required-actions
     // on freshly created users (touches nothing outside data-generator).
     // ---------------------------------------------------------------
-    public static final String MASTER_ADMIN_USERNAME = env("MASTER_ADMIN_USERNAME", "admin");
-    public static final String MASTER_ADMIN_PASSWORD = env("MASTER_ADMIN_PASSWORD", "321654");
-    public static final String MASTER_ADMIN_CLIENT   = env("MASTER_ADMIN_CLIENT",   "admin-cli");
+    public static final String MASTER_ADMIN_USERNAME = USERS.username("keycloakAdmin", "admin");
+    public static final String MASTER_ADMIN_PASSWORD = USERS.password("keycloakAdmin", "321654");
+    public static final String MASTER_ADMIN_CLIENT   = "admin-cli";
 
     // ---------------------------------------------------------------
     // Request cadence
     // ---------------------------------------------------------------
     /** Delay between two API requests (ms). */
-    public static final long DELAY_MS = envLong("DELAY_MS", 600L);
+    public static final long DELAY_MS = 600;
 
     /** Delay between comment rounds (ms) — backend comment cooldown is 5 sec. */
-    public static final long COMMENT_DELAY_MS = envLong("COMMENT_DELAY_MS", 5500L);
+    public static final long COMMENT_DELAY_MS = 5500;
 
     /** Wait time after receiving a 429 (ms). */
-    public static final long RATE_LIMIT_BACKOFF_MS = envLong("RATE_LIMIT_BACKOFF_MS", 6000L);
+    public static final long RATE_LIMIT_BACKOFF_MS = 6000;
 
     /** Number of retries after receiving a 429. */
-    public static final int RATE_LIMIT_RETRY_COUNT = envInt("RATE_LIMIT_RETRY_COUNT", 3);
+    public static final int RATE_LIMIT_RETRY_COUNT = 3;
 
     /** Token refresh threshold (seconds). */
-    public static final int TOKEN_REFRESH_THRESHOLD_SEC = envInt("TOKEN_REFRESH_THRESHOLD_SEC", 30);
+    public static final int TOKEN_REFRESH_THRESHOLD_SEC = 30;
 
     // ---------------------------------------------------------------
     // PostgreSQL (direct DB connection for date backfill)
     // ---------------------------------------------------------------
-    public static final String DB_URL      = env("DB_URL",      "jdbc:postgresql://localhost:5432/ticketdb");
-    public static final String DB_USER     = env("DB_USER",     "ticketadmin");
-    public static final String DB_PASSWORD = env("DB_PASSWORD", "321654");
+    public static final String DB_URL      = "jdbc:postgresql://localhost:5432/ticketdb";
+    public static final String DB_USER     = USERS.username("database", "ticketadmin");
+    public static final String DB_PASSWORD = USERS.password("database", "321654");
 
     /** How many days back ticket creation dates should be spread across. */
-    public static final int DATE_SPREAD_DAYS = envInt("DATE_SPREAD_DAYS", 7);
+    public static final int DATE_SPREAD_DAYS = 7;
 
-    // ---------------------------------------------------------------
-    // .env loader
-    // ---------------------------------------------------------------
-
-    private static Properties loadDotEnv() {
-        Properties props = new Properties();
-        // Try both common working-directory layouts so the file is found whether
-        // the JAR runs from the repo root (via `make gen`) or from data-generator/.
-        Path[] candidates = {
-                Paths.get(".env"),
-                Paths.get("data-generator", ".env")
-        };
-        for (Path p : candidates) {
-            if (Files.isRegularFile(p)) {
-                try (var reader = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
-                    props.load(reader);
-                    return props;
-                } catch (IOException e) {
-                    throw new UncheckedIOException("Failed to read " + p, e);
-                }
-            }
-        }
-        return props;
-    }
-
-    private static String env(String key, String defaultValue) {
-        // OS env vars win so they can be supplied without editing the .env file.
-        String value = System.getenv(key);
-        if (value != null && !value.isEmpty()) return value;
-        value = DOT_ENV.getProperty(key);
-        if (value != null && !value.isEmpty()) return value;
-        return defaultValue;
-    }
-
-    private static long envLong(String key, long defaultValue) {
-        String raw = env(key, null);
-        if (raw == null) return defaultValue;
-        try {
-            return Long.parseLong(raw.trim());
-        } catch (NumberFormatException ignored) {
-            return defaultValue;
-        }
-    }
-
-    private static int envInt(String key, int defaultValue) {
-        String raw = env(key, null);
-        if (raw == null) return defaultValue;
-        try {
-            return Integer.parseInt(raw.trim());
-        } catch (NumberFormatException ignored) {
-            return defaultValue;
-        }
+    /**
+     * Looks up the password for a seed user (agent or customer) listed in {@code users.json}.
+     * Returns {@code null} when the user is not mapped — callers should fall back to the
+     * {@code password} field in {@code setup.json}.
+     *
+     * @param username the username to resolve
+     * @return the password from {@code users.json}, or {@code null} if not configured
+     */
+    public static String passwordForUser(String username) {
+        return USERS.passwordForUser(username);
     }
 
     private GeneratorConfig() {
         // Utility class — no instances.
+    }
+
+    // -----------------------------------------------------------------
+    // users.json loader
+    // -----------------------------------------------------------------
+
+    /**
+     * Parsed contents of {@code users.json}. Missing file or malformed JSON degrades to an empty
+     * mapping so the generator can still run with the hardcoded defaults.
+     */
+    private static final class UsersFile {
+        private final Map<String, Map<String, String>> namedAccounts;
+        private final Map<String, String> seedUsers;
+
+        private UsersFile(Map<String, Map<String, String>> namedAccounts,
+                          Map<String, String> seedUsers) {
+            this.namedAccounts = namedAccounts;
+            this.seedUsers     = seedUsers;
+        }
+
+        static UsersFile load() {
+            // Try the file next to the working directory first (so `cd data-generator` works),
+            // then under data-generator/ for invocations from the repo root (e.g. `make gen`).
+            Path[] candidates = {
+                    USERS_FILE_NAME,
+                    Paths.get("data-generator").resolve(USERS_FILE_NAME)
+            };
+            for (Path p : candidates) {
+                if (!Files.isRegularFile(p)) continue;
+                try {
+                    JsonNode root = new ObjectMapper().readTree(p.toFile());
+                    return parse(root);
+                } catch (IOException e) {
+                    throw new UncheckedIOException("Failed to read " + p, e);
+                }
+            }
+            return new UsersFile(Collections.emptyMap(), Collections.emptyMap());
+        }
+
+        private static UsersFile parse(JsonNode root) {
+            Map<String, Map<String, String>> named = new HashMap<>();
+            Map<String, String> seed = new HashMap<>();
+
+            // Named single accounts: adminAgent / keycloakAdmin / database (object with username + password).
+            for (String key : new String[] {"adminAgent", "keycloakAdmin", "database"}) {
+                JsonNode node = root.path(key);
+                if (!node.isObject()) continue;
+                Map<String, String> entry = new HashMap<>();
+                entry.put("username", node.path("username").asText(null));
+                entry.put("password", node.path("password").asText(null));
+                named.put(key, entry);
+            }
+
+            // Per-username password maps for seed users (agents / customers).
+            for (String key : new String[] {"agents", "customers"}) {
+                JsonNode node = root.path(key);
+                if (!node.isObject()) continue;
+                Iterator<Map.Entry<String, JsonNode>> it = node.fields();
+                while (it.hasNext()) {
+                    Map.Entry<String, JsonNode> e = it.next();
+                    String username = e.getKey();
+                    String password = e.getValue().asText(null);
+                    if (username != null && password != null) seed.put(username, password);
+                }
+            }
+            return new UsersFile(named, seed);
+        }
+
+        String username(String accountKey, String fallback) {
+            Map<String, String> entry = namedAccounts.get(accountKey);
+            String value = entry == null ? null : entry.get("username");
+            return (value != null && !value.isEmpty()) ? value : fallback;
+        }
+
+        String password(String accountKey, String fallback) {
+            Map<String, String> entry = namedAccounts.get(accountKey);
+            String value = entry == null ? null : entry.get("password");
+            return (value != null && !value.isEmpty()) ? value : fallback;
+        }
+
+        String passwordForUser(String username) {
+            return seedUsers.get(username);
+        }
     }
 }

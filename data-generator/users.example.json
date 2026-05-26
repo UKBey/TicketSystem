@@ -1,0 +1,20 @@
+{
+  "_comment": "Copy this file to data-generator/users.json and adjust passwords to match your Keycloak / Postgres setup. The generator reads this once at startup; any account left out falls back to the defaults in GeneratorConfig.java (which still use '321654').",
+
+  "adminAgent":    { "username": "aatest",      "password": "321654" },
+  "keycloakAdmin": { "username": "admin",       "password": "321654" },
+  "database":      { "username": "ticketadmin", "password": "321654" },
+
+  "agents": {
+    "agent1.gen": "321654",
+    "agent2.gen": "321654",
+    "agent3.gen": "321654"
+  },
+
+  "customers": {
+    "customer1.gen": "321654",
+    "customer2.gen": "321654",
+    "customer3.gen": "321654",
+    "customer4.gen": "321654"
+  }
+}

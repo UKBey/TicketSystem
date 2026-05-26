@@ -25,6 +25,9 @@ build/
 *.local
 k8s/overlays/local/secrets.env
 
+# Local credentials for data-generator (example template is committed)
+data-generator/users.json
+
 # Editor and IDE settings
 .vscode/
 .idea/

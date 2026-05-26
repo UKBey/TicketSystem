@@ -129,7 +129,12 @@ public class SetupGenerator {
 
         for (JsonNode u : userArray) {
             String username = u.path("username").asText();
-            String password = u.path("password").asText();
+            // users.json (if present) overrides the password baked into setup.json so the seed
+            // accounts can be re-provisioned with project-specific passwords without rebuilding.
+            String override = GeneratorConfig.passwordForUser(username);
+            String password = (override != null && !override.isEmpty())
+                    ? override
+                    : u.path("password").asText();
 
             UserSession session = loginWithRecovery(username, password, role);
             if (session == null) continue;
