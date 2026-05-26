@@ -130,7 +130,9 @@ flowchart TB
 ### Prerequisites
 
 - **Docker** & Docker Compose
-- **Make** (the canonical command entry point — Windows-first; on POSIX run the underlying commands directly)
+- **Make**
+  - **Windows:** install via [GnuWin32 Make](http://gnuwin32.sourceforge.net/packages/make.htm) or `choco install make`. The Makefile uses Windows-friendly commands (`mvnw.cmd`, `cmd /k`, `rmdir`).
+  - **macOS / Linux:** pre-installed or `brew install make` / `apt install make`. Replace `mvnw.cmd` with `./mvnw` in the targets you invoke directly.
 - For local (non-Docker) development: **JDK 21**, **Node.js 22+**
 - A **Groq API key** ([console.groq.com/keys](https://console.groq.com/keys)) — only needed for the AI summary feature
 
@@ -152,26 +154,58 @@ make logs s=it-service-backend   # tail one service
 
 The first start pulls images, runs Flyway migrations and imports the Keycloak realm — give it a couple of minutes. Use `make rebuild` after changing application code, and `make down` to stop.
 
-### 3. Access points
+### 3. Finish the Keycloak setup (one-time, after the first `make up`)
+
+The realm export ships with masked secrets (`**********`). On the very first start you must set them by hand:
+
+#### 3a. Set the LDAP bind credential
+1. Open http://localhost/auth → **Administration Console** → log in as `admin` with `KEYCLOAK_ADMIN_PASSWORD` from your `.env`.
+2. Top-left dropdown → switch to realm **TicketSystemRealm**.
+3. **User Federation → ldap → Bind credentials**: paste the value of `LDAP_ADMIN_PASSWORD` from `.env`.
+4. Click **Test connection** and **Test authentication** — both must succeed.
+5. Click **Save**, then **Action → Sync all users** to pull the seeded LDAP users into Keycloak.
+
+#### 3b. Regenerate the service-account client secret
+1. **Clients → ticket-client → Credentials → Regenerate**.
+2. Copy the new secret and set `KEYCLOAK_ADMIN_CLIENT_SECRET=<paste>` in `.env`.
+3. Restart the backend so it picks the new value up:
+   ```bash
+   make restart s=it-service-backend
+   ```
+
+#### 3c. Assign realm roles to the seed users
+LDAP users land in Keycloak without realm roles by default. For each user, go to **Users → click username → Role mapping → Assign role** and pick:
+
+| Username | Realm role |
+|----------|------------|
+| `ctest`  | `customer` |
+| `atest`  | `agent` |
+| `aatest` | `agent_admin` |
+| `mtest`  | `manager` |
+
+You can now log in at http://localhost.
+
+### 4. Access points
 
 | Service | URL |
 |---------|-----|
 | **Web application** | http://localhost |
 | API (Swagger UI) | http://localhost/swagger-ui/index.html |
 | Keycloak | http://localhost/auth |
+| Keycloak Admin Console | http://localhost/auth/admin — login: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (from `.env`) |
 | Mailpit (captured e-mails) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
-| phpLDAPadmin | http://localhost:8085 |
+| phpLDAPadmin | http://localhost:8085 — login: `cn=admin,dc=ticketsystem,dc=com` / `LDAP_ADMIN_PASSWORD` |
 | KIE Server (jBPM workflow API) | http://localhost:8180/kie-server/docs |
 | SonarQube (opt-in) | http://localhost:9000 |
 
-### 4. Seed demo data
+### 5. Seed demo data
 
 ```bash
 make gen       # build + run the data generator (products, tickets, history)
 ```
 
-### 5. Demo users
+### 6. Demo users
 
 Four users are seeded into OpenLDAP. Their **passwords are whatever you set** in `.env` (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`).
 

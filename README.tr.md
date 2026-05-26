@@ -130,7 +130,9 @@ flowchart TB
 ### Ön Koşullar
 
 - **Docker** ve Docker Compose
-- **Make** (kanonik komut giriş noktası — Windows öncelikli; POSIX üzerinde alttaki komutları doğrudan çalıştırın)
+- **Make**
+  - **Windows:** [GnuWin32 Make](http://gnuwin32.sourceforge.net/packages/make.htm) ile veya `choco install make` ile kurun. Makefile, Windows-uyumlu komutlar (`mvnw.cmd`, `cmd /k`, `rmdir`) kullanır.
+  - **macOS / Linux:** Sistemde gelir; gerekirse `brew install make` / `apt install make`. Manuel çağırdığınız target'larda `mvnw.cmd` yerine `./mvnw` kullanın.
 - Yerel (Docker'sız) geliştirme için: **JDK 21**, **Node.js 22+**
 - Bir **Groq API anahtarı** ([console.groq.com/keys](https://console.groq.com/keys)) — yalnızca yapay zekâ özet özelliği için gereklidir
 
@@ -152,26 +154,58 @@ make logs s=it-service-backend   # tek bir servisin günlüklerini izler
 
 İlk başlatma; imajları çeker, Flyway migrasyonlarını çalıştırır ve Keycloak realm'ini içe aktarır — birkaç dakika tanıyın. Uygulama kodunu değiştirdikten sonra `make rebuild`, durdurmak için `make down` kullanın.
 
-### 3. Erişim noktaları
+### 3. Keycloak kurulumunu tamamlayın (ilk `make up` sonrası bir defalık)
+
+Realm export'u maskelenmiş gizli değerlerle (`**********`) gelir. İlk başlatmada bunları elle ayarlamanız gerekir:
+
+#### 3a. LDAP bind şifresini girin
+1. http://localhost/auth → **Administration Console** → `admin` kullanıcısı ile `.env`'deki `KEYCLOAK_ADMIN_PASSWORD` ile giriş yapın.
+2. Sol üst menüden realm'i **TicketSystemRealm**'e değiştirin.
+3. **User Federation → ldap → Bind credentials**: `.env`'deki `LDAP_ADMIN_PASSWORD` değerini yapıştırın.
+4. **Test connection** ve **Test authentication** — ikisi de başarılı olmalı.
+5. **Save** edin, sonra **Action → Sync all users** ile LDAP kullanıcılarını Keycloak'a aktarın.
+
+#### 3b. Service-account client secret'ı yeniden üretin
+1. **Clients → ticket-client → Credentials → Regenerate**.
+2. Yeni secret'ı kopyalayın ve `.env` içinde `KEYCLOAK_ADMIN_CLIENT_SECRET=<yapıştır>` olarak ayarlayın.
+3. Backend'i yeniden başlatın ki yeni değeri okusun:
+   ```bash
+   make restart s=it-service-backend
+   ```
+
+#### 3c. Tohum kullanıcılarına realm rollerini atayın
+LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir. Her kullanıcı için **Users → kullanıcı adı → Role mapping → Assign role** üzerinden şu eşlemeyi yapın:
+
+| Kullanıcı | Realm rolü |
+|-----------|------------|
+| `ctest`   | `customer` |
+| `atest`   | `agent` |
+| `aatest`  | `agent_admin` |
+| `mtest`   | `manager` |
+
+Artık http://localhost adresinden giriş yapabilirsiniz.
+
+### 4. Erişim noktaları
 
 | Servis | URL |
 |---------|-----|
 | **Web uygulaması** | http://localhost |
 | API (Swagger UI) | http://localhost/swagger-ui/index.html |
 | Keycloak | http://localhost/auth |
+| Keycloak Admin Console | http://localhost/auth/admin — giriş: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (`.env`'den) |
 | Mailpit (yakalanan e-postalar) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
-| phpLDAPadmin | http://localhost:8085 |
+| phpLDAPadmin | http://localhost:8085 — giriş: `cn=admin,dc=ticketsystem,dc=com` / `LDAP_ADMIN_PASSWORD` |
 | KIE Server (jBPM iş akışı API'si) | http://localhost:8180/kie-server/docs |
 | SonarQube (isteğe bağlı) | http://localhost:9000 |
 
-### 4. Demo verilerini oluşturun
+### 5. Demo verilerini oluşturun
 
 ```bash
 make gen       # veri üreticisini derler + çalıştırır (ürünler, ticket'lar, geçmiş)
 ```
 
-### 5. Demo kullanıcıları
+### 6. Demo kullanıcıları
 
 OpenLDAP'a dört kullanıcı eklenir. **Parolaları, `.env` içinde belirlediğiniz değerlerdir** (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`).
 
