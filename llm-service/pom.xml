@@ -22,10 +22,40 @@
     </properties>
 
     <dependencies>
-        <!-- Web (WebFlux değil, WebMVC — WebClient için webflux bağımlılığı ayrıca eklendi) -->
+        <!-- Web (WebFlux değil, WebMVC — WebClient için webflux bağımlılığı ayrıca eklendi).
+             Default Logback bağımlılığı çıkarılıyor; log stack'i Log4j2'ye taşındı
+             (it-service-backend ile parite). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Log4j2 stack: Spring Boot starter + JSON template layout + OTEL appender köprüsü.
+             Loglar üç kanaldan akar:
+               1) Kafka → Logstash → OpenSearch (arşiv pipeline)
+               2) Console JSON (Docker stdout, dev'de okumak için)
+               3) OTEL appender → OTEL Collector → OpenSearch otel-logs index'i
+                  (trace/span context ile zenginleştirilmiş) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-layout-template-json</artifactId>
+            <version>2.23.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-log4j-appender-2.17</artifactId>
+            <version>2.16.0-alpha</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- WebClient (Groq API çağrıları için) -->

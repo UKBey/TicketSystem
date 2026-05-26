@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    llm-service log4j2 yapılandırması — it-service-backend ile aynı stack:
+      • Kafka appender → Logstash → OpenSearch (arşiv yolu, ticket-logs topic)
+      • Console JSON → Docker stdout (dev'de doğrudan okumak için)
+      • OpenTelemetry appender → OTEL Collector → OpenSearch otel-logs index'i
+        (trace/span context dahil)
+    Spring Boot otomatik olarak bu dosyayı log4j2-spring.xml ismiyle bulup yükler.
+-->
+<Configuration status="WARN">
+    <Appenders>
+        <Kafka name="KafkaLogger" topic="ticket-logs">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+            <Property name="bootstrap.servers">kafka:9092</Property>
+        </Kafka>
+
+        <Console name="ConsoleJSON" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+        </Console>
+
+        <!--
+            OpenTelemetry Log Appender:
+            Log4j2 loglarını OTEL SdkLoggerProvider üzerinden Collector'a iletir.
+            Trace/span context (traceId, spanId) otomatik enjekte edilir.
+        -->
+        <OpenTelemetry name="OpenTelemetryAppender"/>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.ticketsystem.llmservice" level="debug" additivity="false">
+            <AppenderRef ref="KafkaLogger" />
+            <AppenderRef ref="ConsoleJSON" />
+            <AppenderRef ref="OpenTelemetryAppender" />
+        </Logger>
+
+        <Root level="info">
+            <AppenderRef ref="KafkaLogger" />
+            <AppenderRef ref="ConsoleJSON" />
+            <AppenderRef ref="OpenTelemetryAppender" />
+        </Root>
+    </Loggers>
+</Configuration>
