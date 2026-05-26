@@ -14,18 +14,30 @@ generator kullanıcı oluşturmaz, yalnızca login dener.
 
 ## Hızlı Başlangıç
 
-### 1. agent_admin bilgilerini ayarla
+### 1. .env dosyasını hazırla
 
-`src/main/java/com/ticketsystem/generator/config/GeneratorConfig.java`:
+`data-generator/.env.example` dosyasını `data-generator/.env` olarak kopyala ve
+parolaları kendi ortamına göre güncelle:
 
-```java
-public static final String ADMIN_AGENT_USERNAME = "aatest";
-public static final String ADMIN_AGENT_PASSWORD = "321654";
+```bash
+cd data-generator
+cp .env.example .env       # Linux/Mac
+copy .env.example .env     # Windows
 ```
 
-> Bu kullanıcının Keycloak'ta `AGENT_ADMIN` rolünde tanımlı ve sisteme **en az bir
-> kez giriş yapmış** olması gerekir. Generator, diğer tüm kullanıcıları
+`.env` içindeki üç anahtar değer kritik (kalanlar varsayılanla çalışır):
+
+```env
+ADMIN_AGENT_PASSWORD=321654    # = root .env LDAP_AGENT_ADMIN_PASSWORD
+MASTER_ADMIN_PASSWORD=321654   # = root .env KEYCLOAK_ADMIN_PASSWORD
+DB_PASSWORD=321654             # = root .env SPRING_DATASOURCE_PASSWORD
+```
+
+> `aatest` kullanıcısı Keycloak'ta `AGENT_ADMIN` rolünde tanımlı ve sisteme
+> **en az bir kez giriş yapmış** olmalıdır. Generator, diğer tüm kullanıcıları
 > (agent + customer) bu hesap üzerinden oluşturur.
+
+Değerlerin çözümlenme sırası: **OS env vars → `data-generator/.env` → `GeneratorConfig.java` içindeki hardcoded fallback**. Yani CI/CD'de `.env` yerine env vars geçilebilir, geliştirme makinesinde `.env` kullanılır.
 
 ### 2. Derle ve çalıştır
 
@@ -172,17 +184,26 @@ data-generator/
 
 ---
 
-## Tüm Ayarlar (`GeneratorConfig.java`)
+## Tüm Ayarlar
+
+Her ayar `data-generator/.env` veya OS env var olarak verilebilir; yoksa `GeneratorConfig.java` içindeki varsayılan kullanılır.
 
 | Ayar | Varsayılan | Açıklama |
 |------|-----------|----------|
 | `BASE_URL` | `http://localhost` | Uygulamanın adresi |
+| `KEYCLOAK_URL` | `${BASE_URL}/auth` | Keycloak kök URL'i |
+| `KEYCLOAK_REALM` | `TicketSystemRealm` | Realm adı |
+| `KEYCLOAK_CLIENT` | `ticket-frontend` | Token alınacak public client |
 | `ADMIN_AGENT_USERNAME` | `aatest` | agent_admin kullanıcı adı |
 | `ADMIN_AGENT_PASSWORD` | `321654` | agent_admin şifresi |
+| `MASTER_ADMIN_USERNAME` | `admin` | Keycloak master realm admin kullanıcı adı |
+| `MASTER_ADMIN_PASSWORD` | `321654` | Keycloak master realm admin şifresi |
+| `MASTER_ADMIN_CLIENT` | `admin-cli` | Master realm token client'ı |
 | `DELAY_MS` | `600` | İstekler arası bekleme (ms) |
 | `COMMENT_DELAY_MS` | `5500` | Yorum turu arası bekleme (ms) |
 | `RATE_LIMIT_BACKOFF_MS` | `6000` | 429 sonrası bekleme |
 | `RATE_LIMIT_RETRY_COUNT` | `3` | 429 sonrası deneme sayısı |
+| `TOKEN_REFRESH_THRESHOLD_SEC` | `30` | Token yenileme eşiği |
 | `DATE_SPREAD_DAYS` | `7` | Tarihlerin yayıldığı gün aralığı |
 | `DB_URL` | `jdbc:postgresql://localhost:5432/ticketdb` | PostgreSQL bağlantısı |
 | `DB_USER` | `ticketadmin` | DB kullanıcısı |
