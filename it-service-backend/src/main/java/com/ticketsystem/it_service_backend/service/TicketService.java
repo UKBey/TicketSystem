@@ -69,22 +69,12 @@ public class TicketService {
     private final TicketAuditHelper auditHelper;
     private final TicketClaimService ticketClaimService;
 
-    // Durum makinesi — DEFENSE IN DEPTH:
-    // Authoritative state machine BPMN'de (ticket-lifecycle.bpmn2): her statü
-    // explicit bir wait node, geçişler `transition_<TARGET>` signal'leri ile
-    // tetiklenir ve geçerlilik kuralları BPMN şemasıyla hard-kodludur. Aşağıdaki
-    // Java map'i defense-in-depth katmanı: HTTP isteğinin fast-path validation'ı
-    // (jBPM round-trip beklemeden 400 dönmek için) ve KIE Server erişilebilir
-    // olmadığı durumlarda fallback olarak iş görür. BPMN ve bu map birbiriyle
-    // tutarlı tutulmalıdır (BPMN'de izin verilen geçişler burada da olmalı).
-    private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
-            "NEW", Set.of("IN_PROGRESS"),
-            "IN_PROGRESS", Set.of("NEW", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"),
-            "WAITING_FOR_CUSTOMER", Set.of("IN_PROGRESS"),
-            "RESOLVED", Set.of("IN_PROGRESS", "CLOSED"),
-            "CLOSED", Set.of()
-    );
-
+    // Durum makinesi BPMN'de (ticket-lifecycle.bpmn2) yaşar: her statü explicit bir
+    // wait node, geçişler `transition_<TARGET>` signal'leri ile tetiklenir ve geçerlilik
+    // BPMN şemasıyla encode edilmiştir. Java tarafında geçiş tablosu YOK — geçişin
+    // valid mi olduğunu BPMN belirler. {@link #validateStateTransition} BPMN'i signal
+    // edip process variable'ı geri okuyarak senkron olarak doğrular; BPMN reddederse
+    // (state node signal'i dinlemiyorsa) 400 fırlatılır.
     private static final Set<String> SLA_PAUSED_STATES = Set.of("WAITING_FOR_CUSTOMER", "RESOLVED");
     private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", "IN_PROGRESS");
 
@@ -963,7 +953,7 @@ public class TicketService {
         Ticket ticket = getTicketById(id);
         String oldStatus = ticket.getStatus();
 
-        validateStateTransition(oldStatus, "CLOSED");
+        validateStateTransition(ticket, oldStatus, "CLOSED");
         validateStatusChangePermission(ticket, oldStatus, "CLOSED", userId, roles);
         validateReasonInput(reasonCode, note);
 
@@ -1013,7 +1003,7 @@ public class TicketService {
         Ticket ticket = getTicketById(id);
         String oldStatus = ticket.getStatus();
 
-        validateStateTransition(oldStatus, newStatus);
+        validateStateTransition(ticket, oldStatus, newStatus);
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
         if ("RESOLVED".equals(newStatus)) {
             validateReasonInput(reasonCode, note);
@@ -1169,12 +1159,38 @@ public class TicketService {
         auditHelper.validateReasonInput(reasonCode, note);
     }
 
-    private void validateStateTransition(String current, String next) {
-        Set<String> allowed = VALID_TRANSITIONS.get(current);
-        if (allowed == null) {
+    /**
+     * Asks the BPMN state machine whether the transition from {@code current} to
+     * {@code next} is allowed for the given ticket. We send the corresponding
+     * {@code transition_<TARGET>} signal; the engine only advances the process
+     * variable if the source state listens for that signal, so a synchronous
+     * read-back of the {@code status} variable tells us yes or no.
+     *
+     * <p>BPMN is the single source of truth for valid transitions — there is no
+     * Java map to keep in sync with the diagram. If KIE Server is unreachable
+     * the verify step returns false and we surface that as a 400; the caller
+     * can retry once the workflow engine is healthy.
+     */
+    private void validateStateTransition(Ticket ticket, String current, String next) {
+        if (next == null || next.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.unknown.status");
         }
-        if (!allowed.contains(next)) {
+        if (next.equals(current)) {
+            // No-op transition; nothing to ask the BPMN.
+            return;
+        }
+        if (ticket.getProcessInstanceId() == null) {
+            // Workflow never started for this ticket (e.g. legacy data, or a unit
+            // test that bypassed createTicket). No BPMN to consult — accept the
+            // transition since the state machine isn't running. Production tickets
+            // always go through createTicket which starts the workflow.
+            log.warn("Ticket'in processInstanceId'si yok, BPMN state machine atlandı. TicketId={}",
+                    ticket.getId());
+            return;
+        }
+
+        workflowService.requestStatusTransition(ticket, next);
+        if (!workflowService.verifyTransitionApplied(ticket, next)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
         }
     }
@@ -1238,23 +1254,10 @@ public class TicketService {
     }
 
     private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
+        // Statü geçişi sinyali ve doğrulaması {@link #validateStateTransition} içinde
+        // zaten yapıldı — burada sadece SLA timer'ı için yan etkiler ve close
+        // sürecinin sonlandırması var.
         try {
-            // Authoritative state machine BPMN'de: önce hedef statüye uygun
-            // transition_<TARGET> sinyali atılır. BPMN'in state machine'i sinyali
-            // yalnız kaynak statünün kabul ettiği durumlarda işler — yani geçerli
-            // geçişler şemada hard-kodlu. Bu sinyal status process variable'ını da
-            // BPMN içinde günceller; setProcessVariable çağrısına gerek kalmaz ama
-            // mevcut süreç örnekleriyle (eski kjar) uyum için syncTicketStatus
-            // çağrısını da tutuyoruz (idempotent).
-            workflowService.requestStatusTransition(ticket, newStatus);
-            workflowService.syncTicketStatus(ticket);
-            // BPMN'in transition'ı gerçekten kabul edip etmediğini doğrula. Mismatch
-            // logu observability'de görünür (BPMN ile Java map'inin senkron olmadığını
-            // tespit etmek için); fail-loud davranış yerine sadece uyarı çünkü Java
-            // VALID_TRANSITIONS pre-flight zaten "geçerli" demiş — buraya geldiysek
-            // tutarsızlık iki state machine'in drift ettiği anlamına gelir.
-            workflowService.verifyTransitionApplied(ticket, newStatus);
-
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
                 workflowService.pauseSla(ticket);
                 ticketRepository.save(ticket);
@@ -1264,8 +1267,9 @@ public class TicketService {
                 ticketRepository.save(ticket);
             }
             if ("CLOSED".equals(newStatus)) {
-                // State branch'in terminate end'i tüm süreci sonlandırır; legacy SLA
-                // branch için ticket_closed sinyali de hâlâ atılır (geriye uyumlu).
+                // Authoritative state branch'in terminate end'i tüm süreci sonlandırır;
+                // legacy SLA branch için ticket_closed sinyali de hâlâ atılır (geriye
+                // uyumlu — paralel kol bağımsız olarak biter).
                 workflowService.closeTicketWorkflow(ticket);
             }
         } catch (Exception e) {

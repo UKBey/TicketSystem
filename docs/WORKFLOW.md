@@ -158,10 +158,16 @@ execution into the two branches above.
 The receiving state node decides whether the signal is accepted — e.g. the
 `State_NEW` node listens only for `transition_IN_PROGRESS` and
 `transition_CLOSED`, so a `transition_RESOLVED` arriving while the ticket is
-in `NEW` is dropped by the engine. The Java
-`TicketService.VALID_TRANSITIONS` map mirrors this graph and acts as a
-**defense-in-depth** fast-path validator (so HTTP returns `400` immediately
-without a jBPM round-trip) and as a fallback when KIE Server is unreachable.
+in `NEW` is dropped by the engine. There is **no parallel Java map** of valid
+transitions; the BPMN diagram is the single source of truth.
+
+`TicketService.validateStateTransition` realises this by signalling the BPMN
+with `transition_<TARGET>` and immediately reading the process variable back
+via `WorkflowService.verifyTransitionApplied`. If the variable did not advance
+to the requested target (signal silently dropped → invalid transition) the
+service throws HTTP `400`. If KIE Server is unreachable the verify call also
+returns `false`, surfacing as a `400` to the caller — the workflow engine is
+treated as a hard dependency for status transitions.
 
 **SLA branch — lifecycle signals (legacy, kept for backward compatibility):**
 

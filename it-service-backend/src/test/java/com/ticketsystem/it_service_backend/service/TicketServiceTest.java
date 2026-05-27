@@ -51,6 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -111,6 +112,11 @@ class TicketServiceTest {
                 commentRepository, userRepository, workflowService, slaPolicyService,
                 eventPublisher, csatRepository, worklogRepository, attachmentRepository,
                 notificationService, auditHelper, ticketClaimService);
+
+        // BPMN state machine'i artık authoritative validator; testler aksi belirtmedikçe
+        // geçişi kabul ediyor varsayımıyla çalışsın. Spesifik bir geçişi reddetmek
+        // isteyen test override eder.
+        lenient().when(workflowService.verifyTransitionApplied(any(), any())).thenReturn(true);
 
         product = Product.builder().id(10L).name("CRM").build();
         topic = TicketTopic.builder().id(50L).productId(10L).name("Diğer").isActive(true).build();
@@ -604,6 +610,10 @@ class TicketServiceTest {
 
     @Test
     void updateTicketStatus_whenInvalidTransition_throwsBadRequest() {
+        // BPMN state machine NEW → CLOSED'a izin vermez (NEW yalnız IN_PROGRESS ve
+        // CLOSED'ı (terminate) tutar; bu test agent rolünden CLOSE girişimi yapıyor
+        // ki bu hem permission hem state perspektifinden geçersiz). BPMN signal
+        // dropped + verifyTransitionApplied=false → 400.
         Ticket existing = Ticket.builder()
                 .id(301L)
                 .title("Ticket")
@@ -612,9 +622,11 @@ class TicketServiceTest {
                 .status("NEW")
                 .productId(10L)
                 .customerId("customer-1")
+                .processInstanceId(7301L)
                 .build();
 
         when(ticketRepository.findById(301L)).thenReturn(Optional.of(existing));
+        when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
@@ -689,6 +701,7 @@ class TicketServiceTest {
                 .status("NEW")
                 .productId(10L)
                 .customerId("customer-1")
+                .processInstanceId(7601L)
                 .build();
 
         when(ticketRepository.findById(601L)).thenReturn(Optional.of(existing));
@@ -699,11 +712,18 @@ class TicketServiceTest {
 
         assertEquals("IN_PROGRESS", updated.getStatus());
         assertNull(updated.getResolvedAt());
-        verify(workflowService).syncTicketStatus(updated);
+        // BPMN state branch'i status değişkenini kendi script task'ında günceller;
+        // backend artık ayrıca syncTicketStatus çağırmıyor — onun yerine
+        // requestStatusTransition + verifyTransitionApplied ile BPMN'i otoriter
+        // validator olarak konuşuyor.
+        verify(workflowService).requestStatusTransition(updated, "IN_PROGRESS");
+        verify(workflowService).verifyTransitionApplied(updated, "IN_PROGRESS");
     }
 
     @Test
     void updateTicketStatus_whenCurrentStatusUnknown_throwsBadRequest() {
+        // BPMN UNKNOWN_STATE adında bir state node tanımlamadığı için hiçbir
+        // transition signal'i kabul edilmez → verifyTransitionApplied=false → 400.
         Ticket existing = Ticket.builder()
                 .id(603L)
                 .title("Ticket")
@@ -712,9 +732,11 @@ class TicketServiceTest {
                 .status("UNKNOWN_STATE")
                 .productId(10L)
                 .customerId("customer-1")
+                .processInstanceId(7603L)
                 .build();
 
         when(ticketRepository.findById(603L)).thenReturn(Optional.of(existing));
+        when(workflowService.verifyTransitionApplied(any(), eq("NEW"))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
@@ -773,6 +795,7 @@ class TicketServiceTest {
                 .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
+                .processInstanceId(7606L)
                 .build();
 
         when(ticketRepository.findById(606L)).thenReturn(Optional.of(existing));
@@ -783,7 +806,7 @@ class TicketServiceTest {
 
         assertEquals("NEW", updated.getStatus());
         verify(ticketClaimRepository).deleteByTicketId(606L);
-        verify(workflowService).syncTicketStatus(updated);
+        verify(workflowService).requestStatusTransition(updated, "NEW");
     }
 
     @Test
@@ -809,25 +832,31 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_whenWorkflowSyncFails_stillUpdatesTicket() {
+    void updateTicketStatus_whenWorkflowSlaSignalFails_stillUpdatesTicket() {
+        // Statü geçişi doğrulaması başarılı (BPMN kabul etti) ama legacy SLA pause/
+        // resume sinyali hata verdiğinde DB güncellemesi geri sarılmaz — SLA yan
+        // etkileri best-effort olarak handleWorkflowSignals içinde try/catch ile
+        // korunuyor.
         Ticket existing = Ticket.builder()
                 .id(608L)
                 .title("Ticket")
                 .description("desc")
                 .priority("HIGH")
-                .status("NEW")
+                .status("IN_PROGRESS")
                 .productId(10L)
                 .customerId("customer-1")
+                .processInstanceId(7608L)
                 .build();
 
         when(ticketRepository.findById(608L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(608L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doThrow(new RuntimeException("workflow unavailable")).when(workflowService).syncTicketStatus(any(Ticket.class));
+        doThrow(new RuntimeException("workflow unavailable"))
+                .when(workflowService).pauseSla(any(Ticket.class));
 
-        Ticket updated = ticketService.updateTicketStatus(608L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketService.updateTicketStatus(608L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT"));
 
-        assertEquals("IN_PROGRESS", updated.getStatus());
+        assertEquals("WAITING_FOR_CUSTOMER", updated.getStatus());
         verify(ticketRepository, times(1)).save(any(Ticket.class));
     }
 
