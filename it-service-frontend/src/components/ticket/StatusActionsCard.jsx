@@ -15,8 +15,14 @@ export default function StatusActionsCard({
 
   const hasUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
   const hasClose   = allowedStatuses.includes('CLOSED') && (!isAgentAdmin || hasClaimed);
+  // AGENT_ADMIN her statüde silebildiği için Extra Actions düğmesi onun için her
+  // zaman erişilebilir; diğer roller yalnızca unclaim/close aksiyonu varsa görür.
+  const hasExtraActions = hasUnclaim || hasClose || isAgentAdmin;
 
-  if (!isAgent || allowedStatuses.length === 0) return null;
+  // AGENT_ADMIN için CLOSED bilet gibi statü geçişi olmayan durumlarda da
+  // kartın görünmesi gerekir — aksi halde "Delete" aksiyonuna ulaşamaz.
+  if (!isAgent) return null;
+  if (allowedStatuses.length === 0 && !isAgentAdmin) return null;
 
   return (
     <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
@@ -72,7 +78,7 @@ export default function StatusActionsCard({
           </button>
         )}
 
-        {(hasUnclaim || hasClose) && (
+        {hasExtraActions && (
           <button
             className="w-full rounded-lg border px-3 py-2 min-h-[40px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
