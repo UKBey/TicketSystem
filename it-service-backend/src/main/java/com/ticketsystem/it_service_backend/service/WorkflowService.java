@@ -243,6 +243,39 @@ public class WorkflowService {
         }
     }
 
+    /**
+     * Verifies that the BPMN process actually accepted the most recent transition request
+     * by reading back its {@code status} process variable. Provides the "feedback" half of
+     * the otherwise fire-and-forget {@link #requestStatusTransition} call.
+     *
+     * <p>jBPM signals are silently dropped when no state node is listening for them, so a
+     * mismatch here means the BPMN state machine REJECTED the transition (typically because
+     * the source state didn't allow that target). Mismatches are logged as warnings so the
+     * out-of-sync can be detected in observability — they don't throw because the Java
+     * {@link TicketService#VALID_TRANSITIONS} pre-flight catch should make this impossible
+     * in practice; surfacing the mismatch tells us the two state machines drifted.
+     *
+     * @param ticket the ticket whose transition was just signalled
+     * @param expectedStatus the target status the BPMN was supposed to enter
+     * @return {@code true} if the BPMN variable matches {@code expectedStatus}, {@code false}
+     *         on mismatch / read failure / missing process instance
+     */
+    public boolean verifyTransitionApplied(Ticket ticket, String expectedStatus) {
+        if (ticket.getProcessInstanceId() == null || expectedStatus == null) return false;
+
+        Object raw = kieServerAdapter.getProcessVariable(ticket.getProcessInstanceId(), "status");
+        String actual = raw == null ? null : raw.toString();
+
+        if (expectedStatus.equals(actual)) {
+            log.debug("BPMN state confirmed. TicketId={}, Status={}", ticket.getId(), actual);
+            return true;
+        }
+        log.warn("BPMN state mismatch — signal dropped veya state machine reddetti. " +
+                        "TicketId={}, ProcessInstanceId={}, Expected={}, Actual={}",
+                ticket.getId(), ticket.getProcessInstanceId(), expectedStatus, actual);
+        return false;
+    }
+
     public void closeTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
             log.debug("processInstanceId yok, close ticket atlanıyor. TicketId={}", ticket.getId());

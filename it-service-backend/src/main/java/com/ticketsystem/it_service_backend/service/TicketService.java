@@ -1248,6 +1248,12 @@ public class TicketService {
             // çağrısını da tutuyoruz (idempotent).
             workflowService.requestStatusTransition(ticket, newStatus);
             workflowService.syncTicketStatus(ticket);
+            // BPMN'in transition'ı gerçekten kabul edip etmediğini doğrula. Mismatch
+            // logu observability'de görünür (BPMN ile Java map'inin senkron olmadığını
+            // tespit etmek için); fail-loud davranış yerine sadece uyarı çünkü Java
+            // VALID_TRANSITIONS pre-flight zaten "geçerli" demiş — buraya geldiysek
+            // tutarsızlık iki state machine'in drift ettiği anlamına gelir.
+            workflowService.verifyTransitionApplied(ticket, newStatus);
 
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
                 workflowService.pauseSla(ticket);

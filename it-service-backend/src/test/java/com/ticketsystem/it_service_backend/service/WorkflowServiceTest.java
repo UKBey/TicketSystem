@@ -629,4 +629,50 @@ class WorkflowServiceTest {
 
         verify(kieServerAdapter).signalProcessInstance(2006L, "transition_IN_PROGRESS", null);
     }
+
+    // -----------------------------------------------------------------
+    // verifyTransitionApplied — BPMN feedback (sync read-back of status)
+    // -----------------------------------------------------------------
+
+    @Test
+    void verifyTransitionApplied_returnsTrueWhenBpmnStatusMatches() {
+        Ticket ticket = Ticket.builder().id(40L).processInstanceId(3000L).build();
+        when(kieServerAdapter.getProcessVariable(3000L, "status")).thenReturn("IN_PROGRESS");
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+
+        assertTrue(ok);
+    }
+
+    @Test
+    void verifyTransitionApplied_returnsFalseWhenBpmnStatusMismatches() {
+        Ticket ticket = Ticket.builder().id(41L).processInstanceId(3001L).build();
+        // BPMN signal dropped (kaynak state hedef transition'ı tutmuyor) — değişken
+        // yine eski statüde kalmış.
+        when(kieServerAdapter.getProcessVariable(3001L, "status")).thenReturn("NEW");
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "RESOLVED");
+
+        assertFalse(ok);
+    }
+
+    @Test
+    void verifyTransitionApplied_returnsFalseWhenProcessInstanceMissing() {
+        Ticket ticket = Ticket.builder().id(42L).build();
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+
+        assertFalse(ok);
+        verify(kieServerAdapter, never()).getProcessVariable(any(), any());
+    }
+
+    @Test
+    void verifyTransitionApplied_returnsFalseWhenVariableReadReturnsNull() {
+        Ticket ticket = Ticket.builder().id(43L).processInstanceId(3002L).build();
+        when(kieServerAdapter.getProcessVariable(3002L, "status")).thenReturn(null);
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+
+        assertFalse(ok);
+    }
 }
