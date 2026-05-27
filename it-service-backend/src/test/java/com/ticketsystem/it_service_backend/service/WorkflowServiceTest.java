@@ -548,4 +548,85 @@ class WorkflowServiceTest {
 
         workflowService.closeTicketWorkflow(ticket);
     }
+
+    // -----------------------------------------------------------------
+    // requestStatusTransition — BPMN-driven state machine signals
+    // -----------------------------------------------------------------
+
+    @Test
+    void requestStatusTransition_sendsTransitionInProgressSignal() {
+        Ticket ticket = Ticket.builder().id(30L).processInstanceId(2000L).build();
+
+        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+
+        verify(kieServerAdapter).signalProcessInstance(2000L, "transition_IN_PROGRESS", null);
+    }
+
+    @Test
+    void requestStatusTransition_sendsTransitionNewSignal() {
+        Ticket ticket = Ticket.builder().id(31L).processInstanceId(2001L).build();
+
+        workflowService.requestStatusTransition(ticket, "NEW");
+
+        verify(kieServerAdapter).signalProcessInstance(2001L, "transition_NEW", null);
+    }
+
+    @Test
+    void requestStatusTransition_sendsTransitionWaitingForCustomerSignal() {
+        Ticket ticket = Ticket.builder().id(32L).processInstanceId(2002L).build();
+
+        workflowService.requestStatusTransition(ticket, "WAITING_FOR_CUSTOMER");
+
+        verify(kieServerAdapter).signalProcessInstance(2002L, "transition_WAITING_FOR_CUSTOMER", null);
+    }
+
+    @Test
+    void requestStatusTransition_sendsTransitionResolvedSignal() {
+        Ticket ticket = Ticket.builder().id(33L).processInstanceId(2003L).build();
+
+        workflowService.requestStatusTransition(ticket, "RESOLVED");
+
+        verify(kieServerAdapter).signalProcessInstance(2003L, "transition_RESOLVED", null);
+    }
+
+    @Test
+    void requestStatusTransition_sendsTransitionClosedSignal() {
+        Ticket ticket = Ticket.builder().id(34L).processInstanceId(2004L).build();
+
+        workflowService.requestStatusTransition(ticket, "CLOSED");
+
+        verify(kieServerAdapter).signalProcessInstance(2004L, "transition_CLOSED", null);
+    }
+
+    @Test
+    void requestStatusTransition_skipsWhenProcessInstanceMissing() {
+        Ticket ticket = Ticket.builder().id(35L).build();
+
+        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+    }
+
+    @Test
+    void requestStatusTransition_skipsWhenTargetStatusBlank() {
+        Ticket ticket = Ticket.builder().id(36L).processInstanceId(2005L).build();
+
+        workflowService.requestStatusTransition(ticket, "");
+        workflowService.requestStatusTransition(ticket, null);
+
+        verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
+    }
+
+    @Test
+    void requestStatusTransition_swallowsSignalFailure() {
+        Ticket ticket = Ticket.builder().id(37L).processInstanceId(2006L).build();
+        doThrow(new RuntimeException("KIE down"))
+                .when(kieServerAdapter).signalProcessInstance(2006L, "transition_IN_PROGRESS", null);
+
+        // VALID_TRANSITIONS fast-path zaten validate eder; signal hatası swallow olur
+        // ki DB persistence akışı kesilmesin.
+        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+
+        verify(kieServerAdapter).signalProcessInstance(2006L, "transition_IN_PROGRESS", null);
+    }
 }
