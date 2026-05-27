@@ -201,6 +201,48 @@ public class WorkflowService {
      *
      * @param ticket the closing ticket
      */
+    /**
+     * Requests a state transition by sending the corresponding {@code transition_<TARGET>}
+     * signal to the BPMN process. The BPMN itself defines which transitions are valid by
+     * which signals each state node listens to — invalid targets are silently dropped by
+     * the process. This makes the BPMN the authoritative state machine for ticket status
+     * changes.
+     *
+     * <p>The mapping is:
+     * <ul>
+     *   <li>{@code NEW} → {@code transition_NEW}</li>
+     *   <li>{@code IN_PROGRESS} → {@code transition_IN_PROGRESS}</li>
+     *   <li>{@code WAITING_FOR_CUSTOMER} → {@code transition_WAITING_FOR_CUSTOMER}</li>
+     *   <li>{@code RESOLVED} → {@code transition_RESOLVED}</li>
+     *   <li>{@code CLOSED} → {@code transition_CLOSED}</li>
+     * </ul>
+     *
+     * <p>Silently skipped when {@code processInstanceId} is missing. Errors are logged but
+     * not rethrown — the DB persistence in {@link TicketService} stays in charge of user-
+     * visible failures.
+     *
+     * @param ticket the ticket whose state is changing
+     * @param targetStatus the desired new status
+     */
+    public void requestStatusTransition(Ticket ticket, String targetStatus) {
+        if (ticket.getProcessInstanceId() == null) {
+            log.debug("processInstanceId yok, transition sinyali atlanıyor. TicketId={}, Target={}",
+                    ticket.getId(), targetStatus);
+            return;
+        }
+        if (targetStatus == null || targetStatus.isBlank()) return;
+
+        String signal = "transition_" + targetStatus;
+        log.info("State transition sinyali gönderiliyor. TicketId={}, ProcessInstanceId={}, Signal={}",
+                ticket.getId(), ticket.getProcessInstanceId(), signal);
+        try {
+            kieServerAdapter.signalProcessInstance(ticket.getProcessInstanceId(), signal, null);
+        } catch (Exception e) {
+            log.error("State transition sinyali gönderilemedi. TicketId={}, Signal={}, Hata={}",
+                    ticket.getId(), signal, e.getMessage());
+        }
+    }
+
     public void closeTicketWorkflow(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
             log.debug("processInstanceId yok, close ticket atlanıyor. TicketId={}", ticket.getId());

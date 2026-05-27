@@ -69,7 +69,14 @@ public class TicketService {
     private final TicketAuditHelper auditHelper;
     private final TicketClaimService ticketClaimService;
 
-    // Durum makinesi: her statuden hangi statulere gecilebilecegini tanimlar.
+    // Durum makinesi — DEFENSE IN DEPTH:
+    // Authoritative state machine BPMN'de (ticket-lifecycle.bpmn2): her statü
+    // explicit bir wait node, geçişler `transition_<TARGET>` signal'leri ile
+    // tetiklenir ve geçerlilik kuralları BPMN şemasıyla hard-kodludur. Aşağıdaki
+    // Java map'i defense-in-depth katmanı: HTTP isteğinin fast-path validation'ı
+    // (jBPM round-trip beklemeden 400 dönmek için) ve KIE Server erişilebilir
+    // olmadığı durumlarda fallback olarak iş görür. BPMN ve bu map birbiriyle
+    // tutarlı tutulmalıdır (BPMN'de izin verilen geçişler burada da olmalı).
     private static final Map<String, Set<String>> VALID_TRANSITIONS = Map.of(
             "NEW", Set.of("IN_PROGRESS"),
             "IN_PROGRESS", Set.of("NEW", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"),
@@ -1232,6 +1239,14 @@ public class TicketService {
 
     private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
         try {
+            // Authoritative state machine BPMN'de: önce hedef statüye uygun
+            // transition_<TARGET> sinyali atılır. BPMN'in state machine'i sinyali
+            // yalnız kaynak statünün kabul ettiği durumlarda işler — yani geçerli
+            // geçişler şemada hard-kodlu. Bu sinyal status process variable'ını da
+            // BPMN içinde günceller; setProcessVariable çağrısına gerek kalmaz ama
+            // mevcut süreç örnekleriyle (eski kjar) uyum için syncTicketStatus
+            // çağrısını da tutuyoruz (idempotent).
+            workflowService.requestStatusTransition(ticket, newStatus);
             workflowService.syncTicketStatus(ticket);
 
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
@@ -1243,6 +1258,8 @@ public class TicketService {
                 ticketRepository.save(ticket);
             }
             if ("CLOSED".equals(newStatus)) {
+                // State branch'in terminate end'i tüm süreci sonlandırır; legacy SLA
+                // branch için ticket_closed sinyali de hâlâ atılır (geriye uyumlu).
                 workflowService.closeTicketWorkflow(ticket);
             }
         } catch (Exception e) {

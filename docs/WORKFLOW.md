@@ -63,9 +63,24 @@ The kjar carries two descriptors under `src/main/resources/META-INF/`:
 
 ## Process Model
 
-The process is a **flat design — no sub-processes**. It revolves around an
-**event-based gateway** (`SLA Gateway`) that waits for whichever happens first:
-the SLA timer expiring, a `pause_sla` signal, or a `ticket_closed` signal.
+The process runs **two parallel branches** that share the same process instance:
+
+1. **State branch** — the **authoritative state machine** for the ticket. Each
+   ticket status (`NEW`, `IN_PROGRESS`, `WAITING_FOR_CUSTOMER`, `RESOLVED`,
+   `CLOSED`) is an explicit wait node. Backend signals `transition_<TARGET>` to
+   move from one state to another; **only the source state's wait node listens
+   for the signal**, so invalid transitions are silently ignored by the engine.
+   Valid transitions are therefore encoded by the BPMN graph itself rather than
+   by a Java map. Reaching `CLOSED` triggers a **terminate end event** that
+   stops the entire process (including the SLA branch).
+
+2. **SLA branch** — the original event-based flow around the SLA timer. Waits
+   for whichever happens first: the SLA timer expiring, a `pause_sla` signal,
+   or a `ticket_closed` signal. Kept for backward compatibility with the
+   existing pause/resume side-effects in `TicketService`.
+
+After `ScriptTask_Init` a `Gateway_ParallelSplit` (parallel gateway) forks
+execution into the two branches above.
 
 ### Nodes (as defined in `ticket-lifecycle.bpmn2`)
 
@@ -129,6 +144,26 @@ the SLA timer expiring, a `pause_sla` signal, or a `ticket_closed` signal.
 - `EndEvent_ClosedPostBreach` — *"Closed (Post Breach)"*
 
 ### Signals declared
+
+**State branch — transition signals (`transition_<TARGET>`):**
+
+| Signal id | Signal name | Sent by backend via |
+|---|---|---|
+| `Signal_TransitionNew` | `transition_NEW` | `WorkflowService.requestStatusTransition(ticket, "NEW")` |
+| `Signal_TransitionInProgress` | `transition_IN_PROGRESS` | `WorkflowService.requestStatusTransition(ticket, "IN_PROGRESS")` |
+| `Signal_TransitionWaitingForCustomer` | `transition_WAITING_FOR_CUSTOMER` | `WorkflowService.requestStatusTransition(ticket, "WAITING_FOR_CUSTOMER")` |
+| `Signal_TransitionResolved` | `transition_RESOLVED` | `WorkflowService.requestStatusTransition(ticket, "RESOLVED")` |
+| `Signal_TransitionClosed` | `transition_CLOSED` | `WorkflowService.requestStatusTransition(ticket, "CLOSED")` |
+
+The receiving state node decides whether the signal is accepted — e.g. the
+`State_NEW` node listens only for `transition_IN_PROGRESS` and
+`transition_CLOSED`, so a `transition_RESOLVED` arriving while the ticket is
+in `NEW` is dropped by the engine. The Java
+`TicketService.VALID_TRANSITIONS` map mirrors this graph and acts as a
+**defense-in-depth** fast-path validator (so HTTP returns `400` immediately
+without a jBPM round-trip) and as a fallback when KIE Server is unreachable.
+
+**SLA branch — lifecycle signals (legacy, kept for backward compatibility):**
 
 | Signal id | Signal name | Sent by backend via |
 |---|---|---|
