@@ -685,6 +685,7 @@
   "notification": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
     "empty": "No new notifications",
     "delete": "Delete",
     "deleteAll": "Delete all",

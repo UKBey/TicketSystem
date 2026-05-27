@@ -685,6 +685,7 @@
   "notification": {
     "title": "Bildirimler",
     "markAllRead": "Tümünü okundu işaretle",
+    "markRead": "Okundu işaretle",
     "empty": "Yeni bildirim yok",
     "delete": "Sil",
     "deleteAll": "Tümünü sil",

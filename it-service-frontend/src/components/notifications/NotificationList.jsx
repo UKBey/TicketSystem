@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Trash2 } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import { getNotifications } from '../../services/notificationApi';
 import { useNotifications } from '../../hooks/useNotifications';
 
@@ -20,7 +20,7 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
   const [loading, setLoading] = useState(true);
   const [deletingAll, setDeletingAll] = useState(false);
   const navigate = useNavigate();
-  const { deleteNotification, deleteAllNotifications } = useNotifications();
+  const { markAsRead, deleteNotification, deleteAllNotifications } = useNotifications();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -32,11 +32,29 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Bildirime tıklayınca otomatik okundu işaretle ve gerekiyorsa bilete git.
+  // UI hemen güncellensin diye local state'i de güncelliyoruz; hook
+  // unreadCount sayacını fetchCount ile tazeliyor.
   const handleItemClick = (notification) => {
+    if (!notification.isRead) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
+      );
+      markAsRead(notification.id).catch(() => {});
+    }
     if (notification.referenceType === 'TICKET' && notification.referenceId) {
       navigate(`/tickets/${notification.referenceId}`);
       onClose?.();
     }
+  };
+
+  // Bilete gitmeden sadece okundu işaretle (hover butonu üzerinden).
+  const handleMarkRead = async (e, id) => {
+    e.stopPropagation();
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
+    await markAsRead(id);
   };
 
   const handleDelete = async (e, id) => {
@@ -128,17 +146,31 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
                 {timeAgo(n.createdAt, t)}
               </span>
             </div>
-            {/* Tek bildirim silme butonu — hover'da görünür */}
-            <button
-              onClick={(e) => handleDelete(e, n.id)}
-              title={t('notification.delete')}
-              className="flex-shrink-0 mt-0.5 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-              style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            {/* Hover action'ları — tek tek okundu işaretle + tek tek sil. */}
+            <div className="flex-shrink-0 flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              {!n.isRead && (
+                <button
+                  onClick={(e) => handleMarkRead(e, n.id)}
+                  title={t('notification.markRead')}
+                  className="rounded p-0.5 cursor-pointer"
+                  style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#3b82f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <button
+                onClick={(e) => handleDelete(e, n.id)}
+                title={t('notification.delete')}
+                className="rounded p-0.5 cursor-pointer"
+                style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
