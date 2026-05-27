@@ -5,6 +5,7 @@ export default function ExtraActionsModal({
   isOpen, onClose,
   ticket, user, allowedStatuses, isAgentAdmin,
   openReasonModal,
+  onDeleteClick,
 }) {
   const { t } = useTranslation();
   if (!isOpen) return null;
@@ -14,7 +15,9 @@ export default function ExtraActionsModal({
 
   const showUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
   const showClose   = allowedStatuses.includes('CLOSED') && (!isAgentAdmin || hasClaimed);
-  const noActions   = !showUnclaim && !showClose;
+  // Silme yalnızca AGENT_ADMIN için; claim gerekmez, statüden bağımsız.
+  const showDelete  = isAgentAdmin;
+  const noActions   = !showUnclaim && !showClose && !showDelete;
 
   return (
     <div
@@ -50,6 +53,14 @@ export default function ExtraActionsModal({
               onClick={() => openReasonModal('CLOSE')}
             >
               {t('ticketDetail.closeTicket')}
+            </button>
+          )}
+          {showDelete && (
+            <button
+              className="w-full rounded-lg border-2 border-danger-500 px-4 py-2.5 text-sm font-semibold text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors cursor-pointer"
+              onClick={onDeleteClick}
+            >
+              {t('ticketDetail.deleteTicket')}
             </button>
           )}
           {noActions && (

@@ -42,6 +42,10 @@ export function useTicketDetail(id, hasRole) {
   const [topicsList, setTopicsList]               = useState([]);
   const [topicsLoading, setTopicsLoading]         = useState(false);
 
+  // Sadece AGENT_ADMIN için bileti kalıcı silme — geri alınamaz, ekstra onay penceresi gerekiyor.
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting]               = useState(false);
+
   const fileInputRef = useRef(null);
   const chatEndRef   = useRef(null);
 
@@ -286,6 +290,31 @@ export function useTicketDetail(id, hasRole) {
     setExtraActionsOpen(false);
   };
 
+  // ExtraActions menüsünden çağrılır; gerçek silme onClick'i `confirmDeleteTicket`
+  // (callback olarak çağrı yapan UI'ya bırakıyoruz — silme sonrası navigation
+  // dışarıdan, sayfa düzeyinde yapılıyor).
+  const openDeleteModal = () => {
+    setExtraActionsOpen(false);
+    setDeleteModalOpen(true);
+  };
+  const closeDeleteModal = () => setDeleteModalOpen(false);
+
+  const confirmDeleteTicket = async () => {
+    if (deleting) return false;
+    setDeleting(true);
+    try {
+      await api.delete(`/tickets/${id}`);
+      toast.success(t('ticketDetail.deleteSuccess'));
+      setDeleteModalOpen(false);
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.message || t('ticketDetail.deleteFailed'));
+      return false;
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const closeReasonModal = () => setReasonModal({ isOpen: false, action: null });
 
   const handleReasonConfirm = async (payload) => {
@@ -325,6 +354,7 @@ export function useTicketDetail(id, hasRole) {
     resolveModalOpen, setResolveModalOpen,
     csatModalOpen, setCsatModalOpen,
     extraActionsOpen, setExtraActionsOpen,
+    deleteModalOpen, deleting, openDeleteModal, closeDeleteModal, confirmDeleteTicket,
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
     priorityModalOpen, setPriorityModalOpen,

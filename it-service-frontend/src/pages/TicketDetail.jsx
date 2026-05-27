@@ -19,6 +19,7 @@ import AiSummaryModal from '../components/ticket/AiSummaryModal';
 import CsatModal from '../components/ticket/CsatModal';
 import ResolveModal from '../components/ticket/ResolveModal';
 import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
+import DeleteTicketModal from '../components/ticket/DeleteTicketModal';
 import AuditTimeline from '../components/ticket/AuditTimeline';
 import ChangeFieldModal from '../components/ticket/ChangeFieldModal';
 import { REASON_CODES } from '../utils/reasonCodes';
@@ -40,6 +41,7 @@ export default function TicketDetail() {
     resolveModalOpen, setResolveModalOpen,
     csatModalOpen, setCsatModalOpen,
     extraActionsOpen, setExtraActionsOpen,
+    deleteModalOpen, deleting, openDeleteModal, closeDeleteModal, confirmDeleteTicket,
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
     handleFileUpload, handleDownloadAttachment,
@@ -210,6 +212,19 @@ export default function TicketDetail() {
         allowedStatuses={allowedStatuses}
         isAgentAdmin={isAgentAdmin}
         openReasonModal={openReasonModal}
+        onDeleteClick={openDeleteModal}
+      />
+
+      <DeleteTicketModal
+        isOpen={deleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={async () => {
+          const ok = await confirmDeleteTicket();
+          if (ok) navigate(-1);
+        }}
+        deleting={deleting}
+        ticketId={ticket?.id}
+        ticketTitle={ticket?.title}
       />
 
       <CsatModal
