@@ -61,8 +61,10 @@ public class GroqService {
                 ))
                 .build();
 
-        log.debug("Groq API isteği gönderiliyor. Model: {}, MaxTokens: {}",
-                groqConfig.getModel(), groqConfig.getMaxTokens());
+        int promptChars = systemPrompt.length() + userPrompt.length();
+        log.debug("Groq API isteği gönderiliyor. Model: {}, MaxTokens: {}, PromptChars: {}",
+                groqConfig.getModel(), groqConfig.getMaxTokens(), promptChars);
+        long start = System.currentTimeMillis();
 
         try {
             GroqChatResponse response = groqWebClient.post()
@@ -70,14 +72,16 @@ public class GroqService {
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
                             clientResponse.bodyToMono(String.class).flatMap(body -> {
-                                log.warn("Groq API 4xx hatası: {}", body);
+                                log.warn("Groq API 4xx hatası. Status: {}, Body: {}",
+                                        clientResponse.statusCode(), body);
                                 RuntimeException ex = parseGroqError(body);
                                 return reactor.core.publisher.Mono.error(ex);
                             })
                     )
                     .onStatus(HttpStatusCode::is5xxServerError, clientResponse ->
                             clientResponse.bodyToMono(String.class).flatMap(body -> {
-                                log.error("Groq API 5xx hatası: {}", body);
+                                log.error("Groq API 5xx hatası. Status: {}, Body: {}",
+                                        clientResponse.statusCode(), body);
                                 return reactor.core.publisher.Mono.error(
                                         new RuntimeException("Groq API sunucu hatası. Lütfen daha sonra tekrar deneyin."));
                             })
@@ -85,18 +89,23 @@ public class GroqService {
                     .bodyToMono(GroqChatResponse.class)
                     .block();
 
+            long elapsedMs = System.currentTimeMillis() - start;
+
             if (response == null || response.getChoices() == null || response.getChoices().isEmpty()) {
+                log.error("Groq API boş yanıt döndü. Süre: {}ms", elapsedMs);
                 throw new RuntimeException("Groq API boş yanıt döndü");
             }
 
-            log.info("Groq API yanıtı alındı. Model: {}, PromptTokens: {}, CompletionTokens: {}",
+            log.info("Groq API yanıtı alındı. Model: {}, PromptTokens: {}, CompletionTokens: {}, Süre: {}ms",
                     response.getModel(),
                     response.getUsage() != null ? response.getUsage().getPromptTokens() : "?",
-                    response.getUsage() != null ? response.getUsage().getCompletionTokens() : "?");
+                    response.getUsage() != null ? response.getUsage().getCompletionTokens() : "?",
+                    elapsedMs);
 
             return response;
 
         } catch (GroqRateLimitException e) {
+            log.warn("Groq rate limit istisnası fırlatıldı. RetryAfter: {}s", e.getRetryAfterSeconds());
             throw e; // zaten doğru tip, tekrar wrap etme
         } catch (WebClientResponseException e) {
             log.error("Groq API HTTP hatası. Status: {}, Body: {}", e.getStatusCode(), e.getResponseBodyAsString());

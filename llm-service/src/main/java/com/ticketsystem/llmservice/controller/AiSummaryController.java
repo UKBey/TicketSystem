@@ -82,6 +82,7 @@ public class AiSummaryController {
     @GetMapping("/tickets/{ticketId}/latest")
     public ResponseEntity<AiSummaryResponseDTO> getLatest(
             @Parameter(description = "Ticket ID") @PathVariable Long ticketId) {
+        log.debug("En son özet isteği. TicketId: {}", ticketId);
         return ResponseEntity.ok(aiSummaryService.getLatestSummary(ticketId));
     }
 
@@ -98,6 +99,7 @@ public class AiSummaryController {
     @GetMapping("/tickets/{ticketId}")
     public ResponseEntity<List<AiSummaryResponseDTO>> getAll(
             @Parameter(description = "Ticket ID") @PathVariable Long ticketId) {
+        log.debug("Tüm özetler isteği. TicketId: {}", ticketId);
         return ResponseEntity.ok(aiSummaryService.getAllSummaries(ticketId));
     }
 }

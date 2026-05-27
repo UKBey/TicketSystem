@@ -35,6 +35,7 @@ public class AiSummaryService {
     public AiSummaryResponseDTO summarize(SummarizeRequestDTO request) {
         Long ticketId = request.getTicketId();
         log.info("Ticket özeti oluşturuluyor. TicketId: {}, Dil: {}", ticketId, request.getLanguage());
+        long start = System.currentTimeMillis();
 
         // Prompt'ları oluştur
         String systemPrompt = promptBuilder.buildSystemPrompt(request.getLanguage());
@@ -45,6 +46,9 @@ public class AiSummaryService {
 
         // Yanıttan özeti çıkar
         String summaryText = groqResponse.getChoices().get(0).getMessage().getContent();
+        if (summaryText == null || summaryText.isBlank()) {
+            log.warn("Groq boş özet metni döndü. TicketId: {}, Model: {}", ticketId, groqResponse.getModel());
+        }
 
         // Token kullanımını al
         Integer promptTokens = null;
@@ -64,7 +68,11 @@ public class AiSummaryService {
                 .build();
 
         TicketAiSummary saved = summaryRepository.save(entity);
-        log.info("Ticket özeti kaydedildi. SummaryId: {}, TicketId: {}", saved.getId(), ticketId);
+        long elapsedMs = System.currentTimeMillis() - start;
+        log.info("Ticket özeti kaydedildi. SummaryId: {}, TicketId: {}, ÖzetKarakter: {}, ToplamSüre: {}ms",
+                saved.getId(), ticketId,
+                summaryText != null ? summaryText.length() : 0,
+                elapsedMs);
 
         return AiSummaryResponseDTO.fromEntity(saved);
     }
@@ -74,10 +82,14 @@ public class AiSummaryService {
      */
     @Transactional(readOnly = true)
     public AiSummaryResponseDTO getLatestSummary(Long ticketId) {
+        log.debug("En son özet getiriliyor. TicketId: {}", ticketId);
         return summaryRepository.findFirstByTicketIdOrderByCreatedAtDesc(ticketId)
                 .map(AiSummaryResponseDTO::fromEntity)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Ticket #" + ticketId + " için henüz özet oluşturulmamış"));
+                .orElseThrow(() -> {
+                    log.info("Bu ticket için henüz özet yok. TicketId: {}", ticketId);
+                    return new IllegalArgumentException(
+                            "Ticket #" + ticketId + " için henüz özet oluşturulmamış");
+                });
     }
 
     /**
@@ -85,9 +97,12 @@ public class AiSummaryService {
      */
     @Transactional(readOnly = true)
     public List<AiSummaryResponseDTO> getAllSummaries(Long ticketId) {
-        return summaryRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)
+        log.debug("Tüm özetler getiriliyor. TicketId: {}", ticketId);
+        List<AiSummaryResponseDTO> all = summaryRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)
                 .stream()
                 .map(AiSummaryResponseDTO::fromEntity)
                 .collect(Collectors.toList());
+        log.debug("Tüm özetler getirildi. TicketId: {}, Adet: {}", ticketId, all.size());
+        return all;
     }
 }

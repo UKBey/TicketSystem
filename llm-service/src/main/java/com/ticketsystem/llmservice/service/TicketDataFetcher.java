@@ -31,21 +31,29 @@ public class TicketDataFetcher {
      * and converts it into a SummarizeRequestDTO.
      */
     public SummarizeRequestDTO fetchTicketData(Long ticketId, String language) {
-        log.info("Ticket verisi çekiliyor. TicketId: {}", ticketId);
+        log.info("Ticket verisi çekiliyor. TicketId: {}, Dil: {}", ticketId, language);
+        long start = System.currentTimeMillis();
 
         JsonNode root = ticketServiceWebClient.get()
                 .uri("/api/v1/internal/tickets/{id}/full", ticketId)
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, resp ->
-                        resp.bodyToMono(String.class).map(body ->
-                                new RuntimeException("Ticket bulunamadı veya erişim reddedildi: " + body)))
+                        resp.bodyToMono(String.class).map(body -> {
+                            log.warn("Ticket fetch 4xx. TicketId: {}, Status: {}, Body: {}",
+                                    ticketId, resp.statusCode(), body);
+                            return new RuntimeException("Ticket bulunamadı veya erişim reddedildi: " + body);
+                        }))
                 .onStatus(HttpStatusCode::is5xxServerError, resp ->
-                        resp.bodyToMono(String.class).map(body ->
-                                new RuntimeException("it-service-backend hatası: " + body)))
+                        resp.bodyToMono(String.class).map(body -> {
+                            log.error("Ticket fetch 5xx. TicketId: {}, Status: {}, Body: {}",
+                                    ticketId, resp.statusCode(), body);
+                            return new RuntimeException("it-service-backend hatası: " + body);
+                        }))
                 .bodyToMono(JsonNode.class)
                 .block();
 
         if (root == null) {
+            log.error("it-service-backend boş yanıt döndü. TicketId: {}", ticketId);
             throw new RuntimeException("it-service-backend boş yanıt döndü. TicketId: " + ticketId);
         }
 
@@ -69,11 +77,13 @@ public class TicketDataFetcher {
         // Bilinen sorunlar (bilgi tabanı kayıtları)
         req.setKnownIssues(parseKnownIssues(root.get("knownIssues")));
 
-        log.info("Ticket verisi başarıyla çekildi. TicketId: {}, Yorum: {}, Worklog: {}, Bilinen sorun: {}",
+        long elapsedMs = System.currentTimeMillis() - start;
+        log.info("Ticket verisi başarıyla çekildi. TicketId: {}, Yorum: {}, Worklog: {}, Bilinen sorun: {}, Süre: {}ms",
                 ticketId,
                 req.getComments() != null ? req.getComments().size() : 0,
                 req.getWorklogs() != null ? req.getWorklogs().size() : 0,
-                req.getKnownIssues() != null ? req.getKnownIssues().size() : 0);
+                req.getKnownIssues() != null ? req.getKnownIssues().size() : 0,
+                elapsedMs);
 
         return req;
     }
