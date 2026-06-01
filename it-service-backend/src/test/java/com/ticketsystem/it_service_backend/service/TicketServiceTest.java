@@ -2530,6 +2530,26 @@ class TicketServiceTest {
     }
 
     @Test
+    void updateTicketTopic_updatesTopicIdAndNameSnapshot() {
+        Ticket existing = Ticket.builder()
+                .id(700L).productId(10L).customerId("customer-1")
+                .title("t").description("d").priority("HIGH").status("IN_PROGRESS")
+                .build(); // topicless ticket (topicId == null)
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(existing));
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
+        when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket saved = ticketService.updateTicketTopic(
+                700L, 50L, "MISCATEGORIZED", null, "agent-1", List.of("AGENT"));
+
+        assertEquals(50L, saved.getTopicId());
+        // Regression: the name snapshot must follow the new topic, otherwise the
+        // response shows "#<id>" instead of the topic name.
+        assertEquals("Diğer", saved.getTopicNameSnapshot());
+    }
+
+    @Test
     void createTicket_topicNotFound_throwsNotFound() {
         Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
                 .productId(10L).topicId(99L).build();

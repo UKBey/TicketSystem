@@ -1153,6 +1153,9 @@ public class TicketService {
                 : null;
 
         ticket.setTopicId(newTopicId);
+        // Keep the denormalized name snapshot in sync so the response (and every later
+        // read) shows the topic name instead of falling back to "#<id>".
+        ticket.setTopicNameSnapshot(newTopic.getName());
         Ticket saved = ticketRepository.save(ticket);
         recordTicketAuditLog(saved, userId, "TOPIC_CHANGE", reasonCode, note, oldTopicName, newTopic.getName());
         return saved;
