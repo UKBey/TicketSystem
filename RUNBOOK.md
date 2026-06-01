@@ -350,6 +350,15 @@ kubectl -n ticketsystem rollout restart sts/kie-server
 curl -u kieserver:$KIE_PASS http://<host>:8180/kie-server/services/rest/server/containers | jq
 ```
 
+The BPMN is the authoritative state machine for **all** ticket status changes —
+not only explicit transitions (status update / close) but also the side-effect
+ones from claim / unclaim / assign (each drives the BPMN via a
+`transition_<STATUS>` signal), so DB and BPMN stay consistent. A status change
+returning **HTTP 400** can therefore mean the BPMN rejected the transition (the
+process token's current state node does not listen for that signal), not a
+validation error — check the `kie-server` logs and the ticket's
+`process_instance_id` state.
+
 ### DB connection saturation
 
 ```bash

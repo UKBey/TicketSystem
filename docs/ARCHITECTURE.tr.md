@@ -233,7 +233,7 @@ SLA son tarihi, ticket oluşturulduğunda önceliğe göre politikadan hesaplan�
 - son tarihi geçmiş ticket'ları **ihlal edilmiş (breached)** olarak işaretler ve temsilcilere + yöneticilere bildirir;
 - uyarı eşiğine yaklaşan ticket'ları işaretler ve atanan temsilcilere bildirir.
 
-SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar** ve `IN_PROGRESS` durumuna dönüldüğünde yeniden başlar; böylece müşteri kaynaklı gecikmeler ve onay bekleme süresi destek ekibinin aleyhine sayılmaz. Ticket `CLOSED` olduğunda SLA tamamen sonlanır ve sayaç kalıcı olarak durur. Duraklatma/devam ettirme, sinyaller aracılığıyla jBPM sürecine de yansıtılır.
+SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar** ve `IN_PROGRESS` durumuna dönüldüğünde yeniden başlar; böylece müşteri kaynaklı gecikmeler ve onay bekleme süresi destek ekibinin aleyhine sayılmaz. Yalnızca **aktif (sayan) süre** biriktirilir (`slaElapsedMs`): devam ettirmede (`resumeSla`) `slaDeadline`, devam etme anından itibaren kalan aktif bütçe (`getSlaDurationMs(priority) - slaElapsedMs`) kadar ileri projekte edilir; böylece hem rozet hem de ihlal zamanlayıcısı duraklatmada geçen süreyi kaybetmez. Ticket `CLOSED` olduğunda SLA tamamen sonlanır ve sayaç kalıcı olarak durur. Duraklatma/devam ettirme, sinyaller aracılığıyla jBPM sürecine de yansıtılır.
 
 ### 7.4 Yapay Zekâ Özeti
 
@@ -272,9 +272,9 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 
 ## 10. İş Akışı Entegrasyonu (jBPM)
 
-Her ticket, KIE Server konteyneri `ticket-workflow`'a bir kjar olarak dağıtılan `com.ticketsystem.workflow.ticket-lifecycle` jBPM **süreç örneği** ile desteklenir.
+Her ticket, KIE Server konteyneri `ticket-workflow`'a bir kjar olarak dağıtılan `com.ticketsystem.workflow.ticket-lifecycle` jBPM **süreç örneği** ile desteklenir. BPMN, **tüm** ticket durum değişiklikleri için yetkili (authoritative) durum makinesidir — yalnızca kullanıcı kaynaklı geçişler (`updateTicketStatus` / `closeTicket`) için değil, aynı zamanda claim / unclaim / assign kaynaklı yan-etki geçişleri için de. Bir durum değişikliği BPMN'i ancak backend `transition_<HEDEF>` sinyalini gönderdiğinde ilerletir; yalnızca `status` süreç değişkenini yazmak süreç token'ını eşleşen state node'una taşımaz.
 
-- **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, durum ve atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır.
+- **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır. Durum senkronizasyonu (`syncTicketStatus` / `syncTicketAssignment`) state node'unu `transition_<DURUM>` sinyali ile ilerletir; böylece claim/unclaim/assign sonrası BPMN ile veritabanı tutarlı kalır ve sonraki geçişler başarılı olur (`syncTicketAssignment` ayrıca `assigneeId`'yi düz süreç değişkeni olarak yazar).
 - **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/v1/internal/workflow/callback` uç noktasını geri çağırır.
 - **Dayanıklılık:** tüm KIE çağrıları bir Resilience4j **devre kesici (circuit breaker)** ile sarılır — iş akışı kesintileri zarif biçimde derecelenir ve ticket API'sini asla bloklamaz.
 

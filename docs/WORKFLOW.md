@@ -184,6 +184,14 @@ service throws HTTP `400`. If KIE Server is unreachable the verify call also
 returns `false`, surfacing as a `400` to the caller — the workflow engine is
 treated as a hard dependency for status transitions.
 
+The BPMN is authoritative for **all** status changes, not only explicit
+user-initiated transitions (`updateTicketStatus` / `closeTicket`). The
+**side-effect** transitions caused by claim / unclaim / assign also drive the
+BPMN: `syncTicketStatus` / `syncTicketAssignment` send the same
+`transition_<STATUS>` signal (see *Status & assignment sync* below), so a claim
+or assign advancing `NEW` → `IN_PROGRESS` and an unclaim of the last claim
+moving `IN_PROGRESS` → `NEW` keep the BPMN state node and the DB consistent.
+
 **SLA branch — lifecycle signals (legacy, kept for backward compatibility):**
 
 | Signal id | Signal name | Sent by backend via |
@@ -260,7 +268,7 @@ All variables are typed `String` (`itemDefinition structureRef="String"`).
 | `ticketId` | in | `startTicketWorkflow()` | Ticket primary key; echoed in the SLA-breach callback body. |
 | `priority` | in | `startTicketWorkflow()` | Ticket priority; drives the SLA duration and is included in `additionalData`. |
 | `customerId` | in | `startTicketWorkflow()` | Customer who raised the ticket. |
-| `status` | in / updated | `startTicketWorkflow()`, `syncTicketStatus()`, `syncTicketAssignment()` | Current ticket status, kept in sync with the DB. |
+| `status` | in / updated | `startTicketWorkflow()` (seed); advanced by `syncTicketStatus()` / `syncTicketAssignment()` via the `transition_<STATUS>` signal | Current ticket status. The sync methods drive the BPMN with a transition signal (not a raw variable write) so the state node actually advances. |
 | `assigneeId` | updated | `syncTicketAssignment()` | Id of the agent who last claimed the ticket. |
 | `slaDuration` | in / updated | `startTicketWorkflow()`, `resumeSla()` | ISO-8601 duration (e.g. `PT30M`, `PT1H30M`) used by `Timer_SlaDeadline`. On resume it is rewritten to the *remaining* time. |
 | `callbackUrl` | in | `startTicketWorkflow()` | Backend internal callback URL **with the auth token appended** (`...?token=<token>`); used by `RestTask_SlaCallback`. |
@@ -312,17 +320,28 @@ ticket commit succeeds, in a fresh transaction:
 
 ### Status & assignment sync
 
-- `syncTicketStatus(ticket)` → `setProcessVariable(pid, "status", ...)`.
-- `syncTicketAssignment(ticket, agentId)` → sets `assigneeId` **and** `status`.
+Both methods **drive the BPMN state machine** via
+`requestStatusTransition(ticket, ticket.getStatus())` — i.e. they send the
+`transition_<STATUS>` signal. A raw `setProcessVariable(pid, "status", ...)`
+write does **not** advance the process token to the matching state node, so the
+BPMN would stay on the previous state and silently drop later transitions.
 
-Both no-op (with a warning) if the ticket has no `processInstanceId`.
+- `syncTicketStatus(ticket)` → `requestStatusTransition(ticket, status)`.
+- `syncTicketAssignment(ticket, agentId)` →
+  `setProcessVariable(pid, "assigneeId", agentId)` (plain variable) **and**
+  `requestStatusTransition(ticket, status)` to advance the state node.
+
+This is what makes the side-effect transitions actually move the BPMN: a claim
+or assign auto-promotes `NEW` → `IN_PROGRESS`, and unclaiming the last claim
+moves `IN_PROGRESS` → `NEW`. Both no-op (with a warning) if the ticket has no
+`processInstanceId`.
 
 ### SLA pause / resume / close signals
 
 | Operation | What `WorkflowService` does | KIE call |
 |---|---|---|
 | `pauseSla(ticket)` | Accumulates elapsed SLA time into `slaElapsedMs`, sets `slaPausedAt`; idempotent if already paused. | `signalProcessInstance(pid, "pause_sla", null)` |
-| `resumeSla(ticket)` | Clears `slaPausedAt`, sets `slaResumedAt`, computes remaining time, writes `slaDuration`. | `setProcessVariable(pid, "slaDuration", remaining)` then `signalProcessInstance(pid, "resume_sla", remaining)` |
+| `resumeSla(ticket)` | Clears `slaPausedAt`, sets `slaResumedAt`, computes remaining time, writes `slaDuration`. Also projects `slaDeadline` forward to `slaResumedAt + (getSlaDurationMs(priority) - slaElapsedMs)` so the active badge and the SLA breach scheduler count only active time and do not lose time spent paused. | `setProcessVariable(pid, "slaDuration", remaining)` then `signalProcessInstance(pid, "resume_sla", remaining)` |
 | `closeTicketWorkflow(ticket)` | Ends the process on ticket close. | `signalProcessInstance(pid, "ticket_closed", null)`; **fallback** to `abortProcess(pid)` if the signal throws |
 | `abortTicketWorkflow(ticket)` | Hard-cancels the process for a deleted/cancelled ticket. | `abortProcess(pid)` |
 
@@ -330,7 +349,10 @@ Both no-op (with a warning) if the ticket has no `processInstanceId`.
 to read the next fire time of the live SLA timer (a single timer is expected per
 instance). `getSlaTimerInfo(ticket)` computes a client-facing `slaState` of
 `active | paused | expired | completed` from the ticket's own fields (it does
-not call KIE).
+not call KIE). Its **paused** branch derives remaining as
+`getSlaDurationMs(priority) - slaElapsedMs` (deterministic in-memory config, no
+flicker) rather than `slaDeadline - createdAt`; because `slaElapsedMs` only
+accumulates active time, this value stays frozen while paused.
 
 ---
 
@@ -419,12 +441,16 @@ State transitions are logged via the circuit breaker's event publisher.
 
 ### Compose (default path)
 
-- `kie-server` runs `jboss/kie-server-showcase:7.61.0.Final` and mounts the
-  host's `~/.m2/repository` into the container, so a locally-built
-  `com.ticketsystem:ticket-workflow-kjar:1.0.5` artifact is resolvable.
-- The KIE Server registers the **`ticket-workflow`** container against the
+- `kie-server` builds from `Dockerfile-kie` (base
+  `jboss/kie-server-showcase:7.61.0.Final`) with the
+  `com.ticketsystem:ticket-workflow-kjar:1.0.5` artifact **baked into the image's
+  Maven repository** — there is **no** `~/.m2/repository` host mount.
+- A one-shot **`kjar-deploy`** compose service waits for the KIE Server to be
+  healthy, then registers the **`ticket-workflow`** container against the
   artifact's release id; the process `com.ticketsystem.workflow.ticket-lifecycle`
-  then becomes available over the KIE REST API.
+  then becomes available over the KIE REST API. The backend `depends_on` this
+  service completing successfully, so `docker compose up` needs no manual deploy
+  step.
 - `make rebuild` (`docker compose up -d --build`) rebuilds and restarts the
   stack after kjar changes.
 

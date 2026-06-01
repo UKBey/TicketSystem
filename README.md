@@ -37,13 +37,13 @@ Customers report technical problems, support agents resolve them under **SLA** r
 
 ### Ticketing & Lifecycle
 - Full ticket lifecycle as a state machine: `NEW → IN_PROGRESS → WAITING_FOR_CUSTOMER → RESOLVED → CLOSED`
-- Each ticket runs as a **jBPM process instance** — status transitions are driven through the workflow engine
+- Each ticket runs as a **jBPM process instance** — every status transition is driven through the workflow engine, including the side-effect transitions caused by claim / unclaim / assignment
 - **Claim/pool model** — agents pull tickets from a product-scoped pool; multiple agents can collaborate on one ticket
 - Manual assignment with agent capacity checks, resolution notes, and a full **audit trail**
 
 ### SLA Management
 - Per-priority SLA policies (`CRITICAL` / `HIGH` / `MEDIUM` / `LOW`) with configurable resolution and warning thresholds
-- SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED`, resumes on `IN_PROGRESS`, and stops permanently once the ticket is `CLOSED`
+- SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED`, resumes on `IN_PROGRESS` with the paused time preserved (only active time counts down), and stops permanently once the ticket is `CLOSED`
 - A scheduler flags approaching and breached SLAs; the UI shows colour-coded countdown badges
 
 ### Communication & Files

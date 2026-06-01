@@ -37,13 +37,13 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 
 ### Ticket ve Yaşam Döngüsü
 - Bir durum makinesi (state machine) olarak eksiksiz ticket yaşam döngüsü: `NEW → IN_PROGRESS → WAITING_FOR_CUSTOMER → RESOLVED → CLOSED`
-- Her ticket bir **jBPM süreç örneği (process instance)** olarak çalışır — durum geçişleri iş akışı motoru üzerinden yürütülür
+- Her ticket bir **jBPM süreç örneği (process instance)** olarak çalışır — her durum geçişi iş akışı motoru üzerinden yürütülür; claim / unclaim / assign kaynaklı yan-etki geçişleri de dahil
 - **Talep et / havuz modeli** — temsilciler, ürün kapsamlı bir havuzdan ticket çeker; birden fazla temsilci tek bir ticket üzerinde birlikte çalışabilir
 - Temsilci kapasite kontrolleriyle manuel atama, çözüm notları ve eksiksiz bir **denetim izi (audit trail)**
 
 ### SLA Yönetimi
 - Yapılandırılabilir çözüm ve uyarı eşikleriyle önceliğe göre SLA politikaları (`CRITICAL` / `HIGH` / `MEDIUM` / `LOW`)
-- SLA sayacı, ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar**, `IN_PROGRESS`'e dönünce kaldığı yerden devam eder ve ticket `CLOSED` olduğunda tamamen durur
+- SLA sayacı, ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **duraklar**, `IN_PROGRESS`'e dönünce duraklatmada geçen süre korunarak (yalnızca aktif süre işler) kaldığı yerden devam eder ve ticket `CLOSED` olduğunda tamamen durur
 - Bir zamanlayıcı, yaklaşan ve ihlal edilen SLA'ları işaretler; arayüz renk kodlu geri sayım rozetleri gösterir
 
 ### İletişim ve Dosyalar

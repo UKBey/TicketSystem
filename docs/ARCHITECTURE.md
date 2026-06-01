@@ -233,7 +233,7 @@ The SLA deadline is computed at ticket creation from the per-priority policy. A 
 - marks tickets whose deadline has passed as **breached** and notifies agents + managers;
 - flags tickets approaching their warning threshold and notifies the assigned agents.
 
-The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED` and resumes on return to `IN_PROGRESS`, so customer-side delays and time spent awaiting confirmation do not count against the support team. Once a ticket is `CLOSED` the SLA is finalised and the clock stops permanently. Pause/resume is mirrored into the jBPM process via signals.
+The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED` and resumes on return to `IN_PROGRESS`, so customer-side delays and time spent awaiting confirmation do not count against the support team. Time spent paused genuinely does not count against the deadline: `slaElapsedMs` accumulates only **active** (counting) time, and on resume `slaDeadline` is projected forward by the remaining active budget (`getSlaDurationMs(priority) − slaElapsedMs`), so neither the active badge nor the breach scheduler lose the paused interval. Once a ticket is `CLOSED` the SLA is finalised and the clock stops permanently. Pause/resume is mirrored into the jBPM process via signals.
 
 ### 7.4 AI Summary
 
@@ -274,7 +274,7 @@ Core tables include `tickets`, `users`, `products`, `ticket_comments`, `ticket_w
 
 Every ticket is backed by a jBPM **process instance** of `com.ticketsystem.workflow.ticket-lifecycle`, deployed as a kjar to the KIE Server container `ticket-workflow`.
 
-- **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals.
+- **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals. The BPMN is the **authoritative state machine for every status change** — status/assignment sync drives it by sending the matching `transition_<STATUS>` signal (writing the `status` process variable alone does not move the process token). This covers not only explicit transitions (`updateTicketStatus` / `closeTicket`) but also the side-effect transitions caused by claim / unclaim / assign (e.g. a claim auto-promoting NEW → IN_PROGRESS), keeping the BPMN and the DB consistent.
 - **KIE → Backend:** the process calls back to `/api/v1/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header.
 - **Resilience:** all KIE calls are wrapped in a Resilience4j **circuit breaker** — workflow outages degrade gracefully and never block the ticket API.
 

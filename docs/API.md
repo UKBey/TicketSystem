@@ -304,18 +304,21 @@ Returns a single `TicketResponseDTO` (same shape as the create response, includi
 
 ### Mutation endpoints — request bodies
 
-**PUT `/api/v1/tickets/{id}/claim`** — no body. Allowed in any status except `CLOSED`; claiming a `CLOSED` ticket returns `400`.
+**PUT `/api/v1/tickets/{id}/claim`** — no body. Allowed in any status except `CLOSED`; claiming a `CLOSED` ticket returns `400`. The first claim auto-promotes a `NEW` ticket to `IN_PROGRESS`, advancing the BPMN state machine via a transition signal.
 
 **DELETE `/api/v1/tickets/{id}/claim`** — Body `UnclaimRequestDTO`:
 `reasonCode` (string, required), `note` (string, required when `reasonCode` is `OTHER`).
+Releasing the last claim moves the ticket `IN_PROGRESS` → `NEW`, also driven through the BPMN.
 
 **PUT `/api/v1/tickets/{id}/assign`** — Body `AssignTicketRequestDTO`:
 `targetAgentId` (string, required — Keycloak ID), `note` (string, optional). Capacity of the
-target agent is checked; returns `400`/`409` if the agent's limit is full.
+target agent is checked; returns `400`/`409` if the agent's limit is full. Like claim, assigning
+a `NEW` ticket advances it to `IN_PROGRESS` through the BPMN state machine.
 
 **PUT `/api/v1/tickets/{id}/status`** — Body `StatusUpdateRequestDTO`:
 `status` (string, required), `reasonCode` (string — required when transitioning to `RESOLVED`),
-`note` (string — required when `reasonCode` is `OTHER`).
+`note` (string — required when `reasonCode` is `OTHER`). The BPMN process is the authoritative
+state machine: a transition the BPMN does not accept is rejected with `400`.
 
 ```json
 PUT /api/v1/tickets/42/status
@@ -336,8 +339,12 @@ required), `note` (string — required when `reasonCode` is `OTHER`).
 **DELETE `/api/v1/tickets/{id}`** — no body; returns `204 No Content`.
 
 **GET `/api/v1/tickets/{id}/sla-timer`** — returns a JSON object describing the live SLA timer,
-e.g. `{ "slaState": "active", "remainingMs": 27000000, "slaDeadline": "..." }`. `slaState` is
-one of `active`, `paused`, `expired`, `completed`.
+e.g. `{ "slaState": "active", "remainingMs": 27000000, "deadlineTimestamp": 1780346400000 }`
+(`deadlineTimestamp` is epoch-ms, and is `-1` while paused/closed). `slaState` is
+one of `active`, `paused`, `expired`, `completed`. The SLA counts only *active* time: while
+paused (`WAITING_FOR_CUSTOMER`/`RESOLVED`) `remainingMs` is frozen (SLA budget minus accumulated
+active elapsed) and does not decrease; on resume (back to `IN_PROGRESS`) the countdown continues
+from that frozen value — time spent paused is not lost.
 
 ---
 
