@@ -994,6 +994,7 @@
     "selectProduct": "Select a product",
     "topic": "Topic",
     "selectTopic": "Select a topic",
+    "noTopicOption": "No Topic",
     "selectProductFirst": "Select a product first",
     "knownIssues": "Known issues",
     "create": "Create Ticket",

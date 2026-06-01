@@ -94,8 +94,13 @@ public class TicketService {
      *
      * @param ticket ticket payload from the client (productId, topicId, title, etc.)
      * @param customerId ID of the customer opening the ticket (assigned automatically)
+     * <p>The topic is required only when the product still has at least one active
+     * topic to choose from. When the product has no active topics, the ticket may be
+     * created without a topic ("No Topic"); {@code topicId} and {@code topicNameSnapshot}
+     * are left null in that case.
+     *
      * @return the persisted ticket
-     * @throws ResponseStatusException 400 if topic is missing or mismatched,
+     * @throws ResponseStatusException 400 if topic is missing while active topics exist, or mismatched,
      *                                 403 if the user has no product access,
      *                                 404 if the topic is not found, 422 if product/topic is inactive
      */
@@ -117,17 +122,25 @@ public class TicketService {
         }
 
         if (ticket.getTopicId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.required");
+            // Konusuz ("No Topic") bilet yalnızca ürünün hiç aktif konusu yoksa açılabilir.
+            // Üründe seçilebilecek aktif konu varsa konu zorunludur.
+            boolean hasActiveTopics = !ticketTopicRepository
+                    .findByProductIdAndIsActiveTrueOrderByNameAsc(product.getId()).isEmpty();
+            if (hasActiveTopics) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.required");
+            }
+            // topicId ve topicNameSnapshot null kalır.
+        } else {
+            TicketTopic topic = ticketTopicRepository.findById(ticket.getTopicId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.topic.not.found"));
+            if (!topic.getProductId().equals(product.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.product.mismatch");
+            }
+            if (!Boolean.TRUE.equals(topic.getIsActive())) {
+                throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.ticket.topic.inactive");
+            }
+            ticket.setTopicNameSnapshot(topic.getName());
         }
-        TicketTopic topic = ticketTopicRepository.findById(ticket.getTopicId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.topic.not.found"));
-        if (!topic.getProductId().equals(product.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.product.mismatch");
-        }
-        if (!Boolean.TRUE.equals(topic.getIsActive())) {
-            throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.ticket.topic.inactive");
-        }
-        ticket.setTopicNameSnapshot(topic.getName());
 
         ticket.setCustomerId(customerId);
         ticket.setStatus("NEW");

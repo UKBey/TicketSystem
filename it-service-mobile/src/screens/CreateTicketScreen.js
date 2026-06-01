@@ -19,6 +19,10 @@ import PickerField from '../components/PickerField';
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
+// "No Topic" sentinel — only offered when the selected product has no active
+// topics. Submitted to the API as topicId: null.
+const NO_TOPIC = 'NONE';
+
 /** Yeni bilet oluşturma formu — ürün/konu seçimi + bilinen sorunlar paneli. */
 export default function CreateTicketScreen({ navigation }) {
   const { theme } = useTheme();
@@ -57,7 +61,7 @@ export default function CreateTicketScreen({ navigation }) {
     setKnownIssues([]);
     setExpandedIssue(null);
     if (!productId || !topicId) return;
-    getKnownIssues(productId, topicId)
+    getKnownIssues(productId, topicId === NO_TOPIC ? undefined : topicId)
       .then((res) => setKnownIssues((res.data ?? []).filter((k) => k.isActive)))
       .catch(() => setKnownIssues([]));
   }, [productId, topicId]);
@@ -75,7 +79,7 @@ export default function CreateTicketScreen({ navigation }) {
         description: description.trim(),
         priority,
         productId,
-        topicId,
+        topicId: topicId === NO_TOPIC ? null : topicId,
       });
       navigation.goBack();
     } catch (e) {
@@ -153,7 +157,11 @@ export default function CreateTicketScreen({ navigation }) {
           value={topicId}
           onChange={setTopicId}
           disabled={!productId}
-          options={topics.map((tp) => ({ label: tp.name, value: tp.id }))}
+          options={
+            productId && topics.length === 0
+              ? [{ label: t('createTicket.noTopicOption', 'Konusuz'), value: NO_TOPIC }]
+              : topics.map((tp) => ({ label: tp.name, value: tp.id }))
+          }
         />
 
         {knownIssues.length > 0 && (

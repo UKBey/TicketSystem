@@ -994,6 +994,7 @@
     "selectProduct": "Ürün seç",
     "topic": "Konu",
     "selectTopic": "Konu seç",
+    "noTopicOption": "Konusuz",
     "selectProductFirst": "Önce ürün seç",
     "knownIssues": "Bilinen sorunlar",
     "create": "Bilet Oluştur",

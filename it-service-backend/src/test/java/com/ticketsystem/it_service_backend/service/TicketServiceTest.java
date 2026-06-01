@@ -2492,13 +2492,41 @@ class TicketServiceTest {
     }
 
     @Test
-    void createTicket_topicIdNull_throwsBadRequest() {
+    void createTicket_topicIdNull_whenProductHasActiveTopics_throwsBadRequest() {
         Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
                 .productId(10L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByNameAsc(10L))
+                .thenReturn(List.of(topic));
 
-        assertThrows(ResponseStatusException.class,
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketService.createTicket(input, "customer-1"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+    @Test
+    void createTicket_topicIdNull_whenNoActiveTopics_savesTopiclessTicket() {
+        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+                .productId(10L).build();
+        when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
+        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByNameAsc(10L))
+                .thenReturn(List.of());
+        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
+            Ticket toSave = invocation.getArgument(0);
+            toSave.setId(123L);
+            return toSave;
+        });
+
+        Ticket saved = ticketService.createTicket(input, "customer-1");
+
+        assertNotNull(saved.getId());
+        assertEquals("NEW", saved.getStatus());
+        assertNull(saved.getTopicId());
+        assertNull(saved.getTopicNameSnapshot());
+        verify(ticketTopicRepository, never()).findById(any());
     }
 
     @Test

@@ -131,12 +131,17 @@ export default function TicketDetailsCard({
           )}
         </div>
 
-        {(ticket.topicName || ticket.topicId) && (
+        {/* Render for agents even when the ticket has no topic, so the change-topic
+            affordance stays reachable for a ticket that was opened without one. */}
+        {(ticket.topicName || ticket.topicId || isAgent) && (
           <div>
             <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('ticketDetail.topicLabel')}</div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium break-words" style={{ color: 'var(--text-primary)' }}>
-                {ticket.topicName || `#${ticket.topicId}`}
+              <span
+                className="text-sm font-medium break-words"
+                style={{ color: (ticket.topicName || ticket.topicId) ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+              >
+                {ticket.topicName || (ticket.topicId ? `#${ticket.topicId}` : t('ticketDetail.noTopic'))}
               </span>
               {isAgent && ticket.status !== 'CLOSED' && (
                 <button

@@ -228,7 +228,7 @@ Body `TicketRequestDTO`:
 | `description` | string | yes | Detailed description; also stored as the first comment. |
 | `priority` | string | yes | `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`. |
 | `productId` | long | yes | Product/category the ticket belongs to. |
-| `topicId` | long | yes | Topic ID; must be an active topic of `productId`. |
+| `topicId` | long | conditional | Topic ID; must be an active topic of `productId`. May be omitted/`null` only when the product has no active topics (a topicless ticket); otherwise required. |
 
 Request:
 

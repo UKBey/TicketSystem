@@ -3,6 +3,10 @@ import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
 
+// Sentinel value for the "No Topic" choice — only offered when the selected
+// product has no active topics. Submitted to the API as topicId: null.
+const NO_TOPIC = 'NONE';
+
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
@@ -43,6 +47,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   }, [productId]);
 
   // Topic seçilince o topic için aktif known issue'ları çek — sadece bilgilendirme amaçlı.
+  // "No Topic" seçildiyse ürün geneli known issue'lar çekilir (topicId gönderilmez).
   useEffect(() => {
     if (!productId || !topicId) {
       setKnownIssues([]);
@@ -51,7 +56,8 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     }
     setKnownIssuesLoading(true);
     setExpandedIssueId(null);
-    listKnownIssues(productId, { topicId })
+    const opts = topicId === NO_TOPIC ? {} : { topicId };
+    listKnownIssues(productId, opts)
       .then((res) => setKnownIssues((res.data || []).filter((k) => k.isActive)))
       .catch(() => setKnownIssues([]))
       .finally(() => setKnownIssuesLoading(false));
@@ -73,7 +79,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         description,
         priority,
         productId: Number(productId),
-        topicId: Number(topicId),
+        topicId: topicId === NO_TOPIC ? null : Number(topicId),
       });
       onCreated(res.data);
       resetForm();
@@ -190,6 +196,10 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                     ? t('ticket.createModal.noTopics')
                     : t('ticket.createModal.selectTopic')}
                 </option>
+                {/* Product has no active topics → allow opening a topicless ticket. */}
+                {productId && !topicsLoading && topics.length === 0 && (
+                  <option value={NO_TOPIC}>{t('ticket.createModal.noTopicOption')}</option>
+                )}
                 {topics.map((tp) => (
                   <option key={tp.id} value={tp.id}>{tp.name}</option>
                 ))}

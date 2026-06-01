@@ -29,6 +29,6 @@ public class TicketRequestDTO {
     @Schema(description = "Biletin ait olduğu ürün/kategori ID'si", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long productId;
 
-    @Schema(description = "Seçilen talep konusunun ID'si (ürüne ait, aktif bir konu olmalı)", example = "12", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Seçilen talep konusunun ID'si (ürüne ait, aktif bir konu olmalı). Ürünün hiç aktif konusu yoksa boş bırakılabilir (konusuz bilet).", example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private Long topicId;
 }
