@@ -6,6 +6,7 @@ import TicketDetailScreen from '../screens/TicketDetailScreen';
 import CreateTicketScreen from '../screens/CreateTicketScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import KnownIssuesScreen from '../screens/KnownIssuesScreen';
+import CannedResponsesScreen from '../screens/CannedResponsesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProductsScreen from '../screens/ProductsScreen';
 import NotificationPreferencesScreen from '../screens/NotificationPreferencesScreen';
@@ -56,6 +57,11 @@ export default function AppNavigator() {
         name="KnownIssues"
         component={KnownIssuesScreen}
         options={{ title: t('knownIssues.title', 'Bilinen Sorunlar') }}
+      />
+      <Stack.Screen
+        name="CannedResponses"
+        component={CannedResponsesScreen}
+        options={{ title: t('cannedResponses.manageTitle', 'Hazır Yanıtlar') }}
       />
       <Stack.Screen
         name="Profile"

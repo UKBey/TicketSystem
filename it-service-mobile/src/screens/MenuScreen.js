@@ -15,6 +15,7 @@ export default function MenuScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
   const isAdmin = roles.includes('AGENT_ADMIN') || roles.includes('MANAGER');
+  const isAgent = roles.includes('AGENT') || isAdmin;
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: theme.bgBody }]}>
@@ -50,6 +51,14 @@ export default function MenuScreen({ navigation }) {
             label={t('menu.knownIssues', 'Bilinen Sorunlar')}
             onPress={() => navigation.navigate('KnownIssues')}
           />
+          {isAgent && (
+            <MenuRow
+              theme={theme}
+              icon="flash-outline"
+              label={t('menu.cannedResponses', 'Hazır Yanıtlar')}
+              onPress={() => navigation.navigate('CannedResponses')}
+            />
+          )}
           <MenuRow
             theme={theme}
             icon="person-outline"

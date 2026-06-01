@@ -45,6 +45,9 @@ import AssignSheet from '../components/AssignSheet';
 import CsatSheet from '../components/CsatSheet';
 import AiSummarySheet from '../components/AiSummarySheet';
 import SlaBadge from '../components/SlaBadge';
+import CannedResponseSheet from '../components/CannedResponseSheet';
+import { useCannedResponses } from '../hooks/useCannedResponses';
+import { buildPlaceholderContext, fillPlaceholders, pickContent } from '../utils/cannedResponses';
 
 const COMMENT_MAX = 500;
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -90,7 +93,7 @@ function mergeById(prev, incoming) {
 export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hasRole, user } = useAuth();
   const headerHeight = useHeaderHeight();
   const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
@@ -108,6 +111,13 @@ export default function TicketDetailScreen({ route, navigation }) {
   const [commentType, setCommentType] = useState('EXTERNAL');
   const [sending, setSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  // Hazır yanıtlar (canned responses) — yalnızca ajanlar
+  const [cannedOpen, setCannedOpen] = useState(false);
+  const [cannedLang, setCannedLang] = useState((i18n.language || 'en').startsWith('tr') ? 'tr' : 'en');
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const { templates: cannedTemplates, loading: cannedLoading, toggleFavorite: toggleCannedFavorite } =
+    useCannedResponses({ productId: ticket?.productId, enabled: isAgent });
 
   const [actionBusy, setActionBusy] = useState(false);
   const [reasonMode, setReasonMode] = useState(null);
@@ -219,6 +229,18 @@ export default function TicketDetailScreen({ route, navigation }) {
     items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     return items;
   }, [comments, attachments]);
+
+  // Şablonu placeholder'ları doldurup mesaj kutusuna imleç konumuna ekler (asla otomatik göndermez).
+  const insertCanned = (tpl) => {
+    const { content } = pickContent(tpl, cannedLang);
+    const filled = fillPlaceholders(content, buildPlaceholderContext({ ticket, user, language: cannedLang }));
+    setMessage((prev) => {
+      const start = Math.min(selection.start, prev.length);
+      const end = Math.min(selection.end, prev.length);
+      return prev.slice(0, start) + filled + prev.slice(end);
+    });
+    setCannedOpen(false);
+  };
 
   const sendComment = async () => {
     if (!message.trim() || cooldown > 0 || sending) return;
@@ -654,6 +676,31 @@ export default function TicketDetailScreen({ route, navigation }) {
               })}
             </View>
           )}
+          {isAgent && (
+            <View style={styles.cannedRow}>
+              <Pressable
+                onPress={() => setCannedOpen(true)}
+                style={[styles.cannedBtn, { borderColor: theme.border }]}
+              >
+                <Ionicons name="flash-outline" size={14} color={theme.primary} />
+                <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600' }}>
+                  {t('cannedResponses.button', 'Hazır yanıtlar')}
+                </Text>
+              </Pressable>
+              {cannedTemplates.filter((x) => x.favorite).slice(0, 3).map((tpl) => (
+                <Pressable
+                  key={tpl.id}
+                  onPress={() => insertCanned(tpl)}
+                  style={[styles.cannedChip, { borderColor: theme.border }]}
+                >
+                  <Ionicons name="star" size={11} color={theme.warning} />
+                  <Text style={{ color: theme.textSecondary, fontSize: 11, maxWidth: 110 }} numberOfLines={1}>
+                    {tpl.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           <View style={styles.inputRow}>
             {canUseAttachments && (
               <Pressable
@@ -671,7 +718,8 @@ export default function TicketDetailScreen({ route, navigation }) {
             <TextInput
               value={message}
               onChangeText={setMessage}
-              placeholder={t('ticketDetail.messagePlaceholder', 'Mesaj yaz...')}
+              onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+              placeholder={isAgent ? t('cannedResponses.composerHint', 'Yanıt yazın veya ⚡ ile şablon ekleyin.') : t('ticketDetail.messagePlaceholder', 'Mesaj yaz...')}
               placeholderTextColor={theme.textTertiary}
               multiline
               maxLength={COMMENT_MAX}
@@ -702,6 +750,21 @@ export default function TicketDetailScreen({ route, navigation }) {
           </Text>
         </View>
       )}
+
+      <CannedResponseSheet
+        visible={cannedOpen}
+        onClose={() => setCannedOpen(false)}
+        templates={cannedTemplates}
+        loading={cannedLoading}
+        commentType={commentType}
+        ctx={buildPlaceholderContext({ ticket, user, language: cannedLang })}
+        previewLang={cannedLang}
+        onPreviewLang={setCannedLang}
+        productId={ticket?.productId ?? null}
+        onInsert={insertCanned}
+        onToggleFavorite={toggleCannedFavorite}
+        onManage={() => { setCannedOpen(false); navigation.navigate('CannedResponses'); }}
+      />
 
       <ReasonSheet
         visible={reasonMode !== null}
@@ -940,6 +1003,9 @@ const styles = StyleSheet.create({
   composer: { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 12, gap: 8 },
   typeRow: { flexDirection: 'row', gap: 8 },
   typeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  cannedRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+  cannedBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  cannedChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
   iconBtn: {
     width: 44,
