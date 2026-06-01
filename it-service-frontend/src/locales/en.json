@@ -226,6 +226,7 @@
       "labelReason": "Reason",
       "labelNote": "Note",
       "selectReason": "Select a reason...",
+      "selectOption": "Select an option...",
       "placeholderNoteOptional": "Add details (optional)...",
       "placeholderNoteOther": "Please briefly describe the reason...",
       "hintOptional": "You may add a short note if helpful.",

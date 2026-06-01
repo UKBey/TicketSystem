@@ -226,6 +226,7 @@
       "labelReason": "Neden",
       "labelNote": "Açıklama",
       "selectReason": "Bir neden seçin...",
+      "selectOption": "Bir seçenek seçin...",
       "placeholderNoteOptional": "Detay ekleyin (opsiyonel)...",
       "placeholderNoteOther": "Lütfen nedeni kısaca açıklayın...",
       "hintOptional": "İstersen kısa bir açıklama ekleyebilirsin.",

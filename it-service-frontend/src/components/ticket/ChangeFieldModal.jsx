@@ -104,11 +104,19 @@ export default function ChangeFieldModal({
                 {loading ? (
                   <option value="">{t('common.loading')}</option>
                 ) : (
-                  options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))
+                  <>
+                    {/* When there is no current value (e.g. a topicless ticket), show a
+                        placeholder so value='' maps to a real option; otherwise the browser
+                        shows the first option while state stays '' and Save can't enable. */}
+                    {(currentValue === null || currentValue === undefined || currentValue === '') && (
+                      <option value="">{t('ticket.actionModal.selectOption')}</option>
+                    )}
+                    {options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </>
                 )}
               </select>
             </div>
