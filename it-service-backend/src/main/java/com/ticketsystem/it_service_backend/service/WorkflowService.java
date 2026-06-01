@@ -192,6 +192,17 @@ public class WorkflowService {
         ticket.setSlaPausedAt(null);
         ticket.setSlaResumedAt(java.time.ZonedDateTime.now());
 
+        // slaDeadline'i kalan AKTIF butce kadar simdiden ileri projekte et. Boylece
+        // IN_PROGRESS badge'i ve SlaNotificationScheduler breach tespiti, duraklatmada
+        // (WAITING/RESOLVED) gecen sureyi YANLISLIKLA dusmez — yalniz aktif gecen sure
+        // sayilir. Eskiden bunu sadece priority-change yolu yapiyordu; normal resume
+        // slaDeadline'i guncellemiyordu, bu yuzden badge duraklatmada gecen zamani
+        // kaybediyordu.
+        long resumeRemainingMs = Math.max(0L,
+                getSlaDurationMs(ticket.getPriority())
+                        - (ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L));
+        ticket.setSlaDeadline(ticket.getSlaResumedAt().plus(Duration.ofMillis(resumeRemainingMs)));
+
         if (ticket.getProcessInstanceId() == null) {
             log.debug("processInstanceId yok, sadece veritabaný tarafýnda SLA resume edildi. TicketId={}", ticket.getId());
             return;
@@ -406,14 +417,13 @@ public class WorkflowService {
                 || "WAITING_FOR_CUSTOMER".equals(status);
 
         if (isPaused) {
-            // Derive the original SLA duration from the ticket's own deadline instead of the
-            // current cached policy. This prevents badge flickering when the policy cache
-            // expires and briefly returns a stale value different from what the ticket was
-            // originally committed to.
-            long originalDurationMs = (ticket.getSlaDeadline() != null && ticket.getCreatedAt() != null)
-                    ? Duration.between(ticket.getCreatedAt(), ticket.getSlaDeadline()).toMillis()
-                    : getSlaDurationMs(ticket.getPriority());
-
+            // Paused kalan = (onceligin SLA butcesi) - (birikmis AKTIF sure).
+            // slaElapsedMs yalniz aktif gecen sureyi tutar; duraklatma onu artirmaz,
+            // bu yuzden bu deger duraklatma boyunca sabit (frozen) kalir. slaDeadline'dan
+            // TURETMIYORUZ: resume slaDeadline'i ileri ittigi icin (slaDeadline - createdAt)
+            // artik orijinal sureyi vermez. getSlaDurationMs in-memory config'ten okur
+            // (cache yok), deterministiktir — flicker riski yoktur.
+            long originalDurationMs = getSlaDurationMs(ticket.getPriority());
             long remaining = originalDurationMs - elapsedMs;
             result.put("deadlineTimestamp", -1L);
             result.put("remainingMs", Math.max(0L, remaining));

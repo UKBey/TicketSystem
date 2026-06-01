@@ -272,6 +272,29 @@ class WorkflowServiceTest {
     }
 
     @Test
+    void resumeSla_pushesDeadlineForwardSoActiveBadgeDoesNotLosePausedTime() {
+        // Regression: WAITING'te gecen sure IN_PROGRESS'e donunce DUSULMEMELI.
+        // CRITICAL=3_600_000ms. 10 dk (600_000ms) aktif gecmis, sonra uzun sure
+        // duraklatilmis (createdAt 2 saat once — paused time'i temsil eder).
+        Ticket ticket = Ticket.builder()
+                .id(50L)
+                .priority("CRITICAL")
+                .status("IN_PROGRESS")
+                .processInstanceId(5000L)
+                .slaElapsedMs(600_000L)
+                .createdAt(ZonedDateTime.now().minusHours(2))
+                .build();
+
+        workflowService.resumeSla(ticket);
+
+        // slaDeadline ~ now + (3_600_000 - 600_000) = now + 3_000_000ms olmali.
+        // createdAt (2 saat once) ve duraklatmada gecen sure ETKILEMEMELI.
+        long remaining = ticket.getSlaDeadline().toInstant().toEpochMilli() - System.currentTimeMillis();
+        assertTrue(remaining > 2_950_000L && remaining <= 3_000_000L,
+                "resume sonrasi kalan ~3_000_000ms olmali (paused/createdAt etkilememeli): " + remaining);
+    }
+
+    @Test
     void resumeSlaWhenSignalFails_doesNotThrow() {
         Ticket ticket = Ticket.builder()
                 .id(193L)
