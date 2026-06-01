@@ -105,7 +105,7 @@ class WorkflowServiceTest {
     }
 
     @Test
-    void syncTicketStatusUpdatesWorkflowVariable() {
+    void syncTicketStatusDrivesBpmnTransition() {
         Ticket ticket = Ticket.builder()
                 .id(14L)
                 .status("IN_PROGRESS")
@@ -114,11 +114,12 @@ class WorkflowServiceTest {
 
         workflowService.syncTicketStatus(ticket);
 
-        verify(kieServerAdapter).setProcessVariable(500L, "status", "IN_PROGRESS");
+        // setProcessVariable status'u zorlamaz; state node'u ilerletmek icin transition sinyali gonderilir.
+        verify(kieServerAdapter).signalProcessInstance(500L, "transition_IN_PROGRESS", null);
     }
 
     @Test
-    void syncTicketAssignmentUpdatesBothAssignmentAndStatus() {
+    void syncTicketAssignmentSetsAssigneeAndDrivesBpmnTransition() {
         Ticket ticket = Ticket.builder()
                 .id(15L)
                 .status("IN_PROGRESS")
@@ -128,7 +129,8 @@ class WorkflowServiceTest {
         workflowService.syncTicketAssignment(ticket, "agent-2");
 
         verify(kieServerAdapter).setProcessVariable(600L, "assigneeId", "agent-2");
-        verify(kieServerAdapter).setProcessVariable(600L, "status", "IN_PROGRESS");
+        // status, setProcessVariable yerine transition sinyali ile surdurulur (claim NEW→IN_PROGRESS).
+        verify(kieServerAdapter).signalProcessInstance(600L, "transition_IN_PROGRESS", null);
     }
 
     @Test

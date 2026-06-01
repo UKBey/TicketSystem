@@ -81,11 +81,18 @@ public class WorkflowService {
     }
 
     /**
-     * Keeps the ticket status in sync with the workflow variable. Silently
+     * Advances the BPMN state machine to the ticket's current status. Used by
+     * side-effect transitions (e.g. unclaim IN_PROGRESS→NEW) that change the
+     * status outside of {@link TicketService#updateTicketStatus}. Silently
      * skipped when {@code processInstanceId} is missing. KIE Server failures are
      * only logged.
      *
-     * @param ticket ticket carrying the current status
+     * <p>This drives the transition via {@link #requestStatusTransition} rather
+     * than {@code setProcessVariable} — writing the {@code status} variable alone
+     * does NOT move the process token to the matching state node, so the BPMN
+     * would stay on the previous state and silently drop later transitions.
+     *
+     * @param ticket ticket carrying the (already updated) current status
      */
     public void syncTicketStatus(Ticket ticket) {
         if (ticket.getProcessInstanceId() == null) {
@@ -93,17 +100,28 @@ public class WorkflowService {
             return;
         }
 
-        log.info("Ticket statüsü jBPM'e senkronize ediliyor. TicketId={}, Status={}, ProcessInstanceId={}",
+        log.info("Ticket statüsü jBPM state machine'e ilerletiliyor. TicketId={}, Status={}, ProcessInstanceId={}",
                 ticket.getId(), ticket.getStatus(), ticket.getProcessInstanceId());
 
-        kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "status", ticket.getStatus());
+        // setProcessVariable status'u ZORLAMAZ — dogru state node'a gecis icin transition
+        // sinyali sart. BPMN artik authoritative state machine oldugu icin status degisimini
+        // transition ile surduruyoruz (yan-etki gecisleri dahil).
+        requestStatusTransition(ticket, ticket.getStatus());
     }
 
     /**
-     * Propagates the claiming agent to the workflow side.
-     * In the multi-agent model the ID of the latest claim holder is sent.
+     * Propagates the claiming agent to the workflow side and advances the BPMN
+     * state machine to the ticket's (possibly auto-promoted) status. In the
+     * multi-agent model the ID of the latest claim holder is sent.
      *
-     * @param ticket ticket
+     * <p>The {@code assigneeId} is a plain process variable, but the status is
+     * driven via {@link #requestStatusTransition}: a claim auto-promotes
+     * NEW→IN_PROGRESS, and only the {@code transition_IN_PROGRESS} signal moves
+     * the process token to {@code State_IN_PROGRESS}. Without it the process
+     * stays on {@code State_NEW} and silently drops the next transition (e.g.
+     * WAITING), which would make the user-facing status update return HTTP 400.
+     *
+     * @param ticket ticket carrying the (already updated) current status
      * @param agentId ID of the assigned/claiming agent
      */
     public void syncTicketAssignment(Ticket ticket, String agentId) {
@@ -116,7 +134,10 @@ public class WorkflowService {
                 ticket.getId(), agentId, ticket.getProcessInstanceId());
 
         kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "assigneeId", agentId);
-        kieServerAdapter.setProcessVariable(ticket.getProcessInstanceId(), "status", ticket.getStatus());
+        // status'u setProcessVariable ile ZORLAMAK yerine transition sinyali gonder: claim
+        // NEW→IN_PROGRESS gibi yan-etki gecislerinde BPMN state node'u da ilerlesin, aksi
+        // halde surec State_NEW'de takilir ve sonraki transition (orn. WAITING) dusurulur.
+        requestStatusTransition(ticket, ticket.getStatus());
     }
 
     /**
