@@ -13,21 +13,20 @@
     <!--
         Ticket lifecycle süreci — iki paralel kol:
 
-        1) STATE BRANCH (yeni): Ticket statüsünün authoritative kaynağı. Her statü
-           explicit bir wait noktası (event-based gateway). Statü geçişleri yalnız
-           ilgili kaynak statünün kabul ettiği `transition_<TARGET>` signal'i ile
-           tetiklenir; süreçteki ulaşılabilirlik valid geçişlerin BPMN şemasıyla
-           hard-kodlandığı anlamına gelir. CLOSED → terminate end → tüm süreç
-           biter.
+        1) STATE BRANCH: Ticket statüsünün authoritative state machine'i. Her statü
+           (NEW / IN_PROGRESS / WAITING_FOR_CUSTOMER / RESOLVED) bir event-based
+           gateway wait noktası. Geçişler `transition_<TARGET>` signal'leri ile
+           tetiklenir; bir sinyali yalnız onu dinleyen kaynak state node işler, bu
+           yüzden geçerli geçişler BPMN graph'ında encode edilmiştir. CLOSED'a
+           ulaşan kol terminate end event ile tüm süreci sonlandırır.
 
-        2) SLA BRANCH: SLA timer'ını ve pause/resume sinyallerini yönetir. State
-           branch'ten bağımsız çalışır; geriye dönük uyumluluk için
-           `pause_sla` / `resume_sla` / `ticket_closed` sinyalleri korunur.
+           jBPM kuralı: script task / event node yalnız 1 incoming bağlantı kabul
+           eder. Birden çok kaynak statünün aynı hedefe (IN_PROGRESS, CLOSED) veya
+           NEW'e (loop-back) yakınsadığı yerlerde converging EXCLUSIVE GATEWAY
+           kullanılır (çoklu incoming'e izin verilen tek node tipi).
 
-        Backend `transition_*` sinyalleri atarak süreçteki statüyü ilerletir; pause/
-        resume sinyalleri varlığını korur ama state branch artık otoriter olduğu
-        için statünün geçerlilik kontrolü Java tarafında yapılmasa bile BPMN
-        invalid geçişleri kabul etmez (signal'i tutan kaynak state node yoksa).
+        2) SLA BRANCH: SLA timer + pause/resume/close sinyalleri (mevcut akış,
+           geriye dönük uyum).
     -->
 
   <!-- Süreç değişken tipleri -->
@@ -39,14 +38,12 @@
   <bpmn2:itemDefinition id="_callbackUrlItem" structureRef="String"/>
   <bpmn2:itemDefinition id="_slaDurationItem" structureRef="String"/>
 
-  <!-- Sinyaller -->
-  <!-- SLA branch sinyalleri (geriye dönük uyumluluk) -->
+  <!-- SLA branch sinyalleri (geriye dönük uyum) -->
   <bpmn2:signal id="Signal_PauseSla" name="pause_sla"/>
   <bpmn2:signal id="Signal_ResumeSla" name="resume_sla"/>
   <bpmn2:signal id="Signal_TicketClosed" name="ticket_closed"/>
 
-  <!-- State branch sinyalleri (her geçiş için ayrı signal; geçerlilik BPMN
-       şemasında: signal'i tutan kaynak state node yoksa süreç ilerlemez) -->
+  <!-- State branch geçiş sinyalleri -->
   <bpmn2:signal id="Signal_TransitionNew" name="transition_NEW"/>
   <bpmn2:signal id="Signal_TransitionInProgress" name="transition_IN_PROGRESS"/>
   <bpmn2:signal id="Signal_TransitionWaitingForCustomer" name="transition_WAITING_FOR_CUSTOMER"/>
@@ -58,7 +55,6 @@
                  isExecutable="true"
                  tns:packageName="com.ticketsystem.workflow">
 
-    <!-- Süreç değişkenleri -->
     <bpmn2:property id="ticketId" itemSubjectRef="_ticketIdItem"/>
     <bpmn2:property id="priority" itemSubjectRef="_priorityItem"/>
     <bpmn2:property id="customerId" itemSubjectRef="_customerIdItem"/>
@@ -78,54 +74,60 @@
     <bpmn2:scriptTask id="ScriptTask_Init" name="Log Ticket Init" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_Start_To_Init</bpmn2:incoming>
       <bpmn2:outgoing>Flow_Init_To_ParallelSplit</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] Süreç başlatıldı - TicketId: " + ticketId + ", Priority: " + priority + ", SLA: " + slaDuration);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] Surec baslatildi - TicketId: " + ticketId + ", Priority: " + priority + ", SLA: " + slaDuration);</bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- State ve SLA branch'lerini paralel başlatır. -->
     <bpmn2:parallelGateway id="Gateway_ParallelSplit" name="Split" gatewayDirection="Diverging">
       <bpmn2:incoming>Flow_Init_To_ParallelSplit</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_Split_To_StateNew</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_Split_To_NewMerge</bpmn2:outgoing>
       <bpmn2:outgoing>Flow_Split_To_SlaMerge</bpmn2:outgoing>
     </bpmn2:parallelGateway>
 
     <!-- ================================================================
-         STATE BRANCH — ticket statüsü için authoritative state machine
+         STATE BRANCH
          ================================================================ -->
 
-    <!-- STATE: NEW — yalnızca IN_PROGRESS'e geçilebilir. -->
+    <!-- Converging XOR: ParallelSplit (ilk giris) + LogToNew (IN_PROGRESS->NEW loop) -->
+    <bpmn2:exclusiveGateway id="Gateway_NewMerge" name="NEW Merge" gatewayDirection="Converging">
+      <bpmn2:incoming>Flow_Split_To_NewMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_LogToNew_To_NewMerge</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_NewMerge_To_StateNew</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+
+    <!-- STATE: NEW -->
     <bpmn2:eventBasedGateway id="State_NEW" name="State: NEW" gatewayDirection="Diverging">
-      <bpmn2:incoming>Flow_Split_To_StateNew</bpmn2:incoming>
-      <bpmn2:incoming>Flow_LogToNew_To_StateNew</bpmn2:incoming>
+      <bpmn2:incoming>Flow_NewMerge_To_StateNew</bpmn2:incoming>
       <bpmn2:outgoing>Flow_StateNew_To_TransIP</bpmn2:outgoing>
       <bpmn2:outgoing>Flow_StateNew_To_TransClosed</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <bpmn2:intermediateCatchEvent id="StateNew_CatchInProgress" name="-&gt;IN_PROGRESS">
+    <bpmn2:intermediateCatchEvent id="StateNew_CatchInProgress" name="to IN_PROGRESS">
       <bpmn2:incoming>Flow_StateNew_To_TransIP</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_NewTransIP_To_LogIP</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_NewCatchIP_To_IPMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionInProgress"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateNew_CatchClosed" name="-&gt;CLOSED">
+    <bpmn2:intermediateCatchEvent id="StateNew_CatchClosed" name="to CLOSED">
       <bpmn2:incoming>Flow_StateNew_To_TransClosed</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_NewTransClosed_To_End</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_NewCatchClosed_To_ClosedMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionClosed"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- STATE: IN_PROGRESS — en çok geçişe sahip merkez statü. -->
-    <bpmn2:scriptTask id="ScriptTask_LogToInProgress" name="Log -&gt; IN_PROGRESS" scriptFormat="http://www.java.com/java">
-      <bpmn2:incoming>Flow_NewTransIP_To_LogIP</bpmn2:incoming>
-      <bpmn2:incoming>Flow_WaitingTransIP_To_LogIP</bpmn2:incoming>
-      <bpmn2:incoming>Flow_ResolvedTransIP_To_LogIP</bpmn2:incoming>
+    <!-- Converging XOR: NEW, WAITING, RESOLVED -> IN_PROGRESS -->
+    <bpmn2:exclusiveGateway id="Gateway_IPMerge" name="IN_PROGRESS Merge" gatewayDirection="Converging">
+      <bpmn2:incoming>Flow_NewCatchIP_To_IPMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_WaitingCatchIP_To_IPMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_ResolvedCatchIP_To_IPMerge</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_IPMerge_To_LogIP</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+
+    <bpmn2:scriptTask id="ScriptTask_LogToInProgress" name="Log to IN_PROGRESS" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_IPMerge_To_LogIP</bpmn2:incoming>
       <bpmn2:outgoing>Flow_LogIP_To_StateIP</bpmn2:outgoing>
-      <bpmn2:script>
-        kcontext.setVariable("status", "IN_PROGRESS");
-        System.out.println("[TICKET-WORKFLOW] State -> IN_PROGRESS - TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>kcontext.setVariable("status", "IN_PROGRESS"); System.out.println("[TICKET-WORKFLOW] State -> IN_PROGRESS - TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
+    <!-- STATE: IN_PROGRESS -->
     <bpmn2:eventBasedGateway id="State_IN_PROGRESS" name="State: IN_PROGRESS" gatewayDirection="Diverging">
       <bpmn2:incoming>Flow_LogIP_To_StateIP</bpmn2:incoming>
       <bpmn2:outgoing>Flow_StateIP_To_TransNew</bpmn2:outgoing>
@@ -134,56 +136,47 @@
       <bpmn2:outgoing>Flow_StateIP_To_TransClosed</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <bpmn2:intermediateCatchEvent id="StateIP_CatchNew" name="-&gt;NEW">
+    <bpmn2:intermediateCatchEvent id="StateIP_CatchNew" name="to NEW">
       <bpmn2:incoming>Flow_StateIP_To_TransNew</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_IPTransNew_To_LogNew</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_IPCatchNew_To_LogNew</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionNew"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateIP_CatchWaiting" name="-&gt;WAITING">
+    <bpmn2:intermediateCatchEvent id="StateIP_CatchWaiting" name="to WAITING">
       <bpmn2:incoming>Flow_StateIP_To_TransWaiting</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_IPTransWaiting_To_LogWaiting</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_IPCatchWaiting_To_LogWaiting</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionWaitingForCustomer"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateIP_CatchResolved" name="-&gt;RESOLVED">
+    <bpmn2:intermediateCatchEvent id="StateIP_CatchResolved" name="to RESOLVED">
       <bpmn2:incoming>Flow_StateIP_To_TransResolved</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_IPTransResolved_To_LogResolved</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_IPCatchResolved_To_LogResolved</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionResolved"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateIP_CatchClosed" name="-&gt;CLOSED">
+    <bpmn2:intermediateCatchEvent id="StateIP_CatchClosed" name="to CLOSED">
       <bpmn2:incoming>Flow_StateIP_To_TransClosed</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_IPTransClosed_To_End</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_IPCatchClosed_To_ClosedMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionClosed"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- Geçiş log script'leri (her geçiş status değişkenini günceller) -->
-    <bpmn2:scriptTask id="ScriptTask_LogToNew" name="Log -&gt; NEW" scriptFormat="http://www.java.com/java">
-      <bpmn2:incoming>Flow_IPTransNew_To_LogNew</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_LogToNew_To_StateNew</bpmn2:outgoing>
-      <bpmn2:script>
-        kcontext.setVariable("status", "NEW");
-        System.out.println("[TICKET-WORKFLOW] State -> NEW (unclaim) - TicketId: " + ticketId);
-      </bpmn2:script>
+    <!-- IN_PROGRESS -> NEW log, sonra NEW Merge'e geri döner (loop) -->
+    <bpmn2:scriptTask id="ScriptTask_LogToNew" name="Log to NEW" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_IPCatchNew_To_LogNew</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_LogToNew_To_NewMerge</bpmn2:outgoing>
+      <bpmn2:script>kcontext.setVariable("status", "NEW"); System.out.println("[TICKET-WORKFLOW] State -> NEW (unclaim) - TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
-    <bpmn2:scriptTask id="ScriptTask_LogToWaiting" name="Log -&gt; WAITING" scriptFormat="http://www.java.com/java">
-      <bpmn2:incoming>Flow_IPTransWaiting_To_LogWaiting</bpmn2:incoming>
+    <bpmn2:scriptTask id="ScriptTask_LogToWaiting" name="Log to WAITING" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_IPCatchWaiting_To_LogWaiting</bpmn2:incoming>
       <bpmn2:outgoing>Flow_LogToWaiting_To_StateWaiting</bpmn2:outgoing>
-      <bpmn2:script>
-        kcontext.setVariable("status", "WAITING_FOR_CUSTOMER");
-        System.out.println("[TICKET-WORKFLOW] State -> WAITING_FOR_CUSTOMER - TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>kcontext.setVariable("status", "WAITING_FOR_CUSTOMER"); System.out.println("[TICKET-WORKFLOW] State -> WAITING_FOR_CUSTOMER - TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
-    <bpmn2:scriptTask id="ScriptTask_LogToResolved" name="Log -&gt; RESOLVED" scriptFormat="http://www.java.com/java">
-      <bpmn2:incoming>Flow_IPTransResolved_To_LogResolved</bpmn2:incoming>
+    <bpmn2:scriptTask id="ScriptTask_LogToResolved" name="Log to RESOLVED" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_IPCatchResolved_To_LogResolved</bpmn2:incoming>
       <bpmn2:outgoing>Flow_LogToResolved_To_StateResolved</bpmn2:outgoing>
-      <bpmn2:script>
-        kcontext.setVariable("status", "RESOLVED");
-        System.out.println("[TICKET-WORKFLOW] State -> RESOLVED - TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>kcontext.setVariable("status", "RESOLVED"); System.out.println("[TICKET-WORKFLOW] State -> RESOLVED - TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
     <!-- STATE: WAITING_FOR_CUSTOMER -->
@@ -193,15 +186,15 @@
       <bpmn2:outgoing>Flow_StateWaiting_To_TransClosed</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <bpmn2:intermediateCatchEvent id="StateWaiting_CatchInProgress" name="-&gt;IN_PROGRESS">
+    <bpmn2:intermediateCatchEvent id="StateWaiting_CatchInProgress" name="to IN_PROGRESS">
       <bpmn2:incoming>Flow_StateWaiting_To_TransIP</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_WaitingTransIP_To_LogIP</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_WaitingCatchIP_To_IPMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionInProgress"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateWaiting_CatchClosed" name="-&gt;CLOSED">
+    <bpmn2:intermediateCatchEvent id="StateWaiting_CatchClosed" name="to CLOSED">
       <bpmn2:incoming>Flow_StateWaiting_To_TransClosed</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_WaitingTransClosed_To_End</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_WaitingCatchClosed_To_ClosedMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionClosed"/>
     </bpmn2:intermediateCatchEvent>
 
@@ -212,48 +205,49 @@
       <bpmn2:outgoing>Flow_StateResolved_To_TransClosed</bpmn2:outgoing>
     </bpmn2:eventBasedGateway>
 
-    <bpmn2:intermediateCatchEvent id="StateResolved_CatchInProgress" name="-&gt;IN_PROGRESS">
+    <bpmn2:intermediateCatchEvent id="StateResolved_CatchInProgress" name="to IN_PROGRESS">
       <bpmn2:incoming>Flow_StateResolved_To_TransIP</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_ResolvedTransIP_To_LogIP</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_ResolvedCatchIP_To_IPMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionInProgress"/>
     </bpmn2:intermediateCatchEvent>
 
-    <bpmn2:intermediateCatchEvent id="StateResolved_CatchClosed" name="-&gt;CLOSED">
+    <bpmn2:intermediateCatchEvent id="StateResolved_CatchClosed" name="to CLOSED">
       <bpmn2:incoming>Flow_StateResolved_To_TransClosed</bpmn2:incoming>
-      <bpmn2:outgoing>Flow_ResolvedTransClosed_To_End</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_ResolvedCatchClosed_To_ClosedMerge</bpmn2:outgoing>
       <bpmn2:signalEventDefinition signalRef="Signal_TransitionClosed"/>
     </bpmn2:intermediateCatchEvent>
 
-    <!-- State branch TERMINATE END — tüm süreci (SLA branch dahil) sonlandırır. -->
-    <bpmn2:scriptTask id="ScriptTask_LogClosed" name="Log -&gt; CLOSED" scriptFormat="http://www.java.com/java">
-      <bpmn2:incoming>Flow_NewTransClosed_To_End</bpmn2:incoming>
-      <bpmn2:incoming>Flow_IPTransClosed_To_End</bpmn2:incoming>
-      <bpmn2:incoming>Flow_WaitingTransClosed_To_End</bpmn2:incoming>
-      <bpmn2:incoming>Flow_ResolvedTransClosed_To_End</bpmn2:incoming>
+    <!-- Converging XOR: tüm CLOSED geçişleri tek noktada birleşir -->
+    <bpmn2:exclusiveGateway id="Gateway_ClosedMerge" name="CLOSED Merge" gatewayDirection="Converging">
+      <bpmn2:incoming>Flow_NewCatchClosed_To_ClosedMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_IPCatchClosed_To_ClosedMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_WaitingCatchClosed_To_ClosedMerge</bpmn2:incoming>
+      <bpmn2:incoming>Flow_ResolvedCatchClosed_To_ClosedMerge</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_ClosedMerge_To_LogClosed</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+
+    <bpmn2:scriptTask id="ScriptTask_LogClosed" name="Log to CLOSED" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_ClosedMerge_To_LogClosed</bpmn2:incoming>
       <bpmn2:outgoing>Flow_LogClosed_To_End</bpmn2:outgoing>
-      <bpmn2:script>
-        kcontext.setVariable("status", "CLOSED");
-        System.out.println("[TICKET-WORKFLOW] State -> CLOSED - TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>kcontext.setVariable("status", "CLOSED"); System.out.println("[TICKET-WORKFLOW] State -> CLOSED - TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
+    <!-- Terminate end: state branch CLOSED'a ulaşınca tüm süreci (SLA branch dahil) sonlandırır -->
     <bpmn2:endEvent id="EndEvent_StateClosed" name="Closed (terminate)">
       <bpmn2:incoming>Flow_LogClosed_To_End</bpmn2:incoming>
       <bpmn2:terminateEventDefinition/>
     </bpmn2:endEvent>
 
     <!-- ================================================================
-         SLA BRANCH — mevcut SLA timer/pause/resume akışı korunur
+         SLA BRANCH
          ================================================================ -->
 
-    <!-- SLA dalına giriş; init ve resume kollarını birleştiren XOR. -->
-    <bpmn2:exclusiveGateway id="Gateway_XorMerge" name="Merge Gateway" gatewayDirection="Converging">
+    <bpmn2:exclusiveGateway id="Gateway_XorMerge" name="SLA Merge" gatewayDirection="Converging">
       <bpmn2:incoming>Flow_Split_To_SlaMerge</bpmn2:incoming>
       <bpmn2:incoming>Flow_ResumeScript_To_XorMerge</bpmn2:incoming>
       <bpmn2:outgoing>Flow_XorMerge_To_SlaGateway</bpmn2:outgoing>
     </bpmn2:exclusiveGateway>
 
-    <!-- SLA ana bekleme noktası: timer, pause_sla veya ticket_closed -->
     <bpmn2:eventBasedGateway id="Gateway_Sla" name="SLA Gateway" gatewayDirection="Diverging">
       <bpmn2:incoming>Flow_XorMerge_To_SlaGateway</bpmn2:incoming>
       <bpmn2:outgoing>Flow_SlaGw_To_Timer</bpmn2:outgoing>
@@ -284,9 +278,7 @@
     <bpmn2:scriptTask id="ScriptTask_BreachLog" name="Log SLA Breach" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_Timer_To_BreachLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_BreachLog_To_RestCall</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] SLA AŞIMI! TicketId: " + ticketId + " - Süre doldu, callback gönderilecek.");
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] SLA ASIMI! TicketId: " + ticketId + " - Sure doldu, callback gonderilecek.");</bpmn2:script>
     </bpmn2:scriptTask>
 
     <bpmn2:task id="RestTask_SlaCallback" name="SLA Breach Callback" drools:taskName="Rest">
@@ -344,8 +336,6 @@
       </bpmn2:dataInputAssociation>
     </bpmn2:task>
 
-    <!-- SLA breach sonrası close sinyali beklenir; bu kol state branch'in
-         terminate end'i tetiklemesiyle de sona erebilir. -->
     <bpmn2:intermediateCatchEvent id="Signal_Close_PostBreach" name="Close (Post Breach)">
       <bpmn2:incoming>Flow_RestCall_To_PostBreachClose</bpmn2:incoming>
       <bpmn2:outgoing>Flow_ClosePostBreach_To_PostBreachCloseLog</bpmn2:outgoing>
@@ -355,18 +345,13 @@
     <bpmn2:scriptTask id="ScriptTask_PostBreachClose" name="Log Close Post Breach" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_ClosePostBreach_To_PostBreachCloseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_PostBreachClose_To_End3</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] SLA breach sonrası ticket kapatıldı. TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] SLA breach sonrasi ticket kapatildi. TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
-    <!-- Pause yolu -->
     <bpmn2:scriptTask id="ScriptTask_PauseLog" name="Log SLA Paused" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_PauseSignal_To_PauseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_PauseLog_To_PausedGw</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] SLA durduruldu. TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] SLA durduruldu. TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
     <bpmn2:eventBasedGateway id="Gateway_Paused" name="Paused Gateway" gatewayDirection="Diverging">
@@ -390,25 +375,19 @@
     <bpmn2:scriptTask id="ScriptTask_ResumeLog" name="Log SLA Resumed" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_ResumeSignal_To_ResumeLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_ResumeScript_To_XorMerge</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] SLA devam ettiriliyor. TicketId: " + ticketId + ", Kalan SLA: " + slaDuration);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] SLA devam ettiriliyor. TicketId: " + ticketId + ", Kalan SLA: " + slaDuration);</bpmn2:script>
     </bpmn2:scriptTask>
 
     <bpmn2:scriptTask id="ScriptTask_CloseInSlaLog" name="Log Close (SLA Active)" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_CloseInSla_To_CloseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInSlaLog_To_End1</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] Ticket kapatildi (SLA aktifken). TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] Ticket kapatildi (SLA aktifken). TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
     <bpmn2:scriptTask id="ScriptTask_CloseInPausedLog" name="Log Close (Paused)" scriptFormat="http://www.java.com/java">
       <bpmn2:incoming>Flow_CloseInPaused_To_CloseLog</bpmn2:incoming>
       <bpmn2:outgoing>Flow_CloseInPausedLog_To_End2</bpmn2:outgoing>
-      <bpmn2:script>
-        System.out.println("[TICKET-WORKFLOW] Ticket kapatildi (bekleme modundayken). TicketId: " + ticketId);
-      </bpmn2:script>
+      <bpmn2:script>System.out.println("[TICKET-WORKFLOW] Ticket kapatildi (bekleme modundayken). TicketId: " + ticketId);</bpmn2:script>
     </bpmn2:scriptTask>
 
     <bpmn2:endEvent id="EndEvent_ClosedFromSla" name="SLA branch end (SLA active)">
@@ -427,52 +406,52 @@
          SEQUENCE FLOWS
          ================================================================ -->
 
-    <!-- Start → Init → Parallel split -->
     <bpmn2:sequenceFlow id="Flow_Start_To_Init" sourceRef="StartEvent_1" targetRef="ScriptTask_Init"/>
     <bpmn2:sequenceFlow id="Flow_Init_To_ParallelSplit" sourceRef="ScriptTask_Init" targetRef="Gateway_ParallelSplit"/>
-
-    <!-- Split → State branch + SLA branch -->
-    <bpmn2:sequenceFlow id="Flow_Split_To_StateNew" sourceRef="Gateway_ParallelSplit" targetRef="State_NEW"/>
+    <bpmn2:sequenceFlow id="Flow_Split_To_NewMerge" sourceRef="Gateway_ParallelSplit" targetRef="Gateway_NewMerge"/>
     <bpmn2:sequenceFlow id="Flow_Split_To_SlaMerge" sourceRef="Gateway_ParallelSplit" targetRef="Gateway_XorMerge"/>
 
-    <!-- STATE BRANCH: NEW -->
+    <!-- STATE: NEW -->
+    <bpmn2:sequenceFlow id="Flow_NewMerge_To_StateNew" sourceRef="Gateway_NewMerge" targetRef="State_NEW"/>
     <bpmn2:sequenceFlow id="Flow_StateNew_To_TransIP" sourceRef="State_NEW" targetRef="StateNew_CatchInProgress"/>
     <bpmn2:sequenceFlow id="Flow_StateNew_To_TransClosed" sourceRef="State_NEW" targetRef="StateNew_CatchClosed"/>
-    <bpmn2:sequenceFlow id="Flow_NewTransIP_To_LogIP" sourceRef="StateNew_CatchInProgress" targetRef="ScriptTask_LogToInProgress"/>
-    <bpmn2:sequenceFlow id="Flow_NewTransClosed_To_End" sourceRef="StateNew_CatchClosed" targetRef="ScriptTask_LogClosed"/>
+    <bpmn2:sequenceFlow id="Flow_NewCatchIP_To_IPMerge" sourceRef="StateNew_CatchInProgress" targetRef="Gateway_IPMerge"/>
+    <bpmn2:sequenceFlow id="Flow_NewCatchClosed_To_ClosedMerge" sourceRef="StateNew_CatchClosed" targetRef="Gateway_ClosedMerge"/>
 
-    <!-- STATE BRANCH: IN_PROGRESS -->
+    <!-- IN_PROGRESS merge + state -->
+    <bpmn2:sequenceFlow id="Flow_IPMerge_To_LogIP" sourceRef="Gateway_IPMerge" targetRef="ScriptTask_LogToInProgress"/>
     <bpmn2:sequenceFlow id="Flow_LogIP_To_StateIP" sourceRef="ScriptTask_LogToInProgress" targetRef="State_IN_PROGRESS"/>
     <bpmn2:sequenceFlow id="Flow_StateIP_To_TransNew" sourceRef="State_IN_PROGRESS" targetRef="StateIP_CatchNew"/>
     <bpmn2:sequenceFlow id="Flow_StateIP_To_TransWaiting" sourceRef="State_IN_PROGRESS" targetRef="StateIP_CatchWaiting"/>
     <bpmn2:sequenceFlow id="Flow_StateIP_To_TransResolved" sourceRef="State_IN_PROGRESS" targetRef="StateIP_CatchResolved"/>
     <bpmn2:sequenceFlow id="Flow_StateIP_To_TransClosed" sourceRef="State_IN_PROGRESS" targetRef="StateIP_CatchClosed"/>
-    <bpmn2:sequenceFlow id="Flow_IPTransNew_To_LogNew" sourceRef="StateIP_CatchNew" targetRef="ScriptTask_LogToNew"/>
-    <bpmn2:sequenceFlow id="Flow_IPTransWaiting_To_LogWaiting" sourceRef="StateIP_CatchWaiting" targetRef="ScriptTask_LogToWaiting"/>
-    <bpmn2:sequenceFlow id="Flow_IPTransResolved_To_LogResolved" sourceRef="StateIP_CatchResolved" targetRef="ScriptTask_LogToResolved"/>
-    <bpmn2:sequenceFlow id="Flow_IPTransClosed_To_End" sourceRef="StateIP_CatchClosed" targetRef="ScriptTask_LogClosed"/>
+    <bpmn2:sequenceFlow id="Flow_IPCatchNew_To_LogNew" sourceRef="StateIP_CatchNew" targetRef="ScriptTask_LogToNew"/>
+    <bpmn2:sequenceFlow id="Flow_IPCatchWaiting_To_LogWaiting" sourceRef="StateIP_CatchWaiting" targetRef="ScriptTask_LogToWaiting"/>
+    <bpmn2:sequenceFlow id="Flow_IPCatchResolved_To_LogResolved" sourceRef="StateIP_CatchResolved" targetRef="ScriptTask_LogToResolved"/>
+    <bpmn2:sequenceFlow id="Flow_IPCatchClosed_To_ClosedMerge" sourceRef="StateIP_CatchClosed" targetRef="Gateway_ClosedMerge"/>
 
-    <!-- STATE BRANCH: log → next state -->
-    <bpmn2:sequenceFlow id="Flow_LogToNew_To_StateNew" sourceRef="ScriptTask_LogToNew" targetRef="State_NEW"/>
+    <!-- log -> next state -->
+    <bpmn2:sequenceFlow id="Flow_LogToNew_To_NewMerge" sourceRef="ScriptTask_LogToNew" targetRef="Gateway_NewMerge"/>
     <bpmn2:sequenceFlow id="Flow_LogToWaiting_To_StateWaiting" sourceRef="ScriptTask_LogToWaiting" targetRef="State_WAITING"/>
     <bpmn2:sequenceFlow id="Flow_LogToResolved_To_StateResolved" sourceRef="ScriptTask_LogToResolved" targetRef="State_RESOLVED"/>
 
-    <!-- STATE BRANCH: WAITING -->
+    <!-- WAITING -->
     <bpmn2:sequenceFlow id="Flow_StateWaiting_To_TransIP" sourceRef="State_WAITING" targetRef="StateWaiting_CatchInProgress"/>
     <bpmn2:sequenceFlow id="Flow_StateWaiting_To_TransClosed" sourceRef="State_WAITING" targetRef="StateWaiting_CatchClosed"/>
-    <bpmn2:sequenceFlow id="Flow_WaitingTransIP_To_LogIP" sourceRef="StateWaiting_CatchInProgress" targetRef="ScriptTask_LogToInProgress"/>
-    <bpmn2:sequenceFlow id="Flow_WaitingTransClosed_To_End" sourceRef="StateWaiting_CatchClosed" targetRef="ScriptTask_LogClosed"/>
+    <bpmn2:sequenceFlow id="Flow_WaitingCatchIP_To_IPMerge" sourceRef="StateWaiting_CatchInProgress" targetRef="Gateway_IPMerge"/>
+    <bpmn2:sequenceFlow id="Flow_WaitingCatchClosed_To_ClosedMerge" sourceRef="StateWaiting_CatchClosed" targetRef="Gateway_ClosedMerge"/>
 
-    <!-- STATE BRANCH: RESOLVED -->
+    <!-- RESOLVED -->
     <bpmn2:sequenceFlow id="Flow_StateResolved_To_TransIP" sourceRef="State_RESOLVED" targetRef="StateResolved_CatchInProgress"/>
     <bpmn2:sequenceFlow id="Flow_StateResolved_To_TransClosed" sourceRef="State_RESOLVED" targetRef="StateResolved_CatchClosed"/>
-    <bpmn2:sequenceFlow id="Flow_ResolvedTransIP_To_LogIP" sourceRef="StateResolved_CatchInProgress" targetRef="ScriptTask_LogToInProgress"/>
-    <bpmn2:sequenceFlow id="Flow_ResolvedTransClosed_To_End" sourceRef="StateResolved_CatchClosed" targetRef="ScriptTask_LogClosed"/>
+    <bpmn2:sequenceFlow id="Flow_ResolvedCatchIP_To_IPMerge" sourceRef="StateResolved_CatchInProgress" targetRef="Gateway_IPMerge"/>
+    <bpmn2:sequenceFlow id="Flow_ResolvedCatchClosed_To_ClosedMerge" sourceRef="StateResolved_CatchClosed" targetRef="Gateway_ClosedMerge"/>
 
-    <!-- STATE BRANCH: CLOSED (terminate end) -->
+    <!-- CLOSED merge -> log -> terminate -->
+    <bpmn2:sequenceFlow id="Flow_ClosedMerge_To_LogClosed" sourceRef="Gateway_ClosedMerge" targetRef="ScriptTask_LogClosed"/>
     <bpmn2:sequenceFlow id="Flow_LogClosed_To_End" sourceRef="ScriptTask_LogClosed" targetRef="EndEvent_StateClosed"/>
 
-    <!-- SLA BRANCH (existing flow) -->
+    <!-- SLA BRANCH -->
     <bpmn2:sequenceFlow id="Flow_XorMerge_To_SlaGateway" sourceRef="Gateway_XorMerge" targetRef="Gateway_Sla"/>
     <bpmn2:sequenceFlow id="Flow_SlaGw_To_Timer" sourceRef="Gateway_Sla" targetRef="Timer_SlaDeadline"/>
     <bpmn2:sequenceFlow id="Flow_SlaGw_To_PauseSignal" sourceRef="Gateway_Sla" targetRef="Signal_PauseSla_Catch"/>
@@ -494,147 +473,5 @@
     <bpmn2:sequenceFlow id="Flow_CloseInPausedLog_To_End2" sourceRef="ScriptTask_CloseInPausedLog" targetRef="EndEvent_ClosedFromPaused"/>
 
   </bpmn2:process>
-
-  <!--
-      BPMN diyagram yerleşim bilgileri (DI).
-      İki dikey şerit: üstte state branch (state machine), altta SLA branch (mevcut).
-      Konumlar mekanik olarak doğru ama estetik değil; modeli BPMN editörde
-      açıp yeniden hizalamak isterseniz mantığı koruyarak shape koordinatlarını
-      değiştirebilirsiniz.
-  -->
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="com.ticketsystem.workflow.ticket-lifecycle">
-      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_1">
-        <dc:Bounds x="50" y="380" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Init" bpmnElement="ScriptTask_Init">
-        <dc:Bounds x="140" y="358" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ParallelSplit" bpmnElement="Gateway_ParallelSplit">
-        <dc:Bounds x="320" y="375" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-
-      <!-- STATE BRANCH (üst şerit) -->
-      <bpmndi:BPMNShape id="Shape_StateNew" bpmnElement="State_NEW">
-        <dc:Bounds x="420" y="100" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateNew_IP" bpmnElement="StateNew_CatchInProgress">
-        <dc:Bounds x="520" y="60" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateNew_Closed" bpmnElement="StateNew_CatchClosed">
-        <dc:Bounds x="520" y="160" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_LogIP" bpmnElement="ScriptTask_LogToInProgress">
-        <dc:Bounds x="600" y="40" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateIP" bpmnElement="State_IN_PROGRESS">
-        <dc:Bounds x="780" y="55" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateIP_New" bpmnElement="StateIP_CatchNew">
-        <dc:Bounds x="880" y="20" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateIP_Waiting" bpmnElement="StateIP_CatchWaiting">
-        <dc:Bounds x="880" y="80" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateIP_Resolved" bpmnElement="StateIP_CatchResolved">
-        <dc:Bounds x="880" y="140" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateIP_Closed" bpmnElement="StateIP_CatchClosed">
-        <dc:Bounds x="880" y="200" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_LogToNew" bpmnElement="ScriptTask_LogToNew">
-        <dc:Bounds x="960" y="0" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_LogToWaiting" bpmnElement="ScriptTask_LogToWaiting">
-        <dc:Bounds x="960" y="80" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_LogToResolved" bpmnElement="ScriptTask_LogToResolved">
-        <dc:Bounds x="960" y="160" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateWaiting" bpmnElement="State_WAITING">
-        <dc:Bounds x="1140" y="95" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateWaiting_IP" bpmnElement="StateWaiting_CatchInProgress">
-        <dc:Bounds x="1240" y="60" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateWaiting_Closed" bpmnElement="StateWaiting_CatchClosed">
-        <dc:Bounds x="1240" y="160" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateResolved" bpmnElement="State_RESOLVED">
-        <dc:Bounds x="1140" y="175" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateResolved_IP" bpmnElement="StateResolved_CatchInProgress">
-        <dc:Bounds x="1240" y="240" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_StateResolved_Closed" bpmnElement="StateResolved_CatchClosed">
-        <dc:Bounds x="1240" y="280" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_LogClosed" bpmnElement="ScriptTask_LogClosed">
-        <dc:Bounds x="1320" y="120" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndStateClosed" bpmnElement="EndEvent_StateClosed">
-        <dc:Bounds x="1500" y="142" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-
-      <!-- SLA BRANCH (alt şerit) -->
-      <bpmndi:BPMNShape id="Shape_XorMerge" bpmnElement="Gateway_XorMerge">
-        <dc:Bounds x="420" y="500" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_SlaGw" bpmnElement="Gateway_Sla">
-        <dc:Bounds x="500" y="500" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_Timer" bpmnElement="Timer_SlaDeadline">
-        <dc:Bounds x="600" y="430" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_PauseSignal" bpmnElement="Signal_PauseSla_Catch">
-        <dc:Bounds x="600" y="510" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseInSla" bpmnElement="Signal_Close_InSla">
-        <dc:Bounds x="600" y="590" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_BreachLog" bpmnElement="ScriptTask_BreachLog">
-        <dc:Bounds x="680" y="410" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_RestCall" bpmnElement="RestTask_SlaCallback">
-        <dc:Bounds x="860" y="410" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ClosePostBreach" bpmnElement="Signal_Close_PostBreach">
-        <dc:Bounds x="1040" y="432" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_PostBreachCloseLog" bpmnElement="ScriptTask_PostBreachClose">
-        <dc:Bounds x="1120" y="410" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndPostBreach" bpmnElement="EndEvent_ClosedPostBreach">
-        <dc:Bounds x="1300" y="432" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_PauseLog" bpmnElement="ScriptTask_PauseLog">
-        <dc:Bounds x="680" y="490" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_PausedGw" bpmnElement="Gateway_Paused">
-        <dc:Bounds x="860" y="505" width="50" height="50"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResumeSignal" bpmnElement="Signal_ResumeSla_Catch">
-        <dc:Bounds x="950" y="475" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseInPaused" bpmnElement="Signal_Close_InPaused">
-        <dc:Bounds x="950" y="555" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_ResumeLog" bpmnElement="ScriptTask_ResumeLog">
-        <dc:Bounds x="1020" y="455" width="140" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseInSlaLog" bpmnElement="ScriptTask_CloseInSlaLog">
-        <dc:Bounds x="680" y="590" width="140" height="60"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_CloseInPausedLog" bpmnElement="ScriptTask_CloseInPausedLog">
-        <dc:Bounds x="1020" y="555" width="140" height="60"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndFromSla" bpmnElement="EndEvent_ClosedFromSla">
-        <dc:Bounds x="860" y="600" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_EndFromPaused" bpmnElement="EndEvent_ClosedFromPaused">
-        <dc:Bounds x="1200" y="567" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
 
 </bpmn2:definitions>

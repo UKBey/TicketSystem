@@ -124,11 +124,19 @@ curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 ### KIE Server kjar redeploy
 
-Compose:
+The `ticket-workflow` container is registered automatically on every `docker
+compose up` by the **`kjar-deploy`** one-shot service: it waits for the KIE
+Server REST API to become healthy, then `PUT`s the container
+(`com.ticketsystem:ticket-workflow-kjar:1.0.5`). The kjar itself is compiled
+from source (Java 8) and baked into the KIE image via `Dockerfile-kie`, so no
+host `~/.m2` mount is needed. The backend `depends_on` the job's successful
+completion, so it never starts before the workflow container exists.
+
+Compose — to redeploy after editing the BPMN:
 ```bash
-docker compose build kie-server     # if Dockerfile-kie changed
-docker compose up -d --force-recreate kie-server
-# In KIE dev, H2 → state is wiped; the kjar registers fresh on startup via the baked-in script
+docker compose build kie-server         # recompiles the kjar into the image
+docker compose up -d --force-recreate kie-server kjar-deploy
+# kjar-deploy re-runs and re-registers the container (idempotent PUT)
 ```
 
 K8s:
@@ -140,6 +148,7 @@ make k8s-redeploy-kjar
 Verify:
 ```bash
 curl -u kieserver:kieserver1! http://localhost:8180/kie-server/services/rest/server/containers | jq
+# Expect: one container "ticket-workflow", status "STARTED", release 1.0.5
 ```
 
 ### `JBPM_KIE_SERVER_CALLBACK_TOKEN` rotation

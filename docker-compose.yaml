@@ -333,6 +333,11 @@ services:
         condition: service_healthy
       kie-server:
         condition: service_healthy
+      # kjar-deploy job tamamlandiktan sonra backend baslar: aksi halde ilk
+      # createTicket istegi "Container 'ticket-workflow' is not instantiated"
+      # hatasi alir cunku KIE Server icinde container henuz kayitli olmaz.
+      kjar-deploy:
+        condition: service_completed_successfully
       mailpit:
         condition: service_healthy
       kafka:
@@ -525,12 +530,18 @@ services:
       retries: 10
 
   # Standalone KIE Server servisi (unmanaged mod).
+  # Custom image (Dockerfile-kie): base showcase image'a ticket-workflow kjar'i
+  # Java 8 maven container'inda derlenip gömülü olarak gelir. Boylece host'taki
+  # ~/.m2 mount'una bagimli kalmadan, `docker compose up` ilk seferden itibaren
+  # kjar'i KIE Server'in local repo'sunda hazir bulur.
   # Varsayilan kullanici: kieserver / kieserver1!
   # Swagger UI: http://localhost:8180/kie-server/docs
-  # Versiyon backend'in kullandigi kie-server-client (7.61.0.Final) ile aligne tutuluyor —
-  # mismatch durumunda KIE REST API'si davranis degisikligi yasayabilir.
+  # Versiyon backend'in kullandigi kie-server-client (7.61.0.Final) ile aligne tutuluyor.
   kie-server:
-    image: jboss/kie-server-showcase:7.61.0.Final
+    build:
+      context: .
+      dockerfile: Dockerfile-kie
+    image: ${DOCKERHUB_USERNAME:-local}/kie-server:${IMAGE_TAG:-latest}
     container_name: kie-server
     ports:
       - "8180:8080"
@@ -549,8 +560,6 @@ services:
         condition: service_healthy
     networks:
       - it-service-net
-    volumes:
-      - ~/.m2/repository:/opt/jboss/.m2/repository
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -560,6 +569,55 @@ services:
       timeout: 5s
       retries: 12
       start_period: 90s
+
+  # Kjar deploy job (compose karsiligi k8s/base/workflow/kjar-deploy-job.yaml).
+  # KIE Server REST hazir olunca container 'ticket-workflow'u PUT ile kaydeder.
+  # Idempotent: tekrar calistirilirsa ayni container'i overwrite eder.
+  # Image'da gomulu olan ticket-workflow-kjar:1.0.5 artifact'i Maven repo'dan cozulur.
+  kjar-deploy:
+    image: curlimages/curl:8.10.1
+    container_name: kjar-deploy
+    depends_on:
+      kie-server:
+        condition: service_healthy
+    networks:
+      - it-service-net
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -eu
+        KIE_USER="$${JBPM_KIE_SERVER_USERNAME:-kieserver}"
+        KIE_PASS="$${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}"
+        KIE_CONTAINER_ID="$${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}"
+
+        echo "[kjar-deploy] KIE Server REST hazir mi?"
+        until curl -fsS -u "$$KIE_USER:$$KIE_PASS" -H 'Accept: application/json' \
+          http://kie-server:8080/kie-server/services/rest/server >/dev/null; do
+          echo "[kjar-deploy] henuz hazir degil, 5sn sonra tekrar..."
+          sleep 5
+        done
+
+        echo "[kjar-deploy] Container '$$KIE_CONTAINER_ID' kaydediliyor..."
+        curl -fsS -X PUT -u "$$KIE_USER:$$KIE_PASS" \
+          -H 'Content-Type: application/json' \
+          -H 'Accept: application/json' \
+          "http://kie-server:8080/kie-server/services/rest/server/containers/$$KIE_CONTAINER_ID" \
+          -d '{
+            "container-id": "'$$KIE_CONTAINER_ID'",
+            "release-id": {
+              "group-id": "com.ticketsystem",
+              "artifact-id": "ticket-workflow-kjar",
+              "version": "1.0.5"
+            }
+          }'
+        echo ""
+        echo "[kjar-deploy] Tamam."
+    environment:
+      JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME:-kieserver}
+      JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}
+      JBPM_KIE_SERVER_CONTAINER_ID: ${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}
   # jBPM/KIE Server katmani sonu.
 
   # Kod kalitesi analiz veritabani.

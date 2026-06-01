@@ -82,6 +82,21 @@ The process runs **two parallel branches** that share the same process instance:
 After `ScriptTask_Init` a `Gateway_ParallelSplit` (parallel gateway) forks
 execution into the two branches above.
 
+**Converging gateways.** jBPM allows a script task / catch event to have only
+**one** incoming connection. Wherever several source states funnel into the
+same target — `IN_PROGRESS` (reachable from `NEW`, `WAITING_FOR_CUSTOMER`,
+`RESOLVED`), `CLOSED` (reachable from all four), and the loop back to `NEW` —
+a converging **exclusive gateway** (`Gateway_IPMerge`, `Gateway_ClosedMerge`,
+`Gateway_NewMerge`) collects the incoming flows before the single shared
+script task. Exclusive gateways are the only node type allowed to have
+multiple incoming connections.
+
+**Deployment.** The kjar is compiled from source (Java 8) and baked into the
+KIE image (`Dockerfile-kie`); a one-shot `kjar-deploy` compose service
+registers the `ticket-workflow` container against the KIE Server REST API
+once it is healthy, so `docker compose up` needs no manual deploy step. See
+[RUNBOOK.md](../RUNBOOK.md) → *KIE Server kjar redeploy*.
+
 ### Nodes (as defined in `ticket-lifecycle.bpmn2`)
 
 **Start event**
