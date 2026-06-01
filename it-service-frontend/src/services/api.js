@@ -177,3 +177,26 @@ export const updateKnownIssue = (id, body) =>
 
 export const deleteKnownIssue = (id) =>
   api.delete(`/known-issues/${id}`);
+
+// ============================================================
+// Canned Responses (Hazır Yanıtlar) API — agents/admins/managers only
+// ============================================================
+
+// Görülebilir şablonları listele. params: { productId, scope, visibility, q }
+export const listCannedResponses = (params = {}) =>
+  api.get('/canned-responses', { params });
+
+export const createCannedResponse = (body) =>
+  api.post('/canned-responses', body);
+
+export const updateCannedResponse = (id, body) =>
+  api.put(`/canned-responses/${id}`, body);
+
+export const deleteCannedResponse = (id) =>
+  api.delete(`/canned-responses/${id}`);
+
+export const favoriteCannedResponse = (id) =>
+  api.post(`/canned-responses/${id}/favorite`);
+
+export const unfavoriteCannedResponse = (id) =>
+  api.delete(`/canned-responses/${id}/favorite`);

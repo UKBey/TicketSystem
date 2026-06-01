@@ -1,9 +1,18 @@
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
-  Send, Paperclip, File, FileText, FileArchive, Image, Download,
+  Send, Paperclip, File, FileText, FileArchive, Image, Download, Zap, Star, AlertTriangle,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 import { useTicketDetailContext } from './TicketDetailContext';
+import { useCannedResponses } from '../../hooks/useCannedResponses';
+import { useAnchoredPosition } from '../../hooks/useAnchoredPosition';
+import {
+  buildPlaceholderContext, fillPlaceholders, pickContent, findUnfilledPlaceholders,
+} from '../../utils/cannedResponses';
+import CannedResponsePicker from './CannedResponsePicker';
+import SlashAutocomplete from './SlashAutocomplete';
 
 function getFileIcon(fileType) {
   if (!fileType) return <File className="h-5 w-5" />;
@@ -15,10 +24,21 @@ function getFileIcon(fileType) {
   return <File className="h-5 w-5" />;
 }
 
+// Finds a clean `/token` immediately before the caret (at line start or after whitespace).
+function getSlashContext(value, caret) {
+  if (caret == null) return null;
+  const upto = value.slice(0, caret);
+  const m = upto.match(/(?:^|\s)\/([^\s/]*)$/);
+  if (!m) return null;
+  const query = m[1];
+  return { query, start: caret - (query.length + 1), end: caret };
+}
+
 export default function TicketTimeline() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const {
-    timeline, ticket,
+    timeline, ticket, user,
     isAgent, isCustomer, isDark,
     chatEndRef,
     message, setMessage,
@@ -29,11 +49,145 @@ export default function TicketTimeline() {
   } = useTicketDetailContext();
   const COMMENT_MESSAGE_MAX_LENGTH = 500;
 
+  // ---- Canned responses (Hazır Yanıtlar) — agents only ----------------------
+  const { templates, loading: cannedLoading, error: cannedError, recentIds, toggleFavorite, markUsed } =
+    useCannedResponses({ productId: ticket?.productId, userId: user?.id, enabled: isAgent });
+
+  const [previewLang, setPreviewLang] = useState((i18n.language || 'en').startsWith('tr') ? 'tr' : 'en');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [caret, setCaret] = useState(0);
+  const [slashDismissed, setSlashDismissed] = useState(false);
+  const [slashIndex, setSlashIndex] = useState(0);
+
+  const textareaRef = useRef(null);
+  const zapBtnRef = useRef(null);
+
+  const placeholderCtx = useMemo(
+    () => buildPlaceholderContext({ ticket, user, language: previewLang }),
+    [ticket, user, previewLang],
+  );
+
+  const slashCtx = useMemo(() => getSlashContext(message, caret), [message, caret]);
+  const slashMatches = useMemo(() => {
+    if (!slashCtx) return [];
+    const q = slashCtx.query.toLowerCase();
+    const score = (tpl) => {
+      const sc = (tpl.shortcut || '').toLowerCase();
+      const ti = (tpl.title || '').toLowerCase();
+      if (!q) return 0;
+      if (sc === q) return 0;
+      if (sc.startsWith(q)) return 1;
+      if (ti.startsWith(q)) return 2;
+      if (sc.includes(q) || ti.includes(q)
+        || (tpl.contentTr || '').toLowerCase().includes(q)
+        || (tpl.contentEn || '').toLowerCase().includes(q)) return 3;
+      return 99;
+    };
+    return templates
+      .map((tpl) => ({ tpl, s: score(tpl) }))
+      .filter((x) => x.s < 99)
+      .sort((a, b) => a.s - b.s)
+      .slice(0, 8)
+      .map((x) => x.tpl);
+  }, [slashCtx, templates]);
+
+  const slashOpen = isAgent && !pickerOpen && !slashDismissed && !!slashCtx && slashMatches.length > 0;
+
+  // Quick chips: favorites + recently-used, deduped, capped.
+  const chipTemplates = useMemo(() => {
+    const byId = new Map(templates.map((tpl) => [tpl.id, tpl]));
+    const favs = templates.filter((tpl) => tpl.favorite);
+    const recents = recentIds.map((id) => byId.get(id)).filter(Boolean);
+    const seen = new Set();
+    const out = [];
+    for (const tpl of [...favs, ...recents]) {
+      if (!seen.has(tpl.id)) { seen.add(tpl.id); out.push(tpl); }
+    }
+    return out.slice(0, 4);
+  }, [templates, recentIds]);
+
+  const unfilled = useMemo(() => findUnfilledPlaceholders(message), [message]);
+
+  const pickerAnchorRef = useAnchoredPosition(zapBtnRef, pickerOpen, { placement: 'top', align: 'right' });
+  const slashAnchorRef = useAnchoredPosition(textareaRef, slashOpen, { placement: 'top', align: 'left' });
+
+  // ---- insertion ------------------------------------------------------------
+  const insertTemplateAtCaret = (tpl) => {
+    const { content } = pickContent(tpl, previewLang);
+    const filled = fillPlaceholders(content, placeholderCtx);
+    const el = textareaRef.current;
+    const start = el ? el.selectionStart : message.length;
+    const end = el ? el.selectionEnd : message.length;
+    const next = message.slice(0, start) + filled + message.slice(end);
+    setMessage(next);
+    markUsed(tpl.id);
+    const pos = start + filled.length;
+    requestAnimationFrame(() => {
+      if (el) { el.focus(); el.setSelectionRange(pos, pos); setCaret(pos); }
+    });
+  };
+
+  const insertFromPicker = (tpl) => {
+    insertTemplateAtCaret(tpl);
+    setPickerOpen(false);
+  };
+
+  const selectSlash = (tpl) => {
+    if (!slashCtx) return;
+    const { content } = pickContent(tpl, previewLang);
+    const filled = fillPlaceholders(content, placeholderCtx);
+    const next = message.slice(0, slashCtx.start) + filled + message.slice(slashCtx.end);
+    setMessage(next);
+    markUsed(tpl.id);
+    setSlashDismissed(true);
+    const pos = slashCtx.start + filled.length;
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) { el.focus(); el.setSelectionRange(pos, pos); setCaret(pos); }
+    });
+  };
+
+  // ---- composer events ------------------------------------------------------
+  const handleChange = (e) => {
+    setMessage(e.target.value);
+    setCaret(e.target.selectionStart);
+    setSlashDismissed(false);
+  };
+
+  const syncCaret = (e) => setCaret(e.target.selectionStart);
+
   const handleKeyDown = (e) => {
+    if (slashOpen) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSlashIndex((i) => (slashMatches.length ? (i + 1) % slashMatches.length : 0));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSlashIndex((i) => (slashMatches.length ? (i - 1 + slashMatches.length) % slashMatches.length : 0));
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === 'Tab') && slashMatches.length) {
+        e.preventDefault();
+        selectSlash(slashMatches[Math.min(slashIndex, slashMatches.length - 1)]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSlashDismissed(true);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendComment();
     }
+  };
+
+  const openManage = () => {
+    setPickerOpen(false);
+    navigate('/canned-responses');
   };
 
   return (
@@ -155,7 +309,7 @@ export default function TicketTimeline() {
       {ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
         <div className="border-t px-4 sm:px-5 py-4" style={{ borderColor: 'var(--border-color)' }}>
           {isAgent && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <button
                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors cursor-pointer ${
                   commentType === 'EXTERNAL' ? 'bg-primary-500 text-white border-primary-500' : ''
@@ -176,14 +330,88 @@ export default function TicketTimeline() {
               >
                 {t('ticketDetail.internalNote')}
               </button>
+
+              {/* ⚡ Hazır yanıtlar */}
+              <div className="relative ml-auto">
+                <button
+                  ref={zapBtnRef}
+                  type="button"
+                  onClick={() => setPickerOpen((o) => !o)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors cursor-pointer"
+                  style={pickerOpen
+                    ? { backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6', borderColor: 'rgba(59,130,246,0.4)' }
+                    : { borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                  aria-haspopup="dialog"
+                  aria-expanded={pickerOpen}
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  {t('cannedResponses.button')}
+                </button>
+                <CannedResponsePicker
+                  open={pickerOpen}
+                  onClose={() => setPickerOpen(false)}
+                  templates={templates}
+                  loading={cannedLoading}
+                  error={cannedError}
+                  ctx={placeholderCtx}
+                  previewLang={previewLang}
+                  onPreviewLangChange={setPreviewLang}
+                  commentType={commentType}
+                  productId={ticket?.productId ?? null}
+                  recentIds={recentIds}
+                  onInsert={insertFromPicker}
+                  onToggleFavorite={toggleFavorite}
+                  onManage={openManage}
+                  canManage
+                  anchorRef={pickerAnchorRef}
+                  triggerRef={zapBtnRef}
+                />
+              </div>
             </div>
           )}
-          <div className="flex items-end gap-2">
+
+          {/* Quick chips — favorites + recently used */}
+          {isAgent && chipTemplates.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {chipTemplates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => insertTemplateAtCaret(tpl)}
+                  title={tpl.title}
+                  className="inline-flex max-w-[12rem] items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer hover:border-primary-500"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                >
+                  {tpl.favorite
+                    ? <Star className="h-3 w-3 flex-shrink-0" fill="#f59e0b" style={{ color: '#f59e0b' }} />
+                    : <Zap className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
+                  <span className="truncate">{tpl.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="relative flex items-end gap-2">
+            {isAgent && slashOpen && (
+              <SlashAutocomplete
+                matches={slashMatches}
+                activeIndex={Math.min(slashIndex, Math.max(0, slashMatches.length - 1))}
+                ctx={placeholderCtx}
+                previewLang={previewLang}
+                onSelect={selectSlash}
+                onHover={setSlashIndex}
+                anchorRef={slashAnchorRef}
+              />
+            )}
             <textarea
-              placeholder={t('ticketDetail.messagePlaceholder')}
+              ref={textareaRef}
+              placeholder={isAgent ? t('cannedResponses.composerHint') : t('ticketDetail.messagePlaceholder')}
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
+              onKeyUp={syncCaret}
+              onClick={syncCaret}
+              onSelect={syncCaret}
               disabled={sending || cooldown > 0}
               rows={2}
               maxLength={COMMENT_MESSAGE_MAX_LENGTH}
@@ -217,6 +445,15 @@ export default function TicketTimeline() {
               {cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}
             </button>
           </div>
+
+          {/* Unfilled placeholder warning */}
+          {isAgent && unfilled.length > 0 && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: 'var(--color-warning-500, #f59e0b)' }}>
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{t('cannedResponses.unfilledWarning', { count: unfilled.length, fields: unfilled.join(', ') })}</span>
+            </div>
+          )}
+
           <div
             className="mt-1.5 text-right text-xs tabular-nums"
             style={{

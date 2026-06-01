@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Headset,
   Layers,
+  Zap,
   X,
 } from 'lucide-react';
 
@@ -171,6 +172,14 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
               <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.products')}</span>
             </NavLink>
           </>
+        )}
+
+        {/* Ajanlar/yöneticiler — hazır yanıt yönetimi (müşteri görmez) */}
+        {(primaryRole === 'AGENT' || primaryRole === 'AGENT_ADMIN' || primaryRole === 'MANAGER') && (
+          <NavLink to="/canned-responses" className={linkClassName} onClick={handleNavClick}>
+            <Zap className="h-[18px] w-[18px] flex-shrink-0" />
+            <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.cannedResponses')}</span>
+          </NavLink>
         )}
 
         {/* Tum roller — sikca karsilasilan sorunlar bilgi tabani */}

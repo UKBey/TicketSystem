@@ -25,6 +25,7 @@ import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 import KnownIssuesPage from './pages/KnownIssuesPage';
+import CannedResponsesPage from './pages/CannedResponsesPage';
 import NoRolePage from './pages/NoRolePage';
 
 function AppLayout({ children }) {
@@ -232,6 +233,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
               <AppLayout><KnownIssuesPage /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Hazır yanıtlar yönetimi — ajanlar/yöneticiler; müşteri erişemez. */}
+        <Route
+          path="/canned-responses"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+              <AppLayout><CannedResponsesPage /></AppLayout>
             </ProtectedRoute>
           }
         />
