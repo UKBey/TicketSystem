@@ -95,25 +95,21 @@ public class UserController {
         log.info("Kullanıcı senkronizasyon isteği. Keycloak ID: {}", userId);
         log.debug("Kullanıcı rolleri: {}", roles);
 
-        // JWT'de tanınan uygulama rolü yoksa null — "CUSTOMER" varsayılanı kullanılmaz.
-        // Rol ataması admin tarafından yapılana kadar kullanıcı no-role sayfasında kalır.
-        String assignedRole = null;
-
-        if (roles.contains("AGENT_ADMIN")) {
-            assignedRole = "AGENT_ADMIN";
-        } else if (roles.contains("MANAGER")) {
-            assignedRole = "MANAGER";
-        } else if (roles.contains("AGENT")) {
-            assignedRole = "AGENT";
-        } else if (roles.contains("CUSTOMER")) {
-            assignedRole = "CUSTOMER";
-        }
+        // JWT'deki uygulama rollerini (sistem rolleri hariç) küme olarak al. Birincil/gösterim
+        // rolü bundan türetilir; gerçek yetkilendirme zaten JWT authority'lerinden gelir.
+        // Rol yoksa null — "CUSTOMER" varsayılanı yok; kullanıcı no-role sayfasında kalır.
+        java.util.Set<String> appRoles = roles.stream()
+                .map(String::toUpperCase)
+                .filter(UserService.APP_ROLES::contains)
+                .collect(java.util.stream.Collectors.toSet());
+        String assignedRole = UserService.resolveHighestRole(new java.util.ArrayList<>(appRoles));
 
         User user = User.builder()
                 .id(userId)
                 .email(jwt.getClaimAsString("email"))
                 .fullName(buildFullName(jwt))
-                .role(assignedRole) 
+                .role(assignedRole)
+                .roles(appRoles)
                 .build();
         
         User syncedUser = userService.syncUser(user);

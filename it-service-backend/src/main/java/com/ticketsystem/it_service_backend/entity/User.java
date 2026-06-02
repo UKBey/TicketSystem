@@ -5,6 +5,8 @@ import lombok.*;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * System user — the application-side mirror of identities defined in Keycloak.
@@ -34,8 +36,21 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
+    // Birincil/gösterim rolü (geriye uyumluluk + landing varsayılanı). Kümeden türetilir
+    // (resolveHighestRole). Gerçek yetkilendirme JWT authority'leri + {@link #roles} üzerinden.
     @Column(nullable = true, length = 20)
-    private String role; // CUSTOMER, AGENT, AGENT_ADMIN, MANAGER — null: rol ataması henüz yapılmamış
+    private String role; // null: rol ataması henüz yapılmamış
+
+    /**
+     * Kullanıcının sahip olduğu TÜM roller (additive çoklu rol). Keycloak realm rollerinden
+     * her login'de senkronlanır. Etkin yetki = bu kümenin birleşimi.
+     * Değerler: CUSTOMER, AGENT, LEAD_AGENT, ADMIN, MANAGER (geçişte: AGENT_ADMIN).
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    @Builder.Default
+    private Set<String> roles = new HashSet<>();
 
     @Column(name = "is_active")
     @Builder.Default

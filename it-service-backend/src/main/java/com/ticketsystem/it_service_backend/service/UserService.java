@@ -84,13 +84,16 @@ public class UserService {
         // 3. Yerel DB'ye senkronizasyon kaydı — başarısız olursa Keycloak kaydını geri al
         String resolvedRole = null;
         try {
-            resolvedRole = resolveHighestRole(request.getRoles());
+            java.util.List<String> requestedRoles = request.getRoles() == null ? java.util.List.of()
+                    : request.getRoles().stream().map(String::toUpperCase).toList();
+            resolvedRole = resolveHighestRole(requestedRoles);
 
             User userToSync = User.builder()
                     .id(keycloakId)
                     .email(request.getEmail())
                     .fullName(request.getFirstName() + " " + request.getLastName())
                     .role(resolvedRole)
+                    .roles(new java.util.HashSet<>(requestedRoles))
                     .build();
 
             syncUser(userToSync);
@@ -111,15 +114,22 @@ public class UserService {
                 .build();
     }
 
+    /** Uygulama rolleri (Keycloak realm rolleri). Geçiş süresince AGENT_ADMIN de tanınır. */
+    public static final java.util.Set<String> APP_ROLES =
+            java.util.Set.of("CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER", "AGENT_ADMIN");
+
     /**
-     * Resolves the highest-priority role from a list.
-     * Priority order: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER.
+     * Resolves the display/primary role from a list. Used ONLY for the legacy single-role
+     * column and the frontend landing default — real authorization uses the full role set
+     * (JWT authorities + {@code user_roles}). Priority:
+     * ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER (legacy AGENT_ADMIN ~ ADMIN).
      * Returns null when the list is empty or null — CUSTOMER is not assumed as a default.
      */
-    private String resolveHighestRole(List<String> roles) {
+    public static String resolveHighestRole(List<String> roles) {
         if (roles == null || roles.isEmpty()) return null;
-        if (roles.contains("AGENT_ADMIN")) return "AGENT_ADMIN";
+        if (roles.contains("ADMIN") || roles.contains("AGENT_ADMIN")) return "ADMIN";
         if (roles.contains("MANAGER"))    return "MANAGER";
+        if (roles.contains("LEAD_AGENT")) return "LEAD_AGENT";
         if (roles.contains("AGENT"))      return "AGENT";
         if (roles.contains("CUSTOMER"))   return "CUSTOMER";
         return null;
@@ -140,9 +150,10 @@ public class UserService {
         return userRepository.findById(user.getId()).map(existingUser -> {
             existingUser.setEmail(user.getEmail());
             existingUser.setFullName(user.getFullName());
-            // Rol her zaman JWT'deki gerçek durumu yansıtır.
-            // null gelirse DB'de de null yazılır — Keycloak'ta rol atanmamış demektir.
+            // Rol her zaman JWT'deki gerçek durumu yansıtır (hem birincil hem küme).
+            // boş gelirse temizlenir — Keycloak'ta rol atanmamış demektir.
             existingUser.setRole(user.getRole());
+            existingUser.setRoles(user.getRoles() != null ? user.getRoles() : new java.util.HashSet<>());
             log.debug("Mevcut kullanıcı güncellendi. Rol: {}", existingUser.getRole());
             return userRepository.save(existingUser);
         }).orElseGet(() -> {
@@ -384,8 +395,11 @@ public class UserService {
         // 2. Keycloak'ta rolleri güncelle
         keycloakAdminService.updateUserRoles(userId, newRoles);
 
-        // 3. Yerel DB'deki rolü en yüksek öncelikli rolle güncelle
-        String resolvedRole = resolveHighestRole(newRoles);
+        // 3. Yerel DB'deki rol bilgisini güncelle (hem küme hem birincil/gösterim rolü)
+        java.util.List<String> normalized = newRoles == null ? java.util.List.of()
+                : newRoles.stream().map(String::toUpperCase).filter(APP_ROLES::contains).toList();
+        user.setRoles(new java.util.HashSet<>(normalized));
+        String resolvedRole = resolveHighestRole(normalized);
         user.setRole(resolvedRole);
         User savedUser = userRepository.save(user);
 

@@ -94,7 +94,25 @@
       {
         "id": "0d898f7d-c762-4ac2-8dd2-7c0725da983c",
         "name": "MANAGER",
-        "description": "",
+        "description": "Gozetim/yonetisim: tum dashboard ve raporlar, tam okuma gorunurlugu (salt-okur, global)",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "f3a0885e-6803-4048-b37e-b05721ad72ff",
+        "attributes": {}
+      },
+      {
+        "id": "aaaaaaaa-1111-4a00-9000-000000000001",
+        "name": "ADMIN",
+        "description": "Sistem konfigurasyonu: kullanici/rol/urun yonetimi, urun yetkilendirme, sistem ayarlari (global)",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "f3a0885e-6803-4048-b37e-b05721ad72ff",
+        "attributes": {}
+      },
+      {
+        "id": "aaaaaaaa-1111-4a00-9000-000000000002",
+        "name": "LEAD_AGENT",
+        "description": "Operasyonel takim lideri: ticket atama, claim'siz islem, takim dashboard, urun icerigi (urun-scope, agent yetkilerini kapsar)",
         "composite": false,
         "clientRole": false,
         "containerId": "f3a0885e-6803-4048-b37e-b05721ad72ff",
