@@ -89,6 +89,49 @@ public class KeycloakAdminApi {
         }
     }
 
+    /**
+     * Sets the user's final, permanent password — used to complete the forced first-login
+     * password change for generator-created users. Returns {@code false} if the user is not
+     * found or the admin REST call fails.
+     *
+     * @param username    Keycloak username
+     * @param newPassword the final (non-temporary) password
+     * @return {@code true} if the password was set; {@code false} otherwise
+     */
+    public boolean resetPassword(String username, String newPassword) {
+        try {
+            String userId = findUserIdByUsername(username);
+            if (userId == null) {
+                log.warn("Admin REST: şifre için kullanıcı bulunamadı ({})", username);
+                return false;
+            }
+
+            ObjectNode cred = mapper.createObjectNode();
+            cred.put("type", "password");
+            cred.put("value", newPassword);
+            cred.put("temporary", false);
+
+            Request req = new Request.Builder()
+                    .url(adminUsersUrl + "/" + userId + "/reset-password")
+                    .header("Authorization", "Bearer " + token())
+                    .put(RequestBody.create(mapper.writeValueAsString(cred), JSON))
+                    .build();
+            try (Response resp = http.newCall(req).execute()) {
+                if (!resp.isSuccessful()) {
+                    log.warn("Admin REST: şifre ayarlanamadı ({}, HTTP {}): {}",
+                            username, resp.code(),
+                            resp.body() != null ? resp.body().string() : "");
+                    return false;
+                }
+            }
+            log.info("Admin REST: nihai şifre ayarlandı → {}", username);
+            return true;
+        } catch (Exception e) {
+            log.warn("Admin REST: resetPassword hata ({}): {}", username, e.getMessage());
+            return false;
+        }
+    }
+
     // -----------------------------------------------------------------
     // Yardımcılar
     // -----------------------------------------------------------------

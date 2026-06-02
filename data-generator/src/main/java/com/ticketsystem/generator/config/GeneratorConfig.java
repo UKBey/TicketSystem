@@ -2,15 +2,17 @@ package com.ticketsystem.generator.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ticketsystem.generator.model.SeedUser;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,6 +58,16 @@ public class GeneratorConfig {
     public static final String MASTER_ADMIN_CLIENT   = "admin-cli";
 
     // ---------------------------------------------------------------
+    // Seed user provisioning
+    // ---------------------------------------------------------------
+    /**
+     * Temporary password assigned at creation time (Agent Admin API). Keycloak forces the
+     * user to change it on first login; the generator then sets each user's final password
+     * (from users.json) and clears the required action. Must satisfy the realm password policy.
+     */
+    public static final String TEMP_PASSWORD = "Temp321654!";
+
+    // ---------------------------------------------------------------
     // Request cadence
     // ---------------------------------------------------------------
     /** Delay between two API requests (ms). */
@@ -84,15 +96,21 @@ public class GeneratorConfig {
     public static final int DATE_SPREAD_DAYS = 7;
 
     /**
-     * Looks up the password for a seed user (agent or customer) listed in {@code users.json}.
-     * Returns {@code null} when the user is not mapped — callers should fall back to the
-     * {@code password} field in {@code setup.json}.
+     * Seed agent definitions from {@code users.json} (empty if none configured).
      *
-     * @param username the username to resolve
-     * @return the password from {@code users.json}, or {@code null} if not configured
+     * @return the list of agents the generator should create and sign in
      */
-    public static String passwordForUser(String username) {
-        return USERS.passwordForUser(username);
+    public static List<SeedUser> agents() {
+        return USERS.agents;
+    }
+
+    /**
+     * Seed customer definitions from {@code users.json} (empty if none configured).
+     *
+     * @return the list of customers the generator should create and sign in
+     */
+    public static List<SeedUser> customers() {
+        return USERS.customers;
     }
 
     private GeneratorConfig() {
@@ -109,12 +127,14 @@ public class GeneratorConfig {
      */
     private static final class UsersFile {
         private final Map<String, Map<String, String>> namedAccounts;
-        private final Map<String, String> seedUsers;
+        private final List<SeedUser> agents;
+        private final List<SeedUser> customers;
 
         private UsersFile(Map<String, Map<String, String>> namedAccounts,
-                          Map<String, String> seedUsers) {
+                          List<SeedUser> agents, List<SeedUser> customers) {
             this.namedAccounts = namedAccounts;
-            this.seedUsers     = seedUsers;
+            this.agents        = agents;
+            this.customers     = customers;
         }
 
         static UsersFile load() {
@@ -133,12 +153,11 @@ public class GeneratorConfig {
                     throw new UncheckedIOException("Failed to read " + p, e);
                 }
             }
-            return new UsersFile(Collections.emptyMap(), Collections.emptyMap());
+            return new UsersFile(Collections.emptyMap(), List.of(), List.of());
         }
 
         private static UsersFile parse(JsonNode root) {
             Map<String, Map<String, String>> named = new HashMap<>();
-            Map<String, String> seed = new HashMap<>();
 
             // Named single accounts: adminAgent / keycloakAdmin / database (object with username + password).
             for (String key : new String[] {"adminAgent", "keycloakAdmin", "database"}) {
@@ -150,19 +169,25 @@ public class GeneratorConfig {
                 named.put(key, entry);
             }
 
-            // Per-username password maps for seed users (agents / customers).
-            for (String key : new String[] {"agents", "customers"}) {
-                JsonNode node = root.path(key);
-                if (!node.isObject()) continue;
-                Iterator<Map.Entry<String, JsonNode>> it = node.fields();
-                while (it.hasNext()) {
-                    Map.Entry<String, JsonNode> e = it.next();
-                    String username = e.getKey();
-                    String password = e.getValue().asText(null);
-                    if (username != null && password != null) seed.put(username, password);
-                }
+            // Seed users: arrays of full user objects (username/email/firstName/lastName/password).
+            return new UsersFile(named, parseSeedUsers(root.path("agents")), parseSeedUsers(root.path("customers")));
+        }
+
+        private static List<SeedUser> parseSeedUsers(JsonNode node) {
+            List<SeedUser> list = new ArrayList<>();
+            if (node == null || !node.isArray()) return list;
+            for (JsonNode u : node) {
+                String username = u.path("username").asText(null);
+                String password = u.path("password").asText(null);
+                if (username == null || username.isBlank() || password == null || password.isBlank()) continue;
+                list.add(new SeedUser(
+                        username,
+                        u.path("email").asText(null),
+                        u.path("firstName").asText(""),
+                        u.path("lastName").asText(""),
+                        password));
             }
-            return new UsersFile(named, seed);
+            return list;
         }
 
         String username(String accountKey, String fallback) {
@@ -175,10 +200,6 @@ public class GeneratorConfig {
             Map<String, String> entry = namedAccounts.get(accountKey);
             String value = entry == null ? null : entry.get("password");
             return (value != null && !value.isEmpty()) ? value : fallback;
-        }
-
-        String passwordForUser(String username) {
-            return seedUsers.get(username);
         }
     }
 }

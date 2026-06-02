@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>The following steps are executed with a single agent_admin account:
  * <ol>
- *   <li>Agent and customer users from setup.json are created if missing (skipped if they exist).</li>
+ *   <li>Agent and customer users from users.json are created via the Agent Admin API (temporary
+ *       password → forced first-login change, then final password set); existing ones are reused.</li>
  *   <li>A 5 product x 5 topic x 2+ known-issue ecosystem is set up idempotently, along with
  *       shared canned responses (10 global + 5 per product).</li>
  *   <li>50 tickets are generated declaratively from tickets/*.json files; for each template

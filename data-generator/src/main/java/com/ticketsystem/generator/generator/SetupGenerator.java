@@ -6,6 +6,7 @@ import com.ticketsystem.generator.client.ApiClient;
 import com.ticketsystem.generator.client.KeycloakAdminApi;
 import com.ticketsystem.generator.client.KeycloakTokenClient;
 import com.ticketsystem.generator.config.GeneratorConfig;
+import com.ticketsystem.generator.model.SeedUser;
 import com.ticketsystem.generator.model.SetupResult;
 import com.ticketsystem.generator.model.UserSession;
 import okhttp3.OkHttpClient;
@@ -25,14 +26,16 @@ import java.util.Set;
  * Prepares the system according to the template in setup.json.
  *
  * <ul>
- *   <li>Only <em>attempts to log in</em> the agent and customer users defined in setup.json;
- *       there is no user-creation step. The accounts are expected to be pre-provisioned in
- *       Keycloak. Users whose login fails are skipped with a warning.</li>
- *   <li>Creates products / topics / known issues idempotently.</li>
+ *   <li>Creates the agent and customer users defined in {@code users.json} via the Agent Admin
+ *       API with a temporary password (forced change on first login), then completes that change
+ *       by setting each user's final password and clearing the required action, and signs in.
+ *       Users whose creation/login fails are skipped with a warning.</li>
+ *   <li>Creates products / topics / known issues / canned responses idempotently.</li>
  *   <li>Assigns authorizedProducts to every agent and customer that was able to log in.</li>
  * </ul>
  *
- * Safe to re-run: products/topics/issues are skipped if they already exist.
+ * Safe to re-run: existing users are detected (HTTP 409) and only re-provisioned; products /
+ * topics / issues / canned responses are skipped if they already exist.
  */
 public class SetupGenerator {
 
@@ -73,13 +76,14 @@ public class SetupGenerator {
 
         JsonNode spec = loadSetupSpec();
 
-        // 1. Kullanıcı oturumları — login dene, başarısız olanları atla
-        List<UserSession> agents    = ensureUsers(spec.path("users").path("agents"),    "AGENT");
-        List<UserSession> customers = ensureUsers(spec.path("users").path("customers"), "CUSTOMER");
+        // 1. Kullanıcılar — Agent Admin ile oluştur (geçici şifre → ilk girişte değişim zorunlu),
+        //    ardından nihai şifreyi (users.json) belirleyip oturum aç. Tanımlar users.json'dadır.
+        List<UserSession> agents    = createAndLoginUsers(GeneratorConfig.agents(),    "AGENT");
+        List<UserSession> customers = createAndLoginUsers(GeneratorConfig.customers(), "CUSTOMER");
 
         if (agents.isEmpty() || customers.isEmpty()) {
-            throw new IllegalStateException("Setup başarısız: en az bir agent ve bir customer oturumu gerekli. " +
-                    "Keycloak'ta setup.json'daki kullanıcıların önceden tanımlı ve şifresinin eşleştiğinden emin ol.");
+            throw new IllegalStateException("Setup başarısız: en az bir agent ve bir customer gerekli. " +
+                    "data-generator/users.json içindeki agents/customers listelerini doldur (örnek: users.example.json).");
         }
 
         // 2a. Generator'in onceden uretmis oldugu urunler varsa temizle. Backend
@@ -126,26 +130,66 @@ public class SetupGenerator {
     // Users — sadece login; oluşturma yok
     // -----------------------------------------------------------------
 
-    private List<UserSession> ensureUsers(JsonNode userArray, String role) {
+    /**
+     * Creates each seed user via the Agent Admin API (temporary password → forced change on
+     * first login), completes that change by setting the final password and clearing the
+     * required action, then signs in. Users that cannot be created/logged in are skipped.
+     *
+     * @param seeds user definitions from {@code users.json}
+     * @param role  realm role to assign ({@code AGENT} / {@code CUSTOMER})
+     * @return the sessions of users that were created and logged in
+     */
+    private List<UserSession> createAndLoginUsers(List<SeedUser> seeds, String role) throws InterruptedException {
         List<UserSession> sessions = new ArrayList<>();
-        if (userArray == null || !userArray.isArray()) return sessions;
-
-        for (JsonNode u : userArray) {
-            String username = u.path("username").asText();
-            // users.json (if present) overrides the password baked into setup.json so the seed
-            // accounts can be re-provisioned with project-specific passwords without rebuilding.
-            String override = GeneratorConfig.passwordForUser(username);
-            String password = (override != null && !override.isEmpty())
-                    ? override
-                    : u.path("password").asText();
-
-            UserSession session = loginWithRecovery(username, password, role);
-            if (session == null) continue;
-            log.info("Oturum açıldı: {} ({})", username, role);
+        for (SeedUser u : seeds) {
+            ensureUserExists(u, role);
+            UserSession session = loginWithRecovery(u.username(), u.password(), role);
+            if (session == null) {
+                log.warn("Kullanıcı oluşturuldu ancak oturum açılamadı, atlanıyor: {} ({})", u.username(), role);
+                continue;
+            }
+            log.info("Kullanıcı hazır: {} ({})", u.username(), role);
             syncUser(session);
             sessions.add(session);
         }
         return sessions;
+    }
+
+    /**
+     * Idempotently provisions one user: create via the Agent Admin API (409 = already exists),
+     * then set the final permanent password and clear the forced-change required action so the
+     * subsequent login with the {@code users.json} password succeeds.
+     */
+    private void ensureUserExists(SeedUser u, String realmRole) throws InterruptedException {
+        boolean exists = true;
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("username",  u.username());
+            body.put("email",     u.email());
+            body.put("firstName", u.firstName());
+            body.put("lastName",  u.lastName());
+            body.put("password",  GeneratorConfig.TEMP_PASSWORD);
+            body.put("temporaryPassword", true); // ilk girişte değişim zorunlu
+            body.put("roles", List.of(realmRole));
+            api.post("/users/admin/create", body, adminAgent.getToken());
+            log.info("Kullanıcı oluşturuldu (Agent Admin, geçici şifre): {}", u.username());
+        } catch (ApiClient.ApiException e) {
+            if (e.getStatusCode() == 409) {
+                log.info("Kullanıcı zaten mevcut, yeniden oluşturulmuyor: {}", u.username());
+            } else {
+                log.warn("Kullanıcı oluşturulamadı ({}): {}", u.username(), e.getMessage());
+                exists = false;
+            }
+        } catch (IOException e) {
+            log.warn("Kullanıcı oluşturulamadı ({}): {}", u.username(), e.getMessage());
+            exists = false;
+        }
+        Thread.sleep(GeneratorConfig.DELAY_MS);
+        if (!exists) return;
+
+        // "İlk giriş şifre değişimi"ni tamamla: nihai (kalıcı) şifreyi belirle + zorunlu aksiyonu temizle.
+        keycloakAdmin.resetPassword(u.username(), u.password());
+        keycloakAdmin.clearRequiredActions(u.username());
     }
 
     /**
