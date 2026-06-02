@@ -302,6 +302,19 @@ public class WorkflowService {
             log.debug("BPMN state confirmed. TicketId={}, Status={}", ticket.getId(), actual);
             return true;
         }
+
+        // CLOSED is the only terminal target: the BPMN sets status=CLOSED and then fires a
+        // terminate end event, so the instance COMPLETES and its `status` variable is no
+        // longer readable (null). That is the success outcome, not a dropped signal —
+        // confirm it via the process instance state instead of the now-gone variable,
+        // otherwise CSAT-driven (and manual) closes would be falsely rejected with 400.
+        if ("CLOSED".equals(expectedStatus) && actual == null
+                && kieServerAdapter.isProcessFinished(ticket.getProcessInstanceId())) {
+            log.debug("BPMN terminal transition (CLOSED) confirmed via process completion. TicketId={}",
+                    ticket.getId());
+            return true;
+        }
+
         log.warn("BPMN state mismatch — signal dropped veya state machine reddetti. " +
                         "TicketId={}, ProcessInstanceId={}, Expected={}, Actual={}",
                 ticket.getId(), ticket.getProcessInstanceId(), expectedStatus, actual);

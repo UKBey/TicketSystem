@@ -700,4 +700,44 @@ class WorkflowServiceTest {
 
         assertFalse(ok);
     }
+
+    @Test
+    void verifyTransitionApplied_closedConfirmedByProcessCompletion() {
+        // CLOSED is terminal: the BPMN sets status=CLOSED then fires a terminate end
+        // event, so the status variable reads back null. Process completion confirms
+        // the close instead of giving a false negative.
+        Ticket ticket = Ticket.builder().id(44L).processInstanceId(3003L).build();
+        when(kieServerAdapter.getProcessVariable(3003L, "status")).thenReturn(null);
+        when(kieServerAdapter.isProcessFinished(3003L)).thenReturn(true);
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+
+        assertTrue(ok);
+    }
+
+    @Test
+    void verifyTransitionApplied_closedButProcessStillActiveReturnsFalse() {
+        // status null but the process is NOT finished (e.g. breaker open) — stay
+        // conservative and reject, exactly as before the terminal-state handling.
+        Ticket ticket = Ticket.builder().id(45L).processInstanceId(3004L).build();
+        when(kieServerAdapter.getProcessVariable(3004L, "status")).thenReturn(null);
+        when(kieServerAdapter.isProcessFinished(3004L)).thenReturn(false);
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+
+        assertFalse(ok);
+    }
+
+    @Test
+    void verifyTransitionApplied_closedSignalDroppedDoesNotConsultCompletion() {
+        // A non-null mismatch means the signal was genuinely dropped (process still in
+        // the old state) — reject without consulting process completion.
+        Ticket ticket = Ticket.builder().id(46L).processInstanceId(3005L).build();
+        when(kieServerAdapter.getProcessVariable(3005L, "status")).thenReturn("RESOLVED");
+
+        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+
+        assertFalse(ok);
+        verify(kieServerAdapter, never()).isProcessFinished(any());
+    }
 }

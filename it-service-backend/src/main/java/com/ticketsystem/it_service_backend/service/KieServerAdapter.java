@@ -126,6 +126,30 @@ public class KieServerAdapter {
     }
 
     /**
+     * Returns whether the process instance has reached a terminal state (COMPLETED
+     * or ABORTED).
+     *
+     * <p>Used to confirm a transition to a terminal BPMN state: the CLOSED branch
+     * ends with a terminate event, so once the process finishes its variables are no
+     * longer readable and a value-based check on the {@code status} variable would
+     * give a false negative. Returns {@code false} when the instance is still active
+     * or cannot be queried (breaker open / not found), keeping callers conservative.
+     *
+     * @param processInstanceId target process instance ID
+     * @return {@code true} only when the instance is confirmed COMPLETED or ABORTED
+     */
+    public boolean isProcessFinished(Long processInstanceId) {
+        ProcessInstance pi = getProcessInstance(processInstanceId);
+        if (pi == null || pi.getState() == null) {
+            return false;
+        }
+        // jBPM process states (org.kie.api.runtime.process.ProcessInstance):
+        // 1 = ACTIVE, 2 = COMPLETED, 3 = ABORTED.
+        int state = pi.getState();
+        return state == 2 || state == 3;
+    }
+
+    /**
      * Aborts a running process. Errors are not propagated (best-effort).
      *
      * @param processInstanceId process instance ID to abort
