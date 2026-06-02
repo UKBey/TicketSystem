@@ -54,7 +54,7 @@ public class TicketTopicController {
      */
     @Operation(summary = "Yeni talep konusu oluştur")
     @PostMapping("/api/v1/products/{productId}/topics")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<TicketTopicDTO> create(
             @PathVariable Long productId,
             @Valid @RequestBody TicketTopicDTO body) {
@@ -72,7 +72,7 @@ public class TicketTopicController {
      */
     @Operation(summary = "Talep konusunu güncelle (ad veya aktiflik)")
     @PutMapping("/api/v1/topics/{id}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<TicketTopicDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody TicketTopicDTO body) {
@@ -89,7 +89,7 @@ public class TicketTopicController {
      */
     @Operation(summary = "Talep konusunu sil")
     @DeleteMapping("/api/v1/topics/{id}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("Talep konusu silme isteği. ID: {}", id);
         topicService.delete(id);

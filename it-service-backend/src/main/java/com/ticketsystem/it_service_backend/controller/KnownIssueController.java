@@ -81,7 +81,7 @@ public class KnownIssueController {
      */
     @Operation(summary = "Yeni sıkça karşılaşılan sorun oluştur")
     @PostMapping("/api/v1/products/{productId}/known-issues")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<KnownIssueDTO> create(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long productId,
@@ -103,7 +103,7 @@ public class KnownIssueController {
      */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını güncelle")
     @PutMapping("/api/v1/known-issues/{id}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<KnownIssueDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody KnownIssueDTO body) {
@@ -120,7 +120,7 @@ public class KnownIssueController {
      */
     @Operation(summary = "Sıkça karşılaşılan sorun kaydını sil")
     @DeleteMapping("/api/v1/known-issues/{id}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         log.info("Sıkça karşılaşılan sorun silme isteği. ID: {}", id);
         knownIssueService.delete(id);

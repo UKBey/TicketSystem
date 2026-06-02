@@ -177,7 +177,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping("/agents/capacity")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<List<AgentCapacityDTO>> getAgentsWithCapacity(
             @Parameter(description = "Ürün ID'si", required = true)
             @RequestParam Long productId) {
@@ -231,7 +231,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> getAllUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> role,
@@ -485,7 +485,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @PostMapping("/{userId}/products/{productId}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> assignProductToUser(
             @Parameter(description = "Ajanın Keycloak ID'si", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321", required = true)
             @PathVariable String userId,
@@ -517,7 +517,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @DeleteMapping("/{userId}/products/{productId}")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> removeProductFromUser(
             @Parameter(description = "Ajanın Keycloak ID'si", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321", required = true)
             @PathVariable String userId,
@@ -563,7 +563,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
     })
     @PutMapping("/{userId}/status")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUserStatus(
             @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", required = true)
             @PathVariable String userId,
@@ -607,7 +607,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
     })
     @PutMapping("/{userId}/roles")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUserRoles(
             @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", required = true)
             @PathVariable String userId,
@@ -694,7 +694,7 @@ public class UserController {
             )
     })
     @PostMapping("/admin/create")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserCreationResponseDTO> createUser(
             @RequestBody(
                     description = "Oluşturulacak kullanıcının bilgileri ve atanacak roller",
@@ -749,7 +749,7 @@ public class UserController {
             )
     })
     @GetMapping("/admin/roles")
-    @PreAuthorize("hasAnyRole('AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAssignableRoles() {
         log.debug("Atanabilir roller listesi isteği.");
 

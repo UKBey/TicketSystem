@@ -73,7 +73,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'dashboard-summary'")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/dashboard-summary")
     public ResponseEntity<DashboardMetricsDTO> getDashboardSummary() {
         log.debug("Dashboard özet metrikleri istendi");
@@ -111,7 +111,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'status-distribution'")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/status-distribution")
     public ResponseEntity<StatusDistributionDTO> getStatusDistribution() {
         log.debug("Ticket durum dağılımı istendi");
@@ -149,7 +149,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'agent-performance'")
-    @PreAuthorize("hasAnyRole('MANAGER', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/agent-performance")
     public ResponseEntity<AgentPerformanceDTO> getAgentPerformance() {
         log.debug("Ajan performans leaderboard isteği alındı");
@@ -189,7 +189,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'ticket-timeline-' + #days")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/ticket-timeline")
     public ResponseEntity<TicketTimelineDTO> getTicketTimeline(
             @RequestParam(defaultValue = "30") int days) {
@@ -227,7 +227,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/priority-sla-metrics")
     public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics(
             @RequestParam(required = false) Integer days) {
@@ -265,7 +265,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/product-metrics")
     public ResponseEntity<ProductMetricsDTO> getProductMetrics(
             @RequestParam(required = false) Integer days) {
@@ -306,7 +306,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'csat-metrics-' + #months")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/csat-metrics")
     public ResponseEntity<CSATMetricsDTO> getCSATMetrics(
             @RequestParam(defaultValue = "3") int months) {
@@ -345,7 +345,7 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/alerts-backlog")
     public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog() {
         log.debug("Alert ve backlog metrikleri istendi");
@@ -384,7 +384,7 @@ public class MetricsController {
             )
     })
     @Cacheable(value = "metrics", key = "'worklog-completion-' + #days")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/worklog-completion")
     public ResponseEntity<WorklogCompletionDTO> getWorklogCompletion(
             @RequestParam(defaultValue = "30") int days) {

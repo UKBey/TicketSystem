@@ -113,7 +113,12 @@
         "id": "aaaaaaaa-1111-4a00-9000-000000000002",
         "name": "LEAD_AGENT",
         "description": "Operasyonel takim lideri: ticket atama, claim'siz islem, takim dashboard, urun icerigi (urun-scope, agent yetkilerini kapsar)",
-        "composite": false,
+        "composite": true,
+        "composites": {
+          "realm": [
+            "AGENT"
+          ]
+        },
         "clientRole": false,
         "containerId": "f3a0885e-6803-4048-b37e-b05721ad72ff",
         "attributes": {}

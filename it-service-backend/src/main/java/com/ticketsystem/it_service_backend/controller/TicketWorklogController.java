@@ -63,7 +63,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "400", description = "Geçersiz süre değeri")
     })
     @PostMapping("/{id}/worklogs")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<WorklogResponseDTO> addWorklog(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -92,7 +92,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "403", description = "Bu biletin workloglarını görüntüleme yetkiniz yok")
     })
     @GetMapping("/{id}/worklogs")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'MANAGER')")
     public ResponseEntity<List<WorklogResponseDTO>> getWorklogsByTicket(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -121,7 +121,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
     })
     @GetMapping("/all-worklogs")
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
                 log.debug("Tüm worklogları listeleme isteği (Agent admin).");
 
@@ -152,7 +152,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "404", description = "Worklog bulunamadı")
     })
     @PutMapping("/{id}/worklogs/{worklogId}")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<WorklogResponseDTO> updateWorklog(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,
@@ -185,7 +185,7 @@ public class TicketWorklogController {
             @ApiResponse(responseCode = "404", description = "Worklog bulunamadı")
     })
     @DeleteMapping("/{id}/worklogs/{worklogId}")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<Void> deleteWorklog(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

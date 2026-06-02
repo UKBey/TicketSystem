@@ -112,7 +112,7 @@ public class TicketController {
      */
     @Operation(summary = "Biletleri listele — sayfalama + filtreleme (role göre filtrelenir)")
     @GetMapping
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<TicketResponseDTO>> getTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
@@ -155,7 +155,7 @@ public class TicketController {
      */
     @Operation(summary = "Havuzdaki biletleri listele — sayfalama + filtreleme (NEW statüsü)")
     @GetMapping("/pool")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<Page<TicketResponseDTO>> getPoolTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
@@ -229,7 +229,7 @@ public class TicketController {
      */
     @Operation(summary = "Ajanın yetkili ürünlerindeki aktif biletleri listele — sayfalama + filtreleme")
     @GetMapping("/team")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<Page<TicketResponseDTO>> getTeamTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
@@ -268,7 +268,7 @@ public class TicketController {
     @Operation(summary = "Yetkili olunan tüm ürünlerdeki tüm statülerdeki biletler — sayfalama + filtreleme",
             description = "Agent/Agent Admin için 'All Tickets' sayfasının veri kaynağı. NEW ve CLOSED dahil tüm statüleri içerir.")
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<TicketResponseDTO>> getAllAccessibleTickets(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0")   int page,
@@ -321,7 +321,7 @@ public class TicketController {
      */
     @Operation(summary = "Bileti claim al (CLOSED hariç her statüdeki bilet sahiplenebilir)")
     @PutMapping("/{id}/claim")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<TicketResponseDTO> claimTicket(
             @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String agentId = jwt.getSubject();
@@ -341,7 +341,7 @@ public class TicketController {
      */
     @Operation(summary = "Claim'i bırak (sadece kendi claim'ini geri verir)")
     @DeleteMapping("/{id}/claim")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<TicketResponseDTO> unclaimTicket(
                         @PathVariable Long id,
                         @RequestBody @Valid UnclaimRequestDTO dto,
@@ -370,7 +370,7 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Bilet veya agent bulunamadı")
     })
     @PutMapping("/{id}/assign")
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<TicketResponseDTO> assignTicket(
             @Parameter(description = "Atanacak biletin ID'si", required = true)
             @PathVariable Long id,
@@ -401,7 +401,7 @@ public class TicketController {
      * @return DTO of the closed ticket
      */
         @Operation(summary = "Bileti kapat (not zorunlu)")
-        @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+        @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
         public ResponseEntity<TicketResponseDTO> closeTicket(
                         @PathVariable Long id,
                         @RequestBody @Valid CloseTicketRequestDTO dto,
@@ -423,7 +423,7 @@ public class TicketController {
      */
     @Operation(summary = "Bilet statüsü güncelle (RESOLVED'a geçişte reasonCode zorunlu)")
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT')")
     public ResponseEntity<TicketResponseDTO> updateStatus(
             @PathVariable Long id,
             @RequestBody @Valid StatusUpdateRequestDTO body,
@@ -446,7 +446,7 @@ public class TicketController {
      */
     @Operation(summary = "Bilet önceliği güncelle (sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/priority")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<TicketResponseDTO> updatePriority(
             @PathVariable Long id,
             @RequestBody @Valid PriorityChangeRequestDTO dto,
@@ -471,7 +471,7 @@ public class TicketController {
      */
     @Operation(summary = "Bilet konusunu güncelle (aynı ürüne bağlı aktif bir topic; sebep kodu zorunlu, OTHER ise not zorunlu)")
     @PutMapping("/{id}/topic")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
     public ResponseEntity<TicketResponseDTO> updateTopic(
             @PathVariable Long id,
             @RequestBody @Valid TopicChangeRequestDTO dto,
@@ -493,7 +493,7 @@ public class TicketController {
      */
     @Operation(summary = "Bileti sil (AGENT_ADMIN yetkisi gerekir)")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('AGENT_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTicket(
             @Parameter(description = "Silinecek biletin ID'si") @PathVariable Long id) {
         log.warn("Bilet silme isteği. Bilet ID: {}", id);
@@ -548,7 +548,7 @@ public class TicketController {
      */
     @Operation(summary = "SLA zamanlayıcı bilgisi")
     @GetMapping("/{id}/sla-timer")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'AGENT_ADMIN')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER')")
     public ResponseEntity<Map<String, Object>> getSlaTimer(
             @PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();

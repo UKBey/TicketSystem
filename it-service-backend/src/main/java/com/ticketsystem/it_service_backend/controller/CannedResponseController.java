@@ -40,7 +40,7 @@ public class CannedResponseController {
             description = "Kullanıcının kendi kişisel şablonları + tüm paylaşılan şablonlar. "
                     + "`productId` verilirse paylaşılanlar global + o ürüne ait olanlarla sınırlanır.")
     @GetMapping
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<List<CannedResponseDTO>> list(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(name = "productId", required = false) Long productId,
@@ -57,7 +57,7 @@ public class CannedResponseController {
      */
     @Operation(summary = "Yeni hazır yanıt oluştur")
     @PostMapping
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<CannedResponseDTO> create(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CannedResponseDTO body) {
@@ -72,7 +72,7 @@ public class CannedResponseController {
      */
     @Operation(summary = "Hazır yanıtı güncelle")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<CannedResponseDTO> update(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,
@@ -88,7 +88,7 @@ public class CannedResponseController {
      */
     @Operation(summary = "Hazır yanıtı sil")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id) {
@@ -104,7 +104,7 @@ public class CannedResponseController {
      */
     @Operation(summary = "Hazır yanıtı favorile")
     @PostMapping("/{id}/favorite")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<Void> addFavorite(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id) {
@@ -117,7 +117,7 @@ public class CannedResponseController {
      */
     @Operation(summary = "Hazır yanıt favorisini kaldır")
     @DeleteMapping("/{id}/favorite")
-    @PreAuthorize("hasAnyRole('AGENT', 'AGENT_ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN')")
     public ResponseEntity<Void> removeFavorite(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id) {
