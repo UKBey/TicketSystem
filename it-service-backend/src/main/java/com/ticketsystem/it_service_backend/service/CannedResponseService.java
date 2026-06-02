@@ -110,11 +110,9 @@ public class CannedResponseService {
         validateContentLengths(tr, en);
         String visibility = normalizeVisibility(dto.getVisibility());
 
-        Long productId = null;
-        if (SCOPE_SHARED.equals(scope)) {
-            productId = dto.getProductId();
-            validateProductExists(productId);
-        }
+        // Both PERSONAL and SHARED templates may be tied to a product (or left global/null).
+        Long productId = dto.getProductId();
+        validateProductExists(productId);
 
         CannedResponse entity = CannedResponse.builder()
                 .title(title)
@@ -161,13 +159,10 @@ public class CannedResponseService {
         existing.setContentEn(en);
         existing.setScope(targetScope);
         existing.setVisibility(normalizeVisibility(dto.getVisibility()));
-        if (SCOPE_SHARED.equals(targetScope)) {
-            Long productId = dto.getProductId();
-            validateProductExists(productId);
-            existing.setProductId(productId);
-        } else {
-            existing.setProductId(null); // personal templates are never product-scoped
-        }
+        // Either scope may carry an optional product binding (null = global).
+        Long productId = dto.getProductId();
+        validateProductExists(productId);
+        existing.setProductId(productId);
 
         CannedResponse saved = repository.save(existing);
         log.info("Hazır yanıt güncellendi. ID: {}", saved.getId());

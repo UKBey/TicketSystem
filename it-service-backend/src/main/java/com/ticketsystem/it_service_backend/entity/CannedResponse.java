@@ -13,10 +13,11 @@ import java.time.OffsetDateTime;
  *
  * <p>Two scopes exist:
  * <ul>
- *   <li>{@code PERSONAL} — owned by a single agent ({@link #ownerAgentId}); never product-scoped.</li>
- *   <li>{@code SHARED}   — team-wide, managed by {@code AGENT_ADMIN}/{@code MANAGER}; may optionally
- *       be tied to a {@link Product} ({@link #productId}) or be global ({@code productId == null}).</li>
+ *   <li>{@code PERSONAL} — owned by a single agent ({@link #ownerAgentId}).</li>
+ *   <li>{@code SHARED}   — team-wide, managed by {@code AGENT_ADMIN}/{@code MANAGER}.</li>
  * </ul>
+ * Either scope may optionally be tied to a {@link Product} ({@link #productId}) or be global
+ * ({@code productId == null}); a product-scoped template only surfaces on that product's tickets.
  *
  * <p>{@link #visibility} aligns the template with the comment type it suits: {@code EXTERNAL}
  * (customer-facing reply), {@code INTERNAL} (internal note) or {@code BOTH}.
@@ -66,7 +67,7 @@ public class CannedResponse {
     @Column(name = "owner_agent_id", nullable = false, length = 50)
     private String ownerAgentId;
 
-    /** Optional product binding — only meaningful for {@code SHARED}; {@code null} means global. */
+    /** Optional product binding (either scope); {@code null} means global (all products). */
     @Column(name = "product_id")
     private Long productId;
 

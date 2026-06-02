@@ -40,6 +40,9 @@ export default function CannedResponsesPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [scopeFilter, setScopeFilter] = useState('ALL');
+  const [productFilter, setProductFilter] = useState('ALL');
+  const [langFilter, setLangFilter] = useState('ALL');
+  const [visibilityFilter, setVisibilityFilter] = useState('ALL');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -97,11 +100,16 @@ export default function CannedResponsesPage() {
     const q = search.trim().toLowerCase();
     return items.filter((it) => {
       if (scopeFilter !== 'ALL' && it.scope !== scopeFilter) return false;
+      if (productFilter === 'GLOBAL' && it.productId) return false;
+      if (productFilter !== 'ALL' && productFilter !== 'GLOBAL' && it.productId !== Number(productFilter)) return false;
+      if (langFilter === 'tr' && !(it.contentTr && it.contentTr.trim())) return false;
+      if (langFilter === 'en' && !(it.contentEn && it.contentEn.trim())) return false;
+      if (visibilityFilter !== 'ALL' && it.visibility !== visibilityFilter) return false;
       if (!q) return true;
       return [it.title, it.shortcut, it.contentTr, it.contentEn]
         .some((f) => f && f.toLowerCase().includes(q));
     });
-  }, [items, search, scopeFilter]);
+  }, [items, search, scopeFilter, productFilter, langFilter, visibilityFilter]);
 
   // ---- modal ---------------------------------------------------------------
   const openCreate = () => {
@@ -158,7 +166,8 @@ export default function CannedResponsesPage() {
       title,
       shortcut: form.shortcut.trim() || null,
       scope,
-      productId: scope === 'SHARED' && form.productId ? Number(form.productId) : null,
+      // Either scope may be product-scoped (or global when no product chosen).
+      productId: form.productId ? Number(form.productId) : null,
       visibility: form.visibility,
       contentTr: tr || null,
       contentEn: en || null,
@@ -246,6 +255,52 @@ export default function CannedResponsesPage() {
               <option value="ALL">{t('cannedResponses.scopeAll')}</option>
               <option value="PERSONAL">{t('cannedResponses.scopePersonal')}</option>
               <option value="SHARED">{t('cannedResponses.scopeTeam')}</option>
+            </select>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[10rem] min-w-0">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+              {t('cannedResponses.filterProduct')}
+            </label>
+            <select
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none cursor-pointer focus:ring-2"
+              style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              <option value="ALL">{t('cannedResponses.allProducts')}</option>
+              <option value="GLOBAL">{t('cannedResponses.productGlobal')}</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[7rem] min-w-0">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+              {t('cannedResponses.filterLang')}
+            </label>
+            <select
+              value={langFilter}
+              onChange={(e) => setLangFilter(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none cursor-pointer focus:ring-2"
+              style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              <option value="ALL">{t('cannedResponses.filterAll')}</option>
+              <option value="tr">TR</option>
+              <option value="en">EN</option>
+            </select>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[9rem] min-w-0">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+              {t('cannedResponses.filterVisibility')}
+            </label>
+            <select
+              value={visibilityFilter}
+              onChange={(e) => setVisibilityFilter(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none cursor-pointer focus:ring-2"
+              style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              <option value="ALL">{t('cannedResponses.filterAll')}</option>
+              <option value="EXTERNAL">{t('cannedResponses.visExternal')}</option>
+              <option value="INTERNAL">{t('cannedResponses.visInternal')}</option>
+              <option value="BOTH">{t('cannedResponses.visBoth')}</option>
             </select>
           </div>
         </div>
@@ -415,8 +470,8 @@ export default function CannedResponsesPage() {
                       <option value="SHARED">{t('cannedResponses.scopeSharedOption')}</option>
                     </select>
                   </div>
-                  {isAdmin && form.scope === 'SHARED' && (
-                    <div>
+                  {/* Product binding applies to both scopes (personal or shared). */}
+                  <div>
                       <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
                         {t('cannedResponses.labelProduct')}
                       </label>
@@ -429,8 +484,7 @@ export default function CannedResponsesPage() {
                         <option value="">{t('cannedResponses.productGlobal')}</option>
                         {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Visibility */}

@@ -242,6 +242,9 @@ export default function TicketDetailScreen({ route, navigation }) {
       setSelection({ start: caret, end: caret });
       return prev.slice(0, start) + filled + prev.slice(end);
     });
+    // One-time: align the comment type with a single-sided template; the agent can change it after.
+    if (tpl.visibility === 'EXTERNAL') setCommentType('EXTERNAL');
+    else if (tpl.visibility === 'INTERNAL') setCommentType('INTERNAL');
     setCannedOpen(false);
   };
 

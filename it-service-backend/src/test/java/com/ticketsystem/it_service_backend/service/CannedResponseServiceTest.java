@@ -170,18 +170,30 @@ class CannedResponseServiceTest {
     class Create {
 
         @Test
-        @DisplayName("Agent kişisel şablon oluşturabilir; sahip ve kapsam set edilir, ürün null'lanır")
-        void agentCreatesPersonal() {
+        @DisplayName("Agent kişisel şablon oluşturabilir ve bir ürüne bağlayabilir")
+        void agentCreatesPersonalWithProduct() {
+            when(productRepository.existsById(99L)).thenReturn(true);
             when(repository.save(any(CannedResponse.class))).thenAnswer(i -> i.getArgument(0));
             CannedResponseDTO body = dto("PERSONAL", "Merhaba", null);
-            body.setProductId(99L); // should be ignored for personal
+            body.setProductId(99L); // personal templates may now be product-scoped
 
             CannedResponseDTO saved = service.create(body, "agent-1", AGENT);
 
             assertThat(saved.getScope()).isEqualTo("PERSONAL");
             assertThat(saved.getOwnerAgentId()).isEqualTo("agent-1");
-            assertThat(saved.getProductId()).isNull();
+            assertThat(saved.getProductId()).isEqualTo(99L);
             assertThat(saved.getFavorite()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Kişisel şablon ürünsüz (global) de oluşturulabilir")
+        void agentCreatesPersonalGlobal() {
+            when(repository.save(any(CannedResponse.class))).thenAnswer(i -> i.getArgument(0));
+
+            CannedResponseDTO saved = service.create(dto("PERSONAL", "Merhaba", null), "agent-1", AGENT);
+
+            assertThat(saved.getScope()).isEqualTo("PERSONAL");
+            assertThat(saved.getProductId()).isNull();
         }
 
         @Test

@@ -112,6 +112,13 @@ export default function TicketTimeline() {
   const slashAnchorRef = useAnchoredPosition(textareaRef, slashOpen, { placement: 'top', align: 'left' });
 
   // ---- insertion ------------------------------------------------------------
+  // One-time: if a template suits only one side, flip the composer to match. The agent
+  // can still toggle afterward. BOTH-visibility templates leave the current choice alone.
+  const matchCommentType = (tpl) => {
+    if (tpl.visibility === 'EXTERNAL') setCommentType('EXTERNAL');
+    else if (tpl.visibility === 'INTERNAL') setCommentType('INTERNAL');
+  };
+
   const insertTemplateAtCaret = (tpl) => {
     const { content } = pickContent(tpl, previewLang);
     const filled = fillPlaceholders(content, placeholderCtx);
@@ -121,6 +128,7 @@ export default function TicketTimeline() {
     const next = message.slice(0, start) + filled + message.slice(end);
     setMessage(next);
     markUsed(tpl.id);
+    matchCommentType(tpl);
     const pos = start + filled.length;
     requestAnimationFrame(() => {
       if (el) { el.focus(); el.setSelectionRange(pos, pos); setCaret(pos); }
@@ -139,6 +147,7 @@ export default function TicketTimeline() {
     const next = message.slice(0, slashCtx.start) + filled + message.slice(slashCtx.end);
     setMessage(next);
     markUsed(tpl.id);
+    matchCommentType(tpl);
     setSlashDismissed(true);
     const pos = slashCtx.start + filled.length;
     requestAnimationFrame(() => {

@@ -28,6 +28,9 @@ export default function CannedResponsesScreen() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [scopeFilter, setScopeFilter] = useState('ALL');
+  const [productFilter, setProductFilter] = useState('ALL');
+  const [langFilter, setLangFilter] = useState('ALL');
+  const [visibilityFilter, setVisibilityFilter] = useState('ALL');
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -72,10 +75,15 @@ export default function CannedResponsesScreen() {
     const q = search.trim().toLowerCase();
     return items.filter((it) => {
       if (scopeFilter !== 'ALL' && it.scope !== scopeFilter) return false;
+      if (productFilter === 'GLOBAL' && it.productId) return false;
+      if (productFilter !== 'ALL' && productFilter !== 'GLOBAL' && it.productId !== productFilter) return false;
+      if (langFilter === 'tr' && !(it.contentTr && it.contentTr.trim())) return false;
+      if (langFilter === 'en' && !(it.contentEn && it.contentEn.trim())) return false;
+      if (visibilityFilter !== 'ALL' && it.visibility !== visibilityFilter) return false;
       if (!q) return true;
       return [it.title, it.shortcut, it.contentTr, it.contentEn].some((f) => f && f.toLowerCase().includes(q));
     });
-  }, [items, search, scopeFilter]);
+  }, [items, search, scopeFilter, productFilter, langFilter, visibilityFilter]);
 
   const openCreate = () => {
     setEditing(null);
@@ -121,7 +129,7 @@ export default function CannedResponsesScreen() {
       title,
       shortcut: form.shortcut.trim() || null,
       scope,
-      productId: scope === 'SHARED' ? form.productId || null : null,
+      productId: form.productId || null,
       visibility: form.visibility,
       contentTr: tr || null,
       contentEn: en || null,
@@ -185,6 +193,51 @@ export default function CannedResponsesScreen() {
               style={[styles.filterChip, { borderColor: theme.border }, scopeFilter === f.key && { backgroundColor: theme.primary, borderColor: theme.primary }]}
             >
               <Text style={{ color: scopeFilter === f.key ? theme.onPrimary : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <PickerField
+          label={t('cannedResponses.filterProduct', 'Product')}
+          placeholder={t('cannedResponses.allProducts', 'All products')}
+          value={productFilter}
+          onChange={setProductFilter}
+          options={[
+            { label: t('cannedResponses.allProducts', 'All products'), value: 'ALL' },
+            { label: t('cannedResponses.productGlobal', 'Global (all products)'), value: 'GLOBAL' },
+            ...products.map((p) => ({ label: p.name, value: p.id })),
+          ]}
+        />
+
+        <View style={styles.filterRow}>
+          {[
+            { key: 'ALL', label: t('cannedResponses.filterAll', 'All') },
+            { key: 'tr', label: 'TR' },
+            { key: 'en', label: 'EN' },
+          ].map((f) => (
+            <Pressable
+              key={`lang-${f.key}`}
+              onPress={() => setLangFilter(f.key)}
+              style={[styles.filterChip, { borderColor: theme.border }, langFilter === f.key && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+            >
+              <Text style={{ color: langFilter === f.key ? theme.onPrimary : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{f.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.filterRow}>
+          {[
+            { key: 'ALL', label: t('cannedResponses.filterAll', 'All') },
+            { key: 'EXTERNAL', label: t('cannedResponses.visExternal', 'External') },
+            { key: 'INTERNAL', label: t('cannedResponses.visInternal', 'Internal') },
+            { key: 'BOTH', label: t('cannedResponses.visBoth', 'Both') },
+          ].map((f) => (
+            <Pressable
+              key={`vis-${f.key}`}
+              onPress={() => setVisibilityFilter(f.key)}
+              style={[styles.filterChip, { borderColor: theme.border }, visibilityFilter === f.key && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+            >
+              <Text style={{ color: visibilityFilter === f.key ? theme.onPrimary : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{f.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -276,18 +329,17 @@ export default function CannedResponsesScreen() {
                 options={scopeOptions}
                 disabled={!isAdmin}
               />
-              {isAdmin && form.scope === 'SHARED' && (
-                <PickerField
-                  label={t('cannedResponses.labelProduct', 'Product')}
-                  placeholder={t('cannedResponses.productGlobal', 'Global (all products)')}
-                  value={form.productId}
-                  onChange={(v) => setForm((f) => ({ ...f, productId: v }))}
-                  options={[
-                    { label: t('cannedResponses.productGlobal', 'Global (all products)'), value: null },
-                    ...products.map((p) => ({ label: p.name, value: p.id })),
-                  ]}
-                />
-              )}
+              {/* Product binding applies to both scopes (personal or shared). */}
+              <PickerField
+                label={t('cannedResponses.labelProduct', 'Product')}
+                placeholder={t('cannedResponses.productGlobal', 'Global (all products)')}
+                value={form.productId}
+                onChange={(v) => setForm((f) => ({ ...f, productId: v }))}
+                options={[
+                  { label: t('cannedResponses.productGlobal', 'Global (all products)'), value: null },
+                  ...products.map((p) => ({ label: p.name, value: p.id })),
+                ]}
+              />
 
               <View>
                 <Text style={[styles.fieldLabel, { color: theme.textPrimary }]}>{t('cannedResponses.labelVisibility', 'Visibility')}</Text>
