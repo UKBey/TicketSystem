@@ -33,7 +33,9 @@ public class GeneratorConfig {
     // ---------------------------------------------------------------
     // Server address
     // ---------------------------------------------------------------
-    public static final String BASE_URL = "http://localhost";
+    // Host'tan `java -jar` ile çalışınca localhost (nginx :80). Container içinde
+    // GEN_BASE_URL=http://nginx-proxy ile compose servis adına yönlendirilir.
+    public static final String BASE_URL = envOrDefault("GEN_BASE_URL", "http://localhost");
 
     // ---------------------------------------------------------------
     // Keycloak
@@ -88,9 +90,11 @@ public class GeneratorConfig {
     // ---------------------------------------------------------------
     // PostgreSQL (direct DB connection for date backfill)
     // ---------------------------------------------------------------
-    public static final String DB_URL      = "jdbc:postgresql://localhost:5432/ticketdb";
-    public static final String DB_USER     = USERS.username("database", "ticketadmin");
-    public static final String DB_PASSWORD = USERS.password("database", "321654");
+    // DB_URL container içinde GEN_DB_URL ile it-service-db servisine yönlendirilir.
+    // DB_USER/DB_PASSWORD önceliği: env (GEN_DB_*) > users.json > hardcoded fallback.
+    public static final String DB_URL      = envOrDefault("GEN_DB_URL", "jdbc:postgresql://localhost:5432/ticketdb");
+    public static final String DB_USER     = envOrDefault("GEN_DB_USER", USERS.username("database", "ticketadmin"));
+    public static final String DB_PASSWORD = envOrDefault("GEN_DB_PASSWORD", USERS.password("database", "321654"));
 
     /** How many days back ticket creation dates should be spread across. */
     public static final int DATE_SPREAD_DAYS = 7;
@@ -115,6 +119,24 @@ public class GeneratorConfig {
 
     private GeneratorConfig() {
         // Utility class — no instances.
+    }
+
+    /**
+     * Returns the value of environment variable {@code key} when it is set and non-blank,
+     * otherwise {@code def}.
+     *
+     * <p>Lets a containerized run override the host-oriented defaults — e.g.
+     * {@code GEN_BASE_URL=http://nginx-proxy} and
+     * {@code GEN_DB_URL=jdbc:postgresql://it-service-db:5432/ticketdb} — while a plain
+     * {@code java -jar} on the host keeps using {@code localhost}.
+     *
+     * @param key environment variable name
+     * @param def fallback used when the variable is unset or blank
+     * @return the environment value or {@code def}
+     */
+    private static String envOrDefault(String key, String def) {
+        String value = System.getenv(key);
+        return (value != null && !value.isBlank()) ? value : def;
     }
 
     // -----------------------------------------------------------------

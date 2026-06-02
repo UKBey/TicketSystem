@@ -7,7 +7,7 @@
         javadoc javadoc-backend javadoc-llm \
         sonar sonar-up sonar-down \
         lint install clean \
-        gen gen-k8s gen-build gen-run \
+        gen gen-host gen-k8s gen-build gen-run \
         k8s-up k8s-down k8s-logs k8s-build k8s-load-images k8s-render k8s-rebuild \
         k8s-ensure k8s-apply k8s-restart-all k8s-redeploy-kjar _k8s-create _k8s-start
 
@@ -30,12 +30,14 @@ ifeq ($(OS),Windows_NT)
   NULL       := NUL
   ECHO_BLANK := echo.
   RM_DIST    := if exist $(FRONTEND_DIR)\dist rmdir /s /q $(FRONTEND_DIR)\dist
+  REQUIRE_USERS := if not exist "$(GENERATOR_DIR)\users.json" (echo HATA: $(GENERATOR_DIR)\users.json bulunamadi. Once kopyala: copy $(GENERATOR_DIR)\users.example.json $(GENERATOR_DIR)\users.json & exit /b 1)
 else
   MVNW       := ./mvnw
   MVNW_UP    := ../$(BACKEND_DIR)/mvnw
   NULL       := /dev/null
   ECHO_BLANK := echo ""
   RM_DIST    := rm -rf $(FRONTEND_DIR)/dist
+  REQUIRE_USERS := test -f $(GENERATOR_DIR)/users.json || { echo "HATA: $(GENERATOR_DIR)/users.json bulunamadi. Once kopyala: cp $(GENERATOR_DIR)/users.example.json $(GENERATOR_DIR)/users.json"; exit 1; }
 endif
 
 # Sadece altyapi servisleri (backend/frontend haric) -- local dev icin
@@ -95,10 +97,11 @@ help:
 	@echo                       Token .env dosyasindaki SONAR_TOKEN degiskeninden okunur
 	@$(ECHO_BLANK)
 	@echo  Veri Uretici - Data Generator:
-	@echo    gen              - Generatoru derler ve calistirir - build + run
-	@echo    gen-k8s          - k8s ortaminda: port-forward + gen-build + gen-run
-	@echo    gen-build        - Generator JARini derler
-	@echo    gen-run          - Onceden derlenmis JARi calistirir
+	@echo    gen              - Generatoru Docker container icinde calistirir - make up ile KALKMAZ
+	@echo    gen-host         - Generatoru host JVM uzerinde calistirir - Dockersiz
+	@echo    gen-k8s          - k8s ortaminda: port-forward + gen-host
+	@echo    gen-build        - Generator JARini derler - host
+	@echo    gen-run          - Onceden derlenmis JARi calistirir - host
 	@$(ECHO_BLANK)
 	@echo  Kubernetes - kind + kustomize:
 	@echo    k8s-rebuild      - TEK KOMUT: cluster yoksa olusturur, kapaliysa baslatir,
@@ -249,10 +252,19 @@ sonar:
 
 # --- Veri Uretici ---
 
-gen: gen-build gen-run
+# Generator'u Docker container icinde calistirir (compose profili: tools).
+# `make up` / `docker compose up` ile AYAGA KALKMAZ -- yalnizca bu komutla baslar.
+# Once image build edilir, sonra tek seferlik container calisip silinir (--rm).
+# Stack (backend/nginx/db) saglikli degilse compose once onu ayaga kaldirir.
+gen:
+	@$(REQUIRE_USERS)
+	docker compose build data-generator
+	docker compose run --rm data-generator
 
-# Generator host'tan calisir; DateBackfiller dogrudan jdbc:postgresql://localhost:5432
-# adresine baglanir. K8s'te Postgres cluster ici oldugu icin port-forward gerek.
+# Generator'u host JVM uzerinde calistirir (Dockersiz) -- gen-k8s ve dogrudan JVM icin.
+gen-host: gen-build gen-run
+
+# k8s: DB cluster ici oldugu icin once port-forward, sonra host JVM ile (gen-host).
 # Bu target sadece talimat verir.
 gen-k8s:
 	@echo ============================================================
@@ -261,7 +273,7 @@ gen-k8s:
 	@echo  1. AYRI BIR terminal penceresinde sunu calistir:
 	@echo        kubectl -n $(K8S_NAMESPACE) port-forward svc/it-service-db 5432:5432
 	@echo  2. Sonra bu pencerede:
-	@echo        make gen
+	@echo        make gen-host
 	@echo  Pencere acik kalmali -- bittikten sonra Ctrl+C ile kapat.
 	@echo ============================================================
 

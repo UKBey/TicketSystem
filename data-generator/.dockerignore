@@ -1,0 +1,6 @@
+# Build ciktilarini ve gizli/gereksiz dosyalari build context'ten cikar.
+target/
+# users.json gizli kimlik bilgisi icerir — image'a/context'e girmemeli (runtime'da mount edilir).
+users.json
+*.md
+.gitignore

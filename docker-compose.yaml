@@ -665,3 +665,39 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+
+  # Demo veri uretici (data-generator) — SADECE `make gen` ile calisir.
+  # profiles: ["tools"] sayesinde `docker compose up` / `make up` ile AYAGA KALKMAZ;
+  # yalnizca `docker compose run data-generator` (make gen) ile on-demand baslar.
+  # Calismadan once backend + nginx + db saglikli olana kadar bekler (depends_on),
+  # isini bitirip cikar (tek seferlik job — restart yok).
+  data-generator:
+    build:
+      context: ./data-generator
+    image: ${DOCKERHUB_USERNAME:-local}/data-generator:${IMAGE_TAG:-latest}
+    container_name: data-generator
+    profiles: ["tools"]
+    environment:
+      # Container compose agindan servislere isimle erisir (localhost yerine).
+      GEN_BASE_URL: "http://nginx-proxy"
+      GEN_DB_URL: "jdbc:postgresql://it-service-db:5432/ticketdb"
+      # DB kimlik bilgileri .env'den (backend ile ayni kaynak); bos ise users.json'a duser.
+      GEN_DB_USER: ${SPRING_DATASOURCE_USERNAME:-ticketadmin}
+      GEN_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
+    volumes:
+      # Kimlik bilgileri + seed kullanici listeleri (gitignored, ZORUNLU).
+      # DIKKAT: dosya yoksa Docker bunu bos bir DIZIN olarak mount eder ve job
+      # "en az bir agent/customer gerekli" hatasiyla coker. `make gen` bu yuzden
+      # compose'u cagirmadan once dosyanin varligini kontrol eder. Yoksa once:
+      #   cp data-generator/users.example.json data-generator/users.json
+      - ./data-generator/users.json:/app/users.json:ro
+    depends_on:
+      it-service-db:
+        condition: service_healthy
+      it-service-backend:
+        condition: service_healthy
+      nginx-proxy:
+        condition: service_healthy
+    networks:
+      - it-service-net
+    restart: "no"
