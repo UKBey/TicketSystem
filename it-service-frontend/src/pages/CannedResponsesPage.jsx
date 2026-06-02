@@ -10,6 +10,7 @@ import api, {
   deleteCannedResponse,
 } from '../services/api';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs } from '../utils/cannedResponses';
+import PaginationBar from '../components/PaginationBar';
 
 const EMPTY_FORM = {
   title: '',
@@ -43,6 +44,8 @@ export default function CannedResponsesPage() {
   const [productFilter, setProductFilter] = useState('ALL');
   const [langFilter, setLangFilter] = useState('ALL');
   const [visibilityFilter, setVisibilityFilter] = useState('ALL');
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -110,6 +113,20 @@ export default function CannedResponsesPage() {
         .some((f) => f && f.toLowerCase().includes(q));
     });
   }, [items, search, scopeFilter, productFilter, langFilter, visibilityFilter]);
+
+  // ---- pagination (client-side over the filtered list) --------------------
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / size);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const pageItems = useMemo(
+    () => filtered.slice(safePage * size, safePage * size + size),
+    [filtered, safePage, size],
+  );
+
+  // Filtre/arama/sayfa boyutu değişince ilk sayfaya dön.
+  useEffect(() => { setPage(0); }, [search, scopeFilter, productFilter, langFilter, visibilityFilter, size]);
+  // Silme sonrası mevcut sayfa taşarsa son geçerli sayfaya kıs.
+  useEffect(() => { if (page !== safePage) setPage(safePage); }, [page, safePage]);
 
   // ---- modal ---------------------------------------------------------------
   const openCreate = () => {
@@ -327,8 +344,9 @@ export default function CannedResponsesPage() {
           {search.trim() ? t('cannedResponses.noResults') : t('cannedResponses.emptyManage')}
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filtered.map((item) => {
+          {pageItems.map((item) => {
             const langs = availableLangs(item);
             const preview = fillPlaceholders(item.contentTr || item.contentEn || '', sampleCtx);
             return (
@@ -390,6 +408,18 @@ export default function CannedResponsesPage() {
             );
           })}
         </div>
+
+        <div className="mt-3">
+          <PaginationBar
+            page={safePage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            size={size}
+            onPageChange={setPage}
+            onSizeChange={setSize}
+          />
+        </div>
+        </>
       )}
 
       {/* Create / Edit modal */}
