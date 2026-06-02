@@ -252,14 +252,15 @@ sonar:
 
 # --- Veri Uretici ---
 
-# Generator'u Docker container icinde calistirir (compose profili: tools).
-# `make up` / `docker compose up` ile AYAGA KALKMAZ -- yalnizca bu komutla baslar.
-# Once image build edilir, sonra tek seferlik container calisip silinir (--rm).
-# Stack (backend/nginx/db) saglikli degilse compose once onu ayaga kaldirir.
+# Generator'u Docker container icinde calistirir -- eski host `make gen` ile ayni is,
+# ama host'ta Java/Maven GEREKTIRMEZ. compose profili: tools.
+# `make up` / `make rebuild` / `docker compose up` ile AYAGA KALKMAZ.
+# --no-deps: ZATEN AYAKTA olan stack'e baglanir; stack'i yonetmez/yeniden baslatmaz
+# (kjar-deploy gibi tek-seferlik job'lar tekrar tetiklenmez). Once `make up` gerekir.
 gen:
 	@$(REQUIRE_USERS)
 	docker compose build data-generator
-	docker compose run --rm data-generator
+	docker compose run --rm --no-deps data-generator
 
 # Generator'u host JVM uzerinde calistirir (Dockersiz) -- gen-k8s ve dogrudan JVM icin.
 gen-host: gen-build gen-run

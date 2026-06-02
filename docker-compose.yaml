@@ -668,9 +668,9 @@ services:
 
   # Demo veri uretici (data-generator) — SADECE `make gen` ile calisir.
   # profiles: ["tools"] sayesinde `docker compose up` / `make up` ile AYAGA KALKMAZ;
-  # yalnizca `docker compose run data-generator` (make gen) ile on-demand baslar.
-  # Calismadan once backend + nginx + db saglikli olana kadar bekler (depends_on),
-  # isini bitirip cikar (tek seferlik job — restart yok).
+  # yalnizca `docker compose run --no-deps data-generator` (make gen) ile baslar.
+  # ZATEN AYAKTA olan stack'e baglanir, stack'i YONETMEZ (deps yeniden tetiklenmez --
+  # boylece kjar-deploy gibi tek-seferlik job'lar bozulmaz); isini bitirip cikar.
   data-generator:
     build:
       context: ./data-generator
@@ -691,13 +691,9 @@ services:
       # compose'u cagirmadan once dosyanin varligini kontrol eder. Yoksa once:
       #   cp data-generator/users.example.json data-generator/users.json
       - ./data-generator/users.json:/app/users.json:ro
-    depends_on:
-      it-service-db:
-        condition: service_healthy
-      it-service-backend:
-        condition: service_healthy
-      nginx-proxy:
-        condition: service_healthy
+    # depends_on YOK: bilerek. `make gen` --no-deps ile zaten ayakta olan stack'e
+    # baglanir; deps eklenirse `docker compose run` tum zinciri (kjar-deploy dahil)
+    # yeniden degerlendirir ve tek-seferlik job'lar exit 22 ile patlar.
     networks:
       - it-service-net
     restart: "no"
