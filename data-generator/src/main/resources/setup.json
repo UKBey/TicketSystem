@@ -1372,5 +1372,115 @@
         }
       ]
     }
-  ]
+  ],
+
+  "cannedResponses": {
+    "global": [
+      {
+        "title": "Selamlama",
+        "shortcut": "selam",
+        "visibility": "BOTH",
+        "contentTr": "Merhaba {{musteri.ad}}, ben {{agent.ad}}. {{bilet.no}} numaralı talebinizle ilgileniyorum. Size nasıl yardımcı olabilirim?",
+        "contentEn": "Hello {{musteri.ad}}, I'm {{agent.ad}} and I'll be handling your ticket {{bilet.no}}. How can I help you?"
+      },
+      {
+        "title": "Talep alındı",
+        "shortcut": "alindi",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, talebinizi aldık ve incelemeye başladık. En kısa sürede size dönüş yapacağız.",
+        "contentEn": "Hi {{musteri.ad}}, we've received your request and started reviewing it. We'll get back to you shortly."
+      },
+      {
+        "title": "Ek bilgi talebi",
+        "shortcut": "bilgi",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, sorunu daha hızlı çözebilmemiz için ekran görüntüsü, tam hata mesajı ve sorunun ne zaman başladığı bilgisini paylaşır mısınız?",
+        "contentEn": "Hi {{musteri.ad}}, to resolve this faster, could you share a screenshot, the exact error message, and when the issue started?"
+      },
+      {
+        "title": "Çözüldü teyidi",
+        "shortcut": "cozuldu",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, {{bilet.no}} numaralı talebinizde bildirdiğiniz sorunu çözdük. Her şeyin yolunda olduğunu teyit eder misiniz?",
+        "contentEn": "Hi {{musteri.ad}}, we've resolved the issue reported in ticket {{bilet.no}}. Could you confirm everything is working now?"
+      },
+      {
+        "title": "Kapanış",
+        "shortcut": "kapanis",
+        "visibility": "EXTERNAL",
+        "contentTr": "Geri bildiriminiz için teşekkürler {{musteri.ad}}. Başka bir sorun yaşarsanız bu talebi yeniden açabilir veya yeni bir talep oluşturabilirsiniz. İyi günler dileriz. — {{agent.ad}}",
+        "contentEn": "Thanks for your feedback, {{musteri.ad}}. If anything else comes up, feel free to reopen this ticket or open a new one. Have a great day! — {{agent.ad}}"
+      },
+      {
+        "title": "Takip ve hatırlatma",
+        "shortcut": "takip",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, {{bilet.no}} numaralı talebinizle ilgili geri dönüşünüzü bekliyoruz. Sorun devam ediyorsa bize yazmanız yeterli.",
+        "contentEn": "Hi {{musteri.ad}}, we're still waiting for your reply on ticket {{bilet.no}}. Just let us know if the issue persists."
+      },
+      {
+        "title": "Şifre sıfırlama adımları",
+        "shortcut": "sifre",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, şifrenizi sıfırlamak için: 1) Giriş ekranında 'Şifremi unuttum' bağlantısına tıklayın. 2) Kurumsal e-postanızı girin. 3) Gelen bağlantıdan yeni şifrenizi belirleyin. Sorun yaşarsanız bize bildirin.",
+        "contentEn": "Hi {{musteri.ad}}, to reset your password: 1) Click 'Forgot password' on the login screen. 2) Enter your work email. 3) Set a new password from the link you receive. Let us know if you run into trouble."
+      },
+      {
+        "title": "Uzak bağlantı talebi",
+        "shortcut": "uzak",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, sorunu birlikte incelemek için kısa bir uzak bağlantı oturumu açabilir miyiz? Uygun olduğunuz bir zaman aralığı paylaşırsanız bağlantıyı iletelim.",
+        "contentEn": "Hi {{musteri.ad}}, could we start a short remote session to look into this together? Share a time that works for you and we'll send the connection link."
+      },
+      {
+        "title": "Dahili: eskalasyon notu",
+        "shortcut": "eskalasyon",
+        "visibility": "INTERNAL",
+        "contentTr": "Dahili not: Bu talep ({{bilet.no}}) 2. seviye ekibe yönlendirildi. Sebep: ilk müdahalede çözülemedi. İlgili loglar ve denenen adımlar eklendi. — {{agent.ad}}",
+        "contentEn": "Internal note: This ticket ({{bilet.no}}) has been escalated to L2. Reason: not resolved on first response. Relevant logs and attempted steps attached. — {{agent.ad}}"
+      },
+      {
+        "title": "Dahili: müşteri yanıtı bekleniyor",
+        "shortcut": "beklemede",
+        "visibility": "INTERNAL",
+        "contentTr": "Dahili not: Müşteriden ek bilgi/teyit bekleniyor. {{tarih}} itibarıyla yanıt gelmedi; 48 saat içinde dönüş olmazsa talep otomatik kapatılacak.",
+        "contentEn": "Internal note: Waiting on the customer for more info/confirmation. No reply as of {{tarih}}; the ticket will auto-close if there's no response within 48 hours."
+      }
+    ],
+
+    "perProduct": [
+      {
+        "title": "{product} — Kurulum adımları",
+        "shortcut": "kurulum",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, {{urun}} kurulumu için: 1) Yazılım merkezinden paketi indirin. 2) Yönetici olarak çalıştırın. 3) Kurumsal hesabınızla oturum açın. Kurulum sonrası sorun yaşarsanız {{bilet.no}} üzerinden bize yazın.",
+        "contentEn": "Hi {{musteri.ad}}, to install {{urun}}: 1) Download the package from Software Center. 2) Run it as administrator. 3) Sign in with your corporate account. If you hit any issue after install, reply on {{bilet.no}}."
+      },
+      {
+        "title": "{product} — Sürüm ve güncelleme",
+        "shortcut": "surum",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, {{urun}} için en güncel sürümü kullandığınızdan emin olalım. Yardım > Hakkında menüsünden sürüm numaranızı paylaşır mısınız? Gerekirse güncelleme adımlarını ileteceğiz.",
+        "contentEn": "Hi {{musteri.ad}}, let's make sure you're on the latest {{urun}} version. Could you share your version number from Help > About? We'll send the update steps if needed."
+      },
+      {
+        "title": "{product} — Bilinen sorun yönlendirmesi",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, '{{konu}}' konusundaki bu durum {{urun}} için bilinen bir sorun olabilir. Bilgi tabanındaki ilgili çözümü uyguladıktan sonra sonucu bizimle paylaşır mısınız?",
+        "contentEn": "Hi {{musteri.ad}}, this '{{konu}}' situation may be a known issue for {{urun}}. Could you try the matching knowledge-base resolution and let us know the result?"
+      },
+      {
+        "title": "{product} — Lisans/erişim talebi",
+        "visibility": "EXTERNAL",
+        "contentTr": "Merhaba {{musteri.ad}}, {{urun}} için lisans/erişim talebinizi aldık. Yöneticinizin onayının ardından erişiminiz {{tarih}} tarihinden itibaren en geç 1 iş günü içinde tanımlanacaktır.",
+        "contentEn": "Hi {{musteri.ad}}, we've received your {{urun}} license/access request. After your manager's approval, access will be granted within 1 business day from {{tarih}}."
+      },
+      {
+        "title": "{product} — Dahili: yapılandırma notu",
+        "visibility": "INTERNAL",
+        "contentTr": "Dahili not ({{urun}}): Standart yapılandırma uygulandı, sunucu/sürüm uyumu kontrol edildi. Sonraki agent için: müşteri ortamında özel ayar var, {{bilet.no}} geçmişine bakılmalı. — {{agent.ad}}",
+        "contentEn": "Internal note ({{urun}}): Standard configuration applied; server/version compatibility checked. For the next agent: the customer has a custom setting, check the {{bilet.no}} history. — {{agent.ad}}"
+      }
+    ]
+  }
 }

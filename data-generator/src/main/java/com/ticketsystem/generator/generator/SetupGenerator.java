@@ -97,6 +97,9 @@ public class SetupGenerator {
         // 4. Sıkça karşılaşılan sorunlar — idempotent (title eşleşmesiyle)
         ensureKnownIssues(spec.path("products"), productByName, topicByProductAndName);
 
+        // 4b. Hazır yanıtlar — global + ürün başına paylaşılan şablonlar (idempotent, title eşleşmesiyle)
+        ensureCannedResponses(spec.path("cannedResponses"), productByName);
+
         // 5. Ürün yetkilerini agent ve customer'lara dağıt
         assignProductsToUsers(agents,    productByName.values());
         assignProductsToUsers(customers, productByName.values());
@@ -376,6 +379,80 @@ public class SetupGenerator {
             }
             if (created > 0) log.info("'{}' için {} known issue oluşturuldu.", productName, created);
         }
+    }
+
+    // -----------------------------------------------------------------
+    // Canned responses — paylaşılan (SHARED) şablonlar: global + ürün başına.
+    // Idempotent: başlık eşleşmesine göre atlanır. Admin tüm paylaşılanları görür.
+    // -----------------------------------------------------------------
+
+    private void ensureCannedResponses(JsonNode spec, Map<String, Long> productByName)
+            throws IOException, InterruptedException {
+        if (spec == null || spec.isMissingNode()) return;
+
+        Set<String> existingTitles = new HashSet<>();
+        try {
+            JsonNode resp = api.get("/canned-responses", adminAgent.getToken());
+            if (resp.isArray()) {
+                for (JsonNode c : resp) existingTitles.add(c.path("title").asText());
+            }
+        } catch (Exception e) {
+            log.warn("Hazır yanıt listesi alınamadı: {}", e.getMessage());
+        }
+
+        int created = 0;
+
+        // Global (ürünsüz) paylaşılan şablonlar — her ürün bağlamında görünür.
+        for (JsonNode tpl : spec.path("global")) {
+            created += createCannedIfMissing(tpl, null, null, existingTitles);
+        }
+
+        // Ürün başına şablonlar — "{product}" token'ı ürün adıyla değiştirilir.
+        for (Map.Entry<String, Long> entry : productByName.entrySet()) {
+            for (JsonNode tpl : spec.path("perProduct")) {
+                created += createCannedIfMissing(tpl, entry.getValue(), entry.getKey(), existingTitles);
+            }
+        }
+
+        log.info("Hazır yanıt kurulumu tamam: {} yeni paylaşılan şablon oluşturuldu (global + ürün başına).", created);
+    }
+
+    /**
+     * Creates one canned response via the API unless a template with the same (resolved) title
+     * already exists. Returns 1 when a record is created, 0 otherwise.
+     */
+    private int createCannedIfMissing(JsonNode tpl, Long productId, String productName,
+                                      Set<String> existingTitles) throws InterruptedException {
+        String title = substituteProduct(tpl.path("title").asText(""), productName);
+        if (title.isBlank() || existingTitles.contains(title)) return 0;
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("title", title);
+        body.put("scope", "SHARED");
+        body.put("visibility", tpl.path("visibility").asText("BOTH"));
+        String shortcut = tpl.path("shortcut").asText("");
+        if (!shortcut.isBlank()) body.put("shortcut", shortcut);
+        if (productId != null) body.put("productId", productId);
+        String tr = substituteProduct(tpl.path("contentTr").asText(""), productName);
+        String en = substituteProduct(tpl.path("contentEn").asText(""), productName);
+        if (!tr.isBlank()) body.put("contentTr", tr);
+        if (!en.isBlank()) body.put("contentEn", en);
+
+        try {
+            api.post("/canned-responses", body, adminAgent.getToken());
+            existingTitles.add(title);
+            Thread.sleep(GeneratorConfig.DELAY_MS);
+            return 1;
+        } catch (Exception e) {
+            log.warn("Hazır yanıt oluşturulamadı ({}): {}", title, e.getMessage());
+            return 0;
+        }
+    }
+
+    /** Replaces the {@code {product}} token in template text with the product name. */
+    private String substituteProduct(String text, String productName) {
+        if (text == null) return "";
+        return productName == null ? text : text.replace("{product}", productName);
     }
 
     // -----------------------------------------------------------------
