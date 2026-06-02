@@ -1,0 +1,10 @@
+# Satir sonlarini platformlar arasi sabitle.
+# Makefile ve POSIX shell scriptleri DAIMA LF olmali: CRLF, Linux'ta GNU Make'in
+# recipe komutlarina '\r' sizdirir ve "command not found" / sozdizimi hatalari verir.
+Makefile        text eol=lf
+*.sh            text eol=lf
+mvnw            text eol=lf
+
+# Windows'a ozgu script'ler CRLF kalmali.
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
