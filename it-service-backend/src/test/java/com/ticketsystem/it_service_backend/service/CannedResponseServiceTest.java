@@ -144,6 +144,23 @@ class CannedResponseServiceTest {
         }
     }
 
+    @Test
+    @DisplayName("listVisible — geçersiz scope filtresi 400 fırlatır (sorgudan önce)")
+    void listVisible_invalidScope_badRequest() {
+        assertThatThrownBy(() -> service.listVisible("agent-1", null, "GARBAGE", null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(repository, never()).findVisibleToUser(any());
+    }
+
+    @Test
+    @DisplayName("listVisible — geçersiz visibility filtresi 400 fırlatır")
+    void listVisible_invalidVisibility_badRequest() {
+        assertThatThrownBy(() -> service.listVisible("agent-1", null, null, "FOO", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
     // ----------------------------------------------------------------
     // create
     // ----------------------------------------------------------------

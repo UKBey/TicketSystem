@@ -237,6 +237,9 @@ export default function TicketDetailScreen({ route, navigation }) {
     setMessage((prev) => {
       const start = Math.min(selection.start, prev.length);
       const end = Math.min(selection.end, prev.length);
+      const caret = start + filled.length;
+      // Advance the tracked caret so consecutive inserts (chip then sheet, etc.) append in order.
+      setSelection({ start: caret, end: caret });
       return prev.slice(0, start) + filled + prev.slice(end);
     });
     setCannedOpen(false);

@@ -66,14 +66,16 @@ public class CannedResponseService {
     @Transactional(readOnly = true)
     public List<CannedResponseDTO> listVisible(String userId, Long productId,
                                                String scope, String visibility, String q) {
+        // Validate optional filters up front so a bad value yields 400, not a silent empty list.
+        String scopeFilter = validateScopeFilter(scope);
+        String visFilter = validateVisibilityFilter(visibility);
+        String needle = (q == null || q.isBlank()) ? null : q.trim().toLowerCase();
+
         List<CannedResponse> base = (productId != null)
                 ? repository.findVisibleForProduct(userId, productId)
                 : repository.findVisibleToUser(userId);
 
         Set<Long> favoriteIds = new HashSet<>(favoriteRepository.findFavoriteIdsByUser(userId));
-        String scopeFilter = (scope == null || scope.isBlank()) ? null : scope.trim().toUpperCase();
-        String visFilter = (visibility == null || visibility.isBlank()) ? null : visibility.trim().toUpperCase();
-        String needle = (q == null || q.isBlank()) ? null : q.trim().toLowerCase();
 
         return base.stream()
                 .filter(c -> scopeFilter == null || scopeFilter.equals(c.getScope()))
@@ -277,6 +279,26 @@ public class CannedResponseService {
         String upper = scope.trim().toUpperCase();
         if (!SCOPE_PERSONAL.equals(upper) && !SCOPE_SHARED.equals(upper)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.scope.invalid");
+        }
+        return upper;
+    }
+
+    /** Optional scope filter for listing: blank/null → no filter; an unknown value → 400. */
+    private String validateScopeFilter(String scope) {
+        if (scope == null || scope.isBlank()) return null;
+        String upper = scope.trim().toUpperCase();
+        if (!SCOPE_PERSONAL.equals(upper) && !SCOPE_SHARED.equals(upper)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.scope.invalid");
+        }
+        return upper;
+    }
+
+    /** Optional visibility filter for listing: blank/null → no filter; an unknown value → 400. */
+    private String validateVisibilityFilter(String visibility) {
+        if (visibility == null || visibility.isBlank()) return null;
+        String upper = visibility.trim().toUpperCase();
+        if (!VISIBILITY_EXTERNAL.equals(upper) && !VISIBILITY_INTERNAL.equals(upper) && !VISIBILITY_BOTH.equals(upper)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.visibility.invalid");
         }
         return upper;
     }

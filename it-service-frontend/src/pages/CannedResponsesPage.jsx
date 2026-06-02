@@ -132,8 +132,10 @@ export default function CannedResponsesPage() {
     const field = activeLang === 'tr' ? 'contentTr' : 'contentEn';
     const el = contentRef.current;
     const current = form[field] || '';
-    const start = el ? el.selectionStart : current.length;
-    const end = el ? el.selectionEnd : current.length;
+    // When the textarea isn't focused, some engines report selection 0/0; append instead of prepending.
+    const focused = el && document.activeElement === el;
+    const start = focused ? el.selectionStart : current.length;
+    const end = focused ? el.selectionEnd : current.length;
     const snippet = `{{${token}}}`;
     const next = current.slice(0, start) + snippet + current.slice(end);
     setForm((prev) => ({ ...prev, [field]: next }));

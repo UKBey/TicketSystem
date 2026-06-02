@@ -98,9 +98,14 @@ export default function CannedResponsesScreen() {
   const contentField = activeLang === 'tr' ? 'contentTr' : 'contentEn';
 
   const insertPlaceholder = (token) => {
+    const snippet = `{{${token}}}`;
     const cur = form[contentField] || '';
-    const next = cur.slice(0, sel.start) + `{{${token}}}` + cur.slice(sel.end);
+    const start = Math.min(sel.start, cur.length);
+    const end = Math.min(sel.end, cur.length);
+    const next = cur.slice(0, start) + snippet + cur.slice(end);
     setForm((f) => ({ ...f, [contentField]: next }));
+    const caret = start + snippet.length;
+    setSel({ start: caret, end: caret });
   };
 
   const submit = async () => {
