@@ -30,14 +30,12 @@ ifeq ($(OS),Windows_NT)
   NULL       := NUL
   ECHO_BLANK := echo.
   RM_DIST    := if exist $(FRONTEND_DIR)\dist rmdir /s /q $(FRONTEND_DIR)\dist
-  REQUIRE_USERS := if not exist "$(GENERATOR_DIR)\users.json" (echo HATA: $(GENERATOR_DIR)\users.json bulunamadi. Once kopyala: copy $(GENERATOR_DIR)\users.example.json $(GENERATOR_DIR)\users.json & exit /b 1)
 else
   MVNW       := ./mvnw
   MVNW_UP    := ../$(BACKEND_DIR)/mvnw
   NULL       := /dev/null
   ECHO_BLANK := echo ""
   RM_DIST    := rm -rf $(FRONTEND_DIR)/dist
-  REQUIRE_USERS := test -f $(GENERATOR_DIR)/users.json || { echo "HATA: $(GENERATOR_DIR)/users.json bulunamadi. Once kopyala: cp $(GENERATOR_DIR)/users.example.json $(GENERATOR_DIR)/users.json"; exit 1; }
 endif
 
 # Sadece altyapi servisleri (backend/frontend haric) -- local dev icin
@@ -257,10 +255,16 @@ sonar:
 # `make up` / `make rebuild` / `docker compose up` ile AYAGA KALKMAZ.
 # --no-deps: ZATEN AYAKTA olan stack'e baglanir; stack'i yonetmez/yeniden baslatmaz
 # (kjar-deploy gibi tek-seferlik job'lar tekrar tetiklenmez). Once `make up` gerekir.
-gen:
-	@$(REQUIRE_USERS)
+gen: $(GENERATOR_DIR)/users.json
 	docker compose build data-generator
 	docker compose run --rm --no-deps data-generator
+
+# Shell-bagimsiz on-kosul: users.json (gizli, zorunlu) yoksa make asagidaki kurali
+# calistirip durur -- cmd, sh ve Linux'ta ayni davranir (cmd/sh ayrimi gerekmez).
+# Dosya varsa (regular file) bu kural hic tetiklenmez.
+$(GENERATOR_DIR)/users.json:
+	@echo data-generator/users.json bulunamadi -- once data-generator/users.example.json dosyasini users.json olarak kopyalayin
+	@exit 1
 
 # Generator'u host JVM uzerinde calistirir (Dockersiz) -- gen-k8s ve dogrudan JVM icin.
 gen-host: gen-build gen-run
