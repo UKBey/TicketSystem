@@ -28,6 +28,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -182,7 +183,7 @@ public class TicketService {
      */
     @Transactional(readOnly = true)
     public List<Ticket> getAllTickets(String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN")) {
+        if (AuthRoles.isGlobal(roles)) {
             return ticketRepository.findAll();
         }
         if (userId == null) return new ArrayList<>();
@@ -216,7 +217,7 @@ public class TicketService {
      */
     @Transactional(readOnly = true)
     public List<Ticket> getPoolTickets(String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN")) {
+        if (AuthRoles.isGlobal(roles)) {
             return ticketRepository.findByStatus("NEW");
         }
         if (userId == null) return new ArrayList<>();
@@ -255,7 +256,7 @@ public class TicketService {
      */
     @Transactional(readOnly = true)
     public List<Ticket> getTeamTickets(String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN")) {
+        if (AuthRoles.isGlobal(roles)) {
             // Önceden findAll().stream().distinct() ile tüm bileti belleğe çekiyordu;
             // tek SQL sorgusuyla aynı sonuç — bellek/CPU tasarrufu + LazyInit yok.
             return ticketRepository.findAllActive();
@@ -285,7 +286,7 @@ public class TicketService {
      */
     @Transactional(readOnly = true)
     public List<Ticket> getTicketsByProduct(Long productId, String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER") || roles.contains("AGENT")) {
+        if (AuthRoles.isGlobal(roles) || AuthRoles.isAgentLevel(roles)) {
             return ticketRepository.findByProductId(productId);
         }
         if (roles.contains("CUSTOMER")) {
@@ -381,7 +382,7 @@ public class TicketService {
     public Page<Ticket> getPoolTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (userId == null) return Page.empty(pageable);
 
-        // AGENT_ADMIN da kendi yetkili ürünleriyle sınırlıdır
+        // Havuz uçtan uca AGENT / LEAD_AGENT'a açıktır ve kendi yetkili ürünleriyle sınırlıdır
         User agent = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
         List<Long> productIds = agent.getAuthorizedProducts().stream()
@@ -490,11 +491,9 @@ public class TicketService {
     public Page<Ticket> getTeamTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (userId == null) return Page.empty(pageable);
 
-        // AGENT_ADMIN da kendi yetkili ürünleriyle sınırlıdır
-        User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
-        List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+        // ADMIN / MANAGER global görünürlük: tüm ürünler. AGENT / LEAD_AGENT kendi
+        // yetkili ürünleriyle sınırlıdır.
+        List<Long> productIds = resolveScopedProductIds(userId, roles);
         if (productIds.isEmpty()) return Page.empty(pageable);
 
         List<String> statuses = teamStatusesOrActive(f);
@@ -535,10 +534,9 @@ public class TicketService {
     public Page<Ticket> getAllAccessibleTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (userId == null) return Page.empty(pageable);
 
-        User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
-        List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+        // ADMIN / MANAGER global görünürlük: tüm ürünler. AGENT / LEAD_AGENT kendi
+        // yetkili ürünleriyle sınırlıdır.
+        List<Long> productIds = resolveScopedProductIds(userId, roles);
         if (productIds.isEmpty()) return Page.empty(pageable);
 
         List<String> statuses = (f.getStatuses() != null && !f.getStatuses().isEmpty()) ? f.getStatuses() : ALL_STATUSES;
@@ -597,12 +595,15 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Page<Ticket> getTicketsByProductFiltered(Long productId, String userId, List<String> roles,
                                                      TicketFilterDTO f, Pageable pageable) {
-        if (roles.contains("AGENT_ADMIN") || roles.contains("AGENT")) {
-            // Ürün yetkisi kontrolü — hem AGENT hem AGENT_ADMIN için
-            User agent = userRepository.findById(userId).orElseThrow();
-            boolean authorized = agent.getAuthorizedProducts().stream()
-                    .anyMatch(p -> p.getId().equals(productId));
-            if (!authorized) return Page.empty(pageable);
+        if (AuthRoles.isGlobal(roles) || AuthRoles.isAgentLevel(roles)) {
+            // ADMIN / MANAGER global: ürün kapsamını atlar. AGENT / LEAD_AGENT
+            // yalnızca yetkili oldukları ürünün biletlerini görebilir.
+            if (!AuthRoles.isGlobal(roles)) {
+                User agent = userRepository.findById(userId).orElseThrow();
+                boolean authorized = agent.getAuthorizedProducts().stream()
+                        .anyMatch(p -> p.getId().equals(productId));
+                if (!authorized) return Page.empty(pageable);
+            }
 
             if (isSortByPriority(pageable)) {
                 boolean asc = isAscending(pageable);
@@ -648,6 +649,25 @@ public class TicketService {
             return ticketRepository.findByProductIdAndCustomerIdFiltered(productId, userId, f.getStatuses(), f.getPriorities(), pageable);
         }
         return Page.empty(pageable);
+    }
+
+    /**
+     * Resolves the product-scope for a staff list query. ADMIN / MANAGER are global
+     * (every product); AGENT / LEAD_AGENT are restricted to their authorizedProducts.
+     *
+     * @param userId requesting user (must be non-null)
+     * @param roles role list of the user
+     * @return the product IDs in scope (empty when a scoped user has no authorized products)
+     */
+    private List<Long> resolveScopedProductIds(String userId, List<String> roles) {
+        if (AuthRoles.isGlobal(roles)) {
+            return productRepository.findAll().stream()
+                    .map(Product::getId).collect(Collectors.toList());
+        }
+        User agent = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+        return agent.getAuthorizedProducts().stream()
+                .map(Product::getId).collect(Collectors.toList());
     }
 
     /** Whether any "extra" filter (search, dateFrom, dateTo, slaStatus, agentIds, topicIds, productId) is active. */
@@ -832,20 +852,16 @@ public class TicketService {
     public Ticket getTicketWithAuth(Long id, String userId, List<String> roles) {
         Ticket ticket = getTicketById(id);
 
-        // AGENT_ADMIN: sadece yetkili olduğu ürünlerin biletlerini görebilir
-        if (roles.contains("AGENT_ADMIN")) {
-            User admin = userRepository.findById(userId).orElseThrow();
-            boolean authorized = admin.getAuthorizedProducts().stream()
-                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-            if (authorized) return ticket;
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
-        }
+        // ADMIN / MANAGER: global görünürlük — tüm ürünlerin biletlerini görür.
+        if (AuthRoles.isGlobal(roles)) return ticket;
 
+        // Müşteri yalnızca kendi biletini görür.
         if (userId.equals(ticket.getCustomerId())) return ticket;
 
-        if (roles.contains("AGENT")) {
-            User agent = userRepository.findById(userId).orElseThrow();
-            boolean authorized = agent.getAuthorizedProducts().stream()
+        // AGENT / LEAD_AGENT: yalnızca yetkili oldukları ürünlerin biletlerini görür.
+        if (AuthRoles.isAgentLevel(roles)) {
+            User staff = userRepository.findById(userId).orElseThrow();
+            boolean authorized = staff.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
             if (authorized) return ticket;
         }
@@ -868,28 +884,27 @@ public class TicketService {
     public Ticket validateMutationAccess(Long id, String userId, List<String> roles) {
         Ticket ticket = getTicketById(id);
 
-        // AGENT_ADMIN: yetkili ürün + claim kontrolü
-        if (roles.contains("AGENT_ADMIN")) {
-            User admin = userRepository.findById(userId).orElseThrow();
-            boolean productAuthorized = admin.getAuthorizedProducts().stream()
+        // ADMIN: global — herhangi bir bilette claim olmadan işlem yapabilir.
+        if (AuthRoles.isAdmin(roles)) return ticket;
+
+        // LEAD_AGENT: yetkili ürünlerinde claim ALMADAN işlem yapabilir (takım lideri).
+        if (AuthRoles.isLeadAgent(roles)) {
+            User lead = userRepository.findById(userId).orElseThrow();
+            boolean productAuthorized = lead.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-            if (!productAuthorized) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
-            }
+            if (productAuthorized) return ticket;
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");
+        }
+
+        // AGENT: yalnızca claim aldığı bilette işlem yapabilir.
+        if (roles.contains(AuthRoles.AGENT)) {
             boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
             if (isClaimer) return ticket;
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "error.ticket.only.claimer.can.act");
         }
 
-        if (roles.contains("AGENT")) {
-            boolean isClaimer = ticketClaimRepository.existsByTicketIdAndAgentId(id, userId);
-            if (isClaimer) return ticket;
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "error.ticket.only.claimer.can.act");
-        }
-
-        if (roles.contains("CUSTOMER") && userId.equals(ticket.getCustomerId())) return ticket;
+        if (roles.contains(AuthRoles.CUSTOMER) && userId.equals(ticket.getCustomerId())) return ticket;
 
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
     }
@@ -1213,18 +1228,24 @@ public class TicketService {
 
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
                                                  String userId, List<String> roles) {
-        if (roles.contains("AGENT_ADMIN")) {
-            // AGENT_ADMIN statü değişikliği yapabilmek için claim almış olmalıdır.
-            // Assign işlemi bu metoddan geçmez, doğrudan assignTicket'tan yapılır.
-            boolean hasClaim = ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId);
-            if (!hasClaim) {
+        // ADMIN: global — herhangi bir bilette claim olmadan statü değiştirebilir.
+        if (AuthRoles.isAdmin(roles)) {
+            return;
+        }
+
+        // LEAD_AGENT: yetkili ürünlerinde claim ALMADAN statü değiştirebilir (takım lideri).
+        if (AuthRoles.isLeadAgent(roles)) {
+            User lead = userRepository.findById(userId).orElseThrow();
+            boolean productAuthorized = lead.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+            if (!productAuthorized) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "error.ticket.status.requires.claim");
+                        "error.ticket.view.forbidden");
             }
             return;
         }
 
-        if (roles.contains("CUSTOMER")) {
+        if (roles.contains(AuthRoles.CUSTOMER)) {
             if (!userId.equals(ticket.getCustomerId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "error.ticket.status.own.only");
@@ -1240,7 +1261,7 @@ public class TicketService {
             return;
         }
 
-        if (roles.contains("AGENT")) {
+        if (roles.contains(AuthRoles.AGENT)) {
             boolean hasClaim = ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId);
             if (!hasClaim) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,

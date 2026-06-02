@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.repository.KnownIssueRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -189,7 +190,7 @@ public class KnownIssueService {
      * must have the product in their authorizedProducts list.
      */
     private void ensureProductAccess(Long productId, String userId, List<String> roles) {
-        if (roles != null && (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER"))) return;
+        if (AuthRoles.isGlobal(roles)) return;
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
         }

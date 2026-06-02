@@ -5,6 +5,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -95,12 +96,13 @@ public class WorklogService {
         // Listeleme oncesi biletin varligi teyit edilir.
         Ticket ticket = ticketService.getTicketById(ticketId);
 
-        boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
-        boolean isAgent = roles.contains("AGENT");
+        // Elevated: ADMIN/MANAGER global, LEAD_AGENT yetkili ürünleri içinde tüm worklogları görür.
+        boolean isElevated = AuthRoles.isGlobal(roles) || AuthRoles.isLeadAgent(roles);
+        boolean isAgent = roles.contains(AuthRoles.AGENT);
 
-        if (isAgentAdmin) {
-            // Agent admin rolunde tum kayitlar listelenebilir.
-            log.debug("Agent admin erişimi: Tüm workloglar listeleniyor. Bilet ID: {}", ticketId);
+        if (isElevated) {
+            // Yükseltilmiş yetkide tum kayitlar listelenebilir.
+            log.debug("Yükseltilmiş erişim: Tüm workloglar listeleniyor. Bilet ID: {}", ticketId);
         } else if (isAgent) {
             // Agent yalnizca claim aldigi biletlerin workloglarini gorebilir.
             if (!ticketClaimRepository.existsByTicketIdAndAgentId(ticket.getId(), userId)) {
@@ -210,12 +212,13 @@ public class WorklogService {
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "error.worklog.not.found");
                 });
 
-        boolean isAgentAdmin = roles.contains("AGENT_ADMIN");
-        boolean isAgent = roles.contains("AGENT");
+        // Elevated: ADMIN/MANAGER global, LEAD_AGENT yetkili ürünleri içinde her worklogu silebilir.
+        boolean isElevated = AuthRoles.isGlobal(roles) || AuthRoles.isLeadAgent(roles);
+        boolean isAgent = roles.contains(AuthRoles.AGENT);
 
-        if (isAgentAdmin) {
-            // Agent admin tum worklog kayitlarini silebilir.
-            log.debug("Agent admin yetkisiyle worklog silme izni verildi. Worklog ID: {}", worklogId);
+        if (isElevated) {
+            // Yükseltilmiş yetkide tum worklog kayitlarini silebilir.
+            log.debug("Yükseltilmiş yetkiyle worklog silme izni verildi. Worklog ID: {}", worklogId);
         } else if (isAgent) {
             // Agent yalnizca kendi olusturdugu kaydi silebilir.
             if (!userId.equals(worklog.getAgentId())) {

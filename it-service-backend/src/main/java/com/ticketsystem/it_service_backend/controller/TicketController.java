@@ -19,6 +19,7 @@ import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.service.TicketService;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -138,7 +139,9 @@ public class TicketController {
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets;
-        if (roles.contains("AGENT_ADMIN") || roles.contains("AGENT")) {
+        // Operasyonel personel (AGENT/LEAD_AGENT) ile global roller (ADMIN/MANAGER)
+        // takım/tüm bilet görünümünü alır; saf müşteri yalnızca kendi biletlerini görür.
+        if (AuthRoles.isAgentLevel(roles) || AuthRoles.isGlobal(roles)) {
             tickets = ticketService.getTeamTicketsFiltered(userId, roles, filter, pageable);
         } else {
             tickets = ticketService.getCustomerTicketsFiltered(userId, filter, pageable);

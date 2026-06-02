@@ -199,11 +199,16 @@ public class TicketClaimService {
 
         User adminUser = userRepository.findById(adminId)
                 .orElseThrow(() -> new EntityNotFoundException("Admin bulunamadı: " + adminId));
-        boolean adminAuthorized = adminUser.getAuthorizedProducts().stream()
-                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
-        if (!adminAuthorized) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "error.ticket.assign.admin.not.authorized");
+        // ADMIN global atayabilir; LEAD_AGENT yalnızca yetkili olduğu ürünlerde atayabilir.
+        boolean assignerIsAdmin = adminUser.getRoles() != null
+                && adminUser.getRoles().contains(com.ticketsystem.it_service_backend.util.AuthRoles.ADMIN);
+        if (!assignerIsAdmin) {
+            boolean adminAuthorized = adminUser.getAuthorizedProducts().stream()
+                    .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+            if (!adminAuthorized) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "error.ticket.assign.admin.not.authorized");
+            }
         }
 
         User targetAgent = userRepository.findById(targetAgentId)

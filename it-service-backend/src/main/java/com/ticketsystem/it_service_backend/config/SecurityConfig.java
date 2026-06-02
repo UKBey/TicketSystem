@@ -137,7 +137,7 @@ public class SecurityConfig {
             // DELETE /actuator/caches/{name} ile manuel flush yapilir; sadece
             // admin rolleri erisebilir.
             .requestMatchers("/actuator/caches/**")
-            .hasAnyRole("AGENT_ADMIN", "MANAGER")
+            .hasRole("ADMIN")
 
             // Geri kalan tum endpoint'ler icin JWT dogrulamasi zorunludur.
             .anyRequest().authenticated())

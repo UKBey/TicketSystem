@@ -4,6 +4,7 @@ import com.ticketsystem.it_service_backend.dto.AttachmentDTO;
 import com.ticketsystem.it_service_backend.entity.Attachment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.AttachmentRepository;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -164,9 +165,11 @@ public class AttachmentService {
 
         log.info("Dosya silme işlemi. ID: {}, Siler: {}, Roller: {}", id, userId, roles);
 
-        // Agent admin rolunde dosya sahipligi aranmadan silme izni vardir.
-        if (roles.contains("AGENT_ADMIN")) {
-            log.info("Agent admin yetkisiyle dosya siliniyor. Dosya ID: {}", id);
+        // ADMIN (global) ve LEAD_AGENT (yetkili ürünleri içinde) dosya sahipligi
+        // aranmadan silebilir; ürün kapsamı getAttachment içindeki getTicketWithAuth
+        // ile zaten doğrulandı.
+        if (AuthRoles.isAdmin(roles) || AuthRoles.isLeadAgent(roles)) {
+            log.info("Yükseltilmiş yetkiyle dosya siliniyor. Dosya ID: {}", id);
             attachmentRepository.delete(attachment);
             return;
         }

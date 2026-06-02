@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.entity.CannedResponseFavorite;
 import com.ticketsystem.it_service_backend.repository.CannedResponseFavoriteRepository;
 import com.ticketsystem.it_service_backend.repository.CannedResponseRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -264,7 +265,9 @@ public class CannedResponseService {
     }
 
     private void requireAdmin(List<String> roles) {
-        if (roles == null || !(roles.contains("AGENT_ADMIN") || roles.contains("MANAGER"))) {
+        // Paylaşılan şablon yönetimi içerik yönetimidir: LEAD_AGENT veya ADMIN.
+        // MANAGER (gözetim) içerik yönetmez.
+        if (!(AuthRoles.isLeadAgent(roles) || AuthRoles.isAdmin(roles))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.cannedResponse.shared.forbidden");
         }
     }

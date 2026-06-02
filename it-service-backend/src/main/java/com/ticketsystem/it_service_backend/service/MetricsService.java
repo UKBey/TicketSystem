@@ -183,7 +183,7 @@ public class MetricsService {
 
         List<User> agents = Stream.concat(
                 userRepository.findByRole("AGENT").stream(),
-                userRepository.findByRole("AGENT_ADMIN").stream()
+                userRepository.findByRole("LEAD_AGENT").stream()
         ).collect(Collectors.toList());
 
         List<User> activeAgents = agents.stream()

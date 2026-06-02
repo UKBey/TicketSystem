@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,7 +90,7 @@ public class CommentService {
         Ticket ticket = ticketService.validateMutationAccess(ticketId, userId, roles);
 
         // Sadece CUSTOMER olan kullanici dahili not birakamaz.
-        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("AGENT_ADMIN");
+        boolean isOnlyCustomer = roles.contains(AuthRoles.CUSTOMER) && !AuthRoles.isAgentLevel(roles);
         if (isOnlyCustomer && "INTERNAL".equals(type)) {
             log.warn("Yorum reddedildi: Müşteri (ID: {}) dahili yorum eklemeye çalıştı.", userId);
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.comment.customer.type.forbidden");
@@ -154,7 +155,7 @@ public class CommentService {
         log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi.", ticketId, allComments.size());
 
         // Müşteri ekraninda dahili notlar filtrelenerek sadece disa acik yorumlar dondurulur.
-        boolean isOnlyCustomer = roles.contains("CUSTOMER") && !roles.contains("AGENT") && !roles.contains("AGENT_ADMIN");
+        boolean isOnlyCustomer = roles.contains(AuthRoles.CUSTOMER) && !AuthRoles.isAgentLevel(roles);
         if (isOnlyCustomer) {
             log.debug("Müşteri filtresi uygulanıyor: Dahili yorumlar gizleniyor.");
             return allComments.stream()

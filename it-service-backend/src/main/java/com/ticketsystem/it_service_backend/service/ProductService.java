@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -53,7 +54,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));
 
-        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER")) return product;
+        if (AuthRoles.isGlobal(roles)) return product;
 
         if (userId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.forbidden");
 
@@ -80,8 +81,8 @@ public class ProductService {
     public List<Product> getAllProducts(String userId, List<String> roles) {
         log.debug("Ürün listeleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
 
-        if (roles.contains("AGENT_ADMIN") || roles.contains("MANAGER")) {
-            log.debug("Yönetici rolü algılandı, tüm ürünler getiriliyor.");
+        if (AuthRoles.isGlobal(roles)) {
+            log.debug("Global rol algılandı (ADMIN/MANAGER), tüm ürünler getiriliyor.");
             return productRepository.findAll();
         }
         
