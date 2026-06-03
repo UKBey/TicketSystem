@@ -1,10 +1,13 @@
 # Ticket System — Data Generator
 
 Sunum ve test için sisteme gerçekçi veri basan standalone Java uygulaması.
-**Tek bir `agent_admin` hesabıyla** çalışır; ürünler, topic'ler, sıkça karşılaşılan
-sorunlar ve biletler bu hesap üzerinden idempotent şekilde oluşturulur.
-Agent ve customer kullanıcıları **Keycloak'ta önceden hazırlanmış olmalıdır**;
-generator kullanıcı oluşturmaz, yalnızca login dener.
+**Tek bir bootstrap admin hesabıyla** (`aatest`) çalışır; ürünler, topic'ler,
+sıkça karşılaşılan sorunlar ve biletler bu hesap üzerinden idempotent şekilde
+oluşturulur. Bu hesap, kullanımdan kaldırılan `agent_admin` rolünü taşır —
+`{admin, lead_agent, manager}` bileşiği (composite) olduğundan süper yönetici
+gibi davranır; yeni eklemeli (additive) rol modelinde köprü (bridge) olarak
+korunur. Lead agent, agent ve customer kullanıcıları **Keycloak'ta önceden
+hazırlanmış olmalıdır**; generator kullanıcı oluşturmaz, yalnızca login dener.
 
 ## Gereksinimler
 
@@ -18,8 +21,8 @@ generator kullanıcı oluşturmaz, yalnızca login dener.
 
 `data-generator/users.example.json` dosyasını `data-generator/users.json` olarak
 kopyala ve parolaları kendi ortamına göre güncelle. Generator'un login olacağı
-**tüm kullanıcılar** (agent admin, Keycloak master admin, DB kullanıcısı + agent
-+ customer'lar) bu tek dosyada listelenir:
+**tüm kullanıcılar** (bootstrap admin, Keycloak master admin, DB kullanıcısı +
+lead agent + agent + customer'lar) bu tek dosyada listelenir:
 
 ```bash
 cd data-generator
@@ -34,6 +37,7 @@ copy users.example.json users.json     # Windows
   "adminAgent":    { "username": "aatest",      "password": "321654" },
   "keycloakAdmin": { "username": "admin",       "password": "321654" },
   "database":      { "username": "ticketadmin", "password": "321654" },
+  "leadAgents": { "lead1.gen": "321654" },
   "agents":    { "agent1.gen": "321654", "agent2.gen": "321654", "agent3.gen": "321654" },
   "customers": { "customer1.gen": "321654", ... }
 }
@@ -42,9 +46,10 @@ copy users.example.json users.json     # Windows
 > `users.json` gitignore'da; commit'lenmez. `users.example.json` her zaman
 > repo'da kalır (yer tutucu parolalarla).
 >
-> `aatest` kullanıcısı Keycloak'ta `AGENT_ADMIN` rolünde tanımlı ve sisteme
-> **en az bir kez giriş yapmış** olmalıdır. Generator, diğer tüm kullanıcıları
-> bu hesap üzerinden oluşturur.
+> `aatest` kullanıcısı Keycloak'ta `agent_admin` (kullanımdan kaldırılan;
+> `{admin, lead_agent, manager}` bileşiği — köprülenmiş süper yönetici) rolünde
+> tanımlı ve sisteme **en az bir kez giriş yapmış** olmalıdır. Generator, diğer
+> tüm kullanıcıları bu hesap üzerinden oluşturur.
 
 Dosya yoksa veya bir hesap orada listelenmemişse, `GeneratorConfig.java`'daki
 varsayılan değerler (hepsi `321654`) kullanılır.
@@ -69,7 +74,7 @@ mevcut kayıtlara dokunmaz.
 
 ### 1. Kullanıcılar
 
-`src/main/resources/setup.json` içinde tanımlanan agent ve customer
+`src/main/resources/setup.json` içinde tanımlanan lead agent, agent ve customer
 kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluşturmaz.
 
 - Login denenir. Başarılıysa → `/users/sync` ile DB'ye taşınır, oturum kaydedilir.
@@ -82,9 +87,10 @@ kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluştur
 
 | Rol | Kullanıcı adları | Şifre |
 |-----|-------------------|-------|
-| AGENT_ADMIN | aatest (config'te `ADMIN_AGENT_USERNAME`) | 321654 |
-| AGENT | agent1.gen, agent2.gen, agent3.gen | 321654Aa! |
-| CUSTOMER | customer1.gen, customer2.gen, customer3.gen, customer4.gen | 321654Aa! |
+| agent_admin (kullanımdan kaldırılan; köprülenmiş süper yönetici) | aatest (config'te `ADMIN_AGENT_USERNAME`) | 321654 |
+| lead_agent (`agent`'ın bileşiği) | lead1.gen | 321654Aa! |
+| agent | agent1.gen, agent2.gen, agent3.gen | 321654Aa! |
+| customer | customer1.gen, customer2.gen, customer3.gen, customer4.gen | 321654Aa! |
 
 > `setup.json` içine yeni kullanıcı eklemek için Keycloak'ta da oluşturman gerekir.
 > Var olmayan kullanıcılar sessizce atlanır.
@@ -101,7 +107,7 @@ kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluştur
 
 ### 3. Yetkilendirme
 
-Tüm agent ve customer'lara tüm ürünlerin yetkisi atanır.
+Tüm lead agent, agent ve customer'lara tüm ürünlerin yetkisi atanır.
 409 (zaten atanmış) sessizce geçilir.
 
 ### 4. Bilet üretimi (JSON şablon tabanlı)
@@ -201,12 +207,13 @@ data-generator/
 
 | Ayar | Varsayılan | Açıklama |
 |------|-----------|----------|
-| `adminAgent.username` | `aatest` | agent_admin kullanıcı adı |
-| `adminAgent.password` | `321654` | agent_admin şifresi |
+| `adminAgent.username` | `aatest` | bootstrap admin kullanıcı adı (agent_admin — köprülenmiş süper yönetici) |
+| `adminAgent.password` | `321654` | bootstrap admin şifresi |
 | `keycloakAdmin.username` | `admin` | Keycloak master realm admin kullanıcı adı |
 | `keycloakAdmin.password` | `321654` | Keycloak master realm admin şifresi |
 | `database.username` | `ticketadmin` | PostgreSQL kullanıcı adı |
 | `database.password` | `321654` | PostgreSQL şifresi |
+| `leadAgents.<username>` | `321654` | Lead agent kullanıcılarının şifreleri |
 | `agents.<username>` | `321654` | Agent kullanıcılarının şifreleri |
 | `customers.<username>` | `321654` | Customer kullanıcılarının şifreleri |
 
@@ -231,9 +238,10 @@ data-generator/
 
 ## Sorun Giderme
 
-**"agent_admin oturumu açılamadı"**
+**"bootstrap admin oturumu açılamadı"**
 → `ADMIN_AGENT_USERNAME` / `ADMIN_AGENT_PASSWORD` yanlış veya kullanıcı
-Keycloak'ta yok. Önce `http://localhost` üzerinden bir kez giriş yap.
+Keycloak'ta yok (`aatest`, köprülenmiş `agent_admin` rolünde olmalı). Önce
+`http://localhost` üzerinden bir kez giriş yap.
 
 **"Kullanıcı atlanıyor: ... login başarısız"**
 → Generator artık kullanıcı oluşturmaz. setup.json'daki bu hesabı Keycloak'ta

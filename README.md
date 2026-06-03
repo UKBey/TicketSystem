@@ -63,8 +63,8 @@ Customers report technical problems, support agents resolve them under **SLA** r
 
 ### Security & Identity
 - **Keycloak** SSO with users federated from **OpenLDAP**, OAuth2/OIDC, JWT, **2FA (TOTP)** and "remember me"
-- Role-based access control: `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER`
-- Distributed **rate limiting** (Bucket4j + Redis), method-level authorization, internal service-to-service token auth
+- **Additive multi-role** access control: a user holds a *set* of roles and their effective permissions are the **union**. Five roles — `customer`, `agent`, `lead_agent`, `admin`, `manager` — span the operational, configuration and oversight axes; `lead_agent` is a Keycloak composite of `agent`. Roles live in Keycloak and are cached in the `user_roles` table (Flyway V37), synced on `/users/sync`.
+- Distributed **rate limiting** (Bucket4j + Redis), method-level authorization (`@PreAuthorize` + `AuthRoles` helpers), internal service-to-service token auth
 
 ### Platform
 - Web (React) **and** mobile (React Native / Expo) clients with functional parity
@@ -174,14 +174,15 @@ The realm export ships with masked secrets (`**********`). On the very first sta
    ```
 
 #### 3c. Assign realm roles to the seed users
-LDAP users land in Keycloak without realm roles by default. For each user, go to **Users → click username → Role mapping → Assign role** and pick:
+LDAP users land in Keycloak without realm roles by default. Roles are **additive** — a user may hold several, and effective permissions are their union. For each user, go to **Users → click username → Role mapping → Assign role** and pick:
 
-| Username | Realm role |
-|----------|------------|
+| Username | Realm role(s) |
+|----------|---------------|
 | `ctest`  | `customer` |
 | `atest`  | `agent` |
-| `aatest` | `agent_admin` |
+| `ltest`  | `lead_agent` (composite of `agent`) |
 | `mtest`  | `manager` |
+| `aatest` | `agent_admin` (deprecated composite of `admin` + `lead_agent` + `manager` — kept as a transition bridge so existing super-admins keep working) |
 
 You can now log in at http://localhost.
 
@@ -207,14 +208,17 @@ make gen       # build + run the data generator (products, tickets, history)
 
 ### 6. Demo users
 
-Four users are seeded into OpenLDAP. Their **passwords are whatever you set** in `.env` (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`).
+Users are seeded into OpenLDAP. Their **passwords are whatever you set** in `.env` (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`). Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.
 
 | Role | Username | Lands on | Capabilities |
 |------|----------|----------|--------------|
-| Customer | `ctest` | My Tickets | Raise & track own tickets, comment, attach files, submit CSAT |
-| Agent | `atest` | Workspace | Claim tickets, change status, worklog, internal notes, AI summary |
-| Agent Admin | `aatest` | Workspace + Admin | All agent actions **+** user / product / SLA / rate-limit administration |
-| Manager | `mtest` | Dashboard | Read-only dashboards, metrics and reports |
+| Customer | `ctest` | My Tickets | Raise & track own tickets (product-scoped), comment, attach files, submit CSAT |
+| Agent | `atest` | Workspace | Claim tickets and act only on claimed tickets (product-scoped); change status, worklog, internal notes, AI summary |
+| Lead Agent | `ltest` | Workspace + Team | Composite of `agent` **+** assign tickets to agents, act on tickets without claiming, manage product content (topics / known-issues / shared canned-responses) and a product-scoped team dashboard |
+| Admin | `aatest`* | Workspace + Admin | System configuration (global): create users, assign roles, create/manage products, grant product access, agent limits, SLA / cache |
+| Manager | `mtest` | Dashboard | Oversight (global, read-only): all dashboards, reports and full read visibility — no operational actions, no system config |
+
+> *The bootstrap account `aatest` holds the deprecated `agent_admin` role, which is a Keycloak composite of `{admin, lead_agent, manager}` — it therefore behaves as a super-admin. New deployments should assign the discrete roles above instead.
 
 ---
 
@@ -317,7 +321,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 ![CSAT survey after resolution](docs/screenshots/customer-csat.png)
 *CSAT survey shown after a ticket is RESOLVED — 1-5 rating + comment.*
 
-### Agent / Agent Admin
+### Agent / Lead Agent / Admin
 
 ![Agent Workspace](docs/screenshots/agent-workspace.png)
 *Workspace — tickets the agent has claimed.*
@@ -326,7 +330,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 *Pool — unclaimed tickets ready to be picked up.*
 
 ![Team view](docs/screenshots/agent-team.png)
-*Team — Agent Admin's view of every agent's queue.*
+*Team — Lead Agent's product-scoped view of every agent's queue.*
 
 ![Agent ticket detail](docs/screenshots/agent-ticket-detail.png)
 *Ticket detail from the agent's perspective — internal note tab and worklog panel.*
@@ -334,8 +338,8 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 ![AI summary modal](docs/screenshots/agent-ai-summary.png)
 *AI summary modal — Groq-generated ticket summary.*
 
-![Agent Admin panel overview](docs/screenshots/admin-admin-panel.png)
-*Agent Admin panel — entry point to user / product / SLA / rate-limit management.*
+![Admin panel overview](docs/screenshots/admin-admin-panel.png)
+*Admin panel — entry point to user / product / SLA / rate-limit management.*
 
 ![User management](docs/screenshots/admin-user-management.png)
 *User management — Keycloak roles, agent capacity and product authorizations.*

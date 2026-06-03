@@ -36,7 +36,8 @@ Tasarım hedefleri şunlardır: sorumlulukların net biçimde ayrılması, durum
 ```mermaid
 flowchart LR
     customer([Müşteri])
-    agent([Temsilci / Temsilci Yöneticisi])
+    agent([Temsilci / Takım Lideri])
+    admin([Admin])
     manager([Yönetici])
 
     system[IT-Service Desk Platformu]
@@ -46,12 +47,15 @@ flowchart LR
 
     customer --> system
     agent --> system
+    admin --> system
     manager --> system
     system --> groq
     system --> smtp
 ```
 
 Platform, iki harici bağımlılıkla entegre olur: yapay zekâ özetlemesi için **Groq API** ve giden e-posta için bir **SMTP sunucusu** (geliştirmede Mailpit).
+
+Kullanıcı rolleri **eklemelidir (additive)** — bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların birleşimidir. Beş rol üç ekseni kapsar: **operasyonel** (`agent`, ticket'ları talep eder ve üzerinde çalışır; `agent`'ın Keycloak bileşiği olan `lead_agent` ayrıca atama yapar, talep etmeden işlem yapar ve ürün içeriğini yönetir), **yapılandırma** (`admin` — global sistem kurulumu) ve **gözetim** (`manager` — global, salt okunur panolar ve raporlama). `customer` son kullanıcıdır. Kullanımdan kaldırılan `agent_admin` rolü yalnızca `{admin, lead_agent, manager}` bileşik (composite) köprüsü olarak korunur.
 
 ---
 
@@ -137,7 +141,7 @@ flowchart TB
 |-----------|-------|----------------|
 | **it-service-backend** | Spring Boot 4 / Java 21 | Çekirdek REST API — ticket'lar, SLA, kullanıcılar, yorumlar, ekler, bildirimler, panolar. `ticketdb` şemasının sahibi. |
 | **llm-service** | Spring Boot 3 / Java 21 | Groq API aracılığıyla yapay zekâ destekli ticket özetlemesi. `ticketdb`'yi izole bir Flyway geçmiş tablosuyla paylaşır. |
-| **it-service-frontend** | React 19 + Vite | Web SPA — müşteriler, temsilciler ve yöneticiler için rol kapsamlı arayüzler. |
+| **it-service-frontend** | React 19 + Vite | Web SPA — rol kapsamlı arayüzler; gezinme (navigation), kullanıcının rollerinin **birleşiminden** oluşturulur (customer, agent, lead_agent, admin, manager). React Native mobil istemci de aynı bileşimi yansıtır. |
 | **it-service-mobile** | React Native + Expo | Web uygulamasıyla işlevsel paritede mobil istemci. |
 | **ticket-workflow-kjar** | jBPM / BPMN 2.0 | KIE Server'a dağıtılan `ticket-lifecycle` süreç tanımı. |
 | **Keycloak** | Keycloak 24 | Kimlik sağlayıcısı — OAuth2/OIDC, `TicketSystemRealm` realm'i, LDAP'tan federe edilen kullanıcılar. |
@@ -197,9 +201,9 @@ sequenceDiagram
     SPA->>API: POST /api/v1/users/sync (Bearer JWT)
     API->>API: JWT imzasını doğrula (realm JWK seti)
     API->>API: realm_access.roles → ROLE_* yetkileri eşle
-    API->>DB: Yerel kullanıcı kaydını upsert et
-    API-->>SPA: UserDTO (rol, tercihler)
-    SPA->>SPA: Role göre yönlendir (müşteri / temsilci / yönetici)
+    API->>DB: Yerel kullanıcı kaydını upsert et + rol kümesini önbelleğe al (user_roles)
+    API-->>SPA: UserDTO (roller, tercihler)
+    SPA->>SPA: Gezinmeyi kullanıcının rollerinin birleşiminden oluştur
 ```
 
 Backend saf bir **OAuth2 Resource Server**'dır: durumsuz, yalnızca JWT, imza Keycloak realm'inin JWK setine karşı doğrulanır. Sunucu tarafı oturum yoktur.
@@ -248,25 +252,25 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 | **Kimlik doğrulama** | Keycloak (OAuth2/OIDC); resource server tarafından doğrulanan JWT (RS256) |
 | **Kullanıcı federasyonu** | OpenLDAP — Keycloak'ın kullanıcı deposu; LDAP grupları realm rollerine eşlenir |
 | **2FA** | Kullanıcı başına yapılandırılabilir TOTP (kimlik doğrulayıcı uygulama) |
-| **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` |
+| **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` (+ servis katmanı kapsam/talep kontrolleri için `util/AuthRoles` yardımcıları) |
 | **Yetkilendirme — dahili uç noktalar** | `/api/v1/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
-| **Roller** | `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER` |
+| **Roller** | **Eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `customer` (son kullanıcı), `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Kullanımdan kaldırılan `agent_admin`, `{admin, lead_agent, manager}` bileşiği olan bir köprüdür. |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; çalışma zamanında yapılandırılabilir |
 | **Girdi güvenliği** | Tüm DTO'larda Bean Validation; ek dosya türü/boyutu denetimleri ve hassas veri taraması |
-| **Veri izolasyonu** | Müşteriler yalnızca kendi ticket'larına erişebilir; temsilciler yetkili oldukları ürünlerle sınırlandırılır |
+| **Veri izolasyonu** | Müşteriler yalnızca kendi ticket'larına erişebilir; temsilciler yalnızca talep ettikleri ticket'lar üzerinde işlem yapar; agent / lead_agent yetkili oldukları ürünlerle sınırlandırılır; `admin` ve `manager` globaldir |
 
 ---
 
 ## 9. Veri Mimarisi
 
 - Tek bir PostgreSQL örneği, **`ticketdb`** (uygulama verisi) ve **`keycloakdb`** (Keycloak) veritabanlarını barındırır. jBPM motoru **ayrı** bir `jbpm-db` örneği kullanır — bu ikisi birbirine karıştırılmamalıdır.
-- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V33) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
+- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V37) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
 - `llm-service`, `ticketdb`'yi paylaşır ancak **izole bir Flyway geçmiş tablosu** (`flyway_schema_history_llm`, 0'dan baseline'lanmış) tutar; böylece migrasyonları backend'inkilerle çakışmadan bir arada bulunur.
 - DTO'lar API sınırını oluşturur; JPA entity'leri asla doğrudan istemcilere serileştirilmez.
 
-Çekirdek tablolar arasında `tickets`, `users`, `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` ve `known_issues` yer alır.
+Çekirdek tablolar arasında `tickets`, `users`, `user_roles` (önbelleğe alınan eklemeli rol kümesi, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` ve `known_issues` yer alır.
 
 ---
 

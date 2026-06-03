@@ -63,8 +63,8 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 
 ### Güvenlik ve Kimlik
 - **OpenLDAP**'tan federe edilen kullanıcılarla **Keycloak** SSO, OAuth2/OIDC, JWT, **2FA (TOTP)** ve "beni hatırla"
-- Rol tabanlı erişim denetimi: `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER`
-- Dağıtık **hız sınırlama (rate limiting)** (Bucket4j + Redis), metot düzeyinde yetkilendirme, servisten servise dahili token kimlik doğrulaması
+- **Eklemeli çok rollü (additive multi-role)** erişim denetimi: bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların **birleşimidir**. Beş rol — `customer`, `agent`, `lead_agent`, `admin`, `manager` — operasyonel, yapılandırma ve gözetim eksenlerini kapsar; `lead_agent`, `agent`'ın bir Keycloak bileşik (composite) rolüdür. Roller Keycloak'ta tutulur ve `user_roles` tablosunda (Flyway V37) önbelleğe alınır; `/users/sync` ile senkronize edilir.
+- Dağıtık **hız sınırlama (rate limiting)** (Bucket4j + Redis), metot düzeyinde yetkilendirme (`@PreAuthorize` + `AuthRoles` yardımcıları), servisten servise dahili token kimlik doğrulaması
 
 ### Platform
 - İşlevsel paritede web (React) **ve** mobil (React Native / Expo) istemciler
@@ -174,14 +174,15 @@ Realm export'u maskelenmiş gizli değerlerle (`**********`) gelir. İlk başlat
    ```
 
 #### 3c. Tohum kullanıcılarına realm rollerini atayın
-LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir. Her kullanıcı için **Users → kullanıcı adı → Role mapping → Assign role** üzerinden şu eşlemeyi yapın:
+LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir. Roller **eklemelidir (additive)** — bir kullanıcı birden fazla rol taşıyabilir ve etkin yetkileri bunların birleşimidir. Her kullanıcı için **Users → kullanıcı adı → Role mapping → Assign role** üzerinden şu eşlemeyi yapın:
 
-| Kullanıcı | Realm rolü |
-|-----------|------------|
+| Kullanıcı | Realm rolü/rolleri |
+|-----------|--------------------|
 | `ctest`   | `customer` |
 | `atest`   | `agent` |
-| `aatest`  | `agent_admin` |
+| `ltest`   | `lead_agent` (`agent`'ın bileşiği) |
 | `mtest`   | `manager` |
+| `aatest`  | `agent_admin` (kullanımdan kaldırılan; `admin` + `lead_agent` + `manager` bileşiği — mevcut süper yöneticilerin çalışmaya devam etmesi için geçiş köprüsü olarak tutulur) |
 
 Artık http://localhost adresinden giriş yapabilirsiniz.
 
@@ -207,14 +208,17 @@ make gen       # veri üreticisini derler + çalıştırır (ürünler, ticket'l
 
 ### 6. Demo kullanıcıları
 
-OpenLDAP'a dört kullanıcı eklenir. **Parolaları, `.env` içinde belirlediğiniz değerlerdir** (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`).
+OpenLDAP'a kullanıcılar eklenir. **Parolaları, `.env` içinde belirlediğiniz değerlerdir** (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`). Roller **eklemelidir** — bir kullanıcı bir rol kümesi taşır ve etkin yetkileri bunların birleşimidir.
 
 | Rol | Kullanıcı Adı | Açılış Sayfası | Yetenekler |
 |------|----------|----------|--------------|
-| Müşteri | `ctest` | Ticket'larım | Kendi ticket'larını oluşturma ve izleme, yorum, dosya ekleme, CSAT gönderme |
-| Temsilci | `atest` | Çalışma Alanı | Ticket talep etme, durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
-| Temsilci Yöneticisi | `aatest` | Çalışma Alanı + Yönetim | Tüm temsilci işlemleri **+** kullanıcı / ürün / SLA / hız sınırı yönetimi |
-| Yönetici | `mtest` | Pano | Salt okunur panolar, metrikler ve raporlar |
+| Müşteri | `ctest` | Ticket'larım | Kendi ticket'larını oluşturma ve izleme (ürün kapsamlı), yorum, dosya ekleme, CSAT gönderme |
+| Temsilci | `atest` | Çalışma Alanı | Ticket talep etme ve yalnızca talep edilen ticket'lar üzerinde işlem (ürün kapsamlı); durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
+| Takım Lideri (Lead Agent) | `ltest` | Çalışma Alanı + Takım | `agent` bileşiği **+** ticket'ları temsilcilere atama, talep etmeden ticket üzerinde işlem, ürün içeriği yönetimi (topic'ler / sıkça karşılaşılan sorunlar / paylaşılan hazır yanıtlar) ve ürün kapsamlı takım panosu |
+| Admin | `aatest`* | Çalışma Alanı + Yönetim | Sistem yapılandırması (global): kullanıcı oluşturma, rol atama, ürün oluşturma/yönetme, ürün erişimi verme, temsilci limitleri, SLA / önbellek |
+| Yönetici (Manager) | `mtest` | Pano | Gözetim (global, salt okunur): tüm panolar, raporlar ve tam okuma görünürlüğü — operasyonel işlem yok, sistem yapılandırması yok |
+
+> *Bootstrap hesabı `aatest`, kullanımdan kaldırılan `agent_admin` rolünü taşır; bu rol `{admin, lead_agent, manager}` bileşiği olan bir Keycloak composite'idir ve bu nedenle süper yönetici gibi davranır. Yeni dağıtımlar bunun yerine yukarıdaki ayrık rolleri atamalıdır.
 
 ---
 
@@ -317,7 +321,7 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 ![Çözüm sonrası CSAT anketi](docs/screenshots/customer-csat.png)
 *Çözüm (RESOLVED) sonrası CSAT anketi — 1-5 puan + yorum.*
 
-### Temsilci / Temsilci Yöneticisi
+### Temsilci / Takım Lideri / Admin
 
 ![Temsilci Çalışma Alanı](docs/screenshots/agent-workspace.png)
 *Çalışma Alanı — temsilcinin sahiplendiği biletler.*
@@ -326,7 +330,7 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 *Havuz — sahiplenilmemiş, alınmaya hazır biletler.*
 
 ![Takım görünümü](docs/screenshots/agent-team.png)
-*Takım — Temsilci Yöneticisinin tüm ajanların kuyruğunu izlediği görünüm.*
+*Takım — Takım Liderinin tüm ajanların kuyruğunu ürün kapsamında izlediği görünüm.*
 
 ![Temsilci ticket detayı](docs/screenshots/agent-ticket-detail.png)
 *Temsilci tarafında ticket detayı — internal note sekmesi ve worklog paneli.*
@@ -334,8 +338,8 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 ![AI özet modalı](docs/screenshots/agent-ai-summary.png)
 *AI özet modalı — Groq tarafından üretilen ticket özeti.*
 
-![Temsilci Yöneticisi paneli](docs/screenshots/admin-admin-panel.png)
-*Temsilci Yöneticisi paneli — kullanıcı / ürün / SLA / rate-limit yönetimine giriş.*
+![Admin paneli](docs/screenshots/admin-admin-panel.png)
+*Admin paneli — kullanıcı / ürün / SLA / rate-limit yönetimine giriş.*
 
 ![Kullanıcı yönetimi](docs/screenshots/admin-user-management.png)
 *Kullanıcı yönetimi — Keycloak rolleri, agent kapasitesi ve ürün yetkileri.*

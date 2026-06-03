@@ -36,7 +36,8 @@ The design goals are: clear separation of concerns, stateless and horizontally s
 ```mermaid
 flowchart LR
     customer([Customer])
-    agent([Agent / Agent Admin])
+    agent([Agent / Lead Agent])
+    admin([Admin])
     manager([Manager])
 
     system[IT-Service Desk Platform]
@@ -46,12 +47,15 @@ flowchart LR
 
     customer --> system
     agent --> system
+    admin --> system
     manager --> system
     system --> groq
     system --> smtp
 ```
 
 The platform integrates with two external dependencies: the **Groq API** for AI summarisation and an **SMTP server** (Mailpit in development) for outbound e-mail.
+
+User roles are **additive** — a user holds a *set* of roles and their effective permissions are the union. The five roles span three axes: **operational** (`agent` claims and works tickets; `lead_agent`, a Keycloak composite of `agent`, additionally assigns, acts without claiming and manages product content), **configuration** (`admin` — global system setup), and **oversight** (`manager` — global, read-only dashboards and reporting). `customer` is the end user. The legacy `agent_admin` role is deprecated, retained only as a composite bridge of `{admin, lead_agent, manager}`.
 
 ---
 
@@ -137,7 +141,7 @@ flowchart TB
 |-----------|-------|----------------|
 | **it-service-backend** | Spring Boot 4 / Java 21 | Core REST API — tickets, SLA, users, comments, attachments, notifications, dashboards. Owns the `ticketdb` schema. |
 | **llm-service** | Spring Boot 3 / Java 21 | AI ticket summarisation via the Groq API. Shares `ticketdb` with an isolated Flyway history table. |
-| **it-service-frontend** | React 19 + Vite | Web SPA — role-scoped UIs for customers, agents and managers. |
+| **it-service-frontend** | React 19 + Vite | Web SPA — role-scoped UIs; navigation is composed from the **union** of the user's roles (customer, agent, lead_agent, admin, manager). The React Native mobile client mirrors the same composition. |
 | **it-service-mobile** | React Native + Expo | Mobile client with functional parity to the web app. |
 | **ticket-workflow-kjar** | jBPM / BPMN 2.0 | The `ticket-lifecycle` process definition deployed to KIE Server. |
 | **Keycloak** | Keycloak 24 | Identity provider — OAuth2/OIDC, realm `TicketSystemRealm`, users federated from LDAP. |
@@ -197,9 +201,9 @@ sequenceDiagram
     SPA->>API: POST /api/v1/users/sync (Bearer JWT)
     API->>API: Validate JWT signature (realm JWK set)
     API->>API: Map realm_access.roles → ROLE_* authorities
-    API->>DB: Upsert local user record
-    API-->>SPA: UserDTO (role, preferences)
-    SPA->>SPA: Route by role (customer / agent / manager)
+    API->>DB: Upsert local user record + cache role set (user_roles)
+    API-->>SPA: UserDTO (roles, preferences)
+    SPA->>SPA: Compose navigation from the union of the user's roles
 ```
 
 The backend is a pure **OAuth2 Resource Server**: stateless, JWT-only, signature verified against the Keycloak realm's JWK set. There is no server-side session.
@@ -248,25 +252,25 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 | **Authentication** | Keycloak (OAuth2/OIDC); JWT (RS256) verified by the resource server |
 | **User federation** | OpenLDAP — Keycloak's user storage; LDAP groups map to realm roles |
 | **2FA** | TOTP (authenticator app) configurable per user |
-| **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` |
+| **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` (+ `util/AuthRoles` helpers for service-layer scope/claim checks) |
 | **Authorization — internal endpoints** | `/api/v1/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
-| **Roles** | `CUSTOMER`, `AGENT`, `AGENT_ADMIN`, `MANAGER` |
+| **Roles** | **Additive multi-role** (effective permissions = union of the held set): `customer` (end user), `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. Legacy `agent_admin` is a deprecated bridge composite of `{admin, lead_agent, manager}`. |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configurable at runtime |
 | **Input safety** | Bean Validation on all DTOs; attachment type/size checks and sensitive-data scanning |
-| **Data isolation** | Customers can only access their own tickets; agents are scoped to authorised products |
+| **Data isolation** | Customers can only access their own tickets; agents act only on claimed tickets; agent / lead_agent are scoped to their authorised products; `admin` and `manager` are global |
 
 ---
 
 ## 9. Data Architecture
 
 - A single PostgreSQL instance hosts **`ticketdb`** (application data) and **`keycloakdb`** (Keycloak). The jBPM engine uses a **separate** `jbpm-db` instance — the two must not be conflated.
-- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V33). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
+- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V37). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
 - `llm-service` shares `ticketdb` but keeps an **isolated Flyway history table** (`flyway_schema_history_llm`, baselined from 0) so its migrations coexist with the backend's without collision.
 - DTOs form the API boundary; JPA entities are never serialised directly to clients.
 
-Core tables include `tickets`, `users`, `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` and `known_issues`.
+Core tables include `tickets`, `users`, `user_roles` (the cached additive role set, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` and `known_issues`.
 
 ---
 
