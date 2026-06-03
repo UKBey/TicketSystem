@@ -44,6 +44,9 @@ jobs:
           context: ./it-service-backend
           file: ./it-service-backend/Dockerfile
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/it-service-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/it-service-backend:${{ github.event.workflow_run.head_sha }}
@@ -57,6 +60,9 @@ jobs:
           context: ./llm-service
           file: ./llm-service/Dockerfile
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/llm-service:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/llm-service:${{ github.event.workflow_run.head_sha }}
@@ -69,6 +75,9 @@ jobs:
         with:
           context: ./it-service-frontend
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/it-service-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/it-service-frontend:${{ github.event.workflow_run.head_sha }}
@@ -82,6 +91,9 @@ jobs:
           context: .
           file: ./Dockerfile-ldap
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/openldap-server:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/openldap-server:${{ github.event.workflow_run.head_sha }}
@@ -95,6 +107,9 @@ jobs:
           context: .
           file: ./Dockerfile-keycloak
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/keycloak-iam:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/keycloak-iam:${{ github.event.workflow_run.head_sha }}
@@ -108,6 +123,9 @@ jobs:
           context: .
           file: ./Dockerfile-kie
           push: true
+          # Docker Hub'a OCI attestation manifest-list push'u "blob unknown to registry"
+          # hatasi veriyor; tek-arch imajda provenance'a gerek yok.
+          provenance: false
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kie-server:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kie-server:${{ github.event.workflow_run.head_sha }}
