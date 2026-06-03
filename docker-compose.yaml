@@ -599,8 +599,10 @@ services:
           sleep 5
         done
 
-        echo "[kjar-deploy] Container '$$KIE_CONTAINER_ID' kaydediliyor..."
-        curl -fsS -X PUT -u "$$KIE_USER:$$KIE_PASS" \
+        echo "[kjar-deploy] Container '$$KIE_CONTAINER_ID' kaydediliyor (idempotent)..."
+        # -f YOK: container zaten kayitliysa KIE 400 + "already exists" doner; bunu basari
+        # sayabilmek icin govdeyi okuyoruz. Gercek hatalar farkli mesaj dondurur -> exit 1.
+        resp=$$(curl -sS -X PUT -u "$$KIE_USER:$$KIE_PASS" \
           -H 'Content-Type: application/json' \
           -H 'Accept: application/json' \
           "http://kie-server:8080/kie-server/services/rest/server/containers/$$KIE_CONTAINER_ID" \
@@ -611,9 +613,12 @@ services:
               "artifact-id": "ticket-workflow-kjar",
               "version": "1.0.5"
             }
-          }'
-        echo ""
-        echo "[kjar-deploy] Tamam."
+          }')
+        echo "$$resp"
+        case "$$resp" in
+          *'"type" : "SUCCESS"'*|*'already exists'*) echo "[kjar-deploy] Tamam." ;;
+          *) echo "[kjar-deploy] Kayit BASARISIZ." >&2; exit 1 ;;
+        esac
     environment:
       JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME:-kieserver}
       JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}

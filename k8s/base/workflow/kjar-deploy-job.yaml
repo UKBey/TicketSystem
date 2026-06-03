@@ -44,8 +44,11 @@ spec:
                 sleep 5
               done
 
-              echo "[kjar-deploy] Registering container $KIE_CONTAINER_ID"
-              curl -fsSL -X PUT -u "$KIE_USER:$KIE_PASS" \
+              echo "[kjar-deploy] Registering container $KIE_CONTAINER_ID (idempotent)"
+              # -f KULLANILMIYOR: container zaten kayitliysa KIE 400 + "already exists" doner;
+              # bunu basari sayabilmek icin yanit govdesini okumamiz gerekir. Gercek hatalar
+              # (cozulemeyen kjar GAV vb.) farkli bir mesaj dondurur ve asagida exit 1 olur.
+              resp=$(curl -sS -X PUT -u "$KIE_USER:$KIE_PASS" \
                 -H 'Content-Type: application/json' \
                 -H 'Accept: application/json' \
                 "http://kie-server:8080/kie-server/services/rest/server/containers/$KIE_CONTAINER_ID" \
@@ -56,5 +59,12 @@ spec:
                     "artifact-id": "ticket-workflow-kjar",
                     "version": "1.0.5"
                   }
-                }'
-              echo "[kjar-deploy] Done."
+                }')
+              echo "$resp"
+              case "$resp" in
+                *'"type" : "SUCCESS"'*|*'already exists'*)
+                  echo "[kjar-deploy] Done." ;;
+                *)
+                  echo "[kjar-deploy] Registration FAILED." >&2
+                  exit 1 ;;
+              esac
