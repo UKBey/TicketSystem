@@ -343,14 +343,15 @@ class UserServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("updateUserRoles → AGENT_ADMIN > MANAGER > AGENT > CUSTOMER önceliği")
+    @DisplayName("updateUserRoles → ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER önceliği (legacy AGENT_ADMIN → ADMIN)")
     void updateUserRoles_resolvesAgentAdminAsHighest() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
         User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
 
-        assertThat(result.getRole()).isEqualTo("AGENT_ADMIN");
+        // Legacy AGENT_ADMIN now resolves to the new ADMIN role (highest priority).
+        assertThat(result.getRole()).isEqualTo("ADMIN");
         verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
     }
 

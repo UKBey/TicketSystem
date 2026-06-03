@@ -114,13 +114,13 @@ class AttachmentServiceTest {
     }
 
     @Test
-    void deleteAttachment_managerCanDelete() {
+    void deleteAttachment_adminCanDelete() {
         Attachment attachment = Attachment.builder().id(6L).ticket(ticket).uploaderId("owner-1").fileName("a.log").fileType("text/plain").content("x".getBytes()).build();
         when(attachmentRepository.findById(6L)).thenReturn(Optional.of(attachment));
-        when(ticketService.getTicketWithAuth(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(ticket);
+        when(ticketService.getTicketWithAuth(10L, "admin-1", List.of("ADMIN"))).thenReturn(ticket);
 
-        // Only AGENT_ADMIN can delete arbitrary attachments now
-        attachmentService.deleteAttachment(6L, "admin-1", List.of("AGENT_ADMIN"));
+        // "Delete any attachment" is now reserved for ADMIN or LEAD_AGENT.
+        attachmentService.deleteAttachment(6L, "admin-1", List.of("ADMIN"));
 
         verify(attachmentRepository).delete(attachment);
     }

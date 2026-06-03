@@ -60,8 +60,8 @@ class ProductServiceTest {
     void getAllProducts_managerGetsEverything() {
         when(productRepository.findAll()).thenReturn(List.of(product));
 
-        // Manager role no longer has full product access; use AGENT_ADMIN
-        List<Product> result = productService.getAllProducts("admin-1", List.of("AGENT_ADMIN"));
+        // ADMIN is a global role and sees every product.
+        List<Product> result = productService.getAllProducts("admin-1", List.of("ADMIN"));
 
         assertEquals(1, result.size());
         assertEquals("ERP", result.get(0).getName());
@@ -163,11 +163,11 @@ class ProductServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("getProductById → AGENT_ADMIN rolü → yetki kontrolü atlanır")
+    @DisplayName("getProductById → ADMIN rolü → yetki kontrolü atlanır")
     void getProductById_agentAdminRole_returnsDirectly() {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
 
-        Product result = productService.getProductById(10L, "admin-1", List.of("AGENT_ADMIN"));
+        Product result = productService.getProductById(10L, "admin-1", List.of("ADMIN"));
 
         assertThat(result.getId()).isEqualTo(10L);
     }

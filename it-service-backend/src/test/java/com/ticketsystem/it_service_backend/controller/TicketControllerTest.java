@@ -110,16 +110,17 @@ class TicketControllerTest {
     }
 
     @Test
-    void getTickets_withAgentAdminRole_returnsAllTickets() {
+    void getTickets_withAdminRole_returnsAllTickets() {
         Ticket t1 = Ticket.builder().id(8001L).title("T1").description("D1")
                 .priority("LOW").status("NEW").customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t1));
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("AGENT_ADMIN")),
+        // ADMIN is global: it goes through the team/all-products listing path.
+        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
         when(userRepository.findById("customer-1")).thenReturn(Optional.empty());
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
-                jwtWithRole("admin-1", "AGENT_ADMIN"),
+                jwtWithRole("admin-1", "ADMIN"),
                 0, 20, "createdAt", "desc",
                 null, null, null, null, null, null, null, null, null);
 
@@ -131,7 +132,8 @@ class TicketControllerTest {
     @Test
     void getTickets_withManagerRole_returnsEmptyList() {
         Page<Ticket> emptyPage = Page.empty();
-        lenient().when(ticketService.getCustomerTicketsFiltered(eq("manager-1"),
+        // MANAGER is now a global role and routes through the team/all-products listing path.
+        when(ticketService.getTeamTicketsFiltered(eq("manager-1"), eq(List.of("MANAGER")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(emptyPage);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -506,11 +508,11 @@ class TicketControllerTest {
     @Test
     void getTickets_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("AGENT_ADMIN")),
+        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
-                jwtWithRole("admin-1", "AGENT_ADMIN"),
+                jwtWithRole("admin-1", "ADMIN"),
                 0, 20, "createdAt", "asc",
                 null, null, null, null, null, null, null, null, null);
 

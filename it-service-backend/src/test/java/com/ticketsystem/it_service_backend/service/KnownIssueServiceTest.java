@@ -100,13 +100,13 @@ class KnownIssueServiceTest {
         }
 
         @Test
-        @DisplayName("AGENT_ADMIN icin yetki sorgulanmaz, dogrudan listeler")
+        @DisplayName("ADMIN icin yetki sorgulanmaz, dogrudan listeler")
         void adminBypassesAuthorization() {
             when(productRepository.existsById(10L)).thenReturn(true);
             when(knownIssueRepository.findByProductIdOrderByCreatedAtDesc(10L))
                     .thenReturn(List.of(existing));
 
-            List<KnownIssue> result = service.listByProduct(10L, null, false, "admin-1", List.of("AGENT_ADMIN"));
+            List<KnownIssue> result = service.listByProduct(10L, null, false, "admin-1", List.of("ADMIN"));
 
             assertThat(result).containsExactly(existing);
             verify(userRepository, never()).findById(any());

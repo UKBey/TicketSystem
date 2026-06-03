@@ -37,7 +37,7 @@ class CannedResponseServiceTest {
     @InjectMocks private CannedResponseService service;
 
     private static final List<String> AGENT = List.of("AGENT");
-    private static final List<String> ADMIN = List.of("AGENT_ADMIN");
+    private static final List<String> ADMIN = List.of("ADMIN");
 
     private CannedResponse personalOf(String owner) {
         return CannedResponse.builder()

@@ -218,7 +218,7 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(700L).build();
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("AGENT_ADMIN"));
+                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(700L, result.get(0).getId());
@@ -229,8 +229,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(701L).build();
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
 
-                // Manager no longer has global access; AGENT_ADMIN should be used for this behavior in production.
-                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("AGENT_ADMIN"));
+                // MANAGER is now a global (read-only) role and sees every ticket.
+                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("MANAGER"));
 
                 assertEquals(1, result.size());
                 assertEquals(701L, result.get(0).getId());
@@ -268,7 +268,7 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(702L).build();
                 when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("AGENT_ADMIN"));
+                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(702L, result.get(0).getId());
@@ -279,8 +279,8 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(703L).build();
                 when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
 
-                // Manager no longer has pool access; AGENT_ADMIN should be used for full pool access.
-                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("AGENT_ADMIN"));
+                // MANAGER is now a global role; it sees the full NEW pool across all products.
+                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("MANAGER"));
 
                 assertEquals(1, result.size());
                 assertEquals(703L, result.get(0).getId());
@@ -326,9 +326,8 @@ class TicketServiceTest {
         void getTicketWithAuth_whenAgentAdmin_returnsTicket() {
                 Ticket ticket = Ticket.builder().id(705L).customerId("customer-1").productId(10L).build();
                 when(ticketRepository.findById(705L)).thenReturn(Optional.of(ticket));
-                when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
 
-                Ticket result = ticketService.getTicketWithAuth(705L, "admin-1", List.of("AGENT_ADMIN"));
+                Ticket result = ticketService.getTicketWithAuth(705L, "admin-1", List.of("ADMIN"));
 
                 assertEquals(705L, result.getId());
         }
@@ -337,10 +336,9 @@ class TicketServiceTest {
         void getTicketWithAuth_whenManager_returnsTicket() {
                 Ticket ticket = Ticket.builder().id(704L).customerId("customer-1").productId(10L).build();
                 when(ticketRepository.findById(704L)).thenReturn(Optional.of(ticket));
-                when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
 
-                // Manager no longer automatically sees tickets; AGENT_ADMIN should be used for full access.
-                Ticket result = ticketService.getTicketWithAuth(704L, "admin-1", List.of("AGENT_ADMIN"));
+                // MANAGER has global read visibility — it sees any ticket without a product check.
+                Ticket result = ticketService.getTicketWithAuth(704L, "admin-1", List.of("MANAGER"));
 
                 assertEquals(704L, result.getId());
         }
@@ -379,14 +377,12 @@ class TicketServiceTest {
         }
 
         @Test
-        void validateMutationAccess_whenManager_returnsTicket() {
+        void validateMutationAccess_whenAdmin_returnsTicketWithoutClaim() {
                 Ticket ticket = Ticket.builder().id(707L).customerId("customer-1").productId(10L).build();
                 when(ticketRepository.findById(707L)).thenReturn(Optional.of(ticket));
-                when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
-                when(ticketClaimRepository.existsByTicketIdAndAgentId(707L, "admin-1")).thenReturn(true);
 
-                // Manager role no longer authorizes mutations; AGENT_ADMIN should be used.
-                Ticket result = ticketService.validateMutationAccess(707L, "admin-1", List.of("AGENT_ADMIN"));
+                // ADMIN acts globally and may mutate any ticket without holding a claim.
+                Ticket result = ticketService.validateMutationAccess(707L, "admin-1", List.of("ADMIN"));
 
                 assertEquals(707L, result.getId());
         }
@@ -1076,12 +1072,12 @@ class TicketServiceTest {
     // =========================================================================
 
     @Test
-    @DisplayName("getTeamTickets → AGENT_ADMIN tüm ürünlere ait aktif biletleri döner")
+    @DisplayName("getTeamTickets → ADMIN tüm ürünlere ait aktif biletleri döner")
     void getTeamTickets_agentAdmin_returnsActiveTickets() {
         Ticket t = Ticket.builder().id(900L).productId(10L).build();
         when(ticketRepository.findAllActive()).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getTeamTickets("admin-1", List.of("AGENT_ADMIN"));
+        List<Ticket> result = ticketService.getTeamTickets("admin-1", List.of("ADMIN"));
 
         assertEquals(1, result.size());
     }
@@ -2469,14 +2465,15 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_agentAdminWithoutClaim_throwsForbidden() {
+    void updateTicketStatus_agentWithoutClaim_throwsForbidden() {
         Ticket existing = Ticket.builder().id(2303L).status("IN_PROGRESS")
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2303L)).thenReturn(Optional.of(existing));
-        when(ticketClaimRepository.existsByTicketIdAndAgentId(2303L, "admin-1")).thenReturn(false);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(2303L, "agent-1")).thenReturn(false);
 
+        // A plain AGENT must hold a claim to change status; without one it is forbidden.
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "admin-1", List.of("AGENT_ADMIN")));
+                () -> ticketService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT")));
     }
 
     @Test

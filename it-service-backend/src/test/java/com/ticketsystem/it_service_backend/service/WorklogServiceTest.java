@@ -112,8 +112,8 @@ class WorklogServiceTest {
         when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
         when(worklogRepository.findByTicketId(20L)).thenReturn(List.of(worklog));
 
-        // Manager no longer has operational access; AGENT_ADMIN can view worklogs
-        List<TicketWorklog> result = worklogService.getWorklogsByTicket(20L, "admin-1", List.of("AGENT_ADMIN"));
+        // MANAGER is a global (elevated) role and can view every worklog on the ticket.
+        List<TicketWorklog> result = worklogService.getWorklogsByTicket(20L, "admin-1", List.of("MANAGER"));
 
         assertEquals(1, result.size());
         assertEquals(10L, result.get(0).getId());
@@ -144,8 +144,8 @@ class WorklogServiceTest {
         TicketWorklog worklog = TicketWorklog.builder().id(100L).ticketId(20L).agentId("agent-2").minutes(15).build();
         when(worklogRepository.findById(100L)).thenReturn(Optional.of(worklog));
 
-        // Manager no longer authorized to delete worklogs; AGENT_ADMIN should be used
-        worklogService.deleteWorklog(100L, "admin-1", List.of("AGENT_ADMIN"));
+        // MANAGER is a global (elevated) role and may delete any worklog.
+        worklogService.deleteWorklog(100L, "admin-1", List.of("MANAGER"));
 
         verify(worklogRepository).deleteById(100L);
     }
