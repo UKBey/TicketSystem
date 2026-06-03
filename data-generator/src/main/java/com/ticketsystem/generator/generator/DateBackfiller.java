@@ -30,6 +30,9 @@ public class DateBackfiller {
     private static final Logger log = LoggerFactory.getLogger(DateBackfiller.class);
     private static final Random RNG = new Random();
 
+    /** Fraction of tickets that intentionally breach their SLA (realistic demo mix). */
+    private static final double BREACH_RATE = 0.30;
+
     /**
      * Writes the {@code created_at} and SLA fields ({@code sla_deadline},
      * {@code sla_elapsed_ms}, {@code sla_paused_at}, {@code sla_resumed_at},
@@ -77,7 +80,8 @@ public class DateBackfiller {
                        sla_paused_at  = ?,
                        sla_resumed_at = ?,
                        resolved_at    = ?,
-                       closed_at      = ?
+                       closed_at      = ?,
+                       sla_breached   = ?
                  WHERE id = ?
                 """;
 
@@ -99,62 +103,82 @@ public class DateBackfiller {
 
                 long durationMs = slaHoursForPriority(priority) * 3_600_000L;
 
-                // --- Ortak: created_at ---
                 ZonedDateTime createdAt;
+                ZonedDateTime slaDeadline;
                 ZonedDateTime resolvedAt  = null;
                 ZonedDateTime closedAt    = null;
                 long          elapsedMs   = 0L;
                 ZonedDateTime pausedAt    = null;
                 ZonedDateTime resumedAt   = null;
+                // Gerçekçi karışım: biletlerin ~%30'u SLA ihlal eder. Tarihler ve sla_breached
+                // birbiriyle TUTARLI kurulur (canlı SLA hesabı ve dashboard ile uyumlu olsun).
+                // WAITING_FOR_CUSTOMER hariç: saat duraklı olduğu için ihlal edemez.
+                boolean breached = RNG.nextDouble() < BREACH_RATE;
 
                 switch (status) {
                     case "NEW" -> {
-                        // created_at: SLA'nın bitmemesi için son (duration * 0–80%) içinde
-                        long maxAgeMs = (long) (durationMs * 0.8);
-                        createdAt = now().minus(Duration.ofMillis(randLong(0, maxAgeMs)));
-                        elapsedMs = 0L;
-                        // pausedAt, resumedAt → null (aktif sayaç createdAt'ten başlar)
+                        // Aktif, hiç duraklatılmadı; canlı SLA stored sla_deadline'ı kullanır.
+                        if (breached) {
+                            // (1.05–1.8)*duration önce oluşturuldu → deadline geçmişte → expired
+                            createdAt = now().minus(Duration.ofMillis(
+                                    randLong((long) (durationMs * 1.05), (long) (durationMs * 1.8))));
+                        } else {
+                            // son (0–%80 duration) içinde → deadline gelecekte → sağlıklı
+                            createdAt = now().minus(Duration.ofMillis(randLong(0, (long) (durationMs * 0.8))));
+                        }
+                        slaDeadline = createdAt.plus(Duration.ofMillis(durationMs));
                     }
                     case "IN_PROGRESS" -> {
-                        // Tarihsel oluşturma tarihi
-                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
-                        // Agent kısa süre önce claim aldı; bütçenin %5-35'ini harcadı
-                        double elapsedRatio = 0.05 + RNG.nextDouble() * 0.30;
-                        elapsedMs = (long) (durationMs * elapsedRatio);
+                        // Bütçenin %5-35'i aktif harcandı; kalanı resume noktasından sayılır.
+                        elapsedMs = (long) (durationMs * (0.05 + RNG.nextDouble() * 0.30));
                         long remainingMs = durationMs - elapsedMs;
-                        // sla_resumed_at: deadline gelecekte olacak şekilde ayarla
-                        long resumeOffsetMs = (long) (remainingMs * RNG.nextDouble() * 0.70);
-                        resumedAt = now().minus(Duration.ofMillis(resumeOffsetMs));
-                        // pausedAt → null (aktif)
+                        // Deadline'ı doğrudan konumlandır — canlı SLA aktif biletlerde stored
+                        // sla_deadline'ı kullandığı için bu, expired/active'i belirler.
+                        if (breached) {
+                            slaDeadline = now().minus(Duration.ofMillis(
+                                    randLong((long) (durationMs * 0.05), (long) (durationMs * 0.5))));
+                        } else {
+                            slaDeadline = now().plus(Duration.ofMillis(
+                                    randLong((long) (remainingMs * 0.1), (long) (remainingMs * 0.9))));
+                        }
+                        resumedAt = slaDeadline.minus(Duration.ofMillis(remainingMs)); // deadline = resume + kalan
+                        // created, resume'dan önce: aktif çalışma + 1-24h duraklama boşluğu kadar.
+                        createdAt = resumedAt.minus(Duration.ofMillis(elapsedMs + randLong(3_600_000L, 86_400_000L)));
                     }
                     case "WAITING_FOR_CUSTOMER" -> {
-                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
-                        // Agent bütçenin %20-75'ini harcadı, sonra müşteriden bilgi istedi
-                        double elapsedRatio = 0.20 + RNG.nextDouble() * 0.55;
-                        elapsedMs = (long) (durationMs * elapsedRatio);
-                        pausedAt  = createdAt.plus(Duration.ofMillis(elapsedMs));
+                        // Saat duraklı: bekleyen bilet ihlal edemez (kalan > 0). Daima sağlıklı.
+                        breached  = false;
+                        elapsedMs = (long) (durationMs * (0.20 + RNG.nextDouble() * 0.55)); // %20-75
+                        pausedAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);        // son 7 gün içinde duraklatıldı
+                        createdAt = pausedAt.minus(Duration.ofMillis(elapsedMs));            // aktif süre kadar önce açıldı
+                        slaDeadline = pausedAt.plus(Duration.ofMillis(durationMs - elapsedMs));
                     }
                     case "RESOLVED" -> {
-                        createdAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
-                        resolvedAt = createdAt.plusHours(1 + RNG.nextInt(48));
-                        double elapsedRatio = 0.30 + RNG.nextDouble() * 0.65;
-                        elapsedMs = (long) (durationMs * elapsedRatio);
-                        pausedAt  = resolvedAt; // SLA çözüm anında duraklatıldı
+                        // breached → bütçe aşıldı (resolved > deadline); değilse bütçe içinde.
+                        elapsedMs = breached
+                                ? (long) (durationMs * (1.05 + RNG.nextDouble() * 0.55))
+                                : (long) (durationMs * (0.15 + RNG.nextDouble() * 0.75));
+                        resolvedAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS); // son 7 gün içinde çözüldü
+                        createdAt   = resolvedAt.minus(Duration.ofMillis(elapsedMs));   // aktif süre kadar önce açıldı
+                        pausedAt    = resolvedAt;                                        // SLA çözümde duraklatıldı
+                        slaDeadline = createdAt.plus(Duration.ofMillis(durationMs));     // breached ⟺ resolvedAt > deadline
                     }
                     case "CLOSED" -> {
-                        createdAt  = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
-                        resolvedAt = createdAt.plusHours(1 + RNG.nextInt(48));
-                        closedAt   = resolvedAt.plusHours(1 + RNG.nextInt(24));
-                        double elapsedRatio = 0.30 + RNG.nextDouble() * 0.65;
-                        elapsedMs = (long) (durationMs * elapsedRatio);
-                        pausedAt  = resolvedAt; // RESOLVED'dan gelen duraklama korunur
+                        elapsedMs = breached
+                                ? (long) (durationMs * (1.05 + RNG.nextDouble() * 0.55))
+                                : (long) (durationMs * (0.15 + RNG.nextDouble() * 0.75));
+                        closedAt    = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS); // son 7 gün içinde kapandı
+                        resolvedAt  = closedAt.minus(Duration.ofMillis(randLong(3_600_000L, 86_400_000L))); // 1-24h önce çözüldü
+                        createdAt   = resolvedAt.minus(Duration.ofMillis(elapsedMs));
+                        pausedAt    = resolvedAt;
+                        slaDeadline = createdAt.plus(Duration.ofMillis(durationMs));
                     }
                     default -> {
-                        createdAt = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        breached    = false;
+                        createdAt   = randomPastDate(GeneratorConfig.DATE_SPREAD_DAYS);
+                        slaDeadline = createdAt.plus(Duration.ofMillis(durationMs));
                     }
                 }
-
-                ZonedDateTime slaDeadline = createdAt.plusHours(slaHoursForPriority(priority));
 
                 upd.setTimestamp(1, toTs(createdAt));
                 upd.setTimestamp(2, toTs(slaDeadline));
@@ -163,7 +187,8 @@ public class DateBackfiller {
                 upd.setTimestamp(5, toTs(resumedAt));
                 upd.setTimestamp(6, toTs(resolvedAt));
                 upd.setTimestamp(7, toTs(closedAt));
-                upd.setLong     (8, id);
+                upd.setBoolean  (8, breached);
+                upd.setLong     (9, id);
                 upd.addBatch();
                 count++;
 
@@ -200,16 +225,19 @@ public class DateBackfiller {
     }
 
     /**
-     * SLA duration (hours) by ticket priority — kept in sync with WorkflowService.
+     * SLA duration (hours) by ticket priority. MUST mirror the backend SLA policy
+     * ({@code app.sla.policies} in application.yml / {@code SlaPolicyService}) —
+     * otherwise the backfilled {@code sla_deadline} / {@code sla_breached} values
+     * disagree with the live SLA computation and the dashboard.
      */
     private int slaHoursForPriority(String priority) {
-        if (priority == null) return 12;
+        if (priority == null) return 24;
         return switch (priority.toUpperCase()) {
-            case "LOW"      -> 24;
-            case "MEDIUM"   -> 12;
+            case "LOW"      -> 72;
+            case "MEDIUM"   -> 24;
             case "HIGH"     ->  4;
             case "CRITICAL" ->  1;
-            default         -> 12;
+            default         -> 24;
         };
     }
 
