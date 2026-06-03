@@ -5,6 +5,11 @@ Makefile        text eol=lf
 *.sh            text eol=lf
 mvnw            text eol=lf
 
+# LDAP seed sablonu container'da `sed` ile islenir; CRLF, userPassword gibi
+# degerlere '\r' sizdirir ve LDAP/Keycloak login'ini bozar. DAIMA LF olmali.
+*.ldif          text eol=lf
+*.template      text eol=lf
+
 # Windows'a ozgu script'ler CRLF kalmali.
 *.bat           text eol=crlf
 *.cmd           text eol=crlf
