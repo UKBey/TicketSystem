@@ -91,7 +91,10 @@ UI: **User Federation → ldap → Bind credential** = your `LDAP_ADMIN_PASSWORD
 (default `321654`) → Save → **Action: Sync all users**. Eight users will appear:
 `customer`, `agent`, `lead`, `manager`, `admin`, `adminmanager`, `leadmanager`,
 `superadmin` (all password `321654`). Their realm roles are not stored in LDAP —
-assign them in one shot with `make seed-roles` after the stack is up.
+they are assigned by the in-cluster `seed-roles` Job, which runs automatically as
+part of `make k8s-up`. To (re-)run it manually use **`make k8s-seed-roles`**
+(NOT `make seed-roles`, which is the docker-compose variant and cannot reach the
+in-cluster Keycloak).
 
 ## Manifests intentionally excluded vs docker-compose
 

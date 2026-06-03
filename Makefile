@@ -100,7 +100,7 @@ help:
 	@echo    gen-k8s          - k8s ortaminda: port-forward + gen-host
 	@echo    gen-build        - Generator JARini derler - host
 	@echo    gen-run          - Onceden derlenmis JARi calistirir - host
-	@echo    seed-roles       - Seed kullanicilara Keycloak rollerini atar - make up sonrasi
+	@echo    seed-roles       - Seed kullanicilara Keycloak rollerini atar - COMPOSE - make up sonrasi (k8s icin: k8s-seed-roles)
 	@$(ECHO_BLANK)
 	@echo  Kubernetes - kind + kustomize:
 	@echo    k8s-rebuild      - TEK KOMUT: cluster yoksa olusturur, kapaliysa baslatir,
@@ -113,6 +113,7 @@ help:
 	@echo    k8s-logs s=deploy - Tek deploymentin loglarini izler
 	@echo    k8s-load-images  - Lokal Docker imajlarini kinde yukler
 	@echo    k8s-render       - Manifestleri stdouta render eder - debug
+	@echo    k8s-seed-roles   - Seed kullanicilara Keycloak rollerini atar - k8s (compose icin seed-roles)
 	@$(ECHO_BLANK)
 	@echo  Diger:
 	@echo    lint             - Frontend ESLint kontrolu
@@ -396,6 +397,14 @@ k8s-restart-all:
 k8s-redeploy-kjar:
 	-kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) delete job kjar-deploy --ignore-not-found
 	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
+
+# Seed kullanicilara Keycloak rollerini atar (compose `make seed-roles` k8s karsiligi).
+# DIKKAT: `make seed-roles` compose icindir; k8s'te BUNU kullan. Job idempotent; eskiyi
+# silip yeniden olusturarak tekrar calistirir.
+k8s-seed-roles:
+	-kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) delete job seed-roles --ignore-not-found
+	kubectl --context kind-$(KIND_CLUSTER) kustomize $(K8S_OVERLAY) --load-restrictor=LoadRestrictionsNone | kubectl --context kind-$(KIND_CLUSTER) apply -f -
+	kubectl --context kind-$(KIND_CLUSTER) -n $(K8S_NAMESPACE) wait --for=condition=complete job/seed-roles --timeout=180s
 
 # --- Temizlik ---
 

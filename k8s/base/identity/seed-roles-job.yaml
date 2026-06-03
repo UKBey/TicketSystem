@@ -1,0 +1,101 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed-roles
+  labels:
+    app.kubernetes.io/name: seed-roles
+    app.kubernetes.io/component: identity
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: seed-roles
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          # Kind'a yuklenen custom Keycloak imaji (kcadm.sh icerir); pull gerektirmez.
+          image: local/keycloak-iam:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KC_URL
+              value: "http://keycloak-iam:8080/auth"
+            - name: KC_REALM
+              value: "TicketSystemRealm"
+            - name: KC_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_ADMIN
+            - name: KC_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_ADMIN_PASSWORD
+          command:
+            - bash
+            - -c
+            # keycloak-init/seed-roles.sh ile ayni mantik (compose seeder o dosyayi mount eder;
+            # k8s'te tek-dosya bagimliligi olmadan calissin diye buraya gomulu).
+            - |
+              set -euo pipefail
+              KCADM=/opt/keycloak/bin/kcadm.sh
+              CONFIG=/tmp/kcadm.config
+              SERVER="${KC_URL:-http://keycloak-iam:8080/auth}"
+              REALM="${KC_REALM:-TicketSystemRealm}"
+              ADMIN_USER="${KC_ADMIN:-admin}"
+              ADMIN_PASS="${KC_ADMIN_PASSWORD:-admin}"
+
+              SEED_USERS="customer:CUSTOMER agent:AGENT lead:LEAD_AGENT manager:MANAGER admin:ADMIN adminmanager:ADMIN,MANAGER leadmanager:LEAD_AGENT,MANAGER superadmin:ADMIN,LEAD_AGENT,MANAGER"
+
+              log() { echo "[seed-roles] $*"; }
+
+              log "Keycloak bekleniyor: $SERVER"
+              for i in $(seq 1 60); do
+                if "$KCADM" config credentials --config "$CONFIG" \
+                      --server "$SERVER" --realm master \
+                      --user "$ADMIN_USER" --password "$ADMIN_PASS" >/dev/null 2>&1; then
+                  log "Admin girisi basarili."
+                  break
+                fi
+                [ "$i" -eq 60 ] && { log "HATA: Keycloak'a ulasilamadi."; exit 1; }
+                sleep 3
+              done
+
+              log "Realm rolleri bekleniyor: $REALM"
+              for i in $(seq 1 40); do
+                if "$KCADM" get "roles/ADMIN" -r "$REALM" --config "$CONFIG" >/dev/null 2>&1; then
+                  break
+                fi
+                [ "$i" -eq 40 ] && { log "HATA: '$REALM' realm rolleri gorunmuyor."; exit 1; }
+                sleep 3
+              done
+
+              rc=0
+              for entry in $SEED_USERS; do
+                user="${entry%%:*}"
+                roles="${entry#*:}"
+                # LDAP kullanicisini Keycloak'a import et (federasyon aramasi).
+                if ! "$KCADM" get users -r "$REALM" --config "$CONFIG" \
+                      -q "username=$user" -q exact=true 2>/dev/null | grep -q '"username"'; then
+                  log "UYARI: '$user' Keycloak'ta bulunamadi (LDAP federasyon hazir mi?)."
+                  rc=1
+                  continue
+                fi
+                OLDIFS=$IFS; IFS=','
+                for role in $roles; do
+                  IFS=$OLDIFS
+                  if "$KCADM" add-roles -r "$REALM" --config "$CONFIG" \
+                        --uusername "$user" --rolename "$role" >/dev/null 2>&1; then
+                    log "  $user <- $role"
+                  else
+                    log "  ! '$user' kullanicisina '$role' atanamadi."
+                    rc=1
+                  fi
+                done
+                IFS=$OLDIFS
+              done
+
+              [ "$rc" -eq 0 ] && log "Tum seed rolleri atandi." || { log "Bazi atamalar basarisiz."; exit 1; }

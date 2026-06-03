@@ -6,6 +6,10 @@ resources:
   - openldap-statefulset.yaml
   - keycloak-service.yaml
   - keycloak-statefulset.yaml
+  # LDAP'tan federe seed kullanicilara realm rollerini atayan one-shot Job
+  # (compose `keycloak-seeder` / `make seed-roles` k8s karsiligi). Idempotent;
+  # `make k8s-up` ile calisir, `make k8s-seed-roles` ile yeniden tetiklenir.
+  - seed-roles-job.yaml
 
 # Realm export configmap. Keycloak StatefulSet mount eder ve --import-realm
 # args ile ilk acilista realm'i import eder.
