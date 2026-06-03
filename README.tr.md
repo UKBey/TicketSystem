@@ -127,6 +127,8 @@ flowchart TB
 
 ## 🚀 Başlangıç
 
+> **Kubernetes ile mi çalıştıracaksınız?** Bu rehber Docker Compose yolunu anlatır (yerel geliştirme ve demo için varsayılan). Kubernetes üzerinde (kind + Kustomize — `make k8s-up`, küme içi Keycloak rol atama için `make k8s-seed-roles` vb.) çalıştırmak için **[k8s/README.md](k8s/README.md)**'yi izleyin.
+
 ### Ön Koşullar
 
 - **Docker** ve Docker Compose

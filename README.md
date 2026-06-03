@@ -127,6 +127,8 @@ flowchart TB
 
 ## 🚀 Getting Started
 
+> **Running on Kubernetes instead?** This guide covers the Docker Compose path (the default for local development & demos). To deploy on Kubernetes (kind + Kustomize — `make k8s-up`, in-cluster Keycloak seeding with `make k8s-seed-roles`, etc.), follow **[k8s/README.md](k8s/README.md)**.
+
 ### Prerequisites
 
 - **Docker** & Docker Compose
