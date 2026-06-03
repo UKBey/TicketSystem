@@ -79,6 +79,10 @@ public class SetupGenerator {
         // 1. Kullanıcılar — Agent Admin ile oluştur (geçici şifre → ilk girişte değişim zorunlu),
         //    ardından nihai şifreyi (users.json) belirleyip oturum aç. Tanımlar users.json'dadır.
         List<UserSession> agents    = createAndLoginUsers(GeneratorConfig.agents(),    "AGENT");
+        // Lead agent'lar LEAD_AGENT rolüyle oluşturulur (Keycloak composite → AGENT'ı kapsar);
+        // operasyonel olarak agent gibi davrandıkları için agent havuzuna eklenir (claim/atama).
+        List<UserSession> leads     = createAndLoginUsers(GeneratorConfig.leads(),     "LEAD_AGENT");
+        agents.addAll(leads);
         List<UserSession> customers = createAndLoginUsers(GeneratorConfig.customers(), "CUSTOMER");
 
         if (agents.isEmpty() || customers.isEmpty()) {

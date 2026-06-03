@@ -11,6 +11,10 @@
     { "username": "agent3.gen", "email": "agent3.gen@ticketsystem.local", "firstName": "Zeynep", "lastName": "Aksoy",  "password": "321654Aa!" }
   ],
 
+  "leads": [
+    { "username": "lead1.gen", "email": "lead1.gen@ticketsystem.local", "firstName": "Deniz", "lastName": "Arslan", "password": "321654Aa!" }
+  ],
+
   "customers": [
     { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local", "firstName": "Mehmet", "lastName": "Şahin", "password": "321654Aa!" },
     { "username": "customer2.gen", "email": "customer2.gen@ticketsystem.local", "firstName": "Elif",   "lastName": "Koç",   "password": "321654Aa!" },

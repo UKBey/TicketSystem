@@ -117,6 +117,17 @@ public class GeneratorConfig {
         return USERS.customers;
     }
 
+    /**
+     * Seed lead-agent definitions from {@code users.json} (empty if none configured).
+     * Leads are created with the LEAD_AGENT realm role (a composite that includes AGENT),
+     * so they also operate as agents.
+     *
+     * @return the list of lead agents the generator should create and sign in
+     */
+    public static List<SeedUser> leads() {
+        return USERS.leads;
+    }
+
     private GeneratorConfig() {
         // Utility class — no instances.
     }
@@ -150,12 +161,14 @@ public class GeneratorConfig {
     private static final class UsersFile {
         private final Map<String, Map<String, String>> namedAccounts;
         private final List<SeedUser> agents;
+        private final List<SeedUser> leads;
         private final List<SeedUser> customers;
 
         private UsersFile(Map<String, Map<String, String>> namedAccounts,
-                          List<SeedUser> agents, List<SeedUser> customers) {
+                          List<SeedUser> agents, List<SeedUser> leads, List<SeedUser> customers) {
             this.namedAccounts = namedAccounts;
             this.agents        = agents;
+            this.leads         = leads;
             this.customers     = customers;
         }
 
@@ -175,7 +188,7 @@ public class GeneratorConfig {
                     throw new UncheckedIOException("Failed to read " + p, e);
                 }
             }
-            return new UsersFile(Collections.emptyMap(), List.of(), List.of());
+            return new UsersFile(Collections.emptyMap(), List.of(), List.of(), List.of());
         }
 
         private static UsersFile parse(JsonNode root) {
@@ -192,7 +205,8 @@ public class GeneratorConfig {
             }
 
             // Seed users: arrays of full user objects (username/email/firstName/lastName/password).
-            return new UsersFile(named, parseSeedUsers(root.path("agents")), parseSeedUsers(root.path("customers")));
+            return new UsersFile(named, parseSeedUsers(root.path("agents")),
+                    parseSeedUsers(root.path("leads")), parseSeedUsers(root.path("customers")));
         }
 
         private static List<SeedUser> parseSeedUsers(JsonNode node) {
