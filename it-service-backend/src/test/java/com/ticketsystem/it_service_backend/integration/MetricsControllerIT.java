@@ -17,13 +17,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Runs against a real PostgreSQL container (Testcontainers). With an
  * empty database each endpoint must return zero/empty values and must not
  * throw. Authorization for each endpoint is verified with the MANAGER,
- * AGENT_ADMIN, CUSTOMER and AGENT roles.
+ * LEAD_AGENT, ADMIN, CUSTOMER and AGENT roles.
  */
 @DisplayName("MetricsController — Tüm Endpoint Entegrasyon Testleri")
 class MetricsControllerIT extends BaseIntegrationTest {
 
     private static final SimpleGrantedAuthority MANAGER     = new SimpleGrantedAuthority("ROLE_MANAGER");
-    private static final SimpleGrantedAuthority AGENT_ADMIN = new SimpleGrantedAuthority("ROLE_AGENT_ADMIN");
+    private static final SimpleGrantedAuthority LEAD_AGENT  = new SimpleGrantedAuthority("ROLE_LEAD_AGENT");
+    private static final SimpleGrantedAuthority ADMIN       = new SimpleGrantedAuthority("ROLE_ADMIN");
     private static final SimpleGrantedAuthority AGENT       = new SimpleGrantedAuthority("ROLE_AGENT");
     private static final SimpleGrantedAuthority CUSTOMER    = new SimpleGrantedAuthority("ROLE_CUSTOMER");
 
@@ -132,9 +133,16 @@ class MetricsControllerIT extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("AGENT_ADMIN → 200")
-        void agentAdmin_gets200() throws Exception {
-            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(AGENT_ADMIN)))
+        @DisplayName("LEAD_AGENT → 200 (ürün-scope'lu)")
+        void leadAgent_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(LEAD_AGENT)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("ADMIN → 200")
+        void admin_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/agent-performance").with(jwt().authorities(ADMIN)))
                     .andExpect(status().isOk());
         }
 
