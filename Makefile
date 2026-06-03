@@ -57,7 +57,7 @@ help:
 	@echo    logs                  - Tum servislerin loglarini izler
 	@echo    logs s=servis         - Tek servisin loglarini izler - ornek: make logs s=keycloak-iam
 	@echo    ps                    - Calisan containerlari listeler
-	@echo    restart s=servis      - Tek servisi yeniden baslatir - ornek: make restart s=it-service-db
+	@echo    restart s=servis      - Tek servisi recreate eder - .env/compose degisikliklerini uygular - ornek: make restart s=it-service-backend
 	@$(ECHO_BLANK)
 	@echo  Lokal Gelistirme - hot-reload:
 	@echo    infra            - Sadece altyapi containerlarini baslar - DB, Keycloak, jBPM
@@ -139,8 +139,12 @@ logs:
 ps:
 	docker compose ps
 
+# `docker compose restart` .env'i YENIDEN OKUMAZ — container'i ayni config ile bounce eder,
+# bu yuzden secret/env degisiklikleri uygulanmaz. `up -d --force-recreate` container'i guncel
+# .env/compose ile yeniden olusturur (env degisikligi olmasa bile bounce eder). --no-deps:
+# bagimliliklari (db/keycloak/kjar-deploy) yeniden degerlendirmez. Imaj DERLEMEZ (rebuild'den hizli).
 restart:
-	docker compose restart $(s)
+	docker compose up -d --force-recreate --no-deps $(s)
 
 # --- Lokal Gelistirme ---
 
