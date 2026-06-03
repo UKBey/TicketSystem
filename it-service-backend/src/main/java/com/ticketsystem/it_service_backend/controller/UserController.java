@@ -613,14 +613,15 @@ public class UserController {
     public ResponseEntity<UserDTO> updateUserRoles(
             @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", required = true)
             @PathVariable String userId,
-            @org.springframework.web.bind.annotation.RequestBody List<String> roles) {
+            @org.springframework.web.bind.annotation.RequestBody List<String> roles,
+            @AuthenticationPrincipal Jwt jwt) {
         log.info("Kullanıcı rol güncelleme isteği. Kullanıcı: {}, Roller: {}", userId, roles);
 
         if (roles == null || roles.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
-        User updatedUser = userService.updateUserRoles(userId, roles);
+        User updatedUser = userService.updateUserRoles(userId, roles, jwt.getSubject());
 
         log.info("Kullanıcı rolleri başarıyla güncellendi. ID: {}", userId);
         return ResponseEntity.ok(UserDTO.fromEntity(updatedUser));

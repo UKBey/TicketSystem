@@ -411,20 +411,23 @@ public class UserService {
     /**
      * Updates the user's roles in Keycloak and synchronizes the local database.
      *
-     * @param userId   Keycloak UUID of the user to update
-     * @param newRoles list of new role names to assign
+     * @param userId       Keycloak UUID of the user to update
+     * @param newRoles     list of new role names to assign
+     * @param actingUserId Keycloak UUID of the admin performing the change (the JWT subject)
      * @return the updated user record
      */
     @Transactional
-    public User updateUserRoles(String userId, List<String> newRoles) {
+    public User updateUserRoles(String userId, List<String> newRoles, String actingUserId) {
         log.info("Kullanıcı rol güncelleme işlemi başlatıldı. ID: {}, Yeni roller: {}", userId, newRoles);
 
         // 1. Kullanıcının yerel DB'de var olduğunu doğrula
         User user = getUserById(userId);
 
-        // 1b. Bir ADMIN'in rolleri bu panelden (başka bir admin dâhil) değiştirilemez.
-        // Admin hesapları yalnızca Keycloak üzerinden yönetilir. Hedef admin ise reddet.
-        if (AuthRoles.isAdmin(user.getRoles())) {
+        // 1b. Bir admin KENDİ rollerini düzenleyebilir, ancak BAŞKA bir admin'in rollerini
+        // bu panelden değiştiremez. (Hedef admin + kendisi değilse reddet.)
+        boolean targetIsAdmin = AuthRoles.isAdmin(user.getRoles());
+        boolean editingSelf = userId.equals(actingUserId);
+        if (targetIsAdmin && !editingSelf) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.user.modify.admin.forbidden");
         }
 

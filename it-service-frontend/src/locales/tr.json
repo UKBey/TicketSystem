@@ -919,7 +919,7 @@
       "title": "Rol Düzenle",
       "button": "Rol Düzenle",
       "buttonTitle": "Bu kullanıcının rollerini düzenle",
-      "adminProtected": "Bir admin'in rolleri buradan değiştirilemez",
+      "adminProtected": "Başka bir admin'in rolleri buradan değiştirilemez",
       "selectRoles": "Roller",
       "save": "Kaydet",
       "saving": "Kaydediliyor...",

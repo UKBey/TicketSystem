@@ -919,7 +919,7 @@
       "title": "Edit Role",
       "button": "Edit Role",
       "buttonTitle": "Edit roles for this user",
-      "adminProtected": "An admin's roles cannot be changed here",
+      "adminProtected": "Another admin's roles cannot be changed here",
       "selectRoles": "Roles",
       "save": "Save",
       "saving": "Saving...",

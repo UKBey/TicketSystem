@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { useAuth } from '../auth/AuthContext';
 import {
   getUsers,
   createUser,
@@ -90,6 +91,10 @@ function RolePicker({ theme, t, options, selected, onToggle }) {
 export default function UserManagementScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const { user: currentUser } = useAuth();
+
+  // Bir admin KENDİ rollerini düzenleyebilir; başka bir admin'in rollerini düzenleyemez.
+  const isOtherAdmin = (u) => rolesOf(u).includes('ADMIN') && u.id !== currentUser?.id;
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
@@ -260,7 +265,7 @@ export default function UserManagementScreen() {
         </View>
         <Pressable
           // Bir admin'in rolleri bu panelden (başka admin dâhil) değiştirilemez.
-          disabled={rolesOf(item).includes('ADMIN')}
+          disabled={isOtherAdmin(item)}
           onPress={() => {
             setEditUser(item);
             // Mevcut rolleri ön-seç (çoklu rol veya tekil rol destekli).
@@ -271,7 +276,7 @@ export default function UserManagementScreen() {
                 : [];
             setEditRoles(existing);
           }}
-          style={[styles.editBtn, { borderColor: theme.primary, opacity: rolesOf(item).includes('ADMIN') ? 0.4 : 1 }]}
+          style={[styles.editBtn, { borderColor: theme.primary, opacity: isOtherAdmin(item) ? 0.4 : 1 }]}
         >
           <Ionicons name="create-outline" size={14} color={theme.primary} />
           <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 12 }}>

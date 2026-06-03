@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import api, { updateUserStatus } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
@@ -39,6 +40,10 @@ const formatDate = (isoString) => {
 
 export default function UserManagementPage() {
   const { t } = useTranslation();
+  const { user: currentUser } = useAuth();
+
+  // Bir admin KENDİ rollerini düzenleyebilir; ama BAŞKA bir admin'in rollerini düzenleyemez.
+  const isOtherAdmin = (u) => rolesOf(u).includes('ADMIN') && u.id !== currentUser?.id;
 
   // -------------------------------------------------------------------------
   // State
@@ -332,8 +337,8 @@ export default function UserManagementPage() {
                     <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
                       <button
                         onClick={() => handleOpenEditRole(user)}
-                        disabled={isInactive || rolesOf(user).includes('ADMIN')}
-                        title={rolesOf(user).includes('ADMIN') ? t('userManagement.editRole.adminProtected') : undefined}
+                        disabled={isInactive || isOtherAdmin(user)}
+                        title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : undefined}
                         className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
                         style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                       >
@@ -487,10 +492,10 @@ export default function UserManagementPage() {
                         {/* Rol düzenle */}
                         <button
                           onClick={() => handleOpenEditRole(user)}
-                          disabled={isInactive || rolesOf(user).includes('ADMIN')}
+                          disabled={isInactive || isOtherAdmin(user)}
                           className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                          title={rolesOf(user).includes('ADMIN') ? t('userManagement.editRole.adminProtected') : t('userManagement.editRole.buttonTitle')}
+                          title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : t('userManagement.editRole.buttonTitle')}
                         >
                           <ShieldCheck className="h-3.5 w-3.5" />
                         </button>

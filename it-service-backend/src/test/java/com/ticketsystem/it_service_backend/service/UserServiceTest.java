@@ -347,7 +347,7 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"));
+        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"), "actor-admin");
 
         // Legacy ADMIN now resolves to the new ADMIN role (highest priority).
         assertThat(result.getRole()).isEqualTo("ADMIN");
@@ -355,8 +355,8 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("updateUserRoles → hedef ADMIN ise 403 (admin rolleri bu panelden değiştirilemez)")
-    void updateUserRoles_targetIsAdmin_forbidden() {
+    @DisplayName("updateUserRoles → BAŞKA admin'in rolleri 403 (admin başka admin'i düzenleyemez)")
+    void updateUserRoles_otherAdmin_forbidden() {
         User adminTarget = User.builder().id("admin-9").role("ADMIN")
                 .roles(new java.util.HashSet<>(List.of("ADMIN")))
                 .build();
@@ -364,10 +364,25 @@ class UserServiceTest {
 
         org.springframework.web.server.ResponseStatusException ex = org.junit.jupiter.api.Assertions.assertThrows(
                 org.springframework.web.server.ResponseStatusException.class,
-                () -> userService.updateUserRoles("admin-9", List.of("AGENT")));
+                () -> userService.updateUserRoles("admin-9", List.of("AGENT"), "actor-admin"));
 
         assertThat(ex.getStatusCode().value()).isEqualTo(403);
         verify(keycloakAdminService, org.mockito.Mockito.never()).updateUserRoles(any(), any());
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → admin KENDİ rollerini düzenleyebilir (self)")
+    void updateUserRoles_selfAdmin_allowed() {
+        User adminSelf = User.builder().id("admin-9").role("ADMIN")
+                .roles(new java.util.HashSet<>(List.of("ADMIN")))
+                .build();
+        when(userRepository.findById("admin-9")).thenReturn(Optional.of(adminSelf));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updateUserRoles("admin-9", List.of("ADMIN", "MANAGER"), "admin-9");
+
+        assertThat(result.getRole()).isEqualTo("ADMIN");
+        verify(keycloakAdminService).updateUserRoles("admin-9", List.of("ADMIN", "MANAGER"));
     }
 
     @Test
@@ -376,7 +391,7 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("MANAGER", "CUSTOMER"));
+        User result = userService.updateUserRoles("agent-1", List.of("MANAGER", "CUSTOMER"), "actor-admin");
 
         assertThat(result.getRole()).isEqualTo("MANAGER");
     }
@@ -387,7 +402,7 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of());
+        User result = userService.updateUserRoles("agent-1", List.of(), "actor-admin");
 
         assertThat(result.getRole()).isNull();
     }
@@ -398,7 +413,7 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER"));
+        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER"), "actor-admin");
 
         assertThat(result.getRole()).isEqualTo("CUSTOMER");
     }
@@ -409,7 +424,7 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("UNKNOWN"));
+        User result = userService.updateUserRoles("agent-1", List.of("UNKNOWN"), "actor-admin");
 
         assertThat(result.getRole()).isNull();
     }

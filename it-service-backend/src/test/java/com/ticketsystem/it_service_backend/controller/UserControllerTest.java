@@ -326,9 +326,9 @@ class UserControllerTest {
     @Test
     void updateUserRoles_validRoles_returnsUpdatedDto() {
         User u = User.builder().id("u-2").fullName("X").role("AGENT").build();
-        when(userService.updateUserRoles("u-2", List.of("AGENT"))).thenReturn(u);
+        when(userService.updateUserRoles("u-2", List.of("AGENT"), "admin-1")).thenReturn(u);
 
-        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of("AGENT"));
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of("AGENT"), jwtWithRoles("admin-1", List.of("ADMIN")));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("AGENT", response.getBody().getRole());
@@ -336,16 +336,16 @@ class UserControllerTest {
 
     @Test
     void updateUserRoles_emptyList_returnsBadRequest() {
-        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of());
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", List.of(), null);
 
         assertEquals(400, response.getStatusCode().value());
         verify(userService, org.mockito.Mockito.never()).updateUserRoles(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
     void updateUserRoles_nullList_returnsBadRequest() {
-        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", null);
+        ResponseEntity<UserDTO> response = userController.updateUserRoles("u-2", null, null);
 
         assertEquals(400, response.getStatusCode().value());
     }
