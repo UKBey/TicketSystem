@@ -31,6 +31,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // AGENT_ADMIN kullanımdan kaldırıldı (composite olarak köprülenir); atanabilir listede gösterilmez.
 const DEPRECATED_ROLES = ['AGENT_ADMIN'];
 
+// Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum.
+const rolesOf = (u) =>
+  Array.isArray(u?.roles) && u.roles.length ? u.roles : u?.role ? [u.role] : [];
+
 /** Çoklu seçimli rol çip grubu — additive; mevcut roller düzenlemede ön-seçili gelir. */
 function RolePicker({ theme, t, options, selected, onToggle }) {
   return (
@@ -196,7 +200,11 @@ export default function UserManagementScreen() {
       const res = await updateUserRoles(editUser.id, editRoles);
       // Backend birincil rolü döner; listede onu gösteririz (yoksa seçilen ilk rol).
       setUsers((prev) =>
-        prev.map((u) => (u.id === editUser.id ? { ...u, role: res.data?.role ?? editRoles[0] } : u)),
+        prev.map((u) =>
+          u.id === editUser.id
+            ? { ...u, role: res.data?.role ?? editRoles[0], roles: res.data?.roles ?? editRoles }
+            : u,
+        ),
       );
       setEditUser(null);
       Alert.alert(t('userManagement.editRole.successMsg', 'Kullanıcı rolleri başarıyla güncellendi.'));
@@ -238,8 +246,15 @@ export default function UserManagementScreen() {
       </View>
       <Text style={[styles.email, { color: theme.textSecondary }]}>{item.email}</Text>
       <View style={styles.cardBottom}>
-        <View style={[styles.roleBadge, { backgroundColor: theme.primary }]}>
-          <Text style={styles.roleText}>{item.role || t('userManagement.table.noRole', 'Rol Yok')}</Text>
+        <View style={styles.roleBadgeWrap}>
+          {(rolesOf(item).length
+            ? rolesOf(item)
+            : [t('userManagement.table.noRole', 'Rol Yok')]
+          ).map((r, i) => (
+            <View key={`${r}-${i}`} style={[styles.roleBadge, { backgroundColor: theme.primary }]}>
+              <Text style={styles.roleText}>{r}</Text>
+            </View>
+          ))}
         </View>
         <Pressable
           onPress={() => {
@@ -470,7 +485,8 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontSize: 15, fontWeight: '700', flex: 1 },
   email: { fontSize: 13 },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  roleBadgeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, flexShrink: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   roleText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   editBtn: {

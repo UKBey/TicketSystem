@@ -204,10 +204,18 @@ function ActionCard({ icon: Icon, iconColor, iconBg, title, description, onClick
 export default function ProfilePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, getPrimaryRole, refreshUser } = useAuth();
+  const { user, getPrimaryRole, roles, refreshUser } = useAuth();
   const primaryRole = getPrimaryRole();
-  const roleMeta = ROLE_META[primaryRole] ?? { label: primaryRole ?? 'User', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' };
   const avatarGradient = ROLE_GRADIENT[primaryRole] ?? ROLE_GRADIENT.default;
+
+  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı,
+  // yinelenenler ayıklanmış ve legacy AGENT_ADMIN köprüsü gizlenmiş (gerçek roller zaten genişler).
+  const displayRoles = (() => {
+    const order = ['ADMIN', 'MANAGER', 'LEAD_AGENT', 'AGENT', 'CUSTOMER'];
+    const uniq = Array.from(new Set(roles ?? [])).filter((r) => r !== 'AGENT_ADMIN');
+    const ordered = order.filter((r) => uniq.includes(r));
+    return ordered.length ? ordered : (primaryRole ? [primaryRole] : []);
+  })();
 
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -367,13 +375,19 @@ export default function ProfilePage() {
               {user?.email || '—'}
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
-                style={{ backgroundColor: roleMeta.bg, color: roleMeta.color, backdropFilter: 'blur(4px)' }}
-              >
-                <Shield className="h-3 w-3" />
-                {roleMeta.label}
-              </span>
+              {displayRoles.map((r) => {
+                const meta = ROLE_META[r] ?? { label: r, color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' };
+                return (
+                  <span
+                    key={r}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+                    style={{ backgroundColor: meta.bg, color: meta.color, backdropFilter: 'blur(4px)' }}
+                  >
+                    <Shield className="h-3 w-3" />
+                    {meta.label}
+                  </span>
+                );
+              })}
               <span
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
                 style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)' }}

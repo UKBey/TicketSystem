@@ -15,6 +15,15 @@ const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 // Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
 const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
 
+// Kullanıcının TÜM rollerini döndürür (çoklu rol). Eski tekil `role` alanına geriye-dönük uyum.
+const rolesOf = (user) =>
+  Array.isArray(user?.roles) && user.roles.length
+    ? user.roles
+    : (user?.role ? [user.role] : []);
+
+// Kullanıcının rollerinden herhangi biri operasyonel ajan mı? (bilet limiti UI'ı bu kullanıcılarda gösterilir)
+const hasAgentRole = (user) => rolesOf(user).some((r) => AGENT_ROLES.includes(r));
+
 function ProductChips({ products, onRemove, t }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -432,19 +441,24 @@ export default function AdminPanel() {
             {/* Mobile: card list */}
             <ul className="lg:hidden p-4 space-y-3">
               {users.map(user => {
-                const isAgent = AGENT_ROLES.includes(user.role);
+                const isAgent = hasAgentRole(user);
                 const limitOpen = expandedLimitUserId === user.id;
                 return (
                   <li key={user.id} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{user.fullName}</span>
-                      {user.role ? (
-                        <span
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold whitespace-nowrap"
-                          style={roleBadgeStyle(user.role)}
-                        >
-                          {user.role}
-                        </span>
+                      {rolesOf(user).length ? (
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {rolesOf(user).map((r) => (
+                            <span
+                              key={r}
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold whitespace-nowrap"
+                              style={roleBadgeStyle(r)}
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span
                           className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
@@ -570,7 +584,7 @@ export default function AdminPanel() {
               </thead>
               <tbody>
                 {users.map(user => {
-                  const isAgent = AGENT_ROLES.includes(user.role);
+                  const isAgent = hasAgentRole(user);
                   const limitOpen = expandedLimitUserId === user.id;
                   return (
                     <React.Fragment key={user.id}>
@@ -582,13 +596,18 @@ export default function AdminPanel() {
                           {user.email}
                         </td>
                         <td className="px-4 py-3">
-                          {user.role ? (
-                            <span
-                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                              style={roleBadgeStyle(user.role)}
-                            >
-                              {user.role}
-                            </span>
+                          {rolesOf(user).length ? (
+                            <div className="flex flex-wrap items-center gap-1">
+                              {rolesOf(user).map((r) => (
+                                <span
+                                  key={r}
+                                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                                  style={roleBadgeStyle(r)}
+                                >
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
                           ) : (
                             <span
                               className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"

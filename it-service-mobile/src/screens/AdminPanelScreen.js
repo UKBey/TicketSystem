@@ -24,6 +24,10 @@ const fullNameOf = (u) =>
 // Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
 const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
 
+// Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum.
+const rolesOf = (u) =>
+  Array.isArray(u?.roles) && u.roles.length ? u.roles : u?.role ? [u.role] : [];
+
 /** Yönetim paneli — kullanıcı ürün yetkileri ve agent bilet limitleri. */
 export default function AdminPanelScreen() {
   const { theme } = useTheme();
@@ -103,7 +107,7 @@ export default function AdminPanelScreen() {
   };
 
   const renderItem = ({ item }) => {
-    const isAgent = AGENT_ROLES.includes(item.role);
+    const isAgent = rolesOf(item).some((r) => AGENT_ROLES.includes(r));
     const authorized = item.authorizedProducts || [];
     return (
       <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
@@ -111,8 +115,12 @@ export default function AdminPanelScreen() {
           <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>
             {fullNameOf(item)}
           </Text>
-          <View style={[styles.roleBadge, { backgroundColor: theme.primary }]}>
-            <Text style={styles.roleText}>{item.role || '—'}</Text>
+          <View style={styles.roleBadgeWrap}>
+            {(rolesOf(item).length ? rolesOf(item) : ['—']).map((r, i) => (
+              <View key={`${r}-${i}`} style={[styles.roleBadge, { backgroundColor: theme.primary }]}>
+                <Text style={styles.roleText}>{r}</Text>
+              </View>
+            ))}
           </View>
         </View>
         <Text style={[styles.email, { color: theme.textSecondary }]}>{item.email}</Text>
@@ -276,6 +284,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   name: { fontSize: 15, fontWeight: '700', flex: 1 },
   email: { fontSize: 13 },
+  roleBadgeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', flexShrink: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   roleText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   sectionLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginTop: 2 },

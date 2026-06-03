@@ -24,6 +24,12 @@ const roleBadgeStyle = (role) => {
   }
 };
 
+/** Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum. */
+const rolesOf = (user) =>
+  Array.isArray(user?.roles) && user.roles.length
+    ? user.roles
+    : (user?.role ? [user.role] : []);
+
 /** Tarih formatlayıcı */
 const formatDate = (isoString) => {
   if (!isoString) return '—';
@@ -116,7 +122,7 @@ export default function UserManagementPage() {
     setSuccessMsg(t('userManagement.editRole.successMsg'));
     setTimeout(() => setSuccessMsg(''), 4000);
     setUsers((prev) =>
-      prev.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role } : u))
+      prev.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role, roles: updatedUser.roles } : u))
     );
   };
 
@@ -281,13 +287,18 @@ export default function UserManagementPage() {
                           </span>
                         )}
                       </span>
-                      {user.role ? (
-                        <span
-                          className="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                          style={roleBadgeStyle(user.role)}
-                        >
-                          {user.role}
-                        </span>
+                      {rolesOf(user).length ? (
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                          {rolesOf(user).map((r) => (
+                            <span
+                              key={r}
+                              className="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                              style={roleBadgeStyle(r)}
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span
                           className="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
@@ -431,13 +442,18 @@ export default function UserManagementPage() {
 
                     {/* Rol badge */}
                     <td className="px-4 py-3">
-                      {user.role ? (
-                        <span
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                          style={roleBadgeStyle(user.role)}
-                        >
-                          {user.role}
-                        </span>
+                      {rolesOf(user).length ? (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {rolesOf(user).map((r) => (
+                            <span
+                              key={r}
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                              style={roleBadgeStyle(r)}
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span
                           className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"

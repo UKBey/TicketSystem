@@ -18,7 +18,16 @@ import { updateProfile, changePassword } from '../api/users';
 export default function ProfileScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { user, getPrimaryRole, refreshUser } = useAuth();
+  const { user, getPrimaryRole, roles, refreshUser } = useAuth();
+
+  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı, legacy AGENT_ADMIN gizli.
+  const primaryRole = getPrimaryRole();
+  const displayRoles = (() => {
+    const order = ['ADMIN', 'MANAGER', 'LEAD_AGENT', 'AGENT', 'CUSTOMER'];
+    const uniq = Array.from(new Set(roles ?? [])).filter((r) => r !== 'AGENT_ADMIN');
+    const ordered = order.filter((r) => uniq.includes(r));
+    return ordered.length ? ordered : primaryRole ? [primaryRole] : [];
+  })();
 
   const [firstName, setFirstName] = useState(user?.firstName ?? '');
   const [lastName, setLastName] = useState(user?.lastName ?? '');
@@ -124,7 +133,7 @@ export default function ProfileScreen() {
           {t('profile.accountDetails', 'Hesap Detayları')}
         </Text>
         <Text style={[styles.role, { color: theme.textTertiary }]}>
-          {t('profile.role', 'Rol')}: {getPrimaryRole() || '—'}
+          {t('profile.role', 'Rol')}: {displayRoles.length ? displayRoles.join(', ') : '—'}
         </Text>
 
         <LabeledInput
