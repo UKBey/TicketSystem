@@ -88,6 +88,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Keycloak image — Dockerfile-keycloak: base imaja it-service-desk temasini gomer
+      - name: Build & push keycloak-iam image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile-keycloak
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/keycloak-iam:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/keycloak-iam:${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # KIE Server image — Dockerfile-kie: ticket-workflow kjar'i KIE'nin Maven repo'suna gomer
+      - name: Build & push kie-server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile-kie
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/kie-server:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/kie-server:${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   # ─────────────────────────────────────────────────────────────
   # 2. VDS'e deploy (Docker Compose)
   #    Güçlü bir VDS temin edildiğinde aşağıdaki job'ın
@@ -188,7 +214,9 @@ jobs:
             local/it-service-backend=$REG/it-service-backend:$SHA \
             local/llm-service=$REG/llm-service:$SHA \
             local/it-service-frontend=$REG/it-service-frontend:$SHA \
-            local/openldap-server=$REG/openldap-server:$SHA
+            local/openldap-server=$REG/openldap-server:$SHA \
+            local/keycloak-iam=$REG/keycloak-iam:$SHA \
+            local/kie-server=$REG/kie-server:$SHA
 
       - name: Apply manifests
         run: |
