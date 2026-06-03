@@ -1,40 +1,92 @@
-# 1. Kullanıcılar için Organizasyon Birimi (OU) oluşturuyoruz
+# =============================================================================
+# LDAP bootstrap seed — ITSM ticketing demo kullanıcıları
+# -----------------------------------------------------------------------------
+# Keycloak federasyonu eşlemesi: firstName <- cn, lastName <- sn, email <- mail,
+# username <- uid. Roller buradaki LDAP girdisinden GELMEZ; Keycloak'a federasyon
+# sonrası `keycloak-init/seed-roles.sh` (make seed-roles) ile atanır.
+#
+# Şifreler dev ortamında hepsi aynıdır (.env: 321654). Yeni bir şifre env'i
+# eklememek için mevcut 4 değişken rol ailesine göre yeniden kullanılır
+# (entrypoint-wrapper.sh bu 4 değişkeni substitute eder).
+# =============================================================================
+
+# Kullanıcılar için Organizasyon Birimi (OU)
 dn: ou=users,dc=ticketsystem,dc=com
 objectClass: organizationalUnit
 ou: users
 
-# 2. Test Müşterisi (Customer) ekliyoruz
-dn: uid=ctest,ou=users,dc=ticketsystem,dc=com
+# --- Tekil roller --------------------------------------------------------------
+
+# customer → CUSTOMER (saf son kullanıcı)
+dn: uid=customer,ou=users,dc=ticketsystem,dc=com
 objectClass: inetOrgPerson
-uid: ctest
-cn: customer
-sn: test
-mail: ctest@ticketsystem.com
+uid: customer
+cn: Customer
+sn: User
+mail: customer@ticketsystem.com
 userPassword: ${LDAP_CUSTOMER_PASSWORD}
 
-# 3. Test Destek Uzmanı (Agent) ekliyoruz
-dn: uid=atest,ou=users,dc=ticketsystem,dc=com
+# agent → AGENT (saf destek uzmanı)
+dn: uid=agent,ou=users,dc=ticketsystem,dc=com
 objectClass: inetOrgPerson
-uid: atest
-cn: agent
-sn: test
-mail: atest@ticketsystem.com
+uid: agent
+cn: Agent
+sn: User
+mail: agent@ticketsystem.com
 userPassword: ${LDAP_AGENT_PASSWORD}
 
-# 4. Test Yönetici (Manager) ekliyoruz
-dn: uid=mtest,ou=users,dc=ticketsystem,dc=com
+# lead → LEAD_AGENT (takım lideri; agent'ı kapsar)
+dn: uid=lead,ou=users,dc=ticketsystem,dc=com
 objectClass: inetOrgPerson
-uid: mtest
-cn: manager
-sn: test
-mail: mtest@ticketsystem.com
+uid: lead
+cn: Lead
+sn: Agent
+mail: lead@ticketsystem.com
+userPassword: ${LDAP_AGENT_PASSWORD}
+
+# manager → MANAGER (gözetim/raporlama)
+dn: uid=manager,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: manager
+cn: Manager
+sn: User
+mail: manager@ticketsystem.com
 userPassword: ${LDAP_MANAGER_PASSWORD}
 
-# 5. Test Agent Admin ekliyoruz
-dn: uid=aatest,ou=users,dc=ticketsystem,dc=com
+# admin → ADMIN (sistem konfigürasyonu)
+dn: uid=admin,ou=users,dc=ticketsystem,dc=com
 objectClass: inetOrgPerson
-uid: aatest
-cn: agentadmin
-sn: test
-mail: aatest@ticketsystem.com
+uid: admin
+cn: Admin
+sn: User
+mail: admin@ticketsystem.com
+userPassword: ${LDAP_AGENT_ADMIN_PASSWORD}
+
+# --- Çoklu-rol kombinasyonları (additive model) --------------------------------
+
+# adminmanager → ADMIN + MANAGER (yönetim + org-geneli gözetim)
+dn: uid=adminmanager,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: adminmanager
+cn: Admin
+sn: Manager
+mail: adminmanager@ticketsystem.com
+userPassword: ${LDAP_AGENT_ADMIN_PASSWORD}
+
+# leadmanager → LEAD_AGENT + MANAGER (ürün ekibi liderliği + global gözetim)
+dn: uid=leadmanager,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: leadmanager
+cn: Lead
+sn: Manager
+mail: leadmanager@ticketsystem.com
+userPassword: ${LDAP_AGENT_PASSWORD}
+
+# superadmin → ADMIN + LEAD_AGENT + MANAGER (tam yetki; eski aatest karşılığı)
+dn: uid=superadmin,ou=users,dc=ticketsystem,dc=com
+objectClass: inetOrgPerson
+uid: superadmin
+cn: Super
+sn: Admin
+mail: superadmin@ticketsystem.com
 userPassword: ${LDAP_AGENT_ADMIN_PASSWORD}

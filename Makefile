@@ -100,6 +100,7 @@ help:
 	@echo    gen-k8s          - k8s ortaminda: port-forward + gen-host
 	@echo    gen-build        - Generator JARini derler - host
 	@echo    gen-run          - Onceden derlenmis JARi calistirir - host
+	@echo    seed-roles       - Seed kullanicilara Keycloak rollerini atar - make up sonrasi
 	@$(ECHO_BLANK)
 	@echo  Kubernetes - kind + kustomize:
 	@echo    k8s-rebuild      - TEK KOMUT: cluster yoksa olusturur, kapaliysa baslatir,
@@ -287,6 +288,15 @@ gen-build:
 
 gen-run:
 	java -jar $(GENERATOR_DIR)/target/data-generator-1.0.0.jar
+
+# --- Seed kullanici rolleri ---
+
+# LDAP'tan federe edilen seed kullanicilara (customer/agent/lead/manager/admin/
+# adminmanager/leadmanager/superadmin) Keycloak realm rollerini atar. Docker
+# container icinde kcadm ile calisir; idempotenttir. `make up` ile AYAGA KALKMAZ.
+# --no-deps: ZATEN AYAKTA olan stack'e baglanir. Once `make up` gerekir.
+seed-roles:
+	docker compose run --rm --no-deps keycloak-seeder
 
 # --- Kurulum ---
 

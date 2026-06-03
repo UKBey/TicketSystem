@@ -1,7 +1,7 @@
 {
   "_comment": "Copy this file to data-generator/users.json and adjust as needed. ALL seed users live here now (setup.json no longer carries a users section). The generator creates each agent/customer via the Agent Admin API with a TEMPORARY password (forced change on first login), then completes that first-login change by setting the final password below. Named accounts (adminAgent/keycloakAdmin/database) must already exist; anything left out falls back to the defaults in GeneratorConfig.java ('321654'). Passwords must satisfy the Keycloak realm password policy.",
 
-  "adminAgent":    { "username": "aatest",      "password": "321654" },
+  "adminAgent":    { "username": "superadmin",  "password": "321654" },
   "keycloakAdmin": { "username": "admin",       "password": "321654" },
   "database":      { "username": "ticketadmin", "password": "321654" },
 

@@ -174,15 +174,24 @@ Realm export'u maskelenmiş gizli değerlerle (`**********`) gelir. İlk başlat
    ```
 
 #### 3c. Tohum kullanıcılarına realm rollerini atayın
-LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir. Roller **eklemelidir (additive)** — bir kullanıcı birden fazla rol taşıyabilir ve etkin yetkileri bunların birleşimidir. Her kullanıcı için **Users → kullanıcı adı → Role mapping → Assign role** üzerinden şu eşlemeyi yapın:
+LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir — **roller LDAP'ta saklanmaz**. Hepsini tek seferde, idempotent tohumlama (seeder) işiyle atayın:
+
+```bash
+make seed-roles    # tek seferlik keycloak-seeder (tools profili); tekrar çalıştırmak güvenlidir
+```
+
+Bu, her tohum kullanıcısını aşağıdaki rol(ler)e eşler. Roller **eklemelidir (additive)** — bir kullanıcı birden fazla rol taşıyabilir ve etkin yetkileri bunların birleşimidir.
 
 | Kullanıcı | Realm rolü/rolleri |
 |-----------|--------------------|
-| `ctest`   | `customer` |
-| `atest`   | `agent` |
-| `ltest`   | `lead_agent` (`agent`'ın bileşiği) |
-| `mtest`   | `manager` |
-| `aatest`  | `agent_admin` (kullanımdan kaldırılan; `admin` + `lead_agent` + `manager` bileşiği — mevcut süper yöneticilerin çalışmaya devam etmesi için geçiş köprüsü olarak tutulur) |
+| `customer`     | `customer` |
+| `agent`        | `agent` |
+| `lead`         | `lead_agent` (`agent`'ın bileşiği) |
+| `manager`      | `manager` |
+| `admin`        | `admin` |
+| `adminmanager` | `admin` + `manager` |
+| `leadmanager`  | `lead_agent` + `manager` |
+| `superadmin`   | `admin` + `lead_agent` + `manager` |
 
 Artık http://localhost adresinden giriş yapabilirsiniz.
 
@@ -208,17 +217,20 @@ make gen       # veri üreticisini derler + çalıştırır (ürünler, ticket'l
 
 ### 6. Demo kullanıcıları
 
-OpenLDAP'a kullanıcılar eklenir. **Parolaları, `.env` içinde belirlediğiniz değerlerdir** (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`). Roller **eklemelidir** — bir kullanıcı bir rol kümesi taşır ve etkin yetkileri bunların birleşimidir.
+Kullanıcılar OpenLDAP'a eklenir ve Keycloak'a senkronize edilir; realm **rolleri `make seed-roles` ile atanır** (bkz. adım 3c) — roller LDAP'ta saklanmaz. Tüm tohum kullanıcıları `321654` parolasını paylaşır. Roller **eklemelidir** — bir kullanıcı bir rol kümesi taşır ve etkin yetkileri bunların birleşimidir.
 
-| Rol | Kullanıcı Adı | Açılış Sayfası | Yetenekler |
-|------|----------|----------|--------------|
-| Müşteri | `ctest` | Ticket'larım | Kendi ticket'larını oluşturma ve izleme (ürün kapsamlı), yorum, dosya ekleme, CSAT gönderme |
-| Temsilci | `atest` | Çalışma Alanı | Ticket talep etme ve yalnızca talep edilen ticket'lar üzerinde işlem (ürün kapsamlı); durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
-| Takım Lideri (Lead Agent) | `ltest` | Çalışma Alanı + Takım | `agent` bileşiği **+** ticket'ları temsilcilere atama, talep etmeden ticket üzerinde işlem, ürün içeriği yönetimi (topic'ler / sıkça karşılaşılan sorunlar / paylaşılan hazır yanıtlar) ve ürün kapsamlı takım panosu |
-| Admin | `aatest`* | Çalışma Alanı + Yönetim | Sistem yapılandırması (global): kullanıcı oluşturma, rol atama, ürün oluşturma/yönetme, ürün erişimi verme, temsilci limitleri, SLA / önbellek |
-| Yönetici (Manager) | `mtest` | Pano | Gözetim (global, salt okunur): tüm panolar, raporlar ve tam okuma görünürlüğü — operasyonel işlem yok, sistem yapılandırması yok |
+| Kullanıcı Adı | Parola | Rol(ler) | Açılış Sayfası | Yetenekler |
+|----------|--------|----------|----------|--------------|
+| `customer`     | `321654` | `customer` | Ticket'larım | Kendi ticket'larını oluşturma ve izleme (ürün kapsamlı), yorum, dosya ekleme, CSAT gönderme |
+| `agent`        | `321654` | `agent` | Çalışma Alanı | Ticket talep etme ve yalnızca talep edilen ticket'lar üzerinde işlem (ürün kapsamlı); durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
+| `lead`         | `321654` | `lead_agent` | Çalışma Alanı + Takım | `agent` bileşiği **+** ticket'ları temsilcilere atama, talep etmeden ticket üzerinde işlem, ürün içeriği yönetimi (topic'ler / sıkça karşılaşılan sorunlar / paylaşılan hazır yanıtlar) ve ürün kapsamlı takım panosu |
+| `manager`      | `321654` | `manager` | Pano | Gözetim (global, salt okunur): tüm panolar, raporlar ve tam okuma görünürlüğü — operasyonel işlem yok, sistem yapılandırması yok |
+| `admin`        | `321654` | `admin` | Çalışma Alanı + Yönetim | Sistem yapılandırması (global): kullanıcı oluşturma, rol atama, ürün oluşturma/yönetme, ürün erişimi verme, temsilci limitleri, SLA / önbellek |
+| `adminmanager` | `321654` | `admin` + `manager` | Çalışma Alanı + Yönetim | Admin yapılandırması **+** manager gözetimi (birleşim) |
+| `leadmanager`  | `321654` | `lead_agent` + `manager` | Çalışma Alanı + Takım + Pano | Lead-agent operasyonları **+** manager gözetimi (birleşim) |
+| `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Çalışma Alanı + Yönetim | Tam süper yönetici: admin yapılandırması, lead-agent operasyonları ve manager gözetiminin birleşimi |
 
-> *Bootstrap hesabı `aatest`, kullanımdan kaldırılan `agent_admin` rolünü taşır; bu rol `{admin, lead_agent, manager}` bileşiği olan bir Keycloak composite'idir ve bu nedenle süper yönetici gibi davranır. Yeni dağıtımlar bunun yerine yukarıdaki ayrık rolleri atamalıdır.
+> *Veri üreticisinin (data-generator) bootstrap hesabı `superadmin`'dir; `admin` + `lead_agent` + `manager` taşır ve bu nedenle süper yönetici gibi davranır. Kullanımdan kaldırılan `agent_admin` rolü, `{admin, lead_agent, manager}` bileşiği olan bir Keycloak composite'i olarak hâlâ Keycloak'ta mevcuttur (mevcut süper yöneticilerin çalışmaya devam etmesi için geçiş köprüsü) — yeni kullanıcılara atamayın.
 
 ---
 

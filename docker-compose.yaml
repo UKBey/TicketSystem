@@ -697,3 +697,25 @@ services:
     networks:
       - it-service-net
     restart: "no"
+
+  # LDAP'tan federe edilen seed kullanicilara Keycloak realm rollerini atayan
+  # tek-seferlik job. `make seed-roles` ile calistirilir (data-generator gibi
+  # "tools" profilinde; ana stack ile birlikte AYAGA KALKMAZ). Script Keycloak
+  # hazir olana kadar bekler; idempotenttir (tekrar calistirmaya guvenli).
+  keycloak-seeder:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak-seeder
+    profiles: ["tools"]
+    environment:
+      KC_URL: "http://keycloak-iam:8080/auth"
+      KC_REALM: "${KEYCLOAK_REALM:-TicketSystemRealm}"
+      KC_ADMIN: ${KEYCLOAK_ADMIN}
+      KC_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    entrypoint: ["bash", "/seed/seed-roles.sh"]
+    volumes:
+      - ./keycloak-init/seed-roles.sh:/seed/seed-roles.sh:ro
+    # depends_on YOK (data-generator ile ayni gerekce): --no-deps ile ayakta olan
+    # stack'e baglanir; script Keycloak'in hazir olmasini kendi icinde bekler.
+    networks:
+      - it-service-net
+    restart: "no"

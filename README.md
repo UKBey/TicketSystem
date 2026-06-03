@@ -174,15 +174,24 @@ The realm export ships with masked secrets (`**********`). On the very first sta
    ```
 
 #### 3c. Assign realm roles to the seed users
-LDAP users land in Keycloak without realm roles by default. Roles are **additive** — a user may hold several, and effective permissions are their union. For each user, go to **Users → click username → Role mapping → Assign role** and pick:
+LDAP users land in Keycloak without realm roles by default — **roles are not stored in LDAP**. Assign them in one shot with the idempotent seeder job:
+
+```bash
+make seed-roles    # one-shot keycloak-seeder (tools profile); safe to re-run
+```
+
+This maps every seed user to the role(s) below. Roles are **additive** — a user may hold several, and effective permissions are their union.
 
 | Username | Realm role(s) |
 |----------|---------------|
-| `ctest`  | `customer` |
-| `atest`  | `agent` |
-| `ltest`  | `lead_agent` (composite of `agent`) |
-| `mtest`  | `manager` |
-| `aatest` | `agent_admin` (deprecated composite of `admin` + `lead_agent` + `manager` — kept as a transition bridge so existing super-admins keep working) |
+| `customer`     | `customer` |
+| `agent`        | `agent` |
+| `lead`         | `lead_agent` (composite of `agent`) |
+| `manager`      | `manager` |
+| `admin`        | `admin` |
+| `adminmanager` | `admin` + `manager` |
+| `leadmanager`  | `lead_agent` + `manager` |
+| `superadmin`   | `admin` + `lead_agent` + `manager` |
 
 You can now log in at http://localhost.
 
@@ -208,17 +217,20 @@ make gen       # build + run the data generator (products, tickets, history)
 
 ### 6. Demo users
 
-Users are seeded into OpenLDAP. Their **passwords are whatever you set** in `.env` (`LDAP_CUSTOMER_PASSWORD`, `LDAP_AGENT_PASSWORD`, `LDAP_MANAGER_PASSWORD`, `LDAP_AGENT_ADMIN_PASSWORD`). Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.
+Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles are assigned by `make seed-roles`** (see step 3c) — roles are not stored in LDAP. All seed users share the password `321654`. Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.
 
-| Role | Username | Lands on | Capabilities |
-|------|----------|----------|--------------|
-| Customer | `ctest` | My Tickets | Raise & track own tickets (product-scoped), comment, attach files, submit CSAT |
-| Agent | `atest` | Workspace | Claim tickets and act only on claimed tickets (product-scoped); change status, worklog, internal notes, AI summary |
-| Lead Agent | `ltest` | Workspace + Team | Composite of `agent` **+** assign tickets to agents, act on tickets without claiming, manage product content (topics / known-issues / shared canned-responses) and a product-scoped team dashboard |
-| Admin | `aatest`* | Workspace + Admin | System configuration (global): create users, assign roles, create/manage products, grant product access, agent limits, SLA / cache |
-| Manager | `mtest` | Dashboard | Oversight (global, read-only): all dashboards, reports and full read visibility — no operational actions, no system config |
+| Username | Password | Role(s) | Lands on | Capabilities |
+|----------|----------|---------|----------|--------------|
+| `customer`     | `321654` | `customer` | My Tickets | Raise & track own tickets (product-scoped), comment, attach files, submit CSAT |
+| `agent`        | `321654` | `agent` | Workspace | Claim tickets and act only on claimed tickets (product-scoped); change status, worklog, internal notes, AI summary |
+| `lead`         | `321654` | `lead_agent` | Workspace + Team | Composite of `agent` **+** assign tickets to agents, act on tickets without claiming, manage product content (topics / known-issues / shared canned-responses) and a product-scoped team dashboard |
+| `manager`      | `321654` | `manager` | Dashboard | Oversight (global, read-only): all dashboards, reports and full read visibility — no operational actions, no system config |
+| `admin`        | `321654` | `admin` | Workspace + Admin | System configuration (global): create users, assign roles, create/manage products, grant product access, agent limits, SLA / cache |
+| `adminmanager` | `321654` | `admin` + `manager` | Workspace + Admin | Admin configuration **+** manager oversight (union) |
+| `leadmanager`  | `321654` | `lead_agent` + `manager` | Workspace + Team + Dashboard | Lead-agent operations **+** manager oversight (union) |
+| `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Workspace + Admin | Full super-admin: union of admin config, lead-agent operations and manager oversight |
 
-> *The bootstrap account `aatest` holds the deprecated `agent_admin` role, which is a Keycloak composite of `{admin, lead_agent, manager}` — it therefore behaves as a super-admin. New deployments should assign the discrete roles above instead.
+> *The data-generator bootstrap account is `superadmin`, which holds `admin` + `lead_agent` + `manager` and therefore behaves as a super-admin. The legacy `agent_admin` role still exists in Keycloak as a **deprecated** composite of `{admin, lead_agent, manager}` (a transition bridge so existing super-admins keep working) — do not assign it to new users.
 
 ---
 

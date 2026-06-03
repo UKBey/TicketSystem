@@ -45,10 +45,12 @@ public class GeneratorConfig {
     public static final String KEYCLOAK_CLIENT = "ticket-frontend";
 
     // ---------------------------------------------------------------
-    // Agent admin (single account) — creates the remaining users,
-    // adds products/topics/issues and authorizes them.
+    // Bootstrap admin (single account) — creates the remaining users,
+    // adds products/topics/issues and authorizes them. Defaults to the
+    // `superadmin` seed user (ADMIN + LEAD_AGENT + MANAGER); replaces the
+    // deprecated `aatest`/agent_admin account.
     // ---------------------------------------------------------------
-    public static final String ADMIN_AGENT_USERNAME = USERS.username("adminAgent", "aatest");
+    public static final String ADMIN_AGENT_USERNAME = USERS.username("adminAgent", "superadmin");
     public static final String ADMIN_AGENT_PASSWORD = USERS.password("adminAgent", "321654");
 
     // ---------------------------------------------------------------

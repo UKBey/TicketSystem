@@ -88,8 +88,10 @@ masked (`"**********"`). After the first bringup you must regenerate it:
 
 The LDAP `bindCredential` is also masked in the realm export. In Keycloak admin
 UI: **User Federation → ldap → Bind credential** = your `LDAP_ADMIN_PASSWORD`
-(default `321654`) → Save → **Action: Sync all users**. Four users will appear:
-`ctest`, `atest`, `mtest`, `aatest`.
+(default `321654`) → Save → **Action: Sync all users**. Eight users will appear:
+`customer`, `agent`, `lead`, `manager`, `admin`, `adminmanager`, `leadmanager`,
+`superadmin` (all password `321654`). Their realm roles are not stored in LDAP —
+assign them in one shot with `make seed-roles` after the stack is up.
 
 ## Manifests intentionally excluded vs docker-compose
 
