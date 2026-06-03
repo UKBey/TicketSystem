@@ -29,7 +29,7 @@ works) and `kind-config.yaml` maps host port 80/443 into the cluster.
 ## Quick start (local)
 
 ```powershell
-# 1) Build the 5 images k8s needs (backend, llm, frontend, openldap, keycloak)
+# 1) Build the 6 local images k8s needs (backend, llm, frontend, openldap, keycloak, kie-server)
 make k8s-build
 
 # 2) Copy secrets template and fill in dev values (placeholders are usable as-is)
@@ -46,6 +46,13 @@ kubectl -n ticketsystem get pods -w
 ```
 
 Site opens at <http://localhost>.
+
+> Pods stay `Pending` / `ImagePullBackOff` until `make k8s-load-images` (step 4) finishes —
+> `kind load` needs the cluster to exist first, so it runs after `make k8s-up`.
+>
+> The apply also creates two one-shot Jobs: **`kjar-deploy`** (registers the BPMN container on
+> the KIE Server) and **`seed-roles`** (assigns realm roles to the federated LDAP users). Both
+> are idempotent; re-run role assignment anytime with **`make k8s-seed-roles`**.
 
 ### Day-2 workflow
 
