@@ -61,10 +61,11 @@ function HomeRedirect() {
   const role = getPrimaryRole();
 
   switch (role) {
-    case 'AGENT_ADMIN':
-      return <Navigate to="/workspace" replace />;
+    case 'ADMIN':
+      return <Navigate to="/user-management" replace />;
     case 'MANAGER':
       return <Navigate to="/dashboard" replace />;
+    case 'LEAD_AGENT':
     case 'AGENT':
       return <Navigate to="/workspace" replace />;
     case 'CUSTOMER':
@@ -117,7 +118,7 @@ export default function App() {
         <Route
           path="/workspace"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT']}>
               <AppLayout><Workspace /></AppLayout>
             </ProtectedRoute>
           }
@@ -125,7 +126,7 @@ export default function App() {
         <Route
           path="/pool"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT']}>
               <AppLayout><Pool /></AppLayout>
             </ProtectedRoute>
           }
@@ -133,7 +134,7 @@ export default function App() {
         <Route
           path="/history"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT']}>
               <AppLayout><History /></AppLayout>
             </ProtectedRoute>
           }
@@ -141,7 +142,7 @@ export default function App() {
         <Route
           path="/team"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT']}>
               <AppLayout><TeamTickets /></AppLayout>
             </ProtectedRoute>
           }
@@ -149,7 +150,7 @@ export default function App() {
         <Route
           path="/all-tickets"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN']}>
               <AppLayout><AllTickets /></AppLayout>
             </ProtectedRoute>
           }
@@ -159,7 +160,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProtectedRoute allowedRoles={['MANAGER', 'LEAD_AGENT', 'ADMIN']}>
               <AppLayout><Dashboard /></AppLayout>
             </ProtectedRoute>
           }
@@ -167,7 +168,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={['AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['ADMIN']}>
               <AppLayout><AdminPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -175,7 +176,7 @@ export default function App() {
         <Route
           path="/user-management"
           element={
-            <ProtectedRoute allowedRoles={['AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
               <AppLayout><UserManagementPage /></AppLayout>
             </ProtectedRoute>
           }
@@ -183,7 +184,7 @@ export default function App() {
         <Route
           path="/products"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><ProductPanel /></AppLayout>
             </ProtectedRoute>
           }
@@ -191,7 +192,7 @@ export default function App() {
         <Route
           path="/products/:id"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><ProductPage /></AppLayout>
             </ProtectedRoute>
           }
@@ -201,7 +202,7 @@ export default function App() {
         <Route
           path="/tickets/:id"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><TicketDetail /></AppLayout>
             </ProtectedRoute>
           }
@@ -211,7 +212,7 @@ export default function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><ProfilePage /></AppLayout>
             </ProtectedRoute>
           }
@@ -221,7 +222,7 @@ export default function App() {
         <Route
           path="/notification-preferences"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><NotificationPreferencesPage /></AppLayout>
             </ProtectedRoute>
           }
@@ -231,7 +232,7 @@ export default function App() {
         <Route
           path="/known-issues"
           element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><KnownIssuesPage /></AppLayout>
             </ProtectedRoute>
           }
@@ -241,7 +242,7 @@ export default function App() {
         <Route
           path="/canned-responses"
           element={
-            <ProtectedRoute allowedRoles={['AGENT', 'AGENT_ADMIN', 'MANAGER']}>
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT', 'ADMIN']}>
               <AppLayout><CannedResponsesPage /></AppLayout>
             </ProtectedRoute>
           }

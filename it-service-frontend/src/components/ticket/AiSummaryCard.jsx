@@ -6,7 +6,7 @@ import { generateAiSummary, getLatestAiSummary } from '../../services/api';
 import { formatShortDate } from '../../utils/ticketFormatters';
 import i18n from '../../i18n';
 
-export default function AiSummaryCard({ ticketId, hasRole }) {
+export default function AiSummaryCard({ ticketId, isAgent }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -26,10 +26,10 @@ export default function AiSummaryCard({ ticketId, hasRole }) {
   }, [ticketId]);
 
   useEffect(() => {
-    if (hasRole('AGENT') || hasRole('AGENT_ADMIN')) {
+    if (isAgent) {
       fetchLatest();
     }
-  }, [fetchLatest, hasRole]);
+  }, [fetchLatest, isAgent]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -58,7 +58,7 @@ export default function AiSummaryCard({ ticketId, hasRole }) {
     }
   };
 
-  if (!hasRole('AGENT') && !hasRole('AGENT_ADMIN')) return null;
+  if (!isAgent) return null;
 
   return (
     <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>

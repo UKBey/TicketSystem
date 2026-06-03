@@ -24,9 +24,19 @@ const navLinkBase =
   'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200';
 
 export default function Sidebar({ collapsed = false, onToggle, mobileOpen = false, onMobileClose }) {
-  const { getPrimaryRole, logout } = useAuth();
+  const { logout, isCustomer, isAgent, isLeadAgent, isAdmin, isManager } = useAuth();
   const { t } = useTranslation();
-  const primaryRole = getPrimaryRole();
+
+  // Navigasyon = kullanıcının rollerinin verdiği yetkilerin BİRLEŞİMİ.
+  // (lead_agent + admin olan biri hem operasyonel hem yönetim bölümlerini görür.)
+  const showOperational = isAgent;                       // workspace/pool/history/team
+  const showDashboard   = isManager || isLeadAgent || isAdmin;
+  const showManagement  = showDashboard || isAdmin;      // yönetim başlığı
+  const showAdmin       = isAdmin;                       // admin ayarları
+  const showUserMgmt    = isAdmin || isManager;          // kullanıcı yönetimi (manager salt-okuma)
+  const showProducts    = isAdmin || isManager;          // ürün yönetimi
+  const showCanned      = isAgent || isAdmin;            // hazır yanıtlar (müşteri görmez)
+  const isStaff         = isAgent || isAdmin || isManager;
 
   // Mobilde her navigasyondan sonra drawer'i kapat — masaustunde no-op.
   const handleNavClick = () => {
@@ -114,15 +124,15 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
       {/* Navigation — label'lar collapsed durumunda md+ icin gizlenir, mobilde her zaman gorulur */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {/* Customer section */}
-        {primaryRole === 'CUSTOMER' && (
+        {isCustomer && (
           <NavLink to="/my-tickets" className={linkClassName} onClick={handleNavClick}>
             <TicketCheck className="h-[18px] w-[18px] flex-shrink-0" />
             <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.myTickets')}</span>
           </NavLink>
         )}
 
-        {/* Agent/Agent_Admin shared section */}
-        {(primaryRole === 'AGENT' || primaryRole === 'AGENT_ADMIN') && (
+        {/* Operasyonel bölüm — agent + lead agent */}
+        {showOperational && (
           <>
             <NavLink to="/workspace" className={linkClassName} onClick={handleNavClick}>
               <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
@@ -140,42 +150,52 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
               <Users className="h-[18px] w-[18px] flex-shrink-0" />
               <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.teamTickets')}</span>
             </NavLink>
-            <NavLink to="/all-tickets" className={linkClassName} onClick={handleNavClick}>
-              <Layers className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.allTickets')}</span>
-            </NavLink>
           </>
         )}
 
-        {/* Management bölümü — Agent Admin ve Manager paylaşır. */}
-        {(primaryRole === 'AGENT_ADMIN' || primaryRole === 'MANAGER') && (
+        {/* Tüm biletler — personel (agent/lead) + yönetici/admin */}
+        {isStaff && (
+          <NavLink to="/all-tickets" className={linkClassName} onClick={handleNavClick}>
+            <Layers className="h-[18px] w-[18px] flex-shrink-0" />
+            <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.allTickets')}</span>
+          </NavLink>
+        )}
+
+        {/* Yönetim bölümü — dashboard (manager/lead/admin) + admin ayarları. */}
+        {showManagement && (
           <>
             <div className={`px-3 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${collapsed ? 'md:hidden' : ''}`}>
               {t('sidebar.management')}
             </div>
-            {primaryRole === 'MANAGER' && (
+            {showDashboard && (
               <NavLink to="/dashboard" className={linkClassName} onClick={handleNavClick}>
                 <LayoutDashboard className="h-[18px] w-[18px] flex-shrink-0" />
                 <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.dashboard')}</span>
               </NavLink>
             )}
-            <NavLink to="/admin" className={linkClassName} onClick={handleNavClick}>
-              <Settings className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.admin')}</span>
-            </NavLink>
-            <NavLink to="/user-management" className={linkClassName} onClick={handleNavClick}>
-              <UserPlus className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.userManagement')}</span>
-            </NavLink>
-            <NavLink to="/products" className={linkClassName} onClick={handleNavClick}>
-              <Package className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.products')}</span>
-            </NavLink>
+            {showAdmin && (
+              <NavLink to="/admin" className={linkClassName} onClick={handleNavClick}>
+                <Settings className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.admin')}</span>
+              </NavLink>
+            )}
+            {showUserMgmt && (
+              <NavLink to="/user-management" className={linkClassName} onClick={handleNavClick}>
+                <UserPlus className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.userManagement')}</span>
+              </NavLink>
+            )}
+            {showProducts && (
+              <NavLink to="/products" className={linkClassName} onClick={handleNavClick}>
+                <Package className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.products')}</span>
+              </NavLink>
+            )}
           </>
         )}
 
-        {/* Ajanlar/yöneticiler — hazır yanıt yönetimi (müşteri görmez) */}
-        {(primaryRole === 'AGENT' || primaryRole === 'AGENT_ADMIN' || primaryRole === 'MANAGER') && (
+        {/* Ajanlar/lead — hazır yanıt yönetimi (müşteri görmez) */}
+        {showCanned && (
           <NavLink to="/canned-responses" className={linkClassName} onClick={handleNavClick}>
             <Zap className="h-[18px] w-[18px] flex-shrink-0" />
             <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.cannedResponses')}</span>
@@ -183,12 +203,10 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
         )}
 
         {/* Tum roller — sikca karsilasilan sorunlar bilgi tabani */}
-        {primaryRole && (
-          <NavLink to="/known-issues" className={linkClassName} onClick={handleNavClick}>
-            <LifeBuoy className="h-[18px] w-[18px] flex-shrink-0" />
-            <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.knownIssues')}</span>
-          </NavLink>
-        )}
+        <NavLink to="/known-issues" className={linkClassName} onClick={handleNavClick}>
+          <LifeBuoy className="h-[18px] w-[18px] flex-shrink-0" />
+          <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.knownIssues')}</span>
+        </NavLink>
       </nav>
 
       {/* Footer */}

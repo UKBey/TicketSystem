@@ -35,9 +35,11 @@ export default function ProductPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getPrimaryRole } = useAuth();
-  const primaryRole = getPrimaryRole();
-  const isAdmin = primaryRole === 'AGENT_ADMIN' || primaryRole === 'MANAGER';
+  const { isLeadAgent, isAdmin, isManager } = useAuth();
+  // "Ürünleri yönet" kısayolu sistem-config sayfasına gider (admin/manager).
+  const canManageProducts = isAdmin || isManager;
+  // Konu (topic) yönetimi ürün içeriğidir — lead agent veya admin.
+  const canManageTopics = isLeadAgent || isAdmin;
 
   const [product, setProduct] = useState(null);
   const [productLoading, setProductLoading] = useState(true);
@@ -129,7 +131,7 @@ export default function ProductPage() {
               </span>
             </div>
           </div>
-          {isAdmin && (
+          {canManageProducts && (
             <button onClick={() => navigate('/products')}
               className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer self-start sm:self-auto flex-shrink-0"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
@@ -147,7 +149,7 @@ export default function ProductPage() {
         <StatCard label={t('product.statResolved')}   value={tickets.filter(tk => tk.status === 'RESOLVED').length}                                          icon={CheckCircle}   color="#10b981" />
       </div>
 
-      <ProductTopicsSection productId={id} isAdmin={isAdmin} />
+      <ProductTopicsSection productId={id} isAdmin={canManageTopics} />
 
       {error && (
         <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">

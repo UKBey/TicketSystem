@@ -15,12 +15,13 @@ export default function TeamTickets() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const { user, hasRole } = useAuth();
+  const { user, isLeadAgent, isAdmin } = useAuth();
   const [joiningId, setJoiningId] = useState(null);
   const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
   const currentUserId = user?.sub || user?.id;
-  const isAgentAdmin = hasRole('AGENT_ADMIN');
+  // Bilet atama yetkisi — lead agent veya admin.
+  const canAssign = isLeadAgent || isAdmin;
 
   const {
     tickets, totalPages, totalItems, loading, error,
@@ -75,7 +76,7 @@ export default function TeamTickets() {
         <Users className="h-3 w-3" />
         {joiningId === ticket.id ? t('teamTickets.joining') : t('teamTickets.join')}
       </button>
-      {isAgentAdmin && (
+      {canAssign && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); handleOpenAssign(ticket); }}

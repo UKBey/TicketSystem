@@ -36,7 +36,7 @@ const modalStyles = `
   }
 `;
 
-export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
+export default function AiSummaryModal({ isOpen, onClose, ticketId, isAgent }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -55,10 +55,10 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, hasRole }) {
   }, [ticketId]);
 
   useEffect(() => {
-    if (isOpen && (hasRole('AGENT') || hasRole('AGENT_ADMIN'))) {
+    if (isOpen && isAgent) {
       fetchLatest();
     }
-  }, [isOpen, fetchLatest, hasRole]);
+  }, [isOpen, fetchLatest, isAgent]);
 
   const handleGenerate = async () => {
     setLoading(true);

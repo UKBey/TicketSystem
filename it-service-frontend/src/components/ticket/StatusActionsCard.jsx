@@ -3,26 +3,28 @@ import { Settings2 } from 'lucide-react';
 
 export default function StatusActionsCard({
   ticket, user, allowedStatuses,
-  isAgent, isAgentAdmin,
+  isAgent, canAssign, canDelete,
   onStatusChange, onClaim, onResolveClick,
   onSetAssignModal, onExtraActionsOpen,
 }) {
   const { t } = useTranslation();
   const currentUserId = user?.sub || user?.id;
   const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
-  const canDoStatusActions = !isAgentAdmin || hasClaimed;
+  // Pure admin (silme yetkili ama operasyonel ajan olmayan) bilete önce claim
+  // almadan statü değiştiremez; lead_agent ise normal ajan gibi doğrudan çalışır.
+  const canDoStatusActions = !canDelete || hasClaimed;
   const noClaimer = !ticket?.claimers || ticket.claimers.length === 0;
 
   const hasUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
-  const hasClose   = allowedStatuses.includes('CLOSED') && (!isAgentAdmin || hasClaimed);
-  // AGENT_ADMIN her statüde silebildiği için Extra Actions düğmesi onun için her
+  const hasClose   = allowedStatuses.includes('CLOSED') && (!canDelete || hasClaimed);
+  // Admin her statüde silebildiği için Extra Actions düğmesi onun için her
   // zaman erişilebilir; diğer roller yalnızca unclaim/close aksiyonu varsa görür.
-  const hasExtraActions = hasUnclaim || hasClose || isAgentAdmin;
+  const hasExtraActions = hasUnclaim || hasClose || canDelete;
 
-  // AGENT_ADMIN için CLOSED bilet gibi statü geçişi olmayan durumlarda da
+  // Admin için CLOSED bilet gibi statü geçişi olmayan durumlarda da
   // kartın görünmesi gerekir — aksi halde "Delete" aksiyonuna ulaşamaz.
-  if (!isAgent) return null;
-  if (allowedStatuses.length === 0 && !isAgentAdmin) return null;
+  if (!isAgent && !canDelete) return null;
+  if (allowedStatuses.length === 0 && !canDelete) return null;
 
   return (
     <div className="rounded-xl border" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
@@ -69,7 +71,7 @@ export default function StatusActionsCard({
           </button>
         )}
 
-        {isAgentAdmin && ticket.status !== 'CLOSED' && (
+        {canAssign && ticket.status !== 'CLOSED' && (
           <button
             className="w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
             onClick={() => onSetAssignModal(true)}

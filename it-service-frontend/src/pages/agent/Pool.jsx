@@ -14,8 +14,9 @@ export default function Pool() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
-  const isAgentAdmin = hasRole('AGENT_ADMIN');
+  const { isLeadAgent, isAdmin } = useAuth();
+  // Bilet atama yetkisi — lead agent veya admin.
+  const canAssign = isLeadAgent || isAdmin;
 
   const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
 
@@ -94,7 +95,7 @@ export default function Pool() {
             showClaimButton
             onClaim={handleClaim}
             showSla
-            showAssignButton={isAgentAdmin}
+            showAssignButton={canAssign}
             onAssign={handleOpenAssign}
             sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
           />

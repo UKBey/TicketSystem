@@ -9,12 +9,14 @@ import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 
-const ROLES = ['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'];
+const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 
 /** Rol badge renkleri — AdminPanel ile tutarlı */
 const roleBadgeStyle = (role) => {
   switch (role) {
-    case 'AGENT_ADMIN': return { backgroundColor: 'rgba(139,92,246,0.15)', color: '#7c3aed' };
+    case 'ADMIN':       return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
+    case 'AGENT_ADMIN': return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
+    case 'LEAD_AGENT':  return { backgroundColor: 'rgba(99,102,241,0.15)',  color: '#4f46e5' };
     case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
     case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };
     case 'CUSTOMER':    return { backgroundColor: 'rgba(16,185,129,0.15)',  color: '#047857' };

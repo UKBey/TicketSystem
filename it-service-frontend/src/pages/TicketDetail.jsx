@@ -28,7 +28,7 @@ export default function TicketDetail() {
   const { t }        = useTranslation();
   const { id }       = useParams();
   const navigate     = useNavigate();
-  const { user, hasRole } = useAuth();
+  const { user, isAgent, isLeadAgent, isAdmin, isCustomer } = useAuth();
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function TicketDetail() {
     topicModalOpen, setTopicModalOpen, openTopicModal,
     topicsList, topicsLoading,
     openReasonModal, closeReasonModal, handleReasonConfirm,
-  } = useTicketDetail(id, hasRole);
+  } = useTicketDetail(id, isAgent);
 
   if (loading) {
     return (
@@ -73,9 +73,10 @@ export default function TicketDetail() {
 
   const ticketCode      = `TCK-${String(ticket.id).padStart(3, '0')}`;
   const allowedStatuses = STATUS_OPTIONS[ticket.status] || [];
-  const isAgent         = hasRole('AGENT') || hasRole('AGENT_ADMIN');
-  const isAgentAdmin    = hasRole('AGENT_ADMIN');
-  const isCustomer      = hasRole('CUSTOMER');
+  // Operasyonel aksiyonlar (claim/worklog/yorum/AI özet) ajan + lead ajan içindir.
+  // Bilet atama lead ajan veya admin; kalıcı silme yalnızca admin içindir.
+  const canAssign       = isLeadAgent || isAdmin;
+  const canDelete       = isAdmin;
 
   const ticketDetailContextValue = {
     ticket, user, isAgent, isCustomer, isDark,
@@ -106,7 +107,7 @@ export default function TicketDetail() {
               <PriorityBadge priority={ticket.priority} />
               <StatusBadge status={ticket.status} />
             </div>
-            {(isAgent || isAgentAdmin) && (
+            {isAgent && (
               <button
                 onClick={() => setAiSummaryModalOpen(true)}
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 self-start sm:self-auto min-h-[40px] sm:min-h-0"
@@ -151,7 +152,8 @@ export default function TicketDetail() {
           user={user}
           allowedStatuses={allowedStatuses}
           isAgent={isAgent}
-          isAgentAdmin={isAgentAdmin}
+          canAssign={canAssign}
+          canDelete={canDelete}
           onStatusChange={handleStatusChange}
           onClaim={handleClaim}
           onResolveClick={handleResolveClick}
@@ -210,7 +212,7 @@ export default function TicketDetail() {
         ticket={ticket}
         user={user}
         allowedStatuses={allowedStatuses}
-        isAgentAdmin={isAgentAdmin}
+        canDelete={canDelete}
         openReasonModal={openReasonModal}
         onDeleteClick={openDeleteModal}
       />
@@ -237,7 +239,7 @@ export default function TicketDetail() {
         isOpen={aiSummaryModalOpen}
         onClose={() => setAiSummaryModalOpen(false)}
         ticketId={id}
-        hasRole={hasRole}
+        isAgent={isAgent}
       />
 
       <ActionReasonModal

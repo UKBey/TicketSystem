@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 export default function ExtraActionsModal({
   isOpen, onClose,
-  ticket, user, allowedStatuses, isAgentAdmin,
+  ticket, user, allowedStatuses, canDelete,
   openReasonModal,
   onDeleteClick,
 }) {
@@ -14,9 +14,9 @@ export default function ExtraActionsModal({
   const hasClaimed    = ticket?.claimers?.some((c) => c.agentId === currentUserId);
 
   const showUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
-  const showClose   = allowedStatuses.includes('CLOSED') && (!isAgentAdmin || hasClaimed);
-  // Silme yalnızca AGENT_ADMIN için; claim gerekmez, statüden bağımsız.
-  const showDelete  = isAgentAdmin;
+  const showClose   = allowedStatuses.includes('CLOSED') && (!canDelete || hasClaimed);
+  // Silme yalnızca ADMIN için; claim gerekmez, statüden bağımsız.
+  const showDelete  = canDelete;
   const noActions   = !showUnclaim && !showClose && !showDelete;
 
   return (

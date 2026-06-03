@@ -11,7 +11,7 @@ import { useTicketWebSocket } from './useTicketWebSocket';
 import { useToast } from '../context/ToastContext';
 import { REASON_CODES } from '../utils/reasonCodes';
 
-export function useTicketDetail(id, hasRole) {
+export function useTicketDetail(id, isAgent) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -42,7 +42,7 @@ export function useTicketDetail(id, hasRole) {
   const [topicsList, setTopicsList]               = useState([]);
   const [topicsLoading, setTopicsLoading]         = useState(false);
 
-  // Sadece AGENT_ADMIN için bileti kalıcı silme — geri alınamaz, ekstra onay penceresi gerekiyor.
+  // Sadece ADMIN için bileti kalıcı silme — geri alınamaz, ekstra onay penceresi gerekiyor.
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting]               = useState(false);
 
@@ -90,9 +90,9 @@ export function useTicketDetail(id, hasRole) {
 
 
   // Gercek zamanli guncellemeler: backend ticket mutation'larinda
-  // /topic/tickets/{id} kanalina event yayinlar. Agent/admin ek olarak
+  // /topic/tickets/{id} kanalina event yayinlar. Agent/lead ek olarak
   // /internal alt kanaliyla INTERNAL yorumlari da alir.
-  const canSeeInternal = !!(hasRole && (hasRole('AGENT') || hasRole('AGENT_ADMIN')));
+  const canSeeInternal = !!isAgent;
   const handleWsComment = useCallback((comment) => {
     setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
   }, []);

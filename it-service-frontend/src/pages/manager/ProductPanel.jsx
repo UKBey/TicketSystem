@@ -14,9 +14,11 @@ export default function ProductPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const { getPrimaryRole } = useAuth();
-  const role = getPrimaryRole();
-  const isAdmin = role === 'AGENT_ADMIN' || role === 'MANAGER';
+  const { isLeadAgent, isAdmin } = useAuth();
+  // Ürün CRUD (oluştur/düzenle/sil) sistem-config'tir — yalnızca admin.
+  const canManageProducts = isAdmin;
+  // Konu (topic) yönetimi ürün içeriğidir — lead agent veya admin.
+  const canManageTopics = isLeadAgent || isAdmin;
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,10 +128,10 @@ export default function ProductPanel() {
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('productPanel.title')}</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {isAdmin ? t('productPanel.subtitleAdmin') : t('productPanel.subtitleUser')}
+            {canManageProducts ? t('productPanel.subtitleAdmin') : t('productPanel.subtitleUser')}
           </p>
         </div>
-        {isAdmin && (
+        {canManageProducts && (
           <button
             onClick={() => openModal()}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer sm:w-auto"
@@ -246,7 +248,7 @@ export default function ProductPanel() {
                     <Eye className="h-3.5 w-3.5" />
                     {t('productPanel.view')}
                   </button>
-                  {isAdmin && (
+                  {canManageProducts && (
                     <>
                       <button
                         type="button"
@@ -271,7 +273,7 @@ export default function ProductPanel() {
                 </div>
                 {topicsOpen && (
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
-                    <ProductTopicsSection productId={product.id} isAdmin={isAdmin} />
+                    <ProductTopicsSection productId={product.id} isAdmin={canManageTopics} />
                   </div>
                 )}
               </li>
@@ -352,7 +354,7 @@ export default function ProductPanel() {
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
-                      {isAdmin && (
+                      {canManageProducts && (
                         <>
                           <button
                             type="button"
@@ -382,7 +384,7 @@ export default function ProductPanel() {
                 {topicsOpen && (
                   <tr style={{ borderBottom: '1px solid var(--border-color-light)' }}>
                     <td colSpan="5" className="px-6 pb-4 pt-0">
-                      <ProductTopicsSection productId={product.id} isAdmin={isAdmin} />
+                      <ProductTopicsSection productId={product.id} isAdmin={canManageTopics} />
                     </td>
                   </tr>
                 )}

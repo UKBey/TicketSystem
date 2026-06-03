@@ -9,8 +9,13 @@ import { useEscapeToClose } from '../hooks/useEscapeToClose';
 // olmali ki klavye kullanicisi mantikli akista hareketsin.
 const FIELD_FOCUS_ORDER = ['firstName', 'lastName', 'username', 'email', 'password', 'roles'];
 
+// AGENT_ADMIN artık kullanımdan kaldırıldı (composite olarak köprülenir); yeni
+// atama listesinde gösterilmez. Backend hâlâ döndürse bile burada filtrelenir.
+const DEPRECATED_ROLES = ['AGENT_ADMIN'];
+
 /**
- * AdminCreateUserModal — AGENT_ADMIN'in Keycloak'ta yeni kullanıcı oluşturması için modal.
+ * AdminCreateUserModal — ADMIN'in Keycloak'ta yeni kullanıcı oluşturması için modal.
+ * Çoklu rol seçimi destekler (rollerin birleşimi atanır).
  *
  * Props:
  *   isOpen         {boolean}  — Modal açık mı?
@@ -63,7 +68,9 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
     setRolesLoading(true);
     getAssignableRoles()
-      .then((res) => setAvailableRoles(res.data))
+      .then((res) => setAvailableRoles(
+        (res.data || []).filter((r) => !DEPRECATED_ROLES.includes(r))
+      ))
       .catch(() => setRolesError(t('userManagement.form.rolesLoadError')))
       .finally(() => setRolesLoading(false));
   }, [isOpen]); // eslint-disable-line

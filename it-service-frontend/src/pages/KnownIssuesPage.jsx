@@ -15,15 +15,16 @@ import {
  * Sıkça Karşılaşılan Sorunlar sayfası.
  *
  * - Kullanıcı yetkili olduğu ürünleri görür; ürün seçince o ürüne ait kayıtlar listelenir.
- * - AGENT_ADMIN / MANAGER kayıt ekleyebilir, düzenleyebilir, silebilir.
+ * - LEAD_AGENT / ADMIN kayıt ekleyebilir, düzenleyebilir, silebilir.
  * - Diğer roller sadece okur.
  * - Tasarım mobile-first: tek sütun kart düzeni, sm+ iki sütun.
  */
 export default function KnownIssuesPage() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
+  const { isLeadAgent, isAdmin } = useAuth();
+  // Ürün içeriği (bilinen sorunlar) yönetimi — lead agent veya admin.
+  const canManage = isLeadAgent || isAdmin;
 
   const [products, setProducts]                 = useState([]);
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -83,7 +84,7 @@ export default function KnownIssuesPage() {
       setError('');
       const res = await listKnownIssues(selectedProductId, {
         topicId: topicFilter || undefined,
-        includeInactive: isAdmin,
+        includeInactive: canManage,
       });
       setItems(res.data);
     } catch (err) {
@@ -92,7 +93,7 @@ export default function KnownIssuesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedProductId, topicFilter, isAdmin, t]);
+  }, [selectedProductId, topicFilter, canManage, t]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
@@ -233,7 +234,7 @@ export default function KnownIssuesPage() {
           )}
         </div>
 
-        {isAdmin && selectedProductId && (
+        {canManage && selectedProductId && (
           <button
             onClick={openCreate}
             className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer w-full sm:w-auto"
@@ -313,7 +314,7 @@ export default function KnownIssuesPage() {
                     >
                       {item.content}
                     </p>
-                    {isAdmin && (
+                    {canManage && (
                       <div
                         className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3"
                         style={{ borderColor: 'var(--border-color)' }}

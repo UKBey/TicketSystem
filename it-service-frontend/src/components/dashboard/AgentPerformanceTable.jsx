@@ -2,6 +2,11 @@ import { memo } from 'react';
 import { Award, Clock3, Flame, Star, Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 
+// Süpervizör (lead/admin) rozeti — yeni LEAD_AGENT/ADMIN rolleri ve eski AGENT_ADMIN köprüsü.
+function isLeadOrAdmin(role) {
+  return role === 'LEAD_AGENT' || role === 'ADMIN' || role === 'AGENT_ADMIN';
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
@@ -106,10 +111,10 @@ function AgentPerformanceTable({ data, loading }) {
                     <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                       {loading ? <Skeleton as="span" className="inline-block h-4 w-32" /> : agent.agentName}
                     </div>
-                    {!loading && agent.role === 'AGENT_ADMIN' && (
+                    {!loading && isLeadOrAdmin(agent.role) && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
                         <Award className="h-3 w-3" />
-                        Admin
+                        Lead
                       </span>
                     )}
                   </div>
@@ -195,10 +200,10 @@ function AgentPerformanceTable({ data, loading }) {
                     <div className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                       {loading ? <Skeleton as="span" className="inline-block h-4 w-32" /> : agent.agentName}
                     </div>
-                    {!loading && agent.role === 'AGENT_ADMIN' && (
+                    {!loading && isLeadOrAdmin(agent.role) && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
                         <Award className="h-3 w-3" />
-                        Admin
+                        Lead
                       </span>
                     )}
                   </div>

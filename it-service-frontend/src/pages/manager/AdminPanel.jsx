@@ -10,7 +10,10 @@ import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 
 const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-const ROLES = ['CUSTOMER', 'AGENT', 'AGENT_ADMIN'];
+const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
+
+// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
+const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
 
 function ProductChips({ products, onRemove, t }) {
   const [expanded, setExpanded] = useState(false);
@@ -361,7 +364,9 @@ export default function AdminPanel() {
 
   const roleBadgeStyle = (role) => {
     switch (role) {
-      case 'AGENT_ADMIN': return { backgroundColor: 'rgba(139,92,246,0.15)', color: '#7c3aed' };
+      case 'ADMIN':       return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
+      case 'AGENT_ADMIN': return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
+      case 'LEAD_AGENT':  return { backgroundColor: 'rgba(99,102,241,0.15)',  color: '#4f46e5' };
       case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
       case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };
       case 'CUSTOMER':    return { backgroundColor: 'rgba(16,185,129,0.15)',  color: '#047857' };
@@ -427,7 +432,7 @@ export default function AdminPanel() {
             {/* Mobile: card list */}
             <ul className="lg:hidden p-4 space-y-3">
               {users.map(user => {
-                const isAgent = user.role === 'AGENT' || user.role === 'AGENT_ADMIN';
+                const isAgent = AGENT_ROLES.includes(user.role);
                 const limitOpen = expandedLimitUserId === user.id;
                 return (
                   <li key={user.id} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
@@ -565,7 +570,7 @@ export default function AdminPanel() {
               </thead>
               <tbody>
                 {users.map(user => {
-                  const isAgent = user.role === 'AGENT' || user.role === 'AGENT_ADMIN';
+                  const isAgent = AGENT_ROLES.includes(user.role);
                   const limitOpen = expandedLimitUserId === user.id;
                   return (
                     <React.Fragment key={user.id}>

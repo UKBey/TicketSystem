@@ -116,7 +116,7 @@ export const assignTicket = (ticketId, targetAgentId, note) =>
   api.put(`/tickets/${ticketId}/assign`, { targetAgentId, note });
 
 // ============================================================
-// User Management API Functions (AGENT_ADMIN only)
+// User Management API Functions (ADMIN; user list also MANAGER read-only)
 // ============================================================
 
 // Keycloak'ta yeni kullanıcı oluştur, geçici şifre ata ve rolleri eşle.
@@ -129,12 +129,12 @@ export const createUser = (userData) =>
 export const getAssignableRoles = () =>
   api.get('/users/admin/roles');
 
-// Kullanıcının rollerini güncelle (AGENT_ADMIN only).
+// Kullanıcının rollerini güncelle (ADMIN only) — roller listesi (çoklu rol).
 // Başarılı yanıt: 200 OK + UserDTO
 export const updateUserRoles = (userId, roles) =>
   api.put(`/users/${userId}/roles`, roles);
 
-// Kullanıcıyı deaktive et veya reaktive et (AGENT_ADMIN only).
+// Kullanıcıyı deaktive et veya reaktive et (ADMIN only).
 // active=true → reaktive, active=false → soft-delete (Keycloak disabled + is_active=false)
 export const updateUserStatus = (userId, active) =>
   api.put(`/users/${userId}/status`, null, { params: { active } });
@@ -146,7 +146,7 @@ export default api;
 // AI Summary API Functions (llm-service — /api/ai/*)
 // ============================================================
 
-// Ticket için yeni özet oluştur (AGENT / AGENT_ADMIN only)
+// Ticket için yeni özet oluştur (AGENT / LEAD_AGENT only)
 export const generateAiSummary = (ticketId, language = 'tr') =>
   api.post(`/ai/summaries/tickets/${ticketId}/generate`, null, { params: { language } });
 

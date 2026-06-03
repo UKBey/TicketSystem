@@ -26,14 +26,15 @@ const EMPTY_FORM = {
  * Hazır Yanıtlar yönetim sayfası (Ayarlar > Hazır Yanıtlar).
  *
  * - Agent yalnız kendi kişisel şablonlarını oluşturur/düzenler/siler.
- * - AGENT_ADMIN / MANAGER ayrıca paylaşılan (ekip/ürün) şablonları yönetir.
+ * - LEAD_AGENT / ADMIN ayrıca paylaşılan (ekip/ürün) şablonları yönetir.
  * - Müşteri bu sayfaya hiç erişemez (route ProtectedRoute ile korunur).
  */
 export default function CannedResponsesPage() {
   const { t, i18n } = useTranslation();
   const toast = useToast();
-  const { hasRole, user } = useAuth();
-  const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
+  const { isLeadAgent, isAdmin, user } = useAuth();
+  // Paylaşılan (SHARED) şablonları yönetme yetkisi — lead agent veya admin.
+  const canManageShared = isLeadAgent || isAdmin;
 
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
@@ -97,7 +98,7 @@ export default function CannedResponsesPage() {
 
   const canManageItem = (item) =>
     (item.scope === 'PERSONAL' && item.ownerAgentId === user?.id)
-    || (item.scope === 'SHARED' && isAdmin);
+    || (item.scope === 'SHARED' && canManageShared);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -131,7 +132,7 @@ export default function CannedResponsesPage() {
   // ---- modal ---------------------------------------------------------------
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...EMPTY_FORM, scope: isAdmin ? 'PERSONAL' : 'PERSONAL' });
+    setForm({ ...EMPTY_FORM, scope: canManageShared ? 'PERSONAL' : 'PERSONAL' });
     setActiveLang(i18n.language?.startsWith('tr') ? 'tr' : 'en');
     setIsModalOpen(true);
   };
@@ -178,7 +179,7 @@ export default function CannedResponsesPage() {
       toast.error(t('cannedResponses.errorRequired'));
       return;
     }
-    const scope = isAdmin ? form.scope : 'PERSONAL';
+    const scope = canManageShared ? form.scope : 'PERSONAL';
     const payload = {
       title,
       shortcut: form.shortcut.trim() || null,
@@ -492,7 +493,7 @@ export default function CannedResponsesPage() {
                     <select
                       value={form.scope}
                       onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value }))}
-                      disabled={!isAdmin}
+                      disabled={!canManageShared}
                       className="w-full rounded-lg border px-3 py-2 text-sm outline-none cursor-pointer disabled:opacity-60"
                       style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                     >

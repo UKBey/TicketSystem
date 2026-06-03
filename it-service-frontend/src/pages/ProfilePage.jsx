@@ -17,8 +17,11 @@ import TwoFactorModal from '../components/TwoFactorModal';
 const ROLE_META = {
   CUSTOMER:    { label: 'Customer',    color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)' },
   AGENT:       { label: 'Agent',       color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
-  AGENT_ADMIN: { label: 'Agent Admin', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  LEAD_AGENT:  { label: 'Lead Agent',  color: '#6366f1', bg: 'rgba(99,102,241,0.12)' },
+  ADMIN:       { label: 'Admin',       color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   MANAGER:     { label: 'Manager',     color: '#22c55e', bg: 'rgba(34,197,94,0.12)'  },
+  // Eski rol — köprüleme sırasında hâlâ görüntülenebilir.
+  AGENT_ADMIN: { label: 'Agent Admin', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
 };
 
 /* ── Avatar initials ────────────────────────────────────────── */
@@ -31,8 +34,11 @@ function getInitials(name) {
 const ROLE_GRADIENT = {
   CUSTOMER:    'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)',
   AGENT:       'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-  AGENT_ADMIN: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
+  LEAD_AGENT:  'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+  ADMIN:       'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
   MANAGER:     'linear-gradient(135deg, #22c55e 0%, #0ea5e9 100%)',
+  // Eski rol — köprüleme sırasında hâlâ görüntülenebilir.
+  AGENT_ADMIN: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
   default:     'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
 };
 

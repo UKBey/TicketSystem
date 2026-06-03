@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 
 /**
- * Bilet kalıcı silme onay modalı — yalnızca AGENT_ADMIN için ExtraActionsModal
+ * Bilet kalıcı silme onay modalı — yalnızca ADMIN için ExtraActionsModal
  * üzerinden açılır. Backend cascade ile yorum/worklog/csat/attachment kayıtlarını
  * da temizler; geri alma yoktur.
  */

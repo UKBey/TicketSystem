@@ -4,13 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { getAssignableRoles, updateUserRoles } from '../services/api';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
+// AGENT_ADMIN kullanımdan kaldırıldı (composite olarak köprülenir); yeni atama
+// listesinde gösterilmez. Mevcut kullanıcının rolleri ön-seçilirken yeni roller tercih edilir.
+const DEPRECATED_ROLES = ['AGENT_ADMIN'];
+
 /**
- * EditRoleModal — AGENT_ADMIN'in mevcut bir kullanıcının rollerini düzenlemesi için modal.
+ * EditRoleModal — ADMIN'in mevcut bir kullanıcının rollerini düzenlemesi için modal.
+ * Çoklu rol seçimi destekler; mevcut roller açılışta ön-seçili gelir.
  *
  * Props:
  *   isOpen        {boolean}  — Modal açık mı?
  *   onClose       {function} — Modal kapatma callback'i
- *   user          {object}   — Düzenlenecek kullanıcı: { id, fullName, email, role }
+ *   user          {object}   — Düzenlenecek kullanıcı: { id, fullName, email, role | roles }
  *   onRoleUpdated {function} — Başarılı güncelleme sonrası çağrılır: (updatedUser) => {}
  */
 export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) {
@@ -30,13 +35,19 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
 
     setError('');
     setValidationError('');
-    // Mevcut rolü başlangıç seçimi olarak ayarla
-    setSelectedRoles(user.role ? [user.role] : []);
+    // Mevcut rolleri başlangıç seçimi olarak ayarla (çoklu rol veya tekil rol destekli).
+    // Kullanımdan kaldırılmış roller (AGENT_ADMIN) ön-seçilmez.
+    const existing = Array.isArray(user.roles)
+      ? user.roles
+      : (user.role ? [user.role] : []);
+    setSelectedRoles(existing.filter((r) => !DEPRECATED_ROLES.includes(r)));
 
     setRolesLoading(true);
     setRolesError('');
     getAssignableRoles()
-      .then((res) => setAvailableRoles(res.data))
+      .then((res) => setAvailableRoles(
+        (res.data || []).filter((r) => !DEPRECATED_ROLES.includes(r))
+      ))
       .catch(() => setRolesError(t('userManagement.form.rolesLoadError')))
       .finally(() => setRolesLoading(false));
   }, [isOpen, user]); // eslint-disable-line

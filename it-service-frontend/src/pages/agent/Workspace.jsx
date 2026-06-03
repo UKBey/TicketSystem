@@ -9,10 +9,11 @@ import PaginationBar from '../../components/PaginationBar';
 
 export default function Workspace() {
   const { t } = useTranslation();
-  const { user, hasRole } = useAuth();
+  const { user, isLeadAgent, isAdmin } = useAuth();
   const [agentLimits, setAgentLimits] = useState([]);
   const currentUserId = user?.sub || user?.id;
-  const isAgentAdmin = hasRole('AGENT_ADMIN');
+  // Süpervizör görünümü (kendi ürün-bazlı bilet limitleri kartları) — lead agent veya admin.
+  const showLimitCards = isLeadAgent || isAdmin;
 
   // NEW Pool'da, CLOSED History'de listelenir — Workspace yalnız aktif statüleri kapsar.
   const WORKSPACE_STATUSES = ['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
@@ -37,11 +38,11 @@ export default function Workspace() {
   });
 
   useEffect(() => {
-    if (!isAgentAdmin || !currentUserId) return;
+    if (!showLimitCards || !currentUserId) return;
     getAgentLimits(currentUserId)
       .then((res) => setAgentLimits(res.data))
       .catch((err) => console.error('Could not load agent limits:', err));
-  }, [currentUserId, isAgentAdmin]);
+  }, [currentUserId, showLimitCards]);
 
   return (
     <>
