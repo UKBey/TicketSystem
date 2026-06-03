@@ -70,8 +70,11 @@ public class TicketClaimService {
         User agent = userRepository.findById(agentId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + agentId));
 
-        boolean isAuthorized = agent.getAuthorizedProducts().stream()
-                .anyMatch(p -> p.getId().equals(ticket.getProductId()));
+        // ADMIN/MANAGER (global) tüm ürünlere erişir → ürün-yetki kontrolünü atlar; böylece
+        // gördükleri tüm havuzdan claim alabilirler. AGENT/LEAD_AGENT ürünleriyle sınırlıdır.
+        boolean isAuthorized = AuthRoles.isGlobal(agent.getRoles())
+                || agent.getAuthorizedProducts().stream()
+                        .anyMatch(p -> p.getId().equals(ticket.getProductId()));
         if (!isAuthorized) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "error.ticket.claim.product.forbidden");

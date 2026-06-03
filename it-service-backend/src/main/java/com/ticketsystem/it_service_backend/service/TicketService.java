@@ -382,11 +382,9 @@ public class TicketService {
     public Page<Ticket> getPoolTicketsFiltered(String userId, List<String> roles, TicketFilterDTO f, Pageable pageable) {
         if (userId == null) return Page.empty(pageable);
 
-        // Havuz uçtan uca AGENT / LEAD_AGENT'a açıktır ve kendi yetkili ürünleriyle sınırlıdır
-        User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
-        List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+        // ADMIN / MANAGER global görünürlük: tüm ürünlerin havuzu. AGENT / LEAD_AGENT kendi
+        // yetkili ürünleriyle sınırlıdır. (getTeam/getAllAccessible ile aynı scope mantığı.)
+        List<Long> productIds = resolveScopedProductIds(userId, roles);
         if (productIds.isEmpty()) return Page.empty(pageable);
 
         if (isSortByPriority(pageable)) {
