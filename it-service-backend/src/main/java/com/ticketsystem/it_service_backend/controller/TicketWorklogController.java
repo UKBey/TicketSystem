@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * REST controller hosting the CRUD endpoints for time logged against a ticket (worklog).
  *
- * <p>Only the {@code AGENT} and {@code AGENT_ADMIN} roles can access these endpoints;
+ * <p>Only the {@code AGENT}, {@code LEAD_AGENT}, {@code MANAGER} and {@code ADMIN} roles can access these endpoints;
  * ownership and assignment checks are enforced inside {@link WorklogService}.
  */
 @Log4j2
@@ -118,7 +118,7 @@ public class TicketWorklogController {
             description = "Sistemdeki tüm biletlere ait iş kayıtlarını getirir. Raporlama ve yönetim amaçlıdır.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Tüm workloglar başarıyla listelendi"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER veya ADMIN erişebilir")
     })
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")

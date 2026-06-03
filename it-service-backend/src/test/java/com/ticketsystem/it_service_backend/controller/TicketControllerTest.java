@@ -178,7 +178,7 @@ class TicketControllerTest {
                 .priority("MEDIUM").status("NEW").productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getPoolTicketsFiltered(eq("admin-1"), eq(List.of("AGENT_ADMIN")),
+        when(ticketService.getPoolTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
@@ -186,7 +186,7 @@ class TicketControllerTest {
         when(ticketService.getSlaTimerInfo(t)).thenReturn(Map.<String, Object>of("deadlineTs", 999L));
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
-                jwtWithRole("admin-1", "AGENT_ADMIN"),
+                jwtWithRole("admin-1", "ADMIN"),
                 0, 20, "createdAt", "desc",
                 null, null, null, null, null, null, null, null);
 
@@ -250,7 +250,7 @@ class TicketControllerTest {
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(claimed)).thenReturn(Map.<String, Object>of("deadlineTs", 777L));
 
-        ResponseEntity<TicketResponseDTO> response = ticketController.claimTicket(9002L, jwtWithRole("admin-1", "AGENT_ADMIN"));
+        ResponseEntity<TicketResponseDTO> response = ticketController.claimTicket(9002L, jwtWithRole("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(9002L, response.getBody().getId());
@@ -286,7 +286,7 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(updated);
+        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("ADMIN"))).thenReturn(updated);
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(
                 User.builder().id("customer-1").fullName("Customer One").email("c1@example.com").role("CUSTOMER").build()));
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
@@ -294,7 +294,7 @@ class TicketControllerTest {
 
         StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
-                4002L, body, jwtWithRole("admin-1", "AGENT_ADMIN"));
+                4002L, body, jwtWithRole("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4002L, response.getBody().getId());
@@ -336,10 +336,10 @@ class TicketControllerTest {
         Ticket ticket = Ticket.builder().id(7001L).title("SLA ticket").description("desc")
                 .priority("MEDIUM").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.getTicketWithAuth(7001L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(ticket);
+        when(ticketService.getTicketWithAuth(7001L, "admin-1", List.of("ADMIN"))).thenReturn(ticket);
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.<String, Object>of("deadlineTs", 555L));
 
-        ResponseEntity<Map<String, Object>> response = ticketController.getSlaTimer(7001L, jwtWithRole("admin-1", "AGENT_ADMIN"));
+        ResponseEntity<Map<String, Object>> response = ticketController.getSlaTimer(7001L, jwtWithRole("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(555L, response.getBody().get("deadlineTs"));
@@ -401,11 +401,11 @@ class TicketControllerTest {
     @Test
     void getTeamTickets_withAgentAdminRole_returnsOk() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("AGENT_ADMIN")),
+        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
-                jwtWithRole("admin-1", "AGENT_ADMIN"),
+                jwtWithRole("admin-1", "ADMIN"),
                 0, 20, "createdAt", "desc",
                 null, null, null, null, null, null, null, null, null);
 
@@ -457,7 +457,7 @@ class TicketControllerTest {
         when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("ERP").build()));
         when(ticketService.getSlaTimerInfo(assigned)).thenReturn(Map.<String, Object>of("deadlineTs", 789L));
 
-        ResponseEntity<TicketResponseDTO> response = ticketController.assignTicket(8001L, request, jwtWithRole("admin-1", "AGENT_ADMIN"));
+        ResponseEntity<TicketResponseDTO> response = ticketController.assignTicket(8001L, request, jwtWithRole("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(8001L, response.getBody().getId());

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Entry point.
  *
- * <p>The following steps are executed with a single agent_admin account:
+ * <p>The following steps are executed with a single admin account:
  * <ol>
  *   <li>Agent and customer users from users.json are created via the Agent Admin API (temporary
  *       password → forced first-login change, then final password set); existing ones are reused.</li>
@@ -40,7 +40,7 @@ public class DataGeneratorApp {
     private static final Logger log = LoggerFactory.getLogger(DataGeneratorApp.class);
 
     /**
-     * Runs the generator flow end to end: agent_admin login, setup,
+     * Runs the generator flow end to end: admin login, setup,
      * ticket generation, and then date/SLA backfill against the DB.
      *
      * @param args command-line arguments (unused)
@@ -64,15 +64,15 @@ public class DataGeneratorApp {
         ApiClient api = new ApiClient(http, mapper);
 
         // ---------------------------------------------------------------
-        // 1. Sadece agent_admin oturumu — diğer her şeyi setup üstlenir
+        // 1. Sadece admin oturumu — diğer her şeyi setup üstlenir
         // ---------------------------------------------------------------
         UserSession adminAgent = loginAdmin(http, mapper);
         if (adminAgent == null) {
-            log.error("agent_admin oturumu açılamadı. Kullanıcı/şifre ve Keycloak ayarlarını kontrol et.");
+            log.error("admin oturumu açılamadı. Kullanıcı/şifre ve Keycloak ayarlarını kontrol et.");
             System.exit(1);
         }
         syncUser(api, adminAgent);
-        log.info("agent_admin oturum açıldı: {}", adminAgent.getUsername());
+        log.info("admin oturum açıldı: {}", adminAgent.getUsername());
 
         // ---------------------------------------------------------------
         // 2. Setup — kullanıcılar, ürünler, topic'ler, sıkça karşılaşılan sorunlar, hazır yanıtlar
@@ -106,9 +106,9 @@ public class DataGeneratorApp {
         try {
             KeycloakTokenClient tokenClient = new KeycloakTokenClient(http, mapper);
             tokenClient.login(GeneratorConfig.ADMIN_AGENT_USERNAME, GeneratorConfig.ADMIN_AGENT_PASSWORD);
-            return new UserSession(GeneratorConfig.ADMIN_AGENT_USERNAME, "AGENT_ADMIN", tokenClient);
+            return new UserSession(GeneratorConfig.ADMIN_AGENT_USERNAME, "ADMIN", tokenClient);
         } catch (Exception e) {
-            log.error("agent_admin login hatası: {}", e.getMessage());
+            log.error("admin login hatası: {}", e.getMessage());
             return null;
         }
     }

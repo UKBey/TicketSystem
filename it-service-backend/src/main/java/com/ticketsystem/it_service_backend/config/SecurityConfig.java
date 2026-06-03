@@ -153,7 +153,7 @@ public class SecurityConfig {
      * Security {@code ROLE_*} authorities.
      *
      * <p>Role names are normalized to upper case; for example the
-     * {@code "agent_admin"} role becomes the {@code "ROLE_AGENT_ADMIN"}
+     * {@code "lead_agent"} role becomes the {@code "ROLE_LEAD_AGENT"}
      * authority. If the token does not carry a {@code realm_access} claim an
      * empty authority list is returned (the request is authenticated but
      * unauthorized rather than anonymous).

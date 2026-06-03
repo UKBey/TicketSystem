@@ -37,9 +37,9 @@ class ProductControllerTest {
     @Test
     void getAllProducts_withAgentAdminRole_returnsMappedDtos() {
         Product product = Product.builder().id(11L).name("ERP").isActive(true).build();
-        when(productService.getAllProducts("admin-1", List.of("AGENT_ADMIN"))).thenReturn(List.of(product));
+        when(productService.getAllProducts("admin-1", List.of("ADMIN"))).thenReturn(List.of(product));
 
-        ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("admin-1", "AGENT_ADMIN"));
+        ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
@@ -111,9 +111,9 @@ class ProductControllerTest {
     @Test
     void getProductById_withNonNullJwt_returnsOk() {
         Product product = Product.builder().id(10L).name("ERP").isActive(true).build();
-        when(productService.getProductById(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(product);
+        when(productService.getProductById(10L, "admin-1", List.of("ADMIN"))).thenReturn(product);
 
-        ResponseEntity<ProductDTO> response = productController.getProductById(10L, jwtWithRoles("admin-1", "AGENT_ADMIN"));
+        ResponseEntity<ProductDTO> response = productController.getProductById(10L, jwtWithRoles("admin-1", "ADMIN"));
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());

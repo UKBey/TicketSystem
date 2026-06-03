@@ -26,7 +26,7 @@ import lombok.extern.log4j.Log4j2;
  * REST controller for support category (product) CRUD and concurrent ticket limits.
  *
  * <p>Listing and detail endpoints are open to any authenticated user and are filtered
- * by role; write operations are restricted to the {@code AGENT_ADMIN}/{@code MANAGER} roles.
+ * by role; write operations are restricted to the {@code ADMIN} role.
  * Business rules are enforced inside {@link ProductService}.
  */
 @Log4j2
@@ -66,7 +66,7 @@ public class ProductController {
                     Kullanıcının rolüne göre erişebileceği ürün/kategori listesini döner:
                     - **CUSTOMER**: Yalnızca yetkili olduğu ürünler
                     - **AGENT**: Yalnızca yetkili olduğu ürünler
-                    - **AGENT_ADMIN**: Tüm ürünler
+                    - **ADMIN / MANAGER**: Tüm ürünler
                     
                     Bilet oluşturma formunda ürün seçimi için kullanılır.
                     """)
@@ -192,7 +192,7 @@ public class ProductController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün limiti başarıyla güncellendi",
                     content = @Content(schema = @Schema(implementation = ProductDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN ürün limitini güncelleyebilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN ürün limitini güncelleyebilir"),
             @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
     })
     @PatchMapping("/{id}/limit")

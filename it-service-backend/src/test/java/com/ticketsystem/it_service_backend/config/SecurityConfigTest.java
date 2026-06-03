@@ -23,28 +23,28 @@ class SecurityConfigTest {
         JwtAuthenticationConverter converter = securityConfig.jwtAuthenticationConverter();
 
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("roles", List.of("agent_admin", "agent")));
+        when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("roles", List.of("lead_agent", "agent")));
 
         List<String> authorities = converter.convert(jwt).getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        assertTrue(authorities.containsAll(List.of("ROLE_AGENT_ADMIN", "ROLE_AGENT")));
+        assertTrue(authorities.containsAll(List.of("ROLE_LEAD_AGENT", "ROLE_AGENT")));
     }
 
     @Test
-    void jwtAuthenticationConverterAcceptsAgentAdminRole() {
+    void jwtAuthenticationConverterMapsMultipleRoles() {
         SecurityConfig securityConfig = new SecurityConfig();
         JwtAuthenticationConverter converter = securityConfig.jwtAuthenticationConverter();
 
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("roles", List.of("agent_admin", "manager")));
+        when(jwt.getClaimAsMap("realm_access")).thenReturn(Map.of("roles", List.of("admin", "manager")));
 
         List<String> authorities = converter.convert(jwt).getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        assertTrue(authorities.contains("ROLE_AGENT_ADMIN"));
+        assertTrue(authorities.contains("ROLE_ADMIN"));
         assertTrue(authorities.contains("ROLE_MANAGER"));
     }
 

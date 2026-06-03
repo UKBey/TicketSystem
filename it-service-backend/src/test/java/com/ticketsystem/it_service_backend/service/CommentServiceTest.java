@@ -236,10 +236,10 @@ class CommentServiceTest {
     void getCommentsByTicketId_agentAdminSeesAll() {
         Comment external = Comment.builder().id(1L).type("EXTERNAL").message("public").build();
         Comment internal = Comment.builder().id(2L).type("INTERNAL").message("secret").build();
-        when(ticketService.getTicketWithAuth(100L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(waitingTicket);
+        when(ticketService.getTicketWithAuth(100L, "admin-1", List.of("ADMIN"))).thenReturn(waitingTicket);
         when(commentRepository.findByTicketIdOrderByCreatedAtAsc(100L)).thenReturn(List.of(external, internal));
 
-        List<Comment> result = commentService.getCommentsByTicketId(100L, "admin-1", List.of("AGENT_ADMIN"));
+        List<Comment> result = commentService.getCommentsByTicketId(100L, "admin-1", List.of("ADMIN"));
 
         assertEquals(2, result.size());
     }

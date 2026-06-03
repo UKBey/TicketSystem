@@ -55,7 +55,7 @@ flowchart LR
 
 The platform integrates with two external dependencies: the **Groq API** for AI summarisation and an **SMTP server** (Mailpit in development) for outbound e-mail.
 
-User roles are **additive** — a user holds a *set* of roles and their effective permissions are the union. The five roles span three axes: **operational** (`agent` claims and works tickets; `lead_agent`, a Keycloak composite of `agent`, additionally assigns, acts without claiming and manages product content), **configuration** (`admin` — global system setup), and **oversight** (`manager` — global, read-only dashboards and reporting). `customer` is the end user. The legacy `agent_admin` role is deprecated, retained only as a composite bridge of `{admin, lead_agent, manager}`.
+User roles are **additive** — a user holds a *set* of roles and their effective permissions are the union. The five roles span three axes: **operational** (`agent` claims and works tickets; `lead_agent`, a Keycloak composite of `agent`, additionally assigns, acts without claiming and manages product content), **configuration** (`admin` — global system setup), and **oversight** (`manager` — global, read-only dashboards and reporting). `customer` is the end user. A "super-admin" account is simply a user that holds all of `admin` + `lead_agent` + `manager` (e.g. the `superadmin` seed user) — there is no dedicated super-admin role.
 
 ---
 
@@ -254,7 +254,7 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 | **2FA** | TOTP (authenticator app) configurable per user |
 | **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` (+ `util/AuthRoles` helpers for service-layer scope/claim checks) |
 | **Authorization — internal endpoints** | `/api/v1/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
-| **Roles** | **Additive multi-role** (effective permissions = union of the held set): `customer` (end user), `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. Legacy `agent_admin` is a deprecated bridge composite of `{admin, lead_agent, manager}`. |
+| **Roles** | **Additive multi-role** (effective permissions = union of the held set): `customer` (end user), `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. A super-admin is a user holding all of `admin` + `lead_agent` + `manager`. |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configurable at runtime |

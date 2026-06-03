@@ -35,7 +35,6 @@ export const KEYCLOAK_CLIENT_ID = 'ticket-mobile';
 
 /**
  * Uygulamadaki anlamlı roller (token'daki realm_access.roles bunlara filtrelenir).
- * LEAD_AGENT ve ADMIN yeni RBAC modeliyle eklendi; AGENT_ADMIN geçiş için tutuluyor
- * (composite olarak {ADMIN, LEAD_AGENT, MANAGER} sayılır — bkz. AuthContext yetenek bayrakları).
+ * Eklemeli (additive) çoklu rol modeli; LEAD_AGENT, AGENT'ı kapsayan Keycloak composite'idir.
  */
-export const APP_ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER', 'AGENT_ADMIN'];
+export const APP_ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];

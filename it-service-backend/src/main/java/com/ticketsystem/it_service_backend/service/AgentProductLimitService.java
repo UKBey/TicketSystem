@@ -22,7 +22,7 @@ import java.util.List;
  * <p>When no custom limit is set, the agent uses the product's default
  * {@code maxActiveTickets}. Sending {@code useCustomLimit=false} deletes the
  * existing custom record and the agent falls back to the default. Used by
- * AGENT_ADMIN.
+ * ADMIN.
  */
 @Log4j2
 @Service

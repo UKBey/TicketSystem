@@ -181,7 +181,7 @@ public class TicketClaimService {
      *
      * @param ticketId target ticket ID
      * @param targetAgentId agent to assign
-     * @param adminId AGENT_ADMIN making the assignment
+     * @param adminId ADMIN making the assignment
      * @param note optional description (written to the audit log)
      * @return the ticket after assignment
      * @throws ResponseStatusException 400 on CLOSED/limit, 403 on authorization

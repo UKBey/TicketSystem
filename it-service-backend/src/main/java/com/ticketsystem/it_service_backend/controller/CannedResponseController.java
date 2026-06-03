@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * REST controller for canned responses (quick replies).
  *
- * <p>Every endpoint is restricted to {@code AGENT}, {@code AGENT_ADMIN} and {@code MANAGER} —
+ * <p>Every endpoint is restricted to {@code AGENT}, {@code LEAD_AGENT} and {@code ADMIN} —
  * customers can never reach the feature, so {@code INTERNAL} templates cannot leak to them.
  * Finer rules (own-personal vs. shared, ownership) live in {@link CannedResponseService}.
  */

@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * JPA repository for {@link Ticket} — on top of standard CRUD, exposes a broad API
- * for role-based (customer / agent / agent_admin) filtered paged listings,
+ * for role-based (customer / agent / admin) filtered paged listings,
  * SLA-urgency sorting, dashboard aggregates, and the SLA breach/warning queries
  * driven by the scheduler.
  *
@@ -45,7 +45,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findActiveByProductIdIn(@Param("productIds") List<Long> productIds);
 
     /**
-     * All active tickets (for the AGENT_ADMIN panel). The old code called
+     * All active tickets (for the ADMIN/MANAGER panel). The old code called
      * {@code findAll()} and then deduplicated product_ids in Java — a heavy pattern
      * past 10k+ tickets; this method solves it with a single query.
      */
@@ -190,7 +190,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
 
-    /** Pool (NEW) tickets — AGENT_ADMIN, all products + all filters. */
+    /** Pool (NEW) tickets — ADMIN/MANAGER, all products + all filters. */
     @Query(value = """
         SELECT * FROM tickets t
         WHERE t.status = 'NEW'
@@ -277,7 +277,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
 
-    /** Team tickets — AGENT_ADMIN, all products + all filters. */
+    /** Team tickets — ADMIN/MANAGER, all products + all filters. */
     @Query(value = """
         SELECT * FROM tickets t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
@@ -628,7 +628,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    /** Team tickets — pages active tickets (excluding NEW/CLOSED) across all products for AGENT_ADMIN. */
+    /** Team tickets — pages active tickets (excluding NEW/CLOSED) across all products for ADMIN/MANAGER. */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
@@ -748,7 +748,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Havuz (NEW) biletleri — AGENT_ADMIN icin tum urunler, SLA urgency sirasi ile
+    // Havuz (NEW) biletleri — ADMIN/MANAGER icin tum urunler, SLA urgency sirasi ile
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
@@ -847,7 +847,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
-    // Takim biletleri — AGENT_ADMIN icin tum urunler, SLA urgency sirasi ile
+    // Takim biletleri — ADMIN/MANAGER icin tum urunler, SLA urgency sirasi ile
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')

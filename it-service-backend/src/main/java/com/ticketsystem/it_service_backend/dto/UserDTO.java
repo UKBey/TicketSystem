@@ -63,17 +63,24 @@ public class UserDTO {
 
     /**
      * Kullanıcının rol kümesini gösterim önceliğine göre sıralı bir listeye çevirir.
-     * Bilinmeyen/legacy roller (ör. AGENT_ADMIN) bilinenlerden sonra alfabetik eklenir.
+     * LEAD_AGENT mevcutsa AGENT gösterimden düşürülür — lead zaten AGENT'ı kapsayan bir
+     * Keycloak composite'idir, bu yüzden lead kullanıcılarda yalnızca LEAD_AGENT gösterilir.
+     * Bilinmeyen roller bilinenlerden sonra alfabetik eklenir.
      */
     private static List<String> orderRoles(Set<String> roles) {
         if (roles == null || roles.isEmpty()) {
             return List.of();
         }
+        boolean isLead = roles.contains("LEAD_AGENT");
         List<String> ordered = new ArrayList<>();
         for (String r : ROLE_DISPLAY_ORDER) {
-            if (roles.contains(r)) {
-                ordered.add(r);
+            if (!roles.contains(r)) {
+                continue;
             }
+            if (isLead && "AGENT".equals(r)) {
+                continue; // lead AGENT'ı kapsar — ayrıca gösterme
+            }
+            ordered.add(r);
         }
         roles.stream()
                 .filter(r -> !ROLE_DISPLAY_ORDER.contains(r))

@@ -29,7 +29,7 @@ import java.util.List;
  * REST controller for customer satisfaction (CSAT) surveys submitted at ticket closure.
  *
  * <p>A customer can submit a survey only for their own {@code RESOLVED} ticket;
- * reading the results is restricted to the {@code AGENT_ADMIN} role. Business rules
+ * reading the results is restricted to the {@code MANAGER} and {@code ADMIN} roles. Business rules
  * are enforced in {@link CsatService}.
  */
 @Tag(name = "Ticket CSAT", description = "Bilet kapanışında doldurulan müşteri memnuniyet anketleri (1-5 puan)")

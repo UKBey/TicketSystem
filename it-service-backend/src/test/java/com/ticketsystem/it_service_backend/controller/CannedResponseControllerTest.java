@@ -58,13 +58,13 @@ class CannedResponseControllerTest {
         CannedResponseDTO created = CannedResponseDTO.builder().id(7L).title("T").scope("SHARED").build();
         when(service.create(eq(body), eq("admin-1"), any())).thenReturn(created);
 
-        ResponseEntity<CannedResponseDTO> res = controller.create(jwt("admin-1", "agent_admin"), body);
+        ResponseEntity<CannedResponseDTO> res = controller.create(jwt("admin-1", "admin"), body);
 
         assertThat(res.getBody().getId()).isEqualTo(7L);
         ArgumentCaptor<List<String>> rolesCaptor = ArgumentCaptor.forClass(List.class);
         verify(service).create(eq(body), eq("admin-1"), rolesCaptor.capture());
-        // JwtUtils normalizes "agent_admin" -> "AGENT_ADMIN"
-        assertThat(rolesCaptor.getValue()).contains("AGENT_ADMIN");
+        // JwtUtils normalizes "admin" -> "ADMIN"
+        assertThat(rolesCaptor.getValue()).contains("ADMIN");
     }
 
     @Test

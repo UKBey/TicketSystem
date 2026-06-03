@@ -77,6 +77,10 @@ public class UserService {
             throw new UserAlreadyExistsException("username", request.getUsername());
         }
 
+        // Atanacak rolleri normalize et: geçersizleri ele, lead_agent varsa redundant
+        // agent'ı düşür (lead zaten agent'ı kapsar). Hem Keycloak hem DB bunu kullanır.
+        request.setRoles(normalizeAssignableRoles(request.getRoles()));
+
         // 2. Keycloak'ta kullanıcı oluştur (rol ataması ayrı adımda yapılır)
         String keycloakId = keycloakAdminService.createUser(request);
         log.info("Keycloak kaydı başarılı. ID: {}", keycloakId);
@@ -116,20 +120,40 @@ public class UserService {
                 .build();
     }
 
-    /** Uygulama rolleri (Keycloak realm rolleri). Geçiş süresince AGENT_ADMIN de tanınır. */
+    /** Uygulama rolleri (Keycloak realm rolleri). */
     public static final java.util.Set<String> APP_ROLES =
-            java.util.Set.of("CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER", "AGENT_ADMIN");
+            java.util.Set.of("CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER");
+
+    /**
+     * Normalizes a requested role list for assignment: upper-cases, keeps only valid
+     * {@link #APP_ROLES}, de-duplicates, and drops the redundant {@code AGENT} when
+     * {@code LEAD_AGENT} is present — LEAD_AGENT is a Keycloak composite that already
+     * includes AGENT, so the two are never assigned together.
+     */
+    public static List<String> normalizeAssignableRoles(List<String> roles) {
+        if (roles == null) return java.util.List.of();
+        List<String> valid = roles.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(String::toUpperCase)
+                .filter(APP_ROLES::contains)
+                .distinct()
+                .collect(java.util.stream.Collectors.toList());
+        if (valid.contains("LEAD_AGENT")) {
+            valid.removeIf("AGENT"::equals);
+        }
+        return valid;
+    }
 
     /**
      * Resolves the display/primary role from a list. Used ONLY for the legacy single-role
      * column and the frontend landing default — real authorization uses the full role set
      * (JWT authorities + {@code user_roles}). Priority:
-     * ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER (legacy AGENT_ADMIN ~ ADMIN).
+     * ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER.
      * Returns null when the list is empty or null — CUSTOMER is not assumed as a default.
      */
     public static String resolveHighestRole(List<String> roles) {
         if (roles == null || roles.isEmpty()) return null;
-        if (roles.contains("ADMIN") || roles.contains("AGENT_ADMIN")) return "ADMIN";
+        if (roles.contains("ADMIN")) return "ADMIN";
         if (roles.contains("MANAGER"))    return "MANAGER";
         if (roles.contains("LEAD_AGENT")) return "LEAD_AGENT";
         if (roles.contains("AGENT"))      return "AGENT";
@@ -394,12 +418,12 @@ public class UserService {
         // 1. Kullanıcının yerel DB'de var olduğunu doğrula
         User user = getUserById(userId);
 
-        // 2. Keycloak'ta rolleri güncelle
-        keycloakAdminService.updateUserRoles(userId, newRoles);
+        // 2. Rolleri normalize et (geçersizleri ele, lead varsa redundant agent'ı düşür),
+        //    sonra aynı kümeyi hem Keycloak'ta hem yerel DB'de uygula.
+        java.util.List<String> normalized = normalizeAssignableRoles(newRoles);
+        keycloakAdminService.updateUserRoles(userId, normalized);
 
         // 3. Yerel DB'deki rol bilgisini güncelle (hem küme hem birincil/gösterim rolü)
-        java.util.List<String> normalized = newRoles == null ? java.util.List.of()
-                : newRoles.stream().map(String::toUpperCase).filter(APP_ROLES::contains).toList();
         user.setRoles(new java.util.HashSet<>(normalized));
         String resolvedRole = resolveHighestRole(normalized);
         user.setRole(resolvedRole);

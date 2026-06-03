@@ -20,12 +20,14 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { user, getPrimaryRole, roles, refreshUser } = useAuth();
 
-  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı, legacy AGENT_ADMIN gizli.
+  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı.
+  // LEAD_AGENT varsa AGENT gizlenir (lead, agent'ı kapsar).
   const primaryRole = getPrimaryRole();
   const displayRoles = (() => {
     const order = ['ADMIN', 'MANAGER', 'LEAD_AGENT', 'AGENT', 'CUSTOMER'];
-    const uniq = Array.from(new Set(roles ?? [])).filter((r) => r !== 'AGENT_ADMIN');
-    const ordered = order.filter((r) => uniq.includes(r));
+    const uniq = new Set(roles ?? []);
+    if (uniq.has('LEAD_AGENT')) uniq.delete('AGENT');
+    const ordered = order.filter((r) => uniq.has(r));
     return ordered.length ? ordered : primaryRole ? [primaryRole] : [];
   })();
 

@@ -9,10 +9,6 @@ import { useEscapeToClose } from '../hooks/useEscapeToClose';
 // olmali ki klavye kullanicisi mantikli akista hareketsin.
 const FIELD_FOCUS_ORDER = ['firstName', 'lastName', 'username', 'email', 'password', 'roles'];
 
-// AGENT_ADMIN artık kullanımdan kaldırıldı (composite olarak köprülenir); yeni
-// atama listesinde gösterilmez. Backend hâlâ döndürse bile burada filtrelenir.
-const DEPRECATED_ROLES = ['AGENT_ADMIN'];
-
 /**
  * AdminCreateUserModal — ADMIN'in Keycloak'ta yeni kullanıcı oluşturması için modal.
  * Çoklu rol seçimi destekler (rollerin birleşimi atanır).
@@ -68,9 +64,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
     setRolesLoading(true);
     getAssignableRoles()
-      .then((res) => setAvailableRoles(
-        (res.data || []).filter((r) => !DEPRECATED_ROLES.includes(r))
-      ))
+      .then((res) => setAvailableRoles(res.data || []))
       .catch(() => setRolesError(t('userManagement.form.rolesLoadError')))
       .finally(() => setRolesLoading(false));
   }, [isOpen]); // eslint-disable-line
@@ -132,13 +126,14 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
   const handleRoleToggle = (roleName) => {
     setFormData((prev) => {
-      const exists = prev.roles.includes(roleName);
-      return {
-        ...prev,
-        roles: exists
-          ? prev.roles.filter((r) => r !== roleName)
-          : [...prev.roles, roleName],
-      };
+      if (prev.roles.includes(roleName)) {
+        return { ...prev, roles: prev.roles.filter((r) => r !== roleName) };
+      }
+      let next = [...prev.roles, roleName];
+      // agent ↔ lead_agent karşılıklı dışlama: lead zaten agent'ı kapsar.
+      if (roleName === 'LEAD_AGENT') next = next.filter((r) => r !== 'AGENT');
+      if (roleName === 'AGENT') next = next.filter((r) => r !== 'LEAD_AGENT');
+      return { ...prev, roles: next };
     });
     if (errors.roles) setErrors((prev) => ({ ...prev, roles: '' }));
   };

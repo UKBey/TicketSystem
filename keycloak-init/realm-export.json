@@ -74,22 +74,6 @@
         "attributes": {}
       },
       {
-        "id": "8e79daf1-8c69-4a91-8d4f-1697b9948aae",
-        "name": "AGENT_ADMIN",
-        "description": "DEPRECATED (gecis koprusu): ADMIN+LEAD_AGENT+MANAGER composite'i. Yeni kullanicilara atanmaz; mevcut agent_admin kullanicilarini super-admin olarak calisir tutar.",
-        "composite": true,
-        "composites": {
-          "realm": [
-            "ADMIN",
-            "LEAD_AGENT",
-            "MANAGER"
-          ]
-        },
-        "clientRole": false,
-        "containerId": "f3a0885e-6803-4048-b37e-b05721ad72ff",
-        "attributes": {}
-      },
-      {
         "id": "8a080da9-8dfc-4986-820c-950d311bcbfc",
         "name": "uma_authorization",
         "description": "${role_uma_authorization}",

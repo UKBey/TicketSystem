@@ -39,7 +39,7 @@ public class UserSession {
 
     /** @return the Keycloak username. */
     public String getUsername() { return username; }
-    /** @return the role label (e.g. {@code AGENT}, {@code CUSTOMER}, {@code AGENT_ADMIN}). */
+    /** @return the role label (e.g. {@code AGENT}, {@code CUSTOMER}, {@code ADMIN}). */
     public String getRole()     { return role; }
     /** @return the user ID assigned by the backend; {@code null} if not yet synced. */
     public String getUserId()   { return userId; }

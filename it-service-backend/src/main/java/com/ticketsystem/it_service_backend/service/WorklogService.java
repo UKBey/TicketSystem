@@ -18,7 +18,7 @@ import java.util.List;
  * Manages time entries (worklogs) recorded against a ticket.
  *
  * <p>Worklog creation/update is restricted to the agent who has claimed the ticket;
- * CLOSED tickets accept neither new entries nor updates. AGENT_ADMIN bypasses
+ * CLOSED tickets accept neither new entries nor updates. ADMIN bypasses
  * these rules for listing and deletion.
  */
 @Log4j2
@@ -81,7 +81,7 @@ public class WorklogService {
 
     /**
      * Lists worklog entries for a ticket subject to role rules.
-     * AGENT_ADMIN sees everything; AGENT sees only worklogs on tickets they have
+     * ADMIN sees everything; AGENT sees only worklogs on tickets they have
      * claimed; other roles are denied.
      *
      * @param ticketId target ticket ID
@@ -195,7 +195,7 @@ public class WorklogService {
     }
 
     /**
-     * Deletes a worklog entry. AGENT_ADMIN can delete any entry, AGENT can delete
+     * Deletes a worklog entry. ADMIN can delete any entry, AGENT can delete
      * only the entries they created, other roles are denied.
      *
      * @param worklogId worklog ID to delete

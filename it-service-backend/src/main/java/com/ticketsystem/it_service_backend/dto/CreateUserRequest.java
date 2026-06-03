@@ -48,7 +48,7 @@ public class CreateUserRequest {
 
     @NotEmpty(message = "{field.required}")
     @Schema(description = "Atanacak realm rolleri — en az bir rol zorunludur",
-            example = "[\"AGENT\"]", allowableValues = {"CUSTOMER", "AGENT", "AGENT_ADMIN", "MANAGER"})
+            example = "[\"AGENT\"]", allowableValues = {"CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER"})
     private List<String> roles;
 
     /**

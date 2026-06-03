@@ -4,10 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { getAssignableRoles, updateUserRoles } from '../services/api';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
-// AGENT_ADMIN kullanımdan kaldırıldı (composite olarak köprülenir); yeni atama
-// listesinde gösterilmez. Mevcut kullanıcının rolleri ön-seçilirken yeni roller tercih edilir.
-const DEPRECATED_ROLES = ['AGENT_ADMIN'];
-
 /**
  * EditRoleModal — ADMIN'in mevcut bir kullanıcının rollerini düzenlemesi için modal.
  * Çoklu rol seçimi destekler; mevcut roller açılışta ön-seçili gelir.
@@ -36,18 +32,15 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
     setError('');
     setValidationError('');
     // Mevcut rolleri başlangıç seçimi olarak ayarla (çoklu rol veya tekil rol destekli).
-    // Kullanımdan kaldırılmış roller (AGENT_ADMIN) ön-seçilmez.
     const existing = Array.isArray(user.roles)
       ? user.roles
       : (user.role ? [user.role] : []);
-    setSelectedRoles(existing.filter((r) => !DEPRECATED_ROLES.includes(r)));
+    setSelectedRoles(existing);
 
     setRolesLoading(true);
     setRolesError('');
     getAssignableRoles()
-      .then((res) => setAvailableRoles(
-        (res.data || []).filter((r) => !DEPRECATED_ROLES.includes(r))
-      ))
+      .then((res) => setAvailableRoles(res.data || []))
       .catch(() => setRolesError(t('userManagement.form.rolesLoadError')))
       .finally(() => setRolesLoading(false));
   }, [isOpen, user]); // eslint-disable-line
@@ -57,8 +50,12 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
 
   const handleRoleToggle = (roleName) => {
     setSelectedRoles((prev) => {
-      const exists = prev.includes(roleName);
-      return exists ? prev.filter((r) => r !== roleName) : [...prev, roleName];
+      if (prev.includes(roleName)) return prev.filter((r) => r !== roleName);
+      let next = [...prev, roleName];
+      // agent ↔ lead_agent karşılıklı dışlama: lead zaten agent'ı kapsar.
+      if (roleName === 'LEAD_AGENT') next = next.filter((r) => r !== 'AGENT');
+      if (roleName === 'AGENT') next = next.filter((r) => r !== 'LEAD_AGENT');
+      return next;
     });
     setValidationError('');
   };

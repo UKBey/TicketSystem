@@ -12,8 +12,8 @@ const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 
-// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
-const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
+// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil).
+const AGENT_ROLES = ['AGENT', 'LEAD_AGENT'];
 
 // Kullanıcının TÜM rollerini döndürür (çoklu rol). Eski tekil `role` alanına geriye-dönük uyum.
 const rolesOf = (user) =>
@@ -374,7 +374,6 @@ export default function AdminPanel() {
   const roleBadgeStyle = (role) => {
     switch (role) {
       case 'ADMIN':       return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
-      case 'AGENT_ADMIN': return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
       case 'LEAD_AGENT':  return { backgroundColor: 'rgba(99,102,241,0.15)',  color: '#4f46e5' };
       case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
       case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };

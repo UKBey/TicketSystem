@@ -61,9 +61,9 @@ The five application roles, by axis, are:
 - `manager` — oversight (global, read-only): all dashboards, reports and full read visibility; no
   operational actions and no system configuration.
 
-The legacy `agent_admin` role is **deprecated**, kept only as a transition bridge — it is a
-Keycloak composite of `{admin, lead_agent, manager}`, so existing `agent_admin` users keep working
-as super-admins. Roles are cached in the `user_roles` table (Flyway V37), synced on `/users/sync`.
+A "super-admin" is simply a user that holds all of `admin` + `lead_agent` + `manager` (e.g. the
+`superadmin` seed user) — there is no dedicated super-admin role. Roles are cached in the
+`user_roles` table (Flyway V37), synced on `/users/sync`.
 
 In this document the `Role` column lists who may call an endpoint:
 
@@ -600,8 +600,7 @@ Query params: `search` (string, optional), `role` (string[], optional), `page` (
   themselves (`400`). Returns `UserDTO`.
 - **PUT `/api/v1/users/{userId}/roles`** — Body: JSON array of role strings (non-empty); roles are
   additive, so a user may hold several, e.g. `["agent","lead_agent"]` or `["customer","manager"]`.
-  Returns `UserDTO`. Assignable roles are `customer`, `agent`, `lead_agent`, `admin`, `manager`
-  (the legacy `agent_admin` composite remains assignable only as a deprecated bridge).
+  Returns `UserDTO`. Assignable roles are `customer`, `agent`, `lead_agent`, `admin`, `manager`.
 - **POST `/api/v1/users/admin/create`** — Body `CreateUserRequest` (see below). Returns
   `201 Created` with `UserCreationResponseDTO`. `409` if email/username already exists.
 

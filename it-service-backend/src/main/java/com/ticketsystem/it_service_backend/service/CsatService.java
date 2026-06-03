@@ -121,7 +121,7 @@ public class CsatService {
     }
 
     /**
-     * Returns all CSAT records. Access is restricted to AGENT_ADMIN by
+     * Returns all CSAT records. Access is restricted to ADMIN by
      * {@code @PreAuthorize} on the controller.
      *
      * @return all CSAT responses

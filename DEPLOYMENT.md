@@ -254,7 +254,7 @@ curl -fsS https://<host>/opensearch/api/status | jq '.status.overall.state'   # 
 curl -fsS https://<host>/actuator/metrics/mail_send_total | jq '.measurements'
 
 # Cache flush erişimi (DB-8 — yalnız admin)
-# DELETE /actuator/caches/{name} 200 dönmeli admin rolü ile (deprecated agent_admin de köprülenmiş olarak çalışır)
+# DELETE /actuator/caches/{name} 200 dönmeli admin rolü ile
 ```
 
 15 dakika izle:

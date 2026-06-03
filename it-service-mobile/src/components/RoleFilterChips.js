@@ -2,7 +2,7 @@ import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 
-// Yeni RBAC rolleri — AGENT_ADMIN kullanımdan kaldırıldı (filtrede gösterilmez).
+// RBAC rolleri — rol filtre çubuğunda gösterilen tam küme.
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 
 /** Yatay rol filtre çubuğu — tek seçim. value null ise "tümü". */

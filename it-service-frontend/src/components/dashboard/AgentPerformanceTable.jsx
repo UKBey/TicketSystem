@@ -2,9 +2,9 @@ import { memo } from 'react';
 import { Award, Clock3, Flame, Star, Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 
-// Süpervizör (lead/admin) rozeti — yeni LEAD_AGENT/ADMIN rolleri ve eski AGENT_ADMIN köprüsü.
+// Süpervizör (lead/admin) rozeti — LEAD_AGENT ve ADMIN rolleri.
 function isLeadOrAdmin(role) {
-  return role === 'LEAD_AGENT' || role === 'ADMIN' || role === 'AGENT_ADMIN';
+  return role === 'LEAD_AGENT' || role === 'ADMIN';
 }
 
 function formatNumber(value) {

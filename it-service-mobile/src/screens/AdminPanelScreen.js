@@ -21,8 +21,8 @@ import RoleFilterChips from '../components/RoleFilterChips';
 const fullNameOf = (u) =>
   u.fullName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '—';
 
-// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
-const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
+// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil).
+const AGENT_ROLES = ['AGENT', 'LEAD_AGENT'];
 
 // Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum.
 const rolesOf = (u) =>

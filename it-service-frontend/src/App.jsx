@@ -114,7 +114,7 @@ export default function App() {
           }
         />
 
-        {/* Agent ve agent_admin tarafindan kullanilan calisma ekranlari. */}
+        {/* Agent, lead_agent ve admin'in kullandigi calisma ekranlari. */}
         <Route
           path="/workspace"
           element={
@@ -156,7 +156,7 @@ export default function App() {
           }
         />
 
-        {/* Manager (dashboard-only) ve agent_admin yetkisi isteyen yonetim ekranlari. */}
+        {/* Manager (dashboard-only) ve admin yetkisi isteyen yonetim ekranlari. */}
         <Route
           path="/dashboard"
           element={

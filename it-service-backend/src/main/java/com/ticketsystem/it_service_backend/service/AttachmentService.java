@@ -150,7 +150,7 @@ public class AttachmentService {
     }
 
     /**
-     * Deletes the attachment. AGENT_ADMIN can delete any attachment; other roles
+     * Deletes the attachment. ADMIN can delete any attachment; other roles
      * can only delete attachments they uploaded. Ticket access is verified up
      * front via {@link #getAttachment}.
      *

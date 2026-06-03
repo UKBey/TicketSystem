@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     if (keycloak.tokenParsed) {
       const tokenRoles = keycloak.tokenParsed.realm_access?.roles || [];
       const appRoles = tokenRoles.filter((r) =>
-        ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER', 'AGENT_ADMIN'].includes(r)
+        ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'].includes(r)
       );
       setRoles(appRoles);
       setUser({
@@ -128,8 +128,8 @@ export function AuthProvider({ children }) {
   );
 
   // Yetenek yardımcıları (additive çoklu rol — etkin yetki = rollerin birleşimi).
-  // LEAD_AGENT, AGENT'ı kapsar (Keycloak composite), AGENT_ADMIN ise geçişte ADMIN sayılır.
-  const isAdmin     = roles.includes('ADMIN') || roles.includes('AGENT_ADMIN');
+  // LEAD_AGENT, AGENT'ı kapsar (Keycloak composite); etkin yetki rollerin birleşimidir.
+  const isAdmin     = roles.includes('ADMIN');
   const isManager   = roles.includes('MANAGER');
   const isLeadAgent = roles.includes('LEAD_AGENT');
   const isAgent     = roles.includes('AGENT') || isLeadAgent;
@@ -138,7 +138,7 @@ export function AuthProvider({ children }) {
 
   // Birincil/landing rolü (yalnızca açılış sayfası için; erişim rollerin birleşimine göre).
   const getPrimaryRole = useCallback(() => {
-    if (roles.includes('ADMIN') || roles.includes('AGENT_ADMIN')) return 'ADMIN';
+    if (roles.includes('ADMIN')) return 'ADMIN';
     if (roles.includes('MANAGER')) return 'MANAGER';
     if (roles.includes('LEAD_AGENT')) return 'LEAD_AGENT';
     if (roles.includes('AGENT')) return 'AGENT';

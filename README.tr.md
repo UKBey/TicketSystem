@@ -230,7 +230,7 @@ Kullanıcılar OpenLDAP'a eklenir ve Keycloak'a senkronize edilir; realm **rolle
 | `leadmanager`  | `321654` | `lead_agent` + `manager` | Çalışma Alanı + Takım + Pano | Lead-agent operasyonları **+** manager gözetimi (birleşim) |
 | `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Çalışma Alanı + Yönetim | Tam süper yönetici: admin yapılandırması, lead-agent operasyonları ve manager gözetiminin birleşimi |
 
-> *Veri üreticisinin (data-generator) bootstrap hesabı `superadmin`'dir; `admin` + `lead_agent` + `manager` taşır ve bu nedenle süper yönetici gibi davranır. Kullanımdan kaldırılan `agent_admin` rolü, `{admin, lead_agent, manager}` bileşiği olan bir Keycloak composite'i olarak hâlâ Keycloak'ta mevcuttur (mevcut süper yöneticilerin çalışmaya devam etmesi için geçiş köprüsü) — yeni kullanıcılara atamayın.
+> *Veri üreticisinin (data-generator) bootstrap hesabı `superadmin`'dir; `admin` + `lead_agent` + `manager` taşır ve bu nedenle süper yönetici gibi davranır. "Süper yönetici" yalnızca bu üç rolü birden taşıyan bir kullanıcıdır — özel bir süper yönetici rolü yoktur.
 
 ---
 

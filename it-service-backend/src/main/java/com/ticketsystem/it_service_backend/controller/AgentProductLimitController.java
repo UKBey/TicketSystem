@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * REST controller for per-agent product limit overrides.
  *
- * <p>The {@code AGENT_ADMIN} and {@code MANAGER} roles can customize and delete the default
+ * <p>The {@code ADMIN} role can customize and delete the default
  * product limits for a specific agent. Business rules are resolved by
  * {@link AgentProductLimitService}.
  */

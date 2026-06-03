@@ -4,7 +4,7 @@ Sunum ve test için sisteme gerçekçi veri basan standalone Java uygulaması.
 **Tek bir bootstrap admin hesabıyla** (`superadmin`) çalışır; ürünler, topic'ler,
 sıkça karşılaşılan sorunlar ve biletler bu hesap üzerinden idempotent şekilde
 oluşturulur. Bu hesap eklemeli (additive) rol modelinde `ADMIN + LEAD_AGENT +
-MANAGER` rollerini taşır (eski `aatest`/`agent_admin` süper-admin'in karşılığı),
+MANAGER` rollerini taşır (eski `aatest` süper-admin hesabının yerini alır),
 böylece hem konfigürasyon hem ürün-içerik/atama yetkilerine sahiptir. Lead agent,
 agent ve customer kullanıcıları **Keycloak'ta önceden hazırlanmış olmalıdır**;
 generator kullanıcı oluşturmaz, yalnızca login dener.

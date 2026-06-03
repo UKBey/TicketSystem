@@ -141,7 +141,7 @@ class TicketServiceTest {
                 .id("admin-1")
                 .email("admin@example.com")
                 .fullName("Admin User")
-                .role("AGENT_ADMIN")
+                .role("ADMIN")
                 .authorizedProducts(List.of(product))
                 .build();
     }
@@ -1230,59 +1230,59 @@ class TicketServiceTest {
     }
 
     // =========================================================================
-    // getPoolTicketsFiltered — AGENT_ADMIN & AGENT branch coverage
+    // getPoolTicketsFiltered — ADMIN & AGENT branch coverage
     // =========================================================================
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN priority ASC")
+    @DisplayName("getPoolTicketsFiltered → ADMIN priority ASC")
     void getPoolTicketsFiltered_agentAdmin_sortPriorityAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "priority"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN priority DESC")
+    @DisplayName("getPoolTicketsFiltered → ADMIN priority DESC")
     void getPoolTicketsFiltered_agentAdmin_sortPriorityDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "priority"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN SLA ASC")
+    @DisplayName("getPoolTicketsFiltered → ADMIN SLA ASC")
     void getPoolTicketsFiltered_agentAdmin_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN SLA DESC")
+    @DisplayName("getPoolTicketsFiltered → ADMIN SLA DESC")
     void getPoolTicketsFiltered_agentAdmin_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN full filtered")
+    @DisplayName("getPoolTicketsFiltered → ADMIN full filtered")
     void getPoolTicketsFiltered_agentAdmin_withSearch() {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().search("test").build();
@@ -1291,19 +1291,19 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), f, p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), f, p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getPoolTicketsFiltered → AGENT_ADMIN default")
+    @DisplayName("getPoolTicketsFiltered → ADMIN default")
     void getPoolTicketsFiltered_agentAdmin_default() {
         Pageable p = PageRequest.of(0, 10);
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1405,55 +1405,55 @@ class TicketServiceTest {
     // =========================================================================
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN priority ASC")
+    @DisplayName("getTeamTicketsFiltered → ADMIN priority ASC")
     void getTeamTicketsFiltered_agentAdmin_sortPriorityAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "priority"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN priority DESC")
+    @DisplayName("getTeamTicketsFiltered → ADMIN priority DESC")
     void getTeamTicketsFiltered_agentAdmin_sortPriorityDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "priority"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN SLA ASC")
+    @DisplayName("getTeamTicketsFiltered → ADMIN SLA ASC")
     void getTeamTicketsFiltered_agentAdmin_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN SLA DESC")
+    @DisplayName("getTeamTicketsFiltered → ADMIN SLA DESC")
     void getTeamTicketsFiltered_agentAdmin_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN full filtered")
+    @DisplayName("getTeamTicketsFiltered → ADMIN full filtered")
     void getTeamTicketsFiltered_agentAdmin_withSearch() {
         Pageable p = PageRequest.of(0, 10);
         TicketFilterDTO f = TicketFilterDTO.builder().search("vpn").build();
@@ -1462,19 +1462,19 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), f, p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), f, p);
         assertNotNull(result);
     }
 
     @Test
-    @DisplayName("getTeamTicketsFiltered → AGENT_ADMIN default")
+    @DisplayName("getTeamTicketsFiltered → ADMIN default")
     void getTeamTicketsFiltered_agentAdmin_default() {
         Pageable p = PageRequest.of(0, 10);
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("AGENT_ADMIN"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("ADMIN"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 

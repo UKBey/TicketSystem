@@ -28,7 +28,7 @@ public class CommentDTO {
     @Schema(description = "Yazar adı (sunucu tarafında çözümlenir)", example = "Ali Yılmaz")
     private String authorName;
 
-    @Schema(description = "Yazarın sistemdeki rolü (CUSTOMER/AGENT/AGENT_ADMIN/MANAGER) — chat UI'da rozet için kullanılır", example = "AGENT")
+    @Schema(description = "Yazarın sistemdeki rolü (CUSTOMER/AGENT/LEAD_AGENT/ADMIN/MANAGER) — chat UI'da rozet için kullanılır", example = "AGENT")
     private String authorRole;
 
     @Schema(description = "Yorum içeriği", example = "VPN ayarlarınızı kontrol ettim, port 443 engelli görünüyor.")

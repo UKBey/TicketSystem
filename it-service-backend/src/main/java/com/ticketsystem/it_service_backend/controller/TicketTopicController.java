@@ -18,7 +18,7 @@ import java.util.List;
  * REST controller for the CRUD of ticket topics that belong to a product.
  *
  * <p>Listing is open; creation, update and deletion are restricted to the
- * {@code AGENT_ADMIN} and {@code MANAGER} roles. Business rules live in {@link TicketTopicService}.
+ * {@code LEAD_AGENT} and {@code ADMIN} roles. Business rules live in {@link TicketTopicService}.
  */
 @Log4j2
 @Tag(name = "Talep Konusu Yönetimi", description = "Bir ürüne bağlı talep konularının CRUD işlemleri")

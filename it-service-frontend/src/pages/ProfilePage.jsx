@@ -20,8 +20,6 @@ const ROLE_META = {
   LEAD_AGENT:  { label: 'Lead Agent',  color: '#6366f1', bg: 'rgba(99,102,241,0.12)' },
   ADMIN:       { label: 'Admin',       color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   MANAGER:     { label: 'Manager',     color: '#22c55e', bg: 'rgba(34,197,94,0.12)'  },
-  // Eski rol — köprüleme sırasında hâlâ görüntülenebilir.
-  AGENT_ADMIN: { label: 'Agent Admin', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
 };
 
 /* ── Avatar initials ────────────────────────────────────────── */
@@ -38,7 +36,6 @@ const ROLE_GRADIENT = {
   ADMIN:       'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
   MANAGER:     'linear-gradient(135deg, #22c55e 0%, #0ea5e9 100%)',
   // Eski rol — köprüleme sırasında hâlâ görüntülenebilir.
-  AGENT_ADMIN: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
   default:     'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
 };
 
@@ -208,12 +205,14 @@ export default function ProfilePage() {
   const primaryRole = getPrimaryRole();
   const avatarGradient = ROLE_GRADIENT[primaryRole] ?? ROLE_GRADIENT.default;
 
-  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı,
-  // yinelenenler ayıklanmış ve legacy AGENT_ADMIN köprüsü gizlenmiş (gerçek roller zaten genişler).
+  // Kullanıcının sahip olduğu TÜM roller — gösterim önceliğine göre sıralı.
+  // LEAD_AGENT varsa AGENT gizlenir: lead, agent'ı kapsayan composite'tir, bu yüzden
+  // lead kullanıcılarda yalnızca LEAD_AGENT rozeti gösterilir.
   const displayRoles = (() => {
     const order = ['ADMIN', 'MANAGER', 'LEAD_AGENT', 'AGENT', 'CUSTOMER'];
-    const uniq = Array.from(new Set(roles ?? [])).filter((r) => r !== 'AGENT_ADMIN');
-    const ordered = order.filter((r) => uniq.includes(r));
+    const uniq = new Set(roles ?? []);
+    if (uniq.has('LEAD_AGENT')) uniq.delete('AGENT');
+    const ordered = order.filter((r) => uniq.has(r));
     return ordered.length ? ordered : (primaryRole ? [primaryRole] : []);
   })();
 

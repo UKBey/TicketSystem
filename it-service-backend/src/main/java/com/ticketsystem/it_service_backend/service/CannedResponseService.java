@@ -29,7 +29,7 @@ import static com.ticketsystem.it_service_backend.entity.CannedResponse.*;
  * templates cannot leak to them.
  *
  * <p><b>Management</b> — anyone (agent role) may create/edit/delete their own {@code PERSONAL}
- * templates. Only {@code AGENT_ADMIN}/{@code MANAGER} may create/edit/delete {@code SHARED}
+ * templates. Only {@code ADMIN}/{@code MANAGER} may create/edit/delete {@code SHARED}
  * (team/product) templates. These rules are enforced here in addition to the coarse role gate
  * on the controller, because the controller cannot know whether a given template is personal
  * or shared, nor who owns it.

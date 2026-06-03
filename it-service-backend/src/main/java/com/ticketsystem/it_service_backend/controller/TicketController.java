@@ -369,7 +369,7 @@ public class TicketController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bilet başarıyla atandı"),
             @ApiResponse(responseCode = "400", description = "Hedef agent'ın limiti dolu veya bilet kapalı"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN atama yapabilir veya hedef agent yetkisiz"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca LEAD_AGENT veya ADMIN atama yapabilir veya hedef agent yetkisiz"),
             @ApiResponse(responseCode = "404", description = "Bilet veya agent bulunamadı")
     })
     @PutMapping("/{id}/assign")
@@ -489,12 +489,12 @@ public class TicketController {
     }
 
     /**
-     * Permanently deletes the ticket from the database; only callable by {@code AGENT_ADMIN}.
+     * Permanently deletes the ticket from the database; only callable by {@code ADMIN}.
      *
      * @param id identifier of the ticket to delete
      * @return {@code 204 No Content}
      */
-    @Operation(summary = "Bileti sil (AGENT_ADMIN yetkisi gerekir)")
+    @Operation(summary = "Bileti sil (ADMIN yetkisi gerekir)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteTicket(

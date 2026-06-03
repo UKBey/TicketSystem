@@ -23,7 +23,7 @@ public class AgentPerformanceItemDTO {
     @Schema(description = "Ajanın tam adı", example = "Mehmet Kaya")
     private String agentName;
 
-    @Schema(description = "Uygulama rolü", example = "AGENT", allowableValues = {"AGENT", "AGENT_ADMIN"})
+    @Schema(description = "Uygulama rolü", example = "AGENT", allowableValues = {"AGENT", "LEAD_AGENT"})
     private String role;
 
     @Schema(description = "Ajanın üzerindeki aktif ticket sayısı", example = "12")

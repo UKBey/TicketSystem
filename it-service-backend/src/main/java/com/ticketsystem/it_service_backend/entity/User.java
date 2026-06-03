@@ -44,7 +44,7 @@ public class User {
     /**
      * Kullanıcının sahip olduğu TÜM roller (additive çoklu rol). Keycloak realm rollerinden
      * her login'de senkronlanır. Etkin yetki = bu kümenin birleşimi.
-     * Değerler: CUSTOMER, AGENT, LEAD_AGENT, ADMIN, MANAGER (geçişte: AGENT_ADMIN).
+     * Değerler: CUSTOMER, AGENT, LEAD_AGENT, ADMIN, MANAGER.
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))

@@ -17,7 +17,7 @@ import java.util.List;
  *
  * <p>Topic names are unique within a product (case-insensitive). Listing is open,
  * so authorization is enforced at the controller level; management
- * (create/update/delete) is restricted to AGENT_ADMIN / MANAGER roles.
+ * (create/update/delete) is restricted to ADMIN / MANAGER roles.
  */
 @Log4j2
 @Service

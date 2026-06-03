@@ -29,9 +29,9 @@ const fmtPct = (v) => `${n(v).toFixed(1)}%`;
 const fmt1 = (v) => n(v).toFixed(1);
 const rankBadge = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
 
-// Süpervizör (lead/admin) rozeti — yeni LEAD_AGENT/ADMIN rolleri ve eski AGENT_ADMIN köprüsü.
+// Süpervizör (lead/admin) rozeti — LEAD_AGENT ve ADMIN rolleri.
 const isLeadOrAdmin = (role) =>
-  role === 'LEAD_AGENT' || role === 'ADMIN' || role === 'AGENT_ADMIN';
+  role === 'LEAD_AGENT' || role === 'ADMIN';
 
 const STATUS_ROWS = [
   { key: 'NEW', field: 'newCount' },

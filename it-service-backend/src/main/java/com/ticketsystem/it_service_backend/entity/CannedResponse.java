@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
  * <p>Two scopes exist:
  * <ul>
  *   <li>{@code PERSONAL} — owned by a single agent ({@link #ownerAgentId}).</li>
- *   <li>{@code SHARED}   — team-wide, managed by {@code AGENT_ADMIN}/{@code MANAGER}.</li>
+ *   <li>{@code SHARED}   — team-wide, managed by {@code LEAD_AGENT}/{@code ADMIN}.</li>
  * </ul>
  * Either scope may optionally be tied to a {@link Product} ({@link #productId}) or be global
  * ({@code productId == null}); a product-scoped template only surfaces on that product's tickets.

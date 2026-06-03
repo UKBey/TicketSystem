@@ -20,7 +20,7 @@ import java.util.List;
  * Manages known issues.
  *
  * <p>Read access: the user must be authorized for the product; admin/manager see every product.
- * Management (create/update/delete): restricted to AGENT_ADMIN and MANAGER. This rule is
+ * Management (create/update/delete): restricted to ADMIN and MANAGER. This rule is
  * enforced at the controller level via {@code @PreAuthorize}.
  */
 @Log4j2

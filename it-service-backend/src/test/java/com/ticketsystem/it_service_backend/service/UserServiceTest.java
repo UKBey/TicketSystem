@@ -127,7 +127,7 @@ class UserServiceTest {
     @DisplayName("syncUser mevcut kullanıcıyı günceller (update path)")
     void syncUser_whenUserExists_updatesFields() {
         User existing = User.builder().id("agent-1").email("old@example.com").fullName("Old Name").role("AGENT").build();
-        User incoming = User.builder().id("agent-1").email("new@example.com").fullName("New Name").role("AGENT_ADMIN").build();
+        User incoming = User.builder().id("agent-1").email("new@example.com").fullName("New Name").role("ADMIN").build();
 
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(existing));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -136,7 +136,7 @@ class UserServiceTest {
 
         assertEquals("new@example.com", result.getEmail());
         assertEquals("New Name", result.getFullName());
-        assertEquals("AGENT_ADMIN", result.getRole());
+        assertEquals("ADMIN", result.getRole());
         verify(userRepository).save(existing);
     }
 
@@ -342,16 +342,16 @@ class UserServiceTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("updateUserRoles → ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER önceliği (legacy AGENT_ADMIN → ADMIN)")
+    @DisplayName("updateUserRoles → ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER önceliği (legacy ADMIN → ADMIN)")
     void updateUserRoles_resolvesAgentAdminAsHighest() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
+        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"));
 
-        // Legacy AGENT_ADMIN now resolves to the new ADMIN role (highest priority).
+        // Legacy ADMIN now resolves to the new ADMIN role (highest priority).
         assertThat(result.getRole()).isEqualTo("ADMIN");
-        verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT_ADMIN", "AGENT"));
+        verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"));
     }
 
     @Test

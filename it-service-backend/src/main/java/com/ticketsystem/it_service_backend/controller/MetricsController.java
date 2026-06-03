@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * REST controller for the manager dashboard's KPIs and analytic metrics.
  *
- * <p>Restricted to the {@code MANAGER} role (and {@code AGENT_ADMIN} on a few endpoints).
+ * <p>Restricted to the {@code MANAGER}, {@code LEAD_AGENT} and {@code ADMIN} roles.
  * Most endpoints are wrapped with a Caffeine cache; business calculations are
  * performed by {@link MetricsService}.
  */

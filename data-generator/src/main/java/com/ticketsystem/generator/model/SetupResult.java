@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Output of SetupGenerator — passed on to TicketGenerator.
  *
- * @param agentAdmin            agent_admin session (sourced from config)
+ * @param agentAdmin            admin session (sourced from config)
  * @param agents                agent sessions logged in during setup
  * @param customers             customer sessions logged in during setup
  * @param productByName         "product name" → product ID

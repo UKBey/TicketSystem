@@ -103,7 +103,7 @@ public class NotificationService {
      *
      * @param ticket the assigned ticket
      * @param targetAgentId ID of the assigned agent
-     * @param adminId ID of the AGENT_ADMIN making the assignment
+     * @param adminId ID of the ADMIN making the assignment
      */
     public void notifyTicketAssigned(Ticket ticket, String targetAgentId, String adminId) {
         // 1. Hedef agent'a bildirim gönder

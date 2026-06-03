@@ -22,7 +22,7 @@ import lombok.extern.log4j.Log4j2;
  * Product CRUD and per-user product access control.
  *
  * <p>Customer/agent users can only see products that appear in their
- * {@code authorized_products} relationship; AGENT_ADMIN and MANAGER see every
+ * {@code authorized_products} relationship; ADMIN and MANAGER see every
  * product. Product deletion is cascading: all related tickets are removed via
  * {@link TicketService#deleteTicket} calls, then agent-specific limit records
  * are cleared.
@@ -40,7 +40,7 @@ public class ProductService {
 
     /**
      * Returns the product by ID after verifying the caller's access.
-     * AGENT_ADMIN / MANAGER bypass the check; other roles must have the product
+     * ADMIN / MANAGER bypass the check; other roles must have the product
      * in their {@code user.authorizedProducts} list.
      *
      * @param id product ID
@@ -69,7 +69,7 @@ public class ProductService {
     }
 
     /**
-     * Returns all products the user can see. AGENT_ADMIN / MANAGER receive every
+     * Returns all products the user can see. ADMIN / MANAGER receive every
      * product; other roles get only their own {@code authorizedProducts}. Returns
      * an empty list when the user ID is null.
      *

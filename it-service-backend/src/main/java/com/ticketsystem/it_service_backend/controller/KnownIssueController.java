@@ -20,8 +20,8 @@ import java.util.List;
 /**
  * REST controller for the "known issues" knowledge base.
  *
- * <p>Listing and detail: the user must be authorized for the product ({@code AGENT_ADMIN}/{@code MANAGER}
- * see everything). Write operations are restricted to {@code AGENT_ADMIN} and {@code MANAGER};
+ * <p>Listing and detail: the user must be authorized for the product ({@code ADMIN}/{@code MANAGER}
+ * see everything). Write operations are restricted to {@code LEAD_AGENT} and {@code ADMIN};
  * business rules live in {@link KnownIssueService}.
  */
 @Log4j2

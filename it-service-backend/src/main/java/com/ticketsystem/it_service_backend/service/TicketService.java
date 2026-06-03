@@ -173,7 +173,7 @@ public class TicketService {
     // -----------------------------------------------------------------
 
     /**
-     * Returns all tickets visible to the user. AGENT_ADMIN sees everything; other
+     * Returns all tickets visible to the user. ADMIN sees everything; other
      * roles see only tickets they own as customer or tickets under their authorized
      * products. Returns an empty list when the user is missing.
      *
@@ -209,7 +209,7 @@ public class TicketService {
 
     /**
      * Returns the pool (NEW) tickets restricted to the agent's authorized products.
-     * AGENT_ADMIN sees every NEW ticket.
+     * ADMIN sees every NEW ticket.
      *
      * @param userId requesting user
      * @param roles role list of the user
@@ -369,7 +369,7 @@ public class TicketService {
 
     /**
      * Returns pool tickets using the advanced {@link TicketFilterDTO} filter,
-     * paginated. Every role — AGENT_ADMIN included — is scoped to its own
+     * paginated. Every role — ADMIN included — is scoped to its own
      * authorized products.
      *
      * @param userId requesting user
@@ -478,7 +478,7 @@ public class TicketService {
 
     /**
      * Returns active "team" tickets (excluding NEW and CLOSED) using the advanced
-     * filter set, paginated. Every role — AGENT_ADMIN included — is scoped to its
+     * filter set, paginated. Every role — ADMIN included — is scoped to its
      * own authorized products.
      *
      * @param userId requesting user
@@ -839,7 +839,7 @@ public class TicketService {
 
     /**
      * Returns the ticket after verifying read access. Customers can see only their
-     * own tickets; AGENT/AGENT_ADMIN can see tickets under their authorized products.
+     * own tickets; AGENT/ADMIN can see tickets under their authorized products.
      *
      * @param id target ticket ID
      * @param userId requesting user
@@ -871,7 +871,7 @@ public class TicketService {
 
     /**
      * Strict authorization check for mutating operations (comment, attachment,
-     * worklog, etc.). Every agent — AGENT_ADMIN included — must hold a claim;
+     * worklog, etc.). Every agent — ADMIN included — must hold a claim;
      * customers can mutate only their own tickets.
      *
      * @param id target ticket ID
@@ -1275,7 +1275,7 @@ public class TicketService {
 
     /**
      * IN_PROGRESS → NEW transition: every claim is cleared and the ticket returns
-     * to the pool. Because this transition requires AGENT_ADMIN authority, regular
+     * to the pool. Because this transition requires ADMIN authority, regular
      * unclaim should go through DELETE /api/v1/tickets/{id}/claim instead.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
@@ -1324,7 +1324,7 @@ public class TicketService {
      *
      * @param ticketId ticket ID
      * @param targetAgentId agent to assign
-     * @param adminId acting AGENT_ADMIN
+     * @param adminId acting ADMIN
      * @param note optional description
      * @return the ticket after assignment
      */

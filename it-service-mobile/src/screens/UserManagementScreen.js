@@ -28,8 +28,14 @@ import RoleFilterChips from '../components/RoleFilterChips';
 // Çoklu rol seçimi (additive) — etkin rol oluştururken birden çok rol atanabilir.
 const EMPTY_FORM = { username: '', email: '', firstName: '', lastName: '', password: '', roles: [] };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// AGENT_ADMIN kullanımdan kaldırıldı (composite olarak köprülenir); atanabilir listede gösterilmez.
-const DEPRECATED_ROLES = ['AGENT_ADMIN'];
+// agent ↔ lead_agent karşılıklı dışlama: lead zaten agent'ı kapsar (Keycloak composite).
+const toggleRoleExclusive = (list, role) => {
+  if (list.includes(role)) return list.filter((r) => r !== role);
+  let next = [...list, role];
+  if (role === 'LEAD_AGENT') next = next.filter((r) => r !== 'AGENT');
+  if (role === 'AGENT') next = next.filter((r) => r !== 'LEAD_AGENT');
+  return next;
+};
 
 // Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum.
 const rolesOf = (u) =>
@@ -122,19 +128,15 @@ export default function UserManagementScreen() {
 
   useEffect(() => {
     getAssignableRoles()
-      // AGENT_ADMIN atanabilir seçeneklerden çıkarılır (composite olarak köprülenir).
-      .then((res) => setRoles((res.data ?? []).filter((r) => !DEPRECATED_ROLES.includes(r))))
+      .then((res) => setRoles(res.data ?? []))
       .catch(() => setRoles([]));
   }, []);
 
   const toggleFormRole = (role) =>
-    setForm((f) => ({
-      ...f,
-      roles: f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role],
-    }));
+    setForm((f) => ({ ...f, roles: toggleRoleExclusive(f.roles, role) }));
 
   const toggleEditRole = (role) =>
-    setEditRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+    setEditRoles((prev) => toggleRoleExclusive(prev, role));
 
   const submitCreate = async () => {
     const username = form.username.trim();
@@ -259,13 +261,13 @@ export default function UserManagementScreen() {
         <Pressable
           onPress={() => {
             setEditUser(item);
-            // Mevcut rolleri ön-seç (çoklu rol veya tekil rol destekli; deprecated hariç).
+            // Mevcut rolleri ön-seç (çoklu rol veya tekil rol destekli).
             const existing = Array.isArray(item.roles)
               ? item.roles
               : item.role
                 ? [item.role]
                 : [];
-            setEditRoles(existing.filter((r) => !DEPRECATED_ROLES.includes(r)));
+            setEditRoles(existing);
           }}
           style={[styles.editBtn, { borderColor: theme.primary }]}
         >

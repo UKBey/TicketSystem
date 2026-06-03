@@ -230,7 +230,7 @@ Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles 
 | `leadmanager`  | `321654` | `lead_agent` + `manager` | Workspace + Team + Dashboard | Lead-agent operations **+** manager oversight (union) |
 | `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Workspace + Admin | Full super-admin: union of admin config, lead-agent operations and manager oversight |
 
-> *The data-generator bootstrap account is `superadmin`, which holds `admin` + `lead_agent` + `manager` and therefore behaves as a super-admin. The legacy `agent_admin` role still exists in Keycloak as a **deprecated** composite of `{admin, lead_agent, manager}` (a transition bridge so existing super-admins keep working) — do not assign it to new users.
+> *The data-generator bootstrap account is `superadmin`, which holds `admin` + `lead_agent` + `manager` and therefore behaves as a super-admin. A "super-admin" is simply a user that holds all three of these roles — there is no dedicated super-admin role.
 
 ---
 

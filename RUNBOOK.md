@@ -115,7 +115,7 @@ docker exec -it redis redis-cli FLUSHDB
 
 Clear the cache without waiting for a restart (admin role required — actuator is JWT-gated):
 ```bash
-TOKEN=$(... admin token — the deprecated agent_admin role is bridged and also works ...)
+TOKEN=$(... admin token ...)
 curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
   https://<host>/actuator/caches/prioritySlaMetrics
 # Other caches to evict: dashboardSummary, agentPerformance, statusDistribution,

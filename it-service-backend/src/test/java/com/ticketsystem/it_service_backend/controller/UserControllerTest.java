@@ -52,11 +52,11 @@ class UserControllerTest {
                 .id("admin-1")
                 .email("admin@example.com")
                 .fullName("Ada Admin")
-                .role("AGENT_ADMIN")
+                .role("ADMIN")
                 .build();
         when(userService.syncUser(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(synced);
 
-        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+        Jwt jwt = jwtWithRoles("admin-1", List.of("ADMIN"));
         when(jwt.getClaimAsString("email")).thenReturn("admin@example.com");
         when(jwt.getClaimAsString("given_name")).thenReturn("Ada");
         when(jwt.getClaimAsString("family_name")).thenReturn("Admin");
@@ -66,7 +66,7 @@ class UserControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("admin-1", response.getBody().getId());
-        assertEquals("AGENT_ADMIN", response.getBody().getRole());
+        assertEquals("ADMIN", response.getBody().getRole());
     }
 
     @Test
@@ -289,7 +289,7 @@ class UserControllerTest {
     void updateUserStatus_activeTrue_callsReactivate() {
         User u = User.builder().id("u-2").fullName("X").role("AGENT").isActive(true).build();
         when(userService.reactivateUser("u-2")).thenReturn(u);
-        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+        Jwt jwt = jwtWithRoles("admin-1", List.of("ADMIN"));
 
         ResponseEntity<UserDTO> response = userController.updateUserStatus("u-2", true, jwt);
 
@@ -301,7 +301,7 @@ class UserControllerTest {
     void updateUserStatus_activeFalse_callsDeactivate() {
         User u = User.builder().id("u-2").fullName("X").role("AGENT").isActive(false).build();
         when(userService.deactivateUser("u-2")).thenReturn(u);
-        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+        Jwt jwt = jwtWithRoles("admin-1", List.of("ADMIN"));
 
         ResponseEntity<UserDTO> response = userController.updateUserStatus("u-2", false, jwt);
 
@@ -311,7 +311,7 @@ class UserControllerTest {
 
     @Test
     void updateUserStatus_selfDeactivation_returnsBadRequest() {
-        Jwt jwt = jwtWithRoles("admin-1", List.of("AGENT_ADMIN"));
+        Jwt jwt = jwtWithRoles("admin-1", List.of("ADMIN"));
 
         ResponseEntity<UserDTO> response = userController.updateUserStatus("admin-1", false, jwt);
 

@@ -68,7 +68,7 @@ public class UserController {
      * Synchronizes the identity claims from the JWT into the local users table after UI login.
      *
      * <p>Creates the user when absent and updates them otherwise; the role priority is
-     * {@code AGENT_ADMIN > MANAGER > AGENT > CUSTOMER}.
+     * {@code ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER}.
      *
      * @return DTO of the synchronized user
      */
@@ -174,7 +174,7 @@ public class UserController {
             description = "Belirtilen ürün için yetkili agent'ları, mevcut aktif bilet sayıları ve limitleriyle birlikte döner. Atama UI'ı için kullanılır.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agent kapasite listesi başarıyla döndü"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca LEAD_AGENT veya ADMIN erişebilir")
     })
     @GetMapping("/agents/capacity")
     @PreAuthorize("hasAnyRole('LEAD_AGENT', 'ADMIN')")
@@ -228,7 +228,7 @@ public class UserController {
             description = "Sistemdeki kullanıcıları isim/email araması ve rol filtresiyle sayfalı olarak getirir.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Kullanıcı listesi başarıyla döndü"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN veya MANAGER erişebilir")
     })
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
@@ -481,7 +481,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün yetkisi başarıyla atandı",
                     content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN yetki atayabilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN yetki atayabilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @PostMapping("/{userId}/products/{productId}")
@@ -513,7 +513,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün yetkisi başarıyla kaldırıldı",
                     content = @Content(schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN yetki kaldırabilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN yetki kaldırabilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı veya ürün bulunamadı")
     })
     @DeleteMapping("/{userId}/products/{productId}")
@@ -549,8 +549,8 @@ public class UserController {
                     Kullanıcıyı soft-delete ile deaktive eder veya yeniden aktive eder.
                     Deaktive edilen kullanıcı Keycloak'ta disabled olur (login yapamaz).
                     Ticket'lara dokunulmaz.
-                    
-                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+
+                    **Yetki:** Yalnızca `ADMIN` rolüne sahip kullanıcılar erişebilir.
                     """,
             security = @SecurityRequirement(name = "bearerAuth"),
             tags = {"Kullanıcı Yönetimi"}
@@ -559,7 +559,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Durum başarıyla güncellendi",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN erişebilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
     })
     @PutMapping("/{userId}/status")
@@ -592,8 +592,8 @@ public class UserController {
             description = """
                     Belirtilen kullanıcının Keycloak realm rollerini günceller ve yerel veritabanını senkronize eder.
                     Mevcut roller kaldırılır, yeni roller atanır.
-                    
-                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+
+                    **Yetki:** Yalnızca `ADMIN` rolüne sahip kullanıcılar erişebilir.
                     """,
             security = @SecurityRequirement(name = "bearerAuth"),
             tags = {"Kullanıcı Yönetimi"}
@@ -603,7 +603,7 @@ public class UserController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = UserDTO.class))),
             @ApiResponse(responseCode = "400", description = "Geçersiz istek — roller listesi boş olamaz"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca AGENT_ADMIN erişebilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN erişebilir"),
             @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
     })
     @PutMapping("/{userId}/roles")
@@ -636,8 +636,8 @@ public class UserController {
                     Keycloak realm'inde yeni bir kullanıcı oluşturur, geçici şifre atar ve
                     seçilen rolleri eşler. Başarılı Keycloak kaydının ardından yerel veritabanına
                     senkronizasyon kaydı atılır.
-                    
-                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+
+                    **Yetki:** Yalnızca `ADMIN` rolüne sahip kullanıcılar erişebilir.
                     
                     **Geçici şifre:** Oluşturulan kullanıcı ilk girişinde şifresini değiştirmek zorunda kalır.
                     """,
@@ -674,7 +674,7 @@ public class UserController {
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Yalnızca AGENT_ADMIN erişebilir"
+                    description = "Yalnızca ADMIN erişebilir"
             ),
             @ApiResponse(
                     responseCode = "409",
@@ -721,8 +721,8 @@ public class UserController {
             description = """
                     Keycloak realm'indeki kullanıcıya atanabilir rolleri döner.
                     Sistem rolleri (`offline_access`, `uma_authorization`, `default-roles-*`) filtrelenir.
-                    
-                    **Yetki:** Yalnızca `AGENT_ADMIN` rolüne sahip kullanıcılar erişebilir.
+
+                    **Yetki:** Yalnızca `ADMIN` rolüne sahip kullanıcılar erişebilir.
                     
                     **Kullanım:** `POST /api/v1/users/admin/create` endpoint'inde `roles` alanını
                     doldurmak için bu endpoint'ten dinamik olarak rol listesi çekilir.
@@ -739,13 +739,13 @@ public class UserController {
                             array = @ArraySchema(schema = @Schema(
                                     type = "string",
                                     example = "AGENT",
-                                    allowableValues = {"CUSTOMER", "AGENT", "AGENT_ADMIN", "MANAGER"}
+                                    allowableValues = {"CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER"}
                             ))
                     )
             ),
             @ApiResponse(
                     responseCode = "403",
-                    description = "Yalnızca AGENT_ADMIN erişebilir"
+                    description = "Yalnızca ADMIN erişebilir"
             )
     })
     @GetMapping("/admin/roles")

@@ -80,12 +80,12 @@ class CsatServiceTest {
 
     @Test
     void getCsatByTicketId_whenMissing_throwsNotFound() {
-        // Manager removed from operational access; AGENT_ADMIN should be used for ticket auth
-        when(ticketService.getTicketWithAuth(10L, "admin-1", List.of("AGENT_ADMIN"))).thenReturn(resolvedTicket);
+        // Manager removed from operational access; ADMIN should be used for ticket auth
+        when(ticketService.getTicketWithAuth(10L, "admin-1", List.of("ADMIN"))).thenReturn(resolvedTicket);
         when(csatRepository.findByTicketId(10L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> csatService.getCsatByTicketId(10L, "admin-1", List.of("AGENT_ADMIN")));
+                () -> csatService.getCsatByTicketId(10L, "admin-1", List.of("ADMIN")));
 
         assertEquals(404, ex.getStatusCode().value());
     }

@@ -55,7 +55,7 @@ flowchart LR
 
 Platform, iki harici bağımlılıkla entegre olur: yapay zekâ özetlemesi için **Groq API** ve giden e-posta için bir **SMTP sunucusu** (geliştirmede Mailpit).
 
-Kullanıcı rolleri **eklemelidir (additive)** — bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların birleşimidir. Beş rol üç ekseni kapsar: **operasyonel** (`agent`, ticket'ları talep eder ve üzerinde çalışır; `agent`'ın Keycloak bileşiği olan `lead_agent` ayrıca atama yapar, talep etmeden işlem yapar ve ürün içeriğini yönetir), **yapılandırma** (`admin` — global sistem kurulumu) ve **gözetim** (`manager` — global, salt okunur panolar ve raporlama). `customer` son kullanıcıdır. Kullanımdan kaldırılan `agent_admin` rolü yalnızca `{admin, lead_agent, manager}` bileşik (composite) köprüsü olarak korunur.
+Kullanıcı rolleri **eklemelidir (additive)** — bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların birleşimidir. Beş rol üç ekseni kapsar: **operasyonel** (`agent`, ticket'ları talep eder ve üzerinde çalışır; `agent`'ın Keycloak bileşiği olan `lead_agent` ayrıca atama yapar, talep etmeden işlem yapar ve ürün içeriğini yönetir), **yapılandırma** (`admin` — global sistem kurulumu) ve **gözetim** (`manager` — global, salt okunur panolar ve raporlama). `customer` son kullanıcıdır. "Süper yönetici" hesabı yalnızca `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır (ör. `superadmin` seed kullanıcısı) — özel bir süper yönetici rolü yoktur.
 
 ---
 
@@ -254,7 +254,7 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 | **2FA** | Kullanıcı başına yapılandırılabilir TOTP (kimlik doğrulayıcı uygulama) |
 | **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` (+ servis katmanı kapsam/talep kontrolleri için `util/AuthRoles` yardımcıları) |
 | **Yetkilendirme — dahili uç noktalar** | `/api/v1/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
-| **Roller** | **Eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `customer` (son kullanıcı), `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Kullanımdan kaldırılan `agent_admin`, `{admin, lead_agent, manager}` bileşiği olan bir köprüdür. |
+| **Roller** | **Eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `customer` (son kullanıcı), `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Süper yönetici, `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır. |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; çalışma zamanında yapılandırılabilir |

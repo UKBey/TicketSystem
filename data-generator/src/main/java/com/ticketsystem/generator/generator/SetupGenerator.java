@@ -51,7 +51,7 @@ public class SetupGenerator {
      * @param api        client for backend API calls
      * @param mapper     Jackson mapper used to read setup.json
      * @param http       shared OkHttp used by per-user {@link KeycloakTokenClient}s
-     * @param adminAgent the agent_admin session that performs product/topic/authorization operations
+     * @param adminAgent the admin session that performs product/topic/authorization operations
      */
     public SetupGenerator(ApiClient api, ObjectMapper mapper, OkHttpClient http, UserSession adminAgent) {
         this.api           = api;
