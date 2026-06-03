@@ -96,7 +96,9 @@ public class UserService {
                     .roles(new java.util.HashSet<>(requestedRoles))
                     .build();
 
-            syncUser(userToSync);
+            // Yeni kullanıcı → doğrudan insert. (syncUser self-invocation'ı @Transactional
+            // proxy'sini atlardı — S2229; ön-kontrol çakışmayı zaten engelledi.)
+            userRepository.save(userToSync);
             log.info("Yerel DB senkronizasyonu tamamlandı. ID: {}, Rol: {}", keycloakId, resolvedRole);
 
         } catch (Exception e) {

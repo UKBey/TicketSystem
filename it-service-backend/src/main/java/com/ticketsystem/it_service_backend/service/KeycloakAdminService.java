@@ -324,6 +324,10 @@ public class KeycloakAdminService {
             log.debug("Şifre doğrulaması. Kullanıcı: {}, Sonuç: {}", username, ok ? "OK" : "RED");
             return ok;
         } catch (Exception e) {
+            // HttpClient.send InterruptedException firlatabilir — kesinti bayragini koru (S2142).
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("Şifre doğrulama isteği başarısız. Kullanıcı: {}", username, e);
             return false;
         }

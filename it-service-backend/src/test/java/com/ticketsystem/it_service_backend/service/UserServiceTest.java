@@ -284,7 +284,6 @@ class UserServiceTest {
         when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(false);
         when(keycloakAdminService.existsByUsername("john")).thenReturn(false);
         when(keycloakAdminService.createUser(req)).thenReturn("kc-id");
-        when(userRepository.findById("kc-id")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
         var dto = userService.createUserWithKeycloak(req);
@@ -331,7 +330,7 @@ class UserServiceTest {
         when(keycloakAdminService.existsByEmail("john@x.com")).thenReturn(false);
         when(keycloakAdminService.existsByUsername("john")).thenReturn(false);
         when(keycloakAdminService.createUser(req)).thenReturn("kc-id");
-        when(userRepository.findById("kc-id")).thenThrow(new RuntimeException("db down"));
+        when(userRepository.save(any(User.class))).thenThrow(new RuntimeException("db down"));
 
         assertThatThrownBy(() -> userService.createUserWithKeycloak(req))
                 .isInstanceOf(RuntimeException.class);
