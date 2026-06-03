@@ -21,6 +21,9 @@ import RoleFilterChips from '../components/RoleFilterChips';
 const fullNameOf = (u) =>
   u.fullName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '—';
 
+// Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil; eski AGENT_ADMIN köprüsü).
+const AGENT_ROLES = ['AGENT', 'LEAD_AGENT', 'AGENT_ADMIN'];
+
 /** Yönetim paneli — kullanıcı ürün yetkileri ve agent bilet limitleri. */
 export default function AdminPanelScreen() {
   const { theme } = useTheme();
@@ -100,7 +103,7 @@ export default function AdminPanelScreen() {
   };
 
   const renderItem = ({ item }) => {
-    const isAgent = item.role === 'AGENT' || item.role === 'AGENT_ADMIN';
+    const isAgent = AGENT_ROLES.includes(item.role);
     const authorized = item.authorizedProducts || [];
     return (
       <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>

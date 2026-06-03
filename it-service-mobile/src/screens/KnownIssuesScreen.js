@@ -27,8 +27,9 @@ import SheetBackdrop from '../components/SheetBackdrop';
 export default function KnownIssuesScreen() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
+  const { isLeadAgent, isAdmin } = useAuth();
+  // Bilinen sorunları yönetme (ürün içeriği) — lead agent veya admin (web ile aynı).
+  const canManage = isLeadAgent || isAdmin;
 
   const [products, setProducts] = useState([]);
   const [productId, setProductId] = useState(null);
@@ -117,7 +118,7 @@ export default function KnownIssuesScreen() {
           options={products.map((p) => ({ label: p.name, value: p.id }))}
         />
 
-        {isAdmin && productId && (
+        {canManage && productId && (
           <Pressable
             onPress={openCreate}
             style={({ pressed }) => [
@@ -148,7 +149,7 @@ export default function KnownIssuesScreen() {
               <Pressable
                 key={ki.id}
                 onPress={() => setExpanded(open ? null : ki.id)}
-                onLongPress={isAdmin ? () => onDelete(ki) : undefined}
+                onLongPress={canManage ? () => onDelete(ki) : undefined}
                 style={[styles.item, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}
               >
                 <Text style={[styles.itemTitle, { color: theme.textPrimary }]}>

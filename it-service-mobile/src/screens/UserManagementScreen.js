@@ -22,12 +22,59 @@ import {
   updateUserRoles,
   updateUserStatus,
 } from '../api/users';
-import PickerField from '../components/PickerField';
 import SheetBackdrop from '../components/SheetBackdrop';
 import RoleFilterChips from '../components/RoleFilterChips';
 
-const EMPTY_FORM = { username: '', email: '', firstName: '', lastName: '', password: '', role: null };
+// Çoklu rol seçimi (additive) — etkin rol oluştururken birden çok rol atanabilir.
+const EMPTY_FORM = { username: '', email: '', firstName: '', lastName: '', password: '', roles: [] };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// AGENT_ADMIN kullanımdan kaldırıldı (composite olarak köprülenir); atanabilir listede gösterilmez.
+const DEPRECATED_ROLES = ['AGENT_ADMIN'];
+
+/** Çoklu seçimli rol çip grubu — additive; mevcut roller düzenlemede ön-seçili gelir. */
+function RolePicker({ theme, t, options, selected, onToggle }) {
+  return (
+    <View style={styles.group}>
+      <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
+        {t('userManagement.form.roles', 'Roller')}
+      </Text>
+      {options.length === 0 ? (
+        <Text style={{ color: theme.textTertiary, fontSize: 13 }}>
+          {t('userManagement.selectRole', 'Rol seç')}
+        </Text>
+      ) : (
+        <View style={styles.roleChips}>
+          {options.map((role) => {
+            const active = selected.includes(role);
+            return (
+              <Pressable
+                key={role}
+                onPress={() => onToggle(role)}
+                style={[
+                  styles.roleChip,
+                  {
+                    borderColor: active ? theme.primary : theme.border,
+                    backgroundColor: active ? theme.primary : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: active ? theme.onPrimary : theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: '600',
+                  }}
+                >
+                  {role}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
 
 /** Kullanıcı yönetimi — liste, arama, rol filtresi, durum değiştirme, rol düzenleme, yeni kullanıcı. */
 export default function UserManagementScreen() {
@@ -46,7 +93,7 @@ export default function UserManagementScreen() {
   const [saving, setSaving] = useState(false);
 
   const [editUser, setEditUser] = useState(null);
-  const [editRole, setEditRole] = useState(null);
+  const [editRoles, setEditRoles] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,18 +118,26 @@ export default function UserManagementScreen() {
 
   useEffect(() => {
     getAssignableRoles()
-      .then((res) => setRoles(res.data ?? []))
+      // AGENT_ADMIN atanabilir seçeneklerden çıkarılır (composite olarak köprülenir).
+      .then((res) => setRoles((res.data ?? []).filter((r) => !DEPRECATED_ROLES.includes(r))))
       .catch(() => setRoles([]));
   }, []);
 
-  const roleOptions = roles.map((r) => ({ label: r, value: r }));
+  const toggleFormRole = (role) =>
+    setForm((f) => ({
+      ...f,
+      roles: f.roles.includes(role) ? f.roles.filter((r) => r !== role) : [...f.roles, role],
+    }));
+
+  const toggleEditRole = (role) =>
+    setEditRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
 
   const submitCreate = async () => {
     const username = form.username.trim();
     const email = form.email.trim();
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
-    const { password, role } = form;
+    const { password, roles: selectedRoles } = form;
 
     if (!username)
       return Alert.alert(t('userManagement.validation.usernameRequired', 'Kullanıcı adı zorunludur.'));
@@ -103,12 +158,12 @@ export default function UserManagementScreen() {
         t('userManagement.validation.passwordWeak', 'En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.'),
       );
     }
-    if (!role)
+    if (!selectedRoles || selectedRoles.length === 0)
       return Alert.alert(t('userManagement.validation.rolesRequired', 'En az bir rol seçilmelidir.'));
 
     setSaving(true);
     try {
-      await createUser({ username, email, firstName, lastName, password, roles: [role] });
+      await createUser({ username, email, firstName, lastName, password, roles: selectedRoles });
       setCreateOpen(false);
       setForm(EMPTY_FORM);
       setShowPw(false);
@@ -132,15 +187,16 @@ export default function UserManagementScreen() {
   };
 
   const submitRole = async () => {
-    if (!editRole) {
+    if (!editRoles.length) {
       Alert.alert(t('userManagement.validation.rolesRequired', 'En az bir rol seçilmelidir.'));
       return;
     }
     setSaving(true);
     try {
-      const res = await updateUserRoles(editUser.id, [editRole]);
+      const res = await updateUserRoles(editUser.id, editRoles);
+      // Backend birincil rolü döner; listede onu gösteririz (yoksa seçilen ilk rol).
       setUsers((prev) =>
-        prev.map((u) => (u.id === editUser.id ? { ...u, role: res.data?.role ?? editRole } : u)),
+        prev.map((u) => (u.id === editUser.id ? { ...u, role: res.data?.role ?? editRoles[0] } : u)),
       );
       setEditUser(null);
       Alert.alert(t('userManagement.editRole.successMsg', 'Kullanıcı rolleri başarıyla güncellendi.'));
@@ -188,7 +244,13 @@ export default function UserManagementScreen() {
         <Pressable
           onPress={() => {
             setEditUser(item);
-            setEditRole(item.role || null);
+            // Mevcut rolleri ön-seç (çoklu rol veya tekil rol destekli; deprecated hariç).
+            const existing = Array.isArray(item.roles)
+              ? item.roles
+              : item.role
+                ? [item.role]
+                : [];
+            setEditRoles(existing.filter((r) => !DEPRECATED_ROLES.includes(r)));
           }}
           style={[styles.editBtn, { borderColor: theme.primary }]}
         >
@@ -316,12 +378,12 @@ export default function UserManagementScreen() {
               </View>
 
               <View style={{ marginBottom: 10 }}>
-                <PickerField
-                  label={t('userManagement.form.roles', 'Roller')}
-                  placeholder={t('userManagement.selectRole', 'Rol seç')}
-                  value={form.role}
-                  onChange={(v) => setForm((f) => ({ ...f, role: v }))}
-                  options={roleOptions}
+                <RolePicker
+                  theme={theme}
+                  t={t}
+                  options={roles}
+                  selected={form.roles}
+                  onToggle={toggleFormRole}
                 />
               </View>
             </ScrollView>
@@ -343,12 +405,12 @@ export default function UserManagementScreen() {
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('userManagement.editRole.title', 'Rol Düzenle')}
             </Text>
-            <PickerField
-              label={t('userManagement.form.roles', 'Roller')}
-              placeholder={t('userManagement.selectRole', 'Rol seç')}
-              value={editRole}
-              onChange={setEditRole}
-              options={roleOptions}
+            <RolePicker
+              theme={theme}
+              t={t}
+              options={roles}
+              selected={editRoles}
+              onToggle={toggleEditRole}
             />
             <SheetButtons
               theme={theme}
@@ -424,6 +486,8 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 17, fontWeight: '700' },
   group: { marginBottom: 10, gap: 5 },
   fieldLabel: { fontSize: 13, fontWeight: '600' },
+  roleChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  roleChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   pwWrap: { position: 'relative', justifyContent: 'center' },
   pwInput: { paddingRight: 44 },

@@ -20,8 +20,9 @@ const EMPTY = { title: '', shortcut: '', scope: 'PERSONAL', productId: null, vis
 export default function CannedResponsesScreen() {
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
-  const { hasRole, user } = useAuth();
-  const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
+  const { user, isLeadAgent, isAdmin } = useAuth();
+  // Paylaşılan (SHARED) şablonları yönetme yetkisi — lead agent veya admin (web ile aynı).
+  const canManageShared = isLeadAgent || isAdmin;
 
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
@@ -69,7 +70,7 @@ export default function CannedResponsesScreen() {
   useEffect(() => { load(); }, [load]);
 
   const canManageItem = (it) =>
-    (it.scope === 'PERSONAL' && it.ownerAgentId === user?.id) || (it.scope === 'SHARED' && isAdmin);
+    (it.scope === 'PERSONAL' && it.ownerAgentId === user?.id) || (it.scope === 'SHARED' && canManageShared);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -124,7 +125,7 @@ export default function CannedResponsesScreen() {
       Alert.alert(t('cannedResponses.errorRequired', 'Title and at least one language content are required.'));
       return;
     }
-    const scope = isAdmin ? form.scope : 'PERSONAL';
+    const scope = canManageShared ? form.scope : 'PERSONAL';
     const body = {
       title,
       shortcut: form.shortcut.trim() || null,
@@ -161,7 +162,7 @@ export default function CannedResponsesScreen() {
     ]);
   };
 
-  const scopeOptions = isAdmin
+  const scopeOptions = canManageShared
     ? [
       { label: t('cannedResponses.scopePersonalOption', 'Personal (only you)'), value: 'PERSONAL' },
       { label: t('cannedResponses.scopeSharedOption', 'Team (shared)'), value: 'SHARED' },
@@ -327,7 +328,7 @@ export default function CannedResponsesScreen() {
                 value={form.scope}
                 onChange={(v) => setForm((f) => ({ ...f, scope: v }))}
                 options={scopeOptions}
-                disabled={!isAdmin}
+                disabled={!canManageShared}
               />
               {/* Product binding applies to both scopes (personal or shared). */}
               <PickerField

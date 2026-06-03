@@ -10,8 +10,17 @@ import DashboardScreen from '../screens/DashboardScreen';
 
 const Tab = createBottomTabNavigator();
 
-/** Role göre alt sekme yapılandırması. Geçmiş sekmesi kapalı biletleri gösterir. */
-function tabsForRole(role, t) {
+/**
+ * Alt sekmeler = kullanıcının rollerinin verdiği yetkilerin BİRLEŞİMİ (web Sidebar ile aynı).
+ * caps: { isCustomer, isAgent, isManager, isLeadAgent, isAdmin, isStaff }.
+ * - Operasyonel sekmeler (Çalışma/Havuz/Takım/Geçmiş): isAgent (agent + lead).
+ * - Tümü: isStaff (personel + yönetici/admin).
+ * - Panel: isManager || isLeadAgent || isAdmin.
+ * - Biletlerim: isCustomer.
+ * Lead + admin olan biri hem operasyonel hem yönetim sekmelerini görür.
+ */
+function tabsForCaps(caps, t) {
+  const { isCustomer, isAgent, isManager, isLeadAgent, isAdmin, isStaff } = caps;
   const menu = { name: 'Menu', title: t('tabs.menu', 'Menü'), icon: 'menu-outline', menu: true };
   // Team/Workspace status filtresi NEW ve CLOSED hariç.
   const agentStatus = ['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
@@ -23,8 +32,24 @@ function tabsForRole(role, t) {
     status: 'CLOSED',
   };
 
-  if (role === 'AGENT' || role === 'AGENT_ADMIN') {
-    return [
+  const tabs = [];
+
+  // Müşteri biletleri — "Biletlerim" CLOSED hariç tüm statüleri kapsar.
+  if (isCustomer) {
+    tabs.push({
+      name: 'MyTickets',
+      title: t('tabs.myTickets', 'Biletlerim'),
+      icon: 'documents-outline',
+      endpoint: '/tickets',
+      canCreate: true,
+      filters: ['status', 'priority', 'date'],
+      statusOptions: ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'],
+    });
+  }
+
+  // Operasyonel — agent + lead agent.
+  if (isAgent) {
+    tabs.push(
       {
         name: 'Workspace',
         title: t('tabs.workspace', 'Çalışma'),
@@ -48,46 +73,48 @@ function tabsForRole(role, t) {
         filters: ['status', 'priority', 'sla', 'product', 'topic', 'agent', 'date'],
         statusOptions: agentStatus,
       },
-      {
-        name: 'AllTickets',
-        title: t('tabs.all', 'Tümü'),
-        icon: 'documents-outline',
-        endpoint: '/tickets/all',
-        filters: ['status', 'priority', 'sla', 'product', 'topic', 'date'],
-      },
-      { ...history, endpoint: '/tickets/my-assigned', filters: poolFilters },
-      menu,
-    ];
+    );
   }
-  if (role === 'MANAGER') {
-    return [
-      { name: 'Dashboard', title: t('tabs.dashboard', 'Panel'), icon: 'stats-chart-outline', dashboard: true },
-      menu,
-    ];
-  }
-  // CUSTOMER (ve varsayılan) — "Biletlerim" CLOSED hariç tüm statüleri kapsar;
-  // CLOSED biletler ayrı "Geçmiş" sekmesinde gösterilir.
-  return [
-    {
-      name: 'MyTickets',
-      title: t('tabs.myTickets', 'Biletlerim'),
+
+  // Tüm biletler — personel (agent/lead) + yönetici + admin.
+  if (isStaff) {
+    tabs.push({
+      name: 'AllTickets',
+      title: t('tabs.all', 'Tümü'),
       icon: 'documents-outline',
-      endpoint: '/tickets',
-      canCreate: true,
-      filters: ['status', 'priority', 'date'],
-      statusOptions: ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'],
-    },
-    { ...history, endpoint: '/tickets', filters: ['priority', 'date'] },
-    menu,
-  ];
+      endpoint: '/tickets/all',
+      filters: ['status', 'priority', 'sla', 'product', 'topic', 'date'],
+    });
+  }
+
+  // Panel — yönetici / lead / admin.
+  if (isManager || isLeadAgent || isAdmin) {
+    tabs.push({
+      name: 'Dashboard',
+      title: t('tabs.dashboard', 'Panel'),
+      icon: 'stats-chart-outline',
+      dashboard: true,
+    });
+  }
+
+  // Geçmiş — operasyonel kullanıcı kendi atanmış kapalı biletlerini, müşteri kendi
+  // kapalı biletlerini görür. (isStaff ama agent olmayan yönetici/admin Tümü→CLOSED ile filtreler.)
+  if (isAgent) {
+    tabs.push({ ...history, endpoint: '/tickets/my-assigned', filters: poolFilters });
+  } else if (isCustomer) {
+    tabs.push({ ...history, endpoint: '/tickets', filters: ['priority', 'date'] });
+  }
+
+  tabs.push(menu);
+  return tabs;
 }
 
 /** Rol bazlı alt sekme navigasyonu — her bilet sekmesi farklı endpoint kullanır. */
 export default function MainTabs() {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { getPrimaryRole } = useAuth();
-  const tabs = tabsForRole(getPrimaryRole(), t);
+  const { isCustomer, isAgent, isManager, isLeadAgent, isAdmin, isStaff } = useAuth();
+  const tabs = tabsForCaps({ isCustomer, isAgent, isManager, isLeadAgent, isAdmin, isStaff }, t);
 
   return (
     <Tab.Navigator

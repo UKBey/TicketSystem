@@ -13,7 +13,7 @@ export const changePassword = (body) => api.post('/users/me/password', body);
 export const updateLanguagePreference = (lang) =>
   api.put('/users/me/language', null, { params: { lang } });
 
-// ---- Kullanıcı yönetimi (AGENT_ADMIN / MANAGER) ----
+// ---- Kullanıcı yönetimi (ADMIN; liste MANAGER salt-okuma) ----
 
 /** Sayfalı kullanıcı listesi. params: { page, size, search }. */
 export const getUsers = (params) => api.get('/users', { params });

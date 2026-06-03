@@ -29,6 +29,10 @@ const fmtPct = (v) => `${n(v).toFixed(1)}%`;
 const fmt1 = (v) => n(v).toFixed(1);
 const rankBadge = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
 
+// Süpervizör (lead/admin) rozeti — yeni LEAD_AGENT/ADMIN rolleri ve eski AGENT_ADMIN köprüsü.
+const isLeadOrAdmin = (role) =>
+  role === 'LEAD_AGENT' || role === 'ADMIN' || role === 'AGENT_ADMIN';
+
 const STATUS_ROWS = [
   { key: 'NEW', field: 'newCount' },
   { key: 'IN_PROGRESS', field: 'inProgressCount' },
@@ -416,10 +420,10 @@ export default function DashboardScreen() {
                   >
                     {a.agentName || '—'}
                   </Text>
-                  {a.role === 'AGENT_ADMIN' && (
+                  {isLeadOrAdmin(a.role) && (
                     <View style={[styles.roleBadge, { backgroundColor: theme.primary }]}>
                       <Text style={styles.roleBadgeText}>
-                        {t('dashboard.admin', 'Admin')}
+                        {t('dashboard.lead', 'Lead')}
                       </Text>
                     </View>
                   )}

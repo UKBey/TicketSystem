@@ -139,10 +139,26 @@ export function AuthProvider({ children }) {
 
   const hasRole = useCallback((role) => roles.includes(role), [roles]);
 
-  // Birincil rol önceliği — web ile aynı: AGENT_ADMIN > MANAGER > AGENT > CUSTOMER.
+  const hasAnyRole = useCallback(
+    (...wanted) => wanted.some((r) => roles.includes(r)),
+    [roles],
+  );
+
+  // Yetenek yardımcıları (additive çoklu rol — etkin yetki = rollerin birleşimi).
+  // LEAD_AGENT, AGENT'ı kapsar (Keycloak composite); AGENT_ADMIN ise geçişte ADMIN sayılır.
+  const isAdmin = roles.includes('ADMIN') || roles.includes('AGENT_ADMIN');
+  const isManager = roles.includes('MANAGER');
+  const isLeadAgent = roles.includes('LEAD_AGENT');
+  const isAgent = roles.includes('AGENT') || isLeadAgent;
+  const isCustomer = roles.includes('CUSTOMER');
+  const isStaff = isAgent || isAdmin || isManager;
+
+  // Birincil/landing rol önceliği — web ile aynı: ADMIN > MANAGER > LEAD_AGENT > AGENT > CUSTOMER.
+  // (ADMIN, eski AGENT_ADMIN'i de kapsar.) Erişim her zaman rollerin birleşimine göredir.
   const getPrimaryRole = useCallback(() => {
-    if (roles.includes('AGENT_ADMIN')) return 'AGENT_ADMIN';
+    if (roles.includes('ADMIN') || roles.includes('AGENT_ADMIN')) return 'ADMIN';
     if (roles.includes('MANAGER')) return 'MANAGER';
+    if (roles.includes('LEAD_AGENT')) return 'LEAD_AGENT';
     if (roles.includes('AGENT')) return 'AGENT';
     if (roles.includes('CUSTOMER')) return 'CUSTOMER';
     return null;
@@ -159,6 +175,13 @@ export function AuthProvider({ children }) {
         logout,
         refreshUser,
         hasRole,
+        hasAnyRole,
+        isAdmin,
+        isManager,
+        isLeadAgent,
+        isAgent,
+        isCustomer,
+        isStaff,
         getPrimaryRole,
       }}
     >

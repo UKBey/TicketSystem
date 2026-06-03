@@ -32,8 +32,10 @@ import SheetBackdrop from '../components/SheetBackdrop';
 export default function ProductsScreen({ navigation }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('AGENT_ADMIN') || hasRole('MANAGER');
+  const { isLeadAgent, isAdmin } = useAuth();
+  // Ürün CRUD yalnızca admin; konu CRUD lead agent veya admin (web ile aynı). Görüntüleme geniş.
+  const canManageProducts = isAdmin;
+  const canManageTopics = isLeadAgent || isAdmin;
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +67,12 @@ export default function ProductsScreen({ navigation }) {
 
   const loadTopics = useCallback(
     (productId) => {
-      getProductTopics(productId, isAdmin)
+      // Konu yöneticileri pasif konuları da görür (includeInactive).
+      getProductTopics(productId, canManageTopics)
         .then((res) => setTopicsById((m) => ({ ...m, [productId]: res.data ?? [] })))
         .catch(() => setTopicsById((m) => ({ ...m, [productId]: [] })));
     },
-    [isAdmin],
+    [canManageTopics],
   );
 
   const toggleExpand = (product) => {
@@ -177,7 +180,7 @@ export default function ProductsScreen({ navigation }) {
           <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>
             {item.name}
           </Text>
-          {isAdmin && (
+          {canManageProducts && (
             <View style={styles.iconRow}>
               <Pressable
                 hitSlop={6}
@@ -258,7 +261,7 @@ export default function ProductsScreen({ navigation }) {
                       {tp.name}
                       {tp.isActive === false ? ` (${t('topic.statusInactive', 'Pasif')})` : ''}
                     </Text>
-                    {isAdmin && (
+                    {canManageTopics && (
                       <View style={styles.iconRow}>
                         <Pressable
                           hitSlop={6}
@@ -280,7 +283,7 @@ export default function ProductsScreen({ navigation }) {
                     )}
                   </View>
                 ))}
-                {isAdmin && (
+                {canManageTopics && (
                   <Pressable
                     onPress={() => setTopicForm({ productId: item.id, name: '', isActive: true })}
                     style={[styles.addTopicBtn, { borderColor: theme.primary }]}
@@ -300,7 +303,7 @@ export default function ProductsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bgBody }]}>
-      {isAdmin && (
+      {canManageProducts && (
         <View style={styles.toolbar}>
           <Pressable
             onPress={() => setProductForm({ name: '', isActive: true, maxActiveTickets: '' })}

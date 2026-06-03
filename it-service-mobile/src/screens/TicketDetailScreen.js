@@ -94,10 +94,10 @@ export default function TicketDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const { theme } = useTheme();
   const { t, i18n } = useTranslation();
-  const { hasRole, user } = useAuth();
+  const { user, isAgent, isCustomer, isLeadAgent, isAdmin } = useAuth();
   const headerHeight = useHeaderHeight();
-  const isAgent = hasRole('AGENT') || hasRole('AGENT_ADMIN');
-  const isCustomer = hasRole('CUSTOMER');
+  // Operasyonel aksiyonlar (üstlen/çalış/yorum/ek) agent + lead; atama lead || admin.
+  const canAssign = isLeadAgent || isAdmin;
   const canUseAttachments = isAgent || isCustomer;
 
   const [ticket, setTicket] = useState(null);
@@ -467,7 +467,7 @@ export default function TicketDetailScreen({ route, navigation }) {
                   label={noClaimer ? t('ticketDetail.claim', 'Üstlen') : t('ticketDetail.join', 'Katıl')}
                   color={noClaimer ? theme.primary : theme.success}
                 />
-                {hasRole('AGENT_ADMIN') && (
+                {canAssign && (
                   <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
                     label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
                 )}
@@ -500,7 +500,7 @@ export default function TicketDetailScreen({ route, navigation }) {
                   label={t('ticketDetail.changePriority', 'Öncelik')} color={theme.textSecondary} />
                 <ActionBtn theme={theme} busy={actionBusy} onPress={() => openChange('TOPIC')}
                   label={t('ticketDetail.changeTopic', 'Konu')} color={theme.textSecondary} />
-                {hasRole('AGENT_ADMIN') && (
+                {canAssign && (
                   <ActionBtn theme={theme} busy={actionBusy} onPress={openAssign}
                     label={t('ticketDetail.assign', 'Ata')} color={theme.textSecondary} />
                 )}

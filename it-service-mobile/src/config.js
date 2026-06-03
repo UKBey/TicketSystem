@@ -33,5 +33,9 @@ export const KEYCLOAK_REALM = 'TicketSystemRealm';
 /** Mobil için ayrı public client — keycloak-init realm import'una eklenir. */
 export const KEYCLOAK_CLIENT_ID = 'ticket-mobile';
 
-/** Uygulamadaki anlamlı roller (token'daki realm_access.roles bunlara filtrelenir). */
-export const APP_ROLES = ['CUSTOMER', 'AGENT', 'AGENT_ADMIN', 'MANAGER'];
+/**
+ * Uygulamadaki anlamlı roller (token'daki realm_access.roles bunlara filtrelenir).
+ * LEAD_AGENT ve ADMIN yeni RBAC modeliyle eklendi; AGENT_ADMIN geçiş için tutuluyor
+ * (composite olarak {ADMIN, LEAD_AGENT, MANAGER} sayılır — bkz. AuthContext yetenek bayrakları).
+ */
+export const APP_ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER', 'AGENT_ADMIN'];

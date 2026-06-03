@@ -10,12 +10,14 @@ import LanguageSheet from '../components/LanguageSheet';
 
 /** Menü sekmesi — kullanıcı bilgisi, diğer ekranlara geçiş, tema ve çıkış. */
 export default function MenuScreen({ navigation }) {
-  const { user, roles, getPrimaryRole, logout } = useAuth();
+  const { user, roles, getPrimaryRole, isAgent, isAdmin, isManager, logout } = useAuth();
   const { theme, mode, toggle } = useTheme();
   const { t, i18n } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
-  const isAdmin = roles.includes('AGENT_ADMIN') || roles.includes('MANAGER');
-  const isAgent = roles.includes('AGENT') || isAdmin;
+  // Yetkiler rollerin birleşimine göre — web Sidebar ile aynı.
+  const showCanned = isAgent || isAdmin;        // hazır yanıtlar (müşteri görmez)
+  const showUserMgmt = isAdmin || isManager;    // kullanıcı yönetimi (manager salt-okuma)
+  const showAdmin = isAdmin;                    // yönetim paneli (ürün yetkileri / limitler)
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: theme.bgBody }]}>
@@ -51,7 +53,7 @@ export default function MenuScreen({ navigation }) {
             label={t('menu.knownIssues', 'Bilinen Sorunlar')}
             onPress={() => navigation.navigate('KnownIssues')}
           />
-          {isAgent && (
+          {showCanned && (
             <MenuRow
               theme={theme}
               icon="flash-outline"
@@ -83,7 +85,7 @@ export default function MenuScreen({ navigation }) {
             label={t('menu.notificationPrefs', 'Bildirim Tercihleri')}
             onPress={() => navigation.navigate('NotificationPreferences')}
           />
-          {isAdmin && (
+          {showUserMgmt && (
             <MenuRow
               theme={theme}
               icon="people-outline"
@@ -91,7 +93,7 @@ export default function MenuScreen({ navigation }) {
               onPress={() => navigation.navigate('UserManagement')}
             />
           )}
-          {isAdmin && (
+          {showAdmin && (
             <MenuRow
               theme={theme}
               icon="shield-checkmark-outline"
