@@ -37,10 +37,15 @@ public interface UserRepository extends JpaRepository<User, String> {
      * Filtered + paged user list for the admin panel.
      * search: case-insensitive substring search over fullName or email (null disables the filter)
      * roles:  role filter list; when the filter is off, pass {@code roleFilterActive=false}
+     * excludeGlobalRoles: when {@code true}, hides users whose (highest/display) role is ADMIN or
+     *   MANAGER — used by the product-access panel, where global roles have all-product access and
+     *   thus nothing to manage. A user holding ADMIN/MANAGER always has that as its primary role
+     *   (see {@code resolveHighestRole}), so filtering the primary column suffices.
      */
     @Query(value = """
             SELECT * FROM users u
             WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
+              AND (:excludeGlobalRoles = FALSE OR u.role IS NULL OR u.role NOT IN ('ADMIN', 'MANAGER'))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -49,6 +54,7 @@ public interface UserRepository extends JpaRepository<User, String> {
             countQuery = """
             SELECT COUNT(*) FROM users u
             WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
+              AND (:excludeGlobalRoles = FALSE OR u.role IS NULL OR u.role NOT IN ('ADMIN', 'MANAGER'))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -57,5 +63,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     Page<User> findFiltered(@Param("roleFilterActive") Boolean roleFilterActive,
                             @Param("roles")            List<String> roles,
                             @Param("search")           String search,
+                            @Param("excludeGlobalRoles") Boolean excludeGlobalRoles,
                             Pageable pageable);
 }

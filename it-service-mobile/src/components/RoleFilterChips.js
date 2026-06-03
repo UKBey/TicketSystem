@@ -5,13 +5,17 @@ import { useTheme } from '../theme/ThemeContext';
 // RBAC rolleri — rol filtre çubuğunda gösterilen tam küme.
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 
-/** Yatay rol filtre çubuğu — tek seçim. value null ise "tümü". */
-export default function RoleFilterChips({ value, onChange }) {
+/**
+ * Yatay rol filtre çubuğu — tek seçim. value null ise "tümü".
+ * roles: gösterilecek rol seçenekleri (varsayılan tüm RBAC rolleri). Admin Panel gibi
+ *   ADMIN/MANAGER'ı listelemeyen ekranlar daraltılmış bir küme geçebilir.
+ */
+export default function RoleFilterChips({ value, onChange, roles = ROLES }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const items = [
     { key: null, label: t('admin.panel.allRoles', 'Tüm Roller') },
-    ...ROLES.map((r) => ({ key: r, label: r })),
+    ...roles.map((r) => ({ key: r, label: r })),
   ];
 
   return (

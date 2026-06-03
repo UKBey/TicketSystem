@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -80,7 +81,8 @@ public class TicketClaimService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "error.product.not.found"));
 
-        Integer effectiveLimit = resolveEffectiveLimit(agentId, product);
+        // #3: ADMIN/MANAGER (global rol) için bilet limiti uygulanmaz — kapasite sınırsızdır.
+        Integer effectiveLimit = AuthRoles.isGlobal(agent.getRoles()) ? null : resolveEffectiveLimit(agentId, product);
         if (effectiveLimit != null) {
             long activeCount = ticketClaimRepository.countActiveTicketsByAgentAndProduct(agentId, product.getId());
             if (activeCount >= effectiveLimit) {
@@ -224,7 +226,9 @@ public class TicketClaimService {
         Product product = productRepository.findById(ticket.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("Ürün bulunamadı: " + ticket.getProductId()));
 
-        Integer effectiveLimit = resolveEffectiveLimit(targetAgentId, product);
+        // #3: hedef agent ADMIN/MANAGER (global) ise bilet limiti uygulanmaz.
+        Integer effectiveLimit = AuthRoles.isGlobal(targetAgent.getRoles())
+                ? null : resolveEffectiveLimit(targetAgentId, product);
         if (effectiveLimit != null) {
             long activeCount = ticketClaimRepository
                     .countActiveTicketsByAgentAndProduct(targetAgentId, product.getId());

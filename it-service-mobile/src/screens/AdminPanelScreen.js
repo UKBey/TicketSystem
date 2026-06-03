@@ -50,6 +50,8 @@ export default function AdminPanelScreen() {
         size: 100,
         search: search || undefined,
         role: roleFilter || undefined,
+        // ADMIN/MANAGER kullanıcılar (tüm ürünlere erişimli) ürün-erişim panelinde listelenmez.
+        excludeGlobalRoles: true,
       });
       setUsers(res.data?.content ?? res.data ?? []);
     } catch {
@@ -197,7 +199,7 @@ export default function AdminPanelScreen() {
         />
       </View>
 
-      <RoleFilterChips value={roleFilter} onChange={setRoleFilter} />
+      <RoleFilterChips value={roleFilter} onChange={setRoleFilter} roles={['CUSTOMER', 'AGENT', 'LEAD_AGENT']} />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 32 }} size="large" color={theme.primary} />

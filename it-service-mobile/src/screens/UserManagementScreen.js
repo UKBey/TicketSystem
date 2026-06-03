@@ -259,6 +259,8 @@ export default function UserManagementScreen() {
           ))}
         </View>
         <Pressable
+          // Bir admin'in rolleri bu panelden (başka admin dâhil) değiştirilemez.
+          disabled={rolesOf(item).includes('ADMIN')}
           onPress={() => {
             setEditUser(item);
             // Mevcut rolleri ön-seç (çoklu rol veya tekil rol destekli).
@@ -269,7 +271,7 @@ export default function UserManagementScreen() {
                 : [];
             setEditRoles(existing);
           }}
-          style={[styles.editBtn, { borderColor: theme.primary }]}
+          style={[styles.editBtn, { borderColor: theme.primary, opacity: rolesOf(item).includes('ADMIN') ? 0.4 : 1 }]}
         >
           <Ionicons name="create-outline" size={14} color={theme.primary} />
           <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 12 }}>

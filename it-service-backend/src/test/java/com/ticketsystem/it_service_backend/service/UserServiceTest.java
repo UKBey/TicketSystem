@@ -173,9 +173,9 @@ class UserServiceTest {
     @DisplayName("getUsersFiltered → null search ve null role trim edilir")
     void getUsersFiltered_nullParams_usesNullInQuery() {
         Page<User> page = new PageImpl<>(List.of(user));
-        when(userRepository.findFiltered(eq(false), eq(List.of("__none__")), isNull(), any(Pageable.class))).thenReturn(page);
+        when(userRepository.findFiltered(eq(false), eq(List.of("__none__")), isNull(), eq(false), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered(null, null, 0, 20);
+        Page<User> result = userService.getUsersFiltered(null, null, false, 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -184,9 +184,9 @@ class UserServiceTest {
     @DisplayName("getUsersFiltered → search ve role trim edilir ve sorguya geçirilir")
     void getUsersFiltered_withParams_passesTrimmmedValues() {
         Page<User> page = new PageImpl<>(List.of(user));
-        when(userRepository.findFiltered(eq(true), eq(List.of("AGENT")), eq("agent"), any(Pageable.class))).thenReturn(page);
+        when(userRepository.findFiltered(eq(true), eq(List.of("AGENT")), eq("agent"), eq(false), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), 0, 10);
+        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), false, 0, 10);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -352,6 +352,22 @@ class UserServiceTest {
         // Legacy ADMIN now resolves to the new ADMIN role (highest priority).
         assertThat(result.getRole()).isEqualTo("ADMIN");
         verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"));
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → hedef ADMIN ise 403 (admin rolleri bu panelden değiştirilemez)")
+    void updateUserRoles_targetIsAdmin_forbidden() {
+        User adminTarget = User.builder().id("admin-9").role("ADMIN")
+                .roles(new java.util.HashSet<>(List.of("ADMIN")))
+                .build();
+        when(userRepository.findById("admin-9")).thenReturn(Optional.of(adminTarget));
+
+        org.springframework.web.server.ResponseStatusException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.updateUserRoles("admin-9", List.of("AGENT")));
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        verify(keycloakAdminService, org.mockito.Mockito.never()).updateUserRoles(any(), any());
     }
 
     @Test

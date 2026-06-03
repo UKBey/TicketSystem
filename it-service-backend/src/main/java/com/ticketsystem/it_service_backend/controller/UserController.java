@@ -235,11 +235,13 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> getAllUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> role,
+            @RequestParam(defaultValue = "false") boolean excludeGlobalRoles,
             @RequestParam(defaultValue = "0")  @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size) {
-        log.debug("Kullanıcı listeleme isteği. search={}, roles={}, page={}, size={}", search, role, page, size);
+        log.debug("Kullanıcı listeleme isteği. search={}, roles={}, excludeGlobalRoles={}, page={}, size={}",
+                search, role, excludeGlobalRoles, page, size);
 
-        Page<User> userPage = userService.getUsersFiltered(search, role, page, size);
+        Page<User> userPage = userService.getUsersFiltered(search, role, excludeGlobalRoles, page, size);
 
         log.debug("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
 

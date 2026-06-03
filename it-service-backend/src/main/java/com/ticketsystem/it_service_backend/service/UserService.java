@@ -11,14 +11,17 @@ import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -218,13 +221,14 @@ public class UserService {
      * @return paginated result
      */
     @Transactional(readOnly = true)
-    public Page<User> getUsersFiltered(String search, java.util.List<String> roles, int page, int size) {
+    public Page<User> getUsersFiltered(String search, java.util.List<String> roles,
+                                       boolean excludeGlobalRoles, int page, int size) {
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
         boolean roleFilterActive = roles != null && !roles.isEmpty();
         java.util.List<String> roleList = roleFilterActive ? roles : java.util.List.of("__none__");
         // Native query kullandığımız için sort field adı SQL column adı olmalı
         Pageable pageable  = PageRequest.of(page, size, Sort.by("full_name").ascending());
-        return userRepository.findFiltered(roleFilterActive, roleList, searchParam, pageable);
+        return userRepository.findFiltered(roleFilterActive, roleList, searchParam, excludeGlobalRoles, pageable);
     }
 
     /**
@@ -417,6 +421,12 @@ public class UserService {
 
         // 1. Kullanıcının yerel DB'de var olduğunu doğrula
         User user = getUserById(userId);
+
+        // 1b. Bir ADMIN'in rolleri bu panelden (başka bir admin dâhil) değiştirilemez.
+        // Admin hesapları yalnızca Keycloak üzerinden yönetilir. Hedef admin ise reddet.
+        if (AuthRoles.isAdmin(user.getRoles())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.user.modify.admin.forbidden");
+        }
 
         // 2. Rolleri normalize et (geçersizleri ele, lead varsa redundant agent'ı düşür),
         //    sonra aynı kümeyi hem Keycloak'ta hem yerel DB'de uygula.

@@ -10,7 +10,8 @@ import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 
 const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
+// ADMIN/MANAGER bu panelde gösterilmez (tüm ürünlere erişimleri var) — filtre seçeneklerinde de yok.
+const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT'];
 
 // Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil).
 const AGENT_ROLES = ['AGENT', 'LEAD_AGENT'];
@@ -325,6 +326,8 @@ export default function AdminPanel() {
       const params = new URLSearchParams({ page, size });
       if (debouncedSearch) params.set('search', debouncedSearch);
       roleFilter.forEach((r) => params.append('role', r));
+      // ADMIN/MANAGER kullanıcılar (tüm ürünlere erişimli) ürün-erişim panelinde listelenmez.
+      params.set('excludeGlobalRoles', 'true');
 
       const res = await api.get(`/users?${params}`);
       setUsers(res.data.content);
