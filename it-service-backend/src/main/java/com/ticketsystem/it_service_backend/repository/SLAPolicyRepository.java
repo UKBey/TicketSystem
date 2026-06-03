@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Native-SQL repository that computes SLA metrics — uses {@code JdbcTemplate} and is
@@ -26,7 +28,35 @@ public class SLAPolicyRepository {
      * @param days          counting window; null or 0 means all time
      */
     public List<Object[]> findPrioritySlaMetrics(Map<String, Integer> priorityHours, Integer days) {
+        return findPrioritySlaMetrics(priorityHours, days, null);
+    }
+
+    /**
+     * Product-scoped variant. When {@code productIds} is null the report spans all
+     * products (global, identical to the two-arg method); when non-null the per-priority
+     * aggregation is restricted to tickets on those products. An empty list yields all
+     * zero/100% rows (a lead authorized on nothing sees nothing).
+     *
+     * @param priorityHours map of CRITICAL/HIGH/MEDIUM/LOW → target hours
+     * @param days          counting window; null or 0 means all time
+     * @param productIds    product filter; null = global (no filter)
+     */
+    public List<Object[]> findPrioritySlaMetrics(Map<String, Integer> priorityHours, Integer days, List<Long> productIds) {
         Integer dayWindow = (days != null && days > 0) ? days : null;
+        boolean filterByProduct = productIds != null;
+
+        // Ürün filtresi LEFT JOIN'in ON koşuluna eklenir; böylece dört öncelik satırı,
+        // kapsamda hiç bilet olmasa bile (0 / %100) korunur. Boş liste => IN () yerine
+        // her zaman false veren bir predicate kullanılır.
+        String productPredicate;
+        if (!filterByProduct) {
+            productPredicate = "";
+        } else if (productIds.isEmpty()) {
+            productPredicate = " AND false";
+        } else {
+            String placeholders = productIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+            productPredicate = " AND t.product_id IN (" + placeholders + ")";
+        }
 
         String sql = """
                 WITH priorities AS (
@@ -50,7 +80,8 @@ public class SLAPolicyRepository {
                     LEFT JOIN tickets t
                         ON t.priority = p.priority
                        AND (CAST(? AS INTEGER) IS NULL
-                            OR t.created_at >= NOW() - make_interval(days => CAST(? AS INTEGER)))
+                            OR t.created_at >= NOW() - make_interval(days => CAST(? AS INTEGER)))""" + productPredicate + """
+
                 )
                 SELECT
                     tb.priority,
@@ -85,14 +116,16 @@ public class SLAPolicyRepository {
                 END
                 """;
 
-        Object[] args = new Object[]{
-                priorityHours.get("CRITICAL"),
-                priorityHours.get("HIGH"),
-                priorityHours.get("MEDIUM"),
-                priorityHours.get("LOW"),
-                dayWindow,
-                dayWindow
-        };
+        List<Object> args = new ArrayList<>();
+        args.add(priorityHours.get("CRITICAL"));
+        args.add(priorityHours.get("HIGH"));
+        args.add(priorityHours.get("MEDIUM"));
+        args.add(priorityHours.get("LOW"));
+        args.add(dayWindow);
+        args.add(dayWindow);
+        if (filterByProduct && !productIds.isEmpty()) {
+            args.addAll(productIds);
+        }
 
         return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[]{
                 rs.getString("priority"),
@@ -102,6 +135,6 @@ public class SLAPolicyRepository {
                 rs.getLong("breach_count"),
                 rs.getDouble("breach_percentage"),
                 rs.getDouble("on_time_percentage")
-        }, args);
+        }, args.toArray());
     }
 }

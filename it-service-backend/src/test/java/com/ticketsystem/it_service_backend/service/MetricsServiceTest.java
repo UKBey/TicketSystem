@@ -35,11 +35,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,15 +70,15 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Boş DB → tüm metrikler sıfır, hata yok")
         void emptyDatabase_returnsZeroDefaults() {
-            when(ticketRepository.countByStatusIn(anyList())).thenReturn(0L);
-            when(ticketRepository.countSlaBreachedByStatusIn(anyList())).thenReturn(0L);
-            when(ticketRepository.countCreatedSinceByStatusIn(anyList(), any())).thenReturn(0L);
-            when(ticketRepository.findAvgResolutionHoursForResolved()).thenReturn(null);
-            when(ticketRepository.countByStatusInGroupByPriority(anyList())).thenReturn(Collections.emptyList());
-            when(csatRepository.findAverageRating()).thenReturn(null);
-            when(csatRepository.count()).thenReturn(0L);
+            when(ticketRepository.countByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countSlaBreachedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countCreatedSinceByStatusInScoped(anyList(), any(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.findAvgResolutionHoursForResolvedScoped(anyBoolean(), anyList())).thenReturn(null);
+            when(ticketRepository.countByStatusInGroupByPriorityScoped(anyList(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAverageRatingScoped(anyBoolean(), anyList())).thenReturn(null);
+            when(csatRepository.countScoped(anyBoolean(), anyList())).thenReturn(0L);
 
-            DashboardMetricsDTO dto = metricsService.getDashboardSummary();
+            DashboardMetricsDTO dto = metricsService.getDashboardSummary(null, "global");
 
             assertThat(dto).isNotNull();
             assertThat(dto.getTotalOpenTickets()).isZero();
@@ -91,15 +93,15 @@ class MetricsServiceTest {
         @Test
         @DisplayName("SLA breach yüzdesi doğru hesaplanır")
         void slaBreachPercentage_calculatedCorrectly() {
-            when(ticketRepository.countByStatusIn(anyList())).thenReturn(100L);
-            when(ticketRepository.countSlaBreachedByStatusIn(anyList())).thenReturn(10L);
-            when(ticketRepository.countCreatedSinceByStatusIn(anyList(), any())).thenReturn(5L);
-            when(ticketRepository.findAvgResolutionHoursForResolved()).thenReturn(3.5);
-            when(ticketRepository.countByStatusInGroupByPriority(anyList())).thenReturn(Collections.emptyList());
-            when(csatRepository.findAverageRating()).thenReturn(4.2);
-            when(csatRepository.count()).thenReturn(80L);
+            when(ticketRepository.countByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(100L);
+            when(ticketRepository.countSlaBreachedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(10L);
+            when(ticketRepository.countCreatedSinceByStatusInScoped(anyList(), any(), anyBoolean(), anyList())).thenReturn(5L);
+            when(ticketRepository.findAvgResolutionHoursForResolvedScoped(anyBoolean(), anyList())).thenReturn(3.5);
+            when(ticketRepository.countByStatusInGroupByPriorityScoped(anyList(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAverageRatingScoped(anyBoolean(), anyList())).thenReturn(4.2);
+            when(csatRepository.countScoped(anyBoolean(), anyList())).thenReturn(80L);
 
-            DashboardMetricsDTO dto = metricsService.getDashboardSummary();
+            DashboardMetricsDTO dto = metricsService.getDashboardSummary(null, "global");
 
             assertThat(dto.getTotalOpenTickets()).isEqualTo(100L);
             assertThat(dto.getSlaBreachedCount()).isEqualTo(10L);
@@ -111,12 +113,12 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Priority dağılımı DB sonuçlarından doğru map edilir")
         void priorityDistribution_mappedFromDbRows() {
-            when(ticketRepository.countByStatusIn(anyList())).thenReturn(50L);
-            when(ticketRepository.countSlaBreachedByStatusIn(anyList())).thenReturn(0L);
-            when(ticketRepository.countCreatedSinceByStatusIn(anyList(), any())).thenReturn(0L);
-            when(ticketRepository.findAvgResolutionHoursForResolved()).thenReturn(0.0);
-            when(csatRepository.findAverageRating()).thenReturn(0.0);
-            when(csatRepository.count()).thenReturn(0L);
+            when(ticketRepository.countByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(50L);
+            when(ticketRepository.countSlaBreachedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countCreatedSinceByStatusInScoped(anyList(), any(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.findAvgResolutionHoursForResolvedScoped(anyBoolean(), anyList())).thenReturn(0.0);
+            when(csatRepository.findAverageRatingScoped(anyBoolean(), anyList())).thenReturn(0.0);
+            when(csatRepository.countScoped(anyBoolean(), anyList())).thenReturn(0L);
 
             List<Object[]> priorityRows = List.of(
                     new Object[]{"CRITICAL", 3L},
@@ -124,9 +126,9 @@ class MetricsServiceTest {
                     new Object[]{"MEDIUM", 25L},
                     new Object[]{"LOW", 10L}
             );
-            when(ticketRepository.countByStatusInGroupByPriority(anyList())).thenReturn(priorityRows);
+            when(ticketRepository.countByStatusInGroupByPriorityScoped(anyList(), anyBoolean(), anyList())).thenReturn(priorityRows);
 
-            DashboardMetricsDTO dto = metricsService.getDashboardSummary();
+            DashboardMetricsDTO dto = metricsService.getDashboardSummary(null, "global");
 
             assertThat(dto.getPriorityDistribution().getCritical()).isEqualTo(3L);
             assertThat(dto.getPriorityDistribution().getHigh()).isEqualTo(12L);
@@ -146,9 +148,9 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Boş DB → tüm sayılar sıfır")
         void emptyDatabase_returnsZeros() {
-            when(ticketRepository.countTicketsGroupedByStatus()).thenReturn(Collections.emptyList());
+            when(ticketRepository.countTicketsGroupedByStatusScoped(anyBoolean(), anyList())).thenReturn(Collections.emptyList());
 
-            StatusDistributionDTO dto = metricsService.getStatusDistribution();
+            StatusDistributionDTO dto = metricsService.getStatusDistribution(null, "global");
 
             assertThat(dto).isNotNull();
             assertThat(dto.getNewCount()).isZero();
@@ -169,9 +171,9 @@ class MetricsServiceTest {
                     new Object[]{"RESOLVED", 38L},
                     new Object[]{"CLOSED", 6L}
             );
-            when(ticketRepository.countTicketsGroupedByStatus()).thenReturn(rows);
+            when(ticketRepository.countTicketsGroupedByStatusScoped(anyBoolean(), anyList())).thenReturn(rows);
 
-            StatusDistributionDTO dto = metricsService.getStatusDistribution();
+            StatusDistributionDTO dto = metricsService.getStatusDistribution(null, "global");
 
             assertThat(dto.getNewCount()).isEqualTo(44L);
             assertThat(dto.getInProgressCount()).isEqualTo(103L);
@@ -194,9 +196,11 @@ class MetricsServiceTest {
         @DisplayName("Aktif agent yoksa boş liste ve sıfır toplamlar döner")
         void noActiveAgents_returnsEmptyList() {
             when(userRepository.findByRole("AGENT")).thenReturn(Collections.emptyList());
-            when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
+            when(userRepository.findByRole("LEAD_AGENT")).thenReturn(Collections.emptyList());
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(ZonedDateTime.class), anyBoolean(), anyList()))
+                    .thenReturn(Collections.emptyList());
 
-            AgentPerformanceDTO dto = metricsService.getAgentPerformance();
+            AgentPerformanceDTO dto = metricsService.getAgentPerformance(null, "global");
 
             assertThat(dto).isNotNull();
             assertThat(dto.getAgents()).isEmpty();
@@ -209,9 +213,11 @@ class MetricsServiceTest {
         void inactiveAgent_isFiltered() {
             User inactive = User.builder().id("uuid-1").fullName("Pasif Kullanıcı").role("AGENT").isActive(false).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(inactive));
-            when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
+            when(userRepository.findByRole("LEAD_AGENT")).thenReturn(Collections.emptyList());
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(ZonedDateTime.class), anyBoolean(), anyList()))
+                    .thenReturn(Collections.emptyList());
 
-            AgentPerformanceDTO dto = metricsService.getAgentPerformance();
+            AgentPerformanceDTO dto = metricsService.getAgentPerformance(null, "global");
 
             assertThat(dto.getAgents()).isEmpty();
         }
@@ -221,15 +227,15 @@ class MetricsServiceTest {
         void activeAgent_withTickets_returnsMetrics() {
             User agent = User.builder().id("uuid-1").fullName("Test Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
-            when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
+            when(userRepository.findByRole("LEAD_AGENT")).thenReturn(Collections.emptyList());
 
             // Aggregated query: [agent_id, active, resolved24h, slaBreached, avgResHours, csatAvg]
-            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+            when(ticketRepository.findAgentPerformanceMetricsScoped(anyList(), any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{"uuid-1", 1L, 0L, 0L, 0.0, 0.0}));
-            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(Collections.emptyList());
 
-            AgentPerformanceDTO dto = metricsService.getAgentPerformance();
+            AgentPerformanceDTO dto = metricsService.getAgentPerformance(null, "global");
 
             assertThat(dto.getAgents()).hasSize(1);
             assertThat(dto.getAgents().get(0).getAgentName()).isEqualTo("Test Agent");
@@ -242,15 +248,15 @@ class MetricsServiceTest {
         void activeAgent_withResolvedTicket_calculatesAvgResolutionHours() {
             User agent = User.builder().id("uuid-2").fullName("Resolver Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
-            when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
+            when(userRepository.findByRole("LEAD_AGENT")).thenReturn(Collections.emptyList());
 
             // Aggregated query — DB'den ortalama 2.0 saat dönmüş gibi mock
-            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+            when(ticketRepository.findAgentPerformanceMetricsScoped(anyList(), any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{"uuid-2", 0L, 0L, 0L, 2.0, 0.0}));
-            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(Collections.emptyList());
 
-            AgentPerformanceDTO dto = metricsService.getAgentPerformance();
+            AgentPerformanceDTO dto = metricsService.getAgentPerformance(null, "global");
 
             assertThat(dto.getAgents()).hasSize(1);
             assertThat(dto.getAgents().get(0).getAvgResolutionHours()).isGreaterThan(0.0);
@@ -261,14 +267,14 @@ class MetricsServiceTest {
         void activeAgent_withCsatData_calculatesCsatAverage() {
             User agent = User.builder().id("uuid-3").fullName("CSAT Agent").role("AGENT").isActive(true).build();
             when(userRepository.findByRole("AGENT")).thenReturn(List.of(agent));
-            when(userRepository.findByRole("AGENT_ADMIN")).thenReturn(Collections.emptyList());
+            when(userRepository.findByRole("LEAD_AGENT")).thenReturn(Collections.emptyList());
 
-            when(ticketRepository.findAgentPerformanceMetrics(anyList(), any(ZonedDateTime.class)))
+            when(ticketRepository.findAgentPerformanceMetricsScoped(anyList(), any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{"uuid-3", 0L, 0L, 0L, 0.0, 5.0}));
-            when(worklogRepository.findAgentWorklogSummary(any(ZonedDateTime.class)))
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(ZonedDateTime.class), anyBoolean(), anyList()))
                     .thenReturn(Collections.emptyList());
 
-            AgentPerformanceDTO dto = metricsService.getAgentPerformance();
+            AgentPerformanceDTO dto = metricsService.getAgentPerformance(null, "global");
 
             assertThat(dto.getAgents()).hasSize(1);
             assertThat(dto.getAgents().get(0).getCsatAverage()).isGreaterThan(0.0);
@@ -286,9 +292,9 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Boş DB → boş timeline listesi döner")
         void emptyDatabase_returnsEmptyTimeline() {
-            when(ticketRepository.getTicketTimelineMetrics(30)).thenReturn(Collections.emptyList());
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(30), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(30);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(30, null, "global");
 
             assertThat(dto).isNotNull();
             assertThat(dto.getTimeline()).isEmpty();
@@ -297,9 +303,9 @@ class MetricsServiceTest {
         @Test
         @DisplayName("days parametresi 365 ile sınırlandırılır")
         void days_clampedToMaximum() {
-            when(ticketRepository.getTicketTimelineMetrics(365)).thenReturn(Collections.emptyList());
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(365), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(9999);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(9999, null, "global");
 
             assertThat(dto).isNotNull();
         }
@@ -310,9 +316,9 @@ class MetricsServiceTest {
             List<Object[]> rows = Collections.singletonList(
                     new Object[]{Date.valueOf("2026-05-01"), 5L, 3L, 1L, 0L}
             );
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getCreated()).isEqualTo(5L);
@@ -326,9 +332,9 @@ class MetricsServiceTest {
         void dbRows_withLocalDateInput_convertsCorrectly() {
             LocalDate expected = LocalDate.of(2026, 5, 1);
             List<Object[]> rows = Collections.singletonList(new Object[]{expected, 1L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isEqualTo(expected);
@@ -339,9 +345,9 @@ class MetricsServiceTest {
         void dbRows_withLocalDateTimeInput_convertsCorrectly() {
             LocalDateTime ldt = LocalDateTime.of(2026, 5, 2, 10, 0);
             List<Object[]> rows = Collections.singletonList(new Object[]{ldt, 1L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isEqualTo(LocalDate.of(2026, 5, 2));
@@ -352,9 +358,9 @@ class MetricsServiceTest {
         void dbRows_withOffsetDateTimeInput_convertsCorrectly() {
             OffsetDateTime odt = OffsetDateTime.now();
             List<Object[]> rows = Collections.singletonList(new Object[]{odt, 1L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isNotNull();
@@ -365,9 +371,9 @@ class MetricsServiceTest {
         void dbRows_withUtilDateInput_convertsCorrectly() {
             java.util.Date utilDate = new java.util.Date();
             List<Object[]> rows = Collections.singletonList(new Object[]{utilDate, 1L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isNotNull();
@@ -377,9 +383,9 @@ class MetricsServiceTest {
         @DisplayName("convertToLocalDate → String LocalDate.parse ile dönüştürülür")
         void dbRows_withStringInput_convertsCorrectly() {
             List<Object[]> rows = Collections.singletonList(new Object[]{"2026-05-03", 1L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isEqualTo(LocalDate.of(2026, 5, 3));
@@ -389,9 +395,9 @@ class MetricsServiceTest {
         @DisplayName("convertToLocalDate → null girdi null döner")
         void dbRows_withNullDate_returnsNullDate() {
             List<Object[]> rows = Collections.singletonList(new Object[]{null, 0L, 0L, 0L, 0L});
-            when(ticketRepository.getTicketTimelineMetrics(7)).thenReturn(rows);
+            when(ticketRepository.getTicketTimelineMetricsScoped(eq(7), anyBoolean(), anyList())).thenReturn(rows);
 
-            TicketTimelineDTO dto = metricsService.getTicketTimeline(7);
+            TicketTimelineDTO dto = metricsService.getTicketTimeline(7, null, "global");
 
             assertThat(dto.getTimeline()).hasSize(1);
             assertThat(dto.getTimeline().get(0).getDate()).isNull();
@@ -409,12 +415,12 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Boş DB → sıfır değerler ve STABLE trend")
         void emptyDatabase_returnsZeroDefaults() {
-            when(csatRepository.findRatingDistributionSince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findAverageRatingSince(any())).thenReturn(null);
-            when(csatRepository.findAverageRatingByPrioritySince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findTopPositiveCommentsSince(any(), any())).thenReturn(Collections.emptyList());
+            when(csatRepository.findRatingDistributionSinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAverageRatingSinceScoped(any(), anyBoolean(), anyList())).thenReturn(null);
+            when(csatRepository.findAverageRatingByPrioritySinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findTopPositiveCommentsSinceScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
 
-            CSATMetricsDTO dto = metricsService.getCSATMetrics(3);
+            CSATMetricsDTO dto = metricsService.getCSATMetrics(3, null, "global");
 
             assertThat(dto.getTotalResponses()).isZero();
             assertThat(dto.getAverageRating()).isEqualTo(0.0);
@@ -430,12 +436,12 @@ class MetricsServiceTest {
                     new Object[]{4, 5L},
                     new Object[]{3, 2L}
             );
-            when(csatRepository.findRatingDistributionSince(any())).thenReturn(dist);
-            when(csatRepository.findAverageRatingSince(any())).thenReturn(4.5);
-            when(csatRepository.findAverageRatingByPrioritySince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findTopPositiveCommentsSince(any(), any())).thenReturn(List.of("Great!"));
+            when(csatRepository.findRatingDistributionSinceScoped(any(), anyBoolean(), anyList())).thenReturn(dist);
+            when(csatRepository.findAverageRatingSinceScoped(any(), anyBoolean(), anyList())).thenReturn(4.5);
+            when(csatRepository.findAverageRatingByPrioritySinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findTopPositiveCommentsSinceScoped(any(), anyBoolean(), anyList(), any())).thenReturn(List.of("Great!"));
 
-            CSATMetricsDTO dto = metricsService.getCSATMetrics(1);
+            CSATMetricsDTO dto = metricsService.getCSATMetrics(1, null, "global");
 
             assertThat(dto.getTotalResponses()).isEqualTo(17L);
             assertThat(dto.getAverageRating()).isEqualTo(4.5);
@@ -446,30 +452,30 @@ class MetricsServiceTest {
         @Test
         @DisplayName("months parametresi 1-12 arasına sınırlandırılır")
         void months_clampedToRange() {
-            when(csatRepository.findRatingDistributionSince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findAverageRatingSince(any())).thenReturn(null);
-            when(csatRepository.findAverageRatingByPrioritySince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findTopPositiveCommentsSince(any(), any())).thenReturn(Collections.emptyList());
+            when(csatRepository.findRatingDistributionSinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAverageRatingSinceScoped(any(), anyBoolean(), anyList())).thenReturn(null);
+            when(csatRepository.findAverageRatingByPrioritySinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findTopPositiveCommentsSinceScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
 
             // 0 ve 99 değerleri 1 ve 12'ye sıkıştırılmalıdır
-            assertThat(metricsService.getCSATMetrics(0)).isNotNull();
-            assertThat(metricsService.getCSATMetrics(99)).isNotNull();
+            assertThat(metricsService.getCSATMetrics(0, null, "global")).isNotNull();
+            assertThat(metricsService.getCSATMetrics(99, null, "global")).isNotNull();
         }
 
         @Test
         @DisplayName("Bu ay ortalaması geçen ayın üzerindeyse trend UP olur")
         void trendUp_whenThisMonthHigher() {
-            when(csatRepository.findRatingDistributionSince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findAverageRatingByPrioritySince(any())).thenReturn(Collections.emptyList());
-            when(csatRepository.findTopPositiveCommentsSince(any(), any())).thenReturn(Collections.emptyList());
+            when(csatRepository.findRatingDistributionSinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAverageRatingByPrioritySinceScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findTopPositiveCommentsSinceScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
 
-            // findAverageRatingSince is called 3 times: overall, thisMonth, lastMonth
-            when(csatRepository.findAverageRatingSince(any()))
+            // findAverageRatingSinceScoped is called 3 times: overall, thisMonth, lastMonth
+            when(csatRepository.findAverageRatingSinceScoped(any(), anyBoolean(), anyList()))
                     .thenReturn(4.0)   // overall
                     .thenReturn(4.5)   // thisMonth
                     .thenReturn(4.0);  // lastMonth
 
-            CSATMetricsDTO dto = metricsService.getCSATMetrics(3);
+            CSATMetricsDTO dto = metricsService.getCSATMetrics(3, null, "global");
 
             assertThat(dto.getTrend().getTrend()).isEqualTo("UP");
         }
@@ -484,15 +490,15 @@ class MetricsServiceTest {
     class GetAlertsAndBacklog {
 
         private void stubEmptyAlerts() {
-            when(ticketRepository.findBreachedOpenTickets(anyList(), any())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findBreachedOpenTicketsScoped(anyList(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
             when(slaPolicyService.getWarningThresholdHours(anyString())).thenReturn(2);
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(anyList(), anyList(), any(), any()))
+            when(ticketRepository.findUpcomingBreachTicketsByPriorityScoped(anyList(), anyList(), any(), anyBoolean(), anyList(), any()))
                     .thenReturn(Collections.emptyList());
-            when(ticketRepository.findWaitingTooLongTickets(any(), any())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findWaitingTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
             when(userRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
-            when(ticketRepository.countUnassignedByStatusIn(anyList())).thenReturn(0L);
-            when(ticketRepository.countByStatus("NEW")).thenReturn(0L);
-            when(ticketRepository.avgWaitingHoursForOpen(anyList())).thenReturn(null);
+            when(ticketRepository.countUnassignedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countByStatusScoped(eq("NEW"), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.avgWaitingHoursForOpenScoped(anyList(), anyBoolean(), anyList())).thenReturn(null);
         }
 
         @Test
@@ -500,7 +506,7 @@ class MetricsServiceTest {
         void emptyAlerts_returnsZeroBacklog() {
             stubEmptyAlerts();
 
-            AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
+            AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog(null, "global");
 
             assertThat(dto.getBreachedSLA()).isEmpty();
             assertThat(dto.getUpcomingBreach()).isEmpty();
@@ -517,17 +523,17 @@ class MetricsServiceTest {
                     .customerId("cust-1").slaDeadline(ZonedDateTime.now().minusHours(1)).build();
             User customer = User.builder().id("cust-1").fullName("Ahmet Yılmaz").build();
 
-            when(ticketRepository.findBreachedOpenTickets(anyList(), any())).thenReturn(List.of(breached));
+            when(ticketRepository.findBreachedOpenTicketsScoped(anyList(), anyBoolean(), anyList(), any())).thenReturn(List.of(breached));
             when(slaPolicyService.getWarningThresholdHours(anyString())).thenReturn(2);
-            when(ticketRepository.findUpcomingBreachTicketsByPriority(anyList(), anyList(), any(), any()))
+            when(ticketRepository.findUpcomingBreachTicketsByPriorityScoped(anyList(), anyList(), any(), anyBoolean(), anyList(), any()))
                     .thenReturn(Collections.emptyList());
-            when(ticketRepository.findWaitingTooLongTickets(any(), any())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findWaitingTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
             when(userRepository.findAllById(anyCollection())).thenReturn(List.of(customer));
-            when(ticketRepository.countUnassignedByStatusIn(anyList())).thenReturn(3L);
-            when(ticketRepository.countByStatus("NEW")).thenReturn(5L);
-            when(ticketRepository.avgWaitingHoursForOpen(anyList())).thenReturn(2.5);
+            when(ticketRepository.countUnassignedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(3L);
+            when(ticketRepository.countByStatusScoped(eq("NEW"), anyBoolean(), anyList())).thenReturn(5L);
+            when(ticketRepository.avgWaitingHoursForOpenScoped(anyList(), anyBoolean(), anyList())).thenReturn(2.5);
 
-            AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
+            AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog(null, "global");
 
             assertThat(dto.getBreachedSLA()).hasSize(1);
             assertThat(dto.getBreachedSLA().get(0).getCustomerName()).isEqualTo("Ahmet Yılmaz");
@@ -547,11 +553,11 @@ class MetricsServiceTest {
         @Test
         @DisplayName("Worklog kaydı yoksa boş liste ve sıfır oranlar döner")
         void noWorklogs_returnsZeroRates() {
-            when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(Collections.emptyList());
-            when(ticketRepository.findWorklogCompletionAggregates(any()))
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
 
-            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(7);
+            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(7, null, "global");
 
             assertThat(dto.getAgentWorklogs()).isEmpty();
             assertThat(dto.getCompletionRates().getCompletionRate()).isEqualTo(0.0);
@@ -565,12 +571,12 @@ class MetricsServiceTest {
             User agent = User.builder().id("agent-1").fullName("Test Agent").build();
             List<Object[]> rawRows = List.<Object[]>of(new Object[]{"agent-1", 120L, 3L});
 
-            when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(rawRows);
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(rawRows);
             when(userRepository.findAllById(anyIterable())).thenReturn(List.of(agent));
-            when(ticketRepository.findWorklogCompletionAggregates(any()))
+            when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{10L, 6L, 2L, 3.5, 0.85}));
 
-            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(30);
+            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(30, null, "global");
 
             assertThat(dto.getAgentWorklogs()).hasSize(1);
             assertThat(dto.getAgentWorklogs().get(0).getAgentUsername()).isEqualTo("Test Agent");
@@ -582,11 +588,11 @@ class MetricsServiceTest {
         @Test
         @DisplayName("days parametresi 1-365 arasına sınırlandırılır")
         void days_clampedToRange() {
-            when(worklogRepository.findAgentWorklogSummary(any())).thenReturn(Collections.emptyList());
-            when(ticketRepository.findWorklogCompletionAggregates(any()))
+            when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
                     .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
 
-            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(9999);
+            WorklogCompletionDTO dto = metricsService.getWorklogCompletion(9999, null, "global");
 
             assertThat(dto.getPeriodDays()).isEqualTo(365);
         }

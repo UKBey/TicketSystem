@@ -81,6 +81,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Object[]> findAgentPerformanceMetrics(@Param("agentIds") List<String> agentIds,
                                                @Param("since24h") ZonedDateTime since24h);
 
+    /**
+     * Product-scoped variant of {@link #findAgentPerformanceMetrics}. When
+     * {@code filterByProduct} is true only claims on tickets belonging to
+     * {@code productIds} are aggregated, so a LEAD_AGENT sees their own products only.
+     */
+    @Query(value = """
+            SELECT
+                tc.agent_id                                                          AS agent_id,
+                COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END)::BIGINT AS active_tickets,
+                COUNT(CASE WHEN t.resolved_at >= :since24h THEN 1 END)::BIGINT        AS resolved_24h,
+                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)::BIGINT             AS sla_breached,
+                COALESCE(AVG(CASE
+                    WHEN t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0
+                END), 0)::DOUBLE PRECISION                                            AS avg_resolution_hours,
+                COALESCE(AVG(CAST(cs.rating AS DOUBLE PRECISION)), 0)::DOUBLE PRECISION AS csat_avg
+            FROM ticket_claims tc
+            JOIN tickets t        ON t.id = tc.ticket_id
+            LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+            WHERE tc.agent_id IN (:agentIds)
+              AND (:filterByProduct = false OR t.product_id IN (:productIds))
+            GROUP BY tc.agent_id
+            """, nativeQuery = true)
+    List<Object[]> findAgentPerformanceMetricsScoped(@Param("agentIds") List<String> agentIds,
+                                                     @Param("since24h") ZonedDateTime since24h,
+                                                     @Param("filterByProduct") boolean filterByProduct,
+                                                     @Param("productIds") List<Long> productIds);
+
     // =========================================================================
     // Genel filtreli sorgular — tüm yeni filtre parametrelerini destekler
     // (searchPattern, status, priority, productId, agentId, slaStatus, dateFrom, dateTo)
@@ -928,26 +956,68 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t.status, COUNT(t) FROM Ticket t GROUP BY t.status")
     List<Object[]> countTicketsGroupedByStatus();
 
+    /** Product-scoped variant of {@link #countTicketsGroupedByStatus}. */
+    @Query("SELECT t.status, COUNT(t) FROM Ticket t "
+         + "WHERE (:filterByProduct = false OR t.productId IN :productIds) GROUP BY t.status")
+    List<Object[]> countTicketsGroupedByStatusScoped(@Param("filterByProduct") boolean filterByProduct,
+                                                     @Param("productIds") List<Long> productIds);
+
     /** Total ticket count for the given statuses (typically the "open" status list). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses")
     Long countByStatusIn(@Param("statuses") List<String> statuses);
 
+    /** Product-scoped variant of {@link #countByStatusIn}. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds)")
+    Long countByStatusInScoped(@Param("statuses") List<String> statuses,
+                               @Param("filterByProduct") boolean filterByProduct,
+                               @Param("productIds") List<Long> productIds);
+
     /** Count of SLA-breached tickets among those in the given statuses. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true")
     Long countSlaBreachedByStatusIn(@Param("statuses") List<String> statuses);
+
+    /** Product-scoped variant of {@link #countSlaBreachedByStatusIn}. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds)")
+    Long countSlaBreachedByStatusInScoped(@Param("statuses") List<String> statuses,
+                                          @Param("filterByProduct") boolean filterByProduct,
+                                          @Param("productIds") List<Long> productIds);
 
     /** Count of tickets created since the given date that match the status filter (for KPIs). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since")
     Long countCreatedSinceByStatusIn(@Param("statuses") List<String> statuses,
                                       @Param("since") java.time.ZonedDateTime since);
 
+    /** Product-scoped variant of {@link #countCreatedSinceByStatusIn}. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds)")
+    Long countCreatedSinceByStatusInScoped(@Param("statuses") List<String> statuses,
+                                           @Param("since") java.time.ZonedDateTime since,
+                                           @Param("filterByProduct") boolean filterByProduct,
+                                           @Param("productIds") List<Long> productIds);
+
     /** Priority-based distribution of tickets in the given statuses: each row is {@code [priority, count]}. */
     @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses GROUP BY t.priority")
     List<Object[]> countByStatusInGroupByPriority(@Param("statuses") List<String> statuses);
 
+    /** Product-scoped variant of {@link #countByStatusInGroupByPriority}. */
+    @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) GROUP BY t.priority")
+    List<Object[]> countByStatusInGroupByPriorityScoped(@Param("statuses") List<String> statuses,
+                                                        @Param("filterByProduct") boolean filterByProduct,
+                                                        @Param("productIds") List<Long> productIds);
+
     /** Average resolution time for RESOLVED tickets (hours) — all time. */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t WHERE t.status = 'RESOLVED' AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL", nativeQuery = true)
     Double findAvgResolutionHoursForResolved();
+
+    /** Product-scoped variant of {@link #findAvgResolutionHoursForResolved}. */
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t "
+         + "WHERE t.status = 'RESOLVED' AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL "
+         + "AND (:filterByProduct = false OR t.product_id IN (:productIds))", nativeQuery = true)
+    Double findAvgResolutionHoursForResolvedScoped(@Param("filterByProduct") boolean filterByProduct,
+                                                   @Param("productIds") List<Long> productIds);
 
     /** Total tickets created since the given date. */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.createdAt >= :since")
@@ -991,9 +1061,35 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             """, nativeQuery = true)
     List<Object[]> findWorklogCompletionAggregates(@Param("since") ZonedDateTime since);
 
+    /** Product-scoped variant of {@link #findWorklogCompletionAggregates}. */
+    @Query(value = """
+            SELECT
+                COUNT(*) FILTER (WHERE t.created_at >= :since)::BIGINT AS total_created,
+                COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since)::BIGINT AS total_resolved,
+                COUNT(*) FILTER (WHERE t.status = 'CLOSED' AND t.closed_at >= :since)::BIGINT AS total_closed,
+                AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0)
+                    FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since
+                            AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL) AS avg_resolution_hours,
+                (COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
+                    / NULLIF(COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since), 0) AS sla_compliance_rate
+            FROM tickets t
+            WHERE (:filterByProduct = false OR t.product_id IN (:productIds))
+            """, nativeQuery = true)
+    List<Object[]> findWorklogCompletionAggregatesScoped(@Param("since") ZonedDateTime since,
+                                                         @Param("filterByProduct") boolean filterByProduct,
+                                                         @Param("productIds") List<Long> productIds);
+
     /** Open + SLA-breached tickets, sorted ascending by deadline (for the alert page and the scheduler). */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTickets(@Param("statuses") List<String> statuses, Pageable pageable);
+
+    /** Product-scoped variant of {@link #findBreachedOpenTickets}. */
+    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.slaDeadline ASC")
+    List<Ticket> findBreachedOpenTicketsScoped(@Param("statuses") List<String> statuses,
+                                               @Param("filterByProduct") boolean filterByProduct,
+                                               @Param("productIds") List<Long> productIds,
+                                               Pageable pageable);
 
     /** Tickets with a deadline before {@code before} that have not yet breached and are not paused. */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
@@ -1002,6 +1098,16 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     /** Variant of {@link #findUpcomingBreachTickets} narrowed by priority filter (for the critical-priority scheduler). */
     @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTicketsByPriority(@Param("statuses") List<String> statuses, @Param("priorities") List<String> priorities, @Param("before") ZonedDateTime before, Pageable pageable);
+
+    /** Product-scoped variant of {@link #findUpcomingBreachTicketsByPriority}. */
+    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.slaDeadline ASC")
+    List<Ticket> findUpcomingBreachTicketsByPriorityScoped(@Param("statuses") List<String> statuses,
+                                                           @Param("priorities") List<String> priorities,
+                                                           @Param("before") ZonedDateTime before,
+                                                           @Param("filterByProduct") boolean filterByProduct,
+                                                           @Param("productIds") List<Long> productIds,
+                                                           Pageable pageable);
 
     /**
      * Tickets within the warning threshold for which the "SLA approaching" email has
@@ -1023,11 +1129,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 
+    /** Product-scoped variant of {@link #findWaitingTooLongTickets}. */
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.createdAt ASC")
+    List<Ticket> findWaitingTooLongTicketsScoped(@Param("since") ZonedDateTime since,
+                                                 @Param("filterByProduct") boolean filterByProduct,
+                                                 @Param("productIds") List<Long> productIds,
+                                                 Pageable pageable);
+
     /** Count of tickets with no claims — within the given status filter (typically NEW). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
     long countUnassignedByStatusIn(@Param("statuses") List<String> statuses);
 
+    /** Product-scoped variant of {@link #countUnassignedByStatusIn}. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) "
+         + "AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
+    long countUnassignedByStatusInScoped(@Param("statuses") List<String> statuses,
+                                         @Param("filterByProduct") boolean filterByProduct,
+                                         @Param("productIds") List<Long> productIds);
+
     long countByStatus(String status);
+
+    /** Product-scoped count of tickets in the given status. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = :status "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds)")
+    long countByStatusScoped(@Param("status") String status,
+                             @Param("filterByProduct") boolean filterByProduct,
+                             @Param("productIds") List<Long> productIds);
 
     /**
      * Tickets whose SLA deadline has passed but which are not yet stamped
@@ -1041,6 +1170,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     /** Average time-in-queue (hours) for open tickets, measured from creation to now. */
     @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.created_at)) / 3600.0) FROM tickets t WHERE t.status IN (:statuses) AND t.created_at IS NOT NULL", nativeQuery = true)
     Double avgWaitingHoursForOpen(@Param("statuses") List<String> statuses);
+
+    /** Product-scoped variant of {@link #avgWaitingHoursForOpen}. */
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.created_at)) / 3600.0) FROM tickets t "
+         + "WHERE t.status IN (:statuses) AND t.created_at IS NOT NULL "
+         + "AND (:filterByProduct = false OR t.product_id IN (:productIds))", nativeQuery = true)
+    Double avgWaitingHoursForOpenScoped(@Param("statuses") List<String> statuses,
+                                        @Param("filterByProduct") boolean filterByProduct,
+                                        @Param("productIds") List<Long> productIds);
 
     /**
      * Daily ticket timeline for the last N days — returns per-day counts of tickets
@@ -1079,4 +1216,42 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         ORDER BY metric_date DESC
         """, nativeQuery = true)
     List<Object[]> getTicketTimelineMetrics(int days);
+
+    /**
+     * Product-scoped variant of {@link #getTicketTimelineMetrics}. The product filter is
+     * pushed into the LEFT JOIN so the {@code generate_series} date scaffold is preserved
+     * (days with no in-scope tickets still appear as zero rows). When {@code filterByProduct}
+     * is false the predicate is a no-op and the result matches the global query.
+     */
+    @Query(value = """
+        WITH date_range AS (
+            SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date
+            FROM generate_series(0, ?1 - 1) AS i
+        ),
+        daily_metrics AS (
+            SELECT
+                COALESCE(DATE(t.created_at AT TIME ZONE 'UTC'), dr.metric_date) AS metric_date,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS created_count,
+                COUNT(CASE WHEN DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS resolved_count,
+                COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
+            FROM date_range dr
+            LEFT JOIN tickets t ON
+                (DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date)
+                AND (?2 = false OR t.product_id IN (?3))
+            GROUP BY dr.metric_date, COALESCE(DATE(t.created_at AT TIME ZONE 'UTC'), dr.metric_date)
+        )
+        SELECT
+            metric_date,
+            SUM(created_count)::BIGINT,
+            SUM(resolved_count)::BIGINT,
+            SUM(closed_count)::BIGINT,
+            SUM(sla_breach_count)::BIGINT
+        FROM daily_metrics
+        GROUP BY metric_date
+        ORDER BY metric_date DESC
+        """, nativeQuery = true)
+    List<Object[]> getTicketTimelineMetricsScoped(int days, boolean filterByProduct, List<Long> productIds);
 }

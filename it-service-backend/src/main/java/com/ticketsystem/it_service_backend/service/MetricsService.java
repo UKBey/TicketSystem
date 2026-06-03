@@ -20,7 +20,6 @@ import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogSummaryItemDTO;
-import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
@@ -86,37 +85,87 @@ public class MetricsService {
      */
     private static final List<String> OPEN_STATUSES = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
 
-    @Cacheable(DASHBOARD_SUMMARY)
-    public DashboardMetricsDTO getDashboardSummary() {
-        log.info("Dashboard özet metrikleri hesaplanıyor...");
+    /**
+     * Whether to apply the product filter. A {@code null} {@code productIds} means a
+     * global caller (ADMIN/MANAGER) → no filter. A non-null list (LEAD_AGENT scope)
+     * means filter; an empty list yields zero/empty results (lead authorized on nothing).
+     */
+    private static boolean filterByProduct(List<Long> productIds) {
+        return productIds != null;
+    }
+
+    /**
+     * Resolves the authorized product IDs for a product-scoped (LEAD_AGENT) caller.
+     * Runs inside this service's read-only transaction so the lazy
+     * {@code authorizedProducts} collection initializes safely. A lead authorized on
+     * nothing returns an empty list (→ zero/empty metrics, not the global view).
+     * A missing user likewise yields an empty list rather than leaking global data.
+     *
+     * @param userId the JWT subject (Keycloak UUID)
+     * @return the IDs of products the user is authorized on (possibly empty)
+     */
+    public List<Long> resolveScopedProductIds(String userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        return userRepository.findById(userId)
+                .map(user -> user.getAuthorizedProducts().stream()
+                        .map(p -> p.getId())
+                        .filter(id -> id != null)
+                        .collect(Collectors.toList()))
+                .orElseGet(() -> {
+                    log.warn("Scoped metrics: kullanıcı bulunamadı, boş ürün listesi dönülüyor: {}", userId);
+                    return List.of();
+                });
+    }
+
+    /**
+     * A non-null product id list safe to pass into {@code IN (...)} clauses. When the
+     * caller is global ({@code productIds == null}) the filter flag is false, so the
+     * actual values are ignored — but JPA still requires a non-empty collection to bind
+     * the {@code IN} parameter, hence the placeholder {@code [-1]}.
+     */
+    private static List<Long> safeProductIds(List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return List.of(-1L);
+        }
+        return productIds;
+    }
+
+    @Cacheable(value = DASHBOARD_SUMMARY, key = "#scopeKey")
+    public DashboardMetricsDTO getDashboardSummary(List<Long> productIds, String scopeKey) {
+        log.info("Dashboard özet metrikleri hesaplanıyor... (scope={})", scopeKey);
+
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
 
         // 1. Açık bilet sayısı — tek COUNT sorgusu
-        Long totalOpenTickets = ticketRepository.countByStatusIn(OPEN_STATUSES);
+        Long totalOpenTickets = ticketRepository.countByStatusInScoped(OPEN_STATUSES, filter, pids);
         if (totalOpenTickets == null) totalOpenTickets = 0L;
 
         // 2. Son 24 saatte açılan biletler — tek COUNT sorgusu
         ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
-        Long newTicketsLast24Hours = ticketRepository.countCreatedSinceByStatusIn(OPEN_STATUSES, last24Hours);
+        Long newTicketsLast24Hours = ticketRepository.countCreatedSinceByStatusInScoped(OPEN_STATUSES, last24Hours, filter, pids);
         if (newTicketsLast24Hours == null) newTicketsLast24Hours = 0L;
 
         // 3. SLA breach biletleri — tek COUNT sorgusu
-        Long slaBreachedCount = ticketRepository.countSlaBreachedByStatusIn(OPEN_STATUSES);
+        Long slaBreachedCount = ticketRepository.countSlaBreachedByStatusInScoped(OPEN_STATUSES, filter, pids);
         if (slaBreachedCount == null) slaBreachedCount = 0L;
         Double slaBreachedPercentage = totalOpenTickets > 0
                 ? (double) slaBreachedCount / totalOpenTickets * 100
                 : 0.0;
 
         // 4. Ortalama çözüm süresi — DB'de AVG ile hesaplanır, entity yüklenmiyor
-        Double avgResponseTimeHours = ticketRepository.findAvgResolutionHoursForResolved();
+        Double avgResponseTimeHours = ticketRepository.findAvgResolutionHoursForResolvedScoped(filter, pids);
         if (avgResponseTimeHours == null) avgResponseTimeHours = 0.0;
 
         // 5. CSAT ortalaması — SQL AVG() boş tabloda NULL döner, 0.0 yap
-        Double csatAverage = csatRepository.findAverageRating();
+        Double csatAverage = csatRepository.findAverageRatingScoped(filter, pids);
         if (csatAverage == null) csatAverage = 0.0;
-        Long csatTotalResponses = csatRepository.count();
+        Long csatTotalResponses = csatRepository.countScoped(filter, pids);
 
         // 6. Priority dağılımı — GROUP BY ile tek sorgu
-        PriorityMetricsDTO priorityDistribution = getPriorityDistributionFromDb();
+        PriorityMetricsDTO priorityDistribution = getPriorityDistributionFromDb(filter, pids);
 
         log.info("Dashboard metrikleri hesaplandı: açık={}, SLAbreach={}, CSAT={}, yanıt={}h",
                 totalOpenTickets, slaBreachedCount, csatAverage, avgResponseTimeHours);
@@ -138,11 +187,12 @@ public class MetricsService {
          *
          * @return StatusDistributionDTO — ticket counts for every status
          */
-        @Cacheable(STATUS_DISTRIBUTION)
-        public StatusDistributionDTO getStatusDistribution() {
-                log.info("Ticket durum dağılımı hesaplanıyor...");
+        @Cacheable(value = STATUS_DISTRIBUTION, key = "#scopeKey")
+        public StatusDistributionDTO getStatusDistribution(List<Long> productIds, String scopeKey) {
+                log.info("Ticket durum dağılımı hesaplanıyor... (scope={})", scopeKey);
 
-                List<Object[]> rawRows = ticketRepository.countTicketsGroupedByStatus();
+                List<Object[]> rawRows = ticketRepository.countTicketsGroupedByStatusScoped(
+                                filterByProduct(productIds), safeProductIds(productIds));
 
                 StatusDistributionDTO.StatusDistributionDTOBuilder builder = StatusDistributionDTO.builder()
                                 .newCount(0L)
@@ -177,9 +227,12 @@ public class MetricsService {
      *
      * @return AgentPerformanceDTO — per-agent rows and summary metrics
      */
-    @Cacheable(AGENT_PERFORMANCE)
-    public AgentPerformanceDTO getAgentPerformance() {
-        log.info("Agent performans metrikleri hesaplanıyor...");
+    @Cacheable(value = AGENT_PERFORMANCE, key = "#scopeKey")
+    public AgentPerformanceDTO getAgentPerformance(List<Long> productIds, String scopeKey) {
+        log.info("Agent performans metrikleri hesaplanıyor... (scope={})", scopeKey);
+
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
 
         List<User> agents = Stream.concat(
                 userRepository.findByRole("AGENT").stream(),
@@ -202,13 +255,13 @@ public class MetricsService {
         // DB tarafında aggregate ediliyor — eski 3 findAll() yerine 2 sorgu.
         // Sonuç [agent_id, active, resolved24h, slaBreached, avgResolutionHours, csatAvg]
         Map<String, Object[]> metricsByAgent = agentIds.isEmpty() ? Map.of()
-                : ticketRepository.findAgentPerformanceMetrics(agentIds, last24Hours).stream()
+                : ticketRepository.findAgentPerformanceMetricsScoped(agentIds, last24Hours, filter, pids).stream()
                         .collect(Collectors.toMap(
                                 row -> (String) row[0],
                                 row -> row,
                                 (left, right) -> left));
 
-        Map<String, Long> worklogMinutesByAgent = worklogRepository.findAgentWorklogSummary(last7Days).stream()
+        Map<String, Long> worklogMinutesByAgent = worklogRepository.findAgentWorklogSummaryScoped(last7Days, filter, pids).stream()
                 .collect(Collectors.toMap(
                         row -> (String) row[0],
                         row -> ((Number) row[1]).longValue(),
@@ -275,8 +328,8 @@ public class MetricsService {
                 .build();
     }
 
-    private PriorityMetricsDTO getPriorityDistributionFromDb() {
-        List<Object[]> rows = ticketRepository.countByStatusInGroupByPriority(OPEN_STATUSES);
+    private PriorityMetricsDTO getPriorityDistributionFromDb(boolean filter, List<Long> productIds) {
+        List<Object[]> rows = ticketRepository.countByStatusInGroupByPriorityScoped(OPEN_STATUSES, filter, productIds);
 
         long critical = 0, high = 0, medium = 0, low = 0;
         for (Object[] row : rows) {
@@ -306,14 +359,15 @@ public class MetricsService {
      * @param days number of days to include (defaults to 30)
      * @return TicketTimelineDTO — timeline of daily metrics
      */
-    @Cacheable(value = TICKET_TIMELINE, key = "#days")
-    public TicketTimelineDTO getTicketTimeline(int days) {
-        log.info("Ticket timeline metrikleri hesaplanıyor... (days={})", days);
+    @Cacheable(value = TICKET_TIMELINE, key = "#scopeKey + ':' + #days")
+    public TicketTimelineDTO getTicketTimeline(int days, List<Long> productIds, String scopeKey) {
+        log.info("Ticket timeline metrikleri hesaplanıyor... (days={}, scope={})", days, scopeKey);
 
         // Maksimum 365 gün sınırlaması
         int safeDays = Math.min(Math.max(days, 1), 365);
 
-        List<Object[]> rawRows = ticketRepository.getTicketTimelineMetrics(safeDays);
+        List<Object[]> rawRows = ticketRepository.getTicketTimelineMetricsScoped(
+                safeDays, filterByProduct(productIds), safeProductIds(productIds));
 
         List<DailyMetricsDTO> timeline = rawRows.stream()
                 .map(row -> DailyMetricsDTO.builder()
@@ -369,9 +423,9 @@ public class MetricsService {
      * @param days window in days; null or 0 means all time
      * @return PrioritySLAMetricsDTO — per-priority detail rows
      */
-    @Cacheable(value = PRIORITY_SLA_METRICS, key = "#days == null ? 'all' : #days")
-    public PrioritySLAMetricsDTO getPrioritySlaMetrics(Integer days) {
-        log.info("Priority-SLA metrikleri hesaplanıyor (days={})...", days);
+    @Cacheable(value = PRIORITY_SLA_METRICS, key = "#scopeKey + ':' + (#days == null ? 'all' : #days)")
+    public PrioritySLAMetricsDTO getPrioritySlaMetrics(Integer days, List<Long> productIds, String scopeKey) {
+        log.info("Priority-SLA metrikleri hesaplanıyor (days={}, scope={})...", days, scopeKey);
 
         Map<String, Integer> priorityHours = Map.of(
                 "CRITICAL", slaPolicyService.getResolutionHours("CRITICAL"),
@@ -380,7 +434,8 @@ public class MetricsService {
                 "LOW",      slaPolicyService.getResolutionHours("LOW")
         );
 
-        List<Object[]> rawRows = slaPolicyRepository.findPrioritySlaMetrics(priorityHours, days);
+        // productIds == null → global (no product filter); non-null → lead-scoped.
+        List<Object[]> rawRows = slaPolicyRepository.findPrioritySlaMetrics(priorityHours, days, productIds);
 
         List<PriorityDetailDTO> details = rawRows.stream()
                 .map(row -> PriorityDetailDTO.builder()
@@ -410,12 +465,13 @@ public class MetricsService {
      * @param days window in days; null or 0 means all time
      * @return ProductMetricsDTO — per-product detail rows
      */
-    @Cacheable(value = PRODUCT_METRICS, key = "#days == null ? 'all' : #days")
-    public ProductMetricsDTO getProductMetrics(Integer days) {
-        log.info("Ürün bazında bilet metrikleri hesaplanıyor (days={})...", days);
+    @Cacheable(value = PRODUCT_METRICS, key = "#scopeKey + ':' + (#days == null ? 'all' : #days)")
+    public ProductMetricsDTO getProductMetrics(Integer days, List<Long> productIds, String scopeKey) {
+        log.info("Ürün bazında bilet metrikleri hesaplanıyor (days={}, scope={})...", days, scopeKey);
 
         Integer dayWindow = (days != null && days > 0) ? days : null;
-        List<Object[]> rawRows = productRepository.findProductMetrics(dayWindow);
+        List<Object[]> rawRows = productRepository.findProductMetricsScoped(
+                dayWindow, filterByProduct(productIds), safeProductIds(productIds));
 
         List<ProductDetailDTO> products = rawRows.stream()
                 .map(row -> ProductDetailDTO.builder()
@@ -446,14 +502,17 @@ public class MetricsService {
      * @param months window length in months — between 1 and 12
      * @return CSAT metrics summary DTO
      */
-    @Cacheable(value = CSAT_METRICS, key = "#months")
-    public CSATMetricsDTO getCSATMetrics(int months) {
+    @Cacheable(value = CSAT_METRICS, key = "#scopeKey + ':' + #months")
+    public CSATMetricsDTO getCSATMetrics(int months, List<Long> productIds, String scopeKey) {
         int safeMonths = Math.max(1, Math.min(months, 12));
         ZonedDateTime since = ZonedDateTime.now().minusMonths(safeMonths);
         ZonedDateTime thisMonthStart = ZonedDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
         ZonedDateTime lastMonthStart = thisMonthStart.minusMonths(1);
 
-        List<Object[]> rawDist = csatRepository.findRatingDistributionSince(since);
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
+
+        List<Object[]> rawDist = csatRepository.findRatingDistributionSinceScoped(since, filter, pids);
         Map<Integer, Long> ratingDistribution = new HashMap<>();
         long totalResponses = 0;
         for (Object[] row : rawDist) {
@@ -463,16 +522,16 @@ public class MetricsService {
             totalResponses += count;
         }
 
-        Double avg = csatRepository.findAverageRatingSince(since);
+        Double avg = csatRepository.findAverageRatingSinceScoped(since, filter, pids);
         double averageRating = avg != null ? avg : 0.0;
 
-        Double thisMonthAvg = csatRepository.findAverageRatingSince(thisMonthStart);
-        Double lastMonthAvg = csatRepository.findAverageRatingSince(lastMonthStart);
+        Double thisMonthAvg = csatRepository.findAverageRatingSinceScoped(thisMonthStart, filter, pids);
+        Double lastMonthAvg = csatRepository.findAverageRatingSinceScoped(lastMonthStart, filter, pids);
         double thisMonth = thisMonthAvg != null ? thisMonthAvg : 0.0;
         double lastMonth = lastMonthAvg != null ? lastMonthAvg : 0.0;
         String trendDir = thisMonth > lastMonth + 0.05 ? "UP" : thisMonth < lastMonth - 0.05 ? "DOWN" : "STABLE";
 
-        List<Object[]> rawPriority = csatRepository.findAverageRatingByPrioritySince(since);
+        List<Object[]> rawPriority = csatRepository.findAverageRatingByPrioritySinceScoped(since, filter, pids);
         Map<String, CSATPriorityItemDTO> byPriority = new HashMap<>();
         for (Object[] row : rawPriority) {
             String priority = String.valueOf(row[0]);
@@ -484,7 +543,7 @@ public class MetricsService {
                     .build());
         }
 
-        List<String> topComments = csatRepository.findTopPositiveCommentsSince(since, PageRequest.of(0, 5));
+        List<String> topComments = csatRepository.findTopPositiveCommentsSinceScoped(since, filter, pids, PageRequest.of(0, 5));
 
         return CSATMetricsDTO.builder()
                 .totalResponses(totalResponses)
@@ -511,14 +570,18 @@ public class MetricsService {
      *
      * @return DTO carrying alert lists and backlog metrics
      */
-    public AlertsBacklogDTO getAlertsAndBacklog() {
+    public AlertsBacklogDTO getAlertsAndBacklog(List<Long> productIds, String scopeKey) {
+        log.debug("Alert ve backlog metrikleri hesaplanıyor... (scope={})", scopeKey);
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
         List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime waitingThreshold = now.minusDays(3);
         PageRequest top10 = PageRequest.of(0, 10);
 
-        List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTickets(openStatuses, top10);
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
+
+        List<Ticket> breachedTickets = ticketRepository.findBreachedOpenTicketsScoped(openStatuses, filter, pids, top10);
 
         // Fetch upcoming-breach tickets per priority using the configured warning threshold,
         // then merge, deduplicate, sort by deadline, and cap at 10.
@@ -527,8 +590,8 @@ public class MetricsService {
                 .flatMap(priority -> {
                     double thresholdHours = slaPolicyService.getWarningThresholdHours(priority);
                     ZonedDateTime window = now.plusHours((long) thresholdHours);
-                    return ticketRepository.findUpcomingBreachTicketsByPriority(
-                            activeStatuses, List.of(priority), window, top10).stream();
+                    return ticketRepository.findUpcomingBreachTicketsByPriorityScoped(
+                            activeStatuses, List.of(priority), window, filter, pids, top10).stream();
                 })
                 .collect(Collectors.toMap(Ticket::getId, t -> t, (a, b) -> a))
                 .values().stream()
@@ -536,7 +599,7 @@ public class MetricsService {
                 .sorted(Comparator.comparing(Ticket::getSlaDeadline))
                 .limit(10)
                 .toList();
-        List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTickets(waitingThreshold, top10);
+        List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTicketsScoped(waitingThreshold, filter, pids, top10);
 
         // Tüm müşteri ID'lerini tek sorguda çek
         Set<String> customerIds = Stream.of(breachedTickets, upcomingTickets, waitingTickets)
@@ -591,9 +654,9 @@ public class MetricsService {
                         .build())
                 .toList();
 
-        long unassigned = ticketRepository.countUnassignedByStatusIn(openStatuses);
-        long newWaiting = ticketRepository.countByStatus("NEW");
-        Double avgWaiting = ticketRepository.avgWaitingHoursForOpen(openStatuses);
+        long unassigned = ticketRepository.countUnassignedByStatusInScoped(openStatuses, filter, pids);
+        long newWaiting = ticketRepository.countByStatusScoped("NEW", filter, pids);
+        Double avgWaiting = ticketRepository.avgWaitingHoursForOpenScoped(openStatuses, filter, pids);
 
         return AlertsBacklogDTO.builder()
                 .breachedSLA(breachedSLA)
@@ -618,13 +681,16 @@ public class MetricsService {
      * @param days window in days
      * @return worklog summaries and completion rates
      */
-    @Cacheable(value = WORKLOG_COMPLETION, key = "#days")
-    public WorklogCompletionDTO getWorklogCompletion(int days) {
+    @Cacheable(value = WORKLOG_COMPLETION, key = "#scopeKey + ':' + #days")
+    public WorklogCompletionDTO getWorklogCompletion(int days, List<Long> productIds, String scopeKey) {
         int safeDays = Math.max(1, Math.min(days, 365));
         ZonedDateTime since = ZonedDateTime.now().minusDays(safeDays);
 
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
+
         // B-9: Agent name lookup N+1'i kaldirildi — tum agent'lari tek findAllById ile cek.
-        List<Object[]> rawWorklogs = worklogRepository.findAgentWorklogSummary(since);
+        List<Object[]> rawWorklogs = worklogRepository.findAgentWorklogSummaryScoped(since, filter, pids);
         List<String> agentIds = rawWorklogs.stream()
                 .map(row -> String.valueOf(row[0]))
                 .toList();
@@ -648,7 +714,7 @@ public class MetricsService {
                 .toList();
 
         // B-9: 5 ayri COUNT/AVG sorgusu yerine PostgreSQL FILTER ile tek aggregated query.
-        List<Object[]> aggregates = ticketRepository.findWorklogCompletionAggregates(since);
+        List<Object[]> aggregates = ticketRepository.findWorklogCompletionAggregatesScoped(since, filter, pids);
         Object[] row = aggregates.isEmpty() ? new Object[]{0L, 0L, 0L, null, null} : aggregates.get(0);
         long totalCreated  = row[0] != null ? ((Number) row[0]).longValue() : 0L;
         long totalResolved = row[1] != null ? ((Number) row[1]).longValue() : 0L;

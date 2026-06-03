@@ -31,4 +31,21 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
            "GROUP BY w.agentId " +
            "ORDER BY SUM(w.minutes) DESC")
     List<Object[]> findAgentWorklogSummary(@Param("since") ZonedDateTime since);
+
+    /**
+     * Product-scoped variant of {@link #findAgentWorklogSummary}. Joins worklogs to
+     * their ticket so the filter applies on the ticket's product. When
+     * {@code filterByProduct} is false the result matches the global query.
+     * Returns: each row is {@code [agent_id, total_minutes, worklog_count]}.
+     */
+    @Query(value = "SELECT w.agent_id, SUM(w.minutes), COUNT(w.id) " +
+           "FROM ticket_worklogs w " +
+           "JOIN tickets t ON t.id = w.ticket_id " +
+           "WHERE w.created_at >= :since " +
+           "AND (:filterByProduct = false OR t.product_id IN (:productIds)) " +
+           "GROUP BY w.agent_id " +
+           "ORDER BY SUM(w.minutes) DESC", nativeQuery = true)
+    List<Object[]> findAgentWorklogSummaryScoped(@Param("since") ZonedDateTime since,
+                                                 @Param("filterByProduct") boolean filterByProduct,
+                                                 @Param("productIds") List<Long> productIds);
 }

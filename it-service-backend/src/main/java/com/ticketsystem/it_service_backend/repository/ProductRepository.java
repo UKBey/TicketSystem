@@ -44,4 +44,37 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             ORDER BY total_tickets DESC
             """, nativeQuery = true)
     List<Object[]> findProductMetrics(@Param("days") Integer days);
+
+    /**
+     * Product-scoped variant of {@link #findProductMetrics}. When {@code filterByProduct}
+     * is true only products in {@code productIds} are returned, so a LEAD_AGENT sees only
+     * their authorized products; otherwise the result matches the global query.
+     */
+    @Query(value = """
+            SELECT
+                p.id,
+                p.name,
+                COUNT(t.id)                                                         AS total_tickets,
+                COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END) AS open_tickets,
+                AVG(CASE WHEN t.resolved_at IS NOT NULL
+                    THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0 END) AS avg_resolution_hours,
+                AVG(CAST(cs.rating AS DOUBLE PRECISION))                            AS csat_average,
+                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)                  AS sla_breach_count,
+                CASE WHEN COUNT(t.id) > 0
+                    THEN ROUND(COUNT(CASE WHEN t.sla_breached = true THEN 1 END) * 100.0 / COUNT(t.id), 2)
+                    ELSE 0
+                END                                                                 AS sla_breach_percentage
+            FROM products p
+            LEFT JOIN tickets t ON t.product_id = p.id
+                AND (CAST(:days AS INTEGER) IS NULL
+                     OR t.created_at >= NOW() - make_interval(days => CAST(:days AS INTEGER)))
+            LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+            WHERE p.is_active = true
+              AND (:filterByProduct = false OR p.id IN (:productIds))
+            GROUP BY p.id, p.name
+            ORDER BY total_tickets DESC
+            """, nativeQuery = true)
+    List<Object[]> findProductMetricsScoped(@Param("days") Integer days,
+                                            @Param("filterByProduct") boolean filterByProduct,
+                                            @Param("productIds") List<Long> productIds);
 }

@@ -10,6 +10,8 @@ import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.service.MetricsService;
+import com.ticketsystem.it_service_backend.util.AuthRoles;
+import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,13 +20,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * REST controller for the manager dashboard's KPIs and analytic metrics.
@@ -41,6 +46,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class MetricsController {
 
     private final MetricsService metricsService;
+
+    /**
+     * Resolved metric visibility scope for the calling user.
+     *
+     * @param productIds {@code null} for a global caller (ADMIN/MANAGER, no filter);
+     *                   otherwise the LEAD_AGENT's authorized product IDs (possibly empty)
+     * @param scopeKey   cache-key discriminator: {@code "global"} for global callers,
+     *                   the user id for product-scoped callers — so global and per-lead
+     *                   results never share a cache entry
+     */
+    private record MetricsScope(List<Long> productIds, String scopeKey) {}
+
+    /**
+     * Computes the metric scope from the JWT. ADMIN/MANAGER see everything (global);
+     * a pure LEAD_AGENT is restricted to the products they are authorized on.
+     */
+    private MetricsScope resolveScope(Jwt jwt) {
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        if (AuthRoles.isGlobal(roles)) {
+            return new MetricsScope(null, "global");
+        }
+        String userId = jwt.getSubject();
+        List<Long> productIds = metricsService.resolveScopedProductIds(userId);
+        return new MetricsScope(productIds, userId);
+    }
 
     /**
      * Dashboard summary metrics endpoint.
@@ -72,12 +102,12 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'dashboard-summary'")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/dashboard-summary")
-    public ResponseEntity<DashboardMetricsDTO> getDashboardSummary() {
-        log.debug("Dashboard özet metrikleri istendi");
-        DashboardMetricsDTO metrics = metricsService.getDashboardSummary();
+    public ResponseEntity<DashboardMetricsDTO> getDashboardSummary(@AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Dashboard özet metrikleri istendi (scope={})", scope.scopeKey());
+        DashboardMetricsDTO metrics = metricsService.getDashboardSummary(scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(metrics);
     }
 
@@ -110,12 +140,12 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'status-distribution'")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/status-distribution")
-    public ResponseEntity<StatusDistributionDTO> getStatusDistribution() {
-        log.debug("Ticket durum dağılımı istendi");
-        StatusDistributionDTO distribution = metricsService.getStatusDistribution();
+    public ResponseEntity<StatusDistributionDTO> getStatusDistribution(@AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Ticket durum dağılımı istendi (scope={})", scope.scopeKey());
+        StatusDistributionDTO distribution = metricsService.getStatusDistribution(scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(distribution);
     }
 
@@ -148,12 +178,12 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'agent-performance'")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/agent-performance")
-    public ResponseEntity<AgentPerformanceDTO> getAgentPerformance() {
-        log.debug("Ajan performans leaderboard isteği alındı");
-        AgentPerformanceDTO performance = metricsService.getAgentPerformance();
+    public ResponseEntity<AgentPerformanceDTO> getAgentPerformance(@AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Ajan performans leaderboard isteği alındı (scope={})", scope.scopeKey());
+        AgentPerformanceDTO performance = metricsService.getAgentPerformance(scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(performance);
     }
 
@@ -188,13 +218,14 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'ticket-timeline-' + #days")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/ticket-timeline")
     public ResponseEntity<TicketTimelineDTO> getTicketTimeline(
-            @RequestParam(defaultValue = "30") int days) {
-        log.debug("Ticket timeline metrikleri istendi (days={})", days);
-        TicketTimelineDTO timeline = metricsService.getTicketTimeline(days);
+            @RequestParam(defaultValue = "30") int days,
+            @AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Ticket timeline metrikleri istendi (days={}, scope={})", days, scope.scopeKey());
+        TicketTimelineDTO timeline = metricsService.getTicketTimeline(days, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(timeline);
     }
 
@@ -230,9 +261,11 @@ public class MetricsController {
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/priority-sla-metrics")
     public ResponseEntity<PrioritySLAMetricsDTO> getPrioritySlaMetrics(
-            @RequestParam(required = false) Integer days) {
-        log.debug("Priority-SLA metrikleri istendi (days={})", days);
-        PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics(days);
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Priority-SLA metrikleri istendi (days={}, scope={})", days, scope.scopeKey());
+        PrioritySLAMetricsDTO metrics = metricsService.getPrioritySlaMetrics(days, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(metrics);
     }
 
@@ -268,9 +301,11 @@ public class MetricsController {
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/product-metrics")
     public ResponseEntity<ProductMetricsDTO> getProductMetrics(
-            @RequestParam(required = false) Integer days) {
-        log.debug("Ürün bazında bilet metrikleri istendi (days={})", days);
-        ProductMetricsDTO metrics = metricsService.getProductMetrics(days);
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Ürün bazında bilet metrikleri istendi (days={}, scope={})", days, scope.scopeKey());
+        ProductMetricsDTO metrics = metricsService.getProductMetrics(days, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(metrics);
     }
 
@@ -305,13 +340,14 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'csat-metrics-' + #months")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/csat-metrics")
     public ResponseEntity<CSATMetricsDTO> getCSATMetrics(
-            @RequestParam(defaultValue = "3") int months) {
-        log.debug("CSAT detaylı metrikleri istendi (months={})", months);
-        CSATMetricsDTO metrics = metricsService.getCSATMetrics(months);
+            @RequestParam(defaultValue = "3") int months,
+            @AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("CSAT detaylı metrikleri istendi (months={}, scope={})", months, scope.scopeKey());
+        CSATMetricsDTO metrics = metricsService.getCSATMetrics(months, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(metrics);
     }
 
@@ -347,9 +383,10 @@ public class MetricsController {
     })
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/alerts-backlog")
-    public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog() {
-        log.debug("Alert ve backlog metrikleri istendi");
-        AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog();
+    public ResponseEntity<AlertsBacklogDTO> getAlertsAndBacklog(@AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Alert ve backlog metrikleri istendi (scope={})", scope.scopeKey());
+        AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog(scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(dto);
     }
 
@@ -383,13 +420,14 @@ public class MetricsController {
                     description = "Sunucu hatası"
             )
     })
-    @Cacheable(value = "metrics", key = "'worklog-completion-' + #days")
     @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
     @GetMapping("/worklog-completion")
     public ResponseEntity<WorklogCompletionDTO> getWorklogCompletion(
-            @RequestParam(defaultValue = "30") int days) {
-        log.debug("Worklog ve tamamlanma metrikleri istendi (days={})", days);
-        WorklogCompletionDTO dto = metricsService.getWorklogCompletion(days);
+            @RequestParam(defaultValue = "30") int days,
+            @AuthenticationPrincipal Jwt jwt) {
+        MetricsScope scope = resolveScope(jwt);
+        log.debug("Worklog ve tamamlanma metrikleri istendi (days={}, scope={})", days, scope.scopeKey());
+        WorklogCompletionDTO dto = metricsService.getWorklogCompletion(days, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(dto);
     }
 }
