@@ -76,6 +76,18 @@ kind load docker-image local/it-service-backend:latest --name ticketsystem
 kubectl -n ticketsystem rollout restart deploy/it-service-backend
 ```
 
+### Stopping & resuming
+
+- **Pause without losing data:** `make k8s-stop` — stops the kind node container
+  (`ticketsystem-control-plane`). All PVCs (Postgres `ticketdb`/`keycloakdb`, etc.) and
+  cluster/etcd state live inside that container, so they survive. Resume with
+  **`make k8s-start`**; pods recover on their own.
+- **Tear down everything:** `make k8s-down` — **deletes** the kind cluster, including all
+  PVCs and data. Use this only when you want a clean slate (next bringup re-seeds from scratch).
+
+> After a full Docker Desktop / PC restart the kind container usually auto-starts; if not,
+> `make k8s-start` (or `make k8s-rebuild`, which also handles a missing/stopped cluster).
+
 ### First-time Keycloak setup
 
 `realm-export.json` ships with the `ticket-client` confidential client's secret

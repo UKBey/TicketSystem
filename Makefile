@@ -8,8 +8,8 @@
         sonar sonar-up sonar-down \
         lint install clean \
         gen gen-host gen-k8s gen-build gen-run \
-        k8s-up k8s-down k8s-logs k8s-build k8s-load-images k8s-render k8s-rebuild \
-        k8s-ensure k8s-apply k8s-restart-all k8s-redeploy-kjar _k8s-create _k8s-start
+        k8s-up k8s-down k8s-stop k8s-start k8s-logs k8s-build k8s-load-images k8s-render k8s-rebuild \
+        k8s-ensure k8s-apply k8s-restart-all k8s-redeploy-kjar k8s-seed-roles _k8s-create _k8s-start
 
 BACKEND_DIR  := it-service-backend
 FRONTEND_DIR := it-service-frontend
@@ -110,6 +110,8 @@ help:
 	@echo    k8s-build        - Tum k8s imajlarini build eder
 	@echo    k8s-up           - Tum stacki kind clustera ilk kez deploy eder - overlay: local
 	@echo    k8s-down         - kind clusteri SILER - PVCler dahil tum data gider
+	@echo    k8s-stop         - Cluster'i SILMEDEN durdurur - veriler korunur - devam: k8s-start
+	@echo    k8s-start        - Durdurulmus cluster'i yeniden baslatir - veriler korunur
 	@echo    k8s-logs s=deploy - Tek deploymentin loglarini izler
 	@echo    k8s-load-images  - Lokal Docker imajlarini kinde yukler
 	@echo    k8s-render       - Manifestleri stdouta render eder - debug
@@ -343,6 +345,16 @@ k8s-up:
 
 k8s-down:
 	kind delete cluster --name $(KIND_CLUSTER)
+
+# Cluster'i SILMEDEN durdurur: node container'i durur ama PVC + etcd state korunur
+# (veri GITMEZ). Devam: make k8s-start. (make k8s-down ise cluster'i + TUM veriyi siler.)
+k8s-stop:
+	docker stop $(KIND_CLUSTER)-control-plane
+
+# Durdurulmus cluster'i yeniden baslatir (veriler korunur; pod'lar otomatik toparlanir).
+k8s-start:
+	docker start $(KIND_CLUSTER)-control-plane
+	@echo Cluster baslatildi. Pod durumu: kubectl -n $(K8S_NAMESPACE) get pods -w
 
 k8s-logs:
 	kubectl -n $(K8S_NAMESPACE) logs -f deploy/$(s)
