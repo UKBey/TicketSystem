@@ -10,6 +10,7 @@ import {
   updateKnownIssue,
   deleteKnownIssue,
 } from '../services/api';
+import PaginationBar from '../components/PaginationBar';
 
 /**
  * Sıkça Karşılaşılan Sorunlar sayfası.
@@ -33,6 +34,10 @@ export default function KnownIssuesPage() {
   const [items, setItems]                       = useState([]);
   const [loading, setLoading]                   = useState(false);
   const [error, setError]                       = useState('');
+
+  // Sayfalama — liste tek seferde çekildiği için istemci tarafında dilimlenir.
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing]         = useState(null);
@@ -96,6 +101,20 @@ export default function KnownIssuesPage() {
   }, [selectedProductId, topicFilter, canManage, t]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
+
+  // ---------------------------------------------------------------
+  // Sayfalama hesapları
+  // ---------------------------------------------------------------
+  const totalPages = Math.ceil(items.length / size);
+  const paginated  = items.slice(page * size, page * size + size);
+
+  // Ürün/topic filtresi değişince ilk sayfaya dön.
+  useEffect(() => { setPage(0); }, [selectedProductId, topicFilter]);
+
+  // Silme/azalma sonrası mevcut sayfa aralık dışında kalırsa son geçerli sayfaya çek.
+  useEffect(() => {
+    if (page > 0 && page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
 
   // ---------------------------------------------------------------
   // Modal akışı
@@ -262,7 +281,7 @@ export default function KnownIssuesPage() {
           className="rounded-xl border overflow-hidden"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
         >
-          {items.map((item, idx) => {
+          {paginated.map((item, idx) => {
             const isOpen = expandedIds.has(item.id);
             return (
               <div
@@ -341,6 +360,14 @@ export default function KnownIssuesPage() {
               </div>
             );
           })}
+          <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            totalItems={items.length}
+            size={size}
+            onPageChange={setPage}
+            onSizeChange={(s) => { setSize(s); setPage(0); }}
+          />
         </div>
       )}
 

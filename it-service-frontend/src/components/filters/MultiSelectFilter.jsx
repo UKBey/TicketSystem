@@ -32,7 +32,7 @@ export default function MultiSelectFilter({
   const [alignRight, setAlignRight] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef(null);
-  const buttonRef = useRef(null);
+  const dropdownRef = useRef(null);
   const hasValue = values.length > 0;
 
   useEffect(() => {
@@ -48,12 +48,27 @@ export default function MultiSelectFilter({
     ? options.filter((o) => String(o.label).toLowerCase().includes(query.trim().toLowerCase()))
     : options;
 
-  // Dropdown açıldığında ekrana sığmıyorsa otomatik sağa hizala.
+  // Açıldıktan sonra gerçek dropdown genişliğini ölç: sola hizalı hâli en yakın
+  // yatay-kırpan ata kutusunu (örn. overflow-hidden kart) ya da ekranı taşıyorsa
+  // sağa hizala — böylece liste/kartın sağ kenarından dışarı taşmaz/kırpılmaz.
   useEffect(() => {
-    if (!open || !buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const DROPDOWN_MIN_WIDTH = 200;
-    setAlignRight(rect.left + DROPDOWN_MIN_WIDTH > window.innerWidth - 8);
+    if (!open) return;
+    const dd = dropdownRef.current;
+    if (!dd) return;
+    const rect = dd.getBoundingClientRect();
+    let limit = window.innerWidth - 8;
+    let p = ref.current?.parentElement;
+    while (p && p !== document.body) {
+      const ox = getComputedStyle(p).overflowX;
+      if (ox === 'hidden' || ox === 'auto' || ox === 'scroll') {
+        limit = Math.min(limit, p.getBoundingClientRect().right - 8);
+        break;
+      }
+      p = p.parentElement;
+    }
+    // Açılışta handler alignRight'ı false'a çeker; burada sola hizalı ölçüme göre
+    // gerekirse sağa çevrilir (alignRight dep listesinde değil → cascade yok).
+    setAlignRight(rect.right > limit);
   }, [open]);
 
   const toggle = (val) => {
@@ -71,10 +86,9 @@ export default function MultiSelectFilter({
   return (
     <div className="relative w-full sm:w-auto" ref={ref}>
       <button
-        ref={buttonRef}
         type="button"
         disabled={disabled}
-        onClick={() => { if (disabled) return; if (!open) setQuery(''); setOpen((v) => !v); }}
+        onClick={() => { if (disabled) return; if (!open) { setQuery(''); setAlignRight(false); } setOpen((v) => !v); }}
         className="w-full sm:w-auto sm:min-w-[10rem] sm:max-w-[var(--msf-max-w)] inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
@@ -89,6 +103,7 @@ export default function MultiSelectFilter({
 
       {open && !disabled && (
         <div
+          ref={dropdownRef}
           className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[200px] flex flex-col max-h-[320px]`}
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
