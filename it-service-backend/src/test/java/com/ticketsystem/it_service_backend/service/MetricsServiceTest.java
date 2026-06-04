@@ -678,18 +678,18 @@ class MetricsServiceTest {
         void mapsRowAndComputesRate() {
             String agent = "agent-1";
             // [active, resolved24, resolved7, resolved30, slaBreached, totalClaimed, avgRes, csatAvg, csatCount]
-            when(ticketRepository.findAgentSelfMetrics(eq(agent), any(), any(), any())).thenReturn(List.<Object[]>of(
+            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), any(), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
                     new Object[]{7L, 3L, 18L, 64L, 4L, 120L, 5.1, 4.4, 52L}
             ));
-            when(worklogRepository.sumAgentWorklogMinutesSince(eq(agent), any(ZonedDateTime.class))).thenReturn(640L);
-            when(ticketRepository.countClaimedTicketsGroupedByStatus(agent)).thenReturn(List.<Object[]>of(
+            when(worklogRepository.sumAgentWorklogMinutesSinceScoped(eq(agent), any(ZonedDateTime.class), anyBoolean(), anyList())).thenReturn(640L);
+            when(ticketRepository.countClaimedTicketsGroupedByStatusScoped(eq(agent), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
                     new Object[]{"IN_PROGRESS", 7L},
                     new Object[]{"RESOLVED", 50L}
             ));
-            when(ticketRepository.getAgentTicketTimelineMetrics(anyInt(), eq(agent))).thenReturn(List.<Object[]>of(
+            when(ticketRepository.getAgentTicketTimelineMetricsScoped(anyInt(), eq(agent), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
                     new Object[]{LocalDate.of(2026, 1, 1), 1L, 1L, 0L, 0L}
             ));
-            when(ticketRepository.findRecentClaimedByAgent(eq(agent), any())).thenReturn(List.of(
+            when(ticketRepository.findRecentClaimedByAgentScoped(eq(agent), anyBoolean(), anyList(), any())).thenReturn(List.of(
                     Ticket.builder().id(3L).title("Mail").status("IN_PROGRESS").priority("MEDIUM")
                             .createdAt(ZonedDateTime.now()).build()
             ));
@@ -716,13 +716,13 @@ class MetricsServiceTest {
         @DisplayName("claim yoksa hepsi 0, oran 0")
         void noClaimsDefaultsToZero() {
             String agent = "agent-2";
-            when(ticketRepository.findAgentSelfMetrics(eq(agent), any(), any(), any())).thenReturn(List.<Object[]>of(
+            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), any(), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
                     new Object[]{0L, 0L, 0L, 0L, 0L, 0L, 0.0, 0.0, 0L}
             ));
-            when(worklogRepository.sumAgentWorklogMinutesSince(eq(agent), any(ZonedDateTime.class))).thenReturn(0L);
-            when(ticketRepository.countClaimedTicketsGroupedByStatus(agent)).thenReturn(Collections.emptyList());
-            when(ticketRepository.getAgentTicketTimelineMetrics(anyInt(), eq(agent))).thenReturn(Collections.emptyList());
-            when(ticketRepository.findRecentClaimedByAgent(eq(agent), any())).thenReturn(Collections.emptyList());
+            when(worklogRepository.sumAgentWorklogMinutesSinceScoped(eq(agent), any(ZonedDateTime.class), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countClaimedTicketsGroupedByStatusScoped(eq(agent), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(ticketRepository.getAgentTicketTimelineMetricsScoped(anyInt(), eq(agent), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findRecentClaimedByAgentScoped(eq(agent), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
 
             AgentDashboardDTO dto = metricsService.getMyAgentDashboard(agent, 30);
 
