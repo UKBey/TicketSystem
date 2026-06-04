@@ -17,6 +17,7 @@ import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityDetailDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.ProductDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.ProductDetailDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
@@ -926,6 +927,73 @@ public class MetricsService {
                 .csatCount(csatCount)
                 .statusDistribution(dist)
                 .timeline(timeline)
+                .recentTickets(recent)
+                .build();
+    }
+
+    /**
+     * Dedicated dashboard for a single product. Aggregates every metric over the
+     * product's tickets ({@code product_id = productId}) using the existing
+     * product-scoped queries, and embeds the product-scoped agent leaderboard so the
+     * manager can see who works that product.
+     *
+     * @param productId target product id
+     * @param days      timeline window (clamped 1–365; null → default)
+     * @param scopeKey  cache discriminator ({@code "global"} or the lead's user id)
+     */
+    @Cacheable(value = PRODUCT_DASHBOARD,
+            key = "#productId + ':' + #scopeKey + ':' + (#days == null ? 'all' : #days)")
+    public ProductDashboardDTO getProductDashboard(Long productId, Integer days, String scopeKey) {
+        log.info("Ürün dashboard hesaplanıyor (product={}, scope={}, days={})", productId, scopeKey, days);
+        int window = safeDays(days);
+        List<Long> pids = List.of(productId);
+        final boolean filter = true;
+
+        String productName = productRepository.findById(productId)
+                .map(p -> p.getName())
+                .orElse("#" + productId);
+
+        StatusDistributionDTO dist = buildStatusDistribution(
+                ticketRepository.countTicketsGroupedByStatusScoped(filter, pids));
+        long open = dist.getNewCount() + dist.getInProgressCount() + dist.getWaitingForCustomerCount();
+        long resolvedClosed = dist.getResolvedCount() + dist.getClosedCount();
+
+        Long slaBreachedNullable = ticketRepository.countSlaBreachedByStatusInScoped(OPEN_STATUSES, filter, pids);
+        long slaBreachedCount = slaBreachedNullable != null ? slaBreachedNullable : 0L;
+        double slaBreachRate = open > 0 ? (double) slaBreachedCount / open * 100.0 : 0.0;
+
+        Double avgResolution = ticketRepository.findAvgResolutionHoursForResolvedScoped(filter, pids);
+        Double csatAvg = csatRepository.findAverageRatingScoped(filter, pids);
+        long csatCount = csatRepository.countScoped(filter, pids);
+
+        PriorityMetricsDTO priority = getPriorityDistributionFromDb(filter, pids);
+
+        TicketTimelineDTO timeline = buildTimeline(
+                ticketRepository.getTicketTimelineMetricsScoped(window, filter, pids));
+
+        // Bu ürün kapsamındaki ajan performansı (kendi içinde scope'lu).
+        AgentPerformanceDTO topAgents = getAgentPerformance(pids, "product:" + productId);
+
+        List<RecentTicketDTO> recent = ticketRepository
+                .findRecentByProductId(productId, PageRequest.of(0, 5)).stream()
+                .map(this::toRecentTicket)
+                .toList();
+
+        return ProductDashboardDTO.builder()
+                .productId(productId)
+                .productName(productName)
+                .totalTickets(dist.getTotalCount())
+                .openTickets(open)
+                .resolvedTickets(resolvedClosed)
+                .slaBreachedCount(slaBreachedCount)
+                .slaBreachRate(slaBreachRate)
+                .avgResolutionHours(avgResolution != null ? avgResolution : 0.0)
+                .csatAverage(csatAvg != null ? csatAvg : 0.0)
+                .csatCount(csatCount)
+                .statusDistribution(dist)
+                .priorityDistribution(priority)
+                .timeline(timeline)
+                .topAgents(topAgents)
                 .recentTickets(recent)
                 .build();
     }

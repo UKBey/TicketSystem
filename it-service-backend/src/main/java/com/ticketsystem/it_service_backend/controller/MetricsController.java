@@ -7,6 +7,7 @@ import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.CustomerDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.ProductDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
@@ -562,5 +563,41 @@ public class MetricsController {
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Kullanıcı müşteri dashboard istendi (target={}, days={})", userId, days);
         return ResponseEntity.ok(metricsService.getMyCustomerDashboard(userId, days));
+    }
+
+    /**
+     * Dedicated dashboard for a single product. ADMIN/MANAGER may view any product;
+     * a pure LEAD_AGENT may only view products they are authorized on.
+     *
+     * @param productId target product id
+     * @param days      timeline window (default 30, clamped 1–365)
+     */
+    @Operation(summary = "Ürün dashboard'u",
+            description = "Tek bir ürünün metriklerini döner: durum/öncelik dağılımı, SLA, çözüm süresi, "
+                    + "CSAT, zaman çizelgesi, ürün kapsamındaki ajan performansı ve son biletler. "
+                    + "LEAD_AGENT yalnızca yetkili olduğu ürünleri görüntüleyebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ürün dashboard'u döndü",
+                    content = @Content(schema = @Schema(implementation = ProductDashboardDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yetkisiz erişim / kapsam dışı ürün")
+    })
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
+    @GetMapping("/products/{productId}/dashboard")
+    public ResponseEntity<ProductDashboardDTO> getProductDashboard(
+            @PathVariable Long productId,
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.debug("Ürün dashboard istendi (product={}, days={})", productId, days);
+        if (AuthRoles.isGlobal(roles)) {
+            return ResponseEntity.ok(metricsService.getProductDashboard(productId, days, "global"));
+        }
+        // Pure LEAD_AGENT → only products they are authorized on.
+        String leadId = jwt.getSubject();
+        List<Long> leadProducts = metricsService.resolveScopedProductIds(leadId);
+        if (!leadProducts.contains(productId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.metrics.product.forbidden");
+        }
+        return ResponseEntity.ok(metricsService.getProductDashboard(productId, days, leadId));
     }
 }

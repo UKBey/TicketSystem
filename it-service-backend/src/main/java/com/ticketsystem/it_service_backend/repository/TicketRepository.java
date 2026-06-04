@@ -1468,6 +1468,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                        @Param("filterByProduct") boolean filterByProduct,
                                                        @Param("productIds") List<Long> productIds);
 
+    /** A product's most recently created tickets (newest first). Limit via {@link Pageable}. */
+    @Query("SELECT t FROM Ticket t WHERE t.productId = :productId ORDER BY t.createdAt DESC")
+    List<Ticket> findRecentByProductId(@Param("productId") Long productId, Pageable pageable);
+
     /** Product-scoped variant of {@link #findRecentClaimedByAgent}. */
     @Query(value = "SELECT t.* FROM tickets t "
          + "JOIN ticket_claims tc ON tc.ticket_id = t.id "
