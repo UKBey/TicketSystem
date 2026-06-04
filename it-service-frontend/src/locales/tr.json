@@ -901,6 +901,7 @@
     "errorLoad": "Tercihler yüklenemedi.",
     "errorSave": "Kaydedilemedi. Lütfen tekrar deneyin.",
     "retentionNote": "Okunmuş bildirimler 48 saat, okunmamışlar 10 gün sonra otomatik olarak silinir.",
+    "noneForRole": "Rolünüz için bildirim tercihi bulunmuyor.",
     "event": {
       "TicketCreated": "Bilet oluşturuldu",
       "TicketAssigned": "Bilet bana atandı",

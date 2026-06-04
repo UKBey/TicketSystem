@@ -5,47 +5,60 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getPreferences, updatePreferences } from '../services/notificationApi';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Per-event visual config ────────────────────────────────── */
+// `roles`: hangi rol(ler) bu bildirimi GERÇEKTEN alır → yalnızca o rollerdeki
+// kullanıcıya tercih satırı gösterilir (backend zaten doğru role gönderiyor;
+// bu, alınmayan bildirim tercihinin panelde görünmesini engeller).
+// Çoklu rolde görünür set = rollerin BİRLEŞİMİ. 'AGENT' lead_agent'ı da kapsar
+// (AuthContext.isAgent = AGENT || LEAD_AGENT).
 const EVENT_CONFIG = [
   {
     key:        'TicketCreated',
+    roles:      ['CUSTOMER'],
     icon:       TicketCheck,
     iconColor:  '#3b82f6',
     iconBg:     'rgba(59,130,246,0.12)',
   },
   {
     key:        'TicketAssigned',
+    roles:      ['AGENT'],
     icon:       UserCheck,
     iconColor:  '#8b5cf6',
     iconBg:     'rgba(139,92,246,0.12)',
   },
   {
     key:        'StatusChanged',
+    roles:      ['CUSTOMER'],
     icon:       RefreshCw,
     iconColor:  '#0ea5e9',
     iconBg:     'rgba(14,165,233,0.12)',
   },
   {
     key:        'CommentAdded',
+    roles:      ['CUSTOMER', 'AGENT'],
     icon:       MessageSquare,
     iconColor:  '#22c55e',
     iconBg:     'rgba(34,197,94,0.12)',
   },
   {
     key:        'SlaWarning',
+    roles:      ['AGENT', 'MANAGER'],
     icon:       AlertTriangle,
     iconColor:  '#f59e0b',
     iconBg:     'rgba(245,158,11,0.12)',
   },
   {
     key:        'SlaBreached',
+    roles:      ['AGENT', 'MANAGER'],
     icon:       ShieldAlert,
     iconColor:  '#ef4444',
     iconBg:     'rgba(239,68,68,0.12)',
   },
   {
     key:        'TicketResolved',
+    roles:      ['CUSTOMER'],
     icon:       CheckCircle2,
     iconColor:  '#10b981',
     iconBg:     'rgba(16,185,129,0.12)',
@@ -156,10 +169,16 @@ function FeedbackBanner({ feedback }) {
 /* ── Main page ───────────────────────────────────────────────── */
 export default function NotificationPreferencesPage() {
   const { t } = useTranslation();
+  const { isCustomer, isAgent, isManager } = useAuth();
   const [prefs, setPrefs]       = useState(null);
   const [loading, setLoading]   = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  // Yalnızca kullanıcının rollerinin GERÇEKTEN aldığı bildirim tipleri gösterilir.
+  // 'AGENT' lead_agent'ı kapsar (isAgent). Çoklu rolde birleşim alınır.
+  const roleActive = { CUSTOMER: isCustomer, AGENT: isAgent, MANAGER: isManager };
+  const visibleEvents = EVENT_CONFIG.filter((e) => e.roles.some((r) => roleActive[r]));
 
   useEffect(() => {
     getPreferences()
@@ -219,7 +238,7 @@ export default function NotificationPreferencesPage() {
         >
           {/* Card header */}
           <div
-            className="hidden sm:block px-6 py-4 border-b"
+            className={`${(!loading && visibleEvents.length > 0) ? 'hidden sm:block' : 'hidden'} px-6 py-4 border-b`}
             style={{ borderColor: 'var(--border-color)' }}
           >
             {/* Channel column headers */}
@@ -256,8 +275,12 @@ export default function NotificationPreferencesPage() {
                   style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }}
                 />
               </div>
+            ) : visibleEvents.length === 0 ? (
+              <div className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                {t('notificationPrefs.noneForRole')}
+              </div>
             ) : (
-              EVENT_CONFIG.map((config) => {
+              visibleEvents.map((config) => {
                 const emailKey  = `emailOn${config.key}`;
                 const notifyKey = `notifyOn${config.key}`;
                 return (
@@ -276,7 +299,7 @@ export default function NotificationPreferencesPage() {
           </div>
 
           {/* Footer */}
-          {!loading && (
+          {!loading && visibleEvents.length > 0 && (
             <div
               className="px-4 pb-4 pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
             >
@@ -301,7 +324,7 @@ export default function NotificationPreferencesPage() {
         </div>
 
         {/* ── Info note ─────────────────────────────────── */}
-        {!loading && (
+        {!loading && visibleEvents.length > 0 && (
           <p className="text-xs px-1 animate-fade-in" style={{ color: 'var(--text-tertiary)' }}>
             {t('notificationPrefs.retentionNote')}
           </p>

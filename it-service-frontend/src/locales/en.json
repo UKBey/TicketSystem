@@ -901,6 +901,7 @@
     "errorLoad": "Failed to load preferences.",
     "errorSave": "Failed to save. Please try again.",
     "retentionNote": "Read notifications are automatically deleted after 48 hours, unread ones after 10 days.",
+    "noneForRole": "There are no notification preferences for your role.",
     "event": {
       "TicketCreated": "Ticket created",
       "TicketAssigned": "Ticket assigned to me",

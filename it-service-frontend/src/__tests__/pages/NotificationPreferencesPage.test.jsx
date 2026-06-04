@@ -8,8 +8,15 @@ vi.mock('../../services/notificationApi', () => ({
   updatePreferences: vi.fn(),
 }));
 
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
+
 import NotificationPreferencesPage from '../../pages/NotificationPreferencesPage';
 import { getPreferences, updatePreferences } from '../../services/notificationApi';
+import { useAuth } from '../../context/AuthContext';
+
+const ALL_ROLES = { isCustomer: true, isAgent: true, isLeadAgent: true, isManager: true, isAdmin: true };
 
 const SAMPLE_PREFS = {
   emailOnTicketCreated: true,
@@ -31,6 +38,9 @@ const SAMPLE_PREFS = {
 describe('NotificationPreferencesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: a user holding every role sees the full set (keeps the
+    // index-based assertions below stable). Role-filtering has its own tests.
+    useAuth.mockReturnValue(ALL_ROLES);
   });
 
   it('shows loading spinner on initial render', () => {
@@ -159,5 +169,61 @@ describe('NotificationPreferencesPage', () => {
     expect(switches[5]).toHaveAttribute('aria-checked', 'false');
     await user.click(switches[5]);
     expect(switches[5]).toHaveAttribute('aria-checked', 'true');
+  });
+
+  // ── Role-aware filtering ──────────────────────────────────────
+  it('customer sees only customer-relevant events (no assigned / SLA)', async () => {
+    useAuth.mockReturnValue({ isCustomer: true, isAgent: false, isLeadAgent: false, isManager: false, isAdmin: false });
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('Ticket created'));
+
+    // Customer-relevant: created, status changed, comment, resolved (4 events → 8 toggles)
+    expect(screen.getByText('Ticket status changed')).toBeInTheDocument();
+    expect(screen.getByText('Comment added')).toBeInTheDocument();
+    expect(screen.getByText('Ticket resolved')).toBeInTheDocument();
+    // Staff-only events must NOT appear for a pure customer
+    expect(screen.queryByText('Ticket assigned to me')).not.toBeInTheDocument();
+    expect(screen.queryByText('SLA warning')).not.toBeInTheDocument();
+    expect(screen.queryByText('SLA breached')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(8);
+  });
+
+  it('agent sees assigned + comment + SLA events (no created / resolved)', async () => {
+    useAuth.mockReturnValue({ isCustomer: false, isAgent: true, isLeadAgent: false, isManager: false, isAdmin: false });
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('Ticket assigned to me'));
+
+    expect(screen.getByText('Comment added')).toBeInTheDocument();
+    expect(screen.getByText('SLA warning')).toBeInTheDocument();
+    expect(screen.getByText('SLA breached')).toBeInTheDocument();
+    expect(screen.queryByText('Ticket created')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ticket resolved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ticket status changed')).not.toBeInTheDocument();
+    // assigned, comment, sla warning, sla breached → 4 events → 8 toggles
+    expect(screen.getAllByRole('switch')).toHaveLength(8);
+  });
+
+  it('manager sees only SLA events', async () => {
+    useAuth.mockReturnValue({ isCustomer: false, isAgent: false, isLeadAgent: false, isManager: true, isAdmin: false });
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => screen.getByText('SLA warning'));
+
+    expect(screen.getByText('SLA breached')).toBeInTheDocument();
+    expect(screen.queryByText('Ticket assigned to me')).not.toBeInTheDocument();
+    expect(screen.queryByText('Comment added')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('switch')).toHaveLength(4);
+  });
+
+  it('shows empty-state and no toggles for a role with no notifications (admin only)', async () => {
+    useAuth.mockReturnValue({ isCustomer: false, isAgent: false, isLeadAgent: false, isManager: false, isAdmin: true });
+    getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
+    render(<NotificationPreferencesPage />);
+    await waitFor(() => {
+      expect(screen.getByText('There are no notification preferences for your role.')).toBeInTheDocument();
+    });
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
   });
 });
