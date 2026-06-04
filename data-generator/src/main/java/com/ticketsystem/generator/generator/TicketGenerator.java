@@ -33,7 +33,13 @@ import java.util.*;
  * </pre>
  *
  * Customer/agent assignments are taken round-robin from the user list in setup.json.
- * Comments are sent through a round-robin queue at the end of the stage to stay rate-limit friendly.
+ *
+ * <p>Comments are sent in three phases (see {@link #generate()}): all tickets are first
+ * created/claimed and their comments collected, then every ticket's comments are flushed in
+ * global "waves" (one comment per ticket per wave, skipping any author already used this wave
+ * so the per-user 5s cooldown is never hit), then status transitions + CSAT run. Batching the
+ * comments globally lets the per-user cooldowns overlap across all tickets instead of
+ * serialising them ticket-by-ticket.
  */
 public class TicketGenerator {
 
@@ -44,8 +50,6 @@ public class TicketGenerator {
     private final ObjectMapper mapper;
     private final SetupResult setup;
 
-    private final Map<String, Queue<CommentTask>> commentQueues = new LinkedHashMap<>();
-
     /**
      * @param api    backend API client
      * @param mapper Jackson mapper used to read ticket-*.json templates
@@ -55,10 +59,6 @@ public class TicketGenerator {
         this.api     = api;
         this.mapper  = mapper;
         this.setup   = setup;
-
-        // Kullanıcı bazlı yorum kuyrukları — round-robin için
-        for (UserSession u : setup.customers()) commentQueues.put(u.getUsername(), new LinkedList<>());
-        for (UserSession u : setup.agents())    commentQueues.put(u.getUsername(), new LinkedList<>());
     }
 
     /**
@@ -69,6 +69,17 @@ public class TicketGenerator {
      * <p>Customer/agent assignments are taken round-robin from the setup. Templates are
      * processed in the order CLOSED → RESOLVED → WAITING → IN_PROGRESS → NEW
      * (so the per-agent active-claim limit is not exhausted).
+     *
+     * <p>Runs in three phases so the per-user comment cooldown overlaps across all tickets
+     * instead of being paid ticket-by-ticket:
+     * <ol>
+     *   <li><b>Setup</b> — create every ticket, claim it (agent keeps the claim, so we never
+     *       transition to RESOLVED yet — that would drop the claim and 403 later comments) and
+     *       add worklogs; comments are only collected, not sent.</li>
+     *   <li><b>Comment waves</b> — {@link #flushAllComments} drains every ticket's comments in
+     *       global rounds: each wave sends one comment per ticket, then waits one cooldown.</li>
+     *   <li><b>Finish</b> — apply the target status transition + CSAT for each ticket.</li>
+     * </ol>
      *
      * @return IDs of successfully created tickets (handed to DateBackfiller)
      * @throws IOException          template read or API error
@@ -84,22 +95,39 @@ public class TicketGenerator {
         specs.sort(Comparator.comparingInt(this::statusPriority));
 
         List<Long> ticketIds = new ArrayList<>();
+        List<PendingTicket> pending = new ArrayList<>();
         int customerIdx = 0;
         int agentIdx    = 0;
 
+        // Faz 1: tüm biletleri oluştur + claim + worklog, yorumları topla (henüz gönderme).
         for (int i = 0; i < specs.size(); i++) {
             JsonNode spec = specs.get(i);
             UserSession customer = setup.customers().get(customerIdx++ % setup.customers().size());
             UserSession agent    = setup.agents().get(agentIdx++ % setup.agents().size());
 
             try {
-                Long id = runLifecycle(spec, customer, agent);
-                if (id != null) ticketIds.add(id);
+                PendingTicket pt = setupTicket(spec, customer, agent);
+                if (pt != null) {
+                    ticketIds.add(pt.ticketId);
+                    pending.add(pt);
+                }
             } catch (Exception e) {
                 log.warn("Şablon işlenirken hata (#{}, başlık: {}): {}",
                         i, spec.path("title").asText(), e.getMessage());
             }
             sleep();
+        }
+
+        // Faz 2: tüm biletlerin yorumlarını global dalgalar hâlinde gönder.
+        flushAllComments(pending);
+
+        // Faz 3: status geçişleri + CSAT.
+        for (PendingTicket pt : pending) {
+            try {
+                finishTicket(pt);
+            } catch (Exception e) {
+                log.warn("Bilet sonlandırılamadı #{}: {}", pt.ticketId, e.getMessage());
+            }
         }
 
         log.info("=== Bilet üretimi tamamlandı. Üretilen bilet: {} ===", ticketIds.size());
@@ -110,7 +138,13 @@ public class TicketGenerator {
     // Yaşam döngüsü orchestrasyonu
     // -----------------------------------------------------------------
 
-    private Long runLifecycle(JsonNode spec, UserSession customer, UserSession agent)
+    /**
+     * Faz 1: bileti oluşturur, agent claim'ini alır ve worklog'ları ekler. Yorumlar yalnızca
+     * {@link PendingTicket} içinde toplanır; gönderim faz 2'de ({@link #flushAllComments}) yapılır.
+     * Claim bilerek bırakılmaz (RESOLVED'e geçiş claim'i siler → sonraki yorumlar 403 yer), bu
+     * yüzden status geçişi faz 3'e ({@link #finishTicket}) ertelenir.
+     */
+    private PendingTicket setupTicket(JsonNode spec, UserSession customer, UserSession agent)
             throws IOException, InterruptedException {
 
         String status      = spec.path("status").asText("NEW").toUpperCase();
@@ -129,53 +163,60 @@ public class TicketGenerator {
         if (ticketId == null) return null;
         sleep();
 
+        PendingTicket pt = new PendingTicket(ticketId, spec, customer, agent, status);
+
         if ("NEW".equals(status)) {
-            return ticketId; // Yorum/worklog/state değişikliği yok
+            return pt; // Yorum/worklog/state değişikliği yok
         }
 
-        // 2. Agent claim alır → bilet IN_PROGRESS'e geçer
-        if (!claimTicket(ticketId, agent)) return ticketId;
+        // 2. Agent claim alır → bilet IN_PROGRESS'e geçer (faz 3'e kadar bu claim korunur)
+        if (!claimTicket(ticketId, agent)) {
+            pt.skipLifecycle = true; // claim yoksa yorum atılamaz, status ilerletilemez
+            return pt;
+        }
         sleep();
 
         // 3. Worklog kayıtları
         addWorklogs(ticketId, agent, spec.path("worklogs"));
 
-        // 4. Yorumlar kuyruğa eklenir ve HEMEN gönderilir.
-        //    Backend RESOLVED'e geçişte agent claim'ini siliyor (TicketService.java:801);
-        //    yorumları status update'ten sonraya bıraksak claim sahibi olmayan agent
-        //    yorum atmaya çalışıp 403 yer. Cooldown (COMMENT_DELAY_MS) için kullanıcı
-        //    bazlı round-robin queue içinde flush yapılıyor.
-        enqueueComments(ticketId, customer, agent, spec.path("comments"));
-        flushCommentQueues();
+        // 4. Yorumlar toplanır (gönderim faz 2'de)
+        collectComments(pt, spec.path("comments"));
+        return pt;
+    }
 
-        // 5. Status hedefe göre ilerlet
-        switch (status) {
+    /**
+     * Faz 3: bileti hedef statüsüne taşır ve gerekirse CSAT gönderir. Yorumlar faz 2'de
+     * gönderildiği için claim hâlâ agent'ta; RESOLVED'e geçiş artık güvenle claim'i silebilir.
+     */
+    private void finishTicket(PendingTicket pt) throws InterruptedException {
+        if (pt.skipLifecycle || "NEW".equals(pt.status)) return;
+
+        switch (pt.status) {
             case "IN_PROGRESS" -> { /* zaten IN_PROGRESS */ }
             case "WAITING_FOR_CUSTOMER" -> {
                 // WAITING'e geçişte reasonCode zorunlu değil; göndersek de backend yok sayıyor.
-                updateStatus(ticketId, "WAITING_FOR_CUSTOMER", agent, null, null);
+                updateStatus(pt.ticketId, "WAITING_FOR_CUSTOMER", pt.agent, null, null);
                 sleep();
             }
             case "RESOLVED" -> {
                 // Backend RESOLVED'e geçişte reasonCode zorunlu kılıyor; resolutionNote artık
                 // ayrı bir endpoint değil, status update body'sinde 'note' alanı olarak gider.
-                String reasonCode = spec.path("reasonCode").asText("SOLUTION_PROVIDED");
-                String note       = noteOrNull(spec.path("resolutionNote"));
-                updateStatus(ticketId, "RESOLVED", agent, reasonCode, note);
+                String reasonCode = pt.spec.path("reasonCode").asText("SOLUTION_PROVIDED");
+                String note       = noteOrNull(pt.spec.path("resolutionNote"));
+                updateStatus(pt.ticketId, "RESOLVED", pt.agent, reasonCode, note);
                 sleep();
             }
             case "CLOSED" -> {
-                String reasonCode = spec.path("reasonCode").asText("SOLUTION_PROVIDED");
-                String note       = noteOrNull(spec.path("resolutionNote"));
-                updateStatus(ticketId, "RESOLVED", agent, reasonCode, note);
+                String reasonCode = pt.spec.path("reasonCode").asText("SOLUTION_PROVIDED");
+                String note       = noteOrNull(pt.spec.path("resolutionNote"));
+                updateStatus(pt.ticketId, "RESOLVED", pt.agent, reasonCode, note);
                 sleep();
                 // CSAT'ı customer gönderir; CsatService RESOLVED → CLOSED'a otomatik geçirir.
-                submitCsat(ticketId, customer, spec.path("csat"));
+                submitCsat(pt.ticketId, pt.customer, pt.spec.path("csat"));
                 sleep();
             }
-            default -> log.warn("Bilinmeyen status: {}", status);
+            default -> log.warn("Bilinmeyen status: {}", pt.status);
         }
-        return ticketId;
     }
 
     private String noteOrNull(JsonNode node) {
@@ -263,15 +304,14 @@ public class TicketGenerator {
         }
     }
 
-    private void enqueueComments(Long ticketId, UserSession customer, UserSession agent, JsonNode comments) {
+    private void collectComments(PendingTicket pt, JsonNode comments) {
         if (!comments.isArray()) return;
         for (JsonNode c : comments) {
             String author = c.path("author").asText("agent");
-            UserSession sender = "customer".equalsIgnoreCase(author) ? customer : agent;
+            UserSession sender = "customer".equalsIgnoreCase(author) ? pt.customer : pt.agent;
             String type    = c.path("type").asText("EXTERNAL").toUpperCase();
             String message = c.path("message").asText();
-            commentQueues.computeIfAbsent(sender.getUsername(), k -> new LinkedList<>())
-                    .add(new CommentTask(ticketId, type, message, sender));
+            pt.comments.add(new CommentTask(pt.ticketId, type, message, sender));
         }
     }
 
@@ -307,30 +347,45 @@ public class TicketGenerator {
     }
 
     // -----------------------------------------------------------------
-    // Yorum kuyruğu — round-robin
+    // Yorum gönderimi — global dalgalar (faz 2)
     // -----------------------------------------------------------------
 
-    private void flushCommentQueues() throws InterruptedException {
-        int total = commentQueues.values().stream().mapToInt(Queue::size).sum();
+    /**
+     * Tüm biletlerin yorumlarını "dalga dalga" gönderir: her dalgada her biletten sıradaki bir
+     * yorum atılır, sonra bir cooldown ({@link GeneratorConfig#COMMENT_DELAY_MS}) beklenir. Aynı
+     * kullanıcı (agent/customer aynı kullanıcı havuzundan round-robin paylaşıldığı için) bir
+     * dalga içinde ikinci kez yorum yapacaksa o bilet bir sonraki dalgaya ertelenir — böylece
+     * backend'in kullanıcı-bazlı 5 sn cooldown'ına takılmadan (429), bilet içi sıra da bozulmadan
+     * tüm biletlerin cooldown'ları üst üste biner. Toplam süre ≈ (en çok yorumu olan kullanıcı) ×
+     * cooldown — biletler arası seri beklemeye gerek kalmaz.
+     */
+    private void flushAllComments(List<PendingTicket> pending) throws InterruptedException {
+        int total = pending.stream().mapToInt(p -> p.comments.size()).sum();
         if (total == 0) return;
 
-        log.info("Yorumlar gönderiliyor: {} adet, {} kullanıcı (round-robin)",
-                total, commentQueues.size());
+        log.info("Yorumlar gönderiliyor: {} adet, {} bilet (global dalga round-robin)",
+                total, pending.size());
 
         int sent = 0;
+        int wave = 0;
         while (true) {
-            boolean anyLeft = false;
-            for (Queue<CommentTask> queue : commentQueues.values()) {
-                CommentTask task = queue.poll();
-                if (task == null) continue;
-                anyLeft = true;
-                sendComment(task);
+            Set<String> usedThisWave = new HashSet<>();
+            boolean anySent = false;
+            for (PendingTicket pt : pending) {
+                CommentTask next = pt.comments.peek();
+                if (next == null) continue;
+                // Bu kullanıcı bu dalgada zaten yorum yaptıysa cooldown'a takılmamak için ertele.
+                if (!usedThisWave.add(next.user().getUsername())) continue;
+                sendComment(pt.comments.poll());
                 sent++;
+                anySent = true;
             }
-            if (!anyLeft) break;
-            Thread.sleep(GeneratorConfig.COMMENT_DELAY_MS);
+            if (!anySent) break;
+            wave++;
+            boolean moreLeft = pending.stream().anyMatch(p -> !p.comments.isEmpty());
+            if (moreLeft) Thread.sleep(GeneratorConfig.COMMENT_DELAY_MS);
         }
-        log.info("Tüm yorumlar gönderildi: {}", sent);
+        log.info("Tüm yorumlar gönderildi: {} ({} dalga)", sent, wave);
     }
 
     private void sendComment(CommentTask task) throws InterruptedException {
@@ -358,4 +413,27 @@ public class TicketGenerator {
     }
 
     private record CommentTask(Long ticketId, String type, String message, UserSession user) {}
+
+    /**
+     * Faz 1'de toplanan, faz 2/3'te işlenen bir biletin durumu. {@code comments} biletteki
+     * yorumları şablon sırasında tutar (FIFO); faz 2 bunları tüketir. {@code skipLifecycle},
+     * claim alınamayan biletlerde yorum/geçişlerin atlanması için işaretlenir.
+     */
+    private static final class PendingTicket {
+        final Long ticketId;
+        final JsonNode spec;
+        final UserSession customer;
+        final UserSession agent;
+        final String status;
+        final Deque<CommentTask> comments = new ArrayDeque<>();
+        boolean skipLifecycle = false;
+
+        PendingTicket(Long ticketId, JsonNode spec, UserSession customer, UserSession agent, String status) {
+            this.ticketId = ticketId;
+            this.spec     = spec;
+            this.customer = customer;
+            this.agent    = agent;
+            this.status   = status;
+        }
+    }
 }
