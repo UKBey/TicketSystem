@@ -154,14 +154,42 @@ class CsatServiceTest {
     }
 
     @Test
-    void submitCsat_duplicateCsat_throwsBadRequest() {
+    void submitCsat_duplicateCsat_onClosedTicket_throwsBadRequest() {
         CsatDTO dto = CsatDTO.builder().rating(3).comment("ok").build();
-        when(ticketService.getTicketById(10L)).thenReturn(resolvedTicket);
+        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status("CLOSED").build();
+        when(ticketService.getTicketById(10L)).thenReturn(closedTicket);
         when(csatRepository.existsByTicketId(10L)).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(400, ex.getStatusCode().value());
+        verify(csatRepository, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(ticketService, never()).updateTicketStatus(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    /**
+     * Recovery path: a prior submit saved the survey but the auto-close failed
+     * (workflow hiccup), leaving the ticket RESOLVED. Re-submitting must complete
+     * the close idempotently — not reject with "already exists" — and must not
+     * write a second survey.
+     */
+    @Test
+    void submitCsat_existingCsat_resolvedTicket_completesCloseAndKeepsSurvey() {
+        CsatDTO dto = CsatDTO.builder().rating(3).comment("retry").build();
+        Csat existing = Csat.builder().id(7L).ticketId(10L).rating(4).comment("first").build();
+        when(ticketService.getTicketById(10L)).thenReturn(resolvedTicket);
+        when(csatRepository.existsByTicketId(10L)).thenReturn(true);
+        when(csatRepository.findByTicketId(10L)).thenReturn(Optional.of(existing));
+
+        Csat result = csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals(7L, result.getId());
+        assertEquals(4, result.getRating()); // original survey preserved, not overwritten
+        verify(ticketService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
+        verify(csatRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 }

@@ -65,8 +65,18 @@ public class CsatService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.closed.or.resolved.only");
         }
 
-        // Ayni bilete ikinci kez CSAT olusmasini engeller.
+        // Ayni bilete ikinci kez CSAT olusmasini engeller. Ancak anket daha once
+        // kaydedilip otomatik kapatma basarisiz olduysa (orn. workflow geçici hatasi)
+        // bilet RESOLVED'da takili kalir; bu durumda hata vermek yerine kapatmayi
+        // tamamlariz (idempotent kurtarma) — boylece musteri kalici sekilde sikismaz
+        // ve verdigi geri bildirim korunur.
         if (csatRepository.existsByTicketId(ticketId)) {
+            if ("RESOLVED".equals(ticket.getStatus())) {
+                log.warn("CSAT zaten mevcut ama bilet RESOLVED — kapatma tamamlanıyor (kurtarma). Bilet ID: {}", ticketId);
+                ticketService.updateTicketStatus(ticketId, "CLOSED", "CSAT_SUBMITTED", null, userId, roles);
+                return csatRepository.findByTicketId(ticketId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.csat.not.found"));
+            }
             log.warn("CSAT reddedildi: Bu bilet için zaten bir anket mevcut. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.already.exists");
         }
