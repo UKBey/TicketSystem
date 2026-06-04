@@ -35,6 +35,12 @@ export default function UserManagementPage() {
   // Performans chart'larını görüntüleme oversight yetkisidir — ADMIN ve MANAGER.
   const canViewCharts = isAdmin || isManager;
 
+  // Buton yalnızca chart'ı olan rollerde anlamlı: AGENT/LEAD_AGENT (ajan dashboard'u) veya
+  // CUSTOMER (müşteri dashboard'u). Yalnızca admin/manager olan kullanıcıların dashboard'u yok.
+  const DASHBOARD_ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT'];
+  const hasViewableDashboard = (user) => rolesOf(user).some((r) => DASHBOARD_ROLES.includes(r));
+  const canViewUserCharts = (user) => canViewCharts && hasViewableDashboard(user);
+
   const handleViewPerformance = (user) => {
     navigate(`/users/${user.id}/performance`, { state: { user } });
   };
@@ -347,9 +353,9 @@ export default function UserManagementPage() {
                         <dd className="text-right">{formatDate(user.createdAt)}</dd>
                       </div>
                     </dl>
-                    {(canViewCharts || canManageUsers) && (
+                    {(canViewUserCharts(user) || canManageUsers) && (
                       <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
-                        {canViewCharts && (
+                        {canViewUserCharts(user) && (
                           <button
                             onClick={() => handleViewPerformance(user)}
                             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
@@ -505,12 +511,12 @@ export default function UserManagementPage() {
                       {formatDate(user.createdAt)}
                     </td>
 
-                    {/* İşlemler — chart görüntüleme ADMIN+MANAGER, yazma yalnızca ADMIN */}
+                    {/* İşlemler — chart görüntüleme ADMIN+MANAGER (yalnızca dashboard'u olan roller), yazma yalnızca ADMIN */}
                     <td className="px-4 py-3">
-                      {(canViewCharts || canManageUsers) ? (
+                      {(canViewUserCharts(user) || canManageUsers) ? (
                         <div className="flex items-center gap-1.5">
                           {/* Performans chart'ları */}
-                          {canViewCharts && (
+                          {canViewUserCharts(user) && (
                             <button
                               onClick={() => handleViewPerformance(user)}
                               className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
