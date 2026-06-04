@@ -720,6 +720,13 @@
       "agentLimitsNoProducts": "Bu agent'ın yetkili ürünü yok."
     }
   },
+  "userPerformance": {
+    "viewAction": "Performansı görüntüle",
+    "back": "Geri",
+    "agentSubtitle": "Ajan performans özeti — iş yükü, çözümler, SLA, kayıtlı çalışma ve müşteri memnuniyeti.",
+    "customerSubtitle": "Müşteri genel bakışı — açılan biletler, durum, SLA, çözüm süresi ve memnuniyet puanları.",
+    "loadError": "Bu kullanıcı yüklenemedi."
+  },
   "customerDashboard": {
     "badge": "Genel Bakış",
     "heading": "Desteğiniz bir bakışta",

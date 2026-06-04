@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, CalendarRange, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
@@ -50,6 +51,15 @@ const DEFAULT_DATE_RANGE = 30;
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Leaderboard'da bir ajana tıklayınca o ajanın performans chart'larına git.
+  const handleAgentClick = useCallback((agent) => {
+    if (!agent?.agentId) return;
+    navigate(`/users/${agent.agentId}/performance`, {
+      state: { user: { id: agent.agentId, fullName: agent.agentName, role: agent.role, roles: agent.role ? [agent.role] : [] } },
+    });
+  }, [navigate]);
 
   const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
@@ -317,7 +327,7 @@ export default function Dashboard() {
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
         <div className="w-full min-w-0">
-          <AgentPerformanceTable data={agentPerformance} loading={agentLoading} />
+          <AgentPerformanceTable data={agentPerformance} loading={agentLoading} onAgentClick={handleAgentClick} />
         </div>
         <div className="w-full min-w-0">
           <ProductMetricsChart data={productMetrics} loading={productLoading} />

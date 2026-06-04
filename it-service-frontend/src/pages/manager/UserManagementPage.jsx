@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import { UserPlus, ShieldCheck, UserCheck, UserX, BarChart3 } from 'lucide-react';
 import api, { updateUserStatus } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
@@ -24,11 +25,19 @@ const formatDate = (isoString) => {
 
 export default function UserManagementPage() {
   const { t } = useTranslation();
-  const { user: currentUser, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const { user: currentUser, isAdmin, isManager } = useAuth();
 
   // Rol düzenleme ve aktif/pasif alma yalnızca ADMIN yetkisidir. MANAGER bu sayfayı
   // salt-okunur görür (oversight rolü — yazma yetkisi yok).
   const canManageUsers = isAdmin;
+
+  // Performans chart'larını görüntüleme oversight yetkisidir — ADMIN ve MANAGER.
+  const canViewCharts = isAdmin || isManager;
+
+  const handleViewPerformance = (user) => {
+    navigate(`/users/${user.id}/performance`, { state: { user } });
+  };
 
   // Bir admin KENDİ rollerini düzenleyebilir; ama BAŞKA bir admin'in rollerini düzenleyemez.
   const isOtherAdmin = (u) => rolesOf(u).includes('ADMIN') && u.id !== currentUser?.id;
@@ -338,8 +347,19 @@ export default function UserManagementPage() {
                         <dd className="text-right">{formatDate(user.createdAt)}</dd>
                       </div>
                     </dl>
-                    {canManageUsers && (
+                    {(canViewCharts || canManageUsers) && (
                       <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
+                        {canViewCharts && (
+                          <button
+                            onClick={() => handleViewPerformance(user)}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                          >
+                            <BarChart3 className="h-3.5 w-3.5" />
+                            {t('userPerformance.viewAction')}
+                          </button>
+                        )}
+                        {canManageUsers && (
                         <button
                           onClick={() => handleOpenEditRole(user)}
                           disabled={isInactive || isOtherAdmin(user)}
@@ -350,6 +370,8 @@ export default function UserManagementPage() {
                           <ShieldCheck className="h-3.5 w-3.5" />
                           {t('userManagement.editRole.buttonTitle')}
                         </button>
+                        )}
+                        {canManageUsers && (
                         <button
                           onClick={() => handleToggleStatus(user)}
                           disabled={isStatusLoading}
@@ -372,6 +394,7 @@ export default function UserManagementPage() {
                             ? 'userManagement.status.activateTitle'
                             : 'userManagement.status.deactivateTitle')}
                         </button>
+                        )}
                       </div>
                     )}
                   </li>
@@ -482,11 +505,23 @@ export default function UserManagementPage() {
                       {formatDate(user.createdAt)}
                     </td>
 
-                    {/* İşlemler — yalnızca ADMIN */}
+                    {/* İşlemler — chart görüntüleme ADMIN+MANAGER, yazma yalnızca ADMIN */}
                     <td className="px-4 py-3">
-                      {canManageUsers ? (
+                      {(canViewCharts || canManageUsers) ? (
                         <div className="flex items-center gap-1.5">
+                          {/* Performans chart'ları */}
+                          {canViewCharts && (
+                            <button
+                              onClick={() => handleViewPerformance(user)}
+                              className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                              title={t('userPerformance.viewAction')}
+                            >
+                              <BarChart3 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           {/* Rol düzenle */}
+                          {canManageUsers && (
                           <button
                             onClick={() => handleOpenEditRole(user)}
                             disabled={isInactive || isOtherAdmin(user)}
@@ -496,8 +531,10 @@ export default function UserManagementPage() {
                           >
                             <ShieldCheck className="h-3.5 w-3.5" />
                           </button>
+                          )}
 
                           {/* Aktif/Pasif toggle */}
+                          {canManageUsers && (
                           <button
                             onClick={() => handleToggleStatus(user)}
                             disabled={isStatusLoading}
@@ -520,6 +557,7 @@ export default function UserManagementPage() {
                               <UserX className="h-3.5 w-3.5" />
                             )}
                           </button>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>—</span>

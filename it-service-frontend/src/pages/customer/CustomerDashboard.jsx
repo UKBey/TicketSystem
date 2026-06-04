@@ -16,7 +16,14 @@ const DEFAULT_DATE_RANGE = 30;
 const formatNumber = (v) => new Intl.NumberFormat('en-US').format(v ?? 0);
 const formatHours = (v) => `${Number(v ?? 0).toFixed(1)}h`;
 
-export default function CustomerDashboard() {
+/**
+ * Müşteri genel bakış dashboard'u.
+ *
+ * @param {string|null} viewUserId   Set edilirse BAŞKA bir müşterinin (oversight) verisi çekilir;
+ *                                   null ise oturum açan müşterinin kendi verisi.
+ * @param {string|null} viewUserName Oversight modunda başlıkta gösterilecek müşteri adı.
+ */
+export default function CustomerDashboard({ viewUserId = null, viewUserName = null }) {
   const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [data, setData] = useState(null);
@@ -28,7 +35,9 @@ export default function CustomerDashboard() {
     try {
       if (silent) setRefreshing(true); else setLoading(true);
       setError('');
-      const res = await metricService.getMyCustomerDashboard(dateRange ?? 365);
+      const res = viewUserId
+        ? await metricService.getUserCustomerDashboard(viewUserId, dateRange ?? 365)
+        : await metricService.getMyCustomerDashboard(dateRange ?? 365);
       setData(res);
     } catch (err) {
       console.error('Customer dashboard could not be loaded:', err);
@@ -37,7 +46,7 @@ export default function CustomerDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, t]);
+  }, [dateRange, t, viewUserId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -84,10 +93,10 @@ export default function CustomerDashboard() {
                 {t('customerDashboard.badge')}
               </div>
               <h1 className="text-2xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                {t('customerDashboard.heading')}
+                {viewUserName || t('customerDashboard.heading')}
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: 'var(--text-secondary)' }}>
-                {t('customerDashboard.description')}
+                {viewUserId ? t('userPerformance.customerSubtitle') : t('customerDashboard.description')}
               </p>
             </div>
 

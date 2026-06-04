@@ -22,6 +22,7 @@ import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
 import UserManagementPage from './pages/manager/UserManagementPage';
+import UserPerformancePage from './pages/manager/UserPerformancePage';
 import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
@@ -198,6 +199,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
               <AppLayout><UserManagementPage /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:userId/performance"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'LEAD_AGENT']}>
+              <AppLayout><UserPerformancePage /></AppLayout>
             </ProtectedRoute>
           }
         />

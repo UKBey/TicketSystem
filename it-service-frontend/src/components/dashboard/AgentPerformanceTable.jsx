@@ -51,7 +51,7 @@ function createPlaceholderRows() {
   return Array.from({ length: 5 }, (_, index) => ({ id: index }));
 }
 
-function AgentPerformanceTable({ data, loading }) {
+function AgentPerformanceTable({ data, loading, onAgentClick }) {
   const agents = data?.agents ?? [];
   const totalAgents = data?.totalAgents ?? 0;
   const totalActiveTickets = data?.totalActiveTickets ?? 0;
@@ -100,8 +100,17 @@ function AgentPerformanceTable({ data, loading }) {
           const csatTone = loading ? '' : getCsatTone(agent.csatAverage ?? 0);
           const barColor = getBarColor(index);
 
+          const clickable = !loading && onAgentClick && agent.agentId;
           return (
-            <div key={agent.agentId ?? agent.id ?? index} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+            <div
+              key={agent.agentId ?? agent.id ?? index}
+              className={`rounded-xl border p-4 ${clickable ? 'cursor-pointer transition-colors hover:border-primary-400' : ''}`}
+              style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+              onClick={clickable ? () => onAgentClick(agent) : undefined}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAgentClick(agent); } } : undefined}
+            >
               <div className="flex items-center gap-3">
                 <span className="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-xs font-black" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
                   {loading ? <Skeleton as="span" className="h-4 w-6" style={{ backgroundColor: 'var(--bg-surface)' }} /> : getRankBadge(index)}
@@ -187,8 +196,16 @@ function AgentPerformanceTable({ data, loading }) {
             const csatTone = loading ? '' : getCsatTone(agent.csatAverage ?? 0);
             const barColor = getBarColor(index);
 
+            const clickable = !loading && onAgentClick && agent.agentId;
             return (
-              <div key={agent.agentId ?? agent.id ?? index} className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] items-center gap-0 px-4 py-4 transition-colors hover:bg-[color:var(--bg-surface-hover)]">
+              <div
+                key={agent.agentId ?? agent.id ?? index}
+                className={`grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] items-center gap-0 px-4 py-4 transition-colors hover:bg-[color:var(--bg-surface-hover)] ${clickable ? 'cursor-pointer' : ''}`}
+                onClick={clickable ? () => onAgentClick(agent) : undefined}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAgentClick(agent); } } : undefined}
+              >
                 <div className="flex items-center">
                   <span className="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-xs font-black" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
                     {loading ? <Skeleton as="span" className="h-4 w-6" style={{ backgroundColor: 'var(--bg-surface)' }} /> : getRankBadge(index)}

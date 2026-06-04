@@ -61,6 +61,18 @@ async function getMyAgentDashboard(days = 30) {
   return response.data;
 }
 
+// Oversight — başka bir kullanıcının dashboard'u. ADMIN/MANAGER global görür,
+// LEAD_AGENT yalnızca kendi ürünlerindeki veriyi görür (backend kapsamı uygular).
+async function getUserAgentDashboard(userId, days = 30) {
+  const response = await api.get(`/metrics/users/${userId}/agent`, { params: { days } });
+  return response.data;
+}
+
+async function getUserCustomerDashboard(userId, days = 30) {
+  const response = await api.get(`/metrics/users/${userId}/customer`, { params: { days } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -73,4 +85,6 @@ export default {
   getWorklogCompletion,
   getMyCustomerDashboard,
   getMyAgentDashboard,
+  getUserAgentDashboard,
+  getUserCustomerDashboard,
 };

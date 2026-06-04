@@ -16,7 +16,14 @@ const DEFAULT_DATE_RANGE = 30;
 const formatNumber = (v) => new Intl.NumberFormat('en-US').format(v ?? 0);
 const formatHours = (v) => `${Number(v ?? 0).toFixed(1)}h`;
 
-export default function AgentDashboard() {
+/**
+ * Ajan performans dashboard'u.
+ *
+ * @param {string|null} viewUserId   Set edilirse BAŞKA bir ajanın (oversight) verisi çekilir;
+ *                                   null ise oturum açan ajanın kendi verisi.
+ * @param {string|null} viewUserName Oversight modunda başlıkta gösterilecek ajan adı.
+ */
+export default function AgentDashboard({ viewUserId = null, viewUserName = null }) {
   const { t } = useTranslation();
   const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [data, setData] = useState(null);
@@ -28,7 +35,9 @@ export default function AgentDashboard() {
     try {
       if (silent) setRefreshing(true); else setLoading(true);
       setError('');
-      const res = await metricService.getMyAgentDashboard(dateRange ?? 365);
+      const res = viewUserId
+        ? await metricService.getUserAgentDashboard(viewUserId, dateRange ?? 365)
+        : await metricService.getMyAgentDashboard(dateRange ?? 365);
       setData(res);
     } catch (err) {
       console.error('Agent dashboard could not be loaded:', err);
@@ -37,7 +46,7 @@ export default function AgentDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateRange, t]);
+  }, [dateRange, t, viewUserId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -86,10 +95,10 @@ export default function AgentDashboard() {
                 {t('agentDashboard.badge')}
               </div>
               <h1 className="text-2xl font-black tracking-tight sm:text-4xl" style={{ color: 'var(--text-primary)' }}>
-                {t('agentDashboard.heading')}
+                {viewUserName || t('agentDashboard.heading')}
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: 'var(--text-secondary)' }}>
-                {t('agentDashboard.description')}
+                {viewUserId ? t('userPerformance.agentSubtitle') : t('agentDashboard.description')}
               </p>
             </div>
 

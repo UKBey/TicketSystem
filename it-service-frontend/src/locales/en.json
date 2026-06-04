@@ -720,6 +720,13 @@
       "agentLimitsNoProducts": "This agent has no authorized products."
     }
   },
+  "userPerformance": {
+    "viewAction": "View performance",
+    "back": "Back",
+    "agentSubtitle": "Agent performance overview — workload, resolutions, SLA, logged work and customer satisfaction.",
+    "customerSubtitle": "Customer overview — tickets opened, status, SLA, resolution time and satisfaction ratings.",
+    "loadError": "Could not load this user."
+  },
   "customerDashboard": {
     "badge": "My Overview",
     "heading": "Your support at a glance",
