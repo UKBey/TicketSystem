@@ -28,6 +28,22 @@ class MetricsControllerIT extends BaseIntegrationTest {
     private static final SimpleGrantedAuthority AGENT       = new SimpleGrantedAuthority("ROLE_AGENT");
     private static final SimpleGrantedAuthority CUSTOMER    = new SimpleGrantedAuthority("ROLE_CUSTOMER");
 
+    /**
+     * Builds a jwt postprocessor that sets BOTH the Spring authorities (for @PreAuthorize)
+     * AND the {@code realm_access.roles} claim — the latter is what controllers read via
+     * {@code JwtUtils.extractRoles} to decide global vs. product-scoped access. Production
+     * tokens always carry the claim; the plain {@code .authorities(...)} shortcut does not.
+     */
+    private static org.springframework.test.web.servlet.request.RequestPostProcessor jwtWithRoles(String... roles) {
+        java.util.List<String> roleList = java.util.List.of(roles);
+        java.util.List<org.springframework.security.core.GrantedAuthority> auths = roleList.stream()
+                .map(r -> (org.springframework.security.core.GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + r))
+                .collect(java.util.stream.Collectors.toList());
+        return jwt()
+                .jwt(j -> j.claim("realm_access", java.util.Map.of("roles", roleList)))
+                .authorities(auths);
+    }
+
     // =========================================================================
     // GET /api/v1/metrics/dashboard-summary
     // =========================================================================
@@ -259,6 +275,124 @@ class MetricsControllerIT extends BaseIntegrationTest {
         @DisplayName("AGENT → 403")
         void agent_gets403() throws Exception {
             mockMvc.perform(get("/api/v1/metrics/product-metrics").with(jwt().authorities(AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/metrics/users/{userId}/agent  (oversight)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/metrics/users/{userId}/agent")
+    class UserAgentDashboard {
+
+        private static final String TARGET = "00000000-0000-0000-0000-000000000001";
+
+        @Test
+        @DisplayName("MANAGER → 200 (global), scoped agent queries execute on empty DB")
+        void manager_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/agent").with(jwtWithRoles("MANAGER")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.activeTickets").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.statusDistribution").exists())
+                    .andExpect(jsonPath("$.timeline.timeline").isArray());
+        }
+
+        @Test
+        @DisplayName("ADMIN → 200")
+        void admin_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/agent?days=7").with(jwtWithRoles("ADMIN")))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("LEAD_AGENT (paylaşılan ürün yok) → 403")
+        void leadAgent_noSharedProduct_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/agent").with(jwt().authorities(LEAD_AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/agent").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/metrics/users/{userId}/customer  (oversight)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/metrics/users/{userId}/customer")
+    class UserCustomerDashboard {
+
+        private static final String TARGET = "00000000-0000-0000-0000-000000000002";
+
+        @Test
+        @DisplayName("MANAGER → 200")
+        void manager_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/customer").with(jwtWithRoles("MANAGER")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalTickets").value(isA(Number.class)))
+                    .andExpect(jsonPath("$.statusDistribution").exists());
+        }
+
+        @Test
+        @DisplayName("LEAD_AGENT → 403 (yalnızca ADMIN/MANAGER)")
+        void leadAgent_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/customer").with(jwt().authorities(LEAD_AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/users/" + TARGET + "/customer").with(jwt().authorities(CUSTOMER)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/metrics/products/{productId}/dashboard
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/metrics/products/{productId}/dashboard")
+    class ProductDashboard {
+
+        @Test
+        @DisplayName("MANAGER → 200, product-scoped queries execute on empty DB")
+        void manager_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/products/999/dashboard").with(jwtWithRoles("MANAGER")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.productId").value(999))
+                    .andExpect(jsonPath("$.statusDistribution").exists())
+                    .andExpect(jsonPath("$.priorityDistribution").exists())
+                    .andExpect(jsonPath("$.topAgents.agents").isArray())
+                    .andExpect(jsonPath("$.recentTickets").isArray());
+        }
+
+        @Test
+        @DisplayName("ADMIN → 200")
+        void admin_gets200() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/products/999/dashboard?days=30").with(jwtWithRoles("ADMIN")))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("LEAD_AGENT (yetkili olmadığı ürün) → 403")
+        void leadAgent_unauthorizedProduct_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/products/999/dashboard").with(jwt().authorities(LEAD_AGENT)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("CUSTOMER → 403")
+        void customer_gets403() throws Exception {
+            mockMvc.perform(get("/api/v1/metrics/products/999/dashboard").with(jwt().authorities(CUSTOMER)))
                     .andExpect(status().isForbidden());
         }
     }
