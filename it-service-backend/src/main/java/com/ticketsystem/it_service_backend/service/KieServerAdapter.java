@@ -150,6 +150,38 @@ public class KieServerAdapter {
     }
 
     /**
+     * Returns {@code true} only when the KIE Server definitively reports that the
+     * process instance does not exist (HTTP 404). Distinguishes a stale
+     * {@code processInstanceId} (BPMN gone — safe to bypass workflow validation)
+     * from a transient outage (breaker open / connectivity), where it returns
+     * {@code false} so callers stay conservative.
+     *
+     * @param processInstanceId target process instance ID
+     * @return {@code true} if confirmed missing; {@code false} if it exists or cannot be determined
+     */
+    public boolean isProcessInstanceMissing(Long processInstanceId) {
+        if (processInstanceId == null) return false;
+        try {
+            ProcessInstance pi = CircuitBreaker.decorateSupplier(circuitBreaker, () ->
+                    queryClient.findProcessInstanceById(processInstanceId)).get();
+            return pi == null;
+        } catch (CallNotPermittedException e) {
+            log.warn("KIE Server Circuit Breaker açık — süreç örneği varlığı doğrulanamadı: processInstanceId={}",
+                    processInstanceId);
+            return false;
+        } catch (Exception e) {
+            boolean missing = e.getMessage() != null && e.getMessage().contains("Could not find process instance");
+            if (missing) {
+                log.warn("Süreç örneği KIE'de yok (404): processInstanceId={}", processInstanceId);
+            } else {
+                log.warn("Süreç örneği varlığı doğrulanamadı: processInstanceId={}, hata={}",
+                        processInstanceId, e.getMessage());
+            }
+            return missing;
+        }
+    }
+
+    /**
      * Aborts a running process. Errors are not propagated (best-effort).
      *
      * @param processInstanceId process instance ID to abort

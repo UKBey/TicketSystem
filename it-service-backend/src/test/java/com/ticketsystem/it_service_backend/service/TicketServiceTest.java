@@ -632,6 +632,35 @@ class TicketServiceTest {
     }
 
     @Test
+    void updateTicketStatus_whenProcessInstanceMissing_acceptsTransition() {
+        // Stale processInstanceId: the BPMN instance was pruned/reset (e.g. jBPM
+        // history store wiped) but the ticket survived in ticketdb. The transition
+        // can't be confirmed (verifyTransitionApplied=false), yet the instance is
+        // confirmed GONE — so the DB-side close is accepted instead of a 400
+        // dead-end that would leave the ticket un-closeable forever.
+        Ticket existing = Ticket.builder()
+                .id(310L)
+                .title("Ticket")
+                .description("desc")
+                .priority("HIGH")
+                .status("RESOLVED")
+                .productId(10L)
+                .customerId("customer-1")
+                .processInstanceId(9999L)
+                .build();
+
+        when(ticketRepository.findById(310L)).thenReturn(Optional.of(existing));
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
+        when(workflowService.isProcessInstanceMissing(any())).thenReturn(true);
+
+        Ticket updated = ticketService.updateTicketStatus(310L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals("CLOSED", updated.getStatus());
+        assertNotNull(updated.getClosedAt());
+    }
+
+    @Test
     void updateTicketStatus_whenCustomerMakesForbiddenTransition_throwsForbidden() {
         Ticket existing = Ticket.builder()
                 .id(302L)

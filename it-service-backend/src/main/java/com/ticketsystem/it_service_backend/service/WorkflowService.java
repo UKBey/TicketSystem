@@ -292,6 +292,20 @@ public class WorkflowService {
      * @return {@code true} if the BPMN variable matches {@code expectedStatus}, {@code false}
      *         on mismatch / read failure / missing process instance
      */
+    /**
+     * Returns {@code true} only when the ticket's BPMN process instance no longer
+     * exists on the KIE Server (stale {@code processInstanceId} — e.g. jBPM history
+     * pruned/reset). Lets callers treat the missing state machine like "no workflow"
+     * and accept the DB-side transition instead of blocking the ticket forever.
+     *
+     * @param ticket the ticket whose process instance is checked
+     * @return {@code true} if the instance is confirmed gone; {@code false} otherwise
+     */
+    public boolean isProcessInstanceMissing(Ticket ticket) {
+        if (ticket.getProcessInstanceId() == null) return false;
+        return kieServerAdapter.isProcessInstanceMissing(ticket.getProcessInstanceId());
+    }
+
     public boolean verifyTransitionApplied(Ticket ticket, String expectedStatus) {
         if (ticket.getProcessInstanceId() == null || expectedStatus == null) return false;
 

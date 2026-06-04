@@ -1294,9 +1294,23 @@ public class TicketService {
         }
 
         workflowService.requestStatusTransition(ticket, next);
-        if (!workflowService.verifyTransitionApplied(ticket, next)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
+        if (workflowService.verifyTransitionApplied(ticket, next)) {
+            return;
         }
+
+        // Transition not confirmed. If the BPMN process instance no longer exists
+        // (stale processInstanceId — e.g. the jBPM history store was reset while the
+        // ticket survived in ticketdb), there is no state machine left to consult.
+        // Treat it like the "no workflow" case above and accept the DB-side
+        // transition instead of blocking the ticket forever.
+        if (workflowService.isProcessInstanceMissing(ticket)) {
+            log.warn("BPMN süreç örneği KIE'de yok (eski processInstanceId) — DB geçişi kabul ediliyor. "
+                    + "TicketId={}, ProcessInstanceId={}, {} -> {}",
+                    ticket.getId(), ticket.getProcessInstanceId(), current, next);
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
     }
 
     private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,

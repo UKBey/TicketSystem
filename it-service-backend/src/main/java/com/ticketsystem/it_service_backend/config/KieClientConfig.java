@@ -86,6 +86,7 @@ public class KieClientConfig {
                 .permittedNumberOfCallsInHalfOpenState(3)       // Yeniden denemede sinirli test cagrisina izin verir.
                 .slowCallDurationThreshold(Duration.ofSeconds(10)) // Bu sureyi asan cagri yavas kabul edilir.
                 .slowCallRateThreshold(50)                       // Yavas cagri orani yukselirse devre korunmaya gecer.
+                .ignoreException(KieClientConfig::isProcessInstanceNotFound) // 404 (instance yok) sagliksizlik degildir.
                 .build();
 
         CircuitBreaker cb = CircuitBreaker.of("kieServer", cbConfig);
@@ -95,5 +96,25 @@ public class KieClientConfig {
                         log.warn("KIE Server Circuit Breaker durum değişikliği: {}", event.getStateTransition()));
 
         return cb;
+    }
+
+    /**
+     * A "process instance not found" (HTTP 404) is a deterministic, per-instance
+     * outcome — the instance is permanently gone (completed &amp; pruned, or the jBPM
+     * history store was reset), NOT a sign that the KIE Server is unhealthy. Counting
+     * it toward the circuit breaker would wrongly trip the breaker and short-circuit
+     * workflow calls for every other ticket. So it is ignored; genuine connectivity
+     * failures (timeouts, refused connections, 5xx) still carry a different message
+     * and continue to be recorded.
+     */
+    static boolean isProcessInstanceNotFound(Throwable t) {
+        Throwable cause = t;
+        for (int i = 0; cause != null && i < 10; cause = cause.getCause(), i++) {
+            String msg = cause.getMessage();
+            if (msg != null && msg.contains("Could not find process instance")) {
+                return true;
+            }
+        }
+        return false;
     }
 }
