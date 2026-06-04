@@ -1388,4 +1388,94 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
          + "WHERE tc.agent_id = CAST(:agentId AS text) "
          + "ORDER BY t.created_at DESC", nativeQuery = true)
     List<Ticket> findRecentClaimedByAgent(@Param("agentId") String agentId, Pageable pageable);
+
+    // =========================================================================
+    // PRODUCT-SCOPED agent dashboard variants — used when a LEAD_AGENT views an
+    // agent's performance: metrics are restricted to the lead's authorized products
+    // (:filterByProduct = true). With :filterByProduct = false they match the
+    // un-scoped self queries above (global ADMIN/MANAGER view).
+    // =========================================================================
+
+    /** Product-scoped variant of {@link #findAgentSelfMetrics}. */
+    @Query(value = """
+            SELECT
+                COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END)::BIGINT AS active,
+                COUNT(CASE WHEN t.resolved_at >= :since24h THEN 1 END)::BIGINT AS resolved_24h,
+                COUNT(CASE WHEN t.resolved_at >= :since7d  THEN 1 END)::BIGINT AS resolved_7d,
+                COUNT(CASE WHEN t.resolved_at >= :since30d THEN 1 END)::BIGINT AS resolved_30d,
+                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)::BIGINT AS sla_breached,
+                COUNT(*)::BIGINT AS total_claimed,
+                COALESCE(AVG(CASE
+                    WHEN t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0
+                END), 0)::DOUBLE PRECISION AS avg_resolution_hours,
+                COALESCE(AVG(CAST(cs.rating AS DOUBLE PRECISION)), 0)::DOUBLE PRECISION AS csat_avg,
+                COUNT(cs.id)::BIGINT AS csat_count
+            FROM ticket_claims tc
+            JOIN tickets t ON t.id = tc.ticket_id
+            LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+            WHERE tc.agent_id = CAST(:agentId AS text)
+            AND (:filterByProduct = false OR t.product_id IN (:productIds))
+            """, nativeQuery = true)
+    List<Object[]> findAgentSelfMetricsScoped(@Param("agentId") String agentId,
+                                              @Param("since24h") ZonedDateTime since24h,
+                                              @Param("since7d") ZonedDateTime since7d,
+                                              @Param("since30d") ZonedDateTime since30d,
+                                              @Param("filterByProduct") boolean filterByProduct,
+                                              @Param("productIds") List<Long> productIds);
+
+    /** Product-scoped variant of {@link #countClaimedTicketsGroupedByStatus}. */
+    @Query(value = "SELECT t.status, COUNT(*)::BIGINT FROM ticket_claims tc "
+         + "JOIN tickets t ON t.id = tc.ticket_id "
+         + "WHERE tc.agent_id = CAST(:agentId AS text) "
+         + "AND (:filterByProduct = false OR t.product_id IN (:productIds)) "
+         + "GROUP BY t.status", nativeQuery = true)
+    List<Object[]> countClaimedTicketsGroupedByStatusScoped(@Param("agentId") String agentId,
+                                                            @Param("filterByProduct") boolean filterByProduct,
+                                                            @Param("productIds") List<Long> productIds);
+
+    /** Product-scoped variant of {@link #getAgentTicketTimelineMetrics}. */
+    @Query(value = """
+        WITH date_range AS (
+            SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date
+            FROM generate_series(0, :days - 1) AS i
+        ),
+        mine AS (
+            SELECT t.* FROM tickets t
+            WHERE EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(:agentId AS text))
+            AND (:filterByProduct = false OR t.product_id IN (:productIds))
+        ),
+        daily_metrics AS (
+            SELECT
+                dr.metric_date AS metric_date,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS created_count,
+                COUNT(CASE WHEN DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS resolved_count,
+                COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
+            FROM date_range dr
+            LEFT JOIN mine t ON
+                (DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date)
+            GROUP BY dr.metric_date
+        )
+        SELECT metric_date, created_count::BIGINT, resolved_count::BIGINT, closed_count::BIGINT, sla_breach_count::BIGINT
+        FROM daily_metrics
+        ORDER BY metric_date DESC
+        """, nativeQuery = true)
+    List<Object[]> getAgentTicketTimelineMetricsScoped(@Param("days") int days,
+                                                       @Param("agentId") String agentId,
+                                                       @Param("filterByProduct") boolean filterByProduct,
+                                                       @Param("productIds") List<Long> productIds);
+
+    /** Product-scoped variant of {@link #findRecentClaimedByAgent}. */
+    @Query(value = "SELECT t.* FROM tickets t "
+         + "JOIN ticket_claims tc ON tc.ticket_id = t.id "
+         + "WHERE tc.agent_id = CAST(:agentId AS text) "
+         + "AND (:filterByProduct = false OR t.product_id IN (:productIds)) "
+         + "ORDER BY t.created_at DESC", nativeQuery = true)
+    List<Ticket> findRecentClaimedByAgentScoped(@Param("agentId") String agentId,
+                                                @Param("filterByProduct") boolean filterByProduct,
+                                                @Param("productIds") List<Long> productIds,
+                                                Pageable pageable);
 }

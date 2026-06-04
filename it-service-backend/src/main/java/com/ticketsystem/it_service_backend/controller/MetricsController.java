@@ -26,10 +26,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -489,5 +492,75 @@ public class MetricsController {
         String userId = jwt.getSubject();
         log.debug("Kişisel ajan dashboard istendi (user={}, days={})", userId, days);
         return ResponseEntity.ok(metricsService.getMyAgentDashboard(userId, days));
+    }
+
+    // -------------------------------------------------------------------------
+    //  Viewing ANOTHER user's dashboard (oversight) — from User Management / the
+    //  agent leaderboard. ADMIN/MANAGER are global; a pure LEAD_AGENT is restricted
+    //  to agents authorized on its own products and only sees those products' data.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Agent performance dashboard for a specific user, for oversight roles.
+     * ADMIN/MANAGER see the agent's full claimed-ticket history; a pure LEAD_AGENT
+     * sees only the slice within their authorized products and is forbidden from
+     * viewing agents that share no product with them.
+     *
+     * @param userId target agent's Keycloak id
+     * @param days   timeline window (default 30, clamped 1–365)
+     */
+    @Operation(summary = "Bir kullanıcının ajan performans dashboard'u (oversight)",
+            description = "Belirtilen kullanıcının ajan metriklerini döner. ADMIN/MANAGER global görür; "
+                    + "LEAD_AGENT yalnızca kendi yetkili olduğu ürünlerdeki veriyi görür ve ortak ürünü "
+                    + "olmayan ajanları görüntüleyemez.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ajan dashboard'u döndü",
+                    content = @Content(schema = @Schema(implementation = AgentDashboardDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yetkisiz erişim / kapsam dışı kullanıcı")
+    })
+    @PreAuthorize("hasAnyRole('MANAGER', 'LEAD_AGENT', 'ADMIN')")
+    @GetMapping("/users/{userId}/agent")
+    public ResponseEntity<AgentDashboardDTO> getUserAgentDashboard(
+            @PathVariable String userId,
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.debug("Kullanıcı ajan dashboard istendi (target={}, days={})", userId, days);
+        if (AuthRoles.isGlobal(roles)) {
+            // ADMIN/MANAGER → global view (same data the agent sees of themselves).
+            return ResponseEntity.ok(metricsService.getMyAgentDashboard(userId, days));
+        }
+        // Pure LEAD_AGENT → product-scoped, and only for agents sharing a product.
+        String leadId = jwt.getSubject();
+        List<Long> leadProducts = metricsService.resolveScopedProductIds(leadId);
+        if (!metricsService.userSharesAnyProduct(userId, leadProducts)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.metrics.user.forbidden");
+        }
+        return ResponseEntity.ok(metricsService.getUserAgentDashboard(userId, days, leadProducts, leadId));
+    }
+
+    /**
+     * Customer dashboard for a specific user, for the global oversight roles.
+     * Restricted to ADMIN/MANAGER — leads do not have access to customer accounts.
+     *
+     * @param userId target customer's Keycloak id
+     * @param days   timeline window (default 30, clamped 1–365)
+     */
+    @Operation(summary = "Bir kullanıcının müşteri dashboard'u (oversight)",
+            description = "Belirtilen kullanıcının müşteri olarak açtığı biletler üzerinden metrikleri döner. "
+                    + "Yalnızca ADMIN/MANAGER erişebilir.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Müşteri dashboard'u döndü",
+                    content = @Content(schema = @Schema(implementation = CustomerDashboardDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yetkisiz erişim (ADMIN/MANAGER gerekli)")
+    })
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @GetMapping("/users/{userId}/customer")
+    public ResponseEntity<CustomerDashboardDTO> getUserCustomerDashboard(
+            @PathVariable String userId,
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        log.debug("Kullanıcı müşteri dashboard istendi (target={}, days={})", userId, days);
+        return ResponseEntity.ok(metricsService.getMyCustomerDashboard(userId, days));
     }
 }

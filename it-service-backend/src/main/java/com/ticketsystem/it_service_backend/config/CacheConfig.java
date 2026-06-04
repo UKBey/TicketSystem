@@ -36,6 +36,14 @@ public class CacheConfig {
     public static final String ME_CUSTOMER_DASHBOARD  = "meCustomerDashboard";
     public static final String ME_AGENT_DASHBOARD     = "meAgentDashboard";
 
+    // Yönetici/lead'in başka bir kullanıcının dashboard'unu görüntülemesi — kullanıcı +
+    // scope (global/lead) + gün penceresi bazında anahtarlanır; kişisel cache'lerle karışmaz.
+    public static final String USER_AGENT_DASHBOARD    = "userAgentDashboard";
+    public static final String USER_CUSTOMER_DASHBOARD = "userCustomerDashboard";
+
+    // Ürün bazlı dashboard — ürün + scope + gün penceresi bazında anahtarlanır.
+    public static final String PRODUCT_DASHBOARD       = "productDashboard";
+
     // Rate limit config'leri; interceptor her istek öncesi okur.
     // @CacheEvict admin güncellemesinde anında geçersiz kılar; TTL sadece fallback.
     public static final String RATE_LIMIT_CONFIGS     = "rateLimitConfigs";
@@ -61,6 +69,9 @@ public class CacheConfig {
                 WORKLOG_COMPLETION,
                 ME_CUSTOMER_DASHBOARD,
                 ME_AGENT_DASHBOARD,
+                USER_AGENT_DASHBOARD,
+                USER_CUSTOMER_DASHBOARD,
+                PRODUCT_DASHBOARD,
                 RATE_LIMIT_CONFIGS,
                 "metrics"
         );

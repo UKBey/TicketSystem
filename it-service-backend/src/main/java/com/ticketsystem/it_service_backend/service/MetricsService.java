@@ -123,6 +123,22 @@ public class MetricsService {
     }
 
     /**
+     * Whether the target user is authorized on at least one of the given products —
+     * used to decide if a product-scoped LEAD_AGENT may view that user's dashboard.
+     * Returns false when {@code productIds} is null/empty (a lead authorized on nothing
+     * can view no one).
+     *
+     * @param userId     the user being viewed
+     * @param productIds the viewer's authorized product IDs
+     */
+    public boolean userSharesAnyProduct(String userId, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return false;
+        }
+        return resolveScopedProductIds(userId).stream().anyMatch(productIds::contains);
+    }
+
+    /**
      * A non-null product id list safe to pass into {@code IN (...)} clauses. When the
      * caller is global ({@code productIds == null}) the filter flag is false, so the
      * actual values are ignored — but JPA still requires a non-empty collection to bind
@@ -832,11 +848,43 @@ public class MetricsService {
     @Cacheable(value = ME_AGENT_DASHBOARD, key = "#agentId + ':' + (#days == null ? 'all' : #days)")
     public AgentDashboardDTO getMyAgentDashboard(String agentId, Integer days) {
         log.info("Ajan kişisel dashboard hesaplanıyor (agent={}, days={})", agentId, days);
+        // Kişisel görünüm ürün filtresi uygulamaz (kullanıcının TÜM claim'leri).
+        return computeAgentDashboard(agentId, days, null);
+    }
+
+    /**
+     * Agent performance dashboard for a manager/admin/lead viewing <i>another</i> user.
+     * A global caller ({@code productIds == null}) sees the agent's full claimed-ticket
+     * history (identical to the agent's own view); a {@code LEAD_AGENT} passes their
+     * authorized product IDs so the agent's metrics are restricted to those products.
+     *
+     * @param agentId    the target agent's Keycloak id
+     * @param days       timeline window (clamped 1–365; null → default)
+     * @param productIds {@code null} = global view; non-null = restrict to these products
+     * @param scopeKey   cache discriminator ({@code "global"} or the lead's user id)
+     */
+    @Cacheable(value = USER_AGENT_DASHBOARD,
+            key = "#agentId + ':' + #scopeKey + ':' + (#days == null ? 'all' : #days)")
+    public AgentDashboardDTO getUserAgentDashboard(String agentId, Integer days,
+                                                   List<Long> productIds, String scopeKey) {
+        log.info("Ajan dashboard görüntüleniyor (agent={}, scope={}, days={})", agentId, scopeKey, days);
+        return computeAgentDashboard(agentId, days, productIds);
+    }
+
+    /**
+     * Shared agent-dashboard computation. {@code productIds == null} → global (no product
+     * filter); a non-null list restricts every metric to the agent's tickets in those
+     * products. Worklog minutes are likewise product-scoped so a lead's view never leaks
+     * effort logged on out-of-scope products.
+     */
+    private AgentDashboardDTO computeAgentDashboard(String agentId, Integer days, List<Long> productIds) {
         int window = safeDays(days);
         ZonedDateTime now = ZonedDateTime.now();
+        boolean filter = filterByProduct(productIds);
+        List<Long> pids = safeProductIds(productIds);
 
-        List<Object[]> rows = ticketRepository.findAgentSelfMetrics(
-                agentId, now.minusHours(24), now.minusDays(7), now.minusDays(30));
+        List<Object[]> rows = ticketRepository.findAgentSelfMetricsScoped(
+                agentId, now.minusHours(24), now.minusDays(7), now.minusDays(30), filter, pids);
         Object[] m = rows.isEmpty() ? null : rows.get(0);
 
         long active        = asLong(m, 0);
@@ -850,16 +898,17 @@ public class MetricsService {
         long csatCount     = asLong(m, 8);
         double slaBreachRate = totalClaimed > 0 ? (double) slaBreached / totalClaimed * 100.0 : 0.0;
 
-        long worklogMinutes = worklogRepository.sumAgentWorklogMinutesSince(agentId, now.minusDays(7));
+        long worklogMinutes = worklogRepository.sumAgentWorklogMinutesSinceScoped(
+                agentId, now.minusDays(7), filter, pids);
 
         StatusDistributionDTO dist = buildStatusDistribution(
-                ticketRepository.countClaimedTicketsGroupedByStatus(agentId));
+                ticketRepository.countClaimedTicketsGroupedByStatusScoped(agentId, filter, pids));
 
         TicketTimelineDTO timeline = buildTimeline(
-                ticketRepository.getAgentTicketTimelineMetrics(window, agentId));
+                ticketRepository.getAgentTicketTimelineMetricsScoped(window, agentId, filter, pids));
 
         List<RecentTicketDTO> recent = ticketRepository
-                .findRecentClaimedByAgent(agentId, PageRequest.of(0, 5)).stream()
+                .findRecentClaimedByAgentScoped(agentId, filter, pids, PageRequest.of(0, 5)).stream()
                 .map(this::toRecentTicket)
                 .toList();
 

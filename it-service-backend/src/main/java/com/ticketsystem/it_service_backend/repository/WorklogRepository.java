@@ -54,4 +54,18 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
          + "WHERE w.agentId = :agentId AND w.createdAt >= :since")
     long sumAgentWorklogMinutesSince(@Param("agentId") String agentId,
                                      @Param("since") ZonedDateTime since);
+
+    /**
+     * Product-scoped variant of {@link #sumAgentWorklogMinutesSince}. Joins worklogs to
+     * their ticket so the product filter applies on the ticket's product; when
+     * {@code filterByProduct} is false it matches the global query.
+     */
+    @Query(value = "SELECT COALESCE(SUM(w.minutes), 0) FROM ticket_worklogs w "
+         + "JOIN tickets t ON t.id = w.ticket_id "
+         + "WHERE w.agent_id = CAST(:agentId AS text) AND w.created_at >= :since "
+         + "AND (:filterByProduct = false OR t.product_id IN (:productIds))", nativeQuery = true)
+    long sumAgentWorklogMinutesSinceScoped(@Param("agentId") String agentId,
+                                           @Param("since") ZonedDateTime since,
+                                           @Param("filterByProduct") boolean filterByProduct,
+                                           @Param("productIds") List<Long> productIds);
 }
