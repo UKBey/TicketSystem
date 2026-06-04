@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2, X, Eye, Search, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Eye, Search, Tag, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -15,11 +15,13 @@ export default function ProductPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const { isLeadAgent, isAdmin } = useAuth();
+  const { isLeadAgent, isAdmin, isManager } = useAuth();
   // Ürün CRUD (oluştur/düzenle/sil) sistem-config'tir — yalnızca admin.
   const canManageProducts = isAdmin;
   // Konu (topic) yönetimi ürün içeriğidir — lead agent veya admin.
   const canManageTopics = isLeadAgent || isAdmin;
+  // Ürün dashboard'u oversight'tir — admin/manager/lead (lead yalnızca yetkili ürünleri).
+  const canViewDashboard = isAdmin || isManager || isLeadAgent;
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -275,6 +277,17 @@ export default function ProductPanel() {
                     <Eye className="h-3.5 w-3.5" />
                     {t('productPanel.view')}
                   </button>
+                  {canViewDashboard && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, name: product.name } } })}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                    >
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      {t('productDashboard.viewAction')}
+                    </button>
+                  )}
                   {canManageProducts && (
                     <>
                       <button
@@ -381,6 +394,18 @@ export default function ProductPanel() {
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
+                      {canViewDashboard && (
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                          onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, name: product.name } } })}
+                          title={t('productDashboard.viewAction')}
+                          aria-label={t('productDashboard.viewAction')}
+                        >
+                          <BarChart3 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {canManageProducts && (
                         <>
                           <button

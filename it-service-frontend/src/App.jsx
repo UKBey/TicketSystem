@@ -21,6 +21,7 @@ import AllTickets from './pages/agent/AllTickets';
 import Dashboard from './pages/manager/Dashboard';
 import AdminPanel from './pages/manager/AdminPanel';
 import ProductPanel from './pages/manager/ProductPanel';
+import ProductDashboard from './pages/manager/ProductDashboard';
 import UserManagementPage from './pages/manager/UserManagementPage';
 import UserPerformancePage from './pages/manager/UserPerformancePage';
 import TicketDetail from './pages/TicketDetail';
@@ -215,6 +216,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><ProductPanel /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products/:productId/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'LEAD_AGENT']}>
+              <AppLayout><ProductDashboard /></AppLayout>
             </ProtectedRoute>
           }
         />

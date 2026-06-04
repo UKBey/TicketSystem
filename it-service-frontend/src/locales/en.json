@@ -727,6 +727,27 @@
     "customerSubtitle": "Customer overview — tickets opened, status, SLA, resolution time and satisfaction ratings.",
     "loadError": "Could not load this user."
   },
+  "productDashboard": {
+    "viewAction": "Dashboard",
+    "back": "Back",
+    "badge": "Product Dashboard",
+    "description": "Volume, status, SLA, resolution time, satisfaction and the agents working this product.",
+    "loadError": "Could not load the product dashboard.",
+    "kpiOpen": "Open Tickets",
+    "kpiOpenDetail": "{{count}} total tickets",
+    "kpiResolved": "Resolved",
+    "kpiResolvedDetail": "Avg {{hours}} to resolve",
+    "kpiSla": "SLA Breached",
+    "kpiSlaDetail": "{{rate}}% of open tickets",
+    "kpiCsat": "CSAT",
+    "kpiCsatDetail": "{{count}} ratings",
+    "priorityTitle": "Open tickets by priority",
+    "trendBadge": "Trend Chart",
+    "trendTitle": "Created, Resolved, Closed & SLA Breach",
+    "trendSubtitle": "Ticket activity for this product over the selected period.",
+    "recentTitle": "Recent tickets",
+    "recentEmpty": "No tickets for this product yet."
+  },
   "customerDashboard": {
     "badge": "My Overview",
     "heading": "Your support at a glance",

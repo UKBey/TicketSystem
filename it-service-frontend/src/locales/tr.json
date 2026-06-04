@@ -727,6 +727,27 @@
     "customerSubtitle": "Müşteri genel bakışı — açılan biletler, durum, SLA, çözüm süresi ve memnuniyet puanları.",
     "loadError": "Bu kullanıcı yüklenemedi."
   },
+  "productDashboard": {
+    "viewAction": "Dashboard",
+    "back": "Geri",
+    "badge": "Ürün Dashboard'u",
+    "description": "Hacim, durum, SLA, çözüm süresi, memnuniyet ve bu ürün üzerinde çalışan ajanlar.",
+    "loadError": "Ürün dashboard'u yüklenemedi.",
+    "kpiOpen": "Açık Biletler",
+    "kpiOpenDetail": "Toplam {{count}} bilet",
+    "kpiResolved": "Çözülen",
+    "kpiResolvedDetail": "Ort. {{hours}} çözüm",
+    "kpiSla": "SLA İhlali",
+    "kpiSlaDetail": "Açık biletlerin %{{rate}}'i",
+    "kpiCsat": "CSAT",
+    "kpiCsatDetail": "{{count}} puan",
+    "priorityTitle": "Açık biletlerin önceliğe göre dağılımı",
+    "trendBadge": "Trend Grafiği",
+    "trendTitle": "Açılan, Çözülen, Kapanan ve SLA İhlali",
+    "trendSubtitle": "Seçilen dönemde bu ürünün bilet hareketleri.",
+    "recentTitle": "Son biletler",
+    "recentEmpty": "Bu ürün için henüz bilet yok."
+  },
   "customerDashboard": {
     "badge": "Genel Bakış",
     "heading": "Desteğiniz bir bakışta",

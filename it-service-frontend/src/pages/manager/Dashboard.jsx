@@ -61,6 +61,14 @@ export default function Dashboard() {
     });
   }, [navigate]);
 
+  // Ürün metrik tablosunda bir ürüne tıklayınca o ürünün dashboard'una git.
+  const handleProductClick = useCallback((product) => {
+    if (!product?.productId) return;
+    navigate(`/products/${product.productId}/dashboard`, {
+      state: { product: { id: product.productId, name: product.productName } },
+    });
+  }, [navigate]);
+
   const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [loading, setLoading] = useState(true);
@@ -330,7 +338,7 @@ export default function Dashboard() {
           <AgentPerformanceTable data={agentPerformance} loading={agentLoading} onAgentClick={handleAgentClick} />
         </div>
         <div className="w-full min-w-0">
-          <ProductMetricsChart data={productMetrics} loading={productLoading} />
+          <ProductMetricsChart data={productMetrics} loading={productLoading} onProductClick={handleProductClick} />
         </div>
       </section>
 

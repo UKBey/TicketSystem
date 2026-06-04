@@ -73,6 +73,13 @@ async function getUserCustomerDashboard(userId, days = 30) {
   return response.data;
 }
 
+// Ürün bazlı dashboard. ADMIN/MANAGER her ürünü, LEAD_AGENT yalnızca yetkili
+// olduğu ürünleri görüntüleyebilir (backend kapsamı uygular).
+async function getProductDashboard(productId, days = 30) {
+  const response = await api.get(`/metrics/products/${productId}/dashboard`, { params: { days } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -87,4 +94,5 @@ export default {
   getMyAgentDashboard,
   getUserAgentDashboard,
   getUserCustomerDashboard,
+  getProductDashboard,
 };

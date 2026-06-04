@@ -10,7 +10,7 @@ function fmt1(v) {
   return v != null ? Number(v).toFixed(1) : '—';
 }
 
-function ProductMetricsChart({ data, loading }) {
+function ProductMetricsChart({ data, loading, onProductClick }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const { rows, otherRow, maxTotal } = useMemo(() => {
@@ -98,12 +98,17 @@ function ProductMetricsChart({ data, loading }) {
             ? Math.round(((product.openTickets ?? 0) / product.totalTickets) * 100)
             : 0;
 
+          const clickable = !isOther && onProductClick && product.productId;
           return (
             <div
               key={product.productName}
-              className="group relative"
+              className={`group relative ${clickable ? 'cursor-pointer' : ''}`}
               onMouseEnter={() => !isOther && setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
+              onClick={clickable ? () => onProductClick(product) : undefined}
+              role={clickable ? 'button' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onProductClick(product); } } : undefined}
             >
               {/* Name + count */}
               <div className="flex items-center justify-between mb-1.5">
