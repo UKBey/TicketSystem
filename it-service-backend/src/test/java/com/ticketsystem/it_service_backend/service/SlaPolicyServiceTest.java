@@ -38,9 +38,9 @@ class SlaPolicyServiceTest {
     class GetSlaDurationMs {
 
         @Test
-        @DisplayName("null öncelik → MEDIUM varsayılanı (12 saat)")
+        @DisplayName("null öncelik → MEDIUM varsayılanı (24 saat)")
         void nullPriority_returnsMediumDefault() {
-            assertThat(service.getSlaDurationMs(null)).isEqualTo(12L * 3_600_000L);
+            assertThat(service.getSlaDurationMs(null)).isEqualTo(24L * 3_600_000L);
         }
 
         @Test
@@ -74,9 +74,9 @@ class SlaPolicyServiceTest {
         }
 
         @Test
-        @DisplayName("Config'de olmayan priority → 12 saat varsayılan")
+        @DisplayName("Config'de olmayan priority → 24 saat varsayılan")
         void unknownPriority_returnsDefault() {
-            assertThat(service.getSlaDurationMs("UNKNOWN")).isEqualTo(12L * 3_600_000L);
+            assertThat(service.getSlaDurationMs("UNKNOWN")).isEqualTo(24L * 3_600_000L);
         }
 
         @Test
@@ -86,7 +86,7 @@ class SlaPolicyServiceTest {
             props.setPolicies(Map.of("MEDIUM", policy(0, 2)));
             SlaPolicyService svc = new SlaPolicyService(props);
 
-            assertThat(svc.getSlaDurationMs("MEDIUM")).isEqualTo(12L * 3_600_000L);
+            assertThat(svc.getSlaDurationMs("MEDIUM")).isEqualTo(24L * 3_600_000L);
         }
     }
 
@@ -144,13 +144,22 @@ class SlaPolicyServiceTest {
         }
 
         @Test
-        void low_defaultsTo24Hours() {
-            assertThat(emptyConfigService.getSlaDurationMs("LOW")).isEqualTo(24L * 3_600_000L);
+        void low_defaultsTo72Hours() {
+            assertThat(emptyConfigService.getSlaDurationMs("LOW")).isEqualTo(72L * 3_600_000L);
         }
 
         @Test
-        void medium_defaultsTo12Hours() {
-            assertThat(emptyConfigService.getSlaDurationMs("MEDIUM")).isEqualTo(12L * 3_600_000L);
+        void medium_defaultsTo24Hours() {
+            assertThat(emptyConfigService.getSlaDurationMs("MEDIUM")).isEqualTo(24L * 3_600_000L);
+        }
+
+        @Test
+        @DisplayName("Warning fallback'leri (config yokken) application.yml ile aynı")
+        void warningFallback_perPriority_matchesYmlDefaults() {
+            assertThat(emptyConfigService.getWarningThresholdHours("CRITICAL")).isZero();
+            assertThat(emptyConfigService.getWarningThresholdHours("HIGH")).isEqualTo(1);
+            assertThat(emptyConfigService.getWarningThresholdHours("MEDIUM")).isEqualTo(2);
+            assertThat(emptyConfigService.getWarningThresholdHours("LOW")).isEqualTo(2);
         }
     }
 }

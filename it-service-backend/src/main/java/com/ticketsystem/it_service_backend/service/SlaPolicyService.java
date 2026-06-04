@@ -7,6 +7,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * Exposes SLA target durations and warning thresholds per priority.
  *
@@ -20,6 +22,26 @@ import org.springframework.stereotype.Service;
 public class SlaPolicyService {
 
     private final SlaProperties slaProperties;
+
+    /**
+     * In-code SLA fallback defaults — used only when a priority is missing from
+     * the {@code app.sla.policies} config (or its {@code resolutionHours} is unset).
+     * These MUST be kept in sync with the {@code ${...:default}} fallbacks in
+     * {@code application.yml}. Each entry is {@code {resolutionHours, warningThresholdHours}}.
+     */
+    private static final Map<String, int[]> DEFAULTS = Map.of(
+            "CRITICAL", new int[]{1, 0},
+            "HIGH",     new int[]{4, 1},
+            "MEDIUM",   new int[]{24, 2},
+            "LOW",      new int[]{72, 2}
+    );
+
+    /** Fallback for null/unknown priorities (MEDIUM-equivalent). */
+    private static final int[] DEFAULT_FALLBACK = {24, 2};
+
+    private int[] defaults(String priority) {
+        return DEFAULTS.getOrDefault(priority, DEFAULT_FALLBACK);
+    }
 
     /**
      * Flushes all dashboard caches that depend on SLA policy when it changes.
@@ -65,24 +87,19 @@ public class SlaPolicyService {
 
     /**
      * Returns the upcoming-breach notification/warning threshold in hours.
-     * Falls back to 2 hours when no configuration is present.
+     * Falls back to the per-priority {@link #DEFAULTS} value (matching the
+     * application.yml defaults) when no configuration is present.
      *
      * @param priority priority code
      * @return warning threshold in hours
      */
     public int getWarningThresholdHours(String priority) {
-        if (priority == null) return 2;
+        if (priority == null) return DEFAULT_FALLBACK[1];
         SlaProperties.PolicyConfig cfg = slaProperties.getPolicies().get(priority.toUpperCase());
-        return cfg != null ? cfg.getWarningThresholdHours() : 2;
+        return cfg != null ? cfg.getWarningThresholdHours() : defaults(priority.toUpperCase())[1];
     }
 
     private long defaultMs(String priority) {
-        return switch (priority) {
-            case "CRITICAL" ->  1L * 3_600_000L;
-            case "HIGH"     ->  4L * 3_600_000L;
-            case "MEDIUM"   -> 12L * 3_600_000L;
-            case "LOW"      -> 24L * 3_600_000L;
-            default         -> 12L * 3_600_000L;
-        };
+        return (long) defaults(priority)[0] * 3_600_000L;
     }
 }
