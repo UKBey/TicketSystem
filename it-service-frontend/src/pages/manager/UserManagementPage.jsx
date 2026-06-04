@@ -24,7 +24,11 @@ const formatDate = (isoString) => {
 
 export default function UserManagementPage() {
   const { t } = useTranslation();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAdmin } = useAuth();
+
+  // Rol düzenleme ve aktif/pasif alma yalnızca ADMIN yetkisidir. MANAGER bu sayfayı
+  // salt-okunur görür (oversight rolü — yazma yetkisi yok).
+  const canManageUsers = isAdmin;
 
   // Bir admin KENDİ rollerini düzenleyebilir; ama BAŞKA bir admin'in rollerini düzenleyemez.
   const isOtherAdmin = (u) => rolesOf(u).includes('ADMIN') && u.id !== currentUser?.id;
@@ -190,13 +194,15 @@ export default function UserManagementPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer sm:w-auto"
-        >
-          <UserPlus className="h-4 w-4" />
-          {t('userManagement.createUser')}
-        </button>
+        {canManageUsers && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer sm:w-auto"
+          >
+            <UserPlus className="h-4 w-4" />
+            {t('userManagement.createUser')}
+          </button>
+        )}
       </div>
 
       {/* Başarı mesajı */}
@@ -332,40 +338,42 @@ export default function UserManagementPage() {
                         <dd className="text-right">{formatDate(user.createdAt)}</dd>
                       </div>
                     </dl>
-                    <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
-                      <button
-                        onClick={() => handleOpenEditRole(user)}
-                        disabled={isInactive || isOtherAdmin(user)}
-                        title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : undefined}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        {t('userManagement.editRole.buttonTitle')}
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(user)}
-                        disabled={isStatusLoading}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{
-                          borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
-                          color: isInactive ? '#16a34a' : '#dc2626',
-                          backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
-                        }}
-                      >
-                        {isStatusLoading ? (
-                          <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
-                            style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
-                        ) : isInactive ? (
-                          <UserCheck className="h-3.5 w-3.5" />
-                        ) : (
-                          <UserX className="h-3.5 w-3.5" />
-                        )}
-                        {t(isInactive
-                          ? 'userManagement.status.activateTitle'
-                          : 'userManagement.status.deactivateTitle')}
-                      </button>
-                    </div>
+                    {canManageUsers && (
+                      <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border-color-light)' }}>
+                        <button
+                          onClick={() => handleOpenEditRole(user)}
+                          disabled={isInactive || isOtherAdmin(user)}
+                          title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : undefined}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          {t('userManagement.editRole.buttonTitle')}
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          disabled={isStatusLoading}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{
+                            borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                            color: isInactive ? '#16a34a' : '#dc2626',
+                            backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                          }}
+                        >
+                          {isStatusLoading ? (
+                            <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
+                              style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
+                          ) : isInactive ? (
+                            <UserCheck className="h-3.5 w-3.5" />
+                          ) : (
+                            <UserX className="h-3.5 w-3.5" />
+                          )}
+                          {t(isInactive
+                            ? 'userManagement.status.activateTitle'
+                            : 'userManagement.status.deactivateTitle')}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -474,44 +482,48 @@ export default function UserManagementPage() {
                       {formatDate(user.createdAt)}
                     </td>
 
-                    {/* İşlemler */}
+                    {/* İşlemler — yalnızca ADMIN */}
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {/* Rol düzenle */}
-                        <button
-                          onClick={() => handleOpenEditRole(user)}
-                          disabled={isInactive || isOtherAdmin(user)}
-                          className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                          title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : t('userManagement.editRole.buttonTitle')}
-                        >
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                        </button>
+                      {canManageUsers ? (
+                        <div className="flex items-center gap-1.5">
+                          {/* Rol düzenle */}
+                          <button
+                            onClick={() => handleOpenEditRole(user)}
+                            disabled={isInactive || isOtherAdmin(user)}
+                            className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                            title={isOtherAdmin(user) ? t('userManagement.editRole.adminProtected') : t('userManagement.editRole.buttonTitle')}
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                          </button>
 
-                        {/* Aktif/Pasif toggle */}
-                        <button
-                          onClick={() => handleToggleStatus(user)}
-                          disabled={isStatusLoading}
-                          className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{
-                            borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
-                            color: isInactive ? '#16a34a' : '#dc2626',
-                            backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
-                          }}
-                          title={t(isInactive
-                            ? 'userManagement.status.activateTitle'
-                            : 'userManagement.status.deactivateTitle')}
-                        >
-                          {isStatusLoading ? (
-                            <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
-                              style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
-                          ) : isInactive ? (
-                            <UserCheck className="h-3.5 w-3.5" />
-                          ) : (
-                            <UserX className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      </div>
+                          {/* Aktif/Pasif toggle */}
+                          <button
+                            onClick={() => handleToggleStatus(user)}
+                            disabled={isStatusLoading}
+                            className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{
+                              borderColor: isInactive ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)',
+                              color: isInactive ? '#16a34a' : '#dc2626',
+                              backgroundColor: isInactive ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                            }}
+                            title={t(isInactive
+                              ? 'userManagement.status.activateTitle'
+                              : 'userManagement.status.deactivateTitle')}
+                          >
+                            {isStatusLoading ? (
+                              <span className="h-3.5 w-3.5 rounded-full border-2 animate-spin inline-block"
+                                style={{ borderColor: 'currentColor', borderTopColor: 'transparent' }} />
+                            ) : isInactive ? (
+                              <UserCheck className="h-3.5 w-3.5" />
+                            ) : (
+                              <UserX className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>—</span>
+                      )}
                     </td>
                   </tr>
                   );

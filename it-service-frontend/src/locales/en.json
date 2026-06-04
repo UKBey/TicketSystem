@@ -2,7 +2,8 @@
   "filters": {
     "clear": "Clear",
     "clearAll": "Clear all",
-    "noOptions": "No options"
+    "noOptions": "No options",
+    "searchOptions": "Search…"
   },
   "rateLimit": {
     "message": "Too many requests. Please wait {{seconds}} seconds.",
@@ -681,6 +682,7 @@
       "usersCount": "({{count}} users)",
       "searchPlaceholder": "Search name or email…",
       "allRoles": "All Roles",
+      "allProducts": "All Products",
       "clear": "Clear",
       "noProducts": "No products",
       "moreProducts": "+{{count}} more",

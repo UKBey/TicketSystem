@@ -167,9 +167,9 @@ class UserControllerTest {
                         User.builder().id("u-1").fullName("User One").role("CUSTOMER").build(),
                         User.builder().id("u-2").fullName("User Two").role("AGENT").build()
                 ));
-        when(userService.getUsersFiltered(null, null, false, "name", "asc", 0, 20)).thenReturn(page);
+        when(userService.getUsersFiltered(null, null, false, null, "name", "asc", 0, 20)).thenReturn(page);
 
-        ResponseEntity<java.util.Map<String, Object>> response = userController.getAllUsers(null, null, false, "name", "asc", 0, 20);
+        ResponseEntity<java.util.Map<String, Object>> response = userController.getAllUsers(null, null, false, null, "name", "asc", 0, 20);
 
         assertEquals(200, response.getStatusCode().value());
         @SuppressWarnings("unchecked")

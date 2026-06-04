@@ -6,7 +6,8 @@
   "filters": {
     "clear": "Temizle",
     "clearAll": "Tümünü temizle",
-    "noOptions": "Seçenek yok"
+    "noOptions": "Seçenek yok",
+    "searchOptions": "Ara…"
   },
   "rateLimit": {
     "message": "Çok fazla istek. Lütfen {{seconds}} saniye bekleyin.",
@@ -681,6 +682,7 @@
       "usersCount": "({{count}} kullanıcı)",
       "searchPlaceholder": "Ad veya e-posta ara…",
       "allRoles": "Tüm Roller",
+      "allProducts": "Tüm Ürünler",
       "clear": "Temizle",
       "noProducts": "Ürün yok",
       "moreProducts": "+{{count}} daha",

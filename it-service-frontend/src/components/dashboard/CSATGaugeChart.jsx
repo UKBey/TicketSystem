@@ -1,6 +1,13 @@
 import { memo } from 'react';
 import { MessageSquare, Star } from 'lucide-react';
 import Skeleton from '../Skeleton';
+import { PRIORITY_COLORS } from '../../constants/ticketColors';
+
+/** Açık-zeminli CSAT kartı için öncelik renk üçlüsü — tek kaynaktan türetilir. */
+const priorityCardStyle = (p) => {
+  const c = PRIORITY_COLORS[p];
+  return { bg: `${c.solid}1a`, border: `${c.solid}40`, text: c.chipText };
+};
 
 const CX = 110;
 const CY = 118;
@@ -17,12 +24,6 @@ const ZONES = [
 ];
 
 const PRIORITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
-const PRIORITY_COLORS = {
-  CRITICAL: { bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.25)',  text: '#b91c1c' },
-  HIGH:     { bg: 'rgba(249,115,22,0.10)', border: 'rgba(249,115,22,0.25)', text: '#c2410c' },
-  MEDIUM:   { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', text: '#b45309' },
-  LOW:      { bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.25)',  text: '#15803d' },
-};
 
 const TREND_CONFIG = {
   UP:     { icon: '↑', label: 'rising',  bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#15803d' },
@@ -218,7 +219,7 @@ function CSATGaugeChart({ data, loading }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PRIORITY_ORDER.filter((p) => byPriority[p]).map((priority) => {
               const item = byPriority[priority];
-              const c = PRIORITY_COLORS[priority] ?? PRIORITY_COLORS.LOW;
+              const c = priorityCardStyle(priority);
               return (
                 <div key={priority} className="rounded-xl border px-3 py-2.5 text-center" style={{ backgroundColor: c.bg, borderColor: c.border }}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.15em]" style={{ color: c.text }}>

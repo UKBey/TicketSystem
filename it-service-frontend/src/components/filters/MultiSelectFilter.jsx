@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Check, X } from 'lucide-react';
+import { ChevronDown, Check, X, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+// Seçenek sayısı bunu aşınca dropdown içine arama kutusu eklenir (100 ürün/agent gibi
+// uzun listelerde scroll'la aramak yerine yazarak filtrelemek için).
+const SEARCH_THRESHOLD = 8;
 
 /**
  * Checkbox tabanlı çoklu seçim dropdown — tüm sayfalarda kullanılan standart filtre bileşeni.
@@ -26,6 +30,7 @@ export default function MultiSelectFilter({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [alignRight, setAlignRight] = useState(false);
+  const [query, setQuery] = useState('');
   const ref = useRef(null);
   const buttonRef = useRef(null);
   const hasValue = values.length > 0;
@@ -37,6 +42,11 @@ export default function MultiSelectFilter({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const showSearch = options.length > SEARCH_THRESHOLD;
+  const visibleOptions = query.trim()
+    ? options.filter((o) => String(o.label).toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
 
   // Dropdown açıldığında ekrana sığmıyorsa otomatik sağa hizala.
   useEffect(() => {
@@ -64,7 +74,7 @@ export default function MultiSelectFilter({
         ref={buttonRef}
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen((v) => !v)}
+        onClick={() => { if (disabled) return; if (!open) setQuery(''); setOpen((v) => !v); }}
         className="w-full sm:w-auto sm:min-w-[10rem] sm:max-w-[var(--msf-max-w)] inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
@@ -79,42 +89,62 @@ export default function MultiSelectFilter({
 
       {open && !disabled && (
         <div
-          className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[180px] max-h-[300px] overflow-y-auto`}
+          className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[200px] flex flex-col max-h-[320px]`}
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
-          {options.length === 0 && (
-            <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              {t('filters.noOptions')}
+          {showSearch && (
+            <div className="px-2 pb-1.5 pt-0.5">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
+                <input
+                  autoFocus
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t('filters.searchOptions')}
+                  className="w-full rounded-md border pl-7 pr-2 py-1 text-xs outline-none focus:ring-2"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+                />
+              </div>
             </div>
           )}
-          {options.map((o) => {
-            const checked = values.includes(o.value);
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => toggle(o.value)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10"
-                style={{ color: checked ? '#2563eb' : 'var(--text-primary)' }}
-              >
-                <span
-                  className="flex-shrink-0 h-3.5 w-3.5 rounded border flex items-center justify-center"
-                  style={{
-                    backgroundColor: checked ? '#3b82f6' : 'transparent',
-                    borderColor: checked ? '#3b82f6' : 'var(--border-color)',
-                  }}
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {visibleOptions.length === 0 && (
+              <div className="px-3 py-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                {t('filters.noOptions')}
+              </div>
+            )}
+            {visibleOptions.map((o) => {
+              const checked = values.includes(o.value);
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => toggle(o.value)}
+                  className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                  style={{ color: checked ? '#2563eb' : 'var(--text-primary)' }}
                 >
-                  {checked && <Check className="h-2.5 w-2.5 text-white" />}
-                </span>
-                <span className="truncate">{o.label}</span>
-              </button>
-            );
-          })}
+                  <span
+                    className="flex-shrink-0 h-3.5 w-3.5 rounded border flex items-center justify-center"
+                    style={{
+                      backgroundColor: checked ? '#3b82f6' : 'transparent',
+                      borderColor: checked ? '#3b82f6' : 'var(--border-color)',
+                    }}
+                  >
+                    {checked && <Check className="h-2.5 w-2.5 text-white" />}
+                  </span>
+                  <span className="truncate">{o.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {hasValue && (
             <button
               type="button"
               onClick={() => { onChange([]); setOpen(false); }}
-              className="flex items-center gap-1 w-full px-3 py-1.5 text-xs cursor-pointer border-t transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10 mt-0.5"
+              className="flex items-center gap-1 w-full px-3 py-1.5 text-xs cursor-pointer border-t transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
               style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
             >
               <X className="h-3 w-3" />

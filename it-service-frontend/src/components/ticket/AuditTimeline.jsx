@@ -6,6 +6,7 @@ import {
   RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag, Hash,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
+import { StatusBadge, PriorityBadge } from '../Badges';
 
 // ---- per-action visual config ------------------------------------------------
 
@@ -26,56 +27,8 @@ const ACTION_CONFIG = {
 
 const DEFAULT_CONFIG = { icon: ArrowRight, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditUpdated' };
 
-// ---- status pill colors ------------------------------------------------------
-
-function statusPillStyle(status, isDark) {
-  switch (status) {
-    case 'NEW':                  return { bg: isDark ? 'rgba(100,116,139,0.25)' : '#f1f5f9',    text: isDark ? '#94a3b8' : '#475569'  };
-    case 'IN_PROGRESS':          return { bg: isDark ? 'rgba(59,130,246,0.2)'  : '#dbeafe',    text: isDark ? '#93c5fd' : '#1d4ed8'  };
-    case 'WAITING_FOR_CUSTOMER': return { bg: isDark ? 'rgba(234,179,8,0.2)'   : '#fef9c3',    text: isDark ? '#fde047' : '#854d0e'  };
-    case 'RESOLVED':             return { bg: isDark ? 'rgba(16,185,129,0.2)'  : '#d1fae5',    text: isDark ? '#6ee7b7' : '#065f46'  };
-    case 'CLOSED':               return { bg: isDark ? 'rgba(239,68,68,0.2)'   : '#fee2e2',    text: isDark ? '#fca5a5' : '#991b1b'  };
-    default:                     return { bg: isDark ? 'rgba(100,116,139,0.2)' : '#f1f5f9',    text: isDark ? '#94a3b8' : '#475569'  };
-  }
-}
-
-// ---- StatusPill --------------------------------------------------------------
-
-function StatusPill({ status, isDark }) {
-  if (!status) return null;
-  const { bg, text } = statusPillStyle(status, isDark);
-  const label = status.replace(/_/g, ' ');
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
-      style={{ backgroundColor: bg, color: text }}
-    >
-      {label}
-    </span>
-  );
-}
-
-// ---- PriorityPill ------------------------------------------------------------
-
-const PRIORITY_PILL_STYLES = {
-  LOW:      { bg: 'rgba(34,197,94,0.15)',   text: '#22c55e'  },
-  MEDIUM:   { bg: 'rgba(245,158,11,0.15)',  text: '#f59e0b'  },
-  HIGH:     { bg: 'rgba(239,68,68,0.15)',   text: '#ef4444'  },
-  CRITICAL: { bg: 'rgba(124,58,237,0.15)',  text: '#7c3aed'  },
-};
-
-function PriorityPill({ priority }) {
-  if (!priority) return null;
-  const style = PRIORITY_PILL_STYLES[priority] || { bg: 'rgba(107,114,128,0.15)', text: '#6b7280' };
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide"
-      style={{ backgroundColor: style.bg, color: style.text }}
-    >
-      {priority}
-    </span>
-  );
-}
+// Status/priority geçiş etiketleri için paylaşılan StatusBadge/PriorityBadge kullanılır
+// (renkler her ekranda tek kaynaktan — constants/ticketColors).
 
 // ---- AuditTimeline -----------------------------------------------------------
 
@@ -187,9 +140,9 @@ export default function AuditTimeline({ auditLogs }) {
                       {entry.actionType === 'PRIORITY_CHANGE' ? (
                         entry.previousState && entry.newState && (
                           <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
-                            <PriorityPill priority={entry.previousState} />
+                            <PriorityBadge priority={entry.previousState} />
                             <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                            <PriorityPill priority={entry.newState} />
+                            <PriorityBadge priority={entry.newState} />
                           </div>
                         )
                       ) : entry.actionType === 'TOPIC_CHANGE' ? (
@@ -212,14 +165,14 @@ export default function AuditTimeline({ auditLogs }) {
                         <>
                           {entry.previousState && entry.newState && (
                             <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
-                              <StatusPill status={entry.previousState} isDark={isDark} />
+                              <StatusBadge status={entry.previousState} />
                               <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                              <StatusPill status={entry.newState} isDark={isDark} />
+                              <StatusBadge status={entry.newState} />
                             </div>
                           )}
                           {!entry.previousState && entry.newState && (
                             <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
-                              <StatusPill status={entry.newState} isDark={isDark} />
+                              <StatusBadge status={entry.newState} />
                             </div>
                           )}
                         </>

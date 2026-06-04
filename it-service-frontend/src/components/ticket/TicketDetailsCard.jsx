@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { PriorityBadge } from '../Badges';
 import { AlertTriangle, Pencil } from 'lucide-react';
 import { formatDate, formatSlaTime } from '../../utils/ticketFormatters';
+import { PRIORITY_COLORS } from '../../constants/ticketColors';
 
 function DetailRow({ label, value }) {
   return (
@@ -14,14 +15,11 @@ function DetailRow({ label, value }) {
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
-// Badges.jsx'teki öncelik paletiyle aynı tonlar: yeşil → sarı → turuncu → kırmızı.
-// (Eskiden CRITICAL burada mor, listede kırmızıydı — tutarsızlık giderildi.)
-const PRIORITY_STYLES = {
-  LOW:      { color: '#16a34a', bg: 'rgba(34,197,94,0.12)'   },
-  MEDIUM:   { color: '#d97706', bg: 'rgba(245,158,11,0.12)'  },
-  HIGH:     { color: '#ea580c', bg: 'rgba(249,115,22,0.12)'  },
-  CRITICAL: { color: '#dc2626', bg: 'rgba(220,38,38,0.12)'   },
-};
+// Öncelik seçici buton renkleri — tek kaynaktan (constants/ticketColors) türetilir.
+// Tema-nötr: dolu renk + düşük-alfa arka plan (hem açık hem koyu temada okunur).
+const PRIORITY_STYLES = Object.fromEntries(
+  PRIORITY_OPTIONS.map((p) => [p, { color: PRIORITY_COLORS[p].solid, bg: `${PRIORITY_COLORS[p].solid}1f` }])
+);
 
 export default function TicketDetailsCard({
   ticket, slaInfo, currentDate,

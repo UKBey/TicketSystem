@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Inbox, Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
+import { PRIORITY_COLORS } from '../../constants/ticketColors';
 
 const PRIORITY_COLOR = {
-  CRITICAL: '#ef4444',
-  HIGH:     '#f97316',
-  MEDIUM:   '#f59e0b',
-  LOW:      '#84cc16',
+  CRITICAL: PRIORITY_COLORS.CRITICAL.solid,
+  HIGH:     PRIORITY_COLORS.HIGH.solid,
+  MEDIUM:   PRIORITY_COLORS.MEDIUM.solid,
+  LOW:      PRIORITY_COLORS.LOW.solid,
 };
 
 function formatDuration(hours) {

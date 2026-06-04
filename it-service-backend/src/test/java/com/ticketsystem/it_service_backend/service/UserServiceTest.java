@@ -173,9 +173,9 @@ class UserServiceTest {
     @DisplayName("getUsersFiltered → null search ve null role trim edilir")
     void getUsersFiltered_nullParams_usesNullInQuery() {
         Page<User> page = new PageImpl<>(List.of(user));
-        when(userRepository.findFiltered(eq(false), eq(List.of("__none__")), isNull(), eq(false), any(Pageable.class))).thenReturn(page);
+        when(userRepository.findFiltered(eq(false), eq(List.of("__none__")), isNull(), eq(false), eq(false), eq(List.of(-1L)), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered(null, null, false, "name", "asc", 0, 20);
+        Page<User> result = userService.getUsersFiltered(null, null, false, null, "name", "asc", 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -184,9 +184,9 @@ class UserServiceTest {
     @DisplayName("getUsersFiltered → search ve role trim edilir ve sorguya geçirilir")
     void getUsersFiltered_withParams_passesTrimmmedValues() {
         Page<User> page = new PageImpl<>(List.of(user));
-        when(userRepository.findFiltered(eq(true), eq(List.of("AGENT")), eq("agent"), eq(false), any(Pageable.class))).thenReturn(page);
+        when(userRepository.findFiltered(eq(true), eq(List.of("AGENT")), eq("agent"), eq(false), eq(false), eq(List.of(-1L)), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), false, "name", "asc", 0, 10);
+        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), false, null, "name", "asc", 0, 10);
 
         assertThat(result.getContent()).hasSize(1);
     }

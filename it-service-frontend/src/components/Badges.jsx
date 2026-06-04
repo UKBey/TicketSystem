@@ -1,13 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
-
-const STATUS_COLORS = {
-  NEW:                  { light: { bg: '#dbeafe', color: '#1e40af' }, dark: { bg: 'rgba(59,130,246,0.2)', color: '#93c5fd' } },
-  IN_PROGRESS:          { light: { bg: '#fef3c7', color: '#92400e' }, dark: { bg: 'rgba(245,158,11,0.2)', color: '#fde68a' } },
-  WAITING_FOR_CUSTOMER: { light: { bg: '#ede9fe', color: '#5b21b6' }, dark: { bg: 'rgba(139,92,246,0.2)', color: '#c4b5fd' } },
-  RESOLVED:             { light: { bg: '#dcfce7', color: '#166534' }, dark: { bg: 'rgba(34,197,94,0.2)', color: '#86efac' } },
-  CLOSED:               { light: { bg: '#f1f5f9', color: '#475569' }, dark: { bg: 'rgba(100,116,139,0.2)', color: '#cbd5e1' } },
-};
+import { STATUS_COLORS, PRIORITY_COLORS } from '../constants/ticketColors';
 
 const STATUS_KEYS = {
   NEW: 'ticket.status.new',
@@ -31,16 +24,6 @@ export function StatusBadge({ status }) {
     </span>
   );
 }
-
-const PRIORITY_COLORS = {
-  // Renkler bilerek dört ayrı tona dağıtıldı: yeşil → sarı → turuncu → kırmızı.
-  // Eskiden HIGH ve CRITICAL ikisi de kırmızı tonundaydı ve ayırt edilmesi zordu;
-  // HIGH artık turuncu, CRITICAL ise dolu/koyu kırmızı bir badge.
-  LOW:      { light: { bg: '#dcfce7', color: '#166534' }, dark: { bg: 'rgba(34,197,94,0.2)',  color: '#86efac' } },
-  MEDIUM:   { light: { bg: '#fef3c7', color: '#92400e' }, dark: { bg: 'rgba(245,158,11,0.2)', color: '#fde68a' } },
-  HIGH:     { light: { bg: '#ffedd5', color: '#9a3412' }, dark: { bg: 'rgba(249,115,22,0.2)', color: '#fdba74' } },
-  CRITICAL: { light: { bg: '#dc2626', color: '#ffffff' }, dark: { bg: '#dc2626',              color: '#ffffff' } },
-};
 
 const PRIORITY_KEYS = {
   LOW: 'ticket.priority.low',

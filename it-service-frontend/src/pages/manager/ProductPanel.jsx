@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
+import SortableTh from '../../components/SortableTh';
 
 const PAGE_SIZE = 10;
 
@@ -27,6 +28,8 @@ export default function ProductPanel() {
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(0);
   const [size, setSize]       = useState(PAGE_SIZE);
+  const [sortBy, setSortBy]   = useState('id');
+  const [sortDir, setSortDir] = useState('asc');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
@@ -53,8 +56,32 @@ export default function ProductPanel() {
   const filtered = products.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase())
   );
-  const totalPages = Math.ceil(filtered.length / size);
-  const paginated  = filtered.slice(page * size, page * size + size);
+
+  // Sıralama istemci tarafında — ürün listesi tek seferde (sayfalamasız) çekildiği için.
+  const sorted = [...filtered].sort((a, b) => {
+    let av, bv;
+    switch (sortBy) {
+      case 'name':             av = (a.name ?? '').toLowerCase(); bv = (b.name ?? '').toLowerCase(); break;
+      case 'status':           av = a.isActive ? 1 : 0;           bv = b.isActive ? 1 : 0;           break;
+      case 'maxActiveTickets': av = a.maxActiveTickets ?? Infinity; bv = b.maxActiveTickets ?? Infinity; break; // sınırsız → en sona
+      default:                 av = a.id;                          bv = b.id; // 'id'
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  const totalPages = Math.ceil(sorted.length / size);
+  const paginated  = sorted.slice(page * size, page * size + size);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+    setPage(0);
+  };
 
   useEffect(() => { setPage(0); }, [search]);
 
@@ -293,10 +320,10 @@ export default function ProductPanel() {
           <table className="w-full">
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colId')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colName')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colStatus')}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colMaxTickets')}</th>
+                <SortableTh field="id"               label={t('productPanel.colId')}         sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTh field="name"             label={t('productPanel.colName')}       sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTh field="status"           label={t('productPanel.colStatus')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                <SortableTh field="maxActiveTickets" label={t('productPanel.colMaxTickets')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '170px' }}>{t('productPanel.colActions')}</th>
               </tr>
             </thead>

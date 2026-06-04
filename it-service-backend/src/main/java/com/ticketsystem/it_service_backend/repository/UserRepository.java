@@ -46,6 +46,8 @@ public interface UserRepository extends JpaRepository<User, String> {
             SELECT * FROM users u
             WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
               AND (:excludeGlobalRoles = FALSE OR u.role IS NULL OR u.role NOT IN ('ADMIN', 'MANAGER'))
+              AND (:productFilterActive = FALSE OR EXISTS (
+                     SELECT 1 FROM user_products up WHERE up.user_id = u.id AND up.product_id IN (:productIds)))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -54,6 +56,8 @@ public interface UserRepository extends JpaRepository<User, String> {
             SELECT COUNT(*) FROM users u
             WHERE (:roleFilterActive = FALSE OR u.role IN (:roles))
               AND (:excludeGlobalRoles = FALSE OR u.role IS NULL OR u.role NOT IN ('ADMIN', 'MANAGER'))
+              AND (:productFilterActive = FALSE OR EXISTS (
+                     SELECT 1 FROM user_products up WHERE up.user_id = u.id AND up.product_id IN (:productIds)))
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
@@ -63,5 +67,7 @@ public interface UserRepository extends JpaRepository<User, String> {
                             @Param("roles")            List<String> roles,
                             @Param("search")           String search,
                             @Param("excludeGlobalRoles") Boolean excludeGlobalRoles,
+                            @Param("productFilterActive") Boolean productFilterActive,
+                            @Param("productIds")       List<Long> productIds,
                             Pageable pageable);
 }

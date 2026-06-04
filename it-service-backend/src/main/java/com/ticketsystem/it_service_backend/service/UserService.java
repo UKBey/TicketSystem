@@ -232,6 +232,8 @@ public class UserService {
      *
      * @param search name/email LIKE filter (ignored when null/blank)
      * @param roles active role filter (ignored when null/empty)
+     * @param productIds authorized-product filter (ignored when null/empty); a user matches
+     *                   if they are authorized on ANY of the given products
      * @param sortBy frontend sort field (name|email|role|createdAt); unknown → name
      * @param sortDir {@code "asc"} or {@code "desc"} (anything else → asc)
      * @param page 0-based page index
@@ -240,15 +242,19 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Page<User> getUsersFiltered(String search, java.util.List<String> roles,
-                                       boolean excludeGlobalRoles, String sortBy, String sortDir,
-                                       int page, int size) {
+                                       boolean excludeGlobalRoles, java.util.List<Long> productIds,
+                                       String sortBy, String sortDir, int page, int size) {
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
         boolean roleFilterActive = roles != null && !roles.isEmpty();
         java.util.List<String> roleList = roleFilterActive ? roles : java.util.List.of("__none__");
+        boolean productFilterActive = productIds != null && !productIds.isEmpty();
+        // IN (:productIds) boş listeyle geçersiz; filtre kapalıyken sentinel liste gönderilir.
+        java.util.List<Long> productList = productFilterActive ? productIds : java.util.List.of(-1L);
         // Native query kullandığımız için sort field adı SQL column adı olmalı (whitelist'ten gelir).
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortColumn(sortBy)));
-        return userRepository.findFiltered(roleFilterActive, roleList, searchParam, excludeGlobalRoles, pageable);
+        return userRepository.findFiltered(roleFilterActive, roleList, searchParam, excludeGlobalRoles,
+                productFilterActive, productList, pageable);
     }
 
     /**

@@ -299,6 +299,7 @@ export default function AdminPanel() {
 
   const [search, setSearch]   = useState('');
   const [roleFilter, setRoleFilter] = useState([]);
+  const [productFilter, setProductFilter] = useState([]);
 
   const [page, setPage]             = useState(0);
   const [size, setSize]             = useState(20);
@@ -318,7 +319,7 @@ export default function AdminPanel() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter, sortBy, sortDir]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter, productFilter, sortBy, sortDir]);
 
   // Sütun başlığına tıklanınca sıralamayı çevirir (bilet tablolarındaki toggleSort ile aynı).
   const toggleSort = (field) => {
@@ -336,6 +337,7 @@ export default function AdminPanel() {
       const params = new URLSearchParams({ page, size, sortBy, sortDir });
       if (debouncedSearch) params.set('search', debouncedSearch);
       roleFilter.forEach((r) => params.append('role', r));
+      productFilter.forEach((pid) => params.append('productId', pid));
       // ADMIN/MANAGER kullanıcılar (tüm ürünlere erişimli) ürün-erişim panelinde listelenmez.
       params.set('excludeGlobalRoles', 'true');
 
@@ -349,7 +351,7 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter, sortBy, sortDir, t]);
+  }, [page, size, debouncedSearch, roleFilter, productFilter, sortBy, sortDir, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -425,8 +427,14 @@ export default function AdminPanel() {
               placeholder={t('admin.panel.allRoles')}
               options={ROLES.map((r) => ({ value: r, label: r }))}
             />
-            {(search || roleFilter.length > 0) && (
-              <ClearFiltersButton onClick={() => { setSearch(''); setRoleFilter([]); }} />
+            <MultiSelectFilter
+              values={productFilter}
+              onChange={setProductFilter}
+              placeholder={t('admin.panel.allProducts')}
+              options={products.map((p) => ({ value: String(p.id), label: p.name }))}
+            />
+            {(search || roleFilter.length > 0 || productFilter.length > 0) && (
+              <ClearFiltersButton onClick={() => { setSearch(''); setRoleFilter([]); setProductFilter([]); }} />
             )}
           </div>
         </div>

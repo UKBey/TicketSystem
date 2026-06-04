@@ -1,12 +1,13 @@
 import { memo, useState } from 'react';
 import { PieChart } from 'lucide-react';
+import { STATUS_COLORS } from '../../constants/ticketColors';
 
 const STATUS_CONFIG = [
-  { key: 'newCount', label: 'NEW', color: '#3b82f6', description: 'Awaiting assignment' },
-  { key: 'inProgressCount', label: 'IN_PROGRESS', color: '#f59e0b', description: 'Currently being worked on' },
-  { key: 'waitingForCustomerCount', label: 'WAITING_FOR_CUSTOMER', color: '#8b5cf6', description: 'Awaiting customer response' },
-  { key: 'resolvedCount', label: 'RESOLVED', color: '#22c55e', description: 'Successfully resolved' },
-  { key: 'closedCount', label: 'CLOSED', color: '#64748b', description: 'Closed tickets' },
+  { key: 'newCount', label: 'NEW', color: STATUS_COLORS.NEW.solid, description: 'Awaiting assignment' },
+  { key: 'inProgressCount', label: 'IN_PROGRESS', color: STATUS_COLORS.IN_PROGRESS.solid, description: 'Currently being worked on' },
+  { key: 'waitingForCustomerCount', label: 'WAITING_FOR_CUSTOMER', color: STATUS_COLORS.WAITING_FOR_CUSTOMER.solid, description: 'Awaiting customer response' },
+  { key: 'resolvedCount', label: 'RESOLVED', color: STATUS_COLORS.RESOLVED.solid, description: 'Successfully resolved' },
+  { key: 'closedCount', label: 'CLOSED', color: STATUS_COLORS.CLOSED.solid, description: 'Closed tickets' },
 ];
 
 function formatNumber(value) {
