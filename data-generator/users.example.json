@@ -1,24 +1,77 @@
 {
   "_comment": "Copy this file to data-generator/users.json and adjust as needed. ALL seed users live here now (setup.json no longer carries a users section). The generator creates each agent/customer via the Agent Admin API with a TEMPORARY password (forced change on first login), then completes that first-login change by setting the final password below. Named accounts (adminAgent/keycloakAdmin/database) must already exist; anything left out falls back to the defaults in GeneratorConfig.java ('321654'). Passwords must satisfy the Keycloak realm password policy.",
-
-  "adminAgent":    { "username": "superadmin",  "password": "321654" },
-  "keycloakAdmin": { "username": "admin",       "password": "321654" },
-  "database":      { "username": "ticketadmin", "password": "321654" },
-
+  "adminAgent": {
+    "username": "superadmin",
+    "password": "321654"
+  },
+  "keycloakAdmin": {
+    "username": "admin",
+    "password": "321654"
+  },
+  "database": {
+    "username": "ticketadmin",
+    "password": "321654"
+  },
   "agents": [
-    { "username": "agent1.gen", "email": "agent1.gen@ticketsystem.local", "firstName": "Aylin",  "lastName": "Demir",  "password": "321654Aa!" },
-    { "username": "agent2.gen", "email": "agent2.gen@ticketsystem.local", "firstName": "Kerem",  "lastName": "Yıldız", "password": "321654Aa!" },
-    { "username": "agent3.gen", "email": "agent3.gen@ticketsystem.local", "firstName": "Zeynep", "lastName": "Aksoy",  "password": "321654Aa!" }
+    {
+      "username": "agent1.gen",
+      "email": "agent1.gen@ticketsystem.local",
+      "firstName": "Alice",
+      "lastName": "Turner",
+      "password": "321654Aa!"
+    },
+    {
+      "username": "agent2.gen",
+      "email": "agent2.gen@ticketsystem.local",
+      "firstName": "Kevin",
+      "lastName": "Stone",
+      "password": "321654Aa!"
+    },
+    {
+      "username": "agent3.gen",
+      "email": "agent3.gen@ticketsystem.local",
+      "firstName": "Zoe",
+      "lastName": "Adams",
+      "password": "321654Aa!"
+    }
   ],
-
   "leads": [
-    { "username": "lead1.gen", "email": "lead1.gen@ticketsystem.local", "firstName": "Deniz", "lastName": "Arslan", "password": "321654Aa!" }
+    {
+      "username": "lead1.gen",
+      "email": "lead1.gen@ticketsystem.local",
+      "firstName": "Dylan",
+      "lastName": "Archer",
+      "password": "321654Aa!"
+    }
   ],
-
   "customers": [
-    { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local", "firstName": "Mehmet", "lastName": "Şahin", "password": "321654Aa!" },
-    { "username": "customer2.gen", "email": "customer2.gen@ticketsystem.local", "firstName": "Elif",   "lastName": "Koç",   "password": "321654Aa!" },
-    { "username": "customer3.gen", "email": "customer3.gen@ticketsystem.local", "firstName": "Burak",  "lastName": "Polat", "password": "321654Aa!" },
-    { "username": "customer4.gen", "email": "customer4.gen@ticketsystem.local", "firstName": "Selin",  "lastName": "Çelik", "password": "321654Aa!" }
+    {
+      "username": "customer1.gen",
+      "email": "customer1.gen@ticketsystem.local",
+      "firstName": "Michael",
+      "lastName": "Shaw",
+      "password": "321654Aa!"
+    },
+    {
+      "username": "customer2.gen",
+      "email": "customer2.gen@ticketsystem.local",
+      "firstName": "Emily",
+      "lastName": "Cole",
+      "password": "321654Aa!"
+    },
+    {
+      "username": "customer3.gen",
+      "email": "customer3.gen@ticketsystem.local",
+      "firstName": "Brian",
+      "lastName": "Park",
+      "password": "321654Aa!"
+    },
+    {
+      "username": "customer4.gen",
+      "email": "customer4.gen@ticketsystem.local",
+      "firstName": "Sophie",
+      "lastName": "Clark",
+      "password": "321654Aa!"
+    }
   ]
 }

@@ -1,16 +1,26 @@
 {
-  "title": "OneDrive bir sürü 'çakışma' dosyası oluşturuyor",
-  "description": "İki cihazdan aynı belgeyi düzenledim, sonra her klasörde '-conflict' eki olan dosyalar görüyorum.",
+  "title": "OneDrive is creating a bunch of 'conflict' files",
+  "description": "I edited the same document from two devices, and now I'm seeing files with a '-conflict' suffix in every folder.",
   "priority": "LOW",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "OneDrive",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 25, "description": "Çakışan dosyaların version history'si incelendi, en güncel sürüm seçildi." },
-    { "minutes": 15, "description": "Conflict dosyaları manuel olarak temizlendi, kullanıcıya iş akışı önerisi verildi." }
+    {
+      "minutes": 25,
+      "description": "Reviewed the version history of the conflicting files and selected the most up-to-date version."
+    },
+    {
+      "minutes": 15,
+      "description": "Manually cleaned up the conflict files and gave the user a workflow recommendation."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Bir cihazda OneDrive'ı pause ettim, çakışmalar temizlendi. İki cihazdan eş zamanlı düzenleme yerine birinden çıkış öneriyorum." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I paused OneDrive on one of the devices and the conflicts were cleared up. Instead of editing simultaneously from two devices, I'd suggest signing out from one of them."
+    }
   ],
-  "resolutionNote": "Çakışma dosyaları en güncel sürüm tutularak temizlendi. Kullanıcıya 'Files On-Demand' kullanımı önerildi."
+  "resolutionNote": "Conflict files were cleaned up by keeping the most up-to-date version. The user was advised to use 'Files On-Demand'."
 }

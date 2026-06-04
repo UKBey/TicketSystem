@@ -1,18 +1,35 @@
 {
-  "title": "Bazı dış web siteleri 'DNS_PROBE_FINISHED_NXDOMAIN' veriyor",
-  "description": "Chrome'da bazı haber siteleri açılmıyor, mobilde aynı bağlantıda sorunsuz açılıyor.",
+  "title": "Some external websites give 'DNS_PROBE_FINISHED_NXDOMAIN'",
+  "description": "Some news sites won't open in Chrome, but they open fine on the same connection on mobile.",
   "priority": "LOW",
-  "productName": "VPN ve Ağ",
-  "topicName": "DNS Sorunları",
+  "productName": "VPN & Network",
+  "topicName": "DNS Issues",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 10, "description": "ipconfig /flushdns + tarayıcı DNS cache temizlendi, sorun sürdü." },
-    { "minutes": 15, "description": "İçerideki resolver'da kötü-cache'lenmiş kayıt tespit edildi, manuel purge edildi." }
+    {
+      "minutes": 10,
+      "description": "ipconfig /flushdns + cleared the browser DNS cache, the issue persisted."
+    },
+    {
+      "minutes": 15,
+      "description": "Identified a bad-cached record on the internal resolver, manually purged it."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "İç resolver'da bozuk cache vardı, temizledim. Şimdi tekrar açabilirsiniz." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Açıldı, teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "There was bad cache on the internal resolver, I cleared it. You can try opening them again now."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It's open now, thanks."
+    }
   ],
-  "resolutionNote": "İç DNS resolver'da bozulmuş cache kayıtları temizlendi, etkilenen domain'ler tekrar çözülüyor.",
-  "csat": { "rating": 4, "comment": "Çözüldü, biraz daha hızlı olabilirdi." }
+  "resolutionNote": "Cleared corrupted cache records on the internal DNS resolver, affected domains are resolving again.",
+  "csat": {
+    "rating": 4,
+    "comment": "Resolved, could have been a bit faster."
+  }
 }

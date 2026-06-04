@@ -1,18 +1,35 @@
 {
-  "title": "Yeni müşteri eklerken 'duplicate vergi numarası' hatası alıyorum",
-  "description": "Yeni müşteri kaydı oluşturuyorum ama 'Vergi numarası başka bir kayıtta mevcut' diyor. Halbuki o numarayla kayıt görmüyorum.",
+  "title": "I get a 'duplicate tax number' error when adding a new customer",
+  "description": "I'm creating a new customer record but it says 'Tax number already exists in another record.' However, I don't see any record with that number.",
   "priority": "MEDIUM",
-  "productName": "Kurumsal Yazılım",
+  "productName": "Enterprise Software",
   "topicName": "CRM",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 15, "description": "Eski (deaktif edilmiş) bir müşteri kaydında aynı vergi numarası bulundu." },
-    { "minutes": 20, "description": "Müşteri Birleştirme aracıyla iki kayıt birleştirildi, yeni iletişim bilgileri eklendi." }
+    {
+      "minutes": 15,
+      "description": "Found the same tax number on an old (deactivated) customer record."
+    },
+    {
+      "minutes": 20,
+      "description": "Merged the two records with the Customer Merge tool, added the new contact information."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Eski deaktif kayıt birleştirildi, yeni kayıt üstüne tüm geçmiş aktarıldı. Şimdi CRM'de görebilirsiniz." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Müşterim görünüyor, geçmiş ticari kayıtlar da burada. Teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The old deactivated record was merged, and all history was transferred onto the new record. You can see it in the CRM now."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "My customer is showing up, and the past business records are here too. Thanks."
+    }
   ],
-  "resolutionNote": "İki müşteri kaydı (eski + yeni) Müşteri Birleştirme aracıyla tek kayıtta birleştirildi.",
-  "csat": { "rating": 5, "comment": "Geçmiş veriyi de kaybetmemem önemliydi, teşekkürler." }
+  "resolutionNote": "The two customer records (old + new) were merged into a single record with the Customer Merge tool.",
+  "csat": {
+    "rating": 5,
+    "comment": "It was important to me not to lose the historical data either, thanks."
+  }
 }

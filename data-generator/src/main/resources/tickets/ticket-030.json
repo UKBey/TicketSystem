@@ -1,16 +1,26 @@
 {
-  "title": "Office 'Lisansınızla ilgili bir sorun var' uyarısı veriyor",
-  "description": "Bu sabah Excel açtığımda lisans uyarısı geldi ve dosyaları kaydedemiyorum.",
+  "title": "Office shows a 'There's a problem with your license' warning",
+  "description": "When I opened Excel this morning a license warning appeared and I can't save files.",
   "priority": "MEDIUM",
-  "productName": "Kurumsal Yazılım",
-  "topicName": "Lisanslama",
+  "productName": "Enterprise Software",
+  "topicName": "Licensing",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 15, "description": "Microsoft 365 Admin Center'da kullanıcıya lisans atanmadığı tespit edildi." },
-    { "minutes": 10, "description": "Office365 E3 lisansı atandı, kullanıcıdan Sign-out/Sign-in istendi." }
+    {
+      "minutes": 15,
+      "description": "Determined in the Microsoft 365 Admin Center that no license was assigned to the user."
+    },
+    {
+      "minutes": 10,
+      "description": "Assigned an Office365 E3 license, asked the user to Sign-out/Sign-in."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Lisansınız atandı. Office uygulamalarında File > Account > Sign Out yapıp tekrar oturum açın." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Your license has been assigned. In the Office applications, go to File > Account > Sign Out and then sign back in."
+    }
   ],
-  "resolutionNote": "Eski cihazdan lisans unbind edildi, kullanıcıya yeni lisans atandı. Sign out/in sonrası tüm Office uygulamaları aktif."
+  "resolutionNote": "License was unbound from the old device and a new license assigned to the user. After sign out/in, all Office applications are active."
 }

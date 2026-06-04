@@ -1,14 +1,21 @@
 {
-  "title": "Word açılırken 'Normal.dotm bulunamadı' hatası",
-  "description": "Bu sabah Word açıldığında bir hata penceresi geldi ve sonra hiçbir belge düzenleyemiyorum.",
+  "title": "'Normal.dotm not found' error when opening Word",
+  "description": "This morning when Word opened an error window came up, and now I can't edit any documents.",
   "priority": "LOW",
-  "productName": "Kurumsal Yazılım",
-  "topicName": "Office Paketi",
+  "productName": "Enterprise Software",
+  "topicName": "Office Suite",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 15, "description": "%appdata%\\Microsoft\\Templates\\Normal.dotm yedeklenip silindi, Word yeniden açıldı." }
+    {
+      "minutes": 15,
+      "description": "Backed up and deleted %appdata%\\Microsoft\\Templates\\Normal.dotm, reopened Word."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Word'ü kapatıp tekrar açar mısın? Şablon yeniden oluşmuş olmalı." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Could you close Word and reopen it? The template should have been recreated."
+    }
   ]
 }

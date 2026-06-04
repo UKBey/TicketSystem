@@ -1,16 +1,26 @@
 {
-  "title": "Dizüstüm şarja takılı olduğu halde dolmuyor",
-  "description": "Cihazım şarj cihazına takılı durumda fakat batarya yüzdesi düşmeye devam ediyor.",
+  "title": "My laptop isn't charging even though it's plugged in",
+  "description": "My device is plugged into the charger, but the battery percentage keeps dropping.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Dizüstü Bilgisayar",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Laptop",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 20, "description": "Şarj adaptörünün 65W değil 45W olduğu tespit edildi, yetersiz." },
-    { "minutes": 10, "description": "Yedek 90W adaptör verildi, batarya dolmaya başladı." }
+    {
+      "minutes": 20,
+      "description": "Determined the charging adapter was 45W instead of 65W, insufficient."
+    },
+    {
+      "minutes": 10,
+      "description": "Provided a spare 90W adapter, the battery started charging."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Eski 45W adaptör cihazınız için yetersizdi, 90W ile değiştirdim. Şu an doluyor, kontrol edebilirsin." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The old 45W adapter wasn't enough for your device, I replaced it with a 90W one. It's charging now, you can check."
+    }
   ],
-  "resolutionNote": "Adaptör 45W'tan 90W'a yükseltildi. Cihaz dolma hızı normal, 1 saat içinde %100'e ulaştı."
+  "resolutionNote": "Adapter upgraded from 45W to 90W. The device's charging speed is normal, it reached 100% within 1 hour."
 }

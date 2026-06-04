@@ -99,8 +99,8 @@ kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluştur
 
 `setup.json`'daki `products` listesinden:
 
-- **5 ürün** (VPN ve Ağ, E-posta ve İletişim, Donanım ve Altyapı,
-  Kurumsal Yazılım, Bulut Hizmetleri) — `name` eşleşmesiyle idempotent.
+- **5 ürün** (VPN & Network, Email & Communication, Hardware & Infrastructure,
+  Enterprise Software, Cloud Services) — `name` eşleşmesiyle idempotent.
 - Her ürün altında **5 topic** — `(productId, name)` eşleşmesiyle idempotent.
 - Her topic için **10-15 known-issue** kaydı (başlık + içerik) —
   topic içinde başlık eşleşmesiyle idempotent.
@@ -118,11 +118,11 @@ olarak içerir:
 
 ```json
 {
-  "title": "VPN bağlantısı sürekli kopuyor",
-  "description": "Detaylı açıklama...",
+  "title": "VPN connection keeps dropping",
+  "description": "Detailed description...",
   "priority": "HIGH",
-  "productName": "VPN ve Ağ",
-  "topicName": "VPN Bağlantısı",
+  "productName": "VPN & Network",
+  "topicName": "VPN Connection",
   "status": "RESOLVED",
   "worklogs":  [{ "minutes": 25, "description": "..." }],
   "comments":  [{ "author": "agent", "type": "EXTERNAL", "message": "..." }],

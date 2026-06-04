@@ -1,18 +1,35 @@
 {
-  "title": "Outlook açıldığında 'Profile cannot be loaded' hatası",
-  "description": "Bilgisayarımı yeniden başlattım, Outlook artık açılmıyor. Hata: 'The set of folders cannot be opened'.",
+  "title": "'Profile cannot be loaded' error when Outlook opens",
+  "description": "I restarted my computer, and Outlook won't open anymore. Error: 'The set of folders cannot be opened'.",
   "priority": "MEDIUM",
-  "productName": "E-posta ve İletişim",
+  "productName": "Email & Communication",
   "topicName": "Outlook",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 25, "description": "Profil bozulmuş, Control Panel > Mail üzerinden yeni profil oluşturuldu." },
-    { "minutes": 50, "description": "Cached Mode senkronu beklendi, posta kutusu (3.5 GB) tamamen indirildi." }
+    {
+      "minutes": 25,
+      "description": "The profile was corrupted; a new profile was created via Control Panel > Mail."
+    },
+    {
+      "minutes": 50,
+      "description": "Waited for the Cached Mode sync; the mailbox (3.5 GB) was fully downloaded."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Yeni profil hazır. Senkron tamamlandığında tüm maillerinizi göreceksiniz." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Tüm mailler geri geldi, takvim de senkronize. Teşekkür ederim." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The new profile is ready. Once the sync completes, you'll see all your emails."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "All the emails came back, and the calendar is synced too. Thank you."
+    }
   ],
-  "resolutionNote": "Yeni Outlook profili oluşturuldu, Cached Mode tüm verileri yeniden senkronize etti. Veri kaybı yok.",
-  "csat": { "rating": 5, "comment": "Hızlı çözüm, kayıp olmadı, çok memnunum." }
+  "resolutionNote": "A new Outlook profile was created, and Cached Mode re-synced all the data. No data loss.",
+  "csat": {
+    "rating": 5,
+    "comment": "Quick fix, no loss, very happy."
+  }
 }

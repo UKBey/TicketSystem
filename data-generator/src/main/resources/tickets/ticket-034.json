@@ -1,16 +1,26 @@
 {
-  "title": "Yeni monitörümde sağ alt köşede sürekli yanan kırmızı nokta var",
-  "description": "Bana 2 hafta önce verilen monitörde dead pixel var, çok rahatsız edici.",
+  "title": "There's a red dot constantly lit in the bottom-right corner of my new monitor",
+  "description": "The monitor I was given 2 weeks ago has a dead pixel, and it's very annoying.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Monitör",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Monitor",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 15, "description": "Pixel test programı çalıştırıldı, 1 dead pixel doğrulandı." },
-    { "minutes": 20, "description": "Dell garanti hattı arandı, replacement onaylandı, kargo açıldı." }
+    {
+      "minutes": 15,
+      "description": "Ran a pixel test program and confirmed 1 dead pixel."
+    },
+    {
+      "minutes": 20,
+      "description": "Called the Dell warranty line, the replacement was approved, and the shipment was initiated."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Dead pixel tolerans dışı, Dell yeni monitör gönderiyor. Eski monitörü kargo geldiğinde teslim alacaklar." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The dead pixel is outside tolerance, so Dell is sending a new monitor. They'll collect the old monitor when the shipment arrives."
+    }
   ],
-  "resolutionNote": "Garanti kapsamında monitör değişimi onaylandı; replacement ürünü kullanıcıya teslim edildi."
+  "resolutionNote": "A monitor replacement was approved under warranty; the replacement unit was delivered to the user."
 }

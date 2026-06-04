@@ -1,15 +1,25 @@
 {
-  "title": "Outlook 'Bağlanmaya çalışılıyor' durumunda donuyor",
-  "description": "Bugün açtığımda 'Bağlanmaya çalışılıyor' yazısı 20 dakika devam ediyor. Mail gelmiyor, gönderemiyorum.",
+  "title": "Outlook freezes on 'Trying to connect'",
+  "description": "When I opened it today, the 'Trying to connect' message keeps showing for 20 minutes. No mail comes in, and I can't send anything.",
   "priority": "HIGH",
-  "productName": "E-posta ve İletişim",
+  "productName": "Email & Communication",
   "topicName": "Outlook",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 25, "description": "OST dosyası %localappdata%\\Microsoft\\Outlook altında bozulmuş bulundu, yeniden adlandırıldı." },
-    { "minutes": 40, "description": "Cached Mode yeniden başlatıldı — mailler 1.2 GB ilerlemiş durumda, devam ediyor." }
+    {
+      "minutes": 25,
+      "description": "The OST file under %localappdata%\\Microsoft\\Outlook was found to be corrupted and was renamed."
+    },
+    {
+      "minutes": 40,
+      "description": "Cached Mode was restarted — the mail has progressed to 1.2 GB and is still going."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "OST yeniden inşa ediliyor, posta kutusu ~4 GB, tahmini 1 saat sürer." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "The OST is being rebuilt; the mailbox is ~4 GB, estimated to take about 1 hour."
+    }
   ]
 }

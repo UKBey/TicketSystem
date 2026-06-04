@@ -1,23 +1,64 @@
 {
-  "title": "Teams toplantısında ses gitmiyor, karşı taraf duyamıyor",
-  "description": "Bugün 3 ayrı toplantıda mikrofonum çalışmadı. Headset Windows'ta diğer uygulamalarda sorunsuz.",
+  "title": "No audio in Teams meeting, the other side can't hear me",
+  "description": "My microphone didn't work in 3 separate meetings today. The headset works fine in other apps on Windows.",
   "priority": "CRITICAL",
-  "productName": "E-posta ve İletişim",
+  "productName": "Email & Communication",
   "topicName": "Teams",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 20, "description": "Windows Gizlilik > Mikrofon ayarları kontrol edildi, Teams 'Allow' durumdaydı." },
-    { "minutes": 25, "description": "Teams Modern Auth önbelleği temizlendi (%appdata%\\Microsoft\\Teams\\Cache), kullanıcı tekrar oturum açtı." },
-    { "minutes": 15, "description": "Cihaz yöneticisi: USB Audio driver 'up to date' olarak görüldü; ses paneli enumeration yapıldı." }
+    {
+      "minutes": 20,
+      "description": "Checked Windows Privacy > Microphone settings, Teams was set to 'Allow'."
+    },
+    {
+      "minutes": 25,
+      "description": "Cleared the Teams Modern Auth cache (%appdata%\\Microsoft\\Teams\\Cache), user signed in again."
+    },
+    {
+      "minutes": 15,
+      "description": "Device Manager: USB Audio driver showed as 'up to date'; ran an enumeration of the sound panel."
+    }
   ],
   "comments": [
-    { "author": "customer", "type": "EXTERNAL", "message": "Şu an saat 14'te kritik bir müşteri toplantım var, lütfen hızlı bir çözüm bulalım." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Anladım, hemen başlıyorum. Önce hızlı kontroller: Teams > Settings > Devices > Microphone bölümünden hangi cihaz seçili? 'Make a test call' butonu çalışıyor mu?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "'Headset Microphone (Jabra Evolve 65)' seçili. Test call'da 'Hi, this is Test Call' diyor ama sonra benim sesimi tekrar etmiyor — sessizlik." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Tamam, mikrofon Teams'e ulaşmıyor demek. Headset'i USB'den çıkarıp tekrar takar mısınız? Bir de bilgisayardaki ses simgesine sağ tıklayıp 'Sound settings > Input' bölümünde Jabra'nın 'progress bar'ı konuşunca hareket ediyor mu görmek istiyorum." },
-    { "author": "customer", "type": "EXTERNAL", "message": "USB çıkar-tak yaptım. Sound settings'te konuşunca bar TEPKi VERİYOR — yani Windows duyuyor. Ama Teams duymuyor." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Mükemmel teşhis. Sorun spesifik olarak Teams ile cihaz arasında. Şu adımları sırayla uygulayalım: 1) Teams'i tamamen kapat (Task Manager → Teams sürecini End Task), 2) %appdata%\\Microsoft\\Teams klasörünü açın, 3) 'Cache', 'GPUCache', 'IndexedDB' alt klasörlerini SİL (uygulama datası kaybolmaz), 4) Teams'i tekrar aç. Bu yöntem benim deneyimimde %90 başarı veriyor." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Yaptım! Teams yeniden açıldı, test call'da artık sesimi duyuyor 🎉 14:00 toplantıya yetişeceğim. Çok teşekkür ederim." },
-    { "author": "agent",    "type": "INTERNAL", "message": "Teams cache corruption — son 1 ayda 3. vaka bende. Endpoint yönetim ekibine bildirim göndereceğim, Teams auto-update sonrası bu tarz sorunlar yaşanıyor. Toplantı sonrası kullanıcıdan onay alıp resolve edeceğim." }
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I have a critical customer meeting at 2 PM right now, let's please find a quick fix."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Got it, I'm on it right away. First some quick checks: in Teams > Settings > Devices > Microphone, which device is selected? Does the 'Make a test call' button work?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "'Headset Microphone (Jabra Evolve 65)' is selected. On the test call it says 'Hi, this is Test Call' but then it doesn't play my voice back — just silence."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "OK, that means the mic isn't reaching Teams. Could you unplug the headset from USB and plug it back in? Also, right-click the sound icon on the computer and in 'Sound settings > Input', I'd like to see whether the progress bar for the Jabra moves when you speak."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I did the USB unplug-replug. In Sound settings the bar DOES RESPOND when I speak — so Windows hears it. But Teams doesn't."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Excellent diagnosis. The problem is specifically between Teams and the device. Let's go through these steps in order: 1) Fully close Teams (Task Manager → End Task the Teams process), 2) Open the %appdata%\\Microsoft\\Teams folder, 3) DELETE the 'Cache', 'GPUCache', and 'IndexedDB' subfolders (your app data won't be lost), 4) Reopen Teams. In my experience this method works 90% of the time."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Did it! Teams reopened and on the test call it now hears my voice 🎉 I'll make the 2 PM meeting. Thank you so much."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Teams cache corruption — my 3rd case in the last month. I'll send a notification to the endpoint management team; these kinds of issues happen after a Teams auto-update. I'll get confirmation from the user after the meeting and resolve it."
+    }
   ]
 }

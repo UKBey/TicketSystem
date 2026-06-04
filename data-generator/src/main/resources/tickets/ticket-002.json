@@ -1,8 +1,8 @@
 {
-  "title": "Ağ yazıcısı 'offline' olarak gözüküyor",
-  "description": "Yan ofiste bulunan HP LaserJet yazıcısı bir saattir 'offline' modunda. Yeniden başlattım ama düzelmedi.",
+  "title": "Network printer shows up as 'offline'",
+  "description": "The HP LaserJet printer in the side office has been in 'offline' mode for an hour. I restarted it but it didn't fix the issue.",
   "priority": "MEDIUM",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Yazıcı",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Printer",
   "status": "NEW"
 }

@@ -1,18 +1,35 @@
 {
-  "title": "Klavyemin 'E' ve 'D' tuşları çalışmıyor",
-  "description": "Hızlıca yazmaya çalışırken bu iki tuş takılı kalıyor veya hiç çalışmıyor.",
+  "title": "The 'E' and 'D' keys on my keyboard aren't working",
+  "description": "When I try to type quickly, these two keys stick or don't work at all.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Klavye ve Mouse",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Keyboard & Mouse",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 10, "description": "Basınçlı hava ile temizleme yapıldı, kısmen düzeldi." },
-    { "minutes": 5, "description": "Yedek klavye verildi, kullanıcı tüm tuşları test etti." }
+    {
+      "minutes": 10,
+      "description": "Cleaned with compressed air, partially fixed."
+    },
+    {
+      "minutes": 5,
+      "description": "Provided a spare keyboard, user tested all the keys."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Yedek klavye kullanım için verildi. Eski klavyenizi servise gönderdik." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Yeni klavye sorunsuz çalışıyor, çok teşekkür ederim." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "A spare keyboard was provided for you to use. We sent your old keyboard to service."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The new keyboard works without any issues, thank you very much."
+    }
   ],
-  "resolutionNote": "Yedek klavye teslim edildi, bozulan klavye onarım için servise gönderildi.",
-  "csat": { "rating": 4, "comment": "Hızlıydı." }
+  "resolutionNote": "Spare keyboard delivered, the faulty keyboard sent to service for repair.",
+  "csat": {
+    "rating": 4,
+    "comment": "It was fast."
+  }
 }

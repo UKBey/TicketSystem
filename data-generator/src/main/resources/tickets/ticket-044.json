@@ -1,29 +1,84 @@
 {
-  "title": "C: sürücü dolu, sürekli temizlesem de doluyor",
-  "description": "C: sürücüde 5 GB kaldı. Disk Cleanup yapıyorum, 2-3 gün sonra yine dolu.",
+  "title": "C: drive is full, it keeps filling up even though I clean it regularly",
+  "description": "There's 5 GB left on the C: drive. I run Disk Cleanup, but it's full again after 2-3 days.",
   "priority": "MEDIUM",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Disk ve Depolama",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Disk & Storage",
   "status": "CLOSED",
   "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
-    { "minutes": 30, "description": "WinDirStat ile analiz yapıldı, %temp% (24 GB) ve eski .iso yedekleri (45 GB) tespit edildi." },
-    { "minutes": 20, "description": "OneDrive Files On-Demand aktif edildi, 80 GB local cache serbest bırakıldı." },
-    { "minutes": 15, "description": "Servis envanteri kontrol edildi, 512 GB SSD upgrade stoğu mevcut." },
-    { "minutes": 60, "description": "Servis randevusu planlandı ve SSD upgrade gerçekleştirildi; veri migrate edildi." }
+    {
+      "minutes": 30,
+      "description": "Analyzed with WinDirStat, identified %temp% (24 GB) and old .iso backups (45 GB)."
+    },
+    {
+      "minutes": 20,
+      "description": "Enabled OneDrive Files On-Demand, freed up 80 GB of local cache."
+    },
+    {
+      "minutes": 15,
+      "description": "Checked the service inventory, a 512 GB SSD upgrade is in stock."
+    },
+    {
+      "minutes": 60,
+      "description": "Service appointment scheduled and SSD upgrade performed; data migrated."
+    }
   ],
   "comments": [
-    { "author": "customer", "type": "EXTERNAL", "message": "Bu sorun 6 aydır var, her seferinde geçici çözüyorum ama tekrar geliyor. Bilgisayar çok yavaş, lütfen kalıcı bir şey yapın." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Anlıyorum, çok yorucu olmalı. Önce tam fotoğrafı çekelim, sonra hem hızlı hem kalıcı çözüm önereceğim. Önemli alanları görmek için bir araç çalıştıracağız: 'winget install WinDirStat' (çalıştır → kabul et). Kurulduktan sonra açıp C:\\'i analiz edin, sonucun ekran görüntüsünü gönderir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "WinDirStat çalıştı, ekran görüntüsü ekledim. En büyük: AppData\\Local\\Temp 24 GB, sonra D:\\ISOs 45 GB (eski Windows iso'ları). Sonra Outlook OST 8 GB." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Mükemmel teşhis. Geçici %temp% 24 GB! İşletim sistemi normalde temizler ama bir şey engelliyor. Eski .iso'lar da artık gerekli değil. Geçici çözüm olarak şimdi şu adımları yapalım:\n1) Win+R → %temp% → Tüm dosyaları seç → Sil (kullanımda olanları atla)\n2) D:\\ISOs içindeki .iso'ları sil (gerçekten gerekiyorsa file share'e taşıyalım)\n3) OneDrive Files On-Demand'i aktif et\nBu adımlar ~80 GB serbest bırakır. Yapabilir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Hepsini yaptım! C: artık 90 GB boş. Çok büyük fark var, bilgisayar 2 kat hızlandı. Ama 6 ay sonra yine dolarsa?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Sevindim! Kalıcı çözüm için: cihazınızda 256 GB SSD var. Sizin gibi geliştiriciler için bu artık dar. Servis envanterinde 512 GB SSD var, ben onay alacağım. Süreç şöyle: 1) IT yöneticim onayı 1 gün içinde verir, 2) Bir gün cihazı bana bırakırsınız, 3) Veriler clone edilir (3-4 saat), 4) Bilgisayarı geri alırsınız. Sizin için ne zaman uygun?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Cuma günleri eve evden çalışıyorum. Perşembe akşamı bırakıp Cuma sonu/Pazartesi sabahı alabilir miyim?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Mükemmel plan. Perşembe akşam 17:00'de teslim alacağım, Pazartesi sabah 09:00'da masanızda hazır. Veri kaybı olmayacak — disk clone yöntemi kullanacağım. Bu hafta perşembe için randevuyu rezerve ettim. Geçici çözümle şu an rahat etmiş olursunuz, kalıcı çözüm önümüzdeki hafta hazır." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Süper, çok memnunum. Perşembe görüşmek üzere." },
-    { "author": "agent",    "type": "INTERNAL", "message": "SSD upgrade randevusu kayıtlı (envanter slot #SU-2024-019). Clone için Macrium Reflect kullanacağım. Olay sonrası kullanıcının ticket'ı kapatma onayı bekleyeceğim." }
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "This problem has been going on for 6 months, I keep fixing it temporarily but it comes back every time. The computer is very slow, please do something permanent."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I understand, that must be very frustrating. Let's get the full picture first, then I'll recommend a solution that's both fast and permanent. We'll run a tool to see the big areas: 'winget install WinDirStat' (run it → accept). After it's installed, open it and analyze C:\\, then could you send me a screenshot of the result?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "WinDirStat ran, I've attached a screenshot. The biggest: AppData\\Local\\Temp 24 GB, then D:\\ISOs 45 GB (old Windows isos). Then Outlook OST 8 GB."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Excellent diagnosis. The %temp% folder is 24 GB! The OS normally cleans it, but something is blocking it. The old .iso files aren't needed anymore either. As a temporary fix, let's do these steps now:\n1) Win+R → %temp% → Select all files → Delete (skip the ones in use)\n2) Delete the .iso files in D:\\ISOs (if you really need them, let's move them to the file share)\n3) Enable OneDrive Files On-Demand\nThese steps will free up ~80 GB. Can you do them?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I did all of it! C: now has 90 GB free. It's a huge difference, the computer is 2x faster. But what if it fills up again in 6 months?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Glad to hear it! For a permanent fix: your device has a 256 GB SSD. For developers like you, that's now too small. There's a 512 GB SSD in the service inventory, I'll get approval. The process is as follows: 1) My IT manager approves within 1 day, 2) You drop off the device with me for a day, 3) The data is cloned (3-4 hours), 4) You get the computer back. When works for you?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "On Fridays I work from home. Could I drop it off Thursday evening and pick it up end of Friday/Monday morning?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Perfect plan. I'll take it Thursday at 17:00, and it'll be ready at your desk Monday at 09:00. There won't be any data loss — I'll use the disk clone method. I've reserved the appointment for this Thursday. You'll be comfortable now with the temporary fix, and the permanent fix will be ready next week."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Great, I'm very happy. See you Thursday."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "SSD upgrade appointment recorded (inventory slot #SU-2024-019). I'll use Macrium Reflect for the clone. After the work, I'll wait for the user's approval to close the ticket."
+    }
   ],
-  "resolutionNote": "Kısa vadeli: WinDirStat ile %temp% (24 GB) ve eski .iso'lar (45 GB) temizlendi, OneDrive Files On-Demand aktif edildi → ~90 GB serbest. Kalıcı: 256 GB → 512 GB SSD upgrade'i perşembe-pazartesi penceresinde tamamlandı, veri clone ile aktarıldı. Kullanıcı her iki çözümden de memnun.",
-  "csat": { "rating": 5, "comment": "Hem anlık hem kalıcı çözüm, üstüne çok detaylı açıklama. Süreç çok iyi yönetildi." }
+  "resolutionNote": "Short-term: cleaned up %temp% (24 GB) and old .isos (45 GB) with WinDirStat, enabled OneDrive Files On-Demand → ~90 GB freed. Permanent: 256 GB → 512 GB SSD upgrade completed in the Thursday-Monday window, data transferred via clone. User is satisfied with both solutions.",
+  "csat": {
+    "rating": 5,
+    "comment": "Both an immediate and a permanent solution, plus a very detailed explanation. The process was managed very well."
+  }
 }

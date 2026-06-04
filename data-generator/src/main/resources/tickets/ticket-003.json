@@ -1,8 +1,8 @@
 {
-  "title": "Outlook arama hiçbir sonuç döndürmüyor",
-  "description": "Eski mailleri aramaya çalışıyorum ama arama kutusu sürekli boş sonuç gösteriyor. İndeks bozulmuş olabilir.",
+  "title": "Outlook search returns no results",
+  "description": "I'm trying to search old emails, but the search box keeps showing empty results. The index may be corrupted.",
   "priority": "LOW",
-  "productName": "E-posta ve İletişim",
+  "productName": "Email & Communication",
   "topicName": "Outlook",
   "status": "NEW"
 }

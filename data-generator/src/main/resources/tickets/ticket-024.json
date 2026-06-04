@@ -1,16 +1,31 @@
 {
-  "title": "Ağ yazıcısına ping bile gitmiyor",
-  "description": "İK yazıcısına bağlanamıyorum, ping cevap dahi vermiyor. Daha önce sorunsuz çalışıyordu.",
+  "title": "Can't even ping the network printer",
+  "description": "I can't connect to the HR printer, it doesn't even respond to ping. It used to work fine.",
   "priority": "LOW",
-  "productName": "VPN ve Ağ",
-  "topicName": "Ofis Ağı",
+  "productName": "VPN & Network",
+  "topicName": "Office Network",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 20, "description": "Yazıcı VLAN 30'da olduğu tespit edildi, kullanıcının VLAN 10 olduğu doğrulandı." }
+    {
+      "minutes": 20,
+      "description": "Determined the printer is on VLAN 30, confirmed the user is on VLAN 10."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, yazıcı IK departmanının VLAN'ında. Network ekibinden VLAN 10 → VLAN 30 yazıcı portu için ACL kuralı eklemesini istedim. Bu arada onaylamam için yazıcı IP'sini (10.0.30.x gibi) ve marka/model bilgisini paylaşır mısınız?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "IP 10.0.30.45, model HP LaserJet Pro M404dn. Bu arada Aslı da aynı sorunu yaşıyor diye duydum." },
-    { "author": "agent",    "type": "INTERNAL", "message": "VLAN 10'dan 30'a yazdırma trafiği için ACL change request açıldı (CR-2841). Aslı için ayrı ticket açmasını istedim — etki kapsamını netleştirmem gerekiyor." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, the printer is on the HR department's VLAN. I asked the network team to add an ACL rule for the VLAN 10 → VLAN 30 printer port. In the meantime, so I can confirm, could you share the printer's IP (something like 10.0.30.x) and the make/model?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "IP is 10.0.30.45, model HP LaserJet Pro M404dn. By the way, I heard Ashley is having the same problem."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Opened an ACL change request for printing traffic from VLAN 10 to 30 (CR-2841). Asked Ashley to open a separate ticket — I need to clarify the scope of impact."
+    }
   ]
 }

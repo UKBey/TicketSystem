@@ -1,18 +1,35 @@
 {
-  "title": "SharePoint sitemiz 'Access Denied' veriyor",
-  "description": "İK departmanının SharePoint sitesine erişemiyorum, 'Sorry, you don't have access' uyarısı geliyor.",
+  "title": "Our SharePoint site is giving 'Access Denied'",
+  "description": "I can't access the HR department's SharePoint site, I get a 'Sorry, you don't have access' warning.",
   "priority": "MEDIUM",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "SharePoint",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 15, "description": "Site permissions listesinde kullanıcı bulunamadı." },
-    { "minutes": 10, "description": "Site sahibinden onay alındı, kullanıcı 'Members' grubuna eklendi." }
+    {
+      "minutes": 15,
+      "description": "User was not found in the site permissions list."
+    },
+    {
+      "minutes": 10,
+      "description": "Approval obtained from the site owner, user added to the 'Members' group."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Site Members'a eklendiniz. 5-10 dakika içinde erişim sağlanacak." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Açıldı, dosyalara erişebiliyorum, teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "You've been added to Site Members. Access will be available within 5-10 minutes."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It's open now, I can access the files, thanks."
+    }
   ],
-  "resolutionNote": "Kullanıcı IK SharePoint site Members grubuna eklendi. Erişim onaylandı.",
-  "csat": { "rating": 5, "comment": "Çok iyi destek." }
+  "resolutionNote": "User added to the HR SharePoint site Members group. Access confirmed.",
+  "csat": {
+    "rating": 5,
+    "comment": "Very good support."
+  }
 }

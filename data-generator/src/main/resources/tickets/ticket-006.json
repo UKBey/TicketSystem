@@ -1,8 +1,8 @@
 {
-  "title": "Toplantı odası 3'te Wi-Fi sürekli kopuyor",
-  "description": "Sunum yaparken 2-3 dakikada bir Wi-Fi bağlantım kopuyor. Diğer odalarda sorun yok.",
+  "title": "Wi-Fi keeps dropping in meeting room 3",
+  "description": "While giving a presentation, my Wi-Fi connection drops every 2-3 minutes. There's no problem in the other rooms.",
   "priority": "MEDIUM",
-  "productName": "VPN ve Ağ",
+  "productName": "VPN & Network",
   "topicName": "Wi-Fi",
   "status": "NEW"
 }

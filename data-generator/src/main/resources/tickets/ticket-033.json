@@ -1,16 +1,26 @@
 {
-  "title": "Teams ekran paylaşımı yapınca siyah ekran görünüyor",
-  "description": "Sunum yapmaya çalışıyorum, ekranımı paylaştığımda karşı taraf siyah ekran görüyor.",
+  "title": "A black screen appears when I share my screen in Teams",
+  "description": "I'm trying to give a presentation, and when I share my screen the other side sees a black screen.",
   "priority": "MEDIUM",
-  "productName": "E-posta ve İletişim",
+  "productName": "Email & Communication",
   "topicName": "Teams",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 20, "description": "GPU hardware acceleration aktif görüldü, Citrix VDI ile çakışma şüphesi." },
-    { "minutes": 15, "description": "Settings > General > 'Disable GPU hardware acceleration' aktif edildi, Teams restart sonrası test yapıldı." }
+    {
+      "minutes": 20,
+      "description": "GPU hardware acceleration was found to be enabled; suspected conflict with Citrix VDI."
+    },
+    {
+      "minutes": 15,
+      "description": "Settings > General > 'Disable GPU hardware acceleration' was enabled, and testing was done after a Teams restart."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Ayarı kapattım ve Teams'i yeniden başlattım. Test ettik, paylaşım sorunsuz görünüyor." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I disabled the setting and restarted Teams. We tested it and the sharing looks fine now."
+    }
   ],
-  "resolutionNote": "Teams ayarlarında GPU hızlandırma kapatıldı, ekran paylaşımı VDI ortamında stabil hale geldi."
+  "resolutionNote": "GPU acceleration was disabled in the Teams settings, and screen sharing became stable in the VDI environment."
 }

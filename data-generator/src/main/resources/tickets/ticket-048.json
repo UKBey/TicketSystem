@@ -1,32 +1,97 @@
 {
-  "title": "Phishing maile tıklamış olabilirim, ne yapmalıyım?",
-  "description": "Bankamdan geldiğini sandığım bir maile tıklayıp şifremi girdim, sonradan sahte olduğunu fark ettim.",
+  "title": "I think I may have clicked a phishing email, what should I do?",
+  "description": "I clicked an email I thought was from my bank and entered my password, then realized it was fake.",
   "priority": "HIGH",
-  "productName": "E-posta ve İletişim",
-  "topicName": "Spam ve Güvenlik",
+  "productName": "Email & Communication",
+  "topicName": "Spam & Security",
   "status": "CLOSED",
   "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
-    { "minutes": 5, "description": "Kullanıcıyla canlı görüşmede şifre sıfırlama adımları rehberlendi." },
-    { "minutes": 15, "description": "IT Güvenlik ekibine olay raporu açıldı (incident ID: SEC-2024-0317)." },
-    { "minutes": 30, "description": "CrowdStrike EDR taraması başlatıldı, tüm endpoint clean rapor verdi." },
-    { "minutes": 15, "description": "Active Directory'de kullanıcının tüm oturumları revoke edildi." },
-    { "minutes": 20, "description": "MFA cihazları (Authenticator + backup phone) yeniden kaydedildi." },
-    { "minutes": 10, "description": "Phishing örneği IT Security'nin haftalık güvenlik bülteni şablonuna eklendi." }
+    {
+      "minutes": 5,
+      "description": "Guided the user through the password reset steps on a live call."
+    },
+    {
+      "minutes": 15,
+      "description": "Opened an incident report with the IT Security team (incident ID: SEC-2024-0317)."
+    },
+    {
+      "minutes": 30,
+      "description": "Started a CrowdStrike EDR scan, the entire endpoint reported clean."
+    },
+    {
+      "minutes": 15,
+      "description": "Revoked all of the user's sessions in Active Directory."
+    },
+    {
+      "minutes": 20,
+      "description": "Re-registered the MFA devices (Authenticator + backup phone)."
+    },
+    {
+      "minutes": 10,
+      "description": "Added the phishing sample to IT Security's weekly security newsletter template."
+    }
   ],
   "comments": [
-    { "author": "customer", "type": "EXTERNAL", "message": "10 dakika önce 'Bankam' diye gelen maile tıkladım, normal bir login sayfası açıldı, şifremi girdim. Sonra sayfa beyaza döndü. Şimdi fark ettim ki adres bankam.com değil bankamtr.com.tr.online... Çok korktum, ne yapmalıyım?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Sakin olun, doğru kişiye geldiniz — birlikte adım adım ilerleyeceğiz. Lütfen ŞİMDİ tarayıcıyı tamamen kapatın. Sonra: 1) Bankanızın gerçek web sitesine veya mobil uygulamasına gidin (mailden değil, adresi siz yazın), 2) Şifrenizi hemen değiştirin, 3) Son giriş kayıtlarını kontrol edin. Bunu yaparken ben şirket hesaplarınızı koruma altına alıyorum." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Tarayıcıyı kapattım. Banka şifremi değiştirdim, son giriş kayıtlarında benim cihazım dışında bir şey yok. Şu an çok mutluyum 😅" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Çok iyi, hızlı tepki verdiniz — bu sürede saldırgan henüz hesabı kullanamamış demek. Şimdi şirket güvenliği için: 1) Şirket şifrenizi (corp.local) hemen değiştirelim, 2) MFA cihazlarınızı yeniden kayıt edeceğim (eski olanı bir başkası kopyalamış olabilir), 3) Bilgisayarınızda CrowdStrike EDR taraması başlatacağım (sessizce çalışır, etkilemez)." },
-    { "author": "agent",    "type": "INTERNAL", "message": "IT Security'ye SEC-2024-0317 olarak rapor açıldı. Olay düşük etki gibi görünse de süreç tamamlanmadan ticket kapatılmayacak. EDR taraması başlatıldı, sonuç bekleniyor." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Şirket şifremi değiştirdim. MFA için ne yapmam gerekiyor?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "MFA için size bir 'yeniden kayıt' linki gönderdim — mailinizi açtığınızda 'Set up Authenticator' butonuna basın. Authenticator uygulamasında eski hesabı silip yeniden ekleyin (QR kod tarayacaksınız). Bu işlemden sonra mevcut tüm aktif oturumlarınız sonlanacak, tekrar giriş yapmanız istenecek." },
-    { "author": "customer", "type": "EXTERNAL", "message": "MFA tamamdır. EDR sonucunda ne çıkacak?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "EDR taraması tamamlandı, bilgisayarınızda tehdit bulunmadı 🎉 Saldırgan sadece web üzerinden bilgi topladı, cihaza zararlı kod düşmedi. Olay yönetimi tamamlandı: oturumlar revoke, şifre yeni, MFA yeni, EDR temiz. Bu deneyimi anonim olarak haftalık güvenlik bültenimize eklemek istiyoruz — ekip için faydalı olur. İzin verir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Tabii, gönül rahatlığıyla. Bu hatayı bir daha kimse yapmasın. Çok hızlı ve profesyonel davrandınız, gerçekten teşekkürler — başka türlü ne yapacağımı bilemezdim." },
-    { "author": "agent",    "type": "INTERNAL", "message": "Olay kapatıldı, EDR temiz, kullanıcı oturumları yenilendi. Anonimize edilmiş kullanım vakası güvenlik bülteni şablonuna kaydedildi. Phishing örneği SOC tarafından retrospektif taramada da kullanılacak." }
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "10 minutes ago I clicked an email that came in as 'My Bank', a normal-looking login page opened, and I entered my password. Then the page went blank. Now I've noticed the address isn't bankam.com but bankamtr.com.tr.online... I'm really scared, what should I do?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Stay calm, you've come to the right person — we'll go through this step by step together. Please close the browser completely NOW. Then: 1) Go to your bank's real website or mobile app (not from the email — type the address yourself), 2) Change your password immediately, 3) Check the recent login records. While you do that, I'll secure your company accounts."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I closed the browser. I changed my bank password, and there's nothing in the recent login records other than my own device. I'm very happy right now 😅"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Very good, you reacted quickly — that means the attacker hasn't been able to use the account yet. Now for company security: 1) Let's change your company password (corp.local) immediately, 2) I'll re-register your MFA devices (someone may have copied the old one), 3) I'll start a CrowdStrike EDR scan on your computer (it runs silently, won't affect you)."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "An incident was reported to IT Security as SEC-2024-0317. Even though the incident appears low-impact, the ticket won't be closed until the process is complete. EDR scan started, awaiting results."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I changed my company password. What do I need to do for MFA?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I sent you a 're-registration' link for MFA — when you open your email, click the 'Set up Authenticator' button. In the Authenticator app, delete the old account and add it again (you'll scan a QR code). After this, all your currently active sessions will end and you'll be asked to log in again."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "MFA is done. What will the EDR result show?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The EDR scan completed, no threats were found on your computer 🎉 The attacker only collected information over the web, no malicious code landed on the device. Incident management is complete: sessions revoked, new password, new MFA, clean EDR. We'd like to add this experience anonymously to our weekly security newsletter — it would be helpful for the team. Would you give us permission?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Of course, with peace of mind. Let no one else make this mistake again. You acted very quickly and professionally, thank you so much — otherwise I wouldn't have known what to do."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Incident closed, EDR clean, user sessions refreshed. Anonymized use case saved to the security newsletter template. The phishing sample will also be used by the SOC in a retrospective scan."
+    }
   ],
-  "resolutionNote": "Kullanıcı phishing maile tıkladıktan sonra hızlıca müdahale edildi: 1) Banka tarafı kullanıcı tarafından bağımsız ele alındı, 2) Şirket şifresi değiştirildi, 3) Tüm aktif oturumlar revoke edildi, 4) MFA cihazları yeniden kaydedildi, 5) Endpoint EDR taraması temiz. Olay etkisi sıfır. Vaka anonimize edilerek güvenlik bültenine eklendi.",
-  "csat": { "rating": 5, "comment": "Çok korkmuştum ama çok hızlı ve profesyonel bir tepki gördüm. Adım adım yönlendirme harikaydı. Teşekkürler." }
+  "resolutionNote": "Responded quickly after the user clicked a phishing email: 1) The bank side was handled independently by the user, 2) Company password changed, 3) All active sessions revoked, 4) MFA devices re-registered, 5) Endpoint EDR scan clean. Incident impact was zero. The case was anonymized and added to the security newsletter.",
+  "csat": {
+    "rating": 5,
+    "comment": "I was very scared, but I got a very fast and professional response. The step-by-step guidance was great. Thanks."
+  }
 }

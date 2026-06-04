@@ -1,19 +1,39 @@
 {
-  "title": "Gece yedeği 'Repository Full' hatası ile düştü",
-  "description": "Bu sabah 03:00'taki SQL backup job 'failed' durumunda, repository dolu olduğu yazıyor.",
+  "title": "The nightly backup failed with a 'Repository Full' error",
+  "description": "This morning's 03:00 SQL backup job is in 'failed' status, it says the repository is full.",
   "priority": "HIGH",
-  "productName": "Bulut Hizmetleri",
-  "topicName": "Yedekleme",
+  "productName": "Cloud Services",
+  "topicName": "Backup",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 30, "description": "Retention policy dışına çıkmış 4 ay öncesinden eski yedekler temizlendi (~800 GB)." },
-    { "minutes": 25, "description": "Veeam job manuel olarak yeniden tetiklendi, başarıyla tamamlandı." },
-    { "minutes": 20, "description": "Uzun vadeli retention için S3 Glacier hedefi tasarımı başlatıldı." }
+    {
+      "minutes": 30,
+      "description": "Cleaned up backups older than 4 months that were outside the retention policy (~800 GB)."
+    },
+    {
+      "minutes": 25,
+      "description": "Manually re-triggered the Veeam job, completed successfully."
+    },
+    {
+      "minutes": 20,
+      "description": "Started designing an S3 Glacier target for long-term retention."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Eski yedekler temizlendi, gece job'u başarıyla çalıştı. Uzun vadeli için Glacier hedefini sürece aldık." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Çok teşekkürler, raporu sabah aldım." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Old backups were cleaned up, the nightly job ran successfully. For the long term, we've added the Glacier target to the process."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thank you very much, I got the report this morning."
+    }
   ],
-  "resolutionNote": "Retention policy dışı 800 GB yedek temizlendi, ana job manuel tetiklenip tamamlandı. Glacier kapasite planlama başladı.",
-  "csat": { "rating": 5, "comment": "Sorunsuz çözüldü." }
+  "resolutionNote": "Cleaned up 800 GB of backups outside the retention policy, manually triggered and completed the main job. Glacier capacity planning started.",
+  "csat": {
+    "rating": 5,
+    "comment": "Resolved smoothly."
+  }
 }

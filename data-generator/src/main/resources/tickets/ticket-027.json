@@ -1,25 +1,65 @@
 {
-  "title": "VPN bağlandıktan sonra internetim kesiliyor",
-  "description": "VPN'e bağlanır bağlanmaz internetim çalışmıyor, sadece şirket içi servisler açılıyor.",
+  "title": "My internet drops after connecting to the VPN",
+  "description": "As soon as I connect to the VPN my internet stops working, only internal company services open.",
   "priority": "HIGH",
-  "productName": "VPN ve Ağ",
-  "topicName": "VPN Bağlantısı",
+  "productName": "VPN & Network",
+  "topicName": "VPN Connection",
   "status": "RESOLVED",
   "reasonCode": "CONFIGURATION_CHANGE",
   "worklogs": [
-    { "minutes": 15, "description": "VPN profil dosyası incelendi — 'Use default gateway on remote network' işaretli." },
-    { "minutes": 20, "description": "Route tablosu before/after karşılaştırıldı; VPN bağlanınca 0.0.0.0/0 VPN gateway'e gidiyor." },
-    { "minutes": 25, "description": "Split tunneling profili güncellendi, sadece corp.local subnet'leri VPN üzerinden." },
-    { "minutes": 15, "description": "Kullanıcıyla 5 dakikalık test seansı: hem internet hem corp servisleri eş zamanlı çalışıyor." }
+    {
+      "minutes": 15,
+      "description": "Reviewed the VPN profile file — 'Use default gateway on remote network' is checked."
+    },
+    {
+      "minutes": 20,
+      "description": "Compared the route table before/after; when the VPN connects, 0.0.0.0/0 goes to the VPN gateway."
+    },
+    {
+      "minutes": 25,
+      "description": "Updated the split tunneling profile, only corp.local subnets go through the VPN."
+    },
+    {
+      "minutes": 15,
+      "description": "5-minute test session with the user: internet and corp services work at the same time."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, bu VPN istemcisinin 'full tunnel' modunda çalıştığının tipik göstergesi — yani tüm trafiğiniz VPN üzerinden gidiyor ve dış internete çıkış kapanıyor. VPN bağlantınızı keser misiniz ki bir profil güncellemesi yapayım?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Tamam, kestim. Yarım saat kadar internetsiz kalsam sorun değil, deneme yapın." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Teşekkürler. Profilinizi 'split tunneling' moduna çevirdim — artık sadece corp.local subnet'leri (10.10.0.0/16, 192.168.50.0/24) VPN üzerinden, kalan tüm trafik direkt internetten gidecek. Yeni profili indirip yükler misiniz? Aşağıdaki linkten erişebilirsiniz: [vpn-profile-v2.ovpn]" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Yeni profili kurdum, bağlandım. İnternet açılıyor 👍 Ama corp wiki'ye erişebilir miyim diye merak ediyorum, deneyebilir misiniz?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Wiki için url 'wiki.corp.local'. Lütfen tarayıcıdan açıp 'çalışıyor' veya 'açılmıyor' diye geri dönün. Bir de 'fileshare.corp.local' adresini deneyin." },
-    { "author": "customer", "type": "EXTERNAL", "message": "İkisi de açıldı! Hem internet hem corp servisleri eş zamanlı çalışıyor. Mükemmel. Çok teşekkür ederim." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Süper. Sorun çözüldü. Profili kaydettim, artık her bağlanışta otomatik olarak bu yapı geçerli olacak. Herhangi bir aksilik olursa yine bana yazın." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, this is a classic sign that the VPN client is running in 'full tunnel' mode — meaning all your traffic goes through the VPN and access to the external internet is cut off. Could you disconnect your VPN so I can push a profile update?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Okay, I've disconnected. I don't mind being without internet for about half an hour, go ahead and test."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks. I switched your profile to 'split tunneling' mode — now only the corp.local subnets (10.10.0.0/16, 192.168.50.0/24) go through the VPN, and all remaining traffic goes directly over the internet. Could you download and install the new profile? You can access it from this link: [vpn-profile-v2.ovpn]"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I installed the new profile and connected. Internet works now 👍 But I'm wondering if I can reach the corp wiki, could you check?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The wiki URL is 'wiki.corp.local'. Please open it in your browser and let me know whether it 'works' or 'doesn't open'. Also try the address 'fileshare.corp.local'."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Both opened! Internet and corp services are working at the same time. Perfect. Thank you so much."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Great. The issue is resolved. I've saved the profile, so from now on this setup will apply automatically every time you connect. If anything goes wrong, just write to me again."
+    }
   ],
-  "resolutionNote": "VPN profili 'full tunnel'dan 'split tunneling'e güncellendi. Yalnızca corp.local subnet'leri (10.10.0.0/16, 192.168.50.0/24) VPN üzerinden geçer; kalan trafik kullanıcının yerel internet bağlantısı üzerinden gider. Kullanıcı ile birlikte canlı test edildi."
+  "resolutionNote": "Updated the VPN profile from 'full tunnel' to 'split tunneling'. Only the corp.local subnets (10.10.0.0/16, 192.168.50.0/24) pass through the VPN; remaining traffic goes over the user's local internet connection. Tested live together with the user."
 }

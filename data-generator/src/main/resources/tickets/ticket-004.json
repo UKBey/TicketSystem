@@ -1,8 +1,8 @@
 {
-  "title": "OneDrive senkronizasyonu 'paused' durumda kalıyor",
-  "description": "Her açtığımda OneDrive durduruluyor uyarısı geliyor. 'Resume' tıkladığımda 1-2 dakika sonra tekrar duraklatıyor.",
+  "title": "OneDrive sync stays in 'paused' state",
+  "description": "Every time I open it, I get a OneDrive paused warning. When I click 'Resume', it pauses again after 1-2 minutes.",
   "priority": "MEDIUM",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "OneDrive",
   "status": "NEW"
 }

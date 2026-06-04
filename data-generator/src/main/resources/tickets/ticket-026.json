@@ -1,17 +1,35 @@
 {
-  "title": "Yazıcı çift taraflı baskı (duplex) yapmıyor",
-  "description": "İK formları için duplex çıktı alıyorum ama yazıcı her zaman tek tarafa basıyor.",
+  "title": "Printer won't do double-sided (duplex) printing",
+  "description": "I'm printing HR forms as duplex output, but the printer always prints single-sided.",
   "priority": "MEDIUM",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Yazıcı",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Printer",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 25, "description": "Driver Device Settings altında Duplex Unit = Installed olarak güncellendi." },
-    { "minutes": 10, "description": "Kullanıcının workstation'ında driver versiyonu doğrulandı: 7.83 (güncel)." }
+    {
+      "minutes": 25,
+      "description": "Updated Duplex Unit = Installed under driver Device Settings."
+    },
+    {
+      "minutes": 10,
+      "description": "Verified the driver version on the user's workstation: 7.83 (current)."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Driver tarafında Duplex Unit'i 'Installed' olarak işaretledim. Şimdi bir test denemesi yapar mısınız? Yazdır dialog'unda 'Print on both sides' veya 'Two-sided' seçeneği gözüküyor mu? Ekran görüntüsü gönderir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Seçenek geldi, 'Long edge' olarak seçtim ama yine tek tarafa bastı. Ekran görüntüsünü ekledim." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Görüntü için teşekkürler. Seçeneklerin doğru ayarlandığını görüyorum. Şimdi yazıcı tarafında bir kontrol gerekiyor: yazıcının panelinde Menu > Settings > Default Print Settings altında 'Default Duplex' aktif mi? Bir de duplex modül takılı mı fiziksel olarak (yazıcı arka kapağını açıp kontrol edebilirsiniz)?" }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "On the driver side I marked the Duplex Unit as 'Installed'. Could you do a test print now? In the Print dialog, do you see a 'Print on both sides' or 'Two-sided' option? Could you send a screenshot?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The option showed up, I selected 'Long edge' but it still printed single-sided. I've attached the screenshot."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks for the screenshot. I can see the options are set correctly. Now we need to check on the printer side: on the printer's panel under Menu > Settings > Default Print Settings, is 'Default Duplex' active? Also, is the duplex module physically installed (you can open the printer's rear cover to check)?"
+    }
   ]
 }

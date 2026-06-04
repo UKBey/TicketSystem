@@ -1,8 +1,8 @@
 {
-  "title": "C: sürücüsü 'low disk space' uyarısı veriyor",
-  "description": "Sabah açtığımda C: sürücüde 3 GB kaldı yazıyor. Sadece Office ve birkaç PDF kullanıyorum.",
+  "title": "C: drive shows a 'low disk space' warning",
+  "description": "When I turned it on this morning, it said only 3 GB left on the C: drive. I only use Office and a few PDFs.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Disk ve Depolama",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Disk & Storage",
   "status": "NEW"
 }

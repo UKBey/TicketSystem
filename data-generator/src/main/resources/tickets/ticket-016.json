@@ -1,15 +1,25 @@
 {
-  "title": "Dizüstü cihaz aşırı ısınıyor ve yavaşlıyor",
-  "description": "Cihazım yaklaşık bir haftadır ısınıyor, sıcaklık 90°C üzerine çıkıyor. CPU kullanımı boştayken bile yüksek.",
+  "title": "Laptop overheating and slowing down",
+  "description": "My device has been overheating for about a week, the temperature goes above 90°C. CPU usage is high even when idle.",
   "priority": "MEDIUM",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Dizüstü Bilgisayar",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Laptop",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 25, "description": "HWiNFO ile CPU sıcaklığı izlendi, fan profili Dell PowerManager'da 'Cool' seçildi." },
-    { "minutes": 40, "description": "Servis randevusu oluşturuldu, termal pasta yenilenecek." }
+    {
+      "minutes": 25,
+      "description": "Monitored CPU temperature with HWiNFO, set the fan profile to 'Cool' in Dell PowerManager."
+    },
+    {
+      "minutes": 40,
+      "description": "Created a service appointment, the thermal paste will be replaced."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Kullanıcı 3 yaşındaki bir Latitude kullanıyor, periyodik bakım yapılacak." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "The user is on a 3-year-old Latitude; periodic maintenance will be performed."
+    }
   ]
 }

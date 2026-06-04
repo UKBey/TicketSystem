@@ -1,15 +1,25 @@
 {
-  "title": "Azure VM başlatılırken 'AllocationFailed' hatası",
-  "description": "West Europe bölgesinde D8s_v5 VM'imiz 30 dakikadır stop->start ile başlatılamıyor. Tüm SKU stoğu kalmamış görünüyor.",
+  "title": "'AllocationFailed' error when starting Azure VM",
+  "description": "Our D8s_v5 VM in the West Europe region hasn't been able to start via stop->start for 30 minutes. It looks like the entire SKU stock is depleted.",
   "priority": "HIGH",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "Azure",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 20, "description": "North Europe bölgesinde aynı SKU denendi, başarıyla ayağa kalktı." },
-    { "minutes": 30, "description": "Geçici failover olarak North Europe replica devreye alındı." }
+    {
+      "minutes": 20,
+      "description": "Tried the same SKU in the North Europe region, it came up successfully."
+    },
+    {
+      "minutes": 30,
+      "description": "Brought up the North Europe replica as a temporary failover."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Tier-1 prod için 1 yıllık reserved capacity satın alma süreci başlatılacak." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "We'll start the process to purchase 1-year reserved capacity for Tier-1 prod."
+    }
   ]
 }

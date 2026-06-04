@@ -1,19 +1,44 @@
 {
-  "title": "Production EC2 instance'a SSH yapamıyorum",
-  "description": "Production load-balancer arkasındaki EC2'lere bastion üzerinden SSH yapıyorum, hepsi timeout veriyor.",
+  "title": "Can't SSH into production EC2 instances",
+  "description": "I SSH into the EC2 instances behind the production load balancer via the bastion, and they all time out.",
   "priority": "MEDIUM",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "AWS",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 25, "description": "Security Group inbound kuralları kontrol edildi, 22 portu sadece bastion için açık — değişiklik yok." },
-    { "minutes": 20, "description": "Bastion host /var/log/auth.log incelendi — bağlantı bastion'a ulaşıyor ama EC2 reddediyor." },
-    { "minutes": 15, "description": "CloudTrail üzerinde son 24 saatte KeyRotation eventi arandı — bulunamadı." }
+    {
+      "minutes": 25,
+      "description": "Checked Security Group inbound rules, port 22 is only open for the bastion — no changes."
+    },
+    {
+      "minutes": 20,
+      "description": "Reviewed the bastion host /var/log/auth.log — the connection reaches the bastion but the EC2 rejects it."
+    },
+    {
+      "minutes": 15,
+      "description": "Searched CloudTrail for a KeyRotation event in the last 24 hours — none found."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Bastion ulaşılabiliyor ama backend EC2'ler reject ediyor. Birkaç şey kontrol etmem gerekiyor: (1) hangi pem dosyasını kullanıyorsunuz, dosya adı/parmak izi? Komut: ssh-keygen -lf <key.pem>. (2) Son SSH komutunuzun '-v' ile çıktısını paylaşır mısınız? 'ssh -v -i key.pem ec2-user@10.0.5.x' gibi." },
-    { "author": "customer", "type": "EXTERNAL", "message": "prod-eu-2024.pem kullanıyorum. ssh-keygen çıktısı: SHA256:abc123def456... Verbose çıktıyı ekledim." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Verbose çıktıyı inceledim — sunucu 'Permission denied (publickey)' atıyor. Bu da pem dosyanızın o instance'ın authorized_keys listesinde olmadığını gösteriyor. Son hafta içinde key rotation yaptık mı, biliyor musunuz? Eğer evetse muhtemelen yeni pem dosyası verilmiştir." },
-    { "author": "agent",    "type": "INTERNAL", "message": "CloudTrail'de eventi göremedim ama belki manuel SSH'la yapılmış. Kullanıcının takım liderine sordum, dönüş bekliyorum." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The bastion is reachable but the backend EC2s are rejecting the connection. I need to check a few things: (1) which pem file are you using, and what's its filename/fingerprint? Command: ssh-keygen -lf <key.pem>. (2) Could you share the '-v' output of your last SSH command? Something like 'ssh -v -i key.pem ec2-user@10.0.5.x'."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I'm using prod-eu-2024.pem. ssh-keygen output: SHA256:abc123def456... I've attached the verbose output."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I reviewed the verbose output — the server is throwing 'Permission denied (publickey)'. This indicates your pem file isn't in that instance's authorized_keys list. Do you know if we did a key rotation in the past week? If so, you were probably issued a new pem file."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "I couldn't find the event in CloudTrail, but maybe it was done via manual SSH. I've asked the user's team lead, waiting for a reply."
+    }
   ]
 }

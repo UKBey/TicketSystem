@@ -1,8 +1,8 @@
 {
-  "title": "VPN bağlantısı 'authentication failed' hatası veriyor",
-  "description": "Sabah ofis dışından bağlanmaya çalışıyorum, kullanıcı adı/şifre doğru olduğu halde 'authentication failed' alıyorum. SSO oturumu açıkken bile VPN istemcisi kabul etmiyor.",
+  "title": "VPN connection returns 'authentication failed' error",
+  "description": "I'm trying to connect from outside the office this morning, and even though my username/password are correct I get 'authentication failed'. The VPN client doesn't accept it even when my SSO session is active.",
   "priority": "HIGH",
-  "productName": "VPN ve Ağ",
-  "topicName": "VPN Bağlantısı",
+  "productName": "VPN & Network",
+  "topicName": "VPN Connection",
   "status": "NEW"
 }

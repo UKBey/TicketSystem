@@ -1,8 +1,8 @@
 {
-  "title": "ERP ana ekrana girdiğimde tüm dashboard boş geliyor",
-  "description": "Giriş yaptıktan sonra dashboard widget'larının hiçbiri yüklenmiyor. F12 console'da CORS hatası görüyorum.",
+  "title": "The whole dashboard is empty when I open the ERP home screen",
+  "description": "After logging in, none of the dashboard widgets load. I see a CORS error in the F12 console.",
   "priority": "HIGH",
-  "productName": "Kurumsal Yazılım",
+  "productName": "Enterprise Software",
   "topicName": "ERP",
   "status": "NEW"
 }

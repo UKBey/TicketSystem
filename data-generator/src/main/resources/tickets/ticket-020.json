@@ -1,18 +1,40 @@
 {
-  "title": "Gönderdiğim mailler müşterimde spam'a düşüyor",
-  "description": "Aynı içeriği iki kez gönderdim, ikisi de müşterinin spam klasöründe.",
+  "title": "The emails I send land in my customer's spam",
+  "description": "I sent the same content twice, and both ended up in the customer's spam folder.",
   "priority": "LOW",
-  "productName": "E-posta ve İletişim",
-  "topicName": "Mail Gönderim",
+  "productName": "Email & Communication",
+  "topicName": "Mail Delivery",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 30, "description": "SPF/DKIM/DMARC kayıtları MX Toolbox üzerinden doğrulandı, hepsi geçerli." },
-    { "minutes": 10, "description": "Mailtrap üzerinden test gönderim yapıldı, scoreboard temiz çıktı." }
+    {
+      "minutes": 30,
+      "description": "Verified the SPF/DKIM/DMARC records via MX Toolbox, all valid."
+    },
+    {
+      "minutes": 10,
+      "description": "Sent a test message via Mailtrap, the scoreboard came back clean."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, sorunu çözebilmem için karşı tarafın mail header'larını paylaşmanız gerekiyor. Müşterinizden spam klasöründeki bir mailinizi açıp 'Show original' veya 'Mail kaynağını görüntüle' diyerek tam header bloğunu kopyalayıp size iletmesini rica edebilir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Müşteriden istedim, ancak teknik kişi değil — 'Show original' menüsünü bulamıyor. Ekran görüntüsü olur mu?" },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Anlıyorum. Outlook web kullanıyorsa: mail aç → sağ üstte '...' (More actions) → 'View message source'. Gmail ise: mail aç → '...' (üst sağ) → 'Show original'. Adımları içeren bir görsel hazırladım, ekte. Müşteriye iletip dönüş yapabilir misiniz?" },
-    { "author": "agent",    "type": "INTERNAL", "message": "Müşteri tarafından header bekleniyor. Header'da Authentication-Results ve Received-SPF değerlerini görmem lazım — büyük ihtimalle karşı tarafın gateway'i bizim IP'yi tanımıyor." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, to resolve the issue I need you to share the recipient's mail headers. Could you ask your customer to open one of your emails in their spam folder and, by clicking 'Show original' or 'View message source', copy the full header block and send it to you?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I asked the customer, but they're not technical — they can't find the 'Show original' menu. Would a screenshot work?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I understand. If they're using Outlook web: open the email → top right '...' (More actions) → 'View message source'. If it's Gmail: open the email → '...' (top right) → 'Show original'. I've prepared an image with the steps, attached. Could you pass it to the customer and get back to me?"
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Waiting on the header from the customer. I need to see the Authentication-Results and Received-SPF values in the header — most likely the recipient's gateway doesn't recognize our IP."
+    }
   ]
 }

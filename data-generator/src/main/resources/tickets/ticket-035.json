@@ -1,16 +1,26 @@
 {
-  "title": "Chrome'a 'Lighthouse' eklentisini yükleyemiyorum",
-  "description": "Performance test için Lighthouse eklentisi kurmaya çalışıyorum, 'organizasyon politikası nedeniyle bloklu' uyarısı geliyor.",
+  "title": "I can't install the 'Lighthouse' extension in Chrome",
+  "description": "I'm trying to install the Lighthouse extension for performance testing, but I'm getting a 'blocked by organization policy' warning.",
   "priority": "LOW",
-  "productName": "Kurumsal Yazılım",
-  "topicName": "Tarayıcı",
+  "productName": "Enterprise Software",
+  "topicName": "Browser",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 10, "description": "Browser Extension Request formu kullanıcı ile doldurmaya yardım edildi." },
-    { "minutes": 15, "description": "Bilgi Güvenliği onayı sonrası eklenti GPO whitelist'e eklendi." }
+    {
+      "minutes": 10,
+      "description": "Helped the user fill out the Browser Extension Request form."
+    },
+    {
+      "minutes": 15,
+      "description": "After Information Security approval, the extension was added to the GPO whitelist."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Lighthouse, allow-list'e eklendi. Chrome'u yeniden başlatın, eklenti store'da görünür olacak." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Lighthouse has been added to the allow-list. Restart Chrome and the extension will be visible in the store."
+    }
   ],
-  "resolutionNote": "Lighthouse eklentisi Bilgi Güvenliği onayıyla allow-list'e dahil edildi ve kullanıcının cihazında etkinleştirildi."
+  "resolutionNote": "The Lighthouse extension was added to the allow-list with Information Security approval and enabled on the user's device."
 }

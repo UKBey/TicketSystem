@@ -1,16 +1,31 @@
 {
-  "title": "Toplantı odası takvimini Outlook'tan göremiyorum",
-  "description": "Toplantı kurarken oda kaynaklarını seçemiyorum, eski takvim görünümü gelmiyor.",
+  "title": "Can't see the meeting room calendar in Outlook",
+  "description": "When setting up a meeting I can't select the room resources, the old calendar view doesn't show up.",
   "priority": "MEDIUM",
-  "productName": "E-posta ve İletişim",
-  "topicName": "Calendar ve Toplantı",
+  "productName": "Email & Communication",
+  "topicName": "Calendar & Meetings",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 15, "description": "Oda kaynağında 'Reviewer' yetkisi olduğu doğrulandı (room-bigblue@corp.local için)." }
+    {
+      "minutes": 15,
+      "description": "Confirmed 'Reviewer' permission on the room resource (for room-bigblue@corp.local)."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Hangi toplantı odalarını arıyorsunuz? Ekran görüntüsü paylaşabilir misiniz — 'Add Room' dialog'unun nasıl göründüğünü görmek istiyorum." },
-    { "author": "customer", "type": "EXTERNAL", "message": "BigBlue ve SmallRed odalarını eskiden görebiliyordum. Ekran görüntüsü ekledim. Lokasyon listesi tamamen boş geliyor." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Lokasyon listesi boş — bu Outlook'un Address Book cache'i ile alakalı. Outlook'u kapatıp /resetnavpane parametresiyle açar mısınız? (Çalıştır → outlook.exe /resetnavpane). Çalışmazsa /cleanviews da deneyelim." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Which meeting rooms are you looking for? Could you share a screenshot — I'd like to see what the 'Add Room' dialog looks like."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I used to be able to see the BigBlue and SmallRed rooms. I've attached a screenshot. The location list comes up completely empty."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The location list is empty — this is related to Outlook's Address Book cache. Could you close Outlook and reopen it with the /resetnavpane parameter? (Run → outlook.exe /resetnavpane). If that doesn't work, let's also try /cleanviews."
+    }
   ]
 }

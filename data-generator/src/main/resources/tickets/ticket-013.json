@@ -1,15 +1,25 @@
 {
-  "title": "SharePoint listesi 5000 öğeden sonra filtre çalışmıyor",
-  "description": "Müşteri kayıtları listesi 8000'e ulaştı ve filtre artık 'View threshold exceeded' hatası veriyor.",
+  "title": "SharePoint list filter stops working past 5000 items",
+  "description": "The customer records list reached 8000 items and the filter now throws a 'View threshold exceeded' error.",
   "priority": "LOW",
-  "productName": "Bulut Hizmetleri",
+  "productName": "Cloud Services",
   "topicName": "SharePoint",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 35, "description": "İlgili sütun için indexed column tanımlandı (Customer Code)." },
-    { "minutes": 25, "description": "Listede 5000+ öğe için Power Automate akışı önerildi ve örnek paylaşıldı." }
+    {
+      "minutes": 35,
+      "description": "Defined an indexed column for the relevant column (Customer Code)."
+    },
+    {
+      "minutes": 25,
+      "description": "Recommended a Power Automate flow for lists with 5000+ items and shared a sample."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "List threshold tek seferde aşılamıyor, kullanıcıya görünüm bazlı filtreleme önerildi." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "The list threshold can't be raised in one go; recommended view-based filtering to the user."
+    }
   ]
 }

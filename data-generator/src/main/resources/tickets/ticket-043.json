@@ -1,18 +1,35 @@
 {
-  "title": "40 MB ekli sözleşmeyi göndermeye çalışınca reddediliyor",
-  "description": "Müşteriye sözleşme göndermem gerekiyor, ek 40 MB. Exchange 'size exceeded' veriyor.",
+  "title": "It gets rejected when I try to send a contract with a 40 MB attachment",
+  "description": "I need to send a contract to a customer, the attachment is 40 MB. Exchange gives a 'size exceeded' error.",
   "priority": "MEDIUM",
-  "productName": "E-posta ve İletişim",
-  "topicName": "Mail Gönderim",
+  "productName": "Email & Communication",
+  "topicName": "Mail Delivery",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 10, "description": "Dosya OneDrive'a yüklendi, paylaşım linki oluşturuldu." },
-    { "minutes": 10, "description": "Kullanıcıya linkin nasıl ekleneceği detaylı anlatıldı." }
+    {
+      "minutes": 10,
+      "description": "File uploaded to OneDrive, share link created."
+    },
+    {
+      "minutes": 10,
+      "description": "Explained to the user in detail how to attach the link."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Exchange limiti 25 MB. Dosyanızı OneDrive'a yükleyip 'Share' butonu ile link oluşturup mailinize ekleyin. Adım adım anlatım için arayabilirsin." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Linki gönderdim, müşteri indirdi. Teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The Exchange limit is 25 MB. Upload your file to OneDrive, create a link with the 'Share' button, and add it to your email. You can call me for a step-by-step walkthrough."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I sent the link, the customer downloaded it. Thanks."
+    }
   ],
-  "resolutionNote": "Büyük ek yerine OneDrive paylaşım linki kullanımı önerildi, kullanıcı süreci tamamladı.",
-  "csat": { "rating": 4, "comment": "İyi öneri ama Exchange limiti artırılırsa daha pratik olur." }
+  "resolutionNote": "Recommended using a OneDrive share link instead of a large attachment, user completed the process.",
+  "csat": {
+    "rating": 4,
+    "comment": "Good suggestion, but it would be more practical if the Exchange limit were raised."
+  }
 }

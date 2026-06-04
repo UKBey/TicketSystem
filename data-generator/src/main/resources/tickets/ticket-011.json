@@ -1,15 +1,25 @@
 {
-  "title": "İkinci monitör docking station'da tanınmıyor",
-  "description": "Yeni teslim aldığım Dell docking station'a iki monitör bağlıyorum, sadece biri çalışıyor. Aynı kabloyu doğrudan dizüstüne taktığımda monitör sorunsuz çalışıyor.",
+  "title": "Second monitor not detected on docking station",
+  "description": "I'm connecting two monitors to the Dell docking station I just received, but only one works. When I plug the same cable directly into the laptop, the monitor works fine.",
   "priority": "MEDIUM",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Monitör",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Monitor",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 30, "description": "Docking firmware'i Dell Command | Update üzerinden 2.1.0'a yükseltildi." },
-    { "minutes": 45, "description": "Win+P 'Extend' seçildi, sürücü güncellenip yeniden başlatıldı; ikinci monitör hala sinyal almıyor." }
+    {
+      "minutes": 30,
+      "description": "Dock firmware upgraded to 2.1.0 via Dell Command | Update."
+    },
+    {
+      "minutes": 45,
+      "description": "Selected 'Extend' via Win+P, updated the driver and restarted; the second monitor still isn't getting a signal."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "INTERNAL", "message": "Yedek docking ile test edeceğim, kullanıcıdan yarın için müsaitlik istedim." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "I'll test with a spare dock; I've asked the user for their availability tomorrow."
+    }
   ]
 }

@@ -1,16 +1,26 @@
 {
-  "title": "CORP-SECURE Wi-Fi'a bağlanamıyorum",
-  "description": "Yeni cihazımı kurumsal Wi-Fi'a bağlamaya çalıştığımda kullanıcı adı/şifreyi giriyorum ama 'cannot connect' alıyorum.",
+  "title": "I can't connect to CORP-SECURE Wi-Fi",
+  "description": "When I try to connect my new device to the corporate Wi-Fi, I enter my username/password but I get 'cannot connect'.",
   "priority": "HIGH",
-  "productName": "VPN ve Ağ",
+  "productName": "VPN & Network",
   "topicName": "Wi-Fi",
   "status": "RESOLVED",
   "worklogs": [
-    { "minutes": 30, "description": "Cihazda PEAP-MSCHAPv2 yerine PEAP-TLS gerekiyordu, ayar düzeltildi." },
-    { "minutes": 15, "description": "Sertifika onayı kapalıydı, açıldı. Bağlantı kuruldu." }
+    {
+      "minutes": 30,
+      "description": "The device needed PEAP-TLS instead of PEAP-MSCHAPv2; the setting was corrected."
+    },
+    {
+      "minutes": 15,
+      "description": "Certificate validation was disabled, so it was enabled. The connection was established."
+    }
   ],
   "comments": [
-    { "author": "agent", "type": "EXTERNAL", "message": "Ağ ayarlarınızı PEAP-TLS olarak güncelledim, şu an bağlanıyor. Test edebilirsiniz." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I updated your network settings to PEAP-TLS and it's connecting now. You can test it."
+    }
   ],
-  "resolutionNote": "WPA2-Enterprise için PEAP-TLS doğrulama yöntemi aktif edildi ve sunucu sertifikası doğrulaması açıldı."
+  "resolutionNote": "The PEAP-TLS authentication method for WPA2-Enterprise was enabled and server certificate validation was turned on."
 }

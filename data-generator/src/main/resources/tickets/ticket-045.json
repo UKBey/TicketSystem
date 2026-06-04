@@ -1,18 +1,35 @@
 {
-  "title": "Excel makrolu raporum 'Trust Center' uyarısıyla açılmıyor",
-  "description": "Finansal model dosyam makro içeriyor ve her açılışta makrolar bloklanıyor.",
+  "title": "My macro-enabled Excel report won't open due to a 'Trust Center' warning",
+  "description": "My financial model file contains macros and the macros get blocked every time it opens.",
   "priority": "LOW",
-  "productName": "Kurumsal Yazılım",
-  "topicName": "Office Paketi",
+  "productName": "Enterprise Software",
+  "topicName": "Office Suite",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 15, "description": "Dosyanın 'Mark of the Web' özniteliği vardı, Properties > Unblock yapıldı." },
-    { "minutes": 10, "description": "Kullanıcının Trusted Locations listesi gözden geçirildi, OneDrive klasörü eklendi." }
+    {
+      "minutes": 15,
+      "description": "The file had the 'Mark of the Web' attribute, did Properties > Unblock."
+    },
+    {
+      "minutes": 10,
+      "description": "Reviewed the user's Trusted Locations list, added the OneDrive folder."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Dosyanın internetten geldiği için MOTW vardı. Kaldırdım, Trusted Location ekledim — şimdi makro çalışacak." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Makrolar çalıştı, modelim tekrar kullanılabilir. Teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The file had MOTW because it came from the internet. I removed it and added a Trusted Location — the macros will work now."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The macros worked, my model is usable again. Thanks."
+    }
   ],
-  "resolutionNote": "Dosya 'Mark of the Web' kaldırıldı ve Excel Trusted Locations'a kullanıcı klasörü eklendi.",
-  "csat": { "rating": 5, "comment": "Sorunu detayıyla anlattılar, gelecekte de bilebiliyorum." }
+  "resolutionNote": "Removed the file's 'Mark of the Web' and added the user folder to Excel Trusted Locations.",
+  "csat": {
+    "rating": 5,
+    "comment": "They explained the issue in detail, so I'll know it in the future too."
+  }
 }

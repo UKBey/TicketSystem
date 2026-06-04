@@ -1,21 +1,54 @@
 {
-  "title": "ERP yıllık satış raporu 'Out of Memory' ile düşüyor",
-  "description": "2023-2024 satış raporunu çekmeye çalışıyorum, %85'te 'out of memory' veriyor ve düşüyor.",
+  "title": "ERP annual sales report crashes with 'Out of Memory'",
+  "description": "I'm trying to pull the 2023-2024 sales report, it gives 'out of memory' at 85% and crashes.",
   "priority": "HIGH",
-  "productName": "Kurumsal Yazılım",
+  "productName": "Enterprise Software",
   "topicName": "ERP",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 40, "description": "Rapor sorgusu DB'de incelendi, 3 milyon satır + join'ler nedeniyle 4GB üzeri RAM tüketiyor." },
-    { "minutes": 25, "description": "Application server JVM heap profile alındı — peak 5.2 GB. Mevcut Xmx 4 GB." },
-    { "minutes": 30, "description": "Alternatif yöntem olarak rapor zamanlanmış görev formatına dönüştürüldü, başarıyla test edildi." }
+    {
+      "minutes": 40,
+      "description": "Examined the report query in the DB — it consumes over 4GB of RAM due to 3 million rows + joins."
+    },
+    {
+      "minutes": 25,
+      "description": "Took an application server JVM heap profile — peak 5.2 GB. Current Xmx is 4 GB."
+    },
+    {
+      "minutes": 30,
+      "description": "As an alternative method, converted the report into a scheduled task format, tested successfully."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, raporunuzu incelediğimde 2 yıllık geniş bir tarih aralığı çekildiğini gördüm — sorgu tek seferde ~3 milyon satır birleştiriyor ve sunucu RAM'i yetmiyor. Üç seçeneğimiz var: (1) raporu 3 aylık dilimlere bölüp 8 ayrı kez çalıştırıp Excel'de birleştirmek, (2) zamanlanmış rapor olarak gece çalıştırıp sabaha email ile almak, (3) sunucu RAM'ini geçici olarak 8 GB'a çıkarmak (production etkisi olabilir). Hangisi sizin için uygun?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Yarın yönetim toplantısına gerekiyor, en geç sabah 9'da elimde olmalı. Bölüp birleştirmeye vakit yok sanırım." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Anlaşıldı, vakit dar. O zaman önerimi 2. seçenek: zamanlanmış rapor olarak şimdi tetiklersem gece 02:00 civarı tamamlanır, sabah 06:00'da kutunuza düşer. Bir de yedek olarak benim hazırladığım 4 dilim Excel'i sabah toplantı öncesi göndereyim — birleştirilmiş tek dosya halinde. İstiyor musunuz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "Çok iyi olur, ikisini de alalım. Toplantıda hangisini kullanacağıma bakarım. Çok teşekkürler." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Tabii. Zamanlanmış raporu tetikledim, takip altında. 4 dilim Excel'i de hazırlamaya başlıyorum, sabah 08:30'a kadar mailinize gelmiş olur. Toplantı sonrası dönüş yaparsanız uzun vadeli çözüm için ekiple konuşalım — bence raporu OLAP cube'a taşımalıyız." },
-    { "author": "agent",    "type": "INTERNAL", "message": "Müşteriden onay alındı, çift kanal çözüm devrede. Yarın toplantı sonrası uzun vadeli OLAP konuşulacak — bu acil değil, ticket kapatılınca ayrı bir initiative açacağım." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, when I looked into your report I saw that a wide 2-year date range is being pulled — the query joins ~3 million rows in one pass and the server runs out of RAM. We have three options: (1) split the report into 3-month chunks, run it 8 separate times, and combine in Excel, (2) run it as a scheduled report overnight and receive it by email in the morning, (3) temporarily increase server RAM to 8 GB (may impact production). Which one works for you?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I need it for tomorrow's management meeting, it has to be in my hands by 9 AM at the latest. I don't think there's time to split and combine."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Understood, time is tight. In that case my recommendation is option 2: if I trigger it now as a scheduled report, it'll finish around 02:00 and land in your inbox at 06:00. As a backup, let me also send you the 4 Excel chunks I prepare before the morning meeting — as a single combined file. Would you like that?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "That would be great, let's do both. I'll see which one I'll use in the meeting. Thanks so much."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Of course. I triggered the scheduled report, it's being monitored. I'm starting to prepare the 4 Excel chunks as well, they'll be in your mailbox by 08:30. If you can follow up after the meeting, let's talk with the team about a long-term solution — I think we should move the report to an OLAP cube."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Customer confirmed, dual-channel solution is in place. After tomorrow's meeting we'll discuss long-term OLAP — this isn't urgent, once the ticket is closed I'll open a separate initiative."
+    }
   ]
 }

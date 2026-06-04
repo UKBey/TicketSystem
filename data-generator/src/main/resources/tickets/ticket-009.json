@@ -1,16 +1,30 @@
 {
-  "title": "Konuk Wi-Fi 5-10 dakikada bir bağlantıyı düşürüyor",
-  "description": "Misafir kullanıcılar Konuk Wi-Fi'a bağlanıyor ama belli aralıklarla otomatik kopuyor. Bugün 3 farklı kişi şikayet etti.",
+  "title": "Guest Wi-Fi drops the connection every 5-10 minutes",
+  "description": "Guest users connect to the Guest Wi-Fi, but it drops automatically at certain intervals. Three different people complained about it today.",
   "priority": "MEDIUM",
-  "productName": "VPN ve Ağ",
+  "productName": "VPN & Network",
   "topicName": "Wi-Fi",
   "status": "IN_PROGRESS",
   "worklogs": [
-    { "minutes": 30, "description": "DHCP havuzu kullanımı kontrol edildi — kotanın yaklaşık %90'ı dolu görünüyor." },
-    { "minutes": 20, "description": "Network ekibine kira süresi kısaltma ile geçici çözüm önerisi iletildi." }
+    {
+      "minutes": 30,
+      "description": "DHCP pool usage was checked — about 90% of the quota appears to be in use."
+    },
+    {
+      "minutes": 20,
+      "description": "A temporary workaround of shortening the lease time was passed on to the network team."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "INTERNAL", "message": "DHCP lease süresi 1 saatten 30 dakikaya indirildi, izliyorum." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Müsteri yine kopmadan önce 5 dakika bağlı kalabildi." }
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "The DHCP lease time was lowered from 1 hour to 30 minutes; I'm monitoring it."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The customer was again able to stay connected for 5 minutes before dropping."
+    }
   ]
 }

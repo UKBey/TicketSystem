@@ -1,18 +1,40 @@
 {
-  "title": "Bluetooth mouse her gün öğleden sonra kopuyor",
-  "description": "Logitech MX Master 3'üm öğleden sonra bağlantısı kopuyor. Pil dolu, yeni eşledim hala devam ediyor.",
+  "title": "Bluetooth mouse disconnects every afternoon",
+  "description": "My Logitech MX Master 3 keeps losing its connection in the afternoon. The battery is full and I re-paired it, but it still happens.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Klavye ve Mouse",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Keyboard & Mouse",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 15, "description": "2.4 GHz spektrum analizi yapıldı, parazitli kanal tespit edildi (kanal 6)." },
-    { "minutes": 20, "description": "Logi Options+ üzerinden firmware sürümü ve bağlantı tipi (Bluetooth vs Logi Bolt) kontrol edildi." }
+    {
+      "minutes": 15,
+      "description": "Ran a 2.4 GHz spectrum analysis, identified a congested channel (channel 6)."
+    },
+    {
+      "minutes": 20,
+      "description": "Checked firmware version and connection type (Bluetooth vs Logi Bolt) via Logi Options+."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, sorununuz büyük ihtimalle 2.4 GHz parazitinden kaynaklanıyor — özellikle öğleden sonra ofis Wi-Fi kullanımının yoğunlaştığı saatlerde. Logitech'in 'Logi Bolt' alıcısıyla USB üzerinden bağlamak Bluetooth'a göre çok daha stabil. Bir alıcı sağlayabilirim, ofise gelmenize gerek yok. Çalıştığınız bina ve kat bilgisi paylaşır mısınız?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "A binası 3. kat, kapı 312. Yarın ofise gelmiyorum, perşembe gelirim, o güne kadar idare ederim." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Anlaşıldı. Perşembe sabahı masanıza Logi Bolt alıcısı bırakacağım. Kurulumu otomatik tanır, sadece USB'ye takmanız yeterli olacak. Bu arada şu an Bluetooth bağlantısını biraz daha stabil tutabilmek için: Logi Options+ uygulamasından 'Smart shift' özelliğini kapatmayı dener misiniz?" },
-    { "author": "agent",    "type": "INTERNAL", "message": "Perşembe için Bolt alıcısı stoktan ayrıldı (envanter #LB-2024-058). Kullanıcıdan onay bekliyorum — kuruluma kadar bekleyecek." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, your issue is most likely caused by 2.4 GHz interference — especially in the afternoon when office Wi-Fi usage peaks. Connecting over USB with Logitech's 'Logi Bolt' receiver is much more stable than Bluetooth. I can provide a receiver, so you don't need to come into the office. Could you share your building and floor?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Building A, 3rd floor, door 312. I'm not coming to the office tomorrow, I'll be in on Thursday, so I'll manage until then."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Understood. I'll drop a Logi Bolt receiver at your desk on Thursday morning. Setup is automatic, you just need to plug it into USB. In the meantime, to keep the Bluetooth connection a bit more stable: could you try turning off the 'Smart shift' feature in the Logi Options+ app?"
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Bolt receiver reserved from stock for Thursday (inventory #LB-2024-058). Waiting on user confirmation — will hold until setup."
+    }
   ]
 }

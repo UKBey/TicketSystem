@@ -1,18 +1,40 @@
 {
-  "title": "corp.local üzerinden bazı iç servislere erişemiyorum",
-  "description": "Wiki ve fileshare gibi corp.local altındaki bazı servislere erişim sağlayamıyorum. DNS resolution başarısız oluyor.",
+  "title": "Can't reach some internal services over corp.local",
+  "description": "I can't access some services under corp.local such as the wiki and fileshare. DNS resolution is failing.",
   "priority": "MEDIUM",
-  "productName": "VPN ve Ağ",
-  "topicName": "DNS Sorunları",
+  "productName": "VPN & Network",
+  "topicName": "DNS Issues",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
-    { "minutes": 20, "description": "DNS önbelleği temizlendi (ipconfig /flushdns), nslookup ile farklı kayıtlar test edildi." },
-    { "minutes": 15, "description": "Network ekibiyle DNS sunucusu logları incelendi — kullanıcının istekleri sunucuya ulaşıyor." }
+    {
+      "minutes": 20,
+      "description": "Flushed the DNS cache (ipconfig /flushdns), tested different records with nslookup."
+    },
+    {
+      "minutes": 15,
+      "description": "Reviewed the DNS server logs with the network team — the user's requests are reaching the server."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Merhaba, hangi servislere erişemediğinizi tam liste halinde paylaşır mısınız (örn. wiki.corp.local, files.corp.local)? Ayrıca cmd üzerinde 'nslookup wiki.corp.local' çalıştırıp sonucun ekran görüntüsünü gönderebilir misiniz?" },
-    { "author": "customer", "type": "EXTERNAL", "message": "wiki.corp.local ve files.corp.local açılmıyor. Ama portal.corp.local açılıyor garip." },
-    { "author": "agent",    "type": "EXTERNAL", "message": "Teşekkürler. Bir de 'ipconfig /all' çıktısını paylaşır mısınız? DNS sunucusu olarak hangi IP'leri kullandığınızı görmek istiyorum. Bu arada VPN bağlı mı şu an?" },
-    { "author": "agent",    "type": "INTERNAL", "message": "Müşteriden ipconfig çıktısı ve VPN durumu bekleniyor. Tahminim split-DNS yapılandırması yanlış — wiki/files başka subnet'te." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, could you share a full list of which services you can't reach (e.g. wiki.corp.local, files.corp.local)? Also, could you run 'nslookup wiki.corp.local' in cmd and send a screenshot of the result?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "wiki.corp.local and files.corp.local won't open. But portal.corp.local opens, strangely."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks. Could you also share the 'ipconfig /all' output? I'd like to see which IPs you're using as DNS servers. By the way, is the VPN connected right now?"
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Waiting on the ipconfig output and VPN status from the customer. My guess is the split-DNS configuration is wrong — wiki/files are on a different subnet."
+    }
   ]
 }

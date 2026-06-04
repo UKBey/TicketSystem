@@ -1,18 +1,35 @@
 {
-  "title": "Yeni başlayan personel ERP fatura modülüne erişemiyor",
-  "description": "Maaş bordrosu için ERP'ye girmesi gerekiyor ama 'fatura' menüsünü göremiyor. Diğer modüller normal.",
+  "title": "New hire can't access the ERP invoicing module",
+  "description": "They need to get into the ERP for payroll, but they can't see the 'invoicing' menu. The other modules are fine.",
   "priority": "MEDIUM",
-  "productName": "Kurumsal Yazılım",
+  "productName": "Enterprise Software",
   "topicName": "ERP",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 20, "description": "Kullanıcının ERP role assignment'ı kontrol edildi, fatura modülü eksik." },
-    { "minutes": 15, "description": "ERP-Admin > Authorized Modules > 'Invoicing' eklendi, cache yenilendi." }
+    {
+      "minutes": 20,
+      "description": "Checked the user's ERP role assignment; the invoicing module was missing."
+    },
+    {
+      "minutes": 15,
+      "description": "ERP-Admin > Authorized Modules > 'Invoicing' was added and the cache was refreshed."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Fatura modülü yetkisi atandı, 5 dakika içinde menüde görüneceksiniz." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Görüyorum, yetkilendirme başarılı. Teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The invoicing module permission has been assigned; it will appear in your menu within 5 minutes."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I can see it, the authorization was successful. Thanks."
+    }
   ],
-  "resolutionNote": "Kullanıcıya 'Invoicing' modül yetkisi atandı. ERP cache 5 dakika içinde yenilendi.",
-  "csat": { "rating": 5, "comment": "Sorunum çok hızlı çözüldü." }
+  "resolutionNote": "The 'Invoicing' module permission was assigned to the user. The ERP cache refreshed within 5 minutes.",
+  "csat": {
+    "rating": 5,
+    "comment": "My issue was resolved very quickly."
+  }
 }

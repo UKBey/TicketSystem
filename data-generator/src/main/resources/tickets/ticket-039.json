@@ -1,18 +1,35 @@
 {
-  "title": "Yazıcı kuyruğa yazdırma alıyor ama basmıyor",
-  "description": "Print kuyruğunda 5 belgem birikti, hiçbiri basılmıyor. Yazıcıda hata gözükmüyor.",
+  "title": "The printer takes the print job into the queue but doesn't print it",
+  "description": "5 of my documents have piled up in the print queue, none of them print. There's no error showing on the printer.",
   "priority": "LOW",
-  "productName": "Donanım ve Altyapı",
-  "topicName": "Yazıcı",
+  "productName": "Hardware & Infrastructure",
+  "topicName": "Printer",
   "status": "CLOSED",
   "worklogs": [
-    { "minutes": 15, "description": "Print Spooler servisi restart edildi, kuyruk temizlendi." },
-    { "minutes": 10, "description": "Test sayfası basıldı, çalışıyor." }
+    {
+      "minutes": 15,
+      "description": "The Print Spooler service was restarted and the queue was cleared."
+    },
+    {
+      "minutes": 10,
+      "description": "A test page was printed and it works."
+    }
   ],
   "comments": [
-    { "author": "agent",    "type": "EXTERNAL", "message": "Print spooler restart ettim, kuyruğunu temizledim. Belgelerinizi tekrar gönderebilirsiniz." },
-    { "author": "customer", "type": "EXTERNAL", "message": "Çalıştı, teşekkürler." }
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I restarted the print spooler and cleared its queue. You can resend your documents."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It worked, thanks."
+    }
   ],
-  "resolutionNote": "Windows Print Spooler servisi yeniden başlatıldı, kuyruk açıldı. Yazdırma normal.",
-  "csat": { "rating": 4, "comment": "Hızlıydı ama bu sorun yine olabilir." }
+  "resolutionNote": "The Windows Print Spooler service was restarted and the queue was cleared. Printing is normal.",
+  "csat": {
+    "rating": 4,
+    "comment": "It was fast, but this issue could happen again."
+  }
 }
