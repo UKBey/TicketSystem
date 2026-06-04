@@ -211,23 +211,43 @@ public class UserService {
     }
 
     /**
-     * Returns a paginated user list filtered by search text and role.
-     * Sorting is always applied as {@code full_name ASC} (native query).
+     * Maps a frontend sort field name to its underlying SQL column. Whitelist-only —
+     * the value is interpolated into the native query's ORDER BY by Spring Data, so it
+     * must never be raw user input (prevents SQL injection). Unknown fields fall back
+     * to {@code full_name}.
+     */
+    private static String sortColumn(String sortBy) {
+        if (sortBy == null) return "full_name";
+        return switch (sortBy) {
+            case "email"     -> "email";
+            case "role"      -> "role";
+            case "createdAt" -> "created_at";
+            default           -> "full_name"; // "name" ve bilinmeyen alanlar
+        };
+    }
+
+    /**
+     * Returns a paginated user list filtered by search text and role, sorted by the
+     * given (whitelisted) column. Defaults to {@code full_name ASC}.
      *
      * @param search name/email LIKE filter (ignored when null/blank)
      * @param roles active role filter (ignored when null/empty)
+     * @param sortBy frontend sort field (name|email|role|createdAt); unknown → name
+     * @param sortDir {@code "asc"} or {@code "desc"} (anything else → asc)
      * @param page 0-based page index
      * @param size records per page
      * @return paginated result
      */
     @Transactional(readOnly = true)
     public Page<User> getUsersFiltered(String search, java.util.List<String> roles,
-                                       boolean excludeGlobalRoles, int page, int size) {
+                                       boolean excludeGlobalRoles, String sortBy, String sortDir,
+                                       int page, int size) {
         String searchParam = (search == null || search.isBlank()) ? null : search.trim();
         boolean roleFilterActive = roles != null && !roles.isEmpty();
         java.util.List<String> roleList = roleFilterActive ? roles : java.util.List.of("__none__");
-        // Native query kullandığımız için sort field adı SQL column adı olmalı
-        Pageable pageable  = PageRequest.of(page, size, Sort.by("full_name").ascending());
+        // Native query kullandığımız için sort field adı SQL column adı olmalı (whitelist'ten gelir).
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortColumn(sortBy)));
         return userRepository.findFiltered(roleFilterActive, roleList, searchParam, excludeGlobalRoles, pageable);
     }
 

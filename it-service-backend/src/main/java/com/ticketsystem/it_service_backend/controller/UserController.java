@@ -236,12 +236,14 @@ public class UserController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> role,
             @RequestParam(defaultValue = "false") boolean excludeGlobalRoles,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc")  String sortDir,
             @RequestParam(defaultValue = "0")  @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(500) int size) {
-        log.debug("Kullanıcı listeleme isteği. search={}, roles={}, excludeGlobalRoles={}, page={}, size={}",
-                search, role, excludeGlobalRoles, page, size);
+        log.debug("Kullanıcı listeleme isteği. search={}, roles={}, excludeGlobalRoles={}, sortBy={}, sortDir={}, page={}, size={}",
+                search, role, excludeGlobalRoles, sortBy, sortDir, page, size);
 
-        Page<User> userPage = userService.getUsersFiltered(search, role, excludeGlobalRoles, page, size);
+        Page<User> userPage = userService.getUsersFiltered(search, role, excludeGlobalRoles, sortBy, sortDir, page, size);
 
         log.debug("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
 

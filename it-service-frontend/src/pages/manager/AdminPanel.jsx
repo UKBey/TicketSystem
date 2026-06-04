@@ -4,9 +4,11 @@ import { Plus, X, ChevronDown, ChevronUp, Settings2, Check } from 'lucide-react'
 import api, { getAgentLimits, setAgentLimit } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
+import SortableTh from '../../components/SortableTh';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
+import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
 
 const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -15,12 +17,6 @@ const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT'];
 
 // Operasyonel ajan rolleri — bilet limiti olan kullanıcılar (lead dâhil).
 const AGENT_ROLES = ['AGENT', 'LEAD_AGENT'];
-
-// Kullanıcının TÜM rollerini döndürür (çoklu rol). Eski tekil `role` alanına geriye-dönük uyum.
-const rolesOf = (user) =>
-  Array.isArray(user?.roles) && user.roles.length
-    ? user.roles
-    : (user?.role ? [user.role] : []);
 
 // Kullanıcının rollerinden herhangi biri operasyonel ajan mı? (bilet limiti UI'ı bu kullanıcılarda gösterilir)
 const hasAgentRole = (user) => rolesOf(user).some((r) => AGENT_ROLES.includes(r));
@@ -309,6 +305,10 @@ export default function AdminPanel() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Sıralama — bilet tablolarıyla aynı davranış.
+  const [sortBy, setSortBy]   = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
+
   // Hangi agent'ın limit paneli açık
   const [expandedLimitUserId, setExpandedLimitUserId] = useState(null);
 
@@ -318,12 +318,22 @@ export default function AdminPanel() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter, sortBy, sortDir]);
+
+  // Sütun başlığına tıklanınca sıralamayı çevirir (bilet tablolarındaki toggleSort ile aynı).
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({ page, size });
+      const params = new URLSearchParams({ page, size, sortBy, sortDir });
       if (debouncedSearch) params.set('search', debouncedSearch);
       roleFilter.forEach((r) => params.append('role', r));
       // ADMIN/MANAGER kullanıcılar (tüm ürünlere erişimli) ürün-erişim panelinde listelenmez.
@@ -339,7 +349,7 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter, t]);
+  }, [page, size, debouncedSearch, roleFilter, sortBy, sortDir, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -371,17 +381,6 @@ export default function AdminPanel() {
       setUsers(users.map(u => u.id === userId ? res.data : u));
     } catch (err) {
       toast.error(err.response?.data?.message || t('admin.panel.errorRemove'));
-    }
-  };
-
-  const roleBadgeStyle = (role) => {
-    switch (role) {
-      case 'ADMIN':       return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
-      case 'LEAD_AGENT':  return { backgroundColor: 'rgba(99,102,241,0.15)',  color: '#4f46e5' };
-      case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
-      case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };
-      case 'CUSTOMER':    return { backgroundColor: 'rgba(16,185,129,0.15)',  color: '#047857' };
-      default:            return { backgroundColor: 'rgba(100,116,139,0.15)', color: '#475569' };
     }
   };
 
@@ -569,19 +568,12 @@ export default function AdminPanel() {
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  {[
-                    t('admin.panel.colName'),
-                    t('admin.panel.colEmail'),
-                    t('admin.panel.colRole'),
-                    t('admin.panel.colAuthorized'),
-                    t('admin.panel.colAssign'),
-                    t('admin.panel.agentLimits'),
-                  ].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
-                      {h}
-                    </th>
-                  ))}
+                  <SortableTh field="name"  label={t('admin.panel.colName')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="email" label={t('admin.panel.colEmail')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="role"  label={t('admin.panel.colRole')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="authorized" label={t('admin.panel.colAuthorized')} />
+                  <SortableTh field="assign"     label={t('admin.panel.colAssign')} />
+                  <SortableTh field="agentLimits" label={t('admin.panel.agentLimits')} />
                 </tr>
               </thead>
               <tbody>

@@ -6,29 +6,13 @@ import { useAuth } from '../../context/AuthContext';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
+import SortableTh from '../../components/SortableTh';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
+import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
 
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
-
-/** Rol badge renkleri — AdminPanel ile tutarlı */
-const roleBadgeStyle = (role) => {
-  switch (role) {
-    case 'ADMIN':       return { backgroundColor: 'rgba(245,158,11,0.15)',  color: '#b45309' };
-    case 'LEAD_AGENT':  return { backgroundColor: 'rgba(99,102,241,0.15)',  color: '#4f46e5' };
-    case 'AGENT':       return { backgroundColor: 'rgba(59,130,246,0.15)',  color: '#1d4ed8' };
-    case 'MANAGER':     return { backgroundColor: 'rgba(34,197,94,0.15)',   color: '#15803d' };
-    case 'CUSTOMER':    return { backgroundColor: 'rgba(16,185,129,0.15)',  color: '#047857' };
-    default:            return { backgroundColor: 'rgba(100,116,139,0.15)', color: '#475569' };
-  }
-};
-
-/** Kullanıcının TÜM rollerini döndürür (çoklu rol); eski tekil `role` alanına geriye-dönük uyum. */
-const rolesOf = (user) =>
-  Array.isArray(user?.roles) && user.roles.length
-    ? user.roles
-    : (user?.role ? [user.role] : []);
 
 /** Tarih formatlayıcı */
 const formatDate = (isoString) => {
@@ -61,6 +45,10 @@ export default function UserManagementPage() {
   const [totalPages, setTotalPages]   = useState(0);
   const [totalItems, setTotalItems]   = useState(0);
 
+  // Sıralama — bilet tablolarıyla aynı davranış (aynı alana tekrar tıkla → yön değişir).
+  const [sortBy, setSortBy]   = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [successMsg, setSuccessMsg]   = useState('');
 
@@ -79,8 +67,18 @@ export default function UserManagementPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Filtre değişince sayfayı sıfırla
-  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter]);
+  // Filtre/sıralama değişince sayfayı sıfırla
+  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter, sortBy, sortDir]);
+
+  // Sütun başlığına tıklanınca sıralamayı çevirir (bilet tablolarındaki toggleSort ile aynı).
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+  };
 
   // -------------------------------------------------------------------------
   // Veri çekme
@@ -89,7 +87,7 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
       setError('');
-      const params = new URLSearchParams({ page, size });
+      const params = new URLSearchParams({ page, size, sortBy, sortDir });
       if (debouncedSearch) params.set('search', debouncedSearch);
       roleFilter.forEach((r) => params.append('role', r));
 
@@ -102,7 +100,7 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter, t]);
+  }, [page, size, debouncedSearch, roleFilter, sortBy, sortDir, t]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -394,22 +392,12 @@ export default function UserManagementPage() {
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  {[
-                    t('userManagement.table.name'),
-                    t('userManagement.table.email'),
-                    t('userManagement.table.role'),
-                    t('userManagement.table.username'),
-                    t('userManagement.table.createdAt'),
-                    t('userManagement.table.actions'),
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <SortableTh field="name"      label={t('userManagement.table.name')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="email"     label={t('userManagement.table.email')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="role"      label={t('userManagement.table.role')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="username"  label={t('userManagement.table.username')} />
+                  <SortableTh field="createdAt" label={t('userManagement.table.createdAt')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="actions"   label={t('userManagement.table.actions')} />
                 </tr>
               </thead>
               <tbody>

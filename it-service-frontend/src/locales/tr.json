@@ -180,7 +180,7 @@
   },
   "ticket": {
     "status": {
-      "open": "Açık",
+      "new": "Yeni",
       "in_progress": "İşlemde",
       "resolved": "Çözüldü",
       "closed": "Kapatıldı",

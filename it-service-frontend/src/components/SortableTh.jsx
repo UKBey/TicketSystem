@@ -1,0 +1,48 @@
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+
+/**
+ * Tıklanınca sıralayan tablo başlığı (th). Tüm tablo sayfalarında (bilet listeleri,
+ * kullanıcı yönetimi) paylaşılan tek kaynak — daha önce TicketTable ve ProductPage
+ * içinde ayrı ayrı kopyalanmıştı.
+ *
+ * @param {string} field        bu sütunun sıralama alanı (backend sortBy değeri)
+ * @param {string} label        başlık metni
+ * @param {string} sortBy       o an aktif sıralama alanı
+ * @param {string} sortDir      'asc' | 'desc'
+ * @param {Function} [onSort]   (field) => void — verilmezse başlık sıralanamaz (düz th)
+ * @param {boolean} [invertArrow] priority gibi alanlarda görsel ok yönünü tersine çevirir
+ *                                ("asc" backend'de LOW→CRITICAL demek ama kullanıcı
+ *                                "yukarı ok = en yüksek üstte" bekler)
+ */
+export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) {
+  const active = sortBy === field;
+
+  const displayDir = invertArrow
+    ? (sortDir === 'asc' ? 'desc' : 'asc')
+    : sortDir;
+
+  const Icon = active
+    ? (displayDir === 'asc' ? ArrowUp : ArrowDown)
+    : ArrowUpDown;
+
+  const baseClass = 'text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b';
+  const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' };
+
+  if (typeof onSort !== 'function') {
+    return <th className={baseClass} style={baseStyle}>{label}</th>;
+  }
+
+  return (
+    <th className={baseClass} style={baseStyle}>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity uppercase tracking-wider"
+        style={{ color: active ? '#3b82f6' : 'var(--text-tertiary)' }}
+      >
+        {label}
+        <Icon className="h-3 w-3" />
+      </button>
+    </th>
+  );
+}

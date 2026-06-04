@@ -180,7 +180,7 @@
   },
   "ticket": {
     "status": {
-      "open": "Open",
+      "new": "New",
       "in_progress": "In Progress",
       "resolved": "Resolved",
       "closed": "Closed",

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
-import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
+import SortableTh from './SortableTh';
+import { AlertTriangle, Inbox } from 'lucide-react';
 
 export default function TicketTable({
   tickets,
@@ -147,18 +148,18 @@ export default function TicketTable({
         </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
+            <SortableTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortableTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortableTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortableTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
             {showSla && (
-              <SortTh field="slaDeadline" label={t('ticket.table.sla')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+              <SortableTh field="slaDeadline" label={t('ticket.table.sla')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             )}
             {showClaimers && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
             )}
-            <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortableTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             {showActionsColumn && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.actions')}</th>
@@ -259,45 +260,6 @@ function tableMinWidth(showSla, showClaimers, showActions) {
   if (showClaimers) fixed += 140;
   if (showActions) fixed += 160;
   return `${Math.ceil(fixed / 0.70)}px`;
-}
-
-function SortTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) {
-  const active = sortBy === field;
-
-  // invertArrow: priority gibi alanlarda görsel ok yönü tersine çevrilir.
-  // "asc" backend'de LOW→CRITICAL (düşük öncelik → yüksek öncelik) demek,
-  // ama kullanıcı "yukarı ok = CRITICAL üstte" bekler → ok tersine gösterilir.
-  const displayDir = invertArrow
-    ? (sortDir === 'asc' ? 'desc' : 'asc')
-    : sortDir;
-
-  const Icon = active
-    ? (displayDir === 'asc' ? ArrowUp : ArrowDown)
-    : ArrowUpDown;
-
-  if (!onSort) {
-    return (
-      <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-        style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
-        {label}
-      </th>
-    );
-  }
-
-  return (
-    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
-      <button
-        type="button"
-        onClick={() => onSort(field)}
-        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-        style={{ color: active ? '#3b82f6' : 'var(--text-tertiary)' }}
-      >
-        {label}
-        <Icon className="h-3 w-3" />
-      </button>
-    </th>
-  );
 }
 
 function ClaimerPills({ claimers, currentUserId, t }) {

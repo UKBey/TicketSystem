@@ -4,32 +4,11 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTicketList } from '../hooks/useTicketList';
-import { StatusBadge, PriorityBadge } from '../components/Badges';
-import SlaTimerBadge from '../components/SlaTimerBadge';
+import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
 import PaginationBar from '../components/PaginationBar';
 import ProductTopicsSection from '../components/ProductTopicsSection';
-import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-
-function SortTh({ field, label, invertArrow = false, sortBy, sortDir, toggleSort }) {
-  return (
-    <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-      style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>
-      <button type="button" onClick={() => toggleSort(field)}
-        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-        style={{ color: sortBy === field ? '#3b82f6' : 'var(--text-tertiary)' }}>
-        {label}
-        {sortBy === field
-          ? (() => {
-              const displayDir = invertArrow ? (sortDir === 'asc' ? 'desc' : 'asc') : sortDir;
-              return displayDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
-            })()
-          : <ArrowUpDown className="h-3 w-3" />
-        }
-      </button>
-    </th>
-  );
-}
+import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings } from 'lucide-react';
 
 export default function ProductPage() {
   const { t } = useTranslation();
@@ -43,7 +22,6 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState(null);
   const [productLoading, setProductLoading] = useState(true);
-  const [tickSeconds, setTickSeconds] = useState(0);
 
   const {
     tickets, totalPages, totalItems, loading: ticketsLoading, error,
@@ -66,19 +44,6 @@ export default function ProductPage() {
       .catch((err) => console.error('Could not load product:', err))
       .finally(() => setProductLoading(false));
   }, [id]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTickSeconds((v) => v + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-    });
-  };
 
   if (productLoading) {
     return (
@@ -184,115 +149,18 @@ export default function ProductPage() {
             <div className="h-8 w-8 rounded-full border-[3px] animate-spin"
               style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
           </div>
-        ) : tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
-            <Ticket className="h-10 w-10 mb-3 opacity-25" />
-            <p className="text-sm">{t('product.noTickets')}</p>
-          </div>
         ) : (
-          <>
-            <ul className="lg:hidden p-4 space-y-3">
-              {tickets.map((ticket) => (
-                <li
-                  key={ticket.id}
-                  onClick={() => navigate(`/tickets/${ticket.id}`)}
-                  className="rounded-xl border p-4 cursor-pointer transition-colors"
-                  style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-sm font-semibold text-primary-500">
-                      TCK-{String(ticket.id).padStart(3, '0')}
-                    </span>
-                    {ticket.slaBreached && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                        style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                        <AlertTriangle className="h-3 w-3" />SLA
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className="text-sm font-medium break-words mb-3"
-                    style={{ color: 'var(--text-primary)' }}
-                    title={ticket.title}
-                  >
-                    {ticket.title}
-                  </p>
-                  <dl className="text-xs space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
-                    <div className="flex justify-between gap-2 items-center">
-                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('ticket.table.status')}
-                      </dt>
-                      <dd className="text-right"><StatusBadge status={ticket.status} /></dd>
-                    </div>
-                    <div className="flex justify-between gap-2 items-center">
-                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('ticket.table.priority')}
-                      </dt>
-                      <dd className="text-right"><PriorityBadge priority={ticket.priority} /></dd>
-                    </div>
-                    <div className="flex justify-between gap-2 items-center">
-                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('ticket.table.sla')}
-                      </dt>
-                      <dd className="text-right"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                        {t('ticket.table.created')}
-                      </dt>
-                      <dd className="text-right break-words">{formatDate(ticket.createdAt)}</dd>
-                    </div>
-                  </dl>
-                </li>
-              ))}
-            </ul>
-
-            <div className="hidden lg:block">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                    <SortTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                    <SortTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                    <SortTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                    <SortTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} invertArrow />
-                    <SortTh field="slaDeadline" label={t('ticket.table.sla')}      sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                    <SortTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} toggleSort={toggleSort} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickets.map((ticket) => (
-                    <tr key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="cursor-pointer transition-colors duration-150"
-                      style={{ borderBottom: '1px solid var(--border-color-light)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
-                      <td className="px-4 py-3 text-sm font-semibold text-primary-500">
-                        TCK-{String(ticket.id).padStart(3, '0')}
-                      </td>
-                      <td className="px-4 py-3 text-sm max-w-xs" style={{ color: 'var(--text-primary)' }}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-medium truncate break-words" title={ticket.title}>{ticket.title}</span>
-                          {ticket.slaBreached && (
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                              style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                              <AlertTriangle className="h-3 w-3" />SLA
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
-                      <td className="px-4 py-3"><PriorityBadge priority={ticket.priority} /></td>
-                      <td className="px-4 py-3"><SlaTimerBadge ticket={ticket} tickSeconds={tickSeconds} /></td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {formatDate(ticket.createdAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <TicketTable
+            tickets={tickets}
+            showSla
+            showTopic={false}
+            forceShowClaimers={false}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={toggleSort}
+            emptyTitle="product.noTickets"
+            emptySubtitle="ticket.empty.subtitle"
+          />
         )}
 
         <PaginationBar

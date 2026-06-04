@@ -10,7 +10,7 @@ const STATUS_COLORS = {
 };
 
 const STATUS_KEYS = {
-  NEW: 'ticket.status.open',
+  NEW: 'ticket.status.new',
   IN_PROGRESS: 'ticket.status.in_progress',
   WAITING_FOR_CUSTOMER: 'ticket.status.waiting_for_customer',
   RESOLVED: 'ticket.status.resolved',
@@ -33,10 +33,13 @@ export function StatusBadge({ status }) {
 }
 
 const PRIORITY_COLORS = {
-  LOW:      { light: { bg: '#dcfce7', color: '#166534' }, dark: { bg: 'rgba(34,197,94,0.2)', color: '#86efac' } },
+  // Renkler bilerek dört ayrı tona dağıtıldı: yeşil → sarı → turuncu → kırmızı.
+  // Eskiden HIGH ve CRITICAL ikisi de kırmızı tonundaydı ve ayırt edilmesi zordu;
+  // HIGH artık turuncu, CRITICAL ise dolu/koyu kırmızı bir badge.
+  LOW:      { light: { bg: '#dcfce7', color: '#166534' }, dark: { bg: 'rgba(34,197,94,0.2)',  color: '#86efac' } },
   MEDIUM:   { light: { bg: '#fef3c7', color: '#92400e' }, dark: { bg: 'rgba(245,158,11,0.2)', color: '#fde68a' } },
-  HIGH:     { light: { bg: '#fee2e2', color: '#991b1b' }, dark: { bg: 'rgba(239,68,68,0.2)', color: '#fca5a5' } },
-  CRITICAL: { light: { bg: '#fecaca', color: '#7f1d1d' }, dark: { bg: 'rgba(239,68,68,0.3)', color: '#fca5a5' } },
+  HIGH:     { light: { bg: '#ffedd5', color: '#9a3412' }, dark: { bg: 'rgba(249,115,22,0.2)', color: '#fdba74' } },
+  CRITICAL: { light: { bg: '#dc2626', color: '#ffffff' }, dark: { bg: '#dc2626',              color: '#ffffff' } },
 };
 
 const PRIORITY_KEYS = {

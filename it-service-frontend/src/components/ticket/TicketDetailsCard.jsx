@@ -14,11 +14,13 @@ function DetailRow({ label, value }) {
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
+// Badges.jsx'teki öncelik paletiyle aynı tonlar: yeşil → sarı → turuncu → kırmızı.
+// (Eskiden CRITICAL burada mor, listede kırmızıydı — tutarsızlık giderildi.)
 const PRIORITY_STYLES = {
-  LOW:      { color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
-  MEDIUM:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
-  HIGH:     { color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
-  CRITICAL: { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)'  },
+  LOW:      { color: '#16a34a', bg: 'rgba(34,197,94,0.12)'   },
+  MEDIUM:   { color: '#d97706', bg: 'rgba(245,158,11,0.12)'  },
+  HIGH:     { color: '#ea580c', bg: 'rgba(249,115,22,0.12)'  },
+  CRITICAL: { color: '#dc2626', bg: 'rgba(220,38,38,0.12)'   },
 };
 
 export default function TicketDetailsCard({

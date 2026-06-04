@@ -175,7 +175,7 @@ class UserServiceTest {
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findFiltered(eq(false), eq(List.of("__none__")), isNull(), eq(false), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered(null, null, false, 0, 20);
+        Page<User> result = userService.getUsersFiltered(null, null, false, "name", "asc", 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -186,7 +186,7 @@ class UserServiceTest {
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findFiltered(eq(true), eq(List.of("AGENT")), eq("agent"), eq(false), any(Pageable.class))).thenReturn(page);
 
-        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), false, 0, 10);
+        Page<User> result = userService.getUsersFiltered("  agent  ", List.of("AGENT"), false, "name", "asc", 0, 10);
 
         assertThat(result.getContent()).hasSize(1);
     }

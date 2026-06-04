@@ -49,7 +49,6 @@ public interface UserRepository extends JpaRepository<User, String> {
               AND (CAST(:search AS text) IS NULL
                    OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%'))
                    OR LOWER(u.email)     LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
-            ORDER BY u.full_name
             """,
             countQuery = """
             SELECT COUNT(*) FROM users u
