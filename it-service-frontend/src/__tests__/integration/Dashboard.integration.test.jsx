@@ -2,6 +2,10 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+
+// Dashboard, leaderboard satırlarından navigasyon için useNavigate kullanır → Router gerekir.
+const renderDashboard = () => render(<MemoryRouter><Dashboard /></MemoryRouter>);
 
 // Mock metricService before importing Dashboard
 vi.mock('../../services/metricService', () => ({
@@ -72,7 +76,7 @@ describe('Dashboard — Integration', () => {
 
   it('renders page header', async () => {
     setupHappyPath();
-    render(<Dashboard />);
+    renderDashboard();
     await waitFor(() => {
       expect(screen.getByText('Manager Dashboard')).toBeInTheDocument();
     });
@@ -80,13 +84,13 @@ describe('Dashboard — Integration', () => {
 
   it('shows skeleton loaders during initial load', () => {
     setupHappyPath();
-    const { container } = render(<Dashboard />);
+    const { container } = renderDashboard();
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
   it('renders all four KPI card titles after load', async () => {
     setupHappyPath();
-    render(<Dashboard />);
+    renderDashboard();
     await waitFor(() => {
       expect(screen.getByText('Open Tickets')).toBeInTheDocument();
       expect(screen.getByText('SLA Breach')).toBeInTheDocument();
@@ -98,7 +102,7 @@ describe('Dashboard — Integration', () => {
 
   it('calls all nine metric service methods on mount', async () => {
     setupHappyPath();
-    render(<Dashboard />);
+    renderDashboard();
     await waitFor(() => {
       expect(metricService.getDashboardSummary).toHaveBeenCalledTimes(1);
       expect(metricService.getStatusDistribution).toHaveBeenCalledTimes(1);
@@ -123,7 +127,7 @@ describe('Dashboard — Integration', () => {
     metricService.getAlertsAndBacklog.mockRejectedValue(new Error('Network error'));
     metricService.getWorklogCompletion.mockRejectedValue(new Error('Network error'));
 
-    render(<Dashboard />);
+    renderDashboard();
     await waitFor(() => {
       expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
     });
@@ -132,7 +136,7 @@ describe('Dashboard — Integration', () => {
   it('refresh button triggers data reload', async () => {
     setupHappyPath();
     const user = userEvent.setup();
-    render(<Dashboard />);
+    renderDashboard();
 
     await waitFor(() => screen.getByText('Refresh data'));
     await user.click(screen.getByText('Refresh data'));
