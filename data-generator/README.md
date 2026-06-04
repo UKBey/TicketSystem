@@ -1,28 +1,33 @@
 # Ticket System — Data Generator
 
-Sunum ve test için sisteme gerçekçi veri basan standalone Java uygulaması.
-**Tek bir bootstrap admin hesabıyla** (`superadmin`) çalışır; ürünler, topic'ler,
-sıkça karşılaşılan sorunlar ve biletler bu hesap üzerinden idempotent şekilde
-oluşturulur. Bu hesap eklemeli (additive) rol modelinde `ADMIN + LEAD_AGENT +
-MANAGER` rollerini taşır (eski `aatest` süper-admin hesabının yerini alır),
-böylece hem konfigürasyon hem ürün-içerik/atama yetkilerine sahiptir. Lead agent,
-agent ve customer kullanıcıları **Keycloak'ta önceden hazırlanmış olmalıdır**;
-generator kullanıcı oluşturmaz, yalnızca login dener.
+Standalone Java application that seeds the system with realistic demo/test data
+for presentations and testing. It runs with **a single bootstrap admin account**
+(`superadmin`); seed users, products, topics, known issues, canned responses and
+tickets are all created idempotently through that account. In the additive role
+model this account holds the `ADMIN + LEAD_AGENT + MANAGER` roles (it replaces the
+deprecated `aatest` super-admin account), so it has both configuration and
+product-content/assignment authority.
 
-## Gereksinimler
+Agent, lead-agent and customer users are **created by the generator itself** via
+the backend's Agent Admin API (temporary password → forced first-login change →
+final password). The only accounts that must already exist are the three named
+accounts: the bootstrap admin, the Keycloak master admin, and the database user.
+
+## Requirements
 
 - Java 17+
-- Çalışan bir Ticket System stack'i (`docker compose up -d` veya `make up`)
-- PostgreSQL'e erişim (5432 portu açık olmalı — tarih backfill için doğrudan bağlantı)
+- A running Ticket System stack (`docker compose up -d` or `make up`)
+- Access to PostgreSQL (port 5432 must be reachable — the date backfill connects directly)
 
-## Hızlı Başlangıç
+## Quick start
 
-### 1. users.json dosyasını hazırla
+### 1. Prepare users.json
 
-`data-generator/users.example.json` dosyasını `data-generator/users.json` olarak
-kopyala ve parolaları kendi ortamına göre güncelle. Generator'un login olacağı
-**tüm kullanıcılar** (bootstrap admin, Keycloak master admin, DB kullanıcısı +
-lead agent + agent + customer'lar) bu tek dosyada listelenir:
+Copy `data-generator/users.example.json` to `data-generator/users.json` and adjust
+the passwords for your environment. This single file lists the three named login
+accounts (bootstrap admin, Keycloak master admin, DB user) **plus the full
+definitions of every seed user** the generator should create (lead agents, agents,
+customers):
 
 ```bash
 cd data-generator
@@ -30,31 +35,49 @@ cp users.example.json users.json       # Linux/Mac
 copy users.example.json users.json     # Windows
 ```
 
-`users.json` yapısı:
+`users.json` structure:
 
 ```json
 {
   "adminAgent":    { "username": "superadmin",  "password": "321654" },
   "keycloakAdmin": { "username": "admin",       "password": "321654" },
   "database":      { "username": "ticketadmin", "password": "321654" },
-  "leadAgents": { "lead1.gen": "321654" },
-  "agents":    { "agent1.gen": "321654", "agent2.gen": "321654", "agent3.gen": "321654" },
-  "customers": { "customer1.gen": "321654", ... }
+  "agents": [
+    { "username": "agent1.gen", "email": "agent1.gen@ticketsystem.local",
+      "firstName": "Alice", "lastName": "Turner", "password": "321654Aa!" }
+  ],
+  "leads": [
+    { "username": "lead1.gen", "email": "lead1.gen@ticketsystem.local",
+      "firstName": "Dylan", "lastName": "Archer", "password": "321654Aa!" }
+  ],
+  "customers": [
+    { "username": "customer1.gen", "email": "customer1.gen@ticketsystem.local",
+      "firstName": "Michael", "lastName": "Shaw", "password": "321654Aa!" }
+  ]
 }
 ```
 
-> `users.json` gitignore'da; commit'lenmez. `users.example.json` her zaman
-> repo'da kalır (yer tutucu parolalarla).
+> `users.json` is gitignored; it is never committed. `users.example.json` always
+> stays in the repo (with placeholder passwords).
 >
-> `superadmin` kullanıcısı Keycloak'ta `ADMIN + LEAD_AGENT + MANAGER` rollerine
-> sahip olmalı (LDAP seed + `make seed-roles`) ve sisteme **en az bir kez giriş
-> yapmış** olmalıdır. Generator, diğer tüm kullanıcıları bu hesap üzerinden
-> oluşturur.
+> - The three **named accounts** (`adminAgent` / `keycloakAdmin` / `database`) are
+>   objects with `username` + `password`. They must already exist:
+>   - `superadmin` must hold the `ADMIN + LEAD_AGENT + MANAGER` roles (LDAP seed +
+>     `make seed-roles`) and must have **logged in at least once**.
+>   - `admin` is the Keycloak master-realm admin (used only to clear required
+>     actions on freshly created users).
+>   - `ticketadmin` is the PostgreSQL user (used for the date backfill).
+> - The **seed users** (`agents` / `leads` / `customers`) are arrays of full user
+>   objects (`username`, `email`, `firstName`, `lastName`, `password`). The
+>   generator creates each one; existing ones (HTTP 409) are reused. Passwords must
+>   satisfy the Keycloak realm password policy (e.g. `321654Aa!`).
 
-Dosya yoksa veya bir hesap orada listelenmemişse, `GeneratorConfig.java`'daki
-varsayılan değerler (hepsi `321654`) kullanılır.
+If `users.json` is missing, or an account/field is omitted, the defaults in
+`GeneratorConfig.java` are used (all passwords fall back to `321654`). The seed-user
+arrays have no default — if they are empty the run aborts (at least one agent and
+one customer are required).
 
-### 2. Derle ve çalıştır
+### 2. Build and run
 
 ```bash
 cd data-generator
@@ -63,58 +86,71 @@ cd data-generator
 java -jar target/data-generator-1.0.0.jar
 ```
 
-veya proje kökünden: `make gen`
+From the repo root: `make gen` (Docker — builds and runs the `data-generator`
+compose service) or `make gen-host` (host JVM — `gen-build` + `gen-run`).
 
 ---
 
-## Ne yapar?
+## What it does
 
-Generator her çalıştırmada şu adımları sırayla uygular. Her adım **idempotent**;
-mevcut kayıtlara dokunmaz.
+On every run the generator applies the following steps in order. Each step is
+**idempotent** and does not touch existing records (except the cleanup in step 2,
+which only removes products it created in a previous run).
 
-### 1. Kullanıcılar
+### 1. Users
 
-`src/main/resources/setup.json` içinde tanımlanan lead agent, agent ve customer
-kullanıcıları **sadece login edilir** — generator yeni kullanıcı oluşturmaz.
+The agents, lead agents and customers defined in `users.json` are **created** via
+the backend Agent Admin API (`POST /api/users/admin/create`):
 
-- Login denenir. Başarılıysa → `/users/sync` ile DB'ye taşınır, oturum kaydedilir.
-- Login başarısızsa (kullanıcı yok ya da şifre eşleşmiyor) → uyarı loglanır
-  ve kullanıcı atlanır. Bilet üretimi geri kalan kullanıcılarla devam eder.
+- Each user is created with a temporary password (`TEMP_PASSWORD`, forced change on
+  first login). The generator then completes that first-login change by setting the
+  user's final password (from `users.json`) and clearing the required action, then
+  logs in.
+- Already-existing users return HTTP 409 and are reused (password reset + required
+  action cleared, then login).
+- Lead agents are created with the `LEAD_AGENT` realm role (a Keycloak composite
+  that includes `AGENT`), so they also operate as agents and are added to the agent
+  pool for claim/assignment.
+- If a user cannot be created or logged in, it is skipped with a warning and the run
+  continues with the rest. After login each user is pushed to the DB via
+  `/users/sync`.
 
-> **Kullanıcı kurulumu sana ait.** Keycloak admin UI (`http://localhost/auth/admin`)
-> veya backend'in `POST /api/users/admin/create` endpoint'i ile aşağıdaki
-> hesapları önceden oluştur:
+> The run aborts if **no** agent or **no** customer could be logged in — at least
+> one of each is required.
 
-| Rol | Kullanıcı adları | Şifre |
-|-----|-------------------|-------|
-| superadmin (ADMIN + LEAD_AGENT + MANAGER) | superadmin (config'te `ADMIN_AGENT_USERNAME`) | 321654 |
-| lead_agent (`agent`'ın bileşiği) | lead1.gen | 321654Aa! |
-| agent | agent1.gen, agent2.gen, agent3.gen | 321654Aa! |
-| customer | customer1.gen, customer2.gen, customer3.gen, customer4.gen | 321654Aa! |
+### 2. Products / topics / known issues
 
-> `setup.json` içine yeni kullanıcı eklemek için Keycloak'ta da oluşturman gerekir.
-> Var olmayan kullanıcılar sessizce atlanır.
+First, any products this generator created in a previous run (matched by the names
+in `setup.json`) are **deleted** so each run starts clean — the backend's product
+delete cascades to the attached tickets/comments/worklogs/CSAT. Products created by
+anything other than the generator are left untouched.
 
-### 2. Ürünler / topic'ler / sıkça karşılaşılan sorunlar
+Then, from the `products` list in `src/main/resources/setup.json`:
 
-`setup.json`'daki `products` listesinden:
+- **5 products** (VPN & Network, Email & Communication, Hardware & Infrastructure,
+  Enterprise Software, Cloud Services) — idempotent by `name`.
+- **5 topics** under each product (25 total) — idempotent by `(productId, name)`.
+- ~12 **known-issue** records per topic (~300 total, title + content) — idempotent
+  by title within the product.
 
-- **5 ürün** (VPN & Network, Email & Communication, Hardware & Infrastructure,
-  Enterprise Software, Cloud Services) — `name` eşleşmesiyle idempotent.
-- Her ürün altında **5 topic** — `(productId, name)` eşleşmesiyle idempotent.
-- Her topic için **10-15 known-issue** kaydı (başlık + içerik) —
-  topic içinde başlık eşleşmesiyle idempotent.
+### 3. Canned responses
 
-### 3. Yetkilendirme
+From the `cannedResponses` block in `setup.json`, shared (`SHARED`) canned-response
+templates are created idempotently (by title):
 
-Tüm lead agent, agent ve customer'lara tüm ürünlerin yetkisi atanır.
-409 (zaten atanmış) sessizce geçilir.
+- **10 global** templates (no product) — visible in every product context.
+- **5 per-product** templates × 5 products. The `{product}` token in the title and
+  content is replaced with the product name.
 
-### 4. Bilet üretimi (JSON şablon tabanlı)
+### 4. Product authorization
 
-`src/main/resources/tickets/ticket-NNN.json` dosyalarındaki **50 bilet
-şablonu** sırayla işlenir. Her dosya bir biletin tüm yaşam döngüsünü deklaratif
-olarak içerir:
+Every agent, lead agent and customer that logged in is granted access to all
+products. HTTP 409 (already assigned) is skipped silently.
+
+### 5. Ticket generation (JSON template based)
+
+The **50 ticket templates** in `src/main/resources/tickets/ticket-NNN.json` are
+processed. Each file declaratively describes a ticket's full lifecycle:
 
 ```json
 {
@@ -124,6 +160,7 @@ olarak içerir:
   "productName": "VPN & Network",
   "topicName": "VPN Connection",
   "status": "RESOLVED",
+  "reasonCode": "SOLUTION_PROVIDED",
   "worklogs":  [{ "minutes": 25, "description": "..." }],
   "comments":  [{ "author": "agent", "type": "EXTERNAL", "message": "..." }],
   "resolutionNote": "...",
@@ -131,136 +168,152 @@ olarak içerir:
 }
 ```
 
-Status sırası: önce CLOSED (14) ve RESOLVED (10), sonra
-WAITING_FOR_CUSTOMER (8) ve IN_PROGRESS (10), en son NEW (8).
-Bu sayede agent limitleri dolmadan tüm tipler oluşur.
+Templates are processed in the order CLOSED → RESOLVED → WAITING_FOR_CUSTOMER →
+IN_PROGRESS → NEW so the per-agent active-claim limit is not exhausted before all
+types are created. The 50 templates break down as:
 
-Her bilet için:
+| Status | Count |
+|--------|-------|
+| CLOSED | 14 |
+| RESOLVED | 10 |
+| IN_PROGRESS | 10 |
+| WAITING_FOR_CUSTOMER | 8 |
+| NEW | 8 |
 
-| Status | Çalıştırılan adımlar |
-|--------|----------------------|
-| NEW | sadece create |
-| IN_PROGRESS | create → claim → worklogs → yorumlar kuyruğa |
-| WAITING_FOR_CUSTOMER | + status değişikliği |
-| RESOLVED | + resolution note + status değişikliği |
-| CLOSED | + CSAT (customer; CSAT bileti otomatik CLOSED'a alır) |
+Generation runs in three phases so the per-user comment cooldown overlaps across all
+tickets instead of being paid ticket-by-ticket:
 
-Customer ve agent atamaları round-robin yapılır.
+1. **Setup** — create every ticket (customer), claim it (agent keeps the claim) and
+   add worklogs; comments are only collected, not sent yet.
+2. **Comment waves** — every ticket's comments are flushed in global rounds (one
+   comment per ticket per wave, skipping any author already used this wave), waiting
+   one `COMMENT_DELAY_MS` cooldown between waves.
+3. **Finish** — apply each ticket's target status transition + CSAT.
 
-### 5. Yorum kuyruğu — round-robin
+Per status, the steps applied are:
 
-Yorumlar bilet oluşumu sırasında gönderilmez; kullanıcı başına biriken
-kuyruktan sırayla atılır. N kullanıcı varsa her turda N yorum gönderilir
-ve `COMMENT_DELAY_MS` (default 5.5sn) beklenir. Toplam yorum süresi
-N kat azalır.
+| Status | Steps |
+|--------|-------|
+| NEW | create only |
+| IN_PROGRESS | create → claim → worklogs → comments queued |
+| WAITING_FOR_CUSTOMER | + status change |
+| RESOLVED | + status change to RESOLVED (`reasonCode` + `note`) |
+| CLOSED | + CSAT (customer; submitting CSAT auto-moves RESOLVED → CLOSED) |
 
-### 6. Tarih backfill
+Customer and agent assignments are round-robin.
 
-Biletler API üzerinden oluşturulduktan sonra PostgreSQL'e doğrudan bağlanılır
-ve `created_at`, `sla_deadline`, `resolved_at`, `closed_at`, SLA elapsed/
-paused/resumed alanları status'a uygun şekilde son `DATE_SPREAD_DAYS` gün
-içine yayılır.
+### 6. Date backfill
 
-Tarihler **generator'un çalıştığı saate göre** relatif hesaplanır:
+After the tickets are created through the API, the generator connects directly to
+PostgreSQL and spreads `created_at`, `sla_deadline`, `resolved_at`, `closed_at` and
+the SLA elapsed/paused/resumed fields over the last `DATE_SPREAD_DAYS` days,
+appropriate to each status.
 
-| Status | Backfill mantığı |
-|--------|------------------|
-| NEW | SLA dolmamış olacak şekilde son 0–80%·duration içinde oluşturuldu |
-| IN_PROGRESS | Tarihsel oluşturma + agent kısa süre önce claim almış |
-| WAITING_FOR_CUSTOMER | SLA duraklatılmış, bütçenin %20–75'i harcanmış |
-| RESOLVED | resolved_at = created_at + 1–48 saat |
-| CLOSED | closed_at = resolved_at + 1–24 saat |
+Dates are computed relative to **the time the generator runs**:
 
-SLA süreleri öncelikten türetilir (CRITICAL 1h, HIGH 4h, MEDIUM 12h, LOW 24h).
+| Status | Backfill logic |
+|--------|----------------|
+| NEW | created within the last 0–80%·duration so the SLA has not breached |
+| IN_PROGRESS | historical creation + agent claimed recently |
+| WAITING_FOR_CUSTOMER | SLA paused, 20–75% of the budget spent |
+| RESOLVED | resolved_at = created_at + 1–48 hours |
+| CLOSED | closed_at = resolved_at + 1–24 hours |
+
+SLA durations are derived from priority (CRITICAL 1h, HIGH 4h, MEDIUM 12h, LOW 24h).
 
 ---
 
-## Resource yapısı
+## Resource layout
 
 ```
 data-generator/
+├── users.json                    ← login credentials + seed-user definitions (gitignored)
+├── users.example.json            ← template (committed, placeholder passwords)
 └── src/main/resources/
-    ├── setup.json                 ← Kullanıcılar + 5 ürün × 5 topic × 10-15 known-issue
+    ├── setup.json                ← 5 products × 5 topics × ~12 known-issues + canned responses
     └── tickets/
-        ├── ticket-001.json        ← NEW   (8 dosya)
-        ├── ticket-002.json
+        ├── ticket-001.json       ← 50 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
         ├── ...
-        ├── ticket-009.json        ← IN_PROGRESS   (10 dosya)
-        ├── ...
-        ├── ticket-019.json        ← WAITING_FOR_CUSTOMER (8 dosya)
-        ├── ...
-        ├── ticket-027.json        ← RESOLVED      (10 dosya)
-        ├── ...
-        └── ticket-037.json        ← CLOSED        (14 dosya)
-            └── ... ticket-050.json
+        └── ticket-050.json
 ```
 
-> Yeni şablon eklemek için sadece yeni bir `tickets/ticket-NNN.json` ekle —
-> kod değişikliği gerekmez. Generator 1..200 sırayla tarar, var olanları işler.
+> To add a new ticket, just drop in a new `tickets/ticket-NNN.json` — no code change
+> needed. The generator scans `001..200` in order and processes whichever files exist.
 
 ---
 
-## Tüm Ayarlar
+## All settings
 
-**Kullanıcı bilgileri** (`users.json` ile override edilebilir; ayrıntı için yukarıdaki
-"Hızlı Başlangıç" bölümüne bakın):
+**Credentials** (overridable via `users.json`; see "Quick start" above for details):
 
-| Ayar | Varsayılan | Açıklama |
-|------|-----------|----------|
-| `adminAgent.username` | `superadmin` | bootstrap admin kullanıcı adı (ADMIN + LEAD_AGENT + MANAGER seed kullanıcısı) |
-| `adminAgent.password` | `321654` | bootstrap admin şifresi |
-| `keycloakAdmin.username` | `admin` | Keycloak master realm admin kullanıcı adı |
-| `keycloakAdmin.password` | `321654` | Keycloak master realm admin şifresi |
-| `database.username` | `ticketadmin` | PostgreSQL kullanıcı adı |
-| `database.password` | `321654` | PostgreSQL şifresi |
-| `leadAgents.<username>` | `321654` | Lead agent kullanıcılarının şifreleri |
-| `agents.<username>` | `321654` | Agent kullanıcılarının şifreleri |
-| `customers.<username>` | `321654` | Customer kullanıcılarının şifreleri |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `adminAgent.username` | `superadmin` | bootstrap admin username (ADMIN + LEAD_AGENT + MANAGER seed user) |
+| `adminAgent.password` | `321654` | bootstrap admin password |
+| `keycloakAdmin.username` | `admin` | Keycloak master-realm admin username |
+| `keycloakAdmin.password` | `321654` | Keycloak master-realm admin password |
+| `database.username` | `ticketadmin` | PostgreSQL username |
+| `database.password` | `321654` | PostgreSQL password |
+| `agents[]` | — | agent users to create (username/email/firstName/lastName/password) |
+| `leads[]` | — | lead-agent users to create (created with the LEAD_AGENT composite role) |
+| `customers[]` | — | customer users to create |
 
-**Sabit ayarlar** (yalnızca `GeneratorConfig.java` üzerinden değiştirilir):
+**Fixed settings** (changed only in `GeneratorConfig.java`; some have env overrides):
 
-| Ayar | Varsayılan | Açıklama |
-|------|-----------|----------|
-| `BASE_URL` | `http://localhost` | Uygulamanın adresi |
-| `KEYCLOAK_URL` | `${BASE_URL}/auth` | Keycloak kök URL'i |
-| `KEYCLOAK_REALM` | `TicketSystemRealm` | Realm adı |
-| `KEYCLOAK_CLIENT` | `ticket-frontend` | Token alınacak public client |
-| `MASTER_ADMIN_CLIENT` | `admin-cli` | Master realm token client'ı |
-| `DELAY_MS` | `600` | İstekler arası bekleme (ms) |
-| `COMMENT_DELAY_MS` | `5500` | Yorum turu arası bekleme (ms) |
-| `RATE_LIMIT_BACKOFF_MS` | `6000` | 429 sonrası bekleme |
-| `RATE_LIMIT_RETRY_COUNT` | `3` | 429 sonrası deneme sayısı |
-| `TOKEN_REFRESH_THRESHOLD_SEC` | `30` | Token yenileme eşiği |
-| `DATE_SPREAD_DAYS` | `7` | Tarihlerin yayıldığı gün aralığı |
-| `DB_URL` | `jdbc:postgresql://localhost:5432/ticketdb` | PostgreSQL bağlantısı |
+| Setting | Default | Env override | Description |
+|---------|---------|--------------|-------------|
+| `BASE_URL` | `http://localhost` | `GEN_BASE_URL` | application base URL |
+| `KEYCLOAK_URL` | `${BASE_URL}/auth` | — | Keycloak root URL |
+| `KEYCLOAK_REALM` | `TicketSystemRealm` | — | realm name |
+| `KEYCLOAK_CLIENT` | `ticket-frontend` | — | public client used to obtain tokens |
+| `MASTER_ADMIN_CLIENT` | `admin-cli` | — | master-realm token client |
+| `TEMP_PASSWORD` | `Temp321654!` | — | temporary password set at user creation (forced change on first login) |
+| `DELAY_MS` | `600` | — | delay between API requests (ms) |
+| `COMMENT_DELAY_MS` | `5500` | — | delay between comment waves (ms) |
+| `RATE_LIMIT_BACKOFF_MS` | `6000` | — | wait after a 429 |
+| `RATE_LIMIT_RETRY_COUNT` | `3` | — | retries after a 429 |
+| `TOKEN_REFRESH_THRESHOLD_SEC` | `30` | — | token refresh threshold |
+| `DATE_SPREAD_DAYS` | `7` | — | how many days back dates are spread over |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/ticketdb` | `GEN_DB_URL` | PostgreSQL connection |
+| `DB_USER` | `database.username` | `GEN_DB_USER` | PostgreSQL user (env > users.json > fallback) |
+| `DB_PASSWORD` | `database.password` | `GEN_DB_PASSWORD` | PostgreSQL password (env > users.json > fallback) |
+
+> The `GEN_*` env overrides exist so a containerized run (`make gen`) can point at
+> the compose service names — e.g. `GEN_BASE_URL=http://nginx-proxy` and
+> `GEN_DB_URL=jdbc:postgresql://it-service-db:5432/ticketdb` — while a plain
+> `java -jar` on the host keeps using `localhost`.
 
 ---
 
-## Sorun Giderme
+## Troubleshooting
 
-**"bootstrap admin oturumu açılamadı"**
-→ `ADMIN_AGENT_USERNAME` / `ADMIN_AGENT_PASSWORD` yanlış veya kullanıcı
-Keycloak'ta yok (`superadmin`, `ADMIN + LEAD_AGENT + MANAGER` rollerinde olmalı;
-`make seed-roles` ile atanır). Önce `http://localhost` üzerinden bir kez giriş yap.
+**"admin oturumu açılamadı" (admin login failed)**
+→ `adminAgent` username/password is wrong, or the user does not exist in Keycloak
+(`superadmin` must hold the `ADMIN + LEAD_AGENT + MANAGER` roles, assigned via
+`make seed-roles`). Log in once through `http://localhost` first.
 
-**"Kullanıcı atlanıyor: ... login başarısız"**
-→ Generator artık kullanıcı oluşturmaz. setup.json'daki bu hesabı Keycloak'ta
-  manuel oluşturup şifresinin setup.json ile eşleştiğinden emin ol.
-  Yeni kullanıcılarda `Authentication > Required Actions` listesinde
-  `Update Password`'ün enable olmadığından, ya da kullanıcının
-  `requiredActions` listesinin boş olduğundan emin ol (aksi halde
-  Direct Access Grants login fails: "Account is not fully set up").
+**"Kullanıcı oluşturuldu ancak oturum açılamadı" / "Login başarısız → kullanıcı atlanıyor"**
+→ A seed user was created but could not log in. The generator already clears the
+forced-change required action and retries once on "Account is not fully set up";
+if it still fails, check that the user's password matches `users.json` and satisfies
+the realm password policy. Other users continue.
 
-**"Şablonda geçen ürün bulunamadı"**
-→ Bilet JSON'undaki `productName` setup.json'daki ad ile birebir aynı olmalı.
+**"Setup başarısız: en az bir agent ve bir customer gerekli"**
+→ The `agents`/`customers` arrays in `users.json` are empty. Populate them (see
+`users.example.json`).
+
+**"Şablonda geçen ürün bulunamadı" (product in template not found)**
+→ The `productName` in a ticket JSON must match a product `name` in `setup.json`
+exactly.
 
 **"429 Too Many Requests"**
-→ `COMMENT_DELAY_MS` değerini artır (örn. `6500`) veya
-backend'deki rate-limit yapılandırmasını gevşet.
+→ Increase `COMMENT_DELAY_MS` (e.g. `6500`) or relax the backend rate-limit config.
 
-**"Veritabanı bağlantısı kurulamadı" (backfill)**
-→ PostgreSQL 5432 portu dışarıya açık olmalı. `docker compose ps` ile kontrol et.
+**"Veritabanı bağlantısı kurulamadı" (DB connection failed, backfill)**
+→ PostgreSQL port 5432 must be reachable. Check with `docker compose ps`.
 
-**"Talep konusu çakışıyor / known-issue duplicate"**
-→ Re-run güvenli olduğu için olmamalı; gerçekten oluyorsa setup.json'daki
-ilgili topic veya issue title'ı benzersiz değildir.
+**"known-issue duplicate" / title collision**
+→ Re-runs are safe, so this should not happen; if it does, a topic or issue title in
+`setup.json` is not unique.
+</content>
+</invoke>
