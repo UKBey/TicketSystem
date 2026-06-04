@@ -450,11 +450,12 @@ public class TicketService {
                 ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, f.getStatuses(), f.getPriorities(), u)
                 : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
         }
-        if (hasExtraFilters(f)) {
+        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
             return ticketRepository.findClaimedTicketsFullFiltered(
                     ticketIds, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
                     toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
-                    f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                    f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), toNativePageable(pageable));
         }
         return ticketRepository.findClaimedTicketsFiltered(ticketIds, f.getStatuses(), f.getPriorities(), pageable);
     }
@@ -509,10 +510,11 @@ public class TicketService {
                 ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
                 : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
-        if (hasExtraFilters(f)) {
+        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
             return ticketRepository.findTeamTicketsFullFiltered(
                     productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), toNativePageable(pageable));
         }
         return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
     }
@@ -552,10 +554,11 @@ public class TicketService {
                 ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
                 : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
-        if (hasExtraFilters(f)) {
+        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
             return ticketRepository.findTeamTicketsFullFiltered(
                     productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(), toNativePageable(pageable));
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), toNativePageable(pageable));
         }
         return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
     }
@@ -677,6 +680,7 @@ public class TicketService {
             || (f.getAgentIds() != null && !f.getAgentIds().isEmpty())
             || (f.getTopicIds() != null && !f.getTopicIds().isEmpty())
             || (f.getProductIds() != null && !f.getProductIds().isEmpty())
+            || csatFilterActive(f)
             || (f.getStatuses() != null && !f.getStatuses().isEmpty() && f.getStatuses().size() > 1)
             || (f.getPriorities() != null && !f.getPriorities().isEmpty() && f.getPriorities().size() > 1);
     }
@@ -780,6 +784,35 @@ public class TicketService {
                 .anyMatch(order -> "slaDeadline".equals(order.getProperty()));
     }
 
+    private boolean isSortByCsat(Pageable pageable) {
+        return pageable.getSort().stream()
+                .anyMatch(order -> "csatRating".equals(order.getProperty()));
+    }
+
+    /** Whether a CSAT rating filter (any of 1-5 or NONE) is active. */
+    private boolean csatFilterActive(TicketFilterDTO f) {
+        return f.getCsatRatings() != null && !f.getCsatRatings().isEmpty();
+    }
+
+    /**
+     * Numeric CSAT ratings (1-5) selected in the filter, or a no-match placeholder
+     * (-1) when none are numeric — keeps native {@code IN (...)} clauses valid.
+     */
+    private List<Integer> csatRatingsOrPlaceholder(TicketFilterDTO f) {
+        List<String> raw = f.getCsatRatings();
+        if (raw == null) return List.of(-1);
+        List<Integer> nums = raw.stream()
+                .filter(s -> s != null && !s.isBlank() && s.chars().allMatch(Character::isDigit))
+                .map(Integer::valueOf)
+                .collect(Collectors.toList());
+        return nums.isEmpty() ? List.of(-1) : nums;
+    }
+
+    /** Whether the CSAT filter includes the "NONE" bucket (tickets with no survey). */
+    private boolean csatIncludeNone(TicketFilterDTO f) {
+        return f.getCsatRatings() != null && f.getCsatRatings().contains("NONE");
+    }
+
     private boolean isAscending(Pageable pageable) {
         return pageable.getSort().stream()
                 .filter(order -> "priority".equals(order.getProperty())
@@ -805,17 +838,22 @@ public class TicketService {
         }
         List<Sort.Order> nativeOrders = pageable.getSort().stream()
                 .map(order -> {
+                    // Sütunlar 't.' ile nitelenir: full-filtered sorgular csat_surveys (cs) ile
+                    // LEFT JOIN içerebilir ve created_at/id gibi adlar iki tabloda da geçer.
                     String col = switch (order.getProperty()) {
-                        case "createdAt"   -> "created_at";
-                        case "resolvedAt"  -> "resolved_at";
-                        case "closedAt"    -> "closed_at";
-                        case "slaDeadline" -> "sla_deadline";
-                        case "slaBreached" -> "sla_breached";
-                        case "productId"   -> "product_id";
-                        case "customerId"  -> "customer_id";
-                        default            -> order.getProperty();
+                        case "createdAt"   -> "t.created_at";
+                        case "resolvedAt"  -> "t.resolved_at";
+                        case "closedAt"    -> "t.closed_at";
+                        case "slaDeadline" -> "t.sla_deadline";
+                        case "slaBreached" -> "t.sla_breached";
+                        case "productId"   -> "t.product_id";
+                        case "customerId"  -> "t.customer_id";
+                        case "csatRating"  -> "cs.rating";
+                        default            -> "t." + order.getProperty();
                     };
-                    return order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
+                    Sort.Order mapped = order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
+                    // CSAT'i olmayan biletler her iki yönde de listenin sonuna düşsün.
+                    return "cs.rating".equals(col) ? mapped.nullsLast() : mapped;
                 })
                 .collect(Collectors.toList());
         return org.springframework.data.domain.PageRequest.of(

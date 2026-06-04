@@ -28,6 +28,8 @@ class CsatServiceTest {
     private CsatRepository csatRepository;
     @Mock
     private TicketService ticketService;
+    @Mock
+    private TicketAuditHelper auditHelper;
 
     @InjectMocks
     private CsatService csatService;

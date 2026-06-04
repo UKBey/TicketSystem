@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
@@ -6,6 +7,8 @@ import PaginationBar from '../../components/PaginationBar';
 
 export default function History() {
   const { t } = useTranslation();
+  const { isAdmin, isManager } = useAuth();
+  const canSeeCsat = isAdmin || isManager;
 
   const {
     tickets, totalPages, totalItems, loading, error,
@@ -16,6 +19,7 @@ export default function History() {
     productIds, setProductIds,
     topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
+    csatRatings, setCsatRatings,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -45,9 +49,11 @@ export default function History() {
           productIds={productIds} onProductIds={setProductIds}
           topicIds={topicIds}     onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
+          csatRatings={csatRatings} onCsatRatings={setCsatRatings}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
+          showCsat={canSeeCsat}
           hideStatus
           hideAgent
         />
@@ -59,6 +65,7 @@ export default function History() {
         ) : (
           <TicketTable
             tickets={tickets}
+            showCsat={canSeeCsat}
             sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
           />
         )}

@@ -7,8 +7,9 @@ import PaginationBar from '../../components/PaginationBar';
 
 export default function AllTickets() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin, isManager } = useAuth();
   const currentUserId = user?.sub || user?.id;
+  const canSeeCsat = isAdmin || isManager;
 
   const {
     tickets, totalPages, totalItems, loading, error,
@@ -21,6 +22,7 @@ export default function AllTickets() {
     agentIds, setAgentIds,
     topicIds, setTopicIds,
     slaStatuses, setSlaStatuses,
+    csatRatings, setCsatRatings,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
     clearFilters,
@@ -52,9 +54,11 @@ export default function AllTickets() {
           agentIds={agentIds}     onAgentIds={setAgentIds}
           topicIds={topicIds}     onTopicIds={setTopicIds}
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
+          csatRatings={csatRatings} onCsatRatings={setCsatRatings}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
           onClear={clearFilters}
+          showCsat={canSeeCsat}
           statusOptions={['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED']}
         />
 
@@ -67,6 +71,7 @@ export default function AllTickets() {
           <TicketTable
             tickets={tickets}
             showSla
+            showCsat={canSeeCsat}
             currentUserId={currentUserId}
             showTopic={false}
             forceShowClaimers

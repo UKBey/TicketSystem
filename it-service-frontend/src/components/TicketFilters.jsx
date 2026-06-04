@@ -19,13 +19,14 @@ const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
  */
 export default function TicketFilters({
   status = [], priority = [], search, productIds = [], agentIds = [],
-  topicIds = [], slaStatuses = [], dateFrom, dateTo,
+  topicIds = [], slaStatuses = [], csatRatings = [], dateFrom, dateTo,
   onStatus, onPriority, onSearch, onProductIds, onAgentIds, onTopicIds,
-  onSlaStatuses, onDateFrom, onDateTo,
+  onSlaStatuses, onCsatRatings, onDateFrom, onDateTo,
   onClear,
   hideStatus    = false,
   hideAgent     = false,
   hideProduct   = false,
+  showCsat      = false,   // CSAT filtresi yalnızca ADMIN/MANAGER görünümünde açılır
   statusOptions = STATUSES,
   scopedProductId,
 }) {
@@ -38,6 +39,15 @@ export default function TicketFilters({
     { value: 'BREACHED', label: t('ticket.filters.slaBreached') },
     { value: 'ACTIVE',   label: t('ticket.filters.slaActive') },
     { value: 'PAUSED',   label: t('ticket.filters.slaPaused') },
+  ];
+
+  const CSAT_OPTIONS = [
+    { value: '5', label: '5 ★' },
+    { value: '4', label: '4 ★' },
+    { value: '3', label: '3 ★' },
+    { value: '2', label: '2 ★' },
+    { value: '1', label: '1 ★' },
+    { value: 'NONE', label: t('ticket.filters.csatNone') },
   ];
 
   const DATE_PRESETS = [
@@ -89,7 +99,7 @@ export default function TicketFilters({
   const topicFilterAvailable = productsForTopics.length > 0;
 
   const hasFilters = status?.length || priority?.length || search || productIds?.length
-    || agentIds?.length || topicIds?.length || slaStatuses?.length || dateFrom || dateTo;
+    || agentIds?.length || topicIds?.length || slaStatuses?.length || csatRatings?.length || dateFrom || dateTo;
 
   return (
     <div className="border-b" style={{ borderColor: 'var(--border-color)' }}>
@@ -125,6 +135,15 @@ export default function TicketFilters({
           placeholder={t('ticket.filters.allSla')}
           options={SLA_STATUSES}
         />
+
+        {showCsat && onCsatRatings && (
+          <MultiSelectFilter
+            values={csatRatings}
+            onChange={onCsatRatings}
+            placeholder={t('ticket.filters.allCsat')}
+            options={CSAT_OPTIONS}
+          />
+        )}
 
         {!hideProduct && products.length > 0 && (
           <MultiSelectFilter
@@ -178,6 +197,10 @@ export default function TicketFilters({
           {slaStatuses?.map((s) => (
             <FilterChip key={s} label={t('ticket.filters.chipSla', { value: SLA_STATUSES.find((sl) => sl.value === s)?.label ?? s })}
               onRemove={() => onSlaStatuses(slaStatuses.filter((v) => v !== s))} />
+          ))}
+          {csatRatings?.map((c) => (
+            <FilterChip key={c} label={t('ticket.filters.chipCsat', { value: c === 'NONE' ? t('ticket.filters.csatNone') : `${c} ★` })}
+              onRemove={() => onCsatRatings(csatRatings.filter((v) => v !== c))} />
           ))}
           {productIds?.map((pid) => (
             <FilterChip key={pid} label={t('ticket.filters.chipProduct', { value: products.find((p) => String(p.id) === pid)?.name ?? pid })}

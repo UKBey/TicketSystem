@@ -26,6 +26,7 @@ public class CsatService {
 
     private final CsatRepository csatRepository;
     private final TicketService ticketService;
+    private final TicketAuditHelper auditHelper;
 
     /**
      * Persists a CSAT survey response for the given ticket.
@@ -78,6 +79,11 @@ public class CsatService {
 
         Csat savedCsat = csatRepository.save(csat);
         log.info("CSAT anketi başarıyla kaydedildi. Bilet ID: {}, CSAT ID: {}", ticketId, savedCsat.getId());
+
+        // Puani tasiyan ayri bir denetim kaydi (ADMIN/MANAGER + musteriye gorunur).
+        // Bilet zaten CLOSED ise asagidaki statu gecisi olusmaz; bu kayit her durumda yazilir.
+        auditHelper.record(ticket, userId, "CSAT_SUBMITTED", dto.getComment(),
+                null, String.valueOf(savedCsat.getRating()));
 
         // Musteri onayi geldiyse RESOLVED kayit CLOSED durumuna tasinir.
         if ("RESOLVED".equals(ticket.getStatus())) {

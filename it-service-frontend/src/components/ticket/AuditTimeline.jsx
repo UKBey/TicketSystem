@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   FileText, UserCheck, UserMinus, UserPlus, CheckCircle2,
-  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag, Hash,
+  RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag, Hash, Star,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 import { StatusBadge, PriorityBadge } from '../Badges';
@@ -23,6 +23,7 @@ const ACTION_CONFIG = {
   STATUS_CHANGE:   { icon: ArrowRight,  color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditStatusChange'   },
   PRIORITY_CHANGE: { icon: Flag,        color: '#ec4899', bg: 'rgba(236,72,153,0.12)',  labelKey: 'auditPriorityChange' },
   TOPIC_CHANGE:    { icon: Hash,        color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)',  labelKey: 'auditTopicChange'    },
+  CSAT_SUBMITTED:  { icon: Star,        color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  labelKey: 'auditCsat'           },
 };
 
 const DEFAULT_CONFIG = { icon: ArrowRight, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', labelKey: 'auditUpdated' };
@@ -137,7 +138,20 @@ export default function AuditTimeline({ auditLogs }) {
                       </div>
 
                       {/* State transition */}
-                      {entry.actionType === 'PRIORITY_CHANGE' ? (
+                      {entry.actionType === 'CSAT_SUBMITTED' ? (
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star
+                              key={n}
+                              className="h-3.5 w-3.5"
+                              style={{ color: '#f59e0b', fill: n <= Number(entry.newState) ? '#f59e0b' : 'transparent' }}
+                            />
+                          ))}
+                          <span className="text-xs font-semibold ml-0.5" style={{ color: 'var(--text-secondary)' }}>
+                            {entry.newState}/5
+                          </span>
+                        </div>
+                      ) : entry.actionType === 'PRIORITY_CHANGE' ? (
                         entry.previousState && entry.newState && (
                           <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
                             <PriorityBadge priority={entry.previousState} />

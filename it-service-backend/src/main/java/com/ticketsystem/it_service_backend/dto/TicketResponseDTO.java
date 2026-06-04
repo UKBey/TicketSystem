@@ -82,6 +82,9 @@ public class TicketResponseDTO {
     @Schema(description = "Bilete CSAT anketi doldurulmuş mu?", example = "true")
     private Boolean hasCsat;
 
+    @Schema(description = "CSAT puanı (1-5). Yalnızca ADMIN/MANAGER görür; diğer rollerde null.", example = "4")
+    private Integer csatRating;
+
     @Schema(description = "Gerçek zamanlı SLA bilgisi — slaState: active | paused | expired | completed")
     private java.util.Map<String, Object> slaInfo;
 

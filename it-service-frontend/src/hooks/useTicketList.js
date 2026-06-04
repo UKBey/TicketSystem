@@ -38,6 +38,7 @@ export function useTicketList(endpoint, opts = {}) {
   const [agentIds, setAgentIds]    = useState([]);
   const [topicIds, setTopicIds]   = useState([]);
   const [slaStatuses, setSlaStatuses] = useState([]);
+  const [csatRatings, setCsatRatings] = useState([]);
   const [dateFrom, setDateFrom]    = useState('');
   const [dateTo, setDateTo]       = useState('');
 
@@ -63,6 +64,7 @@ export function useTicketList(endpoint, opts = {}) {
       if (agentIds.length)   agentIds.forEach(v => qs.append('agentId', v));
       if (topicIds.length)   topicIds.forEach(v => qs.append('topicId', v));
       if (slaStatuses.length) slaStatuses.forEach(v => qs.append('slaStatus', v));
+      if (csatRatings.length) csatRatings.forEach(v => qs.append('csatRating', v));
       if (dateFrom)          qs.set('dateFrom', dateFrom);
       if (dateTo)    qs.set('dateTo', dateTo);
       Object.entries(extraParamsRef.current).forEach(([k, v]) => {
@@ -81,7 +83,7 @@ export function useTicketList(endpoint, opts = {}) {
       setLoading(false);
     }
   }, [endpoint, page, size, sortBy, sortDir,
-      status, priority, search, productIds, agentIds, topicIds, slaStatuses, dateFrom, dateTo]);
+      status, priority, search, productIds, agentIds, topicIds, slaStatuses, csatRatings, dateFrom, dateTo]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
@@ -106,6 +108,7 @@ export function useTicketList(endpoint, opts = {}) {
     setAgentIds([]);
     setTopicIds([]);
     setSlaStatuses([]);
+    setCsatRatings([]);
     setDateFrom('');
     setDateTo('');
     setPage(0);
@@ -136,6 +139,7 @@ export function useTicketList(endpoint, opts = {}) {
     agentIds,   setAgentIds:  reset(setAgentIds),
     topicIds,   setTopicIds:  reset(setTopicIds),
     slaStatuses, setSlaStatuses: reset(setSlaStatuses),
+    csatRatings, setCsatRatings: reset(setCsatRatings),
     dateFrom,  setDateFrom:  reset(setDateFrom),
     dateTo,    setDateTo:    reset(setDateTo),
     clearFilters,

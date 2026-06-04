@@ -14,6 +14,7 @@ import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
@@ -68,6 +69,7 @@ public class TicketController {
     private final TicketAuditLogRepository ticketAuditLogRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final CsatRepository csatRepository;
 
     /**
      * Creates a new ticket and starts the jBPM workflow process.
@@ -208,15 +210,20 @@ public class TicketController {
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
             @RequestParam(required = false) List<String> slaStatus,
+            @RequestParam(required = false) List<String> csatRating,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
         String agentUserId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        PageRequest pageable = Pageables.of(page, size, sortBy, sortDir);
+        // CSAT filtre/sıralaması yalnızca ADMIN/MANAGER için geçerli; diğer roller için elenir.
+        boolean canSeeCsat = AuthRoles.isGlobal(roles);
+        String effectiveSortBy = (!canSeeCsat && "csatRating".equals(sortBy)) ? "createdAt" : sortBy;
+        PageRequest pageable = Pageables.of(page, size, effectiveSortBy, sortDir);
         TicketFilterDTO filter = TicketFilterDTO.builder()
                 .statuses(status).priorities(priority).search(search)
                 .productIds(productId).agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
+                .csatRatings(canSeeCsat ? csatRating : null)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets = ticketService.getAgentClaimedTicketsFiltered(agentUserId, filter, pageable);
@@ -285,15 +292,20 @@ public class TicketController {
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
             @RequestParam(required = false) List<String> slaStatus,
+            @RequestParam(required = false) List<String> csatRating,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime dateTo) {
 
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        PageRequest pageable = Pageables.of(page, size, sortBy, sortDir);
+        // CSAT filtre/sıralaması yalnızca ADMIN/MANAGER için geçerli; diğer roller için elenir.
+        boolean canSeeCsat = AuthRoles.isGlobal(roles);
+        String effectiveSortBy = (!canSeeCsat && "csatRating".equals(sortBy)) ? "createdAt" : sortBy;
+        PageRequest pageable = Pageables.of(page, size, effectiveSortBy, sortDir);
         TicketFilterDTO filter = TicketFilterDTO.builder()
                 .statuses(status).priorities(priority).search(search).productIds(productId)
                 .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
+                .csatRatings(canSeeCsat ? csatRating : null)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
         Page<Ticket> tickets = ticketService.getAllAccessibleTicketsFiltered(userId, roles, filter, pageable);
@@ -581,7 +593,11 @@ public class TicketController {
                         .build())
                 .collect(Collectors.toList());
 
+        // CSAT denetim kayıtları (puan/yorum içerir) yalnızca ADMIN/MANAGER ile biletin
+        // sahibi müşteriye gösterilir; ajan/lead timeline'da görmez.
+        boolean canSeeCsat = AuthRoles.isGlobal(roles) || roles.contains(AuthRoles.CUSTOMER);
         List<TicketAuditLogDTO> auditLogs = ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId()).stream()
+                .filter(log -> canSeeCsat || !"CSAT_SUBMITTED".equals(log.getActionType()))
                 .map(log -> TicketAuditLogDTO.fromEntity(log,
                         userRepository.findById(log.getActorId())
                                 .map(User::getFullName)
@@ -591,6 +607,12 @@ public class TicketController {
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, claimers);
         dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
         dto.setAuditLogs(auditLogs);
+
+        // CSAT puanı liste/detayda yalnızca ADMIN/MANAGER'a açılır (gizlilik sınırı).
+        if (AuthRoles.isGlobal(roles)) {
+            csatRepository.findByTicketId(ticket.getId())
+                    .ifPresent(csat -> dto.setCsatRating(csat.getRating()));
+        }
         return dto;
     }
 }

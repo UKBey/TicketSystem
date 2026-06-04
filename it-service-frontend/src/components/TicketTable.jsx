@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 import SortableTh from './SortableTh';
-import { AlertTriangle, Inbox } from 'lucide-react';
+import { AlertTriangle, Inbox, Star } from 'lucide-react';
 
 export default function TicketTable({
   tickets,
@@ -14,6 +14,7 @@ export default function TicketTable({
   showAssignButton = false,
   onAssign,
   showSla = false,
+  showCsat = false,         // CSAT yıldız sütunu (yalnızca ADMIN/MANAGER — History/AllTickets)
   currentUserId,
   // Sayfa-spesifik özelleştirme prop'ları
   renderActions,            // (ticket) => ReactNode — verilirse shortcut butonları override eder
@@ -100,6 +101,11 @@ export default function TicketTable({
                 <ClaimerPills claimers={ticket.claimers} currentUserId={currentUserId} t={t} />
               </div>
             )}
+            {showCsat && (
+              <div className="mb-2">
+                <CsatStars rating={ticket.csatRating} t={t} />
+              </div>
+            )}
             <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</div>
             {showActionsColumn && (
               <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
@@ -135,7 +141,7 @@ export default function TicketTable({
           + minWidth tablo intrinsic genişliğini koruyup container içinde yatay
           scroll bar gösterir; üst container'daki rounded-xl overflow-hidden bozulmaz. */}
       <div className="hidden lg:block overflow-x-auto">
-      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showActionsColumn) }}>
+      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showActionsColumn, showCsat) }}>
         <colgroup>
           <col style={{ width: '90px' }} />   {/* ID */}
           <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
@@ -143,6 +149,7 @@ export default function TicketTable({
           <col style={{ width: '100px' }} />  {/* Priority */}
           {showSla     && <col style={{ width: '130px' }} />}  {/* SLA */}
           {showClaimers && <col style={{ width: '140px' }} />} {/* Claimers */}
+          {showCsat    && <col style={{ width: '120px' }} />}  {/* CSAT */}
           <col style={{ width: '140px' }} />  {/* Created */}
           {showActionsColumn && <col style={{ width: '160px' }} />} {/* Action — biraz daha geniş, iki butona yetsin */}
         </colgroup>
@@ -158,6 +165,9 @@ export default function TicketTable({
             {showClaimers && (
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
                 style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
+            )}
+            {showCsat && (
+              <SortableTh field="csatRating" label={t('ticket.table.csat')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             )}
             <SortableTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
             {showActionsColumn && (
@@ -210,6 +220,11 @@ export default function TicketTable({
                   <ClaimerPills claimers={ticket.claimers} currentUserId={currentUserId} t={t} />
                 </td>
               )}
+              {showCsat && (
+                <td className="px-4 py-3">
+                  <CsatStars rating={ticket.csatRating} t={t} />
+                </td>
+              )}
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {formatDate(ticket.createdAt)}
               </td>
@@ -254,12 +269,31 @@ export default function TicketTable({
  * ortaya çıkıyor → minWidth = (fixedSum) / 0.70 ile başlığa makul (≥200px)
  * yer kalır.
  */
-function tableMinWidth(showSla, showClaimers, showActions) {
+function tableMinWidth(showSla, showClaimers, showActions, showCsat) {
   let fixed = 90 + 130 + 100 + 140; // ID + Status + Priority + Created
   if (showSla) fixed += 130;
   if (showClaimers) fixed += 140;
+  if (showCsat) fixed += 120;
   if (showActions) fixed += 160;
   return `${Math.ceil(fixed / 0.70)}px`;
+}
+
+/** CSAT yıldız puanı; puan yoksa nötr bir tire gösterir. */
+function CsatStars({ rating, t }) {
+  if (rating == null) {
+    return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }} title={t('ticket.table.csatNone')}>—</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5" title={`${rating}/5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className="h-3.5 w-3.5"
+          style={{ color: '#f59e0b', fill: n <= rating ? '#f59e0b' : 'transparent' }}
+        />
+      ))}
+    </span>
+  );
 }
 
 function ClaimerPills({ claimers, currentUserId, t }) {

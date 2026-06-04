@@ -1473,7 +1473,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("vpn").build();
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), f, p);
@@ -1566,7 +1566,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("error").build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), f, p);
@@ -1806,7 +1806,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().search("slow").build();
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(100L));
         when(productRepository.findAll()).thenReturn(List.of());
-        when(ticketRepository.findClaimedTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(ticketRepository.findClaimedTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", f, p);

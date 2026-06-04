@@ -206,6 +206,8 @@
       "createdAt": "Created At",
       "created": "Created",
       "sla": "SLA",
+      "csat": "CSAT",
+      "csatNone": "No survey",
       "actions": "Actions",
       "claimers": "Claimers",
       "unassigned": "Unassigned",
@@ -245,7 +247,10 @@
       "chipSla": "SLA: {{value}}",
       "chipProduct": "Product: {{value}}",
       "chipAgent": "Agent: {{value}}",
-      "chipTopic": "Topic: {{value}}"
+      "chipTopic": "Topic: {{value}}",
+      "allCsat": "All CSAT",
+      "csatNone": "No survey",
+      "chipCsat": "CSAT: {{value}}"
     },
     "actions": {
       "claim": "Claim",
@@ -542,6 +547,7 @@
     "auditStatusChange": "Status Changed",
     "auditPriorityChange": "Priority Changed",
     "auditTopicChange": "Topic Changed",
+    "auditCsat": "Submitted CSAT",
     "changePriority": "Change priority",
     "changePriorityTitle": "Change ticket priority",
     "changePriorityDesc": "Pick a new priority. The change will be audit-logged.",

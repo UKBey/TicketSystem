@@ -9,6 +9,7 @@ import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
@@ -45,13 +46,14 @@ class TicketControllerTest {
     @Mock private ProductRepository productRepository;
     @Mock private TicketClaimRepository ticketClaimRepository;
     @Mock private TicketAuditLogRepository ticketAuditLogRepository;
+    @Mock private CsatRepository csatRepository;
 
     private TicketController ticketController;
 
     @BeforeEach
     void setUp() {
         ticketController = new TicketController(ticketService, ticketClaimRepository,
-                ticketAuditLogRepository, userRepository, productRepository);
+                ticketAuditLogRepository, userRepository, productRepository, csatRepository);
         lenient().when(ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(any())).thenReturn(List.of());
     }
 
@@ -210,7 +212,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "desc",
-                null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().getContent().size());
@@ -528,7 +530,7 @@ class TicketControllerTest {
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
                 jwtWithRole("agent-1", "AGENT"),
                 0, 20, "createdAt", "asc",
-                null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }

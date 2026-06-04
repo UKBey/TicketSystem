@@ -206,6 +206,8 @@
       "createdAt": "Oluşturulma Tarihi",
       "created": "Oluşturulma",
       "sla": "SLA",
+      "csat": "CSAT",
+      "csatNone": "Anket yok",
       "actions": "İşlemler",
       "claimers": "Üstlenenler",
       "unassigned": "Atanmamış",
@@ -245,7 +247,10 @@
       "chipSla": "SLA: {{value}}",
       "chipProduct": "Ürün: {{value}}",
       "chipAgent": "Ajan: {{value}}",
-      "chipTopic": "Konu: {{value}}"
+      "chipTopic": "Konu: {{value}}",
+      "allCsat": "Tüm CSAT",
+      "csatNone": "Anket yok",
+      "chipCsat": "CSAT: {{value}}"
     },
     "actions": {
       "claim": "Üstlen",
@@ -542,6 +547,7 @@
     "auditStatusChange": "Durum Değişti",
     "auditPriorityChange": "Öncelik Değişti",
     "auditTopicChange": "Konu Değişti",
+    "auditCsat": "CSAT Gönderildi",
     "changePriority": "Önceliği değiştir",
     "changePriorityTitle": "Bilet önceliğini değiştir",
     "changePriorityDesc": "Yeni bir öncelik seçin. Değişiklik audit log'a kaydedilecek.",

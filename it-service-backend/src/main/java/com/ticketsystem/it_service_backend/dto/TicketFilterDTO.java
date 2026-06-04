@@ -58,6 +58,13 @@ public class TicketFilterDTO {
     /** Creation date upper bound (inclusive). */
     private ZonedDateTime createdAtTo;
 
+    /**
+     * CSAT rating filter — supports multi-select. Each value is a star rating
+     * ("1".."5") or the literal "NONE" (tickets without a CSAT response).
+     * Honoured only for ADMIN/MANAGER viewers. An empty/null list = no filter.
+     */
+    private List<String> csatRatings;
+
     // -------------------------------------------------------------------------
     // Backwards compatibility — single-value setters
     // -------------------------------------------------------------------------
@@ -113,5 +120,10 @@ public class TicketFilterDTO {
     /** Returns the active topicId list in a null-safe way. */
     public List<Long> getTopicIds() {
         return (topicIds != null && !topicIds.isEmpty()) ? topicIds : null;
+    }
+
+    /** Returns the active CSAT rating list in a null-safe way. */
+    public List<String> getCsatRatings() {
+        return (csatRatings != null && !csatRatings.isEmpty()) ? csatRatings : null;
     }
 }
