@@ -348,7 +348,7 @@ export default function Dashboard() {
         </div>
         <div className="flex flex-col gap-4">
           <CompletionMeters data={worklogCompletion} loading={worklogLoading} />
-          <TopAgentsBar data={worklogCompletion} loading={worklogLoading} />
+          <TopAgentsBar data={worklogCompletion} loading={worklogLoading} onAgentClick={handleAgentClick} />
         </div>
       </section>
 

@@ -3,7 +3,7 @@ import { Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { PRODUCT_COLORS } from './ChartColors';
 
-function TopAgentsBar({ data, loading }) {
+function TopAgentsBar({ data, loading, onAgentClick }) {
   const agentWorklogs = data?.agentWorklogs ?? [];
   const top5          = agentWorklogs.slice(0, 5);
   const maxMinutes    = top5.length > 0 ? top5[0].totalMinutes : 1;
@@ -39,8 +39,19 @@ function TopAgentsBar({ data, loading }) {
             const c      = PRODUCT_COLORS[idx % PRODUCT_COLORS.length];
             const barPct = (agent.totalMinutes / maxMinutes) * 100;
             const hours  = (agent.totalMinutes / 60).toFixed(1);
+            const clickable = onAgentClick && agent.agentId;
+            const handleClick = clickable
+              ? () => onAgentClick({ agentId: agent.agentId, agentName: agent.agentUsername })
+              : undefined;
             return (
-              <div key={agent.agentId} className="flex items-center gap-3">
+              <div
+                key={agent.agentId}
+                className={`flex items-center gap-3 rounded-lg ${clickable ? 'cursor-pointer transition-colors hover:bg-[var(--bg-surface-hover)] -mx-2 px-2 py-1' : ''}`}
+                onClick={handleClick}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } } : undefined}
+              >
                 <div className="w-16 shrink-0 truncate text-xs font-medium sm:w-24 sm:text-sm"
                   style={{ color: 'var(--text-primary)' }}
                   title={agent.agentUsername}>
