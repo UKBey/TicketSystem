@@ -450,7 +450,22 @@ public class TicketService {
                 ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, f.getStatuses(), f.getPriorities(), u)
                 : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
         }
-        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
+        if (isSortByCsat(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findClaimedTicketsFullFilteredOrderByCsatAsc(
+                    ticketIds, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
+                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
+                    f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u)
+                : ticketRepository.findClaimedTicketsFullFilteredOrderByCsatDesc(
+                    ticketIds, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
+                    toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
+                    f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u);
+        }
+        if (hasExtraFilters(f)) {
             return ticketRepository.findClaimedTicketsFullFiltered(
                     ticketIds, statusesOrAll(f), prioritiesOrAll(f), productIdsOrAll(f),
                     toSearchPattern(f.getSearch()), slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f),
@@ -510,7 +525,20 @@ public class TicketService {
                 ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
                 : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
-        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
+        if (isSortByCsat(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFullFilteredOrderByCsatAsc(
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u)
+                : ticketRepository.findTeamTicketsFullFilteredOrderByCsatDesc(
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u);
+        }
+        if (hasExtraFilters(f)) {
             return ticketRepository.findTeamTicketsFullFiltered(
                     productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
                     slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
@@ -554,7 +582,20 @@ public class TicketService {
                 ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
                 : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
-        if (hasExtraFilters(f) || isSortByCsat(pageable)) {
+        if (isSortByCsat(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFullFilteredOrderByCsatAsc(
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u)
+                : ticketRepository.findTeamTicketsFullFilteredOrderByCsatDesc(
+                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
+                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
+                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u);
+        }
+        if (hasExtraFilters(f)) {
             return ticketRepository.findTeamTicketsFullFiltered(
                     productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
                     slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
@@ -816,7 +857,8 @@ public class TicketService {
     private boolean isAscending(Pageable pageable) {
         return pageable.getSort().stream()
                 .filter(order -> "priority".equals(order.getProperty())
-                              || "slaDeadline".equals(order.getProperty()))
+                              || "slaDeadline".equals(order.getProperty())
+                              || "csatRating".equals(order.getProperty()))
                 .findFirst()
                 .map(Sort.Order::isAscending)
                 .orElse(true);
@@ -838,22 +880,17 @@ public class TicketService {
         }
         List<Sort.Order> nativeOrders = pageable.getSort().stream()
                 .map(order -> {
-                    // Sütunlar 't.' ile nitelenir: full-filtered sorgular csat_surveys (cs) ile
-                    // LEFT JOIN içerebilir ve created_at/id gibi adlar iki tabloda da geçer.
                     String col = switch (order.getProperty()) {
-                        case "createdAt"   -> "t.created_at";
-                        case "resolvedAt"  -> "t.resolved_at";
-                        case "closedAt"    -> "t.closed_at";
-                        case "slaDeadline" -> "t.sla_deadline";
-                        case "slaBreached" -> "t.sla_breached";
-                        case "productId"   -> "t.product_id";
-                        case "customerId"  -> "t.customer_id";
-                        case "csatRating"  -> "cs.rating";
-                        default            -> "t." + order.getProperty();
+                        case "createdAt"   -> "created_at";
+                        case "resolvedAt"  -> "resolved_at";
+                        case "closedAt"    -> "closed_at";
+                        case "slaDeadline" -> "sla_deadline";
+                        case "slaBreached" -> "sla_breached";
+                        case "productId"   -> "product_id";
+                        case "customerId"  -> "customer_id";
+                        default            -> order.getProperty();
                     };
-                    Sort.Order mapped = order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
-                    // CSAT'i olmayan biletler her iki yönde de listenin sonuna düşsün.
-                    return "cs.rating".equals(col) ? mapped.nullsLast() : mapped;
+                    return order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
                 })
                 .collect(Collectors.toList());
         return org.springframework.data.domain.PageRequest.of(

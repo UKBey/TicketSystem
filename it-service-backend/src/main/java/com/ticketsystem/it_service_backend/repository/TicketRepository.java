@@ -217,10 +217,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("dateTo")        ZonedDateTime dateTo,
             Pageable pageable);
 
-    /** Tickets claimed by the agent — all filters (incl. optional CSAT rating filter/sort). */
+    /**
+     * Tickets claimed by the agent — all filters. The optional CSAT rating filter is
+     * expressed via a correlated EXISTS so the FROM-clause stays single-root (alias
+     * {@code t}); this keeps native ORDER BY auto-qualification unambiguous.
+     */
     @Query(value = """
-        SELECT t.* FROM tickets t
-        LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+        SELECT * FROM tickets t
         WHERE t.id IN :ticketIds
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
@@ -232,23 +235,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (:agentFilterActive = FALSE
                OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
           AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
-          AND (:csatFilterActive = FALSE OR cs.rating IN (:csatRatings) OR (:csatIncludeNone = TRUE AND cs.rating IS NULL))
-        """,
-        countQuery = """
-        SELECT count(t.id) FROM tickets t
-        LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
-        WHERE t.id IN :ticketIds
-          AND (t.status IN (:statuses))
-          AND (t.priority IN (:priorities))
-          AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
-          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
-          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
-          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (:agentFilterActive = FALSE
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
-          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
-          AND (:csatFilterActive = FALSE OR cs.rating IN (:csatRatings) OR (:csatIncludeNone = TRUE AND cs.rating IS NULL))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
         """, nativeQuery = true)
     Page<Ticket> findClaimedTicketsFullFiltered(
             @Param("ticketIds")     List<Long> ticketIds,
@@ -268,10 +257,87 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("csatIncludeNone") Boolean csatIncludeNone,
             Pageable pageable);
 
-    /** Team tickets — authorized products + all filters (incl. optional CSAT rating filter/sort). */
+    /** Claimed tickets — all filters, ordered by CSAT rating ascending (no survey last). */
     @Query(value = """
-        SELECT t.* FROM tickets t
-        LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+        SELECT * FROM tickets t
+        WHERE t.id IN :ticketIds
+          AND (t.status IN (:statuses))
+          AND (t.priority IN (:priorities))
+          AND (t.product_id IN (:filterProductIds))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
+        ORDER BY (SELECT cs.rating FROM csat_surveys cs WHERE cs.ticket_id = t.id) ASC NULLS LAST
+        """, nativeQuery = true)
+    Page<Ticket> findClaimedTicketsFullFilteredOrderByCsatAsc(
+            @Param("ticketIds")     List<Long> ticketIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            @Param("filterProductIds") List<Long> filterProductIds,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatuses") List<String> slaStatuses,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            @Param("csatFilterActive") Boolean csatFilterActive,
+            @Param("csatRatings")   List<Integer> csatRatings,
+            @Param("csatIncludeNone") Boolean csatIncludeNone,
+            Pageable pageable);
+
+    /** Claimed tickets — all filters, ordered by CSAT rating descending (no survey last). */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.id IN :ticketIds
+          AND (t.status IN (:statuses))
+          AND (t.priority IN (:priorities))
+          AND (t.product_id IN (:filterProductIds))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
+        ORDER BY (SELECT cs.rating FROM csat_surveys cs WHERE cs.ticket_id = t.id) DESC NULLS LAST
+        """, nativeQuery = true)
+    Page<Ticket> findClaimedTicketsFullFilteredOrderByCsatDesc(
+            @Param("ticketIds")     List<Long> ticketIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            @Param("filterProductIds") List<Long> filterProductIds,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatuses") List<String> slaStatuses,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            @Param("csatFilterActive") Boolean csatFilterActive,
+            @Param("csatRatings")   List<Integer> csatRatings,
+            @Param("csatIncludeNone") Boolean csatIncludeNone,
+            Pageable pageable);
+
+    /**
+     * Team tickets — authorized products + all filters. The optional CSAT rating filter
+     * is expressed via a correlated EXISTS so the FROM-clause stays single-root (alias
+     * {@code t}); this keeps native ORDER BY auto-qualification unambiguous.
+     */
+    @Query(value = """
+        SELECT * FROM tickets t
         WHERE t.product_id IN :productIds
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
@@ -283,25 +349,85 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (:agentFilterActive = FALSE
                OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
           AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
-          AND (:csatFilterActive = FALSE OR cs.rating IN (:csatRatings) OR (:csatIncludeNone = TRUE AND cs.rating IS NULL))
-        """,
-        countQuery = """
-        SELECT count(t.id) FROM tickets t
-        LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
-        WHERE t.product_id IN :productIds
-          AND (t.status IN (:statuses))
-          AND (t.priority IN (:priorities))
-          AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
-          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
-          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
-          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
-          AND (:agentFilterActive = FALSE
-               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
-          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
-          AND (:csatFilterActive = FALSE OR cs.rating IN (:csatRatings) OR (:csatIncludeNone = TRUE AND cs.rating IS NULL))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
         """, nativeQuery = true)
     Page<Ticket> findTeamTicketsFullFiltered(
+            @Param("productIds")    List<Long> productIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            @Param("filterProductIds") List<Long> filterProductIds,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatuses") List<String> slaStatuses,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            @Param("csatFilterActive") Boolean csatFilterActive,
+            @Param("csatRatings")   List<Integer> csatRatings,
+            @Param("csatIncludeNone") Boolean csatIncludeNone,
+            Pageable pageable);
+
+    /** Team tickets — all filters, ordered by CSAT rating ascending (no survey last). */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.product_id IN :productIds
+          AND (t.status IN (:statuses))
+          AND (t.priority IN (:priorities))
+          AND (t.product_id IN (:filterProductIds))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
+        ORDER BY (SELECT cs.rating FROM csat_surveys cs WHERE cs.ticket_id = t.id) ASC NULLS LAST
+        """, nativeQuery = true)
+    Page<Ticket> findTeamTicketsFullFilteredOrderByCsatAsc(
+            @Param("productIds")    List<Long> productIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            @Param("filterProductIds") List<Long> filterProductIds,
+            @Param("searchPattern") String searchPattern,
+            @Param("slaStatuses") List<String> slaStatuses,
+            @Param("agentFilterActive") Boolean agentFilterActive,
+            @Param("agentIds")      List<String> agentIds,
+            @Param("topicFilterActive") Boolean topicFilterActive,
+            @Param("topicIds")      List<Long> topicIds,
+            @Param("dateFrom")      ZonedDateTime dateFrom,
+            @Param("dateTo")        ZonedDateTime dateTo,
+            @Param("csatFilterActive") Boolean csatFilterActive,
+            @Param("csatRatings")   List<Integer> csatRatings,
+            @Param("csatIncludeNone") Boolean csatIncludeNone,
+            Pageable pageable);
+
+    /** Team tickets — all filters, ordered by CSAT rating descending (no survey last). */
+    @Query(value = """
+        SELECT * FROM tickets t
+        WHERE t.product_id IN :productIds
+          AND (t.status IN (:statuses))
+          AND (t.priority IN (:priorities))
+          AND (t.product_id IN (:filterProductIds))
+          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
+          AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
+          AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
+          AND (:agentFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id IN (:agentIds)))
+          AND (:topicFilterActive = FALSE OR t.topic_id IN (:topicIds))
+          AND (:csatFilterActive = FALSE
+               OR EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id AND cs.rating IN (:csatRatings))
+               OR (:csatIncludeNone = TRUE AND NOT EXISTS (SELECT 1 FROM csat_surveys cs WHERE cs.ticket_id = t.id)))
+        ORDER BY (SELECT cs.rating FROM csat_surveys cs WHERE cs.ticket_id = t.id) DESC NULLS LAST
+        """, nativeQuery = true)
+    Page<Ticket> findTeamTicketsFullFilteredOrderByCsatDesc(
             @Param("productIds")    List<Long> productIds,
             @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
