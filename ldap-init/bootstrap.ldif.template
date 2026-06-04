@@ -5,10 +5,11 @@
 # username <- uid. Roller buradaki LDAP girdisinden GELMEZ; Keycloak'a federasyon
 # sonrası `keycloak-init/seed-roles.sh` (make seed-roles) ile atanır.
 #
-# Şifreler dev ortamında hepsi aynıdır (.env: 321654). Her rol ailesi kendi
-# şifre değişkenini kullanır: CUSTOMER, AGENT, LEAD_AGENT, ADMIN_USER, MANAGER
-# (entrypoint-wrapper.sh bu 5 değişkeni substitute eder). NOT: LDAP_ADMIN_PASSWORD
-# bunlardan farklıdır — LDAP dizininin bind/admin (cn=admin) şifresidir.
+# Şifreler dev ortamında hepsi aynıdır (.env: 321654). HER seed kullanıcısının
+# KENDİ şifre değişkeni vardır (uid bazlı): CUSTOMER, AGENT, LEAD, MANAGER,
+# ADMIN_USER, ADMINMANAGER, LEADMANAGER, SUPERADMIN (entrypoint-wrapper.sh bu 8
+# değişkeni substitute eder). NOT: LDAP_ADMIN_PASSWORD bunlardan farklıdır —
+# LDAP dizininin bind/admin (cn=admin) şifresidir.
 # =============================================================================
 
 # Kullanıcılar için Organizasyon Birimi (OU)
@@ -43,7 +44,7 @@ uid: lead
 cn: Lead
 sn: Agent
 mail: lead@ticketsystem.com
-userPassword: ${LDAP_LEAD_AGENT_PASSWORD}
+userPassword: ${LDAP_LEAD_PASSWORD}
 
 # manager → MANAGER (gözetim/raporlama)
 dn: uid=manager,ou=users,dc=ticketsystem,dc=com
@@ -72,7 +73,7 @@ uid: adminmanager
 cn: Admin
 sn: Manager
 mail: adminmanager@ticketsystem.com
-userPassword: ${LDAP_ADMIN_USER_PASSWORD}
+userPassword: ${LDAP_ADMINMANAGER_PASSWORD}
 
 # leadmanager → LEAD_AGENT + MANAGER (ürün ekibi liderliği + global gözetim)
 dn: uid=leadmanager,ou=users,dc=ticketsystem,dc=com
@@ -81,7 +82,7 @@ uid: leadmanager
 cn: Lead
 sn: Manager
 mail: leadmanager@ticketsystem.com
-userPassword: ${LDAP_LEAD_AGENT_PASSWORD}
+userPassword: ${LDAP_LEADMANAGER_PASSWORD}
 
 # superadmin → ADMIN + LEAD_AGENT + MANAGER (tam yetki; eski aatest karşılığı)
 dn: uid=superadmin,ou=users,dc=ticketsystem,dc=com
@@ -90,4 +91,4 @@ uid: superadmin
 cn: Super
 sn: Admin
 mail: superadmin@ticketsystem.com
-userPassword: ${LDAP_ADMIN_USER_PASSWORD}
+userPassword: ${LDAP_SUPERADMIN_PASSWORD}
