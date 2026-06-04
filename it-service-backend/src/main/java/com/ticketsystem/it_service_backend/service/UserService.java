@@ -132,6 +132,11 @@ public class UserService {
      * {@link #APP_ROLES}, de-duplicates, and drops the redundant {@code AGENT} when
      * {@code LEAD_AGENT} is present — LEAD_AGENT is a Keycloak composite that already
      * includes AGENT, so the two are never assigned together.
+     *
+     * <p>{@code CUSTOMER} is a <b>singleton</b> role: an end-user who opens tickets can never
+     * also be staff (agent/lead/admin/manager). Combining {@code CUSTOMER} with any other role
+     * is rejected with {@code 400} so the two identity contexts (customer vs. staff) stay
+     * mutually exclusive.
      */
     public static List<String> normalizeAssignableRoles(List<String> roles) {
         if (roles == null) return java.util.List.of();
@@ -143,6 +148,9 @@ public class UserService {
                 .collect(java.util.stream.Collectors.toList());
         if (valid.contains("LEAD_AGENT")) {
             valid.removeIf("AGENT"::equals);
+        }
+        if (valid.contains("CUSTOMER") && valid.size() > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.role.customer.exclusive");
         }
         return valid;
     }

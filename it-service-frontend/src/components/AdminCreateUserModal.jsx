@@ -130,6 +130,9 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
         return { ...prev, roles: prev.roles.filter((r) => r !== roleName) };
       }
       let next = [...prev.roles, roleName];
+      // customer tekil roldür: müşteri başka hiçbir rolle birlikte olamaz.
+      if (roleName === 'CUSTOMER') return { ...prev, roles: ['CUSTOMER'] };
+      next = next.filter((r) => r !== 'CUSTOMER');
       // agent ↔ lead_agent karşılıklı dışlama: lead zaten agent'ı kapsar.
       if (roleName === 'LEAD_AGENT') next = next.filter((r) => r !== 'AGENT');
       if (roleName === 'AGENT') next = next.filter((r) => r !== 'LEAD_AGENT');

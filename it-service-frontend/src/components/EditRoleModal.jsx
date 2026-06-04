@@ -52,6 +52,9 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
     setSelectedRoles((prev) => {
       if (prev.includes(roleName)) return prev.filter((r) => r !== roleName);
       let next = [...prev, roleName];
+      // customer tekil roldür: müşteri başka hiçbir rolle birlikte olamaz.
+      if (roleName === 'CUSTOMER') return ['CUSTOMER'];
+      next = next.filter((r) => r !== 'CUSTOMER');
       // agent ↔ lead_agent karşılıklı dışlama: lead zaten agent'ı kapsar.
       if (roleName === 'LEAD_AGENT') next = next.filter((r) => r !== 'AGENT');
       if (roleName === 'AGENT') next = next.filter((r) => r !== 'LEAD_AGENT');

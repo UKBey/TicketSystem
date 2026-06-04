@@ -347,11 +347,11 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"), "actor-admin");
+        User result = userService.updateUserRoles("agent-1", List.of("ADMIN", "AGENT"), "actor-admin");
 
         // Legacy ADMIN now resolves to the new ADMIN role (highest priority).
         assertThat(result.getRole()).isEqualTo("ADMIN");
-        verify(keycloakAdminService).updateUserRoles("agent-1", List.of("CUSTOMER", "ADMIN", "AGENT"));
+        verify(keycloakAdminService).updateUserRoles("agent-1", List.of("ADMIN", "AGENT"));
     }
 
     @Test
@@ -391,9 +391,22 @@ class UserServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        User result = userService.updateUserRoles("agent-1", List.of("MANAGER", "CUSTOMER"), "actor-admin");
+        User result = userService.updateUserRoles("agent-1", List.of("MANAGER"), "actor-admin");
 
         assertThat(result.getRole()).isEqualTo("MANAGER");
+    }
+
+    @Test
+    @DisplayName("updateUserRoles → CUSTOMER + başka rol → 400 (müşteri tekil roldür)")
+    void updateUserRoles_customerWithOtherRole_rejected() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+
+        org.springframework.web.server.ResponseStatusException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.updateUserRoles("agent-1", List.of("CUSTOMER", "AGENT"), "actor-admin"));
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        verify(keycloakAdminService, org.mockito.Mockito.never()).updateUserRoles(any(), any());
     }
 
     @Test
