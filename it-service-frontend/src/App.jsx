@@ -11,6 +11,8 @@ import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import MyTickets from './pages/customer/MyTickets';
+import CustomerDashboard from './pages/customer/CustomerDashboard';
+import AgentDashboard from './pages/agent/AgentDashboard';
 import Pool from './pages/agent/Pool';
 import Workspace from './pages/agent/Workspace';
 import History from './pages/agent/History';
@@ -67,9 +69,11 @@ function HomeRedirect() {
       return <Navigate to="/dashboard" replace />;
     case 'LEAD_AGENT':
     case 'AGENT':
-      return <Navigate to="/workspace" replace />;
+      // Kişisel performans dashboard'u artık ajan/lead için açılış sayfası.
+      return <Navigate to="/my-performance" replace />;
     case 'CUSTOMER':
-      return <Navigate to="/my-tickets" replace />;
+      // Kişisel genel bakış müşteri için açılış sayfası.
+      return <Navigate to="/overview" replace />;
     default:
       return <Navigate to="/no-role" replace />;
   }
@@ -106,6 +110,14 @@ export default function App() {
 
         {/* Musteri rolune acik alanlar. */}
         <Route
+          path="/overview"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER']}>
+              <AppLayout><CustomerDashboard /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/my-tickets"
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER']}>
@@ -115,6 +127,14 @@ export default function App() {
         />
 
         {/* Agent, lead_agent ve admin'in kullandigi calisma ekranlari. */}
+        <Route
+          path="/my-performance"
+          element={
+            <ProtectedRoute allowedRoles={['AGENT', 'LEAD_AGENT']}>
+              <AppLayout><AgentDashboard /></AppLayout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/workspace"
           element={

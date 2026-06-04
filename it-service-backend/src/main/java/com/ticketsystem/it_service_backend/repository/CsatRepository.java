@@ -113,4 +113,14 @@ public interface CsatRepository extends JpaRepository<Csat, Long> {
                                                     @Param("filterByProduct") boolean filterByProduct,
                                                     @Param("productIds") List<Long> productIds,
                                                     Pageable pageable);
+
+    /**
+     * CSAT the given customer submitted — joins {@code csat_surveys} to {@code tickets}
+     * filtered by the ticket's customer. Returns one row {@code [avg_rating, count]};
+     * avg is 0 when the customer has no surveys.
+     */
+    @Query(value = "SELECT COALESCE(AVG(CAST(c.rating AS DOUBLE PRECISION)), 0), COUNT(c.id) FROM csat_surveys c "
+         + "JOIN tickets t ON t.id = c.ticket_id "
+         + "WHERE t.customer_id = CAST(:customerId AS text)", nativeQuery = true)
+    List<Object[]> findCustomerCsat(@Param("customerId") String customerId);
 }

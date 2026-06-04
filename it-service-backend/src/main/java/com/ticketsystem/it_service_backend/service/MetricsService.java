@@ -1,8 +1,11 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
 import com.ticketsystem.it_service_backend.dto.AlertTicketItemDTO;
+import com.ticketsystem.it_service_backend.dto.CustomerDashboardDTO;
+import com.ticketsystem.it_service_backend.dto.RecentTicketDTO;
 import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
 import com.ticketsystem.it_service_backend.dto.BacklogMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
@@ -194,6 +197,14 @@ public class MetricsService {
                 List<Object[]> rawRows = ticketRepository.countTicketsGroupedByStatusScoped(
                                 filterByProduct(productIds), safeProductIds(productIds));
 
+                return buildStatusDistribution(rawRows);
+        }
+
+        /**
+         * Builds a {@link StatusDistributionDTO} from {@code [status, count]} rows. Shared
+         * by the global/scoped manager view and the personal (customer/agent) dashboards.
+         */
+        private StatusDistributionDTO buildStatusDistribution(List<Object[]> rawRows) {
                 StatusDistributionDTO.StatusDistributionDTOBuilder builder = StatusDistributionDTO.builder()
                                 .newCount(0L)
                                 .inProgressCount(0L)
@@ -369,6 +380,19 @@ public class MetricsService {
         List<Object[]> rawRows = ticketRepository.getTicketTimelineMetricsScoped(
                 safeDays, filterByProduct(productIds), safeProductIds(productIds));
 
+        TicketTimelineDTO result = buildTimeline(rawRows);
+
+        log.info("Ticket timeline hesaplandı: {} günlük veri elde edildi", result.getTimeline().size());
+
+        return result;
+    }
+
+    /**
+     * Maps {@code [date, created, resolved, closed, slaBreach]} rows into a
+     * {@link TicketTimelineDTO}. Shared by the global/scoped manager timeline and the
+     * personal (customer/agent) timelines.
+     */
+    private TicketTimelineDTO buildTimeline(List<Object[]> rawRows) {
         List<DailyMetricsDTO> timeline = rawRows.stream()
                 .map(row -> DailyMetricsDTO.builder()
                         .date(convertToLocalDate(row[0]))
@@ -378,8 +402,6 @@ public class MetricsService {
                         .slaBreach(((Number) row[4]).longValue())
                         .build())
                 .toList();
-
-        log.info("Ticket timeline hesaplandı: {} günlük veri elde edildi", timeline.size());
 
         return TicketTimelineDTO.builder()
                 .timeline(timeline)
@@ -738,5 +760,142 @@ public class MetricsService {
                         .slaComplianceRate(slaComplianceRate != null ? slaComplianceRate : 0.0)
                         .build())
                 .build();
+    }
+
+    // =========================================================================
+    // Kişisel dashboard'lar — ilişki bazlı kapsam (customer_id / claim agent_id).
+    // Aynı kullanıcının müşteri-aktivitesi ile ajan-aktivitesi birbirine karışmaz.
+    // =========================================================================
+
+    private static final int DEFAULT_DASHBOARD_DAYS = 30;
+
+    /** Clamps a nullable day window into [1, 365]; null → {@value #DEFAULT_DASHBOARD_DAYS}. */
+    private static int safeDays(Integer days) {
+        if (days == null) return DEFAULT_DASHBOARD_DAYS;
+        return Math.min(Math.max(days, 1), 365);
+    }
+
+    /**
+     * Personal dashboard for the customer who opened the tickets. Scoped strictly to
+     * {@code tickets.customer_id = customerId}, so it never reflects any agent activity
+     * the same user id may have.
+     */
+    @Cacheable(value = ME_CUSTOMER_DASHBOARD, key = "#customerId + ':' + (#days == null ? 'all' : #days)")
+    public CustomerDashboardDTO getMyCustomerDashboard(String customerId, Integer days) {
+        log.info("Müşteri kişisel dashboard hesaplanıyor (customer={}, days={})", customerId, days);
+        int window = safeDays(days);
+
+        StatusDistributionDTO dist = buildStatusDistribution(
+                ticketRepository.countTicketsGroupedByStatusForCustomer(customerId));
+        long open = dist.getNewCount() + dist.getInProgressCount() + dist.getWaitingForCustomerCount();
+        long resolvedClosed = dist.getResolvedCount() + dist.getClosedCount();
+
+        Long slaBreached = ticketRepository.countSlaBreachedByCustomerAndStatusIn(customerId, OPEN_STATUSES);
+        Double avgResolution = ticketRepository.findAvgResolutionHoursForCustomer(customerId);
+
+        double csatAvg = 0.0;
+        long csatCount = 0L;
+        List<Object[]> csatRows = csatRepository.findCustomerCsat(customerId);
+        if (!csatRows.isEmpty()) {
+            Object[] row = csatRows.get(0);
+            csatAvg = row[0] != null ? ((Number) row[0]).doubleValue() : 0.0;
+            csatCount = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+        }
+
+        TicketTimelineDTO timeline = buildTimeline(
+                ticketRepository.getCustomerTicketTimelineMetrics(window, customerId));
+
+        List<RecentTicketDTO> recent = ticketRepository
+                .findRecentByCustomerId(customerId, PageRequest.of(0, 5)).stream()
+                .map(this::toRecentTicket)
+                .toList();
+
+        return CustomerDashboardDTO.builder()
+                .totalTickets(dist.getTotalCount())
+                .openTickets(open)
+                .resolvedTickets(resolvedClosed)
+                .slaBreachedCount(slaBreached != null ? slaBreached : 0L)
+                .avgResolutionHours(avgResolution != null ? avgResolution : 0.0)
+                .csatAverage(csatAvg)
+                .csatCount(csatCount)
+                .statusDistribution(dist)
+                .timeline(timeline)
+                .recentTickets(recent)
+                .build();
+    }
+
+    /**
+     * Personal performance dashboard for an agent / lead agent. Scoped strictly to the
+     * tickets the user holds a claim on ({@code ticket_claims.agent_id = agentId}) plus
+     * their own worklogs — independent of any tickets the same user opened as a customer.
+     */
+    @Cacheable(value = ME_AGENT_DASHBOARD, key = "#agentId + ':' + (#days == null ? 'all' : #days)")
+    public AgentDashboardDTO getMyAgentDashboard(String agentId, Integer days) {
+        log.info("Ajan kişisel dashboard hesaplanıyor (agent={}, days={})", agentId, days);
+        int window = safeDays(days);
+        ZonedDateTime now = ZonedDateTime.now();
+
+        List<Object[]> rows = ticketRepository.findAgentSelfMetrics(
+                agentId, now.minusHours(24), now.minusDays(7), now.minusDays(30));
+        Object[] m = rows.isEmpty() ? null : rows.get(0);
+
+        long active        = asLong(m, 0);
+        long resolved24h   = asLong(m, 1);
+        long resolved7d    = asLong(m, 2);
+        long resolved30d   = asLong(m, 3);
+        long slaBreached   = asLong(m, 4);
+        long totalClaimed  = asLong(m, 5);
+        double avgResolution = asDouble(m, 6);
+        double csatAvg     = asDouble(m, 7);
+        long csatCount     = asLong(m, 8);
+        double slaBreachRate = totalClaimed > 0 ? (double) slaBreached / totalClaimed * 100.0 : 0.0;
+
+        long worklogMinutes = worklogRepository.sumAgentWorklogMinutesSince(agentId, now.minusDays(7));
+
+        StatusDistributionDTO dist = buildStatusDistribution(
+                ticketRepository.countClaimedTicketsGroupedByStatus(agentId));
+
+        TicketTimelineDTO timeline = buildTimeline(
+                ticketRepository.getAgentTicketTimelineMetrics(window, agentId));
+
+        List<RecentTicketDTO> recent = ticketRepository
+                .findRecentClaimedByAgent(agentId, PageRequest.of(0, 5)).stream()
+                .map(this::toRecentTicket)
+                .toList();
+
+        return AgentDashboardDTO.builder()
+                .activeTickets(active)
+                .totalClaimed(totalClaimed)
+                .resolvedLast24Hours(resolved24h)
+                .resolvedLast7Days(resolved7d)
+                .resolvedLast30Days(resolved30d)
+                .slaBreachedCount(slaBreached)
+                .slaBreachRate(slaBreachRate)
+                .avgResolutionHours(avgResolution)
+                .worklogMinutesLast7Days(worklogMinutes)
+                .csatAverage(csatAvg)
+                .csatCount(csatCount)
+                .statusDistribution(dist)
+                .timeline(timeline)
+                .recentTickets(recent)
+                .build();
+    }
+
+    private RecentTicketDTO toRecentTicket(Ticket t) {
+        return RecentTicketDTO.builder()
+                .id(t.getId())
+                .title(t.getTitle())
+                .status(t.getStatus())
+                .priority(t.getPriority())
+                .createdAt(t.getCreatedAt())
+                .build();
+    }
+
+    private static long asLong(Object[] row, int idx) {
+        return (row == null || row[idx] == null) ? 0L : ((Number) row[idx]).longValue();
+    }
+
+    private static double asDouble(Object[] row, int idx) {
+        return (row == null || row[idx] == null) ? 0.0 : ((Number) row[idx]).doubleValue();
     }
 }

@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
 import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.CustomerDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
@@ -595,6 +597,140 @@ class MetricsServiceTest {
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(9999, null, "global");
 
             assertThat(dto.getPeriodDays()).isEqualTo(365);
+        }
+    }
+
+    // =========================================================================
+    // getMyCustomerDashboard — kişisel müşteri dashboard'u (customer_id kapsamlı)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getMyCustomerDashboard()")
+    class GetMyCustomerDashboard {
+
+        @Test
+        @DisplayName("status rows + CSAT maplenir, open/resolved türetilir")
+        void mapsRowsAndDerivesTotals() {
+            String customer = "cust-1";
+            when(ticketRepository.countTicketsGroupedByStatusForCustomer(customer)).thenReturn(List.of(
+                    new Object[]{"NEW", 2L},
+                    new Object[]{"IN_PROGRESS", 1L},
+                    new Object[]{"RESOLVED", 5L},
+                    new Object[]{"CLOSED", 3L}
+            ));
+            when(ticketRepository.countSlaBreachedByCustomerAndStatusIn(eq(customer), anyList())).thenReturn(1L);
+            when(ticketRepository.findAvgResolutionHoursForCustomer(customer)).thenReturn(6.5);
+            when(csatRepository.findCustomerCsat(customer)).thenReturn(List.<Object[]>of(new Object[]{4.5, 10L}));
+            when(ticketRepository.getCustomerTicketTimelineMetrics(anyInt(), eq(customer))).thenReturn(List.<Object[]>of(
+                    new Object[]{LocalDate.of(2026, 1, 1), 1L, 2L, 0L, 0L}
+            ));
+            when(ticketRepository.findRecentByCustomerId(eq(customer), any())).thenReturn(List.of(
+                    Ticket.builder().id(9L).title("VPN").status("RESOLVED").priority("HIGH")
+                            .createdAt(ZonedDateTime.now()).build()
+            ));
+
+            CustomerDashboardDTO dto = metricsService.getMyCustomerDashboard(customer, 30);
+
+            assertThat(dto.getTotalTickets()).isEqualTo(11L);
+            assertThat(dto.getOpenTickets()).isEqualTo(3L);
+            assertThat(dto.getResolvedTickets()).isEqualTo(8L);
+            assertThat(dto.getSlaBreachedCount()).isEqualTo(1L);
+            assertThat(dto.getAvgResolutionHours()).isEqualTo(6.5);
+            assertThat(dto.getCsatAverage()).isEqualTo(4.5);
+            assertThat(dto.getCsatCount()).isEqualTo(10L);
+            assertThat(dto.getStatusDistribution().getNewCount()).isEqualTo(2L);
+            assertThat(dto.getTimeline().getTimeline()).hasSize(1);
+            assertThat(dto.getRecentTickets()).hasSize(1);
+            assertThat(dto.getRecentTickets().get(0).getTitle()).isEqualTo("VPN");
+        }
+
+        @Test
+        @DisplayName("CSAT yoksa ve avg null ise 0 döner, boş listeler")
+        void noDataDefaultsToZero() {
+            String customer = "cust-2";
+            when(ticketRepository.countTicketsGroupedByStatusForCustomer(customer)).thenReturn(Collections.emptyList());
+            when(ticketRepository.countSlaBreachedByCustomerAndStatusIn(eq(customer), anyList())).thenReturn(0L);
+            when(ticketRepository.findAvgResolutionHoursForCustomer(customer)).thenReturn(null);
+            when(csatRepository.findCustomerCsat(customer)).thenReturn(List.<Object[]>of(new Object[]{0.0, 0L}));
+            when(ticketRepository.getCustomerTicketTimelineMetrics(anyInt(), eq(customer))).thenReturn(Collections.emptyList());
+            when(ticketRepository.findRecentByCustomerId(eq(customer), any())).thenReturn(Collections.emptyList());
+
+            CustomerDashboardDTO dto = metricsService.getMyCustomerDashboard(customer, null);
+
+            assertThat(dto.getTotalTickets()).isZero();
+            assertThat(dto.getAvgResolutionHours()).isEqualTo(0.0);
+            assertThat(dto.getCsatAverage()).isEqualTo(0.0);
+            assertThat(dto.getCsatCount()).isZero();
+            assertThat(dto.getRecentTickets()).isEmpty();
+        }
+    }
+
+    // =========================================================================
+    // getMyAgentDashboard — kişisel ajan performansı (claim agent_id kapsamlı)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getMyAgentDashboard()")
+    class GetMyAgentDashboard {
+
+        @Test
+        @DisplayName("self metrik satırı maplenir, SLA ihlal oranı hesaplanır")
+        void mapsRowAndComputesRate() {
+            String agent = "agent-1";
+            // [active, resolved24, resolved7, resolved30, slaBreached, totalClaimed, avgRes, csatAvg, csatCount]
+            when(ticketRepository.findAgentSelfMetrics(eq(agent), any(), any(), any())).thenReturn(List.<Object[]>of(
+                    new Object[]{7L, 3L, 18L, 64L, 4L, 120L, 5.1, 4.4, 52L}
+            ));
+            when(worklogRepository.sumAgentWorklogMinutesSince(eq(agent), any(ZonedDateTime.class))).thenReturn(640L);
+            when(ticketRepository.countClaimedTicketsGroupedByStatus(agent)).thenReturn(List.<Object[]>of(
+                    new Object[]{"IN_PROGRESS", 7L},
+                    new Object[]{"RESOLVED", 50L}
+            ));
+            when(ticketRepository.getAgentTicketTimelineMetrics(anyInt(), eq(agent))).thenReturn(List.<Object[]>of(
+                    new Object[]{LocalDate.of(2026, 1, 1), 1L, 1L, 0L, 0L}
+            ));
+            when(ticketRepository.findRecentClaimedByAgent(eq(agent), any())).thenReturn(List.of(
+                    Ticket.builder().id(3L).title("Mail").status("IN_PROGRESS").priority("MEDIUM")
+                            .createdAt(ZonedDateTime.now()).build()
+            ));
+
+            AgentDashboardDTO dto = metricsService.getMyAgentDashboard(agent, 7);
+
+            assertThat(dto.getActiveTickets()).isEqualTo(7L);
+            assertThat(dto.getResolvedLast24Hours()).isEqualTo(3L);
+            assertThat(dto.getResolvedLast7Days()).isEqualTo(18L);
+            assertThat(dto.getResolvedLast30Days()).isEqualTo(64L);
+            assertThat(dto.getSlaBreachedCount()).isEqualTo(4L);
+            assertThat(dto.getTotalClaimed()).isEqualTo(120L);
+            assertThat(dto.getAvgResolutionHours()).isEqualTo(5.1);
+            assertThat(dto.getSlaBreachRate()).isBetween(3.3, 3.4); // 4/120*100
+            assertThat(dto.getWorklogMinutesLast7Days()).isEqualTo(640L);
+            assertThat(dto.getCsatAverage()).isEqualTo(4.4);
+            assertThat(dto.getCsatCount()).isEqualTo(52L);
+            assertThat(dto.getStatusDistribution().getResolvedCount()).isEqualTo(50L);
+            assertThat(dto.getTimeline().getTimeline()).hasSize(1);
+            assertThat(dto.getRecentTickets()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("claim yoksa hepsi 0, oran 0")
+        void noClaimsDefaultsToZero() {
+            String agent = "agent-2";
+            when(ticketRepository.findAgentSelfMetrics(eq(agent), any(), any(), any())).thenReturn(List.<Object[]>of(
+                    new Object[]{0L, 0L, 0L, 0L, 0L, 0L, 0.0, 0.0, 0L}
+            ));
+            when(worklogRepository.sumAgentWorklogMinutesSince(eq(agent), any(ZonedDateTime.class))).thenReturn(0L);
+            when(ticketRepository.countClaimedTicketsGroupedByStatus(agent)).thenReturn(Collections.emptyList());
+            when(ticketRepository.getAgentTicketTimelineMetrics(anyInt(), eq(agent))).thenReturn(Collections.emptyList());
+            when(ticketRepository.findRecentClaimedByAgent(eq(agent), any())).thenReturn(Collections.emptyList());
+
+            AgentDashboardDTO dto = metricsService.getMyAgentDashboard(agent, 30);
+
+            assertThat(dto.getActiveTickets()).isZero();
+            assertThat(dto.getTotalClaimed()).isZero();
+            assertThat(dto.getSlaBreachRate()).isEqualTo(0.0);
+            assertThat(dto.getWorklogMinutesLast7Days()).isZero();
+            assertThat(dto.getRecentTickets()).isEmpty();
         }
     }
 }

@@ -48,4 +48,10 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
     List<Object[]> findAgentWorklogSummaryScoped(@Param("since") ZonedDateTime since,
                                                  @Param("filterByProduct") boolean filterByProduct,
                                                  @Param("productIds") List<Long> productIds);
+
+    /** Total worklog minutes a single agent logged since the given date (0 when none). */
+    @Query("SELECT COALESCE(SUM(w.minutes), 0) FROM TicketWorklog w "
+         + "WHERE w.agentId = :agentId AND w.createdAt >= :since")
+    long sumAgentWorklogMinutesSince(@Param("agentId") String agentId,
+                                     @Param("since") ZonedDateTime since);
 }

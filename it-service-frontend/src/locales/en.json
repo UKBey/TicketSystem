@@ -17,6 +17,8 @@
     "language": { "label": "Language", "en": "English", "tr": "Turkish" }
   },
   "sidebar": {
+    "overview": "Overview",
+    "myPerformance": "My Performance",
     "myTickets": "My Tickets",
     "createTicket": "Create Ticket",
     "workspace": "Workspace",
@@ -717,6 +719,46 @@
       "agentLimitsUnlimited": "Unlimited",
       "agentLimitsNoProducts": "This agent has no authorized products."
     }
+  },
+  "customerDashboard": {
+    "badge": "My Overview",
+    "heading": "Your support at a glance",
+    "description": "A snapshot of the tickets you've opened — status, SLA, resolution time and your satisfaction ratings.",
+    "loadError": "Could not load your dashboard.",
+    "kpiOpen": "Open Tickets",
+    "kpiOpenDetail": "{{count}} total opened",
+    "kpiResolved": "Resolved",
+    "kpiResolvedDetail": "Avg {{hours}} to resolve",
+    "kpiSla": "SLA Breached",
+    "kpiSlaDetail": "Among your open tickets",
+    "kpiCsat": "My CSAT",
+    "kpiCsatDetail": "{{count}} ratings given",
+    "trendBadge": "Trend Chart",
+    "trendTitle": "Opened, Resolved, Closed & SLA Breach",
+    "trendSubtitle": "Your ticket activity over the selected period.",
+    "seriesOpened": "Opened",
+    "recentTitle": "My recent tickets",
+    "recentEmpty": "You haven't opened any tickets yet."
+  },
+  "agentDashboard": {
+    "badge": "My Performance",
+    "heading": "Your performance at a glance",
+    "description": "A snapshot of the tickets you've claimed — workload, resolutions, SLA, logged work and customer satisfaction.",
+    "loadError": "Could not load your dashboard.",
+    "kpiActive": "Active Tickets",
+    "kpiActiveDetail": "{{count}} claimed in total",
+    "kpiResolved": "Resolved (7d)",
+    "kpiResolvedDetail": "{{count}} in 30d · {{hours}}h logged (7d)",
+    "kpiResolution": "Avg Resolution",
+    "kpiResolutionDetail": "SLA breach rate {{rate}}%",
+    "kpiCsat": "My CSAT",
+    "kpiCsatDetail": "{{count}} ratings",
+    "trendBadge": "Trend Chart",
+    "trendTitle": "Claimed, Resolved, Closed & SLA Breach",
+    "trendSubtitle": "Your ticket activity over the selected period.",
+    "seriesClaimed": "Claimed",
+    "recentTitle": "My recent tickets",
+    "recentEmpty": "You haven't claimed any tickets yet."
   },
   "dashboard": {
     "title": "Dashboard",

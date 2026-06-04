@@ -49,6 +49,18 @@ async function getWorklogCompletion(days = 30) {
   return response.data;
 }
 
+// Kişisel dashboard'lar — self-scoped (JWT subject). Müşteri kendi açtığı,
+// ajan kendi claim'lediği biletler üzerinden metrik görür.
+async function getMyCustomerDashboard(days = 30) {
+  const response = await api.get('/metrics/me/customer', { params: { days } });
+  return response.data;
+}
+
+async function getMyAgentDashboard(days = 30) {
+  const response = await api.get('/metrics/me/agent', { params: { days } });
+  return response.data;
+}
+
 export default {
   getDashboardSummary,
   getStatusDistribution,
@@ -59,4 +71,6 @@ export default {
   getCSATMetrics,
   getAlertsAndBacklog,
   getWorklogCompletion,
+  getMyCustomerDashboard,
+  getMyAgentDashboard,
 };

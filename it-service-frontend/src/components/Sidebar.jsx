@@ -9,6 +9,7 @@ import {
   Users,
   UserPlus,
   LayoutDashboard,
+  Gauge,
   Settings,
   Package,
   LifeBuoy,
@@ -125,15 +126,25 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {/* Customer section */}
         {isCustomer && (
-          <NavLink to="/my-tickets" className={linkClassName} onClick={handleNavClick}>
-            <TicketCheck className="h-[18px] w-[18px] flex-shrink-0" />
-            <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.myTickets')}</span>
-          </NavLink>
+          <>
+            <NavLink to="/overview" className={linkClassName} onClick={handleNavClick}>
+              <Gauge className="h-[18px] w-[18px] flex-shrink-0" />
+              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.overview')}</span>
+            </NavLink>
+            <NavLink to="/my-tickets" className={linkClassName} onClick={handleNavClick}>
+              <TicketCheck className="h-[18px] w-[18px] flex-shrink-0" />
+              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.myTickets')}</span>
+            </NavLink>
+          </>
         )}
 
         {/* Operasyonel bölüm — agent + lead agent */}
         {showOperational && (
           <>
+            <NavLink to="/my-performance" className={linkClassName} onClick={handleNavClick}>
+              <Gauge className="h-[18px] w-[18px] flex-shrink-0" />
+              <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.myPerformance')}</span>
+            </NavLink>
             <NavLink to="/workspace" className={linkClassName} onClick={handleNavClick}>
               <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
               <span className={collapsed ? 'md:hidden' : ''}>{t('sidebar.workspace')}</span>

@@ -32,6 +32,10 @@ public class CacheConfig {
     public static final String CSAT_METRICS           = "csatMetrics";
     public static final String WORKLOG_COMPLETION     = "worklogCompletion";
 
+    // Kişisel dashboard'lar — kullanıcı (+ gün penceresi) bazında anahtarlanır.
+    public static final String ME_CUSTOMER_DASHBOARD  = "meCustomerDashboard";
+    public static final String ME_AGENT_DASHBOARD     = "meAgentDashboard";
+
     // Rate limit config'leri; interceptor her istek öncesi okur.
     // @CacheEvict admin güncellemesinde anında geçersiz kılar; TTL sadece fallback.
     public static final String RATE_LIMIT_CONFIGS     = "rateLimitConfigs";
@@ -55,6 +59,8 @@ public class CacheConfig {
                 PRODUCT_METRICS,
                 CSAT_METRICS,
                 WORKLOG_COMPLETION,
+                ME_CUSTOMER_DASHBOARD,
+                ME_AGENT_DASHBOARD,
                 RATE_LIMIT_CONFIGS,
                 "metrics"
         );

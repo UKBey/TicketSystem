@@ -17,6 +17,8 @@
     "close": "Kapat"
   },
   "sidebar": {
+    "overview": "Genel Bakış",
+    "myPerformance": "Performansım",
     "myTickets": "Biletlerim",
     "createTicket": "Bilet Oluştur",
     "workspace": "Çalışma Alanım",
@@ -717,6 +719,46 @@
       "agentLimitsUnlimited": "Limitsiz",
       "agentLimitsNoProducts": "Bu agent'ın yetkili ürünü yok."
     }
+  },
+  "customerDashboard": {
+    "badge": "Genel Bakış",
+    "heading": "Desteğiniz bir bakışta",
+    "description": "Açtığınız biletlerin özeti — durum, SLA, çözüm süresi ve verdiğiniz memnuniyet puanları.",
+    "loadError": "Panel yüklenemedi.",
+    "kpiOpen": "Açık Biletler",
+    "kpiOpenDetail": "Toplam {{count}} açılan",
+    "kpiResolved": "Çözülen",
+    "kpiResolvedDetail": "Ort. {{hours}} çözüm",
+    "kpiSla": "SLA İhlali",
+    "kpiSlaDetail": "Açık biletleriniz içinde",
+    "kpiCsat": "CSAT'ım",
+    "kpiCsatDetail": "{{count}} puan verildi",
+    "trendBadge": "Trend Grafiği",
+    "trendTitle": "Açılan, Çözülen, Kapanan & SLA İhlali",
+    "trendSubtitle": "Seçili dönemdeki bilet aktiviteniz.",
+    "seriesOpened": "Açılan",
+    "recentTitle": "Son biletlerim",
+    "recentEmpty": "Henüz hiç bilet açmadınız."
+  },
+  "agentDashboard": {
+    "badge": "Performansım",
+    "heading": "Performansınız bir bakışta",
+    "description": "Claim'lediğiniz biletlerin özeti — iş yükü, çözümler, SLA, kaydedilen çalışma ve müşteri memnuniyeti.",
+    "loadError": "Panel yüklenemedi.",
+    "kpiActive": "Aktif Biletler",
+    "kpiActiveDetail": "Toplam {{count}} claim",
+    "kpiResolved": "Çözülen (7g)",
+    "kpiResolvedDetail": "30g'de {{count}} · {{hours}}s kayıt (7g)",
+    "kpiResolution": "Ort. Çözüm",
+    "kpiResolutionDetail": "SLA ihlal oranı %{{rate}}",
+    "kpiCsat": "CSAT'ım",
+    "kpiCsatDetail": "{{count}} puan",
+    "trendBadge": "Trend Grafiği",
+    "trendTitle": "Claim'lenen, Çözülen, Kapanan & SLA İhlali",
+    "trendSubtitle": "Seçili dönemdeki bilet aktiviteniz.",
+    "seriesClaimed": "Claim'lenen",
+    "recentTitle": "Son biletlerim",
+    "recentEmpty": "Henüz hiç bilet claim'lemediniz."
   },
   "dashboard": {
     "title": "Gösterge Paneli",

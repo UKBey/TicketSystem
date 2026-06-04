@@ -1254,4 +1254,138 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         ORDER BY metric_date DESC
         """, nativeQuery = true)
     List<Object[]> getTicketTimelineMetricsScoped(int days, boolean filterByProduct, List<Long> productIds);
+
+    // =========================================================================
+    // Kişisel dashboard'lar — ilişki bazlı kapsam (rol değil):
+    //  - Müşteri: t.customer_id = :userId (açtığı biletler)
+    //  - Ajan:    ticket_claims.agent_id = :userId (claim'lediği biletler)
+    // Aynı kullanıcı id'si iki bağlamda farklı ilişkiyle durabilir; bu sorgular
+    // birbirine karışmaz.
+    // =========================================================================
+
+    /** Müşterinin açtığı biletlerin status dağılımı: her satır {@code [status, count]}. */
+    @Query("SELECT t.status, COUNT(t) FROM Ticket t WHERE t.customerId = :customerId GROUP BY t.status")
+    List<Object[]> countTicketsGroupedByStatusForCustomer(@Param("customerId") String customerId);
+
+    /** Müşterinin açık biletlerinden SLA'sı ihlal edilmiş olanların sayısı. */
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.customerId = :customerId AND t.status IN :statuses AND t.slaBreached = true")
+    Long countSlaBreachedByCustomerAndStatusIn(@Param("customerId") String customerId,
+                                               @Param("statuses") List<String> statuses);
+
+    /** Müşterinin çözüm tarihi olan (resolved/closed) biletlerinin ortalama çözüm süresi (saat). */
+    @Query(value = "SELECT AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0) FROM tickets t "
+         + "WHERE t.customer_id = CAST(:customerId AS text) AND t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL", nativeQuery = true)
+    Double findAvgResolutionHoursForCustomer(@Param("customerId") String customerId);
+
+    /** Müşterinin en son açtığı biletleri (en yeni önce). Limit {@link Pageable} ile verilir. */
+    @Query("SELECT t FROM Ticket t WHERE t.customerId = :customerId ORDER BY t.createdAt DESC")
+    List<Ticket> findRecentByCustomerId(@Param("customerId") String customerId, Pageable pageable);
+
+    /**
+     * Müşteriye özel günlük bilet timeline'ı (son N gün). {@link #getTicketTimelineMetrics}
+     * ile aynı yapı, sadece LEFT JOIN'e {@code customer_id} filtresi eklenmiştir; böylece
+     * in-scope bileti olmayan günler de sıfır satırla görünür.
+     * Dönen kolonlar: {@code [metric_date, created, resolved, closed, sla_breach]}.
+     */
+    @Query(value = """
+        WITH date_range AS (
+            SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date
+            FROM generate_series(0, ?1 - 1) AS i
+        ),
+        daily_metrics AS (
+            SELECT
+                dr.metric_date AS metric_date,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS created_count,
+                COUNT(CASE WHEN DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS resolved_count,
+                COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
+            FROM date_range dr
+            LEFT JOIN tickets t ON
+                t.customer_id = CAST(?2 AS text)
+                AND (DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                     DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                     DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date)
+            GROUP BY dr.metric_date
+        )
+        SELECT metric_date, created_count::BIGINT, resolved_count::BIGINT, closed_count::BIGINT, sla_breach_count::BIGINT
+        FROM daily_metrics
+        ORDER BY metric_date DESC
+        """, nativeQuery = true)
+    List<Object[]> getCustomerTicketTimelineMetrics(int days, String customerId);
+
+    /**
+     * Ajanın claim'lediği biletlerin tek satırlık özet metrikleri.
+     * Dönen kolonlar: {@code [active, resolved_24h, resolved_7d, resolved_30d,
+     * sla_breached, total_claimed, avg_resolution_hours, csat_avg, csat_count]}.
+     */
+    @Query(value = """
+            SELECT
+                COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END)::BIGINT AS active,
+                COUNT(CASE WHEN t.resolved_at >= :since24h THEN 1 END)::BIGINT AS resolved_24h,
+                COUNT(CASE WHEN t.resolved_at >= :since7d  THEN 1 END)::BIGINT AS resolved_7d,
+                COUNT(CASE WHEN t.resolved_at >= :since30d THEN 1 END)::BIGINT AS resolved_30d,
+                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)::BIGINT AS sla_breached,
+                COUNT(*)::BIGINT AS total_claimed,
+                COALESCE(AVG(CASE
+                    WHEN t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL
+                        THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0
+                END), 0)::DOUBLE PRECISION AS avg_resolution_hours,
+                COALESCE(AVG(CAST(cs.rating AS DOUBLE PRECISION)), 0)::DOUBLE PRECISION AS csat_avg,
+                COUNT(cs.id)::BIGINT AS csat_count
+            FROM ticket_claims tc
+            JOIN tickets t ON t.id = tc.ticket_id
+            LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
+            WHERE tc.agent_id = CAST(:agentId AS text)
+            """, nativeQuery = true)
+    List<Object[]> findAgentSelfMetrics(@Param("agentId") String agentId,
+                                        @Param("since24h") ZonedDateTime since24h,
+                                        @Param("since7d") ZonedDateTime since7d,
+                                        @Param("since30d") ZonedDateTime since30d);
+
+    /** Ajanın claim'lediği biletlerin status dağılımı: her satır {@code [status, count]}. */
+    @Query(value = "SELECT t.status, COUNT(*)::BIGINT FROM ticket_claims tc "
+         + "JOIN tickets t ON t.id = tc.ticket_id "
+         + "WHERE tc.agent_id = CAST(:agentId AS text) GROUP BY t.status", nativeQuery = true)
+    List<Object[]> countClaimedTicketsGroupedByStatus(@Param("agentId") String agentId);
+
+    /**
+     * Ajana özel günlük bilet timeline'ı (son N gün) — yalnızca claim'lediği biletler.
+     * "created" = claim'lediğim biletin o gün oluşturulması. Dönen kolonlar:
+     * {@code [metric_date, created, resolved, closed, sla_breach]}.
+     */
+    @Query(value = """
+        WITH date_range AS (
+            SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date
+            FROM generate_series(0, ?1 - 1) AS i
+        ),
+        mine AS (
+            SELECT t.* FROM tickets t
+            WHERE EXISTS (SELECT 1 FROM ticket_claims tc WHERE tc.ticket_id = t.id AND tc.agent_id = CAST(?2 AS text))
+        ),
+        daily_metrics AS (
+            SELECT
+                dr.metric_date AS metric_date,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS created_count,
+                COUNT(CASE WHEN DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS resolved_count,
+                COUNT(CASE WHEN DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date THEN 1 END) AS closed_count,
+                COUNT(CASE WHEN DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date AND t.sla_breached = true THEN 1 END) AS sla_breach_count
+            FROM date_range dr
+            LEFT JOIN mine t ON
+                (DATE(t.created_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.resolved_at AT TIME ZONE 'UTC') = dr.metric_date OR
+                 DATE(t.closed_at AT TIME ZONE 'UTC') = dr.metric_date)
+            GROUP BY dr.metric_date
+        )
+        SELECT metric_date, created_count::BIGINT, resolved_count::BIGINT, closed_count::BIGINT, sla_breach_count::BIGINT
+        FROM daily_metrics
+        ORDER BY metric_date DESC
+        """, nativeQuery = true)
+    List<Object[]> getAgentTicketTimelineMetrics(int days, String agentId);
+
+    /** Ajanın en son claim'lediği biletler (en yeni önce). Limit {@link Pageable} ile verilir. */
+    @Query(value = "SELECT t.* FROM tickets t "
+         + "JOIN ticket_claims tc ON tc.ticket_id = t.id "
+         + "WHERE tc.agent_id = CAST(:agentId AS text) "
+         + "ORDER BY t.created_at DESC", nativeQuery = true)
+    List<Ticket> findRecentClaimedByAgent(@Param("agentId") String agentId, Pageable pageable);
 }

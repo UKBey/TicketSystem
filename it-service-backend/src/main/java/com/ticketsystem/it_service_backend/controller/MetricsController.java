@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.controller;
 
+import com.ticketsystem.it_service_backend.dto.AgentDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
 import com.ticketsystem.it_service_backend.dto.CSATMetricsDTO;
+import com.ticketsystem.it_service_backend.dto.CustomerDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.DashboardMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.PrioritySLAMetricsDTO;
 import com.ticketsystem.it_service_backend.dto.ProductMetricsDTO;
@@ -429,5 +431,63 @@ public class MetricsController {
         log.debug("Worklog ve tamamlanma metrikleri istendi (days={}, scope={})", days, scope.scopeKey());
         WorklogCompletionDTO dto = metricsService.getWorklogCompletion(days, scope.productIds(), scope.scopeKey());
         return ResponseEntity.ok(dto);
+    }
+
+    // =========================================================================
+    // Kişisel dashboard'lar — self-scoped (JWT subject). Yönetim dashboard'undan
+    // ayrı: başkasının verisi dönmez, ürün-scope'u gerekmez (kendi verin).
+    // =========================================================================
+
+    /**
+     * Personal customer dashboard for the authenticated user — metrics over the tickets
+     * they opened ({@code customer_id = jwt.sub}). Available to any authenticated user;
+     * a non-customer simply sees zeros.
+     *
+     * @param days timeline window in days (default 30, clamped 1–365)
+     * @return the caller's customer dashboard
+     */
+    @Operation(summary = "Kişisel müşteri dashboard'u",
+            description = "Oturum açan kullanıcının KENDİ açtığı biletler üzerinden metrikler: "
+                    + "durum dağılımı, SLA, ortalama çözüm süresi, verdiği CSAT, zaman çizelgesi ve son biletler.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Müşteri dashboard'u döndü",
+                    content = @Content(schema = @Schema(implementation = CustomerDashboardDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Kimlik doğrulanmadı")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/me/customer")
+    public ResponseEntity<CustomerDashboardDTO> getMyCustomerDashboard(
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.debug("Kişisel müşteri dashboard istendi (user={}, days={})", userId, days);
+        return ResponseEntity.ok(metricsService.getMyCustomerDashboard(userId, days));
+    }
+
+    /**
+     * Personal performance dashboard for the authenticated agent / lead agent — metrics
+     * over the tickets they claimed ({@code ticket_claims.agent_id = jwt.sub}) plus their
+     * own worklogs.
+     *
+     * @param days timeline window in days (default 30, clamped 1–365)
+     * @return the caller's agent dashboard
+     */
+    @Operation(summary = "Kişisel ajan performans dashboard'u",
+            description = "Oturum açan ajanın/lead'in claim'lediği biletler üzerinden metrikler: "
+                    + "aktif yük, çözülen (24s/7g/30g), ortalama çözüm, SLA ihlal oranı, worklog, CSAT, "
+                    + "durum dağılımı, zaman çizelgesi ve son biletler.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ajan dashboard'u döndü",
+                    content = @Content(schema = @Schema(implementation = AgentDashboardDTO.class))),
+            @ApiResponse(responseCode = "403", description = "Yetkisiz erişim (AGENT veya LEAD_AGENT gerekli)")
+    })
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
+    @GetMapping("/me/agent")
+    public ResponseEntity<AgentDashboardDTO> getMyAgentDashboard(
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        log.debug("Kişisel ajan dashboard istendi (user={}, days={})", userId, days);
+        return ResponseEntity.ok(metricsService.getMyAgentDashboard(userId, days));
     }
 }

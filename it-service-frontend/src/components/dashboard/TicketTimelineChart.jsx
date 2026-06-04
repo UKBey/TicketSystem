@@ -60,7 +60,15 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-function TicketTimelineChart({ data, loading }) {
+function TicketTimelineChart({
+  data,
+  loading,
+  title = 'Created, Resolved, Closed & SLA Breach',
+  subtitle = 'Toggle series from the legend. Use the bar below to adjust the date range.',
+  badgeLabel = 'Trend Chart',
+  // Per-series label overrides (e.g. { created: 'Claimed' } for the agent dashboard).
+  seriesLabels = null,
+}) {
   const chartData = useMemo(() => normalizeTimeline(data), [data]);
   const [visibleSeries, setVisibleSeries] = useState(() => ({
     created: true,
@@ -88,11 +96,11 @@ function TicketTimelineChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <LineChartIcon className="h-3.5 w-3.5" />
-            Trend Chart
+            {badgeLabel}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Created, Resolved, Closed & SLA Breach</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Toggle series from the legend. Use the bar below to adjust the date range.
+            {subtitle}
           </p>
         </div>
       </div>
@@ -127,7 +135,7 @@ function TicketTimelineChart({ data, loading }) {
                     key={series.key}
                     type="monotone"
                     dataKey={series.key}
-                    name={series.label}
+                    name={seriesLabels?.[series.key] ?? series.label}
                     stroke={series.color}
                     strokeWidth={series.key === 'slaBreach' ? 2.5 : 3}
                     strokeDasharray={series.key === 'slaBreach' ? '6 4' : undefined}
