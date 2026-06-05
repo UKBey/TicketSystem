@@ -1,6 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
-import com.ticketsystem.it_service_backend.entity.RateLimitConfig;
+import com.ticketsystem.it_service_backend.config.RateLimitConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

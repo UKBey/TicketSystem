@@ -1,6 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
-import com.ticketsystem.it_service_backend.entity.RateLimitConfig;
+import com.ticketsystem.it_service_backend.config.RateLimitConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;

@@ -1,6 +1,6 @@
 package com.ticketsystem.it_service_backend.interceptor;
 
-import com.ticketsystem.it_service_backend.entity.RateLimitConfig;
+import com.ticketsystem.it_service_backend.config.RateLimitConfig;
 import com.ticketsystem.it_service_backend.service.RateLimitConfigService;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;

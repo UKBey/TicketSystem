@@ -1,7 +1,7 @@
 package com.ticketsystem.it_service_backend.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ticketsystem.it_service_backend.entity.RateLimitConfig;
+import com.ticketsystem.it_service_backend.config.RateLimitConfig;
 import com.ticketsystem.it_service_backend.service.RateLimitConfigService;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;
