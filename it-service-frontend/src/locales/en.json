@@ -591,6 +591,7 @@
     "csatQuestion": "How would you rate the resolution process from 1 to 5?",
     "csatPlaceholder": "Any additional notes (optional)...",
     "csatSubmit": "Submit & Close",
+    "csatThanks": "Thank you for your feedback!",
     "resolvedQuestion": "Was your issue resolved?",
     "resolvedDesc": "Your ticket has been marked as resolved. You can confirm and provide feedback, or reopen if the issue persists.",
     "yesResolved": "Yes, Resolved",

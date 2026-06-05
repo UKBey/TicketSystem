@@ -591,6 +591,7 @@
     "csatQuestion": "Çözüm sürecini 1'den 5'e kadar nasıl değerlendirirsiniz?",
     "csatPlaceholder": "Ek notlar (isteğe bağlı)...",
     "csatSubmit": "Onayla ve Kapat",
+    "csatThanks": "Geri bildiriminiz için teşekkürler!",
     "resolvedQuestion": "Sorununuz çözüldü mü?",
     "resolvedDesc": "Biletiniz çözüldü olarak işaretlendi. Onaylayabilir ve geri bildirim sağlayabilir ya da sorun devam ediyorsa yeniden açabilirsiniz.",
     "yesResolved": "Evet, Çözüldü",

@@ -245,6 +245,8 @@ export function useTicketDetail(id, isAgent) {
 
   const handleSubmitCsat = async (rating, comment) => {
     await api.post(`/tickets/${id}/csat`, { rating, comment });
+    setCsatModalOpen(false);
+    toast.success(t('ticketDetail.csatThanks'));
     fetchTicket();
   };
 
