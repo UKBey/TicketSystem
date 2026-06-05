@@ -180,7 +180,8 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border lg:block" style={{ borderColor: 'var(--border-color-light)' }}>
-        <div className="grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
+        <div className="max-h-[30rem] overflow-y-auto">
+        <div className="sticky top-0 z-10 grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
           <div>Rank</div>
           <div>Agent</div>
           <div className="text-right">Active</div>
@@ -260,6 +261,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
 
