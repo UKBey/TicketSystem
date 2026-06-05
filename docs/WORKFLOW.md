@@ -47,7 +47,7 @@ down — see *Resilience* below.
 | BPMN source | `ticket-workflow-kjar/src/main/resources/com/ticketsystem/workflow/ticket-lifecycle.bpmn2` |
 | KIE Server REST base | `http://kie-server:8080/kie-server/services/rest/server` (host: `http://localhost:8180/...`) |
 | KIE Server Swagger UI | `http://localhost:8180/kie-server/docs` |
-| Process history DB | `jbpm-db` (separate PostgreSQL container — **not** `ticketdb`) |
+| Process history / state DB | `jbpm-db` (separate PostgreSQL container — **not** `ticketdb`); process + timer state is persisted here (compose path) so instances survive a KIE Server restart |
 
 The kjar carries two descriptors under `src/main/resources/META-INF/`:
 
@@ -94,8 +94,11 @@ multiple incoming connections.
 **Deployment.** The kjar is compiled from source (Java 8) and baked into the
 KIE image (`Dockerfile-kie`); a one-shot `kjar-deploy` compose service
 registers the `ticket-workflow` container against the KIE Server REST API
-once it is healthy, so `docker compose up` needs no manual deploy step. See
-[RUNBOOK.md](../RUNBOOK.md) → *KIE Server kjar redeploy*.
+once it is healthy, so `docker compose up` needs no manual deploy step. The
+registration is **idempotent** — if the container is already registered the
+KIE Server returns HTTP 400 with an `already exists` message, which the
+deploy script treats as success (only a genuinely different error body causes
+a non-zero exit). See [RUNBOOK.md](../RUNBOOK.md) → *KIE Server kjar redeploy*.
 
 ### Nodes (as defined in `ticket-lifecycle.bpmn2`)
 
@@ -183,6 +186,27 @@ to the requested target (signal silently dropped → invalid transition) the
 service throws HTTP `400`. If KIE Server is unreachable the verify call also
 returns `false`, surfacing as a `400` to the caller — the workflow engine is
 treated as a hard dependency for status transitions.
+
+**Terminal CLOSED is confirmed via process completion.** `CLOSED` is the only
+terminal target: the BPMN sets `status=CLOSED` and then fires a terminate end
+event, so the process **completes** and its `status` variable is no longer
+readable (reads back `null`). A naive value check would therefore give a false
+negative and wrongly reject the close with `400`. `verifyTransitionApplied`
+special-cases this: when the target is `CLOSED` and the variable is `null`, it
+confirms the transition via `KieServerAdapter.isProcessFinished()` (process
+state `COMPLETED`=2 or `ABORTED`=3) instead of the now-gone variable. A
+**non-null** mismatch still means the signal was genuinely dropped and is
+rejected without consulting completion.
+
+**Stale `processInstanceId` is tolerated.** If the transition cannot be
+confirmed *and* the BPMN process instance no longer exists on the KIE Server
+(e.g. the jBPM history store was reset while the ticket survived in `ticketdb`),
+there is no state machine left to consult. `TicketService` then checks
+`WorkflowService.isProcessInstanceMissing()` (which confirms a KIE **404** via
+`KieServerAdapter.isProcessInstanceMissing()`) and **accepts the DB-side
+transition** rather than blocking the ticket forever — the same handling as the
+"no workflow attached" case. A transient outage (breaker open / connectivity)
+is *not* treated as missing, so it still surfaces as a `400`.
 
 The BPMN is authoritative for **all** status changes, not only explicit
 user-initiated transitions (`updateTicketStatus` / `closeTicket`). The
@@ -405,15 +429,28 @@ in `KieClientConfig`) wraps every `KieServerAdapter` call:
 | Slow-call duration threshold | 10 s |
 | Slow-call rate threshold | 50 % |
 
+A **"process instance not found" (HTTP 404)** is explicitly **ignored** by the
+breaker (`ignoreException(KieClientConfig::isProcessInstanceNotFound)`, matched
+on the `Could not find process instance` message). A 404 is a deterministic
+per-instance outcome — the instance is permanently gone (completed & pruned, or
+the history store was reset), not a sign the KIE Server is unhealthy — so it
+must not count toward the failure rate and trip the breaker for every other
+ticket. Genuine connectivity failures (timeouts, refused connections, 5xx)
+carry a different message and are still recorded.
+
 State transitions are logged via the circuit breaker's event publisher.
 
 **Graceful degradation strategy:**
 
 - *Read / fire-and-forget calls* (`setProcessVariable`, `signalProcessInstance`,
   `abortProcess`, `getProcessInstance`, `getActiveTimerDeadline`,
-  `getActiveTasks`) — when the breaker is **open** (`CallNotPermittedException`)
-  or the call fails, the adapter **logs and returns null / empty / void**. The
-  ticket operation proceeds; the DB stays consistent even if jBPM drifts.
+  `getActiveTasks`, `isProcessFinished`, `isProcessInstanceMissing`) — when the
+  breaker is **open** (`CallNotPermittedException`) or the call fails, the
+  adapter **logs and returns null / empty / false / void**. The ticket operation
+  proceeds; the DB stays consistent even if jBPM drifts. `isProcessFinished` and
+  `isProcessInstanceMissing` deliberately return `false` when they cannot reach
+  the server, keeping callers conservative (only a *confirmed* terminal/missing
+  state changes behaviour).
 - *Critical calls* (`startProcess`, `claimAndCompleteTask`) — rethrow a
   `RuntimeException`. For `startProcess`, `WorkflowEventListener` catches it:
   the ticket already exists, only the workflow link is missing, and that is
@@ -450,7 +487,25 @@ State transitions are logged via the circuit breaker's event publisher.
   artifact's release id; the process `com.ticketsystem.workflow.ticket-lifecycle`
   then becomes available over the KIE REST API. The backend `depends_on` this
   service completing successfully, so `docker compose up` needs no manual deploy
-  step.
+  step. Registration is **idempotent** — an already-registered container (KIE
+  returns HTTP 400 + `already exists`) is treated as success.
+- **Persistent process state.** The KIE Server stores process/timer state in the
+  external **`jbpm-db` PostgreSQL** instance, not the showcase image's default
+  in-memory H2, so in-flight workflow instances **survive a KIE Server
+  restart/rebuild**. `Dockerfile-kie` bakes the PostgreSQL JDBC driver in as a
+  WildFly module (`kie/modules/org/postgresql/main/module.xml`) and runs a
+  `jboss-cli` batch (`kie/jbpm-postgres-ds.cli`, offline `embed-server`) at image
+  build time to register the `java:jboss/datasources/jbpmDS` datasource into
+  `standalone-full-kie-server.xml`. The datasource's connection coordinates are
+  stored as WildFly `${env.*}` expressions resolved at container start from the
+  `kie-server` service env (`JBPM_DB_HOST/PORT/NAME/USER/PASSWORD`); `JAVA_OPTS`
+  points the KIE Server at it via
+  `-Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS` and
+  `-Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect`,
+  and `kie-server` `depends_on: jbpm-db (service_healthy)`. The `.cli` and module
+  files are pinned to **LF** line endings in `.gitattributes` (`*.cli`,
+  `kie/modules/**`) because the backslash line-continuations break if checked out
+  CRLF in the Linux container.
 - `make rebuild` (`docker compose up -d --build`) rebuilds and restarts the
   stack after kjar changes.
 
@@ -461,8 +516,13 @@ State transitions are logged via the circuit breaker's event publisher.
   `/opt/jboss/.m2/repository/com/ticketsystem/ticket-workflow-kjar/1.0.5/`.
 - `k8s/base/workflow/kjar-deploy-job.yaml` is a one-shot `Job` that waits for
   the KIE Server to be ready, then `PUT`s the `ticket-workflow` container with
-  the `com.ticketsystem:ticket-workflow-kjar:1.0.5` release id.
-- KIE Server uses an in-memory H2 store, so container registration is lost on
+  the `com.ticketsystem:ticket-workflow-kjar:1.0.5` release id. Like the compose
+  service it is **idempotent** — an `already exists` response is treated as
+  success.
+- Unlike the compose path, the k8s `kie-server` deployment overrides `JAVA_OPTS`
+  back to the showcase image's **in-memory H2** store
+  (`ExampleDS` + `H2Dialect`) — the `jbpm-db` Postgres persistence is wired only
+  in `docker-compose.yaml`. So under k8s, container registration is lost on
   restart — `make k8s-redeploy-kjar` deletes and re-creates the `kjar-deploy`
   job to re-register it.
 
@@ -491,7 +551,10 @@ want the KIE Server to treat it as a new release.
 | SLA-breach callback endpoint | `it-service-backend/.../controller/WorkflowCallbackController.java` |
 | Callback payload DTO | `it-service-backend/.../dto/WorkflowCallbackDTO.java` |
 | KIE Server / jBPM-db containers | `docker-compose.yaml` |
-| Custom KIE Server image (k8s) | `Dockerfile-kie` |
+| Custom KIE Server image (compose + k8s) | `Dockerfile-kie` |
+| jbpmDS datasource jboss-cli batch | `kie/jbpm-postgres-ds.cli` |
+| PostgreSQL JDBC WildFly module | `kie/modules/org/postgresql/main/module.xml` |
+| LF enforcement for `.cli` / module files | `.gitattributes` |
 | kjar registration Job (k8s) | `k8s/base/workflow/kjar-deploy-job.yaml` |
 </content>
 </invoke>

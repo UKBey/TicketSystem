@@ -65,6 +65,10 @@ A "super-admin" is simply a user that holds all of `admin` + `lead_agent` + `man
 `superadmin` seed user) — there is no dedicated super-admin role. Roles are cached in the
 `user_roles` table (Flyway V37), synced on `/users/sync`.
 
+`customer` is a **singleton** role: an end user who opens tickets can never also be staff. Combining
+`customer` with any other role is rejected with `400` (`error.role.customer.exclusive`) on role
+assignment / user creation, keeping the customer and staff identity contexts mutually exclusive.
+
 In this document the `Role` column lists who may call an endpoint:
 
 - `Authenticated` — any valid JWT (role-specific filtering happens in the service layer).
@@ -201,22 +205,22 @@ POST /api/v1/auth/forgot-password
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
 | POST | `/api/v1/tickets` | customer | Create a new ticket. |
-| GET | `/api/v1/tickets` | customer, agent, lead_agent | List tickets (role-scoped, paged, filtered). |
+| GET | `/api/v1/tickets` | customer, agent, lead_agent, manager, admin | List tickets (role-scoped, paged, filtered). |
 | GET | `/api/v1/tickets/pool` | agent, lead_agent | Unclaimed `NEW` tickets in the agent's products. |
 | GET | `/api/v1/tickets/my-assigned` | Authenticated | Tickets the calling agent has claimed. |
 | GET | `/api/v1/tickets/team` | agent, lead_agent | Active tickets across the agent's authorized products. |
-| GET | `/api/v1/tickets/all` | agent, lead_agent | All tickets (all statuses) in authorized products. |
+| GET | `/api/v1/tickets/all` | agent, lead_agent, manager, admin | All tickets (all statuses) in authorized products. |
 | GET | `/api/v1/tickets/by-product/{productId}` | Authenticated | Tickets for one product (role-scoped). |
 | GET | `/api/v1/tickets/{id}` | Authenticated | Get one ticket with full detail. |
-| GET | `/api/v1/tickets/{id}/sla-timer` | customer, agent, lead_agent | Live SLA timer info for a ticket. |
+| GET | `/api/v1/tickets/{id}/sla-timer` | customer, agent, lead_agent, manager | Live SLA timer info for a ticket. |
 | PUT | `/api/v1/tickets/{id}/claim` | agent, lead_agent | Claim a ticket in any status except `CLOSED`. |
 | DELETE | `/api/v1/tickets/{id}/claim` | agent, lead_agent | Release the caller's own claim. |
-| PUT | `/api/v1/tickets/{id}/assign` | lead_agent | Manually assign a ticket to a target agent. |
+| PUT | `/api/v1/tickets/{id}/assign` | lead_agent, admin | Manually assign a ticket to a target agent. |
 | PUT | `/api/v1/tickets/{id}/status` | customer, agent, lead_agent | Change ticket status (agents on claimed tickets; lead_agent without claiming). |
 | PUT | `/api/v1/tickets/{id}/priority` | agent, lead_agent | Change ticket priority. |
 | PUT | `/api/v1/tickets/{id}/topic` | agent, lead_agent | Change ticket topic. |
 | PUT | `/api/v1/tickets/{id}/close` | agent, lead_agent | Close a ticket (note + reason code). |
-| DELETE | `/api/v1/tickets/{id}` | lead_agent | Permanently delete a ticket. |
+| DELETE | `/api/v1/tickets/{id}` | admin | Permanently delete a ticket. |
 
 ### Filtering query parameters
 
@@ -233,8 +237,12 @@ filters (all repeatable list parameters):
 | `agentId` | string[] | Filter by claiming agent's Keycloak ID. |
 | `topicId` | long[] | Filter by topic ID. |
 | `slaStatus` | string[] | Filter by SLA state. |
+| `csatRating` | string[] | Filter by CSAT rating: `1`–`5` or `NONE` (no survey). Accepted only on `/my-assigned` and `/all`, and honoured only for `admin`/`manager` callers (silently ignored for others). |
 | `dateFrom` | ISO date-time | Created-at lower bound. |
 | `dateTo` | ISO date-time | Created-at upper bound. |
+
+Sorting by `csatRating` (`sortBy=csatRating`) is likewise honoured only for `admin`/`manager` on
+`/my-assigned` and `/all`; other callers fall back to `createdAt`.
 
 ### POST `/api/v1/tickets` — Create ticket
 
@@ -286,6 +294,7 @@ Response `200 OK` (`TicketResponseDTO`):
   "resolvedAt": null,
   "closedAt": null,
   "hasCsat": false,
+  "csatRating": null,
   "slaInfo": { "slaState": "active", "remainingMs": 27000000 },
   "auditLogs": []
 }
@@ -303,6 +312,10 @@ Response is a [`Page` envelope](#pagination) whose `content` is an array of `Tic
 
 Returns a single `TicketResponseDTO` (same shape as the create response, including
 `claimers`, `slaInfo` and `auditLogs`). Path param `id` (long).
+
+The `csatRating` field (1–5) is populated only for `admin`/`manager` callers; all other roles
+receive `null`. Likewise the `CSAT_SUBMITTED` audit-log entry (which carries the rating/comment)
+is included only for `admin`/`manager` and the ticket's own customer — agents/leads do not see it.
 
 `auditLogs[]` items (`TicketAuditLogDTO`):
 
@@ -354,7 +367,7 @@ required), `note` (string — required when `reasonCode` is `OTHER`).
 **PUT `/api/v1/tickets/{id}/close`** — Body `CloseTicketRequestDTO`:
 `reasonCode` (string, required), `note` (string — required when `reasonCode` is `OTHER`).
 
-**DELETE `/api/v1/tickets/{id}`** — no body; returns `204 No Content`.
+**DELETE `/api/v1/tickets/{id}`** — `admin` only; no body; returns `204 No Content`.
 
 **GET `/api/v1/tickets/{id}/sla-timer`** — returns a JSON object describing the live SLA timer,
 e.g. `{ "slaState": "active", "remainingMs": 27000000, "deadlineTimestamp": 1780346400000 }`
@@ -599,8 +612,9 @@ Query params: `search` (string, optional), `role` (string[], optional), `page` (
 - **PUT `/api/v1/users/{userId}/status`** — query `active` (boolean). An admin cannot deactivate
   themselves (`400`). Returns `UserDTO`.
 - **PUT `/api/v1/users/{userId}/roles`** — Body: JSON array of role strings (non-empty); roles are
-  additive, so a user may hold several, e.g. `["agent","lead_agent"]` or `["customer","manager"]`.
+  additive, so a user may hold several, e.g. `["agent","lead_agent"]` or `["manager","admin"]`.
   Returns `UserDTO`. Assignable roles are `customer`, `agent`, `lead_agent`, `admin`, `manager`.
+  `customer` is a singleton — combining it with any other role is rejected with `400`.
 - **POST `/api/v1/users/admin/create`** — Body `CreateUserRequest` (see below). Returns
   `201 Created` with `UserCreationResponseDTO`. `409` if email/username already exists.
 
@@ -851,20 +865,35 @@ Response `AgentProductLimitResponseDTO`:
 
 ## Dashboard Metrics
 
-`MetricsController` — base path `/api/v1/metrics`. Aggregated KPIs and analytics. Most endpoints
-require the `manager` role; results are Caffeine-cached (5-minute TTL).
+`MetricsController` — base path `/api/v1/metrics`. Aggregated KPIs and analytics. The management
+dashboards are open to `manager`, `lead_agent` and `admin`; results are Caffeine-cached
+(5-minute TTL). Scope is resolved from the JWT: `admin`/`manager` see everything (global), while a
+pure `lead_agent` is restricted to the products they are authorized on (`agent-performance`
+returns that product-scoped team dashboard).
+
+### Management dashboards
 
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
-| GET | `/api/v1/metrics/dashboard-summary` | manager | Headline KPIs (open tickets, SLA breach rate, response time, CSAT). |
-| GET | `/api/v1/metrics/status-distribution` | manager | Ticket counts per status. |
-| GET | `/api/v1/metrics/agent-performance` | manager, lead_agent | Agent leaderboard (load, resolution speed, CSAT, SLA). `lead_agent` sees its product-scoped team dashboard; `manager` sees all. |
-| GET | `/api/v1/metrics/ticket-timeline` | manager | Daily created/resolved/closed/breach trend. |
-| GET | `/api/v1/metrics/priority-sla-metrics` | manager | SLA metrics broken down by priority. |
-| GET | `/api/v1/metrics/product-metrics` | manager | Per-product ticket metrics. |
-| GET | `/api/v1/metrics/csat-metrics` | manager | Detailed CSAT analytics. |
-| GET | `/api/v1/metrics/alerts-backlog` | manager | SLA-breach alerts and backlog summary. |
-| GET | `/api/v1/metrics/worklog-completion` | manager | Worklog totals and ticket-completion stats. |
+| GET | `/api/v1/metrics/dashboard-summary` | manager, lead_agent, admin | Headline KPIs (open tickets, SLA breach rate, response time, CSAT). |
+| GET | `/api/v1/metrics/status-distribution` | manager, lead_agent, admin | Ticket counts per status. |
+| GET | `/api/v1/metrics/agent-performance` | manager, lead_agent, admin | Agent leaderboard (load, resolution speed, CSAT, SLA). `lead_agent` sees its product-scoped team dashboard; `admin`/`manager` see all. |
+| GET | `/api/v1/metrics/ticket-timeline` | manager, lead_agent, admin | Daily created/resolved/closed/breach trend. |
+| GET | `/api/v1/metrics/priority-sla-metrics` | manager, lead_agent, admin | SLA metrics broken down by priority. |
+| GET | `/api/v1/metrics/product-metrics` | manager, lead_agent, admin | Per-product ticket metrics. |
+| GET | `/api/v1/metrics/csat-metrics` | manager, lead_agent, admin | Detailed CSAT analytics. |
+| GET | `/api/v1/metrics/alerts-backlog` | manager, lead_agent, admin | SLA-breach alerts and backlog summary. |
+| GET | `/api/v1/metrics/worklog-completion` | manager, lead_agent, admin | Worklog totals and ticket-completion stats. |
+
+### Personal & oversight dashboards
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| GET | `/api/v1/metrics/me/customer` | Authenticated | The caller's own customer dashboard (tickets they opened). Non-customers simply see zeros. |
+| GET | `/api/v1/metrics/me/agent` | agent, lead_agent | The caller's own agent-performance dashboard (tickets they claimed + their worklogs). |
+| GET | `/api/v1/metrics/users/{userId}/agent` | manager, lead_agent, admin | A specific user's agent dashboard. `admin`/`manager` global; a pure `lead_agent` sees only the slice within its authorized products and gets `403` for agents sharing no product. |
+| GET | `/api/v1/metrics/users/{userId}/customer` | manager, admin | A specific user's customer dashboard. Leads have no access. |
+| GET | `/api/v1/metrics/products/{productId}/dashboard` | manager, lead_agent, admin | Dedicated single-product dashboard. `admin`/`manager` any product; a pure `lead_agent` only products it is authorized on (else `403`). |
 
 Query parameters:
 
@@ -875,10 +904,12 @@ Query parameters:
 | `/product-metrics` | `days` | int (optional) | — |
 | `/csat-metrics` | `months` | int | `3` |
 | `/worklog-completion` | `days` | int | `30` |
+| `/me/customer`, `/me/agent`, `/users/{userId}/agent`, `/users/{userId}/customer`, `/products/{productId}/dashboard` | `days` | int (optional) | `30` (clamped 1–365) |
 
 Each endpoint returns its dedicated DTO (`DashboardMetricsDTO`, `StatusDistributionDTO`,
 `AgentPerformanceDTO`, `TicketTimelineDTO`, `PrioritySLAMetricsDTO`, `ProductMetricsDTO`,
-`CSATMetricsDTO`, `AlertsBacklogDTO`, `WorklogCompletionDTO`). Example
+`CSATMetricsDTO`, `AlertsBacklogDTO`, `WorklogCompletionDTO`, `CustomerDashboardDTO`,
+`AgentDashboardDTO`, `ProductDashboardDTO`). Example
 `GET /api/v1/metrics/dashboard-summary`:
 
 ```json
@@ -1003,7 +1034,7 @@ Returns `200` with a plain-text body on success; `400` for an unknown `eventType
 | Ticket Topics | 4 |
 | Known Issues | 5 |
 | Agent-Product Limits | 3 |
-| Dashboard Metrics | 9 |
+| Dashboard Metrics | 14 |
 | AI Summaries (llm-service) | 4 |
 | Internal / Workflow | 2 |
-| **Total** | **92** |
+| **Total** | **97** |

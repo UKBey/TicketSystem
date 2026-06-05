@@ -235,27 +235,42 @@ The commit being deployed is always referenced via
 
 ### Job 1 — `Build & Push Docker Images` (`build-and-push`)
 
-This is the **active** stage of CD. It builds and pushes four Docker images.
+This is the **active** stage of CD. It builds and pushes six Docker images.
 
 | Step | Details |
 |------|---------|
 | Checkout | `actions/checkout@v4` |
 | Set up Docker Buildx | `docker/setup-buildx-action@v3` |
 | Log in to Docker Hub | `docker/login-action@v3` using `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` secrets |
-| Build & push backend | `docker/build-push-action@v5`, context `./it-service-backend`, Dockerfile `./it-service-backend/Dockerfile` |
-| Build & push llm-service | `docker/build-push-action@v5`, context `./llm-service`, Dockerfile `./llm-service/Dockerfile` |
-| Build & push frontend | `docker/build-push-action@v5`, context `./it-service-frontend` (default Dockerfile) |
-| Build & push openldap-server | `docker/build-push-action@v5`, context `.` (repo root), Dockerfile `./Dockerfile-ldap` |
+| Build & push backend | `docker/build-push-action@v6`, context `./it-service-backend`, Dockerfile `./it-service-backend/Dockerfile` |
+| Build & push llm-service | `docker/build-push-action@v6`, context `./llm-service`, Dockerfile `./llm-service/Dockerfile` |
+| Build & push frontend | `docker/build-push-action@v6`, context `./it-service-frontend` (default Dockerfile) |
+| Build & push openldap-server | `docker/build-push-action@v6`, context `.` (repo root), Dockerfile `./Dockerfile-ldap` |
+| Build & push keycloak-iam | `docker/build-push-action@v6`, context `.` (repo root), Dockerfile `./Dockerfile-keycloak` |
+| Build & push kie-server | `docker/build-push-action@v6`, context `.` (repo root), Dockerfile `./Dockerfile-kie` |
 
-The four images produced and pushed to Docker Hub are:
+The six images produced and pushed to Docker Hub are:
 
 - `<DOCKERHUB_USERNAME>/it-service-backend`
 - `<DOCKERHUB_USERNAME>/llm-service`
 - `<DOCKERHUB_USERNAME>/it-service-frontend`
 - `<DOCKERHUB_USERNAME>/openldap-server`
+- `<DOCKERHUB_USERNAME>/keycloak-iam`
+- `<DOCKERHUB_USERNAME>/kie-server`
 
 The `openldap-server` image is built from the repo root with `Dockerfile-ldap`,
-because it needs to copy the `ldap-init/` directory into the image.
+because it needs to copy the `ldap-init/` directory into the image. Likewise the
+`keycloak-iam` image (`Dockerfile-keycloak`, bakes the `it-service-desk` theme
+into the base Keycloak image) and the `kie-server` image (`Dockerfile-kie`,
+embeds the `ticket-workflow` kjar into the KIE Server's Maven repo) are built
+from the repo root.
+
+#### Provenance attestation disabled
+
+Every `build-push-action` step sets `provenance: false`. Pushing the default OCI
+provenance/attestation manifest-list to Docker Hub produced a `blob unknown to
+registry` error; these are single-arch images, so provenance is unnecessary and
+is turned off to make the push succeed.
 
 #### Image tagging strategy
 
@@ -286,6 +301,10 @@ cache-to: type=gha,mode=max
 This persists Docker layer cache between runs in GitHub Actions storage, so
 unchanged layers are not rebuilt. `mode=max` caches all intermediate layers
 (not just the final stage), maximising reuse for multi-stage builds.
+
+> The action is pinned to `docker/build-push-action@v6`. v6 targets the new
+> GitHub Actions cache service backend; staying on v5 produced `type=gha` cache
+> export `not_found` errors after the backend migration.
 
 ### Job 2 — `Deploy to VDS` (`deploy`) — **currently disabled**
 
@@ -337,7 +356,7 @@ It also declares `environment: production`.
 | Deploy to K8s prod overlay | **Disabled** (`if: false`) | Enable by removing `if: false` and adding `KUBE_CONFIG_BASE64` |
 
 In its current state, CD's effective outcome is: **on a successful CI run on
-`main`, four freshly built Docker images appear on Docker Hub**, tagged `latest`
+`main`, six freshly built Docker images appear on Docker Hub**, tagged `latest`
 and the commit SHA, ready for a (manual or future automated) deploy.
 
 ---

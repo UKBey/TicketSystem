@@ -53,17 +53,18 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 
 ### Bildirimler
 - Ticket, durum, yorum ve SLA olayları için çok kanallı bildirimler (uygulama içi akış + Mailpit aracılığıyla e-posta simülasyonu)
-- Kullanıcı başına bildirim tercihleri ve **tamamen yerelleştirilmiş** bildirim içeriği (alıcının o anki dilinde oluşturulur)
+- Kullanıcı başına bildirim tercihleri — yalnızca ilgili olay satırları gösterilecek şekilde **kullanıcının rol birleşimine göre kapsamlanmış** — ve **tamamen yerelleştirilmiş** bildirim içeriği (alıcının o anki dilinde oluşturulur)
 
 ### Yapay Zekâ Desteği
 - Özel `llm-service`, Türkçe veya İngilizce **yapay zekâ destekli ticket özetleri** üretir (Groq / Llama 3.1)
 
-### Panolar ve Raporlama (Yönetici)
-- KPI özeti, durum dağılımı, ticket zaman çizelgesi, öncelik-SLA kırılımı, temsilci performans sıralaması, ürün metrikleri, CSAT analitiği ve SLA birikim (backlog) uyarıları — tümü Caffeine ile önbelleğe alınmış
+### Panolar ve Raporlama
+- **Role göre kapsamlı panolar** — müşteriler için kişisel bir **Genel Bakış (Overview)** ve temsilciler için bir **Performansım (My Performance)** panosu, ayrıca global yönetici panosu; admin, manager ve lead'ler herhangi bir kullanıcının, temsilcinin veya ürünün panosuna **inebilir** (lead'ler ürün kapsamında kalır)
+- KPI özeti, durum dağılımı, ticket zaman çizelgesi, öncelik-SLA kırılımı, temsilci performans sıralaması, ürün metrikleri, CSAT analitiği (dağılım / eğilim), günlük çalışma kaydı (worklog) grafikleri ve **yapılandırılabilir takılı-ticket uyarıları** — KPI'lar seçilen bir **tarih aralığına** göre kapsamlanır, tümü Caffeine ile önbelleğe alınmış
 
 ### Güvenlik ve Kimlik
 - **OpenLDAP**'tan federe edilen kullanıcılarla **Keycloak** SSO, OAuth2/OIDC, JWT, **2FA (TOTP)** ve "beni hatırla"
-- **Eklemeli çok rollü (additive multi-role)** erişim denetimi: bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların **birleşimidir**. Beş rol — `customer`, `agent`, `lead_agent`, `admin`, `manager` — operasyonel, yapılandırma ve gözetim eksenlerini kapsar; `lead_agent`, `agent`'ın bir Keycloak bileşik (composite) rolüdür. Roller Keycloak'ta tutulur ve `user_roles` tablosunda (Flyway V37) önbelleğe alınır; `/users/sync` ile senkronize edilir.
+- **Eklemeli çok rollü (additive multi-role)** erişim denetimi: bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların **birleşimidir**. Beş rol — `customer`, `agent`, `lead_agent`, `admin`, `manager` — operasyonel, yapılandırma ve gözetim eksenlerini kapsar; `lead_agent`, `agent`'ın bir Keycloak bileşik (composite) rolüdür. `customer` bir **tekil (singleton)** roldür — personel rolleriyle birlikte taşınamaz — personel rolleri ise serbestçe birleşebilir. Roller Keycloak'ta tutulur ve `user_roles` tablosunda (Flyway V37) önbelleğe alınır; `/users/sync` ile senkronize edilir.
 - Dağıtık **hız sınırlama (rate limiting)** (Bucket4j + Redis), metot düzeyinde yetkilendirme (`@PreAuthorize` + `AuthRoles` yardımcıları), servisten servise dahili token kimlik doğrulaması
 
 ### Platform
@@ -223,13 +224,13 @@ Kullanıcılar OpenLDAP'a eklenir ve Keycloak'a senkronize edilir; realm **rolle
 
 | Kullanıcı Adı | Parola | Rol(ler) | Açılış Sayfası | Yetenekler |
 |----------|--------|----------|----------|--------------|
-| `customer`     | `321654` | `customer` | Ticket'larım | Kendi ticket'larını oluşturma ve izleme (ürün kapsamlı), yorum, dosya ekleme, CSAT gönderme |
-| `agent`        | `321654` | `agent` | Çalışma Alanı | Ticket talep etme ve yalnızca talep edilen ticket'lar üzerinde işlem (ürün kapsamlı); durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
-| `lead`         | `321654` | `lead_agent` | Çalışma Alanı + Takım | `agent` bileşiği **+** ticket'ları temsilcilere atama, talep etmeden ticket üzerinde işlem, ürün içeriği yönetimi (topic'ler / sıkça karşılaşılan sorunlar / paylaşılan hazır yanıtlar) ve ürün kapsamlı takım panosu |
+| `customer`     | `321654` | `customer` | Genel Bakış | Kişisel **Genel Bakış** panosu; kendi ticket'larını oluşturma ve izleme (ürün kapsamlı), yorum, dosya ekleme, CSAT gönderme |
+| `agent`        | `321654` | `agent` | Performansım | Kişisel **Performansım** panosu; ticket talep etme ve yalnızca talep edilen ticket'lar üzerinde işlem (ürün kapsamlı); durum değiştirme, çalışma kaydı, dahili notlar, yapay zekâ özeti |
+| `lead`         | `321654` | `lead_agent` | Performansım + Takım | `agent` bileşiği **+** ticket'ları temsilcilere atama, talep etmeden ticket üzerinde işlem, ürün içeriği yönetimi (topic'ler / sıkça karşılaşılan sorunlar / paylaşılan hazır yanıtlar) ve ürün kapsamlı takım panosu |
 | `manager`      | `321654` | `manager` | Pano | Gözetim (global, salt okunur): tüm panolar, raporlar ve tam okuma görünürlüğü — operasyonel işlem yok, sistem yapılandırması yok |
 | `admin`        | `321654` | `admin` | Çalışma Alanı + Yönetim | Sistem yapılandırması (global): kullanıcı oluşturma, rol atama, ürün oluşturma/yönetme, ürün erişimi verme, temsilci limitleri, SLA / önbellek |
 | `adminmanager` | `321654` | `admin` + `manager` | Çalışma Alanı + Yönetim | Admin yapılandırması **+** manager gözetimi (birleşim) |
-| `leadmanager`  | `321654` | `lead_agent` + `manager` | Çalışma Alanı + Takım + Pano | Lead-agent operasyonları **+** manager gözetimi (birleşim) |
+| `leadmanager`  | `321654` | `lead_agent` + `manager` | Performansım + Takım + Pano | Lead-agent operasyonları **+** manager gözetimi (birleşim) |
 | `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Çalışma Alanı + Yönetim | Tam süper yönetici: admin yapılandırması, lead-agent operasyonları ve manager gözetiminin birleşimi |
 
 > *Veri üreticisinin (data-generator) bootstrap hesabı `superadmin`'dir; `admin` + `lead_agent` + `manager` taşır ve bu nedenle süper yönetici gibi davranır. "Süper yönetici" yalnızca bu üç rolü birden taşıyan bir kullanıcıdır — özel bir süper yönetici rolü yoktur.

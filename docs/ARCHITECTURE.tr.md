@@ -55,7 +55,7 @@ flowchart LR
 
 Platform, iki harici bağımlılıkla entegre olur: yapay zekâ özetlemesi için **Groq API** ve giden e-posta için bir **SMTP sunucusu** (geliştirmede Mailpit).
 
-Kullanıcı rolleri **eklemelidir (additive)** — bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların birleşimidir. Beş rol üç ekseni kapsar: **operasyonel** (`agent`, ticket'ları talep eder ve üzerinde çalışır; `agent`'ın Keycloak bileşiği olan `lead_agent` ayrıca atama yapar, talep etmeden işlem yapar ve ürün içeriğini yönetir), **yapılandırma** (`admin` — global sistem kurulumu) ve **gözetim** (`manager` — global, salt okunur panolar ve raporlama). `customer` son kullanıcıdır. "Süper yönetici" hesabı yalnızca `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır (ör. `superadmin` seed kullanıcısı) — özel bir süper yönetici rolü yoktur.
+Personel (staff) rolleri **eklemelidir (additive)** — bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların birleşimidir. Beş rol üç ekseni kapsar: **operasyonel** (`agent`, ticket'ları talep eder ve üzerinde çalışır; `agent`'ın Keycloak bileşiği olan `lead_agent` ayrıca atama yapar, talep etmeden işlem yapar ve ürün içeriğini yönetir), **yapılandırma** (`admin` — global sistem kurulumu) ve **gözetim** (`manager` — global, salt okunur panolar ve raporlama). `customer` son kullanıcıdır ve **tekil (singleton) bir roldür**: her personel rolüyle karşılıklı olarak dışlayıcıdır (bir müşteri aynı anda agent/lead_agent/admin/manager olamaz) ve backend, onu başka bir rolle birleştiren her kombinasyonu reddeder. "Süper yönetici" hesabı yalnızca `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır (ör. `superadmin` seed kullanıcısı) — özel bir süper yönetici rolü yoktur.
 
 ---
 
@@ -243,6 +243,16 @@ SLA sayacı, bir ticket `WAITING_FOR_CUSTOMER` veya `RESOLVED` durumundayken **d
 
 Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket'ı, yorumlarını, çalışma kayıtlarını, çözüm notunu ve denetim geçmişini toplar, dile özgü bir komut istemi (prompt) oluşturur, Groq API'yi çağırır ve özeti kalıcılaştırır. Görece maliyetli olan bu uç noktayı, IP başına ayrılmış bir hız sınırı korur.
 
+### 7.5 Panolar ve Metrikler
+
+`MetricsService`, rol kapsamlı panoları Caffeine ile önbelleğe alınmış agregasyonlardan sunar:
+
+- **Kişisel panolar** — her kullanıcının yalnızca kendine ait bir görünümü vardır: bir müşteri **Genel Bakış** (`customer_id` ile kapsamlanır) ve bir temsilci **Performansım** görünümü (talep/claim ile kapsamlanır); `/api/v1/metrics/me/customer` ve `/me/agent` uç noktalarından sunulur.
+- **Ürün-bazlı panolar** — Ürünler panelinden erişilebilen, ürün kapsamlı bir görünüm (durum / öncelik / zaman çizelgesi / SLA / CSAT artı ürün kapsamlı bir temsilci sıralaması); `/products/{productId}/dashboard` uç noktasında; admin/manager için global, lead_agent için ürün kapsamlı.
+- **Gözetim detaya inme (drill-down)** — admin / manager / lead, herhangi bir kullanıcının temsilci veya müşteri panosunu açabilir (`/users/{userId}/agent`, `/users/{userId}/customer`); admin/manager globaldir, lead_agent ürün kapsamlıdır.
+- **Tarih aralığı kapsamlı KPI'lar** — pano KPI'ları seçilen tarih aralığını izler (sabit 7 günlük pencere yok). SLA uyumu ve ortalama çözüm süresi, yalnızca o anda `RESOLVED` durumunda olanlar üzerinden değil, **dönem içinde çözülen tüm ticket'lar** üzerinden hesaplanır.
+- **Grafikler ve uyarılar** — CSAT dağılım/eğilim ve günlük-çalışma-kaydı grafikleri, ayrıca duruma giriş anından itibaren zamanlanan **yapılandırılabilir takılı-ticket uyarıları** (bekleyen/çözülmüş); tıklanabilir satırlara sahip, varsayılan olarak daraltılmış bir afişte (banner) gösterilir.
+
 ---
 
 ## 8. Güvenlik Modeli
@@ -254,7 +264,7 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 | **2FA** | Kullanıcı başına yapılandırılabilir TOTP (kimlik doğrulayıcı uygulama) |
 | **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` (+ servis katmanı kapsam/talep kontrolleri için `util/AuthRoles` yardımcıları) |
 | **Yetkilendirme — dahili uç noktalar** | `/api/v1/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
-| **Roller** | **Eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `customer` (son kullanıcı), `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Süper yönetici, `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır. |
+| **Roller** | Personel için **eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). `customer` (son kullanıcı) **tekil (singleton)** bir roldür — her personel rolüyle karşılıklı olarak dışlayıcıdır; backend onu başka bir rolle birleştirmeyi reddeder. Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Süper yönetici, `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır. |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; çalışma zamanında yapılandırılabilir |
@@ -280,7 +290,8 @@ Her ticket, KIE Server konteyneri `ticket-workflow`'a bir kjar olarak dağıtıl
 
 - **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır. Durum senkronizasyonu (`syncTicketStatus` / `syncTicketAssignment`) state node'unu `transition_<DURUM>` sinyali ile ilerletir; böylece claim/unclaim/assign sonrası BPMN ile veritabanı tutarlı kalır ve sonraki geçişler başarılı olur (`syncTicketAssignment` ayrıca `assigneeId`'yi düz süreç değişkeni olarak yazar).
 - **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/v1/internal/workflow/callback` uç noktasını geri çağırır.
-- **Dayanıklılık:** tüm KIE çağrıları bir Resilience4j **devre kesici (circuit breaker)** ile sarılır — iş akışı kesintileri zarif biçimde derecelenir ve ticket API'sini asla bloklamaz.
+- **Süreç durumu kalıcılığı:** KIE Server, süreç/geçmiş durumunu geçici bir bellek-içi H2 deposu yerine ayrılmış `jbpm-db` PostgreSQL örneğine (yapılandırılmış bir JBoss datasource aracılığıyla) kalıcılaştırır — böylece süreç örnekleri konteyner yeniden başlatmalarında korunur.
+- **Dayanıklılık:** tüm KIE çağrıları bir Resilience4j **devre kesici (circuit breaker)** ile sarılır — iş akışı kesintileri zarif biçimde derecelenir ve ticket API'sini asla bloklamaz. *Bayatlamış (stale)* bir `processInstanceId` (BPMN örneği yok — ör. geçmiş deposu sıfırlanırken ticket `ticketdb` içinde hayatta kaldığı için KIE **404 "process instance not found"** döner), bir sağlık sinyali değil deterministik, örnek-bazlı bir sonuç olarak değerlendirilir: **devre kesici tarafından yok sayılır** (böylece tek bir eksik örnek, diğer her ticket için devreyi asla tetiklemez) ve backend, ticket'ı bloklamak yerine basitçe **veritabanı tarafındaki geçişi kabul eder**.
 
 ---
 

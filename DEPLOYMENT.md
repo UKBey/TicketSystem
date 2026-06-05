@@ -122,15 +122,16 @@ Erişim: `http://localhost` (kind-config 80'i host'a yönlendirir).
 
 **Image tag stratejisi (OPS-1 fix):** Asla `:latest` + `IfNotPresent` deploy edilmez. CD pipeline `k8s/overlays/prod/kustomization.yaml`'da her image için commit SHA tag'ini günceller. Immutable tag + `IfNotPresent` = sessiz downgrade yok.
 
-CD pipeline adımı (`cd.yml`):
+CD pipeline adımı (`cd.yml`, `deploy-k8s` job — altı image'ın tamamını SHA tag'iyle override eder):
 ```bash
 cd k8s/overlays/prod
 kustomize edit set image \
   local/it-service-backend=${REGISTRY}/it-service-backend:${SHA} \
   local/llm-service=${REGISTRY}/llm-service:${SHA} \
   local/it-service-frontend=${REGISTRY}/it-service-frontend:${SHA} \
-  local/openldap-server=${REGISTRY}/openldap-server:${SHA}
-git commit -am "chore(cd): bump prod images to ${SHA}"
+  local/openldap-server=${REGISTRY}/openldap-server:${SHA} \
+  local/keycloak-iam=${REGISTRY}/keycloak-iam:${SHA} \
+  local/kie-server=${REGISTRY}/kie-server:${SHA}
 ```
 
 **TLS:** `cert-manager` + `ClusterIssuer` (Let's Encrypt). Prod `Ingress` patch'i (`patches/ingress-prod.yaml`) `tls:` bloğu + `cert-manager.io/cluster-issuer` annotation'ı tutar.

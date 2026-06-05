@@ -53,17 +53,18 @@ Customers report technical problems, support agents resolve them under **SLA** r
 
 ### Notifications
 - Multi-channel notifications (in-app feed + email simulation via Mailpit) for ticket, status, comment and SLA events
-- Per-user notification preferences and **fully localised** notification content (rendered in the recipient's current language)
+- Per-user notification preferences — **scoped to the user's role union** so only relevant event rows are shown — and **fully localised** notification content (rendered in the recipient's current language)
 
 ### AI Assistance
 - Dedicated `llm-service` generates **AI ticket summaries** (Groq / Llama 3.1) in Turkish or English
 
-### Dashboards & Reporting (Manager)
-- KPI summary, status distribution, ticket timeline, priority-SLA breakdown, agent performance leaderboard, product metrics, CSAT analytics and SLA backlog alerts — all Caffeine-cached
+### Dashboards & Reporting
+- **Role-scoped dashboards** — a personal **Overview** for customers and a **My Performance** dashboard for agents, plus the global manager dashboard; admins, managers and leads can **drill into** any user's, agent's or product's dashboard (leads stay product-scoped)
+- KPI summary, status distribution, ticket timeline, priority-SLA breakdown, agent performance leaderboard, product metrics, CSAT analytics (distribution / trend), daily-worklog charts and **configurable stuck-ticket alerts** — KPIs scope to a selected **date range**, all Caffeine-cached
 
 ### Security & Identity
 - **Keycloak** SSO with users federated from **OpenLDAP**, OAuth2/OIDC, JWT, **2FA (TOTP)** and "remember me"
-- **Additive multi-role** access control: a user holds a *set* of roles and their effective permissions are the **union**. Five roles — `customer`, `agent`, `lead_agent`, `admin`, `manager` — span the operational, configuration and oversight axes; `lead_agent` is a Keycloak composite of `agent`. Roles live in Keycloak and are cached in the `user_roles` table (Flyway V37), synced on `/users/sync`.
+- **Additive multi-role** access control: a user holds a *set* of roles and their effective permissions are the **union**. Five roles — `customer`, `agent`, `lead_agent`, `admin`, `manager` — span the operational, configuration and oversight axes; `lead_agent` is a Keycloak composite of `agent`. `customer` is a **singleton** role — mutually exclusive with the staff roles — while the staff roles combine freely. Roles live in Keycloak and are cached in the `user_roles` table (Flyway V37), synced on `/users/sync`.
 - Distributed **rate limiting** (Bucket4j + Redis), method-level authorization (`@PreAuthorize` + `AuthRoles` helpers), internal service-to-service token auth
 
 ### Platform
@@ -223,13 +224,13 @@ Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles 
 
 | Username | Password | Role(s) | Lands on | Capabilities |
 |----------|----------|---------|----------|--------------|
-| `customer`     | `321654` | `customer` | My Tickets | Raise & track own tickets (product-scoped), comment, attach files, submit CSAT |
-| `agent`        | `321654` | `agent` | Workspace | Claim tickets and act only on claimed tickets (product-scoped); change status, worklog, internal notes, AI summary |
-| `lead`         | `321654` | `lead_agent` | Workspace + Team | Composite of `agent` **+** assign tickets to agents, act on tickets without claiming, manage product content (topics / known-issues / shared canned-responses) and a product-scoped team dashboard |
+| `customer`     | `321654` | `customer` | Overview | Personal **Overview** dashboard; raise & track own tickets (product-scoped), comment, attach files, submit CSAT |
+| `agent`        | `321654` | `agent` | My Performance | Personal **My Performance** dashboard; claim tickets and act only on claimed tickets (product-scoped); change status, worklog, internal notes, AI summary |
+| `lead`         | `321654` | `lead_agent` | My Performance + Team | Composite of `agent` **+** assign tickets to agents, act on tickets without claiming, manage product content (topics / known-issues / shared canned-responses) and a product-scoped team dashboard |
 | `manager`      | `321654` | `manager` | Dashboard | Oversight (global, read-only): all dashboards, reports and full read visibility — no operational actions, no system config |
 | `admin`        | `321654` | `admin` | Workspace + Admin | System configuration (global): create users, assign roles, create/manage products, grant product access, agent limits, SLA / cache |
 | `adminmanager` | `321654` | `admin` + `manager` | Workspace + Admin | Admin configuration **+** manager oversight (union) |
-| `leadmanager`  | `321654` | `lead_agent` + `manager` | Workspace + Team + Dashboard | Lead-agent operations **+** manager oversight (union) |
+| `leadmanager`  | `321654` | `lead_agent` + `manager` | My Performance + Team + Dashboard | Lead-agent operations **+** manager oversight (union) |
 | `superadmin`*  | `321654` | `admin` + `lead_agent` + `manager` | Workspace + Admin | Full super-admin: union of admin config, lead-agent operations and manager oversight |
 
 > *The data-generator bootstrap account is `superadmin`, which holds `admin` + `lead_agent` + `manager` and therefore behaves as a super-admin. A "super-admin" is simply a user that holds all three of these roles — there is no dedicated super-admin role.

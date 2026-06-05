@@ -15,7 +15,7 @@ On-call reference for the IT-service ticketing system. Brief, copy-paste oriente
 | keycloak-iam          | 8080            | `/auth/*`         | OIDC IdP, LDAP federation                 | `docker logs keycloak-iam`                   |
 | openldap-server       | 389 (internal)  | (none)            | User directory                            | `docker logs openldap-server`                |
 | it-service-db         | 5432            | `:5432` (dev)     | Postgres — `ticketdb` + `keycloakdb`      | `docker logs it-service-db`                  |
-| jbpm-db               | 5432            | `:5433` (dev)     | KIE Server process history Postgres       | `docker logs jbpm-db`                        |
+| jbpm-db               | 5432            | `:5433` (dev)     | KIE Server process state/history Postgres (persistent — survives KIE restart) | `docker logs jbpm-db`                        |
 | kie-server            | 8080            | `:8180` (dev)     | jBPM workflow engine (7.61.0.Final)       | `docker logs kie-server`                     |
 | redis                 | 6379            | `:6379` (dev)     | Rate-limit Bucket4j + cache               | `docker logs redis`                          |
 | mailpit               | 1025/8025       | `:8025` (dev)     | Dev SMTP sink                             | `docker logs mailpit`                        |
@@ -350,6 +350,14 @@ kubectl -n ticketsystem rollout restart sts/kie-server
 curl -u kieserver:$KIE_PASS http://<host>:8180/kie-server/services/rest/server/containers | jq
 ```
 
+KIE Server process state is persisted to the dedicated **jbpm-db** Postgres
+(datasource `java:jboss/datasources/jbpmDS`, `PostgreSQLDialect` — not the old
+in-memory H2 `ExampleDS`), so in-flight workflows survive a kie-server
+restart/rebuild. If a process instance is nonetheless gone (e.g. jbpm-db was
+wiped), a stale `process_instance_id` is tolerated: a KIE **404** is ignored by
+the circuit breaker and the DB transition is accepted anyway, so ticket status
+changes do not block on a missing BPMN instance.
+
 The BPMN is the authoritative state machine for **all** ticket status changes —
 not only explicit transitions (status update / close) but also the side-effect
 ones from claim / unclaim / assign (each drives the BPMN via a
@@ -406,6 +414,21 @@ kubectl -n ticketsystem scale deploy/<name> --replicas=0
 kubectl -n ticketsystem top pods
 kubectl -n ticketsystem get events --sort-by=.lastTimestamp | tail -30
 ```
+
+### make k8s lifecycle
+
+```bash
+make k8s-stop        # pause: stops the kind node container — PVC + etcd state preserved (no data loss)
+make k8s-start       # resume a stopped cluster (pods self-recover); k8s-down DELETES the cluster + all data
+make k8s-seed-roles  # (re-)assign Keycloak realm roles to the federated LDAP users — k8s equivalent of `make seed-roles`
+make k8s-redeploy-kjar  # re-register the BPMN container on the KIE Server
+```
+
+`make k8s-up` builds **6** local images (backend, llm, frontend, openldap,
+keycloak, kie-server) and auto-runs two idempotent one-shot Jobs on apply:
+`kjar-deploy` (registers the BPMN container) and `seed-roles` (assigns realm
+roles). `make seed-roles` is **compose-only** and cannot reach the in-cluster
+Keycloak — use `make k8s-seed-roles` on k8s.
 
 ### Flyway / Maven
 

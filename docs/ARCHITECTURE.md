@@ -55,7 +55,7 @@ flowchart LR
 
 The platform integrates with two external dependencies: the **Groq API** for AI summarisation and an **SMTP server** (Mailpit in development) for outbound e-mail.
 
-User roles are **additive** — a user holds a *set* of roles and their effective permissions are the union. The five roles span three axes: **operational** (`agent` claims and works tickets; `lead_agent`, a Keycloak composite of `agent`, additionally assigns, acts without claiming and manages product content), **configuration** (`admin` — global system setup), and **oversight** (`manager` — global, read-only dashboards and reporting). `customer` is the end user. A "super-admin" account is simply a user that holds all of `admin` + `lead_agent` + `manager` (e.g. the `superadmin` seed user) — there is no dedicated super-admin role.
+Staff roles are **additive** — a user holds a *set* of roles and their effective permissions are the union. The five roles span three axes: **operational** (`agent` claims and works tickets; `lead_agent`, a Keycloak composite of `agent`, additionally assigns, acts without claiming and manages product content), **configuration** (`admin` — global system setup), and **oversight** (`manager` — global, read-only dashboards and reporting). `customer` is the end user and is a **singleton role**: it is mutually exclusive with every staff role (a customer can never also be agent/lead_agent/admin/manager), and the backend rejects any combination that mixes it with another role. A "super-admin" account is simply a user that holds all of `admin` + `lead_agent` + `manager` (e.g. the `superadmin` seed user) — there is no dedicated super-admin role.
 
 ---
 
@@ -243,6 +243,16 @@ The SLA clock **pauses** while a ticket is `WAITING_FOR_CUSTOMER` or `RESOLVED` 
 
 The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the ticket, its comments, worklogs, resolution note and audit history, builds a language-specific prompt, calls the Groq API, and persists the summary. A dedicated per-IP rate limit protects this comparatively expensive endpoint.
 
+### 7.5 Dashboards & Metrics
+
+`MetricsService` serves role-scoped dashboards from Caffeine-cached aggregations:
+
+- **Personal dashboards** — every user has a self-only view: a customer **Overview** (scoped by `customer_id`) and an agent **My Performance** view (scoped by claim), served from `/api/v1/metrics/me/customer` and `/me/agent`.
+- **Per-product dashboards** — a product-scoped view (status / priority / timeline / SLA / CSAT plus a product-scoped agent leaderboard) at `/products/{productId}/dashboard`, reachable from the Products panel; global for admin/manager, product-scoped for lead_agent.
+- **Oversight drill-down** — admin / manager / lead can open any user's agent or customer dashboard (`/users/{userId}/agent`, `/users/{userId}/customer`); admin/manager are global, lead_agent is product-scoped.
+- **Date-range scoped KPIs** — dashboard KPIs follow the selected date range (no fixed 7-day window). SLA compliance and average resolution are computed over **all tickets resolved within the period**, not only those currently in the `RESOLVED` state.
+- **Charts & alerts** — CSAT distribution/trend and daily-worklog charts, plus **configurable stuck-ticket alerts** (waiting/resolved) timed from state entry, surfaced in a collapsed-by-default banner with clickable rows.
+
 ---
 
 ## 8. Security Model
@@ -254,7 +264,7 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 | **2FA** | TOTP (authenticator app) configurable per user |
 | **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` (+ `util/AuthRoles` helpers for service-layer scope/claim checks) |
 | **Authorization — internal endpoints** | `/api/v1/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
-| **Roles** | **Additive multi-role** (effective permissions = union of the held set): `customer` (end user), `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. A super-admin is a user holding all of `admin` + `lead_agent` + `manager`. |
+| **Roles** | **Additive multi-role** for staff (effective permissions = union of the held set): `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). `customer` (end user) is a **singleton** role — mutually exclusive with every staff role; the backend rejects mixing it with any other role. Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. A super-admin is a user holding all of `admin` + `lead_agent` + `manager`. |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configurable at runtime |
@@ -280,7 +290,8 @@ Every ticket is backed by a jBPM **process instance** of `com.ticketsystem.workf
 
 - **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals. The BPMN is the **authoritative state machine for every status change** — status/assignment sync drives it by sending the matching `transition_<STATUS>` signal (writing the `status` process variable alone does not move the process token). This covers not only explicit transitions (`updateTicketStatus` / `closeTicket`) but also the side-effect transitions caused by claim / unclaim / assign (e.g. a claim auto-promoting NEW → IN_PROGRESS), keeping the BPMN and the DB consistent.
 - **KIE → Backend:** the process calls back to `/api/v1/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header.
-- **Resilience:** all KIE calls are wrapped in a Resilience4j **circuit breaker** — workflow outages degrade gracefully and never block the ticket API.
+- **Process state persistence:** the KIE Server persists its process/history state to the dedicated `jbpm-db` PostgreSQL instance (via a configured JBoss datasource), not an ephemeral in-memory H2 store — so process instances survive container restarts.
+- **Resilience:** all KIE calls are wrapped in a Resilience4j **circuit breaker** — workflow outages degrade gracefully and never block the ticket API. A *stale* `processInstanceId` (the BPMN instance is gone — e.g. KIE returns **404 "process instance not found"** because the history store was reset while the ticket survived in `ticketdb`) is treated as a deterministic, per-instance outcome rather than a health signal: it is **ignored by the circuit breaker** (so one missing instance never trips it for every other ticket) and the backend simply **accepts the DB-side transition** instead of blocking the ticket.
 
 ---
 
