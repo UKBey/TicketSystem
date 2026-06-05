@@ -13,8 +13,9 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
  * @param {boolean} [invertArrow] priority gibi alanlarda görsel ok yönünü tersine çevirir
  *                                ("asc" backend'de LOW→CRITICAL demek ama kullanıcı
  *                                "yukarı ok = en yüksek üstte" bekler)
+ * @param {'left'|'right'} [align] başlık hizası — sağa yaslı işlem sütunları için 'right'
  */
-export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false }) {
+export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false, align = 'left' }) {
   const active = sortBy === field;
 
   const displayDir = invertArrow
@@ -25,7 +26,8 @@ export default function SortableTh({ field, label, sortBy, sortDir, onSort, inve
     ? (displayDir === 'asc' ? ArrowUp : ArrowDown)
     : ArrowUpDown;
 
-  const baseClass = 'text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b';
+  const alignClass = align === 'right' ? 'text-right' : 'text-left';
+  const baseClass = `${alignClass} px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b`;
   const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' };
 
   if (typeof onSort !== 'function') {

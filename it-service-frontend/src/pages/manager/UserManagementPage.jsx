@@ -434,7 +434,7 @@ export default function UserManagementPage() {
                   <SortableTh field="role"      label={t('userManagement.table.role')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                   <SortableTh field="username"  label={t('userManagement.table.username')} />
                   <SortableTh field="createdAt" label={t('userManagement.table.createdAt')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="actions"   label={t('userManagement.table.actions')} />
+                  <SortableTh field="actions"   label={t('userManagement.table.actions')} align="right" />
                 </tr>
               </thead>
               <tbody>
@@ -512,9 +512,9 @@ export default function UserManagementPage() {
                     </td>
 
                     {/* İşlemler — chart görüntüleme ADMIN+MANAGER (yalnızca dashboard'u olan roller), yazma yalnızca ADMIN */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-right">
                       {(canViewUserCharts(user) || canManageUsers) ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5">
                           {/* Performans chart'ları */}
                           {canViewUserCharts(user) && (
                             <button
