@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.config.AlertProperties;
 import com.ticketsystem.it_service_backend.dto.AgentDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
 import com.ticketsystem.it_service_backend.dto.AlertsBacklogDTO;
@@ -57,6 +58,7 @@ class MetricsServiceTest {
     @Mock SLAPolicyRepository slaPolicyRepository;
     @Mock ProductRepository productRepository;
     @Mock SlaPolicyService slaPolicyService;
+    @Mock AlertProperties alertProperties;
 
     @InjectMocks
     MetricsService metricsService;
@@ -497,6 +499,7 @@ class MetricsServiceTest {
             when(ticketRepository.findUpcomingBreachTicketsByPriorityScoped(anyList(), anyList(), any(), anyBoolean(), anyList(), any()))
                     .thenReturn(Collections.emptyList());
             when(ticketRepository.findWaitingTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findResolvedTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
             when(userRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
             when(ticketRepository.countUnassignedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
             when(ticketRepository.countByStatusScoped(eq("NEW"), anyBoolean(), anyList())).thenReturn(0L);
@@ -530,6 +533,7 @@ class MetricsServiceTest {
             when(ticketRepository.findUpcomingBreachTicketsByPriorityScoped(anyList(), anyList(), any(), anyBoolean(), anyList(), any()))
                     .thenReturn(Collections.emptyList());
             when(ticketRepository.findWaitingTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
+            when(ticketRepository.findResolvedTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
             when(userRepository.findAllById(anyCollection())).thenReturn(List.of(customer));
             when(ticketRepository.countUnassignedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(3L);
             when(ticketRepository.countByStatusScoped(eq("NEW"), anyBoolean(), anyList())).thenReturn(5L);
@@ -541,6 +545,40 @@ class MetricsServiceTest {
             assertThat(dto.getBreachedSLA().get(0).getCustomerName()).isEqualTo("Ahmet Yılmaz");
             assertThat(dto.getBacklogMetrics().getUnassignedCount()).isEqualTo(3L);
             assertThat(dto.getBacklogMetrics().getAvgWaitingHours()).isEqualTo(2.5);
+        }
+
+        @Test
+        @DisplayName("WAITING + RESOLVED takılı biletler tek listede; duruma giriş anına göre, en uzun bekleyen önce")
+        void waitingAndResolved_mergedAndSortedByEntryTime() {
+            ZonedDateTime now = ZonedDateTime.now();
+            // Oluşturulma çok eski ama bekleme durumuna giriş (slaPausedAt) yakın → süre giriş anından sayılmalı.
+            Ticket waiting = Ticket.builder()
+                    .id(10L).title("Need info").priority("MEDIUM").status("WAITING_FOR_CUSTOMER")
+                    .customerId("cust-1").createdAt(now.minusDays(5)).slaPausedAt(now.minusHours(10)).build();
+            Ticket resolved = Ticket.builder()
+                    .id(11L).title("Fixed?").priority("LOW").status("RESOLVED")
+                    .customerId("cust-2").createdAt(now.minusDays(8))
+                    .resolvedAt(now.minusHours(20)).slaPausedAt(now.minusHours(20)).build();
+
+            when(ticketRepository.findBreachedOpenTicketsScoped(anyList(), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
+            when(slaPolicyService.getWarningThresholdHours(anyString())).thenReturn(2);
+            when(ticketRepository.findUpcomingBreachTicketsByPriorityScoped(anyList(), anyList(), any(), anyBoolean(), anyList(), any()))
+                    .thenReturn(Collections.emptyList());
+            when(ticketRepository.findWaitingTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(List.of(waiting));
+            when(ticketRepository.findResolvedTooLongTicketsScoped(any(), anyBoolean(), anyList(), any())).thenReturn(List.of(resolved));
+            when(userRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
+            when(ticketRepository.countUnassignedByStatusInScoped(anyList(), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.countByStatusScoped(eq("NEW"), anyBoolean(), anyList())).thenReturn(0L);
+            when(ticketRepository.avgWaitingHoursForOpenScoped(anyList(), anyBoolean(), anyList())).thenReturn(null);
+
+            AlertsBacklogDTO dto = metricsService.getAlertsAndBacklog(null, "global");
+
+            assertThat(dto.getWaitingTooLong()).hasSize(2);
+            // En uzun bekleyen (RESOLVED, ~20s) başta
+            assertThat(dto.getWaitingTooLong().get(0).getStatus()).isEqualTo("RESOLVED");
+            assertThat(dto.getWaitingTooLong().get(0).getHoursWaiting()).isGreaterThan(19.0).isLessThan(21.0);
+            assertThat(dto.getWaitingTooLong().get(1).getStatus()).isEqualTo("WAITING_FOR_CUSTOMER");
+            assertThat(dto.getWaitingTooLong().get(1).getHoursWaiting()).isGreaterThan(9.0).isLessThan(11.0);
         }
     }
 

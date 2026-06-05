@@ -1,8 +1,23 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Inbox, Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { PRIORITY_COLORS } from '../../constants/ticketColors';
+
+// Tek bir alert satırını ticket detayına tıklanabilir/klavyeyle erişilebilir yapan ortak prop'lar.
+function rowOpenProps(onOpen) {
+  return {
+    onClick: onOpen,
+    role: 'button',
+    tabIndex: 0,
+    onKeyDown: (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); }
+    },
+  };
+}
+
+const ROW_INTERACTIVE = 'cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring-color)]';
 
 const PRIORITY_COLOR = {
   CRITICAL: PRIORITY_COLORS.CRITICAL.solid,
@@ -43,9 +58,9 @@ function PriorityBadge({ priority }) {
   );
 }
 
-function BreachedItem({ item, t }) {
+function BreachedItem({ item, t, onOpen }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(239,68,68,0.04)', borderColor: 'rgba(239,68,68,0.18)' }}>
+    <div {...rowOpenProps(onOpen)} className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${ROW_INTERACTIVE}`} style={{ backgroundColor: 'rgba(239,68,68,0.04)', borderColor: 'rgba(239,68,68,0.18)' }}>
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#ef4444' }} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -67,9 +82,9 @@ function BreachedItem({ item, t }) {
   );
 }
 
-function UpcomingItem({ item, t }) {
+function UpcomingItem({ item, t, onOpen }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(245,158,11,0.04)', borderColor: 'rgba(245,158,11,0.18)' }}>
+    <div {...rowOpenProps(onOpen)} className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${ROW_INTERACTIVE}`} style={{ backgroundColor: 'rgba(245,158,11,0.04)', borderColor: 'rgba(245,158,11,0.18)' }}>
       <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#f59e0b' }} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -89,14 +104,26 @@ function UpcomingItem({ item, t }) {
   );
 }
 
-function WaitingItem({ item, t }) {
+// Bekleme satırındaki durum etiketinin (WAITING_FOR_CUSTOMER / RESOLVED) rengi.
+function statusTagStyle(status) {
+  const c = status === 'RESOLVED' ? '#14b8a6' : '#94a3b8';
+  return { backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40` };
+}
+
+function WaitingItem({ item, t, onOpen }) {
+  const tagColor = item.status === 'RESOLVED' ? '#14b8a6' : '#94a3b8';
   return (
-    <div className="flex items-start gap-3 rounded-xl border px-3 py-2.5" style={{ backgroundColor: 'rgba(148,163,184,0.06)', borderColor: 'rgba(148,163,184,0.2)' }}>
-      <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#94a3b8' }} />
+    <div {...rowOpenProps(onOpen)} className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 ${ROW_INTERACTIVE}`} style={{ backgroundColor: 'rgba(148,163,184,0.06)', borderColor: 'rgba(148,163,184,0.2)' }}>
+      <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: tagColor }} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>#{item.ticketId} {item.title}</span>
           <PriorityBadge priority={item.priority} />
+          {item.status && (
+            <span className="inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={statusTagStyle(item.status)}>
+              {t(`ticket.status.${item.status.toLowerCase()}`)}
+            </span>
+          )}
         </div>
         <div className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
           {item.customerName ?? item.customerId}
@@ -111,7 +138,9 @@ function WaitingItem({ item, t }) {
 
 export default function AlertBanner({ data, loading }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(true);
+  const navigate = useNavigate();
+  // İlk girişte kapalı başlar — kullanıcı başlığa tıklayarak açar.
+  const [expanded, setExpanded] = useState(false);
 
   const breached  = data?.breachedSLA     ?? [];
   const upcoming  = data?.upcomingBreach  ?? [];
@@ -172,7 +201,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {breached.map((item) => <BreachedItem key={item.ticketId} item={item} t={t} />)}
+                  {breached.map((item) => <BreachedItem key={item.ticketId} item={item} t={t} onOpen={() => navigate(`/tickets/${item.ticketId}`)} />)}
                 </div>
               )}
             </div>
@@ -192,7 +221,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {upcoming.map((item) => <UpcomingItem key={item.ticketId} item={item} t={t} />)}
+                  {upcoming.map((item) => <UpcomingItem key={item.ticketId} item={item} t={t} onOpen={() => navigate(`/tickets/${item.ticketId}`)} />)}
                 </div>
               )}
             </div>
@@ -212,7 +241,7 @@ export default function AlertBanner({ data, loading }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {waiting.map((item) => <WaitingItem key={item.ticketId} item={item} t={t} />)}
+                  {waiting.map((item) => <WaitingItem key={item.ticketId} item={item} t={t} onOpen={() => navigate(`/tickets/${item.ticketId}`)} />)}
                 </div>
               )}
             </div>

@@ -1293,17 +1293,44 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                      @Param("before") ZonedDateTime before,
                                                      Pageable pageable);
 
-    /** Tickets that have been stuck in WAITING_FOR_CUSTOMER for too long (for escalation alerts). */
-    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since ORDER BY t.createdAt ASC")
+    /**
+     * Tickets stuck in WAITING_FOR_CUSTOMER for too long (escalation alerts).
+     * Measured from when the ticket ENTERED the waiting state ({@code slaPausedAt},
+     * set on transition into WAITING_FOR_CUSTOMER), falling back to {@code createdAt}
+     * for legacy rows — not from creation time.
+     */
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' "
+         + "AND COALESCE(t.slaPausedAt, t.createdAt) <= :since ORDER BY COALESCE(t.slaPausedAt, t.createdAt) ASC")
     List<Ticket> findWaitingTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
 
     /** Product-scoped variant of {@link #findWaitingTooLongTickets}. */
-    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' AND t.createdAt <= :since "
-         + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.createdAt ASC")
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'WAITING_FOR_CUSTOMER' "
+         + "AND COALESCE(t.slaPausedAt, t.createdAt) <= :since "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY COALESCE(t.slaPausedAt, t.createdAt) ASC")
     List<Ticket> findWaitingTooLongTicketsScoped(@Param("since") ZonedDateTime since,
                                                  @Param("filterByProduct") boolean filterByProduct,
                                                  @Param("productIds") List<Long> productIds,
                                                  Pageable pageable);
+
+    /**
+     * Tickets stuck in RESOLVED (awaiting customer confirmation/close) for too long.
+     * Measured from when the ticket entered RESOLVED ({@code slaPausedAt}/{@code resolvedAt},
+     * both stamped on the transition into RESOLVED), falling back to {@code createdAt}.
+     */
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'RESOLVED' "
+         + "AND COALESCE(t.slaPausedAt, t.resolvedAt, t.createdAt) <= :since "
+         + "ORDER BY COALESCE(t.slaPausedAt, t.resolvedAt, t.createdAt) ASC")
+    List<Ticket> findResolvedTooLongTickets(@Param("since") ZonedDateTime since, Pageable pageable);
+
+    /** Product-scoped variant of {@link #findResolvedTooLongTickets}. */
+    @Query("SELECT t FROM Ticket t WHERE t.status = 'RESOLVED' "
+         + "AND COALESCE(t.slaPausedAt, t.resolvedAt, t.createdAt) <= :since "
+         + "AND (:filterByProduct = false OR t.productId IN :productIds) "
+         + "ORDER BY COALESCE(t.slaPausedAt, t.resolvedAt, t.createdAt) ASC")
+    List<Ticket> findResolvedTooLongTicketsScoped(@Param("since") ZonedDateTime since,
+                                                  @Param("filterByProduct") boolean filterByProduct,
+                                                  @Param("productIds") List<Long> productIds,
+                                                  Pageable pageable);
 
     /** Count of tickets with no claims — within the given status filter (typically NEW). */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")

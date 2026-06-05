@@ -330,6 +330,11 @@ services:
       SLA_HIGH_WARNING_HOURS: ${SLA_HIGH_WARNING_HOURS:-1}
       SLA_CRITICAL_RESOLUTION_HOURS: ${SLA_CRITICAL_RESOLUTION_HOURS:-1}
       SLA_CRITICAL_WARNING_HOURS: ${SLA_CRITICAL_WARNING_HOURS:-0}
+
+      # "Cok uzun suredir bekleyen" dashboard uyarilari esikleri (saat). Sure, ticketin
+      # ilgili duruma girdigi andan itibaren olculur.
+      ALERTS_WAITING_FOR_CUSTOMER_MAX_HOURS: ${ALERTS_WAITING_FOR_CUSTOMER_MAX_HOURS:-48}
+      ALERTS_RESOLVED_MAX_HOURS: ${ALERTS_RESOLVED_MAX_HOURS:-72}
     depends_on:
       it-service-db:
         condition: service_healthy

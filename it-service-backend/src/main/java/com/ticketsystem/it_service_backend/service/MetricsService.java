@@ -24,6 +24,7 @@ import com.ticketsystem.it_service_backend.dto.StatusDistributionDTO;
 import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogSummaryItemDTO;
+import com.ticketsystem.it_service_backend.config.AlertProperties;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
@@ -79,6 +80,7 @@ public class MetricsService {
     private final SLAPolicyRepository slaPolicyRepository;
     private final ProductRepository productRepository;
     private final SlaPolicyService slaPolicyService;
+    private final AlertProperties alertProperties;
 
     /**
      * Computes the dashboard summary metrics.
@@ -602,8 +604,9 @@ public class MetricsService {
      * Builds the composite DTO that feeds the alerts and backlog panel.
      *
      * <p>Three alert lists: (1) top-10 breached SLA, (2) top-10 upcoming-breach
-     * tickets falling inside the per-priority warning window, (3) tickets that
-     * have been in WAITING_FOR_CUSTOMER for more than 3 days. Backlog: unassigned
+     * tickets falling inside the per-priority warning window, (3) tickets stuck in
+     * WAITING_FOR_CUSTOMER or RESOLVED beyond the configurable {@code app.alerts}
+     * thresholds, measured from when they entered that state. Backlog: unassigned
      * count, NEW count, average waiting time. Customer names are fetched with a
      * single {@code findAllById} to avoid N+1.
      *
@@ -614,7 +617,8 @@ public class MetricsService {
         List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
         List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
         ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime waitingThreshold = now.minusDays(3);
+        ZonedDateTime waitingThreshold  = now.minusHours(alertProperties.getWaitingForCustomerMaxHours());
+        ZonedDateTime resolvedThreshold = now.minusHours(alertProperties.getResolvedMaxHours());
         PageRequest top10 = PageRequest.of(0, 10);
 
         boolean filter = filterByProduct(productIds);
@@ -639,9 +643,10 @@ public class MetricsService {
                 .limit(10)
                 .toList();
         List<Ticket> waitingTickets  = ticketRepository.findWaitingTooLongTicketsScoped(waitingThreshold, filter, pids, top10);
+        List<Ticket> resolvedTickets = ticketRepository.findResolvedTooLongTicketsScoped(resolvedThreshold, filter, pids, top10);
 
         // Tüm müşteri ID'lerini tek sorguda çek
-        Set<String> customerIds = Stream.of(breachedTickets, upcomingTickets, waitingTickets)
+        Set<String> customerIds = Stream.of(breachedTickets, upcomingTickets, waitingTickets, resolvedTickets)
                 .flatMap(List::stream)
                 .map(Ticket::getCustomerId)
                 .filter(id -> id != null)
@@ -680,17 +685,28 @@ public class MetricsService {
                         .build())
                 .toList();
 
-        List<AlertTicketItemDTO> waitingTooLong = waitingTickets.stream()
-                .map(t -> AlertTicketItemDTO.builder()
-                        .ticketId(t.getId())
-                        .title(t.getTitle())
-                        .priority(t.getPriority())
-                        .customerId(t.getCustomerId())
-                        .customerName(customerNames.getOrDefault(t.getCustomerId(), t.getCustomerId()))
-                        .hoursWaiting(t.getCreatedAt() != null
-                                ? ChronoUnit.MINUTES.between(t.getCreatedAt(), now) / 60.0
-                                : null)
-                        .build())
+        // WAITING_FOR_CUSTOMER + RESOLVED takılı biletler tek listede; her satır kendi
+        // durumuyla etiketlenir. Süre, biletin o duruma GİRDİĞİ andan (slaPausedAt /
+        // resolvedAt) itibaren ölçülür — oluşturulma anından değil. En uzun bekleyen önce.
+        List<AlertTicketItemDTO> waitingTooLong = Stream.concat(waitingTickets.stream(), resolvedTickets.stream())
+                .map(t -> {
+                    ZonedDateTime enteredAt = t.getSlaPausedAt() != null ? t.getSlaPausedAt()
+                            : (t.getResolvedAt() != null ? t.getResolvedAt() : t.getCreatedAt());
+                    return AlertTicketItemDTO.builder()
+                            .ticketId(t.getId())
+                            .title(t.getTitle())
+                            .priority(t.getPriority())
+                            .status(t.getStatus())
+                            .customerId(t.getCustomerId())
+                            .customerName(customerNames.getOrDefault(t.getCustomerId(), t.getCustomerId()))
+                            .hoursWaiting(enteredAt != null
+                                    ? ChronoUnit.MINUTES.between(enteredAt, now) / 60.0
+                                    : null)
+                            .build();
+                })
+                .sorted(Comparator.comparing(AlertTicketItemDTO::getHoursWaiting,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(10)
                 .toList();
 
         long unassigned = ticketRepository.countUnassignedByStatusInScoped(openStatuses, filter, pids);

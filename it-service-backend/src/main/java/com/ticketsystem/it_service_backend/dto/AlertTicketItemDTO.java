@@ -43,6 +43,9 @@ public class AlertTicketItemDTO {
     @Schema(description = "Deadline'a kalan saat (negatif = geçilmiş, pozitif = yaklaşan)")
     private Double hoursUntilDeadline;
 
-    @Schema(description = "WAITING_FOR_CUSTOMER durumunda geçen saat (waitingTooLong için)")
+    @Schema(description = "Mevcut bekleme durumunda (giriş anından itibaren) geçen saat (waitingTooLong için)")
     private Double hoursWaiting;
+
+    @Schema(description = "Ticket durumu — waitingTooLong satırlarında WAITING_FOR_CUSTOMER / RESOLVED ayrımı için", example = "WAITING_FOR_CUSTOMER")
+    private String status;
 }
