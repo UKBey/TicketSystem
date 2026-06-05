@@ -313,81 +313,77 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 ![Login screen with language and light/dark theme switcher](docs/screenshots/login.png)
 *Login — language and light/dark theme switcher.*
 
-![TOTP 2FA prompt during sign-in](docs/screenshots/login-2fa.png)
+![TOTP 2FA prompt during sign-in](docs/screenshots/2FA.png)
 *TOTP 2FA prompt during sign-in.*
-
-![Forgot password flow](docs/screenshots/forgot-password.png)
-*Forgot password — request a reset link by e-mail.*
 
 ### Customer
 
-![Customer My Tickets — Active tab](docs/screenshots/customer-my-tickets-active.png)
-*My Tickets → **Active** tab — non-closed tickets, status filter scoped to active statuses.*
+![Customer My Tickets](docs/screenshots/my_tickets.png)
+*My Tickets — the customer's own tickets with status / priority filters.*
 
-![Customer My Tickets — Closed tab](docs/screenshots/customer-my-tickets-closed.png)
-*My Tickets → **Closed** tab — only CLOSED tickets, status filter hidden.*
-
-![Create ticket modal](docs/screenshots/customer-create-ticket.png)
+![Create ticket modal](docs/screenshots/create_ticket.png)
 *Create-ticket modal — product, topic and priority selection.*
 
-![Customer ticket detail](docs/screenshots/customer-ticket-detail.png)
+![Customer ticket detail](docs/screenshots/ticket_detail_customer.png)
 *Ticket detail — conversation timeline, SLA countdown badge and attachments.*
 
-![CSAT survey after resolution](docs/screenshots/customer-csat.png)
+![CSAT survey after resolution](docs/screenshots/CSAT.png)
 *CSAT survey shown after a ticket is RESOLVED — 1-5 rating + comment.*
 
-### Agent / Lead Agent / Admin
+### Agent / Lead Agent
 
-![Agent Workspace](docs/screenshots/agent-workspace.png)
+![Agent Workspace](docs/screenshots/workspace.png)
 *Workspace — tickets the agent has claimed.*
 
-![Ticket pool](docs/screenshots/agent-pool.png)
+![Ticket pool](docs/screenshots/pool.png)
 *Pool — unclaimed tickets ready to be picked up.*
 
-![Team view](docs/screenshots/agent-team.png)
-*Team — Lead Agent's product-scoped view of every agent's queue.*
-
-![Agent ticket detail](docs/screenshots/agent-ticket-detail.png)
+![Agent ticket detail](docs/screenshots/ticket_detail_agent.png)
 *Ticket detail from the agent's perspective — internal note tab and worklog panel.*
 
-![AI summary modal](docs/screenshots/agent-ai-summary.png)
+![AI summary modal](docs/screenshots/ai_summary.png)
 *AI summary modal — Groq-generated ticket summary.*
 
-![Admin panel overview](docs/screenshots/admin-admin-panel.png)
+![Canned responses](docs/screenshots/canned_responses.png)
+*Canned responses — reusable reply templates (personal + shared, product-scoped).*
+
+### Admin
+
+![Admin panel overview](docs/screenshots/admin_panel.png)
 *Admin panel — entry point to user / product / SLA / rate-limit management.*
 
-![User management](docs/screenshots/admin-user-management.png)
-*User management — Keycloak roles, agent capacity and product authorizations.*
+![User management](docs/screenshots/user_management.png)
+*User management — multi-role assignment, agent capacity and product authorizations.*
 
-![Product & topic configuration](docs/screenshots/admin-product-panel.png)
+![Product & topic configuration](docs/screenshots/product_panel.png)
 *Product & topic configuration — CRUD on the categories customers can file tickets against.*
 
-![Known issues knowledge base](docs/screenshots/admin-known-issues.png)
+![Products catalogue](docs/screenshots/products.png)
+*Products — the catalogue of products customers can raise tickets against.*
+
+![Known issues knowledge base](docs/screenshots/known_issues.png)
 *Known issues editor — the knowledge base attached to every product/topic.*
 
 ### Manager
 
-![Dashboard KPI cards](docs/screenshots/manager-dashboard-kpis.png)
-*Dashboard — KPI cards: open tickets, SLA breaches, average response time, CSAT.*
+![Dashboard KPI cards](docs/screenshots/dashboard1.png)
+*Dashboard — KPI cards and completion meters (date-range scoped).*
 
-![Dashboard charts](docs/screenshots/manager-dashboard-charts.png)
-*Status distribution and ticket-timeline charts.*
-
-![Agent performance leaderboard](docs/screenshots/manager-dashboard-agents.png)
-*Agent performance leaderboard — workload, throughput, CSAT and SLA stats per agent.*
+![Dashboard charts](docs/screenshots/dsahboard2.png)
+*Dashboard — status distribution, CSAT distribution/trend and ticket-timeline charts.*
 
 ### Account & Notifications
 
-![Profile page](docs/screenshots/profile-page.png)
+![Profile page](docs/screenshots/profile.png)
 *Profile — language / theme preferences, password change and 2FA management.*
 
-![Notification dropdown](docs/screenshots/notification-dropdown.png)
+![Notification dropdown](docs/screenshots/in_app_notifications.png)
 *In-app notification feed (bell icon) — live STOMP updates with unread badge.*
 
-![Notification preferences](docs/screenshots/notification-preferences.png)
-*Per-event notification preferences — choose which events trigger an e-mail.*
+![Notification preferences](docs/screenshots/notification_pref.png)
+*Per-event notification preferences (role-union aware) — choose which events trigger an e-mail.*
 
-![Mailpit captured e-mail](docs/screenshots/mailpit-email.png)
+![Mailpit captured e-mail](docs/screenshots/mailpit_mail.png)
 *Captured ticket / SLA e-mail in Mailpit (the dev SMTP catcher).*
 
 ---
