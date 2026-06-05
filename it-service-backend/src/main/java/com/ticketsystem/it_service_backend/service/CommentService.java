@@ -51,7 +51,7 @@ public class CommentService {
     // DB-level constraint (V23 char_length CHECK) yine 500 olarak sabit; bu degerden
     // YUKSEK bir maxLength yapilandirirsaniz DB tarafinda fail eder. Asagi cekmek
     // (orn. 200) guvenli — service katmani daha agresif reddeder.
-    @Value("${app.comments.cooldown-seconds:5}")
+    @Value("${app.comments.cooldown-seconds:3}")
     private long cooldownSeconds;
 
     @Value("${app.comments.max-length:500}")

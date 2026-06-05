@@ -74,7 +74,7 @@ app:
   comments:
     # B-10 — comment kurallari config'ten okunur. DB CHECK constraint (V23) 500 ile
     # sabit; max-length'i bunun uzerine cikartmayin, asagi cekmek guvenli.
-    cooldown-seconds: ${COMMENT_COOLDOWN_SECONDS:5}
+    cooldown-seconds: ${COMMENT_COOLDOWN_SECONDS:3}
     max-length: ${COMMENT_MAX_LENGTH:500}
   password-reset:
     token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:60}

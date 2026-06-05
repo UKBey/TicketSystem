@@ -51,7 +51,7 @@ class CommentServiceTest {
     void setUp() {
         // @Value field'lari InjectMocks ile null/0 kaliyor; varsayilan production
         // degerleriyle hizalanmis test fixtures.
-        ReflectionTestUtils.setField(commentService, "cooldownSeconds", 5L);
+        ReflectionTestUtils.setField(commentService, "cooldownSeconds", 3L);
         ReflectionTestUtils.setField(commentService, "maxMessageLength", 500);
 
         waitingTicket = Ticket.builder()
