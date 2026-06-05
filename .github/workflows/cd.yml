@@ -39,7 +39,7 @@ jobs:
 
       # Backend image — iki tag: latest + commit SHA (rollback için)
       - name: Build & push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./it-service-backend
           file: ./it-service-backend/Dockerfile
@@ -55,7 +55,7 @@ jobs:
 
       # LLM Service image — iki tag: latest + commit SHA
       - name: Build & push llm-service image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./llm-service
           file: ./llm-service/Dockerfile
@@ -71,7 +71,7 @@ jobs:
 
       # Frontend image — iki tag: latest + commit SHA
       - name: Build & push frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./it-service-frontend
           push: true
@@ -86,7 +86,7 @@ jobs:
 
       # OpenLDAP image — Dockerfile-ldap repo kokunden ldap-init/ klasorunu icine kopyaliyor
       - name: Build & push openldap-server image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile-ldap
@@ -102,7 +102,7 @@ jobs:
 
       # Keycloak image — Dockerfile-keycloak: base imaja it-service-desk temasini gomer
       - name: Build & push keycloak-iam image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile-keycloak
@@ -118,7 +118,7 @@ jobs:
 
       # KIE Server image — Dockerfile-kie: ticket-workflow kjar'i KIE'nin Maven repo'suna gomer
       - name: Build & push kie-server image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile-kie
