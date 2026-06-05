@@ -716,11 +716,14 @@ class MetricsServiceTest {
         @DisplayName("self metrik satırı maplenir, SLA ihlal oranı hesaplanır")
         void mapsRowAndComputesRate() {
             String agent = "agent-1";
-            // [active, resolved24, resolved7, resolved30, slaBreached, totalClaimed, avgRes, csatAvg, csatCount]
-            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), any(), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
-                    new Object[]{7L, 3L, 18L, 64L, 4L, 120L, 5.1, 4.4, 52L}
+            // [active, resolvedInRange, slaBreachedInRange, totalClaimed, avgRes, csatAvg, csatCount]
+            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
+                    new Object[]{7L, 18L, 4L, 120L, 5.1, 4.4, 52L}
             ));
             when(worklogRepository.sumAgentWorklogMinutesSinceScoped(eq(agent), any(ZonedDateTime.class), anyBoolean(), anyList())).thenReturn(640L);
+            when(worklogRepository.findAgentWorklogByDayScoped(eq(agent), anyInt(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAgentRatingDistributionSince(eq(agent), any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAgentCsatByDayScoped(eq(agent), anyInt(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.countClaimedTicketsGroupedByStatusScoped(eq(agent), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
                     new Object[]{"IN_PROGRESS", 7L},
                     new Object[]{"RESOLVED", 50L}
@@ -736,16 +739,18 @@ class MetricsServiceTest {
             AgentDashboardDTO dto = metricsService.getMyAgentDashboard(agent, 7);
 
             assertThat(dto.getActiveTickets()).isEqualTo(7L);
-            assertThat(dto.getResolvedLast24Hours()).isEqualTo(3L);
-            assertThat(dto.getResolvedLast7Days()).isEqualTo(18L);
-            assertThat(dto.getResolvedLast30Days()).isEqualTo(64L);
+            assertThat(dto.getResolvedInRange()).isEqualTo(18L);
             assertThat(dto.getSlaBreachedCount()).isEqualTo(4L);
             assertThat(dto.getTotalClaimed()).isEqualTo(120L);
             assertThat(dto.getAvgResolutionHours()).isEqualTo(5.1);
-            assertThat(dto.getSlaBreachRate()).isBetween(3.3, 3.4); // 4/120*100
-            assertThat(dto.getWorklogMinutesLast7Days()).isEqualTo(640L);
+            assertThat(dto.getSlaBreachRate()).isBetween(22.2, 22.3); // 4/18*100
+            assertThat(dto.getWorklogMinutesInRange()).isEqualTo(640L);
             assertThat(dto.getCsatAverage()).isEqualTo(4.4);
             assertThat(dto.getCsatCount()).isEqualTo(52L);
+            assertThat(dto.getCsat().getAverage()).isEqualTo(4.4);
+            assertThat(dto.getCsat().getTotalResponses()).isEqualTo(52L);
+            assertThat(dto.getCsat().getRatingDistribution()).containsKeys(1, 2, 3, 4, 5);
+            assertThat(dto.getWorklogTimeline()).isEmpty();
             assertThat(dto.getStatusDistribution().getResolvedCount()).isEqualTo(50L);
             assertThat(dto.getTimeline().getTimeline()).hasSize(1);
             assertThat(dto.getRecentTickets()).hasSize(1);
@@ -755,10 +760,13 @@ class MetricsServiceTest {
         @DisplayName("claim yoksa hepsi 0, oran 0")
         void noClaimsDefaultsToZero() {
             String agent = "agent-2";
-            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), any(), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
-                    new Object[]{0L, 0L, 0L, 0L, 0L, 0L, 0.0, 0.0, 0L}
+            when(ticketRepository.findAgentSelfMetricsScoped(eq(agent), any(), anyBoolean(), anyList())).thenReturn(List.<Object[]>of(
+                    new Object[]{0L, 0L, 0L, 0L, 0.0, 0.0, 0L}
             ));
             when(worklogRepository.sumAgentWorklogMinutesSinceScoped(eq(agent), any(ZonedDateTime.class), anyBoolean(), anyList())).thenReturn(0L);
+            when(worklogRepository.findAgentWorklogByDayScoped(eq(agent), anyInt(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAgentRatingDistributionSince(eq(agent), any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
+            when(csatRepository.findAgentCsatByDayScoped(eq(agent), anyInt(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.countClaimedTicketsGroupedByStatusScoped(eq(agent), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.getAgentTicketTimelineMetricsScoped(anyInt(), eq(agent), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.findRecentClaimedByAgentScoped(eq(agent), anyBoolean(), anyList(), any())).thenReturn(Collections.emptyList());
@@ -768,7 +776,7 @@ class MetricsServiceTest {
             assertThat(dto.getActiveTickets()).isZero();
             assertThat(dto.getTotalClaimed()).isZero();
             assertThat(dto.getSlaBreachRate()).isEqualTo(0.0);
-            assertThat(dto.getWorklogMinutesLast7Days()).isZero();
+            assertThat(dto.getWorklogMinutesInRange()).isZero();
             assertThat(dto.getRecentTickets()).isEmpty();
         }
     }

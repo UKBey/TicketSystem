@@ -1,7 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.AgentCsatDTO;
 import com.ticketsystem.it_service_backend.dto.AgentDashboardDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceDTO;
+import com.ticketsystem.it_service_backend.dto.CsatDailyDTO;
+import com.ticketsystem.it_service_backend.dto.WorklogDailyDTO;
 import com.ticketsystem.it_service_backend.dto.AgentPerformanceItemDTO;
 import com.ticketsystem.it_service_backend.dto.AlertTicketItemDTO;
 import com.ticketsystem.it_service_backend.dto.CustomerDashboardDTO;
@@ -904,29 +907,39 @@ public class MetricsService {
         boolean filter = filterByProduct(productIds);
         List<Long> pids = safeProductIds(productIds);
 
-        List<Object[]> rows = ticketRepository.findAgentSelfMetricsScoped(
-                agentId, now.minusHours(24), now.minusDays(7), now.minusDays(30), filter, pids);
+        // Tüm aktivite metrikleri seçili pencereye (since) göre — sabit 7g/30g yerine.
+        ZonedDateTime since = now.minusDays(window);
+
+        List<Object[]> rows = ticketRepository.findAgentSelfMetricsScoped(agentId, since, filter, pids);
         Object[] m = rows.isEmpty() ? null : rows.get(0);
 
-        long active        = asLong(m, 0);
-        long resolved24h   = asLong(m, 1);
-        long resolved7d    = asLong(m, 2);
-        long resolved30d   = asLong(m, 3);
-        long slaBreached   = asLong(m, 4);
-        long totalClaimed  = asLong(m, 5);
-        double avgResolution = asDouble(m, 6);
-        double csatAvg     = asDouble(m, 7);
-        long csatCount     = asLong(m, 8);
-        double slaBreachRate = totalClaimed > 0 ? (double) slaBreached / totalClaimed * 100.0 : 0.0;
+        long active            = asLong(m, 0);
+        long resolvedInRange   = asLong(m, 1);
+        long slaBreachedInRange = asLong(m, 2);
+        long totalClaimed      = asLong(m, 3);
+        double avgResolution   = asDouble(m, 4);
+        double csatAvg         = asDouble(m, 5);
+        long csatCount         = asLong(m, 6);
+        double slaBreachRate   = resolvedInRange > 0 ? (double) slaBreachedInRange / resolvedInRange * 100.0 : 0.0;
 
-        long worklogMinutes = worklogRepository.sumAgentWorklogMinutesSinceScoped(
-                agentId, now.minusDays(7), filter, pids);
+        long worklogMinutes = worklogRepository.sumAgentWorklogMinutesSinceScoped(agentId, since, filter, pids);
 
         StatusDistributionDTO dist = buildStatusDistribution(
                 ticketRepository.countClaimedTicketsGroupedByStatusScoped(agentId, filter, pids));
 
         TicketTimelineDTO timeline = buildTimeline(
                 ticketRepository.getAgentTicketTimelineMetricsScoped(window, agentId, filter, pids));
+
+        // Günlük worklog dağılımı (gap-fill SQL tarafında, her gün mevcut).
+        List<WorklogDailyDTO> worklogTimeline = worklogRepository
+                .findAgentWorklogByDayScoped(agentId, window, filter, pids).stream()
+                .map(r -> WorklogDailyDTO.builder()
+                        .date(convertToLocalDate(r[0]))
+                        .minutes(asLong(r, 1))
+                        .build())
+                .toList();
+
+        AgentCsatDTO csat = buildAgentCsat(agentId, window, since, csatAvg, csatCount, filter, pids);
 
         List<RecentTicketDTO> recent = ticketRepository
                 .findRecentClaimedByAgentScoped(agentId, filter, pids, PageRequest.of(0, 5)).stream()
@@ -936,18 +949,48 @@ public class MetricsService {
         return AgentDashboardDTO.builder()
                 .activeTickets(active)
                 .totalClaimed(totalClaimed)
-                .resolvedLast24Hours(resolved24h)
-                .resolvedLast7Days(resolved7d)
-                .resolvedLast30Days(resolved30d)
-                .slaBreachedCount(slaBreached)
+                .resolvedInRange(resolvedInRange)
+                .slaBreachedCount(slaBreachedInRange)
                 .slaBreachRate(slaBreachRate)
                 .avgResolutionHours(avgResolution)
-                .worklogMinutesLast7Days(worklogMinutes)
+                .worklogMinutesInRange(worklogMinutes)
                 .csatAverage(csatAvg)
                 .csatCount(csatCount)
                 .statusDistribution(dist)
                 .timeline(timeline)
+                .worklogTimeline(worklogTimeline)
+                .csat(csat)
                 .recentTickets(recent)
+                .build();
+    }
+
+    /**
+     * Builds the agent CSAT card payload: the 1–5 rating distribution (gap-filled so
+     * every rating key is present) plus a daily average-rating trend over the window.
+     * Headline {@code average}/{@code totalResponses} reuse the values already computed
+     * by the self-metrics query.
+     */
+    private AgentCsatDTO buildAgentCsat(String agentId, int window, ZonedDateTime since,
+                                        double csatAvg, long csatCount, boolean filter, List<Long> pids) {
+        Map<Integer, Long> distribution = new HashMap<>();
+        for (int r = 1; r <= 5; r++) distribution.put(r, 0L);
+        for (Object[] row : csatRepository.findAgentRatingDistributionSince(agentId, since, filter, pids)) {
+            distribution.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
+        }
+
+        List<CsatDailyDTO> trend = csatRepository.findAgentCsatByDayScoped(agentId, window, filter, pids).stream()
+                .map(r -> CsatDailyDTO.builder()
+                        .date(convertToLocalDate(r[0]))
+                        .avg(r[1] != null ? ((Number) r[1]).doubleValue() : null)
+                        .count(asLong(r, 2))
+                        .build())
+                .toList();
+
+        return AgentCsatDTO.builder()
+                .average(csatAvg)
+                .totalResponses(csatCount)
+                .ratingDistribution(distribution)
+                .trend(trend)
                 .build();
     }
 

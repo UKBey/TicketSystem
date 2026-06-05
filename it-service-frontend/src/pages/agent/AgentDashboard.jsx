@@ -9,6 +9,8 @@ import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
+const WorklogTrendChart = lazy(() => import('../../components/dashboard/WorklogTrendChart'));
+const AgentCsatChart = lazy(() => import('../../components/dashboard/AgentCsatChart'));
 
 const DATE_RANGE_OPTIONS = [7, 30, 90, null];
 const DEFAULT_DATE_RANGE = 30;
@@ -50,7 +52,7 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
 
   useEffect(() => { load(); }, [load]);
 
-  const worklogHours = ((data?.worklogMinutesLast7Days ?? 0) / 60).toFixed(1);
+  const worklogHours = ((data?.worklogMinutesInRange ?? 0) / 60).toFixed(1);
 
   const kpis = [
     {
@@ -62,8 +64,8 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
     },
     {
       title: t('agentDashboard.kpiResolved'),
-      value: formatNumber(data?.resolvedLast7Days),
-      detail: t('agentDashboard.kpiResolvedDetail', { count: formatNumber(data?.resolvedLast30Days), hours: worklogHours }),
+      value: formatNumber(data?.resolvedInRange),
+      detail: t('agentDashboard.kpiResolvedDetail', { hours: worklogHours }),
       icon: CheckCircle2,
       accent: 'bg-accent-500',
     },
@@ -164,6 +166,36 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
             title={t('agentDashboard.trendTitle')}
             subtitle={t('agentDashboard.trendSubtitle')}
             seriesLabels={{ created: t('agentDashboard.seriesClaimed') }}
+          />
+        </Suspense>
+      </section>
+
+      <section>
+        <Suspense fallback={<SkeletonLoader lines={6} />}>
+          <WorklogTrendChart
+            data={data?.worklogTimeline}
+            loading={loading}
+            badgeLabel={t('agentDashboard.worklogChartBadge')}
+            title={t('agentDashboard.worklogChartTitle')}
+            subtitle={t('agentDashboard.worklogChartSubtitle')}
+            emptyText={t('agentDashboard.worklogChartEmpty')}
+            hoursLabel={t('agentDashboard.worklogChartHours')}
+          />
+        </Suspense>
+      </section>
+
+      <section>
+        <Suspense fallback={<SkeletonLoader lines={6} />}>
+          <AgentCsatChart
+            data={data?.csat}
+            loading={loading}
+            badgeLabel={t('agentDashboard.csatChartBadge')}
+            title={t('agentDashboard.csatChartTitle')}
+            subtitle={t('agentDashboard.csatChartSubtitle')}
+            responsesLabel={t('agentDashboard.csatChartResponses', { count: data?.csat?.totalResponses ?? 0 })}
+            emptyText={t('agentDashboard.csatChartEmpty')}
+            distributionLabel={t('agentDashboard.csatChartDistribution')}
+            trendLabel={t('agentDashboard.csatChartTrend')}
           />
         </Suspense>
       </section>

@@ -68,4 +68,33 @@ public interface WorklogRepository extends JpaRepository<TicketWorklog, Long> {
                                            @Param("since") ZonedDateTime since,
                                            @Param("filterByProduct") boolean filterByProduct,
                                            @Param("productIds") List<Long> productIds);
+
+    /**
+     * Per-day worklog minutes for a single agent over the last {@code :days} days.
+     * Gap-filled via {@code generate_series} so every day in the window is present
+     * (0 when nothing was logged). Returns: each row is {@code [date, total_minutes]},
+     * oldest day last. Product-scoped like the other agent queries.
+     */
+    @Query(value = """
+            WITH date_range AS (
+                SELECT DATE(CURRENT_TIMESTAMP AT TIME ZONE 'UTC') - INTERVAL '1 day' * i AS metric_date
+                FROM generate_series(0, :days - 1) AS i
+            ),
+            mine AS (
+                SELECT w.minutes, w.created_at FROM ticket_worklogs w
+                JOIN tickets t ON t.id = w.ticket_id
+                WHERE w.agent_id = CAST(:agentId AS text)
+                AND (:filterByProduct = false OR t.product_id IN (:productIds))
+            )
+            SELECT dr.metric_date AS metric_date,
+                COALESCE(SUM(CASE WHEN DATE(m.created_at AT TIME ZONE 'UTC') = dr.metric_date THEN m.minutes END), 0)::BIGINT AS minutes
+            FROM date_range dr
+            LEFT JOIN mine m ON DATE(m.created_at AT TIME ZONE 'UTC') = dr.metric_date
+            GROUP BY dr.metric_date
+            ORDER BY dr.metric_date DESC
+            """, nativeQuery = true)
+    List<Object[]> findAgentWorklogByDayScoped(@Param("agentId") String agentId,
+                                               @Param("days") int days,
+                                               @Param("filterByProduct") boolean filterByProduct,
+                                               @Param("productIds") List<Long> productIds);
 }

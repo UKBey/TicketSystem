@@ -1591,21 +1591,26 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // un-scoped self queries above (global ADMIN/MANAGER view).
     // =========================================================================
 
-    /** Product-scoped variant of {@link #findAgentSelfMetrics}. */
+    /**
+     * Product-scoped variant of {@link #findAgentSelfMetrics}. Activity metrics
+     * (resolved, avg-resolution, SLA breach, CSAT) are scoped to the selected window
+     * via {@code :since}; {@code active} (current status) and {@code total_claimed}
+     * (lifetime) are window-independent.
+     * Row: [active, resolved_in_range, sla_breached_in_range, total_claimed,
+     *       avg_resolution_hours, csat_avg, csat_count].
+     */
     @Query(value = """
             SELECT
                 COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END)::BIGINT AS active,
-                COUNT(CASE WHEN t.resolved_at >= :since24h THEN 1 END)::BIGINT AS resolved_24h,
-                COUNT(CASE WHEN t.resolved_at >= :since7d  THEN 1 END)::BIGINT AS resolved_7d,
-                COUNT(CASE WHEN t.resolved_at >= :since30d THEN 1 END)::BIGINT AS resolved_30d,
-                COUNT(CASE WHEN t.sla_breached = true THEN 1 END)::BIGINT AS sla_breached,
+                COUNT(CASE WHEN t.resolved_at >= :since THEN 1 END)::BIGINT AS resolved_in_range,
+                COUNT(CASE WHEN t.sla_breached = true AND t.resolved_at >= :since THEN 1 END)::BIGINT AS sla_breached_in_range,
                 COUNT(*)::BIGINT AS total_claimed,
                 COALESCE(AVG(CASE
-                    WHEN t.resolved_at IS NOT NULL AND t.created_at IS NOT NULL
+                    WHEN t.resolved_at >= :since AND t.created_at IS NOT NULL
                         THEN EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0
                 END), 0)::DOUBLE PRECISION AS avg_resolution_hours,
-                COALESCE(AVG(CAST(cs.rating AS DOUBLE PRECISION)), 0)::DOUBLE PRECISION AS csat_avg,
-                COUNT(cs.id)::BIGINT AS csat_count
+                COALESCE(AVG(CASE WHEN cs.created_at >= :since THEN CAST(cs.rating AS DOUBLE PRECISION) END), 0)::DOUBLE PRECISION AS csat_avg,
+                COUNT(CASE WHEN cs.created_at >= :since THEN cs.id END)::BIGINT AS csat_count
             FROM ticket_claims tc
             JOIN tickets t ON t.id = tc.ticket_id
             LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
@@ -1613,9 +1618,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             AND (:filterByProduct = false OR t.product_id IN (:productIds))
             """, nativeQuery = true)
     List<Object[]> findAgentSelfMetricsScoped(@Param("agentId") String agentId,
-                                              @Param("since24h") ZonedDateTime since24h,
-                                              @Param("since7d") ZonedDateTime since7d,
-                                              @Param("since30d") ZonedDateTime since30d,
+                                              @Param("since") ZonedDateTime since,
                                               @Param("filterByProduct") boolean filterByProduct,
                                               @Param("productIds") List<Long> productIds);
 

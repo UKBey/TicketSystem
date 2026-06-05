@@ -27,31 +27,25 @@ public class AgentDashboardDTO {
     @Schema(description = "Claim'lediğim toplam bilet sayısı", example = "120")
     private Long totalClaimed;
 
-    @Schema(description = "Son 24 saatte çözdüğüm bilet sayısı", example = "3")
-    private Long resolvedLast24Hours;
+    @Schema(description = "Seçili dönemde çözdüğüm bilet sayısı", example = "18")
+    private Long resolvedInRange;
 
-    @Schema(description = "Son 7 günde çözdüğüm bilet sayısı", example = "18")
-    private Long resolvedLast7Days;
-
-    @Schema(description = "Son 30 günde çözdüğüm bilet sayısı", example = "64")
-    private Long resolvedLast30Days;
-
-    @Schema(description = "Claim'lediğim biletlerden SLA ihlali olanların sayısı", example = "4")
+    @Schema(description = "Seçili dönemde çözdüğüm biletlerden SLA ihlali olanların sayısı", example = "4")
     private Long slaBreachedCount;
 
-    @Schema(description = "SLA ihlal oranım (% — ihlal / toplam claim)", example = "3.3")
+    @Schema(description = "SLA ihlal oranım (% — dönemde ihlalli / dönemde çözülen)", example = "3.3")
     private Double slaBreachRate;
 
-    @Schema(description = "Çözdüğüm biletlerin ortalama çözüm süresi (saat)", example = "5.1")
+    @Schema(description = "Seçili dönemde çözdüğüm biletlerin ortalama çözüm süresi (saat)", example = "5.1")
     private Double avgResolutionHours;
 
-    @Schema(description = "Son 7 günde girdiğim toplam worklog dakikası", example = "640")
-    private Long worklogMinutesLast7Days;
+    @Schema(description = "Seçili dönemde girdiğim toplam worklog dakikası", example = "640")
+    private Long worklogMinutesInRange;
 
-    @Schema(description = "Claim'lediğim biletlerin CSAT ortalaması (0 = yok)", example = "4.4")
+    @Schema(description = "Seçili dönemde claim'lediğim biletlerin CSAT ortalaması (0 = yok)", example = "4.4")
     private Double csatAverage;
 
-    @Schema(description = "Claim'lediğim biletlerdeki CSAT yanıt sayısı", example = "52")
+    @Schema(description = "Seçili dönemdeki CSAT yanıt sayım", example = "52")
     private Long csatCount;
 
     @Schema(description = "Claim'lediğim biletlerin durum dağılımı")
@@ -59,6 +53,12 @@ public class AgentDashboardDTO {
 
     @Schema(description = "Son N günün günlük bilet trendim (oluşan/çözülen/kapanan/SLA)")
     private TicketTimelineDTO timeline;
+
+    @Schema(description = "Seçili dönemde günlük girdiğim worklog dakikaları")
+    private List<WorklogDailyDTO> worklogTimeline;
+
+    @Schema(description = "Seçili dönemdeki CSAT dağılımı (1–5) ve ortalama trendi")
+    private AgentCsatDTO csat;
 
     @Schema(description = "En son claim'lediğim birkaç bilet")
     private List<RecentTicketDTO> recentTickets;
