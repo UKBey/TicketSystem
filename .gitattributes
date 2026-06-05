@@ -10,6 +10,12 @@ mvnw            text eol=lf
 *.ldif          text eol=lf
 *.template      text eol=lf
 
+# KIE Server image'ina gomulen jboss-cli script'i ve WildFly modul tanimi
+# Linux container'da islenir; .cli backslash satir-devami CRLF ile bozulur.
+# DAIMA LF olmali.
+*.cli           text eol=lf
+kie/modules/**  text eol=lf
+
 # Windows'a ozgu script'ler CRLF kalmali.
 *.bat           text eol=crlf
 *.cmd           text eol=crlf
