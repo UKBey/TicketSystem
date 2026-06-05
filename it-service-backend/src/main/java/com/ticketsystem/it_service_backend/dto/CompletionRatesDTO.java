@@ -26,12 +26,16 @@ public class CompletionRatesDTO {
     @Schema(description = "Dönem içinde oluşturulan bilet sayısı", example = "165")
     private long totalCreated;
 
+    @Schema(description = "Dönem içinde çözüme ulaşan tüm biletler (sonradan kapatılmış olanlar dahil) — "
+            + "SLA uyumu ve ortalama çözüm süresinin hesaplandığı payda", example = "150")
+    private long resolvedInPeriod;
+
     @Schema(description = "Tamamlanma oranı: (resolved + closed) / created × 100", example = "83.6")
     private double completionRate;
 
-    @Schema(description = "Ortalama çözüm süresi (saat)", example = "6.4")
+    @Schema(description = "Ortalama çözüm süresi (saat) — dönemde çözülen tüm biletler üzerinden", example = "6.4")
     private double avgResolutionHours;
 
-    @Schema(description = "SLA uyum oranı: çözülen biletlerde ihlal yaşanmayanların yüzdesi", example = "91.5")
+    @Schema(description = "SLA uyum oranı: dönemde çözülen biletlerde (kapatılmış olanlar dahil) ihlal yaşanmayanların yüzdesi", example = "91.5")
     private double slaComplianceRate;
 }

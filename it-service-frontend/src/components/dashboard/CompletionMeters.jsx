@@ -15,7 +15,7 @@ const METERS = [
     key: 'slaComplianceRate',
     label: 'SLA Compliance',
     icon: ShieldCheck,
-    detail: (r) => `across ${r.totalResolved ?? 0} resolved tickets`,
+    detail: (r) => `across ${r.resolvedInPeriod ?? r.totalResolved ?? 0} resolved tickets`,
   },
 ];
 

@@ -754,12 +754,15 @@ public class MetricsService {
 
         // B-9: 5 ayri COUNT/AVG sorgusu yerine PostgreSQL FILTER ile tek aggregated query.
         List<Object[]> aggregates = ticketRepository.findWorklogCompletionAggregatesScoped(since, filter, pids);
-        Object[] row = aggregates.isEmpty() ? new Object[]{0L, 0L, 0L, null, null} : aggregates.get(0);
+        Object[] row = aggregates.isEmpty() ? new Object[]{0L, 0L, 0L, null, null, 0L} : aggregates.get(0);
         long totalCreated  = row[0] != null ? ((Number) row[0]).longValue() : 0L;
         long totalResolved = row[1] != null ? ((Number) row[1]).longValue() : 0L;
         long totalClosed   = row[2] != null ? ((Number) row[2]).longValue() : 0L;
         Double avgResolutionHours = row[3] != null ? ((Number) row[3]).doubleValue() : null;
         Double slaComplianceRate  = row[4] != null ? ((Number) row[4]).doubleValue() : null;
+        // SLA uyumu / ort. çözüm süresi paydası: dönemde çözüme ulaşan TÜM biletler (sonradan
+        // kapatılmış olanlar dahil) — anlık RESOLVED olanlarla sınırlı değil.
+        long resolvedInPeriod = row[5] != null ? ((Number) row[5]).longValue() : 0L;
 
         double completionRate = totalCreated > 0
                 ? ((double) (totalResolved + totalClosed) / totalCreated) * 100.0
@@ -772,6 +775,7 @@ public class MetricsService {
                         .totalCreated(totalCreated)
                         .totalResolved(totalResolved)
                         .totalClosed(totalClosed)
+                        .resolvedInPeriod(resolvedInPeriod)
                         .completionRate(completionRate)
                         .avgResolutionHours(avgResolutionHours != null ? avgResolutionHours : 0.0)
                         .slaComplianceRate(slaComplianceRate != null ? slaComplianceRate : 0.0)

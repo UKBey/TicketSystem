@@ -1221,10 +1221,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                 COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since)::BIGINT AS total_resolved,
                 COUNT(*) FILTER (WHERE t.status = 'CLOSED' AND t.closed_at >= :since)::BIGINT AS total_closed,
                 AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0)
-                    FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since
-                            AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL) AS avg_resolution_hours,
-                (COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
-                    / NULLIF(COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since), 0) AS sla_compliance_rate
+                    FILTER (WHERE t.resolved_at >= :since AND t.created_at IS NOT NULL) AS avg_resolution_hours,
+                (COUNT(*) FILTER (WHERE t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
+                    / NULLIF(COUNT(*) FILTER (WHERE t.resolved_at >= :since), 0) AS sla_compliance_rate,
+                COUNT(*) FILTER (WHERE t.resolved_at >= :since)::BIGINT AS total_resolved_in_period
             FROM tickets t
             """, nativeQuery = true)
     List<Object[]> findWorklogCompletionAggregates(@Param("since") ZonedDateTime since);
@@ -1236,10 +1236,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                 COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since)::BIGINT AS total_resolved,
                 COUNT(*) FILTER (WHERE t.status = 'CLOSED' AND t.closed_at >= :since)::BIGINT AS total_closed,
                 AVG(EXTRACT(EPOCH FROM (t.resolved_at - t.created_at)) / 3600.0)
-                    FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since
-                            AND t.created_at IS NOT NULL AND t.resolved_at IS NOT NULL) AS avg_resolution_hours,
-                (COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
-                    / NULLIF(COUNT(*) FILTER (WHERE t.status = 'RESOLVED' AND t.resolved_at >= :since), 0) AS sla_compliance_rate
+                    FILTER (WHERE t.resolved_at >= :since AND t.created_at IS NOT NULL) AS avg_resolution_hours,
+                (COUNT(*) FILTER (WHERE t.resolved_at >= :since AND t.sla_breached = false) * 100.0)
+                    / NULLIF(COUNT(*) FILTER (WHERE t.resolved_at >= :since), 0) AS sla_compliance_rate,
+                COUNT(*) FILTER (WHERE t.resolved_at >= :since)::BIGINT AS total_resolved_in_period
             FROM tickets t
             WHERE (:filterByProduct = false OR t.product_id IN (:productIds))
             """, nativeQuery = true)

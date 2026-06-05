@@ -53,7 +53,7 @@ const EMPTY_RESPONSES = {
   worklog: {
     periodDays: 30,
     agentWorklogs: [],
-    completionRates: { totalResolved: 0, totalClosed: 0, totalCreated: 0, completionRate: 0, avgResolutionHours: 0, slaComplianceRate: 100 },
+    completionRates: { totalResolved: 0, totalClosed: 0, totalCreated: 0, resolvedInPeriod: 0, completionRate: 0, avgResolutionHours: 0, slaComplianceRate: 100 },
   },
 };
 

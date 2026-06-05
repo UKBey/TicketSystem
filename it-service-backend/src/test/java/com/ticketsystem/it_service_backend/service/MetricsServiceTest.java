@@ -557,7 +557,7 @@ class MetricsServiceTest {
         void noWorklogs_returnsZeroRates() {
             when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
+                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null, 0L}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(7, null, "global");
 
@@ -576,7 +576,7 @@ class MetricsServiceTest {
             when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(rawRows);
             when(userRepository.findAllById(anyIterable())).thenReturn(List.of(agent));
             when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{10L, 6L, 2L, 3.5, 0.85}));
+                    .thenReturn(List.<Object[]>of(new Object[]{10L, 6L, 2L, 3.5, 0.85, 8L}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(30, null, "global");
 
@@ -585,6 +585,7 @@ class MetricsServiceTest {
             assertThat(dto.getAgentWorklogs().get(0).getTotalMinutes()).isEqualTo(120L);
             assertThat(dto.getAgentWorklogs().get(0).getAvgMinutesPerEntry()).isEqualTo(40.0);
             assertThat(dto.getCompletionRates().getCompletionRate()).isEqualTo(80.0);
+            assertThat(dto.getCompletionRates().getResolvedInPeriod()).isEqualTo(8L);
         }
 
         @Test
@@ -592,7 +593,7 @@ class MetricsServiceTest {
         void days_clampedToRange() {
             when(worklogRepository.findAgentWorklogSummaryScoped(any(), anyBoolean(), anyList())).thenReturn(Collections.emptyList());
             when(ticketRepository.findWorklogCompletionAggregatesScoped(any(), anyBoolean(), anyList()))
-                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null}));
+                    .thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, null, null, 0L}));
 
             WorklogCompletionDTO dto = metricsService.getWorklogCompletion(9999, null, "global");
 
