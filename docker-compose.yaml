@@ -552,13 +552,21 @@ services:
     environment:
       KIE_SERVER_ID: "ticket-kie-server"
       KIE_SERVER_LOCATION: "http://kie-server:8080/kie-server/services/rest/server"
+      # jbpmDS datasource (Dockerfile-kie ile gomulu) bu degiskenlerden cozulur.
+      # KIE Server surec instance'larini in-memory H2 yerine kalici jbpm-db
+      # Postgres'e yazar -> restart/rebuild'de in-flight workflow'lar kaybolmaz.
+      JBPM_DB_HOST: "jbpm-db"
+      JBPM_DB_PORT: "5432"
+      JBPM_DB_NAME: ${JBPM_DB_NAME}
+      JBPM_DB_USER: ${JBPM_DB_USER}
+      JBPM_DB_PASSWORD: ${JBPM_DB_PASSWORD}
       JAVA_OPTS: >-
         -Xms512m -Xmx1024m
         -Djava.net.preferIPv4Stack=true
         -Dorg.kie.server.id=ticket-kie-server
         -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
-        -Dorg.kie.server.persistence.ds=java:jboss/datasources/ExampleDS
-        -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.H2Dialect
+        -Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS
+        -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect
     depends_on:
       jbpm-db:
         condition: service_healthy

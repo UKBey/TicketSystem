@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PostgreSQL JDBC driver as a WildFly module for the KIE Server.
+  Used by the java:jboss/datasources/jbpmDS datasource so jBPM process
+  state persists to the external jbpm-db Postgres instead of in-memory H2.
+  The jar is copied in version-stripped as postgresql.jar (see Dockerfile-kie).
+-->
+<module name="org.postgresql" xmlns="urn:jboss:module:1.9">
+
+    <resources>
+        <resource-root path="postgresql.jar"/>
+    </resources>
+
+    <dependencies>
+        <module name="java.sql"/>
+        <module name="java.naming"/>
+        <module name="java.logging"/>
+        <module name="java.management"/>
+        <module name="javax.transaction.api"/>
+    </dependencies>
+</module>
