@@ -132,6 +132,7 @@
     "errorLoad": "Could not load canned responses.",
     "errorSave": "Save failed.",
     "errorDelete": "Delete failed.",
+    "errorFavorite": "Could not update favorite.",
     "emptyManage": "No canned responses yet. Create one to speed up replies.",
     "langTr": "Turkish",
     "langEn": "English",

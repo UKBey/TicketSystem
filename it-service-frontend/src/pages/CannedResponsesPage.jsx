@@ -8,6 +8,8 @@ import api, {
   createCannedResponse,
   updateCannedResponse,
   deleteCannedResponse,
+  favoriteCannedResponse,
+  unfavoriteCannedResponse,
 } from '../services/api';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs } from '../utils/cannedResponses';
 import PaginationBar from '../components/PaginationBar';
@@ -217,6 +219,20 @@ export default function CannedResponsesPage() {
     }
   };
 
+  // Favorilere ekle/çıkar — iyimser güncelleme, hatada geri al. Favori kişiseldir:
+  // kullanıcı yönetemediği (paylaşılan) şablonları da favoriye alabilir.
+  const handleToggleFavorite = async (item) => {
+    const next = !item.favorite;
+    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, favorite: next } : it)));
+    try {
+      if (next) await favoriteCannedResponse(item.id);
+      else await unfavoriteCannedResponse(item.id);
+    } catch (err) {
+      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, favorite: !next } : it)));
+      toast.error(err.response?.data?.message || t('cannedResponses.errorFavorite'));
+    }
+  };
+
   const contentField = activeLang === 'tr' ? 'contentTr' : 'contentEn';
   const previewText = fillPlaceholders(form[contentField] || '', sampleCtx);
 
@@ -359,7 +375,6 @@ export default function CannedResponsesPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {item.favorite && <Star className="h-3.5 w-3.5 flex-shrink-0" fill="#f59e0b" style={{ color: '#f59e0b' }} />}
                       <h3 className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{item.title}</h3>
                       {item.shortcut && (
                         <span className="text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>/{item.shortcut}</span>
@@ -380,27 +395,43 @@ export default function CannedResponsesPage() {
                       {langs.map((l) => <Badge key={l} tone="slate">{l.toUpperCase()}</Badge>)}
                     </div>
                   </div>
-                  {canManageItem(item) && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => openEdit(item)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer"
-                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                        title={t('cannedResponses.edit')}
-                        aria-label={t('cannedResponses.edit')}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                        title={t('cannedResponses.delete')}
-                        aria-label={t('cannedResponses.delete')}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleToggleFavorite(item)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer"
+                      style={{ borderColor: 'var(--border-color)' }}
+                      title={t('cannedResponses.toggleFavorite')}
+                      aria-label={t('cannedResponses.toggleFavorite')}
+                      aria-pressed={!!item.favorite}
+                    >
+                      <Star
+                        className="h-3.5 w-3.5"
+                        fill={item.favorite ? '#f59e0b' : 'none'}
+                        style={{ color: item.favorite ? '#f59e0b' : 'var(--text-tertiary)' }}
+                      />
+                    </button>
+                    {canManageItem(item) && (
+                      <>
+                        <button
+                          onClick={() => openEdit(item)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                          title={t('cannedResponses.edit')}
+                          aria-label={t('cannedResponses.edit')}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                          title={t('cannedResponses.delete')}
+                          aria-label={t('cannedResponses.delete')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs whitespace-pre-wrap break-words line-clamp-3" style={{ color: 'var(--text-secondary)' }}>
                   {preview}

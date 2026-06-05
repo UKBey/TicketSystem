@@ -132,6 +132,7 @@
     "errorLoad": "Hazır yanıtlar yüklenemedi.",
     "errorSave": "Kayıt başarısız oldu.",
     "errorDelete": "Silme işlemi başarısız oldu.",
+    "errorFavorite": "Favori güncellenemedi.",
     "emptyManage": "Henüz hazır yanıt yok. Yanıtları hızlandırmak için bir tane oluşturun.",
     "langTr": "Türkçe",
     "langEn": "İngilizce",
