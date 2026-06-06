@@ -259,8 +259,10 @@ public class TicketClaimService {
             log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
         }
 
-        auditHelper.record(ticket, adminId, "ASSIGN",
-                note != null ? note : "Manuel atama yapıldı",
+        // Note stays free-form/optional: when the admin supplies none we persist null
+        // rather than a hardcoded literal — the audit timeline already renders a
+        // localized "Assigned" label per the viewer's language (i18n-correct).
+        auditHelper.record(ticket, adminId, "ASSIGN", note,
                 previousStatus, ticket.getStatus());
 
         try {
