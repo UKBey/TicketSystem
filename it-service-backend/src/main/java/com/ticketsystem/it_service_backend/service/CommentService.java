@@ -57,6 +57,16 @@ public class CommentService {
     @Value("${app.comments.max-length:500}")
     private int maxMessageLength;
 
+    /** Per-user comment cooldown in seconds (config-driven) — exposed so the client can mirror it. */
+    public long getCooldownSeconds() {
+        return cooldownSeconds;
+    }
+
+    /** Maximum comment length (config-driven). */
+    public int getMaxMessageLength() {
+        return maxMessageLength;
+    }
+
     /**
      * Adds a new comment to a ticket.
      *

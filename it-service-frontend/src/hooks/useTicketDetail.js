@@ -6,16 +6,15 @@ import api, {
   updateTicketPriority as updateTicketPriorityApi,
   updateTicketTopic as updateTicketTopicApi,
   listProductTopics,
+  getCommentConfig,
 } from '../services/api';
 import { useTicketWebSocket } from './useTicketWebSocket';
 import { useToast } from '../context/ToastContext';
 import { REASON_CODES } from '../utils/reasonCodes';
 
-// İstemci-taraflı yorum cooldown'ı (saniye). Backend'in app.comments.cooldown-seconds
-// (.env: COMMENT_COOLDOWN_SECONDS) değerini yansıtan bir UX kısıtıdır — ikisini senkron tut.
-// Vite env'i build anında gömer; backend .env'i runtime'da değişirse frontend yeniden
-// build edilmeli (VITE_COMMENT_COOLDOWN_SECONDS ile override edilebilir).
-const COMMENT_COOLDOWN_SECONDS = Number(import.meta.env.VITE_COMMENT_COOLDOWN_SECONDS) || 3;
+// Backend yanıtı gelene kadar kullanılacak güvenli başlangıç cooldown'ı (saniye).
+// Asıl değer GET /config/comments ile backend'den (.env: COMMENT_COOLDOWN_SECONDS) çekilir.
+const FALLBACK_COMMENT_COOLDOWN_SECONDS = 3;
 
 export function useTicketDetail(id, isAgent) {
   const { t } = useTranslation();
@@ -31,6 +30,8 @@ export function useTicketDetail(id, isAgent) {
   const [commentType, setCommentType] = useState('EXTERNAL');
   const [sending, setSending]         = useState(false);
   const [cooldown, setCooldown]       = useState(0);
+  // Cooldown süresi backend'den (.env COMMENT_COOLDOWN_SECONDS) çekilir; gelene kadar fallback.
+  const cooldownSecondsRef            = useRef(FALLBACK_COMMENT_COOLDOWN_SECONDS);
 
   const [slaInfo, setSlaInfo]         = useState(null);
   const [currentDate, setCurrentDate] = useState(Date.now());
@@ -54,6 +55,17 @@ export function useTicketDetail(id, isAgent) {
 
   const fileInputRef = useRef(null);
   const chatEndRef   = useRef(null);
+
+  // Yorum cooldown'ını backend'den çek (oturum başına bir kez cache'lenir).
+  useEffect(() => {
+    let active = true;
+    getCommentConfig().then((cfg) => {
+      if (active && cfg && Number(cfg.cooldownSeconds) > 0) {
+        cooldownSecondsRef.current = Number(cfg.cooldownSeconds);
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   // ---- fetch ----------------------------------------------------------------
 
@@ -184,7 +196,7 @@ export function useTicketDetail(id, isAgent) {
       const res = await api.post(`/tickets/${id}/comments`, { message, type: commentType });
       setComments((prev) => (prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data]));
       setMessage('');
-      setCooldown(COMMENT_COOLDOWN_SECONDS);
+      setCooldown(cooldownSecondsRef.current);
       const timer = setInterval(() => {
         setCooldown((prev) => {
           if (prev <= 1) { clearInterval(timer); return 0; }

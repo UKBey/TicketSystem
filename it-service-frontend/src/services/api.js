@@ -107,6 +107,23 @@ export const updateTicketTopic = (ticketId, payload) =>
 export const listProductTopics = (productId) =>
   api.get(`/products/${productId}/topics`);
 
+// Sunucu-taraflı yorum yapılandırması (cooldown + max uzunluk). Tek kaynak backend'in
+// .env'i (COMMENT_COOLDOWN_SECONDS); frontend bu değeri hardcode etmek yerine buradan çeker.
+// Oturum başına bir kez çekilir (cache'lenmiş promise); hata olursa güvenli varsayılana düşer.
+let commentConfigPromise = null;
+export const getCommentConfig = () => {
+  if (!commentConfigPromise) {
+    commentConfigPromise = api
+      .get('/config/comments')
+      .then((r) => r.data)
+      .catch(() => {
+        commentConfigPromise = null; // başarısızsa bir sonraki çağrı tekrar denesin
+        return { cooldownSeconds: 3, maxLength: 500 };
+      });
+  }
+  return commentConfigPromise;
+};
+
 // Agent kapasite listesini çek (atama UI'ı için)
 export const getAgentsWithCapacity = (productId) =>
   api.get('/users/agents/capacity', { params: { productId } });
