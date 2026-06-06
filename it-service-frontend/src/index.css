@@ -135,6 +135,21 @@
 }
 
 /* ============================================================ */
+/* Recharts                                                     */
+/* ============================================================ */
+/* Recharts renders a focusable wrapper/surface (tabindex="0"); clicking a
+   chart leaves a browser focus box around it. Suppress that outline — the
+   charts aren't interactive controls, so the box is just visual noise. */
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-responsive-container:focus,
+.recharts-responsive-container:focus-visible {
+  outline: none;
+}
+
+/* ============================================================ */
 /* Utility Animations                                           */
 /* ============================================================ */
 @keyframes fade-in {
