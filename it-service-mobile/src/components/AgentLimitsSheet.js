@@ -65,8 +65,10 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
 
   const save = async (pid) => {
     const entry = limits[pid];
-    const numVal = entry.useCustom ? parseInt(entry.value, 10) : null;
-    if (entry.useCustom && (!numVal || numVal < 1)) {
+    const hasValue = entry.useCustom && String(entry.value).trim() !== '';
+    const numVal = hasValue ? parseInt(entry.value, 10) : null;
+    // Empty value with custom enabled means "unlimited" (null). Only validate when a value is entered.
+    if (hasValue && (Number.isNaN(numVal) || numVal < 1)) {
       patch(pid, { error: '≥ 1' });
       return;
     }
@@ -144,7 +146,7 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
                         onChangeText={(v) => patch(p.id, { value: v, saved: false, error: '' })}
                         editable={e.useCustom}
                         keyboardType="number-pad"
-                        placeholder="—"
+                        placeholder={e.useCustom ? t('admin.panel.agentLimitsUnlimited', 'Sınırsız') : '—'}
                         placeholderTextColor={theme.textTertiary}
                         style={[
                           styles.input,

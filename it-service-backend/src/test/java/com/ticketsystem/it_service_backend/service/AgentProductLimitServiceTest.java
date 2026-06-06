@@ -18,9 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -99,14 +98,18 @@ class AgentProductLimitServiceTest {
     }
 
     @Test
-    void setAgentLimit_whenCustomLimitEnabledWithoutValue_throwsIllegalArgumentException() {
+    void setAgentLimit_whenCustomLimitEnabledWithoutValue_savesUnlimitedOverride() {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(agentProductLimitRepository.findByAgentIdAndProductId("agent-1", 10L)).thenReturn(Optional.empty());
+        when(agentProductLimitRepository.save(any(AgentProductLimit.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> agentProductLimitService.setAgentLimit("agent-1", 10L, true, null));
+        AgentProductLimitResponseDTO result = agentProductLimitService.setAgentLimit("agent-1", 10L, true, null);
 
-        verify(agentProductLimitRepository, never()).save(any());
+        assertEquals(true, result.isUseCustomLimit());
+        assertNull(result.getMaxActiveTickets());
+        assertNull(result.getEffectiveLimit());
+        verify(agentProductLimitRepository).save(any(AgentProductLimit.class));
     }
 
     @Test

@@ -52,15 +52,15 @@ public class AgentProductLimitService {
      *
      * <p>If {@code useCustomLimit=false} is supplied, the existing custom record
      * is deleted and the agent falls back to the product's default limit. If
-     * {@code true}, {@code maxActiveTickets} is required.
+     * {@code true} with a {@code null} {@code maxActiveTickets}, the agent gets an
+     * explicit <em>unlimited</em> override (no cap, regardless of the product default).
      *
      * @param agentId agent ID
      * @param productId product ID
      * @param useCustomLimit whether the custom limit is active
-     * @param maxActiveTickets value to apply when the custom limit is active
+     * @param maxActiveTickets value to apply when the custom limit is active; {@code null} means unlimited
      * @return DTO reflecting the resulting state
      * @throws ResponseStatusException 404 if agent or product is not found
-     * @throws IllegalArgumentException if a custom limit is requested without a value
      */
     @Transactional
     public AgentProductLimitResponseDTO setAgentLimit(String agentId, Long productId, boolean useCustomLimit,
@@ -72,10 +72,6 @@ public class AgentProductLimitService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.user.not.found"));
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));
-
-        if (useCustomLimit && maxActiveTickets == null) {
-            throw new IllegalArgumentException("error.agent.limit.required.when.custom");
-        }
 
         AgentProductLimit existing = agentProductLimitRepository
                 .findByAgentIdAndProductId(agentId, productId)

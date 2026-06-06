@@ -131,14 +131,16 @@ function AgentLimitsPanel({ user, t }) {
 
   const handleSave = async (productId) => {
     const entry = limits[productId];
-    const numVal = entry.useCustom ? parseInt(entry.value, 10) : null;
-    if (entry.useCustom && (!numVal || numVal < 1)) {
+    const hasValue = entry.useCustom && String(entry.value).trim() !== '';
+    const numVal = hasValue ? parseInt(entry.value, 10) : null;
+    // Empty value with custom enabled means "unlimited" (null). Only validate when a value is entered.
+    if (hasValue && (Number.isNaN(numVal) || numVal < 1)) {
       setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], error: '≥ 1' } }));
       return;
     }
     setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], saving: true, error: '' } }));
     try {
-      await setAgentLimit(user.id, productId, entry.useCustom, entry.useCustom ? numVal : null);
+      await setAgentLimit(user.id, productId, entry.useCustom, numVal);
       setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], saving: false, saved: true } }));
       setTimeout(() => setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], saved: false } })), 2000);
     } catch {
@@ -195,7 +197,7 @@ function AgentLimitsPanel({ user, t }) {
                   disabled={!entry.useCustom}
                   value={entry.value}
                   onChange={e => handleValue(prod.id, e.target.value)}
-                  placeholder="—"
+                  placeholder={entry.useCustom ? t('admin.panel.agentLimitsUnlimited') : '—'}
                   className="flex-1 rounded border px-2 py-1.5 text-xs outline-none focus:ring-2 disabled:opacity-40"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: entry.error ? '#ef4444' : 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
@@ -257,7 +259,7 @@ function AgentLimitsPanel({ user, t }) {
                       disabled={!entry.useCustom}
                       value={entry.value}
                       onChange={e => handleValue(prod.id, e.target.value)}
-                      placeholder="—"
+                      placeholder={entry.useCustom ? t('admin.panel.agentLimitsUnlimited') : '—'}
                       className="w-20 rounded border px-2 py-1 text-xs outline-none focus:ring-2 disabled:opacity-40"
                       style={{ backgroundColor: 'var(--bg-input)', borderColor: entry.error ? '#ef4444' : 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                     />
