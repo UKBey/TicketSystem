@@ -15,7 +15,9 @@ export default function StatusActionsCard({
   const canDoStatusActions = !canDelete || hasClaimed;
   const noClaimer = !ticket?.claimers || ticket.claimers.length === 0;
 
-  const hasUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
+  // Unclaim, aktif claim'i olan ve kapalı olmayan her bilette mümkün. RESOLVED'de bilet
+  // çözümde kalır (backend statüyü değiştirmez); WAITING ise IN_PROGRESS'e dönmeden bırakılır.
+  const hasUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER' || ticket?.status === 'RESOLVED') && hasClaimed;
   const hasClose   = allowedStatuses.includes('CLOSED') && (!canDelete || hasClaimed);
   // Admin her statüde silebildiği için Extra Actions düğmesi onun için her
   // zaman erişilebilir; diğer roller yalnızca unclaim/close aksiyonu varsa görür.

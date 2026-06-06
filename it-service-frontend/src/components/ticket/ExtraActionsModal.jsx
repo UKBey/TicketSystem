@@ -13,7 +13,9 @@ export default function ExtraActionsModal({
   const currentUserId = user?.sub || user?.id;
   const hasClaimed    = ticket?.claimers?.some((c) => c.agentId === currentUserId);
 
-  const showUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER') && hasClaimed;
+  // Unclaim, aktif claim'i olan ve kapalı olmayan her bilette mümkün — RESOLVED dahil
+  // (backend statüyü değiştirmeden claim'i bırakır).
+  const showUnclaim = (allowedStatuses.includes('NEW') || ticket?.status === 'WAITING_FOR_CUSTOMER' || ticket?.status === 'RESOLVED') && hasClaimed;
   const showClose   = allowedStatuses.includes('CLOSED') && (!canDelete || hasClaimed);
   // Silme yalnızca ADMIN için; claim gerekmez, statüden bağımsız.
   const showDelete  = canDelete;
