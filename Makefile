@@ -131,12 +131,16 @@ help:
 	@echo    clean            - Derleme ciktilarini temizler
 
 # --- Docker: Tam Stack ---
+# --remove-orphans: dev<->prod gecisinde olusan artik (orphan) container'lari temizler.
+# Prod kumesi dev-only servisleri (mailpit, phpldapadmin, dashboards, sonarqube) icermez;
+# bayrak olmadan bunlar orphan kalip eski network referansiyla sonraki rebuild'i bozar
+# ("network <hash> not found"). Bayrak her up/rebuild'de bu artiklari kaldirir.
 
 up:
-	docker compose up -d
+	docker compose up -d --remove-orphans
 
 rebuild:
-	docker compose up -d --build
+	docker compose up -d --build --remove-orphans
 
 build-only:
 	docker compose up --build -d --no-deps $(s)
@@ -167,10 +171,10 @@ restart:
 PROD_COMPOSE := docker compose -f docker-compose.yaml -f docker-compose.prod.yaml
 
 up-prod:
-	$(PROD_COMPOSE) up -d
+	$(PROD_COMPOSE) up -d --remove-orphans
 
 down-prod:
-	$(PROD_COMPOSE) down
+	$(PROD_COMPOSE) down --remove-orphans
 
 logs-prod:
 	$(PROD_COMPOSE) logs -f $(s)
