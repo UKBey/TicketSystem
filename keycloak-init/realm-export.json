@@ -34,6 +34,7 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
+  "passwordPolicy": "length(8) and lowerCase(1) and upperCase(1) and digits(1) and notUsername(undefined)",
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
