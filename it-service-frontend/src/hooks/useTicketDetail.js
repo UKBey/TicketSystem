@@ -11,6 +11,12 @@ import { useTicketWebSocket } from './useTicketWebSocket';
 import { useToast } from '../context/ToastContext';
 import { REASON_CODES } from '../utils/reasonCodes';
 
+// İstemci-taraflı yorum cooldown'ı (saniye). Backend'in app.comments.cooldown-seconds
+// (.env: COMMENT_COOLDOWN_SECONDS) değerini yansıtan bir UX kısıtıdır — ikisini senkron tut.
+// Vite env'i build anında gömer; backend .env'i runtime'da değişirse frontend yeniden
+// build edilmeli (VITE_COMMENT_COOLDOWN_SECONDS ile override edilebilir).
+const COMMENT_COOLDOWN_SECONDS = Number(import.meta.env.VITE_COMMENT_COOLDOWN_SECONDS) || 3;
+
 export function useTicketDetail(id, isAgent) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -178,7 +184,7 @@ export function useTicketDetail(id, isAgent) {
       const res = await api.post(`/tickets/${id}/comments`, { message, type: commentType });
       setComments((prev) => (prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data]));
       setMessage('');
-      setCooldown(5);
+      setCooldown(COMMENT_COOLDOWN_SECONDS);
       const timer = setInterval(() => {
         setCooldown((prev) => {
           if (prev <= 1) { clearInterval(timer); return 0; }
