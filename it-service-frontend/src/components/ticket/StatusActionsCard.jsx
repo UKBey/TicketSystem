@@ -65,7 +65,7 @@ export default function StatusActionsCard({
           </div>
         )}
 
-        {!hasClaimed && ticket?.status !== 'CLOSED' && (
+        {isAgent && !hasClaimed && ticket?.status !== 'CLOSED' && (
           <button
             className={`w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white transition-colors cursor-pointer ${
               noClaimer ? 'bg-primary-500 hover:bg-primary-600' : 'bg-accent-500 hover:bg-accent-600'
