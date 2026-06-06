@@ -385,4 +385,143 @@ class KeycloakAdminServiceTest {
     private static org.mockito.stubbing.Answer<org.keycloak.admin.client.resource.RoleMappingResource> withRealm() {
         return invocation -> null;
     }
+
+    // =====================================================================
+    // changeUserPassword — başarı / politika ihlali / diğer hata dalları
+    // =====================================================================
+
+    @Test
+    void changeUserPassword_success_callsResetPassword() {
+        when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get("kc-1")).thenReturn(userResource);
+
+        service.changeUserPassword("kc-1", "NewPass1!");
+
+        verify(userResource).resetPassword(any(CredentialRepresentation.class));
+    }
+
+    @Test
+    void changeUserPassword_policyViolation400_throwsInvalidPassword() {
+        when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get("kc-1")).thenReturn(userResource);
+        jakarta.ws.rs.WebApplicationException ex =
+                new jakarta.ws.rs.WebApplicationException(Response.status(400).entity("too weak").build());
+        org.mockito.Mockito.doThrow(ex).when(userResource).resetPassword(any(CredentialRepresentation.class));
+
+        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "weak"))
+                .isInstanceOf(com.ticketsystem.it_service_backend.exception.InvalidPasswordException.class);
+    }
+
+    @Test
+    void changeUserPassword_otherError500_rethrows() {
+        when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get("kc-1")).thenReturn(userResource);
+        jakarta.ws.rs.WebApplicationException ex =
+                new jakarta.ws.rs.WebApplicationException(Response.status(500).entity("boom").build());
+        org.mockito.Mockito.doThrow(ex).when(userResource).resetPassword(any(CredentialRepresentation.class));
+
+        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "x"))
+                .isInstanceOf(jakarta.ws.rs.WebApplicationException.class);
+    }
+
+    // =====================================================================
+    // verifyPassword — 200 / non-200 / exception (httpClient mock)
+    // =====================================================================
+
+    @SuppressWarnings("unchecked")
+    private void injectHttpClient(int status, boolean throwError) throws Exception {
+        java.net.http.HttpClient mockClient = org.mockito.Mockito.mock(java.net.http.HttpClient.class);
+        if (throwError) {
+            when(mockClient.send(any(), any(java.net.http.HttpResponse.BodyHandler.class)))
+                    .thenThrow(new java.io.IOException("connection refused"));
+        } else {
+            java.net.http.HttpResponse<String> resp = org.mockito.Mockito.mock(java.net.http.HttpResponse.class);
+            when(resp.statusCode()).thenReturn(status);
+            when(mockClient.send(any(), any(java.net.http.HttpResponse.BodyHandler.class))).thenReturn(resp);
+        }
+        ReflectionTestUtils.setField(service, "httpClient", mockClient);
+        ReflectionTestUtils.setField(service, "serverUrl", "http://keycloak:8080/auth");
+        ReflectionTestUtils.setField(service, "userClientId", "ticket-frontend");
+    }
+
+    @Test
+    void verifyPassword_status200_true() throws Exception {
+        injectHttpClient(200, false);
+        assertThat(service.verifyPassword("john", "pass")).isTrue();
+    }
+
+    @Test
+    void verifyPassword_status401_false() throws Exception {
+        injectHttpClient(401, false);
+        assertThat(service.verifyPassword("john", "wrong")).isFalse();
+    }
+
+    @Test
+    void verifyPassword_exception_false() throws Exception {
+        injectHttpClient(0, true);
+        assertThat(service.verifyPassword("john", "pass")).isFalse();
+    }
+
+    // =====================================================================
+    // updateUserProfile — email değişimi / çakışma dalları
+    // =====================================================================
+
+    private UserRepresentation rep(String id, String email) {
+        UserRepresentation u = new UserRepresentation();
+        u.setId(id);
+        u.setEmail(email);
+        return u;
+    }
+
+    private void stubProfileChain(UserRepresentation current) {
+        when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get("kc-1")).thenReturn(userResource);
+        when(userResource.toRepresentation()).thenReturn(current);
+    }
+
+    @Test
+    void updateUserProfile_emailUnchanged_updatesWithoutSearch() {
+        stubProfileChain(rep("kc-1", "same@example.com"));
+
+        service.updateUserProfile("kc-1", "John", "Doe", "same@example.com");
+
+        verify(userResource).update(any(UserRepresentation.class));
+        verify(usersResource, never()).searchByEmail(any(), any());
+    }
+
+    @Test
+    void updateUserProfile_emailNull_updatesWithoutSearch() {
+        stubProfileChain(rep("kc-1", "old@example.com"));
+
+        service.updateUserProfile("kc-1", "John", "Doe", null);
+
+        verify(userResource).update(any(UserRepresentation.class));
+        verify(usersResource, never()).searchByEmail(any(), any());
+    }
+
+    @Test
+    void updateUserProfile_emailChangedNoConflict_updates() {
+        stubProfileChain(rep("kc-1", "old@example.com"));
+        // searchByEmail başka kullanıcı dönmez (yalnızca kendisi)
+        when(usersResource.searchByEmail("new@example.com", true)).thenReturn(List.of(rep("kc-1", "new@example.com")));
+
+        service.updateUserProfile("kc-1", "John", "Doe", "new@example.com");
+
+        verify(userResource).update(any(UserRepresentation.class));
+    }
+
+    @Test
+    void updateUserProfile_emailChangedConflict_throwsUserAlreadyExists() {
+        stubProfileChain(rep("kc-1", "old@example.com"));
+        when(usersResource.searchByEmail("taken@example.com", true))
+                .thenReturn(List.of(rep("other-id", "taken@example.com")));
+
+        assertThatThrownBy(() -> service.updateUserProfile("kc-1", "John", "Doe", "taken@example.com"))
+                .isInstanceOf(UserAlreadyExistsException.class);
+        verify(userResource, never()).update(any());
+    }
 }

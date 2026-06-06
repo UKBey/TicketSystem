@@ -64,7 +64,8 @@ class EmailServiceTest {
                 .customerId("customer-1")
                 .build();
 
-        when(mailSender.createMimeMessage())
+        // lenient: blank-recipient testinde send() erken döner, createMimeMessage çağrılmaz.
+        lenient().when(mailSender.createMimeMessage())
                 .thenReturn(new MimeMessage(Session.getDefaultInstance(new Properties())));
     }
 
@@ -148,6 +149,97 @@ class EmailServiceTest {
 
         emailService.sendTicketCreatedEmail(noThemeUser, ticket);
 
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // Password reset / security notification e-postaları
+    // -------------------------------------------------------------------------
+
+    @Test
+    void sendPasswordResetEmail_withOverrides_usesOverrideLocaleAndDarkPalette() {
+        emailService.sendPasswordResetEmail(customer, "https://app/reset?token=abc&x=1", 60, "tr", "dark");
+        verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "password_reset", "status", "success").count());
+    }
+
+    @Test
+    void sendPasswordResetEmail_nullOverrides_fallsBackToUserPreference() {
+        User trUser = User.builder().id("tr-1").email("tr@example.com").fullName("Türk Kullanıcı")
+                .preferredLanguage("tr").preferredTheme("light").build();
+        emailService.sendPasswordResetEmail(trUser, "https://app/reset?token=xyz", 30, null, null);
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void sendPasswordChangedEmail_buildsSecurityNotificationAndSends() {
+        emailService.sendPasswordChangedEmail(customer, null, null);
+        verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "password_changed", "status", "success").count());
+    }
+
+    @Test
+    void send2FADeviceAddedEmail_withLabel_sends() {
+        emailService.send2FADeviceAddedEmail(customer, "iPhone 15");
+        verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "twofa_device_added", "status", "success").count());
+    }
+
+    @Test
+    void send2FADeviceAddedEmail_blankLabel_usesUnnamedFallback() {
+        emailService.send2FADeviceAddedEmail(customer, "   ");
+        verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void send2FADeviceRemovedEmail_nullLabel_usesUnnamedFallback() {
+        emailService.send2FADeviceRemovedEmail(customer, null);
+        verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "twofa_device_removed", "status", "success").count());
+    }
+
+    @Test
+    void send_blankRecipient_skipsAndRecordsSkippedMetric() {
+        User noEmail = User.builder().id("ne-1").email("  ").fullName("No Email").build();
+        emailService.sendPasswordChangedEmail(noEmail, null, null);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "password_changed", "status", "skipped").count());
+    }
+
+    @Test
+    void send_firstAttemptFailsThenSucceeds_recordsSuccess() {
+        doThrow(new MailSendException("transient")).doNothing()
+                .when(mailSender).send(any(MimeMessage.class));
+
+        emailService.sendTicketCreatedEmail(customer, ticket);
+
+        verify(mailSender, times(2)).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "ticket_created", "status", "success").count());
+    }
+
+    @Test
+    void priorityBadge_coversAllPriorityBranches() {
+        for (String priority : new String[]{"CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN", null}) {
+            Ticket t = Ticket.builder().id(7L).title("x").priority(priority).status("NEW")
+                    .customerId("customer-1").build();
+            emailService.sendTicketCreatedEmail(customer, t);
+        }
+        // 6 mail = 6 başarılı gönderim (her priority dalı + null dalı).
+        assertEquals(6.0, meterRegistry.counter(
+                "mail_send_total", "category", "ticket_created", "status", "success").count());
+    }
+
+    @Test
+    void sendTicketCreatedEmail_nullStatusAndTitle_handledByEscapeAndBadge() {
+        Ticket t = Ticket.builder().id(9L).title(null).priority(null).status(null)
+                .customerId("customer-1").build();
+        assertDoesNotThrow(() -> emailService.sendTicketCreatedEmail(customer, t));
         verify(mailSender).send(any(MimeMessage.class));
     }
 }

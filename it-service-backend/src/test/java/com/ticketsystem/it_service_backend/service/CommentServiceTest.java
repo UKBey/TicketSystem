@@ -243,4 +243,59 @@ class CommentServiceTest {
 
         assertEquals(2, result.size());
     }
+
+    // ---- addComment / broadcastComment ek dallar ----
+
+    @Test
+    void addComment_messageTooLong_throwsBadRequest() {
+        String longMsg = "x".repeat(501);
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> commentService.addComment(100L, longMsg, "EXTERNAL", "agent-1", List.of("AGENT")));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(ticketService, never()).validateMutationAccess(any(), any(), any());
+    }
+
+    @Test
+    void addComment_withinCooldown_throws429() {
+        java.util.Map<String, java.time.Instant> last = new java.util.concurrent.ConcurrentHashMap<>();
+        last.put("agent-1", java.time.Instant.now());
+        ReflectionTestUtils.setField(commentService, "lastCommentTime", last);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> commentService.addComment(100L, "hi", "EXTERNAL", "agent-1", List.of("AGENT")));
+        assertEquals(429, ex.getStatusCode().value());
+    }
+
+    @Test
+    void addComment_customerReplyOnWaiting_defaultsTypeAndResumesTicket() {
+        when(ticketService.validateMutationAccess(100L, "customer-1", List.of("CUSTOMER"))).thenReturn(waitingTicket);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
+            Comment c = inv.getArgument(0); c.setId(5L); return c;
+        });
+        when(userRepository.findById("customer-1")).thenReturn(java.util.Optional.empty()); // broadcast author null branch
+
+        Comment saved = commentService.addComment(100L, "cevap", null, "customer-1", List.of("CUSTOMER"));
+
+        assertEquals("EXTERNAL", saved.getType()); // type null → EXTERNAL default
+        verify(ticketService).updateTicketStatus(100L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        verify(messagingTemplate).convertAndSend(eqDest("/topic/tickets/100"), any(Object.class));
+    }
+
+    @Test
+    void addComment_agentInternal_broadcastsToInternalDestination() {
+        Ticket active = Ticket.builder().id(100L).status("IN_PROGRESS").customerId("customer-1").build();
+        when(ticketService.validateMutationAccess(100L, "agent-1", List.of("AGENT"))).thenReturn(active);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
+            Comment c = inv.getArgument(0); c.setId(6L); return c;
+        });
+        when(userRepository.findById("agent-1")).thenReturn(java.util.Optional.of(
+                com.ticketsystem.it_service_backend.entity.User.builder().id("agent-1").fullName("Ajan").role("AGENT").build()));
+
+        commentService.addComment(100L, "iç not", "INTERNAL", "agent-1", List.of("AGENT"));
+
+        verify(messagingTemplate).convertAndSend(eqDest("/topic/tickets/100/internal"), any(Object.class));
+        verify(ticketService, never()).updateTicketStatus(any(), any(), any(), any(), any(), any());
+    }
+
+    private static String eqDest(String d) { return org.mockito.ArgumentMatchers.eq(d); }
 }

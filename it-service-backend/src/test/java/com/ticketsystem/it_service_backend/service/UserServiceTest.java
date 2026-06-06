@@ -615,4 +615,61 @@ class UserServiceTest {
         assertThat(result.getIsActive()).isTrue();
         verify(keycloakAdminService).setUserEnabled("agent-1", true);
     }
+
+    // =====================================================================
+    // Rol normalizasyonu / öncelik + filtreli listeleme dalları
+    // =====================================================================
+
+    @Test
+    void normalizeAssignableRoles_nullReturnsEmpty() {
+        assertThat(UserService.normalizeAssignableRoles(null)).isEmpty();
+    }
+
+    @Test
+    void normalizeAssignableRoles_filtersUnknownAndUppercases() {
+        assertThat(UserService.normalizeAssignableRoles(List.of("agent", "bogus", "ADMIN")))
+                .containsExactlyInAnyOrder("AGENT", "ADMIN");
+    }
+
+    @Test
+    void normalizeAssignableRoles_leadAgentDropsPlainAgent() {
+        assertThat(UserService.normalizeAssignableRoles(List.of("AGENT", "LEAD_AGENT")))
+                .containsExactly("LEAD_AGENT");
+    }
+
+    @Test
+    void normalizeAssignableRoles_customerWithOtherRole_throwsBadRequest() {
+        assertThatThrownBy(() -> UserService.normalizeAssignableRoles(List.of("CUSTOMER", "AGENT")))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
+
+    @Test
+    void resolveHighestRole_priorityOrder() {
+        assertThat(UserService.resolveHighestRole(null)).isNull();
+        assertThat(UserService.resolveHighestRole(List.of())).isNull();
+        assertThat(UserService.resolveHighestRole(List.of("CUSTOMER", "ADMIN", "AGENT"))).isEqualTo("ADMIN");
+        assertThat(UserService.resolveHighestRole(List.of("MANAGER", "AGENT"))).isEqualTo("MANAGER");
+        assertThat(UserService.resolveHighestRole(List.of("LEAD_AGENT", "AGENT"))).isEqualTo("LEAD_AGENT");
+        assertThat(UserService.resolveHighestRole(List.of("AGENT"))).isEqualTo("AGENT");
+        assertThat(UserService.resolveHighestRole(List.of("CUSTOMER"))).isEqualTo("CUSTOMER");
+        assertThat(UserService.resolveHighestRole(List.of("UNKNOWN"))).isNull();
+    }
+
+    @Test
+    void getUsersFiltered_sortColumnAndFilterBranches() {
+        when(userRepository.findFiltered(
+                org.mockito.ArgumentMatchers.anyBoolean(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyBoolean(),
+                org.mockito.ArgumentMatchers.anyBoolean(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(user)));
+
+        // sortBy branch'leri: email / role / createdAt / name (default) / null / bilinmeyen
+        for (String sortBy : new String[]{"email", "role", "createdAt", "name", "unknown", null}) {
+            assertThat(userService.getUsersFiltered("  ", List.of("AGENT"), true, List.of(10L), sortBy, "desc", 0, 20))
+                    .isNotNull();
+        }
+        // filtre kapalı dalları: roles null + productIds null + sortDir asc + search null
+        assertThat(userService.getUsersFiltered(null, null, false, null, "email", "asc", 0, 20)).isNotNull();
+    }
 }

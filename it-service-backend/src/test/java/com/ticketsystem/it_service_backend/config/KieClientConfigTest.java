@@ -62,4 +62,45 @@ class KieClientConfigTest {
             verify(kieServicesConfiguration).setTimeout(12_345L);
         }
     }
+
+    // ---- isProcessInstanceNotFound: cause zinciri + mesaj eşleşmesi dalları ----
+
+    @Test
+    void isProcessInstanceNotFound_directMatch_true() {
+        assertEquals(true, KieClientConfig.isProcessInstanceNotFound(
+                new RuntimeException("Could not find process instance with id 5")));
+    }
+
+    @Test
+    void isProcessInstanceNotFound_otherMessage_false() {
+        assertEquals(false, KieClientConfig.isProcessInstanceNotFound(
+                new RuntimeException("connection refused")));
+    }
+
+    @Test
+    void isProcessInstanceNotFound_nullMessage_false() {
+        assertEquals(false, KieClientConfig.isProcessInstanceNotFound(new RuntimeException((String) null)));
+    }
+
+    @Test
+    void isProcessInstanceNotFound_nullThrowable_false() {
+        assertEquals(false, KieClientConfig.isProcessInstanceNotFound(null));
+    }
+
+    @Test
+    void isProcessInstanceNotFound_nestedCauseMatches_true() {
+        Throwable nested = new RuntimeException("wrapper",
+                new IllegalStateException("Could not find process instance with id 9"));
+        assertEquals(true, KieClientConfig.isProcessInstanceNotFound(nested));
+    }
+
+    @Test
+    void isProcessInstanceNotFound_deepNonMatchingChain_false() {
+        // 12 katmanlı zincir → döngü 10 ile sınırlı, hiçbiri eşleşmez → false
+        Throwable t = new RuntimeException("leaf");
+        for (int i = 0; i < 12; i++) {
+            t = new RuntimeException("layer " + i, t);
+        }
+        assertEquals(false, KieClientConfig.isProcessInstanceNotFound(t));
+    }
 }

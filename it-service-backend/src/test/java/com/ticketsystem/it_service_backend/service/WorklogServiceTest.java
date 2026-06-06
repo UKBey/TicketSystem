@@ -263,4 +263,44 @@ class WorklogServiceTest {
                 () -> worklogService.updateWorklog(20L, 900L,
                         WorklogRequestDTO.builder().description("x").build(), "agent-1"));
     }
+
+    // ---- ek dallar ----
+
+    @Test
+    void addWorklog_onClosedTicket_throwsBadRequest() {
+        Ticket closed = Ticket.builder().id(20L).status("CLOSED").build();
+        when(ticketService.getTicketById(20L)).thenReturn(closed);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(20L, "agent-1")).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.addWorklog(20L, WorklogRequestDTO.builder().minutes(15).build(), "agent-1"));
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void getWorklogsByTicket_elevatedSeesAll() {
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+        when(worklogRepository.findByTicketId(20L)).thenReturn(java.util.List.of(new TicketWorklog()));
+
+        assertEquals(1, worklogService.getWorklogsByTicket(20L, "mgr-1", java.util.List.of("MANAGER")).size());
+    }
+
+    @Test
+    void getWorklogsByTicket_agentWithoutClaim_forbidden() {
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(20L, "agent-1")).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.getWorklogsByTicket(20L, "agent-1", java.util.List.of("AGENT")));
+        assertEquals(403, ex.getStatusCode().value());
+    }
+
+    @Test
+    void getWorklogsByTicket_customerRole_forbidden() {
+        when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.getWorklogsByTicket(20L, "cust-1", java.util.List.of("CUSTOMER")));
+        assertEquals(403, ex.getStatusCode().value());
+    }
 }

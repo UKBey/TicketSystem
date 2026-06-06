@@ -12,6 +12,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import jakarta.validation.ConstraintViolationException;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -183,6 +185,63 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertEquals("TICKET_LIMIT_EXCEEDED", response.getBody().getError());
         assertEquals("limit reached", response.getBody().getMessage());
+    }
+
+    @Test
+    void handlesConstraintViolationException_stripsPropertyPathPrefix() {
+        when(messageSource.getMessage(eq("error.validation.failed"), any(), any(Locale.class)))
+                .thenReturn("Doğrulama hatası");
+
+        // propertyPath "method.param" → sadece son segment ("size") field olmalı;
+        // segmentsiz path ("rating") aynen kullanılmalı.
+        jakarta.validation.ConstraintViolation<?> v1 = mock(jakarta.validation.ConstraintViolation.class);
+        jakarta.validation.Path p1 = mock(jakarta.validation.Path.class);
+        when(p1.toString()).thenReturn("createUser.size");
+        when(v1.getPropertyPath()).thenReturn(p1);
+        when(v1.getMessage()).thenReturn("en az 3 karakter");
+
+        jakarta.validation.ConstraintViolation<?> v2 = mock(jakarta.validation.ConstraintViolation.class);
+        jakarta.validation.Path p2 = mock(jakarta.validation.Path.class);
+        when(p2.toString()).thenReturn("rating");
+        when(v2.getPropertyPath()).thenReturn(p2);
+        when(v2.getMessage()).thenReturn("1-5 arası olmalı");
+
+        java.util.Set<jakarta.validation.ConstraintViolation<?>> violations =
+                new java.util.LinkedHashSet<>(List.of(v1, v2));
+        ConstraintViolationException ex = new ConstraintViolationException(violations);
+
+        var response = handler.handleConstraintViolationException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Doğrulama hatası", response.getBody().getMessage());
+        assertEquals("en az 3 karakter", response.getBody().getFieldErrors().get("size"));
+        assertEquals("1-5 arası olmalı", response.getBody().getFieldErrors().get("rating"));
+    }
+
+    @Test
+    void handlesWrongCurrentPassword_flagsCurrentPasswordField() {
+        when(messageSource.getMessage(eq("error.password.current.wrong"), any(), any(Locale.class)))
+                .thenReturn("Mevcut şifre yanlış.");
+
+        var response = handler.handleWrongCurrentPassword(new WrongCurrentPasswordException());
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("WRONG_CURRENT_PASSWORD", response.getBody().getError());
+        assertEquals("Mevcut şifre yanlış.", response.getBody().getMessage());
+        assertTrue(response.getBody().getFieldErrors().containsKey("currentPassword"));
+    }
+
+    @Test
+    void handlesInvalidPassword_flagsNewPasswordField() {
+        when(messageSource.getMessage(eq("error.password.policy"), any(), any(Locale.class)))
+                .thenReturn("Şifre politikası ihlal edildi.");
+
+        var response = handler.handleInvalidPassword(new InvalidPasswordException("policy"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("INVALID_PASSWORD", response.getBody().getError());
+        assertEquals("Şifre politikası ihlal edildi.", response.getBody().getMessage());
+        assertTrue(response.getBody().getFieldErrors().containsKey("newPassword"));
     }
 
     @Test

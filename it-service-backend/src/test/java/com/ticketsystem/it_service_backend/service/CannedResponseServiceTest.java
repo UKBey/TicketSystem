@@ -394,4 +394,125 @@ class CannedResponseServiceTest {
             verify(favoriteRepository).deleteByUserIdAndCannedResponseId("agent-1", 2L);
         }
     }
+
+    // =====================================================================
+    // Validation / normalization dalları (create / update / listVisible)
+    // =====================================================================
+
+    private CannedResponseDTO.CannedResponseDTOBuilder validDto() {
+        return CannedResponseDTO.builder()
+                .title("Greeting").scope("PERSONAL").contentEn("Hello").visibility("BOTH");
+    }
+
+    @Test
+    void create_invalidScope_throwsBadRequest() {
+        assertThatThrownBy(() -> service.create(validDto().scope("WEIRD").build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void create_sharedWithoutAdmin_forbidden() {
+        assertThatThrownBy(() -> service.create(validDto().scope("SHARED").build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void create_blankTitle_throwsBadRequest() {
+        assertThatThrownBy(() -> service.create(validDto().title("   ").build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void create_titleTooLong_throwsBadRequest() {
+        String longTitle = "x".repeat(151);
+        assertThatThrownBy(() -> service.create(validDto().title(longTitle).build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void create_noContent_throwsBadRequest() {
+        assertThatThrownBy(() -> service.create(validDto().contentEn(null).contentTr(null).build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void create_contentTooLong_throwsBadRequest() {
+        String longContent = "y".repeat(2001);
+        assertThatThrownBy(() -> service.create(validDto().contentEn(longContent).build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void create_invalidVisibility_throwsBadRequest() {
+        assertThatThrownBy(() -> service.create(validDto().visibility("MAYBE").build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void create_shortcutTooLong_throwsBadRequest() {
+        String longShortcut = "/" + "s".repeat(51);
+        assertThatThrownBy(() -> service.create(validDto().shortcut(longShortcut).build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void create_productNotFound_throwsNotFound() {
+        when(productRepository.existsById(99L)).thenReturn(false);
+        assertThatThrownBy(() -> service.create(validDto().productId(99L).build(), "agent-1", AGENT))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void create_validPersonal_normalizesShortcutAndDefaults() {
+        when(repository.save(any())).thenAnswer(inv -> {
+            CannedResponse c = inv.getArgument(0);
+            c.setId(77L);
+            return c;
+        });
+        // scope null → PERSONAL, visibility null → BOTH, shortcut "/Hi/" → "hi"
+        CannedResponseDTO dto = CannedResponseDTO.builder()
+                .title("  Hello  ").contentEn("Hi there").shortcut("//Hi").scope(null).visibility(null).build();
+
+        CannedResponseDTO result = service.create(dto, "agent-1", AGENT);
+
+        ArgumentCaptor<CannedResponse> captor = ArgumentCaptor.forClass(CannedResponse.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getTitle()).isEqualTo("Hello");
+        assertThat(captor.getValue().getShortcut()).isEqualTo("hi");
+        assertThat(captor.getValue().getScope()).isEqualTo(CannedResponse.SCOPE_PERSONAL);
+        assertThat(captor.getValue().getVisibility()).isEqualTo(CannedResponse.VISIBILITY_BOTH);
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void listVisible_invalidScopeFilter_throwsBadRequest() {
+        assertThatThrownBy(() -> service.listVisible("agent-1", null, "BOGUS", null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void listVisible_invalidVisibilityFilter_throwsBadRequest() {
+        assertThatThrownBy(() -> service.listVisible("agent-1", null, null, "BOGUS", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void listVisible_withSearchAndFilters_appliesPredicates() {
+        CannedResponse a = personalOf("agent-1");          // visibility BOTH, title "Greeting"
+        CannedResponse b = shared(10L);                     // visibility EXTERNAL, title "VPN steps"
+        when(repository.findVisibleToUser("agent-1")).thenReturn(List.of(a, b));
+        when(favoriteRepository.findFavoriteIdsByUser("agent-1")).thenReturn(List.of(1L));
+
+        // search "vpn" + visibility EXTERNAL → yalnızca shared (b) eşleşir.
+        List<CannedResponseDTO> res = service.listVisible("agent-1", null, "SHARED", "EXTERNAL", "vpn");
+
+        assertThat(res).hasSize(1);
+        assertThat(res.get(0).getTitle()).isEqualTo("VPN steps");
+    }
 }

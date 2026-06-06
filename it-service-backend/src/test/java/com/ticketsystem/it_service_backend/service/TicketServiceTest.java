@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -2697,6 +2698,420 @@ class TicketServiceTest {
 
         assertEquals("IN_PROGRESS", result.getStatus());
         verify(ticketClaimRepository, never()).save(any());
+    }
+
+    // =====================================================================
+    // Filtreli liste dispatcher'ları — sort tipi (priority/sla/csat × asc/desc),
+    // extra-filtre ve default dallarının her birini doğru repository sorgusuna
+    // yönlendirdiğini doğrular; helper'ları (statusesOrAll, csatRatingsOrPlaceholder,
+    // hasExtraFilters, …) çeşitli filtre DTO'larıyla çalıştırır.
+    // =====================================================================
+
+    private static final List<String> MGR_ROLES = List.of("MANAGER");
+
+    private Pageable sortedBy(Sort.Direction dir, String prop) {
+        return PageRequest.of(0, 20, Sort.by(dir, prop));
+    }
+
+    /** Tüm yardımcıların "filtre aktif" dallarını tetikleyen zengin filtre. */
+    private TicketFilterDTO richFilter() {
+        return TicketFilterDTO.builder()
+                .search("vpn")
+                .statuses(List.of("NEW", "IN_PROGRESS"))
+                .priorities(List.of("HIGH", "LOW"))
+                .productIds(List.of(10L))
+                .slaStatuses(List.of("BREACHED"))
+                .agentIds(List.of("agent-1"))
+                .topicIds(List.of(50L))
+                .csatRatings(List.of("5", "NONE", "notnum"))
+                .createdAtFrom(ZonedDateTime.now().minusDays(7))
+                .createdAtTo(ZonedDateTime.now())
+                .build();
+    }
+
+    private TicketFilterDTO emptyFilter() {
+        return TicketFilterDTO.builder().build();
+    }
+
+    // ---- getAllAccessibleTicketsFiltered (global scope = MANAGER) ----
+
+    @Test
+    void getAllAccessibleTicketsFiltered_nullUser_returnsEmpty() {
+        Page<Ticket> page = ticketService.getAllAccessibleTicketsFiltered(null, MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_noProducts_returnsEmpty() {
+        when(productRepository.findAll()).thenReturn(List.of());
+        Page<Ticket> page = ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_sortByPriority_routesToPriorityQuery() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
+        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "priority"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any());
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_sortBySla_routesToSlaQuery() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any());
+        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_sortByCsat_runsFullFilteredCsatBranch() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_extraFilters_runsFullFilteredBranch() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+    }
+
+    @Test
+    void getAllAccessibleTicketsFiltered_noSortNoExtra_routesToSimpleQuery() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findTeamTicketsFiltered(any(), any(), any(), any());
+    }
+
+    // ---- getTeamTicketsFiltered ----
+
+    @Test
+    void getTeamTicketsFiltered_nullUser_returnsEmpty() {
+        Page<Ticket> page = ticketService.getTeamTicketsFiltered(null, MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    @Test
+    void getTeamTicketsFiltered_sortBranches_routeCorrectly() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
+        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
+        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findTeamTicketsFiltered(any(), any(), any(), any());
+    }
+
+    @Test
+    void getTeamTicketsFiltered_csatAndExtra_runFullFiltered() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        assertDoesNotThrow(() -> ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+    }
+
+    // ---- getAgentClaimedTicketsFiltered ----
+
+    @Test
+    void getAgentClaimedTicketsFiltered_noClaims_returnsEmpty() {
+        when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of());
+        Page<Ticket> page = ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    @Test
+    void getAgentClaimedTicketsFiltered_sortBranches_routeCorrectly() {
+        when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(1L, 2L));
+        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        verify(ticketRepository).findClaimedTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
+        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        verify(ticketRepository).findClaimedTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
+        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findClaimedTicketsFiltered(any(), any(), any(), any());
+    }
+
+    @Test
+    void getAgentClaimedTicketsFiltered_csatAndExtra_runFullFiltered() {
+        when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(1L, 2L));
+        assertDoesNotThrow(() -> ticketService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
+        assertDoesNotThrow(() -> ticketService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+    }
+
+    // ---- helper "filtre yok" (absent) dalları + csat varyantları ----
+
+    @Test
+    void csatSort_emptyFilter_coversAbsentHelperBranches() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        // emptyFilter → statusesOrAll/prioritiesOrAll/productIdsOrAll/slaStatusesOrAll absent dalları,
+        // csatFilterActive=false, csatRatingsOrPlaceholder(null→[-1]), csatIncludeNone=false, toSearchPattern(null→null)
+        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+    }
+
+    @Test
+    void csatSort_noneOnlyRatings_coversCsatPlaceholderAndIncludeNone() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        // csatRatings=["NONE"] → sayısal yok → placeholder [-1]; csatIncludeNone=true; csatFilterActive=true
+        TicketFilterDTO noneOnly = TicketFilterDTO.builder().csatRatings(List.of("NONE")).build();
+        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, noneOnly, sortedBy(Sort.Direction.ASC, "csatRating")));
+    }
+
+    @Test
+    void hasExtraFilters_eachSingleTrigger_reachesFullFiltered() {
+        when(productRepository.findAll()).thenReturn(List.of(product));
+        List<TicketFilterDTO> singles = List.of(
+                TicketFilterDTO.builder().search("x").build(),
+                TicketFilterDTO.builder().createdAtFrom(ZonedDateTime.now().minusDays(1)).build(),
+                TicketFilterDTO.builder().createdAtTo(ZonedDateTime.now()).build(),
+                TicketFilterDTO.builder().slaStatuses(List.of("BREACHED")).build(),
+                TicketFilterDTO.builder().agentIds(List.of("a1")).build(),
+                TicketFilterDTO.builder().topicIds(List.of(5L)).build(),
+                TicketFilterDTO.builder().productIds(List.of(10L)).build(),
+                TicketFilterDTO.builder().statuses(List.of("NEW", "CLOSED")).build(),
+                TicketFilterDTO.builder().priorities(List.of("HIGH", "LOW")).build()
+        );
+        for (TicketFilterDTO f : singles) {
+            assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, f, PageRequest.of(0, 20)));
+        }
+    }
+
+    // ---- getTicketsByProductPaged / getTicketsByProductFiltered ----
+
+    @Test
+    void getTicketsByProductPaged_statusAndPriorityPresentAndAbsent() {
+        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "NEW", "HIGH", PageRequest.of(0, 20));
+        verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
+        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, null, null, PageRequest.of(0, 20));
+        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "  ", "  ", PageRequest.of(0, 20));
+    }
+
+    @Test
+    void getTicketsByProductFiltered_globalRole_sortAndExtraBranches() {
+        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        verify(ticketRepository).findByProductIdFilteredOrderByPriorityAsc(eq(10L), any(), any(), any());
+        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        verify(ticketRepository).findByProductIdFilteredOrderBySlaUrgencyDesc(eq(10L), any(), any(), any());
+        assertDoesNotThrow(() -> ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
+        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
+    }
+
+    @Test
+    void getTicketsByProductFiltered_agentAuthorizedAndUnauthorized() {
+        when(userRepository.findById("agent-1")).thenReturn(java.util.Optional.of(agent)); // agent authorized for product 10
+        ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
+
+        // 999 ürünü için yetkisiz → boş sayfa
+        Page<Ticket> page = ticketService.getTicketsByProductFiltered(999L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    @Test
+    void getTicketsByProductFiltered_customer_sortAndDefaultBranches() {
+        List<String> cust = List.of("CUSTOMER");
+        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(eq(10L), eq("customer-1"), any(), any(), any());
+        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
+        verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(eq(10L), eq("customer-1"), any(), any(), any());
+        assertDoesNotThrow(() -> ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
+        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), PageRequest.of(0, 20));
+        verify(ticketRepository).findByProductIdAndCustomerIdFiltered(eq(10L), eq("customer-1"), any(), any(), any());
+    }
+
+    @Test
+    void getTicketsByProductFiltered_noMatchingRole_returnsEmpty() {
+        Page<Ticket> page = ticketService.getTicketsByProductFiltered(10L, "u-1", List.of("UNKNOWN"), emptyFilter(), PageRequest.of(0, 20));
+        assertEquals(0, page.getTotalElements());
+    }
+
+    // ---- updateTicketTopic dalları (ADMIN auth) ----
+
+    private static final List<String> ADMIN_LIST = List.of("ADMIN");
+
+    private Ticket ticketWithTopic(Long topicId) {
+        return Ticket.builder().id(700L).productId(10L).topicId(topicId)
+                .status("IN_PROGRESS").customerId("customer-1").priority("HIGH").build();
+    }
+
+    @Test
+    void updateTicketTopic_nullTopic_throwsBadRequest() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketTopic(700L, null, null, null, "admin-1", ADMIN_LIST));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketTopic_sameTopic_returnsWithoutChange() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        Ticket result = ticketService.updateTicketTopic(700L, 50L, null, null, "admin-1", ADMIN_LIST);
+        assertEquals(50L, result.getTopicId());
+        verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTicketTopic_topicNotFound_throwsNotFound() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        when(ticketTopicRepository.findById(60L)).thenReturn(Optional.empty());
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketTopic_productMismatch_throwsBadRequest() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        TicketTopic otherProductTopic = TicketTopic.builder().id(60L).productId(99L).name("X").isActive(true).build();
+        when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(otherProductTopic));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketTopic_inactiveTopic_throwsBadRequest() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        TicketTopic inactive = TicketTopic.builder().id(60L).productId(10L).name("X").isActive(false).build();
+        when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(inactive));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketTopic_validChange_savesAndSnapshotsName() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        TicketTopic newTopic = TicketTopic.builder().id(60L).productId(10L).name("Yeni Konu").isActive(true).build();
+        when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(newTopic));
+        when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
+        when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST);
+
+        assertEquals(60L, result.getTopicId());
+        assertEquals("Yeni Konu", result.getTopicNameSnapshot());
+    }
+
+    // ---- validateMutationAccess: lead + customer dalları ----
+
+    @Test
+    void validateMutationAccess_leadAuthorized_returnsTicket() {
+        User lead = User.builder().id("lead-1").role("LEAD_AGENT").authorizedProducts(List.of(product)).build();
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        when(userRepository.findById("lead-1")).thenReturn(Optional.of(lead));
+        assertNotNull(ticketService.validateMutationAccess(700L, "lead-1", List.of("LEAD_AGENT")));
+    }
+
+    @Test
+    void validateMutationAccess_leadUnauthorizedProduct_forbidden() {
+        User lead = User.builder().id("lead-2").role("LEAD_AGENT")
+                .authorizedProducts(List.of(Product.builder().id(99L).build())).build();
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        when(userRepository.findById("lead-2")).thenReturn(Optional.of(lead));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.validateMutationAccess(700L, "lead-2", List.of("LEAD_AGENT")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void validateMutationAccess_customerOwnTicket_returnsTicket() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        assertNotNull(ticketService.validateMutationAccess(700L, "customer-1", List.of("CUSTOMER")));
+    }
+
+    @Test
+    void validateMutationAccess_customerOtherTicket_forbidden() {
+        when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.validateMutationAccess(700L, "other-customer", List.of("CUSTOMER")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    // ---- updateTicketStatus: validateStatusChangePermission lead/customer dalları ----
+
+    private Ticket statusTicket(String status) {
+        // processInstanceId null → BPMN doğrulaması atlanır, izin mantığına odaklanılır.
+        return Ticket.builder().id(800L).productId(10L).status(status)
+                .customerId("customer-1").priority("HIGH").processInstanceId(null).build();
+    }
+
+    @Test
+    void updateTicketStatus_leadAuthorized_succeeds() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
+        when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        User lead = User.builder().id("lead-1").role("LEAD_AGENT").authorizedProducts(List.of(product)).build();
+        when(userRepository.findById("lead-1")).thenReturn(Optional.of(lead));
+
+        Ticket result = ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-1", List.of("LEAD_AGENT"));
+        assertEquals("WAITING_FOR_CUSTOMER", result.getStatus());
+    }
+
+    @Test
+    void updateTicketStatus_leadUnauthorizedProduct_forbidden() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
+        User lead = User.builder().id("lead-2").role("LEAD_AGENT")
+                .authorizedProducts(List.of(Product.builder().id(99L).build())).build();
+        when(userRepository.findById("lead-2")).thenReturn(Optional.of(lead));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-2", List.of("LEAD_AGENT")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketStatus_customerAllowedTransition_succeeds() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
+        when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = ticketService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        assertEquals("IN_PROGRESS", result.getStatus());
+    }
+
+    @Test
+    void updateTicketStatus_customerDisallowedTransition_forbidden() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "customer-1", List.of("CUSTOMER")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketStatus_customerOtherTicket_forbidden() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "other-cust", List.of("CUSTOMER")));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    // ---- updateTicketPriority dalları ----
+
+    @Test
+    void updateTicketPriority_invalidPriority_throwsBadRequest() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> ticketService.updateTicketPriority(800L, "URGENT", null, null, "admin-1", ADMIN_LIST));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void updateTicketPriority_samePriority_returnsUnchanged() {
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS"))); // priority HIGH
+        Ticket result = ticketService.updateTicketPriority(800L, "HIGH", null, null, "admin-1", ADMIN_LIST);
+        assertEquals("HIGH", result.getPriority());
+        verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTicketPriority_validChangeSlaActive_pausesAndSaves() {
+        Ticket t = Ticket.builder().id(800L).productId(10L).status("IN_PROGRESS")
+                .customerId("customer-1").priority("HIGH").slaBreached(false).build();
+        when(ticketRepository.findById(800L)).thenReturn(Optional.of(t));
+        when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = ticketService.updateTicketPriority(800L, "CRITICAL", null, null, "admin-1", ADMIN_LIST);
+
+        assertEquals("CRITICAL", result.getPriority());
+        verify(workflowService).pauseSla(t);
     }
 }
 

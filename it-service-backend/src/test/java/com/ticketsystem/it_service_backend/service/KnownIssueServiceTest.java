@@ -219,4 +219,67 @@ class KnownIssueServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode").isEqualTo(HttpStatus.NOT_FOUND);
     }
+
+    // =====================================================================
+    // update() — alan bazlı validation dalları
+    // =====================================================================
+
+    private KnownIssue existingIssue() {
+        return KnownIssue.builder()
+                .id(5L).productId(10L).topicId(50L).title("Eski").content("Eski içerik").isActive(true).build();
+    }
+
+    @Test
+    void update_blankTitle_throwsBadRequest() {
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
+        assertThatThrownBy(() -> service.update(5L, null, "   ", null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void update_titleTooLong_throwsBadRequest() {
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
+        assertThatThrownBy(() -> service.update(5L, null, "t".repeat(256), null, null))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void update_blankContent_throwsBadRequest() {
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
+        assertThatThrownBy(() -> service.update(5L, null, null, "  ", null))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void update_contentTooLong_throwsBadRequest() {
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
+        assertThatThrownBy(() -> service.update(5L, null, null, "c".repeat(10001), null))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void update_validFields_trimsAndSaves() {
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
+        when(knownIssueRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        KnownIssue result = service.update(5L, null, "  Yeni Başlık  ", "  Yeni içerik  ", false);
+
+        assertThat(result.getTitle()).isEqualTo("Yeni Başlık");
+        assertThat(result.getContent()).isEqualTo("Yeni içerik");
+        assertThat(result.getIsActive()).isFalse();
+    }
+
+    @Test
+    void update_allNull_noFieldChangesButSaves() {
+        KnownIssue existing = existingIssue();
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(knownIssueRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        KnownIssue result = service.update(5L, null, null, null, null);
+
+        assertThat(result.getTitle()).isEqualTo("Eski");
+        assertThat(result.getContent()).isEqualTo("Eski içerik");
+        assertThat(result.getIsActive()).isTrue();
+    }
 }

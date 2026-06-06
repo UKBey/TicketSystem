@@ -160,4 +160,77 @@ class KieServerAdapterTest {
 
         assertNull(adapter.getProcessVariable(444L, "status"));
     }
+
+    // ---- isProcessFinished ----
+
+    @Test
+    void isProcessFinished_nullInstance_false() {
+        when(queryClient.findProcessInstanceById(10L)).thenReturn(null);
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessFinished(10L));
+    }
+
+    @Test
+    void isProcessFinished_nullState_false() {
+        ProcessInstance pi = mock(ProcessInstance.class);
+        when(pi.getState()).thenReturn(null);
+        when(queryClient.findProcessInstanceById(11L)).thenReturn(pi);
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessFinished(11L));
+    }
+
+    @Test
+    void isProcessFinished_activeState_false() {
+        ProcessInstance pi = mock(ProcessInstance.class);
+        when(pi.getState()).thenReturn(1); // ACTIVE
+        when(queryClient.findProcessInstanceById(12L)).thenReturn(pi);
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessFinished(12L));
+    }
+
+    @Test
+    void isProcessFinished_completedState_true() {
+        ProcessInstance pi = mock(ProcessInstance.class);
+        when(pi.getState()).thenReturn(2); // COMPLETED
+        when(queryClient.findProcessInstanceById(13L)).thenReturn(pi);
+        assertTrue(adapter.isProcessFinished(13L));
+    }
+
+    @Test
+    void isProcessFinished_abortedState_true() {
+        ProcessInstance pi = mock(ProcessInstance.class);
+        when(pi.getState()).thenReturn(3); // ABORTED
+        when(queryClient.findProcessInstanceById(14L)).thenReturn(pi);
+        assertTrue(adapter.isProcessFinished(14L));
+    }
+
+    // ---- isProcessInstanceMissing ----
+
+    @Test
+    void isProcessInstanceMissing_nullId_false() {
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessInstanceMissing(null));
+    }
+
+    @Test
+    void isProcessInstanceMissing_instanceFound_false() {
+        when(queryClient.findProcessInstanceById(20L)).thenReturn(mock(ProcessInstance.class));
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessInstanceMissing(20L));
+    }
+
+    @Test
+    void isProcessInstanceMissing_instanceNull_true() {
+        when(queryClient.findProcessInstanceById(21L)).thenReturn(null);
+        assertTrue(adapter.isProcessInstanceMissing(21L));
+    }
+
+    @Test
+    void isProcessInstanceMissing_notFoundException_true() {
+        when(queryClient.findProcessInstanceById(22L))
+                .thenThrow(new RuntimeException("Could not find process instance with id 22"));
+        assertTrue(adapter.isProcessInstanceMissing(22L));
+    }
+
+    @Test
+    void isProcessInstanceMissing_otherException_false() {
+        when(queryClient.findProcessInstanceById(23L))
+                .thenThrow(new RuntimeException("connection refused"));
+        org.junit.jupiter.api.Assertions.assertFalse(adapter.isProcessInstanceMissing(23L));
+    }
 }
