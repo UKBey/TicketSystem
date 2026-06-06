@@ -1,0 +1,83 @@
+# ============================================================================
+#  PRODUCTION overlay — applied EXPLICITLY on top of the base file:
+#     docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+# ============================================================================
+# The dev overlay (docker-compose.override.yaml) is NOT auto-loaded when -f is
+# given, so this run gets the base + these production settings only:
+#   • pinned images, pulled — no build-from-source (set DOCKERHUB_USERNAME / IMAGE_TAG)
+#   • NO host-published internal ports — only nginx is exposed (80 + 443/TLS)
+#   • NO dev tools (mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube)
+#   • Keycloak in production mode; real SMTP; restart policies for resilience
+#
+# Operator must provide via the prod `.env` (and a TLS-enabled nginx.conf):
+#   KC_HOSTNAME_URL, SMTP_* (MAIL_HOST/MAIL_PORT), strong secrets, and TLS certs.
+# Production-grade autoscaling/secrets/cert-manager live in the k8s prod overlay
+# (k8s/overlays/prod) — this file is for a single-host compose deployment.
+# ============================================================================
+services:
+
+  it-service-db:
+    restart: unless-stopped
+
+  openldap-server:
+    restart: unless-stopped
+
+  keycloak-iam:
+    restart: unless-stopped
+    # Production mode (not start-dev). Stok imajla `start` her acilista KC_DB'ye gore
+    # otomatik build eder (--optimized onceden `kc.sh build` gomulu imaj ister, stok imajda
+    # yok). TLS nginx'te terminate edilir; Keycloak HTTP dinler, public URL'i
+    # KC_HOSTNAME_URL'den uretir ve forwarded header'lara guvenir.
+    command: start --import-realm
+    environment:
+      KC_HOSTNAME_URL: ${KC_HOSTNAME_URL:-${KEYCLOAK_FRONTEND_URL:-}}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+
+  redis:
+    restart: unless-stopped
+
+  opensearch:
+    restart: unless-stopped
+
+  otel-collector:
+    restart: unless-stopped
+
+  data-prepper:
+    restart: unless-stopped
+
+  it-service-backend:
+    restart: unless-stopped
+    environment:
+      # Gercek SMTP — prod .env'den. (DEV'deki mailpit yok.)
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+
+  llm-service:
+    restart: unless-stopped
+
+  it-service-frontend:
+    restart: unless-stopped
+
+  nginx-proxy:
+    restart: unless-stopped
+    # Tek dis erisim noktasi. 443 icin nginx.conf'a TLS server block'u + sertifika
+    # mount'u eklenmelidir (asagidaki volume yorumunu acin).
+    ports:
+      - "80:80"
+      - "443:443"
+    # volumes:
+    #   - ./nginx/certs:/etc/nginx/certs:ro
+
+  kafka:
+    restart: unless-stopped
+
+  logstash:
+    restart: unless-stopped
+
+  jbpm-db:
+    restart: unless-stopped
+
+  kie-server:
+    restart: unless-stopped

@@ -26,10 +26,8 @@ services:
   it-service-db:
     image: postgres:15-alpine
     container_name: it-service-db
-    # Port sadece gelistirme araclarinin (DBeaver vb.) dogrudan erisimi icin acik.
-    # Uretimde bu satiri kaldirabilirsiniz.
-    ports:
-      - "5432:5432"
+    # Host port yayini DEV overlay'de (docker-compose.override.yaml). Prod'da DB
+    # disariya acilmaz — yalniz Docker internal network uzerinden erisilir.
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -47,9 +45,7 @@ services:
 
   # Kimlik dizini (LDAP) servisi.
   openldap-server:
-    build:
-      context: .
-      dockerfile: Dockerfile-ldap
+    # `build:` DEV overlay'de; prod pinlenmis imaji ceker.
     image: ${DOCKERHUB_USERNAME:-local}/openldap-server:${IMAGE_TAG:-latest}
     container_name: openldap-server
     # LDAP portu disariya kapali — sadece Docker internal network uzerinden erisim.
@@ -79,25 +75,13 @@ services:
       retries: 10
       start_period: 30s
 
-  # LDAP yonetim arayuzu.
-  phpldapadmin:
-    image: osixia/phpldapadmin:0.9.0
-    container_name: phpldapadmin
-    ports:
-      - "8085:80"
-    environment:
-      PHPLDAPADMIN_LDAP_HOSTS: "openldap-server"
-      PHPLDAPADMIN_HTTPS: "false"
-    depends_on:
-      - openldap-server
-    networks:
-      - it-service-net
+  # (phpldapadmin DEV-only — bkz. docker-compose.override.yaml)
 
   # Kimlik ve yetkilendirme sunucusu.
   keycloak-iam:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak-iam
-    command: start-dev --import-realm
+    # `command` ortama gore overlay'de: DEV=start-dev --import-realm, PROD=start.
     healthcheck:
       # 1F90 = port 8080 hex. Keycloak container'inda curl/wget yok; /proc/net/tcp ile check.
       test: ["CMD-SHELL", "grep -q '00000000:1F90' /proc/net/tcp || grep -q '00000000:1F90' /proc/net/tcp6"]
@@ -135,8 +119,6 @@ services:
     image: redis:7-alpine
     container_name: redis
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -147,22 +129,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
-  mailpit:
-    image: axllent/mailpit:v1.20
-    container_name: mailpit
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      - it-service-net
-    healthcheck:
-      # 1F59 = port 8025 hex; wget yerine /proc/net/tcp ile container-agnostic check.
-      test: ["CMD-SHELL", "grep -q '00000000:1F59' /proc/net/tcp || grep -q '00000000:1F59' /proc/net/tcp6"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+  # (mailpit DEV-only — bkz. docker-compose.override.yaml; prod gercek SMTP kullanir)
 
   # Gozlemlenebilirlik katmani servisleri.
 
@@ -175,8 +142,6 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - DISABLE_SECURITY_PLUGIN=true
-    ports:
-      - "9200:9200"
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     networks:
@@ -189,27 +154,7 @@ services:
       retries: 10
       start_period: 45s
 
-  # OpenSearch verisini gorsellestirme arayuzu.
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:3.6.0
-    container_name: opensearch-dashboards
-    ports:
-      - "5601:5601"
-    environment:
-      - OPENSEARCH_HOSTS=http://opensearch:9200
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-    depends_on:
-      opensearch:
-        condition: service_healthy
-    networks:
-      - it-service-net
-    healthcheck:
-      # 15E1 = port 5601 hex
-      test: ["CMD-SHELL", "grep -q '00000000:15E1' /proc/net/tcp || grep -q '00000000:15E1' /proc/net/tcp6"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+  # (opensearch-dashboards DEV-only — bkz. docker-compose.override.yaml)
 
   # Telemetry verisini toplayip hedefe aktaran collector.
   otel-collector:
@@ -218,9 +163,6 @@ services:
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "4317:4317"
-      - "4318:4318"
     depends_on:
       opensearch:
         condition: service_healthy
@@ -250,19 +192,12 @@ services:
 
   # Backend API servisi.
   it-service-backend:
-    build: ./it-service-backend
+    # `build:` ve dev-only env (Swagger, Hibernate SQL log, mailpit SMTP) DEV overlay'de.
     image: ${DOCKERHUB_USERNAME:-local}/it-service-backend:${IMAGE_TAG:-latest}
     container_name: it-service-backend
     # Backend portu disariya kapali — nginx uzerinden /api/v1/ path'i ile erisim.
     environment:
       SERVER_PORT: "8081"
-      # Swagger/OpenAPI dev için açık (default kapalı); compose dev workflow değişmez.
-      SPRINGDOC_ENABLED: "true"
-      # Hibernate SQL log'ları dev'de açık (prod default WARN — sensitive bind sızıntısı engellenir).
-      HIBERNATE_SHOW_SQL: "true"
-      HIBERNATE_FORMAT_SQL: "true"
-      HIBERNATE_SQL_LOG_LEVEL: "DEBUG"
-      HIBERNATE_BIND_LOG_LEVEL: "TRACE"
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
@@ -283,9 +218,8 @@ services:
       JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
       JBPM_KIE_SERVER_CALLBACK_BASE_URL: "${JBPM_KIE_SERVER_CALLBACK_BASE_URL}"
 
-      # Mail ayarlari.
-      MAIL_HOST: mailpit
-      MAIL_PORT: "1025"
+      # Mail ayarlari. MAIL_HOST/PORT ortama gore overlay'de gelir
+      # (DEV=mailpit:1025, PROD=gercek SMTP). MAIL_FROM env-bagimsiz.
       MAIL_FROM: ${MAIL_FROM:-noreply@ticketsystem.local}
 
       # OpenTelemetry ayarlari.
@@ -296,7 +230,8 @@ services:
       OTEL_SERVICE_NAME: "it-service-backend"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_LOGS_EXPORTER: "otlp"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
+      # deployment.environment overlay'de override edilir (DEV=development).
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=production"
       # Metrikler OpenSearch'te saklaniyor — delta temporality kumulatif sayac yerine
       # her aralik icin artisi gonderir; Dashboards'ta sum aggregation dogrudan calisir
       # (Prometheus'taki rate() ihtiyacini ortadan kaldirir).
@@ -347,8 +282,7 @@ services:
       # hatasi alir cunku KIE Server icinde container henuz kayitli olmaz.
       kjar-deploy:
         condition: service_completed_successfully
-      mailpit:
-        condition: service_healthy
+      # mailpit dependency DEV overlay'de (prod'da mailpit yok, gercek SMTP kullanilir).
       kafka:
         condition: service_healthy
       otel-collector:
@@ -370,7 +304,7 @@ services:
 
   # LLM servis katmanı — Groq API üzerinden ticket özetleme.
   llm-service:
-    build: ./llm-service
+    # `build:` DEV overlay'de; prod pinlenmis imaji ceker.
     image: ${DOCKERHUB_USERNAME:-local}/llm-service:${IMAGE_TAG:-latest}
     container_name: llm-service
     # Port dışarıya kapalı — nginx üzerinden /api/v1/ai/ path'i ile erişim.
@@ -402,7 +336,8 @@ services:
       OTEL_SERVICE_NAME: "llm-service"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_LOGS_EXPORTER: "otlp"
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=llm-service,service.version=0.0.1,deployment.environment=development"
+      # deployment.environment overlay'de override edilir (DEV=development).
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=llm-service,service.version=0.0.1,deployment.environment=production"
       OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
     depends_on:
       it-service-db:
@@ -424,7 +359,7 @@ services:
 
   # Frontend web uygulamasi.
   it-service-frontend:
-    build: ./it-service-frontend
+    # `build:` DEV overlay'de; prod pinlenmis imaji ceker.
     image: ${DOCKERHUB_USERNAME:-local}/it-service-frontend:${IMAGE_TAG:-latest}
     container_name: it-service-frontend
     # Frontend portu disariya kapali — nginx uzerinden / path'i ile erisim.
@@ -449,8 +384,7 @@ services:
   nginx-proxy:
     image: nginx:stable-alpine
     container_name: nginx-proxy
-    ports:
-      - "80:80"
+    # Port yayini ortama gore overlay'de: DEV=80, PROD=80+443 (TLS).
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
@@ -475,8 +409,6 @@ services:
   kafka:
     image: apache/kafka:3.7.0
     container_name: kafka-broker
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -522,8 +454,7 @@ services:
   jbpm-db:
     image: postgres:15-alpine
     container_name: jbpm-db
-    ports:
-      - "5433:5432"
+    # Host port yayini DEV overlay'de (5433→5432).
     environment:
       POSTGRES_USER: ${JBPM_DB_USER}
       POSTGRES_PASSWORD: ${JBPM_DB_PASSWORD}
@@ -547,13 +478,9 @@ services:
   # Swagger UI: http://localhost:8180/kie-server/docs
   # Versiyon backend'in kullandigi kie-server-client (7.61.0.Final) ile aligne tutuluyor.
   kie-server:
-    build:
-      context: .
-      dockerfile: Dockerfile-kie
+    # `build:` (Dockerfile-kie) ve host port (8180) DEV overlay'de; prod imaji ceker.
     image: ${DOCKERHUB_USERNAME:-local}/kie-server:${IMAGE_TAG:-latest}
     container_name: kie-server
-    ports:
-      - "8180:8080"
     environment:
       KIE_SERVER_ID: "ticket-kie-server"
       KIE_SERVER_LOCATION: "http://kie-server:8080/kie-server/services/rest/server"
@@ -642,51 +569,7 @@ services:
       JBPM_KIE_SERVER_CONTAINER_ID: ${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}
   # jBPM/KIE Server katmani sonu.
 
-  # Kod kalitesi analiz veritabani.
-  sonarqube-db:
-    image: postgres:15-alpine
-    container_name: sonarqube-db
-    environment:
-      POSTGRES_USER: ${SONAR_DB_USER:-sonar}
-      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
-      POSTGRES_DB: ${SONAR_DB_NAME:-sonarqube}
-    volumes:
-      - sonarqube_db_data:/var/lib/postgresql/data
-    networks:
-      - it-service-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER:-sonar} -d ${SONAR_DB_NAME:-sonarqube}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # Kod kalitesi ve guvenlik analiz platformu.
-  # Arayuz: http://localhost:9000  (admin / admin — ilk giriste degistir)
-  sonarqube:
-    image: sonarqube:25.4.0.105899-community
-    container_name: sonarqube
-    ports:
-      - "9000:9000"
-    environment:
-      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME:-sonarqube}
-      SONAR_JDBC_USERNAME: ${SONAR_DB_USER:-sonar}
-      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
-    depends_on:
-      sonarqube-db:
-        condition: service_healthy
-    networks:
-      - it-service-net
-    # SonarQube, vm.max_map_count >= 524288 gerektirir.
-    # Linux host'ta: sudo sysctl -w vm.max_map_count=524288
-    # Docker Desktop (Windows/Mac) bu ayari otomatik yapar.
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+  # (sonarqube-db + sonarqube DEV-only — bkz. docker-compose.override.yaml)
 
   # Demo veri uretici (data-generator) — SADECE `make gen` ile calisir.
   # profiles: ["tools"] sayesinde `docker compose up` / `make up` ile AYAGA KALKMAZ;
@@ -694,8 +577,7 @@ services:
   # ZATEN AYAKTA olan stack'e baglanir, stack'i YONETMEZ (deps yeniden tetiklenmez --
   # boylece kjar-deploy gibi tek-seferlik job'lar bozulmaz); isini bitirip cikar.
   data-generator:
-    build:
-      context: ./data-generator
+    # `build:` DEV overlay'de; prod/pull senaryosunda pinlenmis imaj kullanilir.
     image: ${DOCKERHUB_USERNAME:-local}/data-generator:${IMAGE_TAG:-latest}
     container_name: data-generator
     profiles: ["tools"]

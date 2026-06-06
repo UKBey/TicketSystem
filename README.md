@@ -157,6 +157,11 @@ make logs s=it-service-backend   # tail one service
 
 The first start pulls images, runs Flyway migrations and imports the Keycloak realm — give it a couple of minutes. Use `make rebuild` after changing application code, and `make down` to stop.
 
+> **Dev vs. prod compose.** Compose is split into three files following the standard override pattern:
+> - `docker-compose.yaml` — environment-agnostic **base** (pinned images, core config).
+> - `docker-compose.override.yaml` — **dev** layer, *auto-loaded* by `make up` / `docker compose up`: host-published ports, build-from-source, the dev tools (mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube) and dev settings (Swagger, SQL logging, mailpit SMTP). So `make up` stays pure dev — nothing changes.
+> - `docker-compose.prod.yaml` — **prod** layer, applied explicitly with `make up-prod` (`-f docker-compose.yaml -f docker-compose.prod.yaml`): pulls pinned images, exposes **only** nginx (80 + 443/TLS), drops every dev tool, runs Keycloak in production mode and adds `restart` policies. Images must be in a registry first (the CD pipeline pushes them to Docker Hub on `main`; selected via `DOCKERHUB_USERNAME`/`IMAGE_TAG`) and a prod `.env` prepared (KC hostname, real SMTP, strong secrets). For full production (autoscaling, secrets, cert-manager) use the **[k8s prod overlay](k8s/README.md)**.
+
 ### 3. Finish the Keycloak setup (one-time, after the first `make up`)
 
 The realm export ships with masked secrets (`**********`). On the very first start you must set them by hand:
@@ -276,7 +281,9 @@ TicketSystemProject/
 ├── k8s/                     # Kubernetes manifests (Kustomize base + overlays)
 ├── dev_plans/               # Design & planning documents
 ├── docs/                    # Architecture & technical documentation
-├── docker-compose.yaml      # Full-stack orchestration
+├── docker-compose.yaml      # Full-stack orchestration (base)
+├── docker-compose.override.yaml  # Dev overlay (auto-loaded: ports, build, dev tools)
+├── docker-compose.prod.yaml      # Prod overlay (make up-prod: pinned images, nginx-only)
 ├── Makefile                 # Canonical command entry point
 └── RUNBOOK.md               # Operations & incident playbooks
 ```
@@ -303,7 +310,8 @@ make sonar-up        # start SonarQube, then: make sonar
 
 | Path | Command | Notes |
 |------|---------|-------|
-| **Docker Compose** | `make up` / `make rebuild` | Single-host, the default development & demo path |
+| **Docker Compose (dev)** | `make up` / `make rebuild` | Single-host dev/demo; auto-loads `docker-compose.override.yaml` (ports, build, dev tools) |
+| **Docker Compose (prod)** | `make up-prod` | base + `docker-compose.prod.yaml`: pinned images, only nginx exposed (80/443), no dev tools, Keycloak prod mode, `restart` policies |
 | **Kubernetes** | `make k8s-up` | kind cluster + Kustomize (`k8s/overlays/local`); a `prod` overlay adds HPA, cert-manager and SealedSecrets |
 | **CI/CD** | GitHub Actions | CI on every PR; CD builds and pushes Docker Hub images on `main` |
 

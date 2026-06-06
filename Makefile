@@ -1,5 +1,6 @@
 .PHONY: help \
         up rebuild build-only down logs ps restart \
+        up-prod down-prod logs-prod ps-prod config-prod \
         infra dev dev-backend dev-frontend dev-mobile \
         build build-backend build-frontend \
         test test-backend test-frontend \
@@ -58,6 +59,13 @@ help:
 	@echo    logs s=servis         - Tek servisin loglarini izler - ornek: make logs s=keycloak-iam
 	@echo    ps                    - Calisan containerlari listeler
 	@echo    restart s=servis      - Tek servisi recreate eder - .env/compose degisikliklerini uygular - ornek: make restart s=it-service-backend
+	@$(ECHO_BLANK)
+	@echo  Docker - production overlay - base + docker-compose.prod.yaml:
+	@echo    up-prod               - Prod ayarlariyla baslar - pinli imaj, sadece nginx 80/443, dev araclari yok
+	@echo    down-prod             - Prod stacki durdurur
+	@echo    logs-prod s=servis    - Prod servis loglarini izler
+	@echo    ps-prod               - Prod containerlari listeler
+	@echo    config-prod           - Prod merged compose ciktisini gosterir - dogrulama icin
 	@$(ECHO_BLANK)
 	@echo  Lokal Gelistirme - hot-reload:
 	@echo    infra            - Sadece altyapi containerlarini baslar - DB, Keycloak, jBPM
@@ -148,6 +156,30 @@ ps:
 # bagimliliklari (db/keycloak/kjar-deploy) yeniden degerlendirmez. Imaj DERLEMEZ (rebuild'den hizli).
 restart:
 	docker compose up -d --force-recreate --no-deps $(s)
+
+# --- Docker: Production overlay ---
+# Prod = base (docker-compose.yaml) + docker-compose.prod.yaml. -f verildiginde Compose
+# dev override'i (docker-compose.override.yaml) OTOMATIK YUKLEMEZ, boylece prod run yalnizca
+# base + prod ayarlarini alir: pinli imaj (pull), sadece nginx 80/443, dev araclari yok,
+# Keycloak production modu, restart politikalari. Imajlar registry'de hazir olmali (CD
+# pipeline main'de Docker Hub'a push eder; DOCKERHUB_USERNAME/IMAGE_TAG ile secilir) ve prod
+# .env'i hazirlanmali (KC_HOSTNAME_URL, gercek SMTP, guclu secret'lar).
+PROD_COMPOSE := docker compose -f docker-compose.yaml -f docker-compose.prod.yaml
+
+up-prod:
+	$(PROD_COMPOSE) up -d
+
+down-prod:
+	$(PROD_COMPOSE) down
+
+logs-prod:
+	$(PROD_COMPOSE) logs -f $(s)
+
+ps-prod:
+	$(PROD_COMPOSE) ps
+
+config-prod:
+	$(PROD_COMPOSE) config
 
 # --- Lokal Gelistirme ---
 

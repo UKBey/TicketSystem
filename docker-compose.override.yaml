@@ -1,0 +1,197 @@
+# ============================================================================
+#  DEV overlay — AUTOMATICALLY merged by `docker compose up` (no -f needed).
+# ============================================================================
+# `docker-compose.yaml` holds the environment-agnostic base. This file adds back
+# everything that belongs to LOCAL DEVELOPMENT only and must NOT exist in a
+# production deployment:
+#   • host-published ports (DB, Redis, Keycloak-direct, Kafka, OpenSearch, …)
+#   • build-from-source (`build:`) instead of pulling pinned images
+#   • the dev-only tools: mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube
+#   • dev app settings (Swagger on, Hibernate SQL logging, mailpit SMTP, dev OTEL env)
+#
+# Because Compose auto-loads `docker-compose.override.yaml`, every existing
+# workflow (`make up`, `make infra`, `make logs`, …) keeps working unchanged.
+#
+# Production instead uses the explicit prod overlay (override is NOT auto-loaded
+# when -f is given):
+#   docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+# ============================================================================
+services:
+
+  # --- host-published ports + build-from-source ----------------------------
+  it-service-db:
+    # Port sadece gelistirme araclarinin (DBeaver vb.) dogrudan erisimi icin acik.
+    ports:
+      - "5432:5432"
+
+  openldap-server:
+    build:
+      context: .
+      dockerfile: Dockerfile-ldap
+
+  keycloak-iam:
+    # Dev: start-dev — realm import + dinamik hostname (web localhost, mobil LAN IP).
+    command: start-dev --import-realm
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  opensearch:
+    ports:
+      - "9200:9200"
+
+  otel-collector:
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
+  it-service-backend:
+    build: ./it-service-backend
+    environment:
+      # Swagger/OpenAPI dev için açık (default kapalı).
+      SPRINGDOC_ENABLED: "true"
+      # Hibernate SQL log'ları dev'de açık (prod default WARN — bind sızıntısı engellenir).
+      HIBERNATE_SHOW_SQL: "true"
+      HIBERNATE_FORMAT_SQL: "true"
+      HIBERNATE_SQL_LOG_LEVEL: "DEBUG"
+      HIBERNATE_BIND_LOG_LEVEL: "TRACE"
+      # Giden mailler mailpit ile yakalanir (http://localhost:8025).
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  llm-service:
+    build: ./llm-service
+    environment:
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=llm-service,service.version=0.0.1,deployment.environment=development"
+
+  it-service-frontend:
+    build: ./it-service-frontend
+
+  nginx-proxy:
+    ports:
+      - "80:80"
+
+  kafka:
+    ports:
+      - "9092:9092"
+
+  jbpm-db:
+    ports:
+      - "5433:5432"
+
+  kie-server:
+    build:
+      context: .
+      dockerfile: Dockerfile-kie
+    ports:
+      - "8180:8080"
+
+  data-generator:
+    build:
+      context: ./data-generator
+
+  # --- dev-only tools (absent in production) -------------------------------
+
+  # LDAP yonetim arayuzu.
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: phpldapadmin
+    ports:
+      - "8085:80"
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap-server"
+      PHPLDAPADMIN_HTTPS: "false"
+    depends_on:
+      - openldap-server
+    networks:
+      - it-service-net
+
+  # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
+  mailpit:
+    image: axllent/mailpit:v1.20
+    container_name: mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - it-service-net
+    healthcheck:
+      # 1F59 = port 8025 hex; wget yerine /proc/net/tcp ile container-agnostic check.
+      test: ["CMD-SHELL", "grep -q '00000000:1F59' /proc/net/tcp || grep -q '00000000:1F59' /proc/net/tcp6"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # OpenSearch verisini gorsellestirme arayuzu.
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.6.0
+    container_name: opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - it-service-net
+    healthcheck:
+      # 15E1 = port 5601 hex
+      test: ["CMD-SHELL", "grep -q '00000000:15E1' /proc/net/tcp || grep -q '00000000:15E1' /proc/net/tcp6"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # Kod kalitesi analiz veritabani.
+  sonarqube-db:
+    image: postgres:15-alpine
+    container_name: sonarqube-db
+    environment:
+      POSTGRES_USER: ${SONAR_DB_USER:-sonar}
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+      POSTGRES_DB: ${SONAR_DB_NAME:-sonarqube}
+    volumes:
+      - sonarqube_db_data:/var/lib/postgresql/data
+    networks:
+      - it-service-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER:-sonar} -d ${SONAR_DB_NAME:-sonarqube}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Kod kalitesi ve guvenlik analiz platformu.
+  # Arayuz: http://localhost:9000  (admin / admin — ilk giriste degistir)
+  sonarqube:
+    image: sonarqube:25.4.0.105899-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME:-sonarqube}
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER:-sonar}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:-sonar}
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    depends_on:
+      sonarqube-db:
+        condition: service_healthy
+    networks:
+      - it-service-net
+    # SonarQube, vm.max_map_count >= 524288 gerektirir.
+    # Linux host'ta: sudo sysctl -w vm.max_map_count=524288
+    # Docker Desktop (Windows/Mac) bu ayari otomatik yapar.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
