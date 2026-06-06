@@ -706,6 +706,8 @@ services:
       # DB kimlik bilgileri .env'den (backend ile ayni kaynak); bos ise users.json'a duser.
       GEN_DB_USER: ${SPRING_DATASOURCE_USERNAME:-ticketadmin}
       GEN_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
+      # Yorum dalgalarinin temposu backend cooldown'i ile ayni .env degerinden surulur.
+      COMMENT_COOLDOWN_SECONDS: ${COMMENT_COOLDOWN_SECONDS:-3}
     volumes:
       # Kimlik bilgileri + seed kullanici listeleri (gitignored, ZORUNLU).
       # DIKKAT: dosya yoksa Docker bunu bos bir DIZIN olarak mount eder ve job

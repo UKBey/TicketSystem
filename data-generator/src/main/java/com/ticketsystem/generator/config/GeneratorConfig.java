@@ -77,8 +77,23 @@ public class GeneratorConfig {
     /** Delay between two API requests (ms). */
     public static final long DELAY_MS = 600;
 
-    /** Delay between comment rounds (ms) — backend comment cooldown is 5 sec. */
-    public static final long COMMENT_DELAY_MS = 5500;
+    /**
+     * Backend per-user comment cooldown (seconds). Mirrors the backend's
+     * {@code app.comments.cooldown-seconds} (env {@code COMMENT_COOLDOWN_SECONDS}).
+     *
+     * <p>Resolution order — <b>.env first</b>: the {@code COMMENT_COOLDOWN_SECONDS}
+     * environment variable (compose injects it from {@code .env}; on a host run it can be
+     * exported), then the hardcoded fallback. Keep this in sync so the comment-wave pacing
+     * below never trips the backend's 429 cooldown.
+     */
+    public static final long COMMENT_COOLDOWN_SECONDS =
+            envLongOrDefault("COMMENT_COOLDOWN_SECONDS", 3);
+
+    /**
+     * Delay between comment waves (ms) — the backend cooldown plus a safety margin so a
+     * wave never lands inside the previous one's cooldown window.
+     */
+    public static final long COMMENT_DELAY_MS = COMMENT_COOLDOWN_SECONDS * 1000 + 500;
 
     /** Wait time after receiving a 429 (ms). */
     public static final long RATE_LIMIT_BACKOFF_MS = 6000;
@@ -150,6 +165,24 @@ public class GeneratorConfig {
     private static String envOrDefault(String key, String def) {
         String value = System.getenv(key);
         return (value != null && !value.isBlank()) ? value : def;
+    }
+
+    /**
+     * Reads environment variable {@code key} as a {@code long}, falling back to {@code def}
+     * when it is unset, blank or not a valid number.
+     *
+     * @param key environment variable name
+     * @param def fallback used when unset/blank/unparseable
+     * @return the parsed value or {@code def}
+     */
+    private static long envLongOrDefault(String key, long def) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) return def;
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     // -----------------------------------------------------------------

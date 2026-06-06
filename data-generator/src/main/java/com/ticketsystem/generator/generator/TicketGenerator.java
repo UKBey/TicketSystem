@@ -37,7 +37,9 @@ import java.util.*;
  * <p>Comments are sent in three phases (see {@link #generate()}): all tickets are first
  * created/claimed and their comments collected, then every ticket's comments are flushed in
  * global "waves" (one comment per ticket per wave, skipping any author already used this wave
- * so the per-user 5s cooldown is never hit), then status transitions + CSAT run. Batching the
+ * so the per-user comment cooldown is never hit — its duration comes from
+ * {@link GeneratorConfig#COMMENT_COOLDOWN_SECONDS}, sourced from {@code .env}), then status
+ * transitions + CSAT run. Batching the
  * comments globally lets the per-user cooldowns overlap across all tickets instead of
  * serialising them ticket-by-ticket.
  */
@@ -355,7 +357,7 @@ public class TicketGenerator {
      * yorum atılır, sonra bir cooldown ({@link GeneratorConfig#COMMENT_DELAY_MS}) beklenir. Aynı
      * kullanıcı (agent/customer aynı kullanıcı havuzundan round-robin paylaşıldığı için) bir
      * dalga içinde ikinci kez yorum yapacaksa o bilet bir sonraki dalgaya ertelenir — böylece
-     * backend'in kullanıcı-bazlı 5 sn cooldown'ına takılmadan (429), bilet içi sıra da bozulmadan
+     * backend'in kullanıcı-bazlı cooldown'ına takılmadan (429), bilet içi sıra da bozulmadan
      * tüm biletlerin cooldown'ları üst üste biner. Toplam süre ≈ (en çok yorumu olan kullanıcı) ×
      * cooldown — biletler arası seri beklemeye gerek kalmaz.
      */

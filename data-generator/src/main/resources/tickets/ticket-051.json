@@ -1,0 +1,157 @@
+{
+  "title": "Outlook keeps disconnecting from Exchange every few minutes after the latest Windows update",
+  "description": "Since this morning's Windows update, my Outlook drops to 'Disconnected' every 3-5 minutes and then reconnects on its own. New mail arrives late, and sometimes when I hit Send the message sits in the Outbox for a long time. Restarting doesn't help. It's making it very hard to get work done.",
+  "priority": "MEDIUM",
+  "productName": "Email & Communication",
+  "topicName": "Outlook",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
+  "worklogs": [
+    {
+      "minutes": 10,
+      "description": "Reproduced the issue over a remote session and confirmed the connection state flapping in the Outlook Connection Status window."
+    },
+    {
+      "minutes": 25,
+      "description": "Collected and reviewed the Outlook ETL connectivity logs; saw repeated RPC/HTTP transition errors after each KB5034441-related stack reload."
+    },
+    {
+      "minutes": 15,
+      "description": "Cross-checked with the Messaging team — three other users on the same patch ring reported the same flapping."
+    },
+    {
+      "minutes": 20,
+      "description": "Tested the MAPI-over-HTTP registry workaround on the user's profile and monitored for 15 minutes with zero disconnects."
+    },
+    {
+      "minutes": 15,
+      "description": "Rebuilt the OST cache after the workaround to clear the late-sync backlog stuck in the Outbox."
+    },
+    {
+      "minutes": 10,
+      "description": "Documented the root cause and the registry fix in the known-issues base and handed it to the Messaging team for the next patch ring."
+    }
+  ],
+  "comments": [
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Hi, since the update this morning Outlook keeps going to 'Disconnected' and then 'Connected' again every few minutes. It's been happening non-stop for about two hours now. Everything else (browser, Teams) works fine."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, thanks for the detailed description — the fact that only Outlook is affected while Teams and the browser are fine is a useful clue. Could you open Outlook, hold CTRL and right-click the Outlook icon in the system tray, then choose 'Connection Status'? Tell me what you see under the 'Conn' column (it usually says HTTP or TCP)."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Found it. Most rows say HTTP, but every so often a couple of them flip to 'Connecting' and the 'Req/Fail' column counts up. The Fail number keeps climbing."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Perfect, that confirms it's the mail connection itself dropping and not your network. Which Outlook version are you on? You can find it under File > Office Account > About Outlook (I need the exact build number on the top line)."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It says: Microsoft Outlook for Microsoft 365 MSO (Version 2401 Build 16.0.17231.20236) 64-bit."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "User is on the January channel build right after this morning's KB rollout. Flapping HTTP connections with rising Req/Fail — smells like the MAPI-over-HTTP stack reloading after the patch. Checking with Messaging whether others on the same ring are affected before I push a profile change."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks. While I check something on our side, could you run one quick test? Close Outlook fully, then reopen it holding the CTRL key — Windows will ask if you want to start in Safe Mode, click Yes. Let it run for about five minutes and tell me whether it still disconnects."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Started it in Safe Mode like you said. It's been about six minutes and... it still disconnected twice. So it doesn't seem to be an add-in then?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Exactly the right deduction — Safe Mode disables add-ins, so we've just ruled those out. That points the finger at the mail transport layer, which lines up with what I'm seeing. You can go back to normal Outlook now (just close and reopen it without CTRL)."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Okay, back to normal mode. One more thing I noticed: when it disconnects, a mail I try to send gets stuck in the Outbox and only goes out a minute or two later. Is that related?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Yes, directly related — when the connection drops mid-send, Outlook parks the message in the Outbox until the next successful reconnect, which is the delay you're seeing. Once we stop the flapping, the Outbox delay will disappear too. Bear with me a few more minutes while I confirm the cause."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Messaging confirmed: three other users on the same patch ring are flapping identically since the KB. Known interaction between the new build and MAPI-over-HTTP keep-alive. Applying the documented registry workaround on this profile and monitoring before we roll it wider."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Good news: I've confirmed the cause. This morning's update changed how Outlook keeps its mail connection alive, and on your build it tears the connection down too aggressively. There's a small, safe setting we can apply to fix it. I'll connect to your machine remotely to do it — can you accept the remote-assist prompt that's about to pop up?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Accepted, I can see your cursor moving now."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks. I'm adding a value under HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\RPC that pins the connection to MAPI-over-HTTP and disables the over-eager reconnect. This only affects your mail profile — nothing else on the machine. I'll close Outlook, apply it, and reopen. Give me a moment."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Outlook just reopened. Connection Status is all green 'Established' rows now and the Fail counter is stuck at 0. It hasn't dropped once in the last couple of minutes 🤞"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "That's exactly what we want to see. Let's give it a proper soak test — keep working normally and watch it for about ten minutes. In the meantime I'll rebuild your local mail cache so the messages that were stuck syncing earlier get cleaned up."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Ten minutes in and it has NOT disconnected a single time. I sent three test emails and they all left the Outbox instantly. This is night-and-day better."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Excellent — zero disconnects and instant sends means the fix holds. The cache rebuild also finished, so the earlier Outbox backlog is cleared. Could you also confirm the late-arriving mail is back to normal — does a message you send yourself from your phone show up right away?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Just tried it — sent myself a mail from my phone and it landed in Outlook within a second. Everything's working perfectly now."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Workaround verified stable over a 10+ minute soak with zero flaps; OST rebuilt; Outbox backlog cleared. Documenting the registry key in the known-issues base and handing the root cause to Messaging so the fix ships to the rest of the patch ring proactively."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Then we're done here 🎉 To summarize: this morning's update changed Outlook's mail keep-alive behaviour and caused the disconnect loop; I applied a safe profile setting that pins the connection and stops the flapping, then rebuilt your mail cache to clear the backlog. I've also reported the root cause so your colleagues on the same update get fixed before they even notice. If it ever comes back, just reopen this ticket. Have a great rest of your day!"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thank you so much — you were patient, explained every step, and actually fixed it instead of just telling me to restart. Honestly the best support experience I've had here. Cheers!"
+    }
+  ],
+  "resolutionNote": "This morning's Office channel update (build 16.0.17231.20236) changed the MAPI-over-HTTP keep-alive behaviour and caused Outlook to tear down and re-establish its mail connection every few minutes, which also parked outbound mail in the Outbox until each reconnect. Ruled out network (only Outlook affected) and add-ins (flapping persisted in Safe Mode), then confirmed via the Outlook connectivity logs and three matching reports from the same patch ring. Applied the documented HKCU RPC registry value to pin the connection to MAPI-over-HTTP and disable the aggressive reconnect, then rebuilt the OST cache to clear the sync backlog. Verified stable over a 10+ minute soak with zero disconnects and instant sends. Root cause and registry fix documented in the known-issues base and handed to the Messaging team for proactive rollout to the rest of the ring.",
+  "csat": {
+    "rating": 5,
+    "comment": "Patient, clear, and actually solved the problem step by step instead of just saying 'restart it'. The best support experience I've had — thank you!"
+  }
+}

@@ -149,7 +149,7 @@ products. HTTP 409 (already assigned) is skipped silently.
 
 ### 5. Ticket generation (JSON template based)
 
-The **50 ticket templates** in `src/main/resources/tickets/ticket-NNN.json` are
+The **51 ticket templates** in `src/main/resources/tickets/ticket-NNN.json` are
 processed. Each file declaratively describes a ticket's full lifecycle:
 
 ```json
@@ -170,15 +170,19 @@ processed. Each file declaratively describes a ticket's full lifecycle:
 
 Templates are processed in the order CLOSED → RESOLVED → WAITING_FOR_CUSTOMER →
 IN_PROGRESS → NEW so the per-agent active-claim limit is not exhausted before all
-types are created. The 50 templates break down as:
+types are created. The 51 templates break down as:
 
 | Status | Count |
 |--------|-------|
-| CLOSED | 14 |
+| CLOSED | 15 |
 | RESOLVED | 10 |
 | IN_PROGRESS | 10 |
 | WAITING_FOR_CUSTOMER | 8 |
 | NEW | 8 |
+
+> `ticket-051.json` is a deliberately long, **23-comment** CLOSED case (an Outlook /
+> Exchange disconnect saga with 6 worklogs and a 5★ CSAT) — a stress-test of the
+> comment-wave pacing and a showcase of a realistic, multi-turn conversation thread.
 
 Generation runs in three phases so the per-user comment cooldown overlaps across all
 tickets instead of being paid ticket-by-ticket:
@@ -216,10 +220,31 @@ Dates are computed relative to **the time the generator runs**:
 | NEW | created within the last 0–80%·duration so the SLA has not breached |
 | IN_PROGRESS | historical creation + agent claimed recently |
 | WAITING_FOR_CUSTOMER | SLA paused, 20–75% of the budget spent |
-| RESOLVED | resolved_at = created_at + 1–48 hours |
+| RESOLVED | resolved_at = created_at + active duration (breach mix ~30%) |
 | CLOSED | closed_at = resolved_at + 1–24 hours |
 
-SLA durations are derived from priority (CRITICAL 1h, HIGH 4h, MEDIUM 12h, LOW 24h).
+SLA durations are derived from priority (CRITICAL 1h, HIGH 4h, MEDIUM 24h, LOW 72h)
+and **must mirror** the backend SLA policy, otherwise the backfilled deadlines/breach
+flags disagree with the live SLA computation and the dashboard.
+
+#### Child-record timestamps (chronological history)
+
+A ticket's comments, worklogs, CSAT survey and audit-log rows are all created through
+the API at generation time, so their `created_at` would otherwise collapse onto "now"
+— a CLOSED ticket dated five days ago would show comments posted today. After the
+ticket dates are written, the generator **redistributes every child timestamp across
+the ticket's real timeline** so the history reads like a genuine ticket:
+
+| Child rows | Placed at |
+|------------|-----------|
+| `ticket_comments` | spread in **id / conversation order** between creation and the resolution (or pause / "now" for active tickets) — the question/answer flow stays intact |
+| `ticket_worklogs` | spread the same way across the active work window (`created_at` **and** `updated_at`) |
+| `csat_surveys` | at the **close moment** (the customer's rating is what closes a RESOLVED ticket) |
+| `ticket_audit_logs` | anchored to the action each row records — `CREATED` at creation, `CLAIM`/`ASSIGN` shortly after, the `RESOLVED`/`CLOSED`/`WAITING_FOR_CUSTOMER` status changes at their moments — then forced strictly increasing by id so the recorded order is never violated |
+
+The result: a closed ticket from last week shows its first reply minutes after it was
+opened, the back-and-forth spread over hours, the resolution at the end, and the CSAT
+right at close — instead of a burst of "just now" activity.
 
 ---
 
@@ -232,9 +257,10 @@ data-generator/
 └── src/main/resources/
     ├── setup.json                ← 5 products × 5 topics × ~12 known-issues + canned responses
     └── tickets/
-        ├── ticket-001.json       ← 50 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
+        ├── ticket-001.json       ← 51 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
         ├── ...
-        └── ticket-050.json
+        ├── ticket-050.json
+        └── ticket-051.json       ← long 23-comment showcase case
 ```
 
 > To add a new ticket, just drop in a new `tickets/ticket-NNN.json` — no code change
@@ -269,7 +295,8 @@ data-generator/
 | `MASTER_ADMIN_CLIENT` | `admin-cli` | — | master-realm token client |
 | `TEMP_PASSWORD` | `Temp321654!` | — | temporary password set at user creation (forced change on first login) |
 | `DELAY_MS` | `600` | — | delay between API requests (ms) |
-| `COMMENT_DELAY_MS` | `5500` | — | delay between comment waves (ms) |
+| `COMMENT_COOLDOWN_SECONDS` | `3` | `COMMENT_COOLDOWN_SECONDS` | backend per-user comment cooldown (sec); **sourced from `.env` first** — keep in sync with the backend's `app.comments.cooldown-seconds` |
+| `COMMENT_DELAY_MS` | `cooldown·1000 + 500` | — | delay between comment waves (ms); derived from `COMMENT_COOLDOWN_SECONDS` + a safety margin |
 | `RATE_LIMIT_BACKOFF_MS` | `6000` | — | wait after a 429 |
 | `RATE_LIMIT_RETRY_COUNT` | `3` | — | retries after a 429 |
 | `TOKEN_REFRESH_THRESHOLD_SEC` | `30` | — | token refresh threshold |
@@ -307,7 +334,10 @@ the realm password policy. Other users continue.
 exactly.
 
 **"429 Too Many Requests"**
-→ Increase `COMMENT_DELAY_MS` (e.g. `6500`) or relax the backend rate-limit config.
+→ The comment-wave pacing follows `COMMENT_COOLDOWN_SECONDS` (from `.env`, default 3)
+plus a safety margin. If you still see 429s, make sure `COMMENT_COOLDOWN_SECONDS`
+matches the backend's `app.comments.cooldown-seconds`, or relax the backend rate-limit
+config.
 
 **"Veritabanı bağlantısı kurulamadı" (DB connection failed, backfill)**
 → PostgreSQL port 5432 must be reachable. Check with `docker compose ps`.

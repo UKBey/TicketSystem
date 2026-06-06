@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -24,6 +25,15 @@ import java.util.Random;
  *   WAITING_FOR_CUSTOMER — SLA paused, 20-75% of the budget spent.
  *   RESOLVED          — SLA paused, 30-95% of the budget spent.
  *   CLOSED            — SLA paused (same as RESOLVED), workflow completed.
+ *
+ * <p><b>Child records.</b> The ticket's comments, worklogs, CSAT survey and audit-log rows
+ * are created via the API at generation time, so their {@code created_at} all collapse onto
+ * "now". After the ticket dates are written, {@link #backfillChildTimestamps} redistributes
+ * those child timestamps across the ticket's real timeline — comments and worklogs spread (in
+ * insertion / conversation order) between creation and resolution, the CSAT survey at the
+ * close moment, and audit events anchored to the action they represent (CREATED at creation,
+ * CLAIM shortly after, the RESOLVED/WAITING status changes at their respective moments). The
+ * result reads like a genuine ticket history rather than a burst of "just now" activity.
  */
 public class DateBackfiller {
 
@@ -88,6 +98,9 @@ public class DateBackfiller {
         List<Long> idList = new ArrayList<>(ticketIds);
         Array sqlArray = conn.createArrayOf("bigint",
                 idList.stream().map(Object.class::cast).toArray());
+
+        // Her bilet için hesaplanan zaman çizelgesi çıpaları; faz 2'de (child backfill) kullanılır.
+        List<Anchors> anchorsList = new ArrayList<>();
 
         try (PreparedStatement sel = conn.prepareStatement(selectSql);
              PreparedStatement upd = conn.prepareStatement(updateSql)) {
@@ -192,6 +205,8 @@ public class DateBackfiller {
                 upd.addBatch();
                 count++;
 
+                anchorsList.add(new Anchors(id, status, createdAt, resolvedAt, closedAt, pausedAt));
+
                 if (count % 50 == 0) {
                     upd.executeBatch();
                     log.debug("{} bilet güncellendi...", count);
@@ -201,6 +216,235 @@ public class DateBackfiller {
             upd.executeBatch();
             log.info("Toplam {} biletin tarihi ve SLA alanları güncellendi.", count);
         }
+
+        // Faz 2: child kayıtların (yorum/worklog/CSAT/audit) zaman damgalarını çizelgeye yay.
+        backfillChildTimestamps(conn, anchorsList);
+    }
+
+    // ---------------------------------------------------------------
+    // Child kayıt zaman damgaları (yorum / worklog / CSAT / audit)
+    // ---------------------------------------------------------------
+
+    /**
+     * Per-ticket timeline anchors captured during the main backfill, consumed by
+     * {@link #backfillChildTimestamps}. Any of the optional moments may be {@code null}
+     * depending on status (e.g. an active ticket has no {@code resolvedAt}/{@code closedAt}).
+     *
+     * @param id         ticket id
+     * @param status     ticket status (drives which window the children fall into)
+     * @param createdAt  ticket creation moment (window start for every child)
+     * @param resolvedAt resolution moment, or {@code null}
+     * @param closedAt   close moment, or {@code null}
+     * @param pausedAt   SLA pause moment (last active moment for WAITING tickets), or {@code null}
+     */
+    private record Anchors(long id, String status, ZonedDateTime createdAt,
+                           ZonedDateTime resolvedAt, ZonedDateTime closedAt,
+                           ZonedDateTime pausedAt) {}
+
+    /**
+     * Redistributes every ticket's child-record timestamps across its real timeline so the
+     * history reads chronologically: comments and worklogs are spread (in id / conversation
+     * order) between creation and resolution, the CSAT survey sits at the close moment, and
+     * audit events are anchored to the action they represent.
+     */
+    private void backfillChildTimestamps(Connection conn, List<Anchors> anchorsList) {
+        int comments = 0, worklogs = 0, csat = 0, audits = 0;
+        for (Anchors a : anchorsList) {
+            ZonedDateTime convEnd = conversationEnd(a);   // yorum/worklog penceresinin sonu
+            try {
+                if (convEnd != null) {
+                    comments += spreadChildRows(conn, "ticket_comments", a.id(),
+                            a.createdAt().plus(Duration.ofMinutes(2)), convEnd, false);
+                    worklogs += spreadChildRows(conn, "ticket_worklogs", a.id(),
+                            a.createdAt().plus(Duration.ofMinutes(5)), convEnd, true);
+                }
+                csat   += backfillCsat(conn, a);
+                audits += backfillAuditLogs(conn, a, convEnd);
+            } catch (SQLException e) {
+                log.warn("Bilet #{} alt kayıt tarihleri güncellenemedi: {}", a.id(), e.getMessage());
+            }
+        }
+        log.info("Alt kayıt tarihleri çizelgeye yayıldı: {} yorum, {} worklog, {} CSAT, {} audit.",
+                comments, worklogs, csat, audits);
+    }
+
+    /**
+     * End of a ticket's conversation/work window (the latest a comment or worklog may appear):
+     * the resolution moment when present, otherwise the pause moment (WAITING), otherwise "now"
+     * for still-active work, and {@code null} for NEW tickets (which have no children).
+     */
+    private ZonedDateTime conversationEnd(Anchors a) {
+        return switch (a.status()) {
+            case "RESOLVED", "CLOSED" -> a.resolvedAt();
+            case "WAITING_FOR_CUSTOMER" -> a.pausedAt();
+            case "IN_PROGRESS" -> now();
+            default -> null; // NEW — yorum/worklog yok
+        };
+    }
+
+    /**
+     * Spreads the {@code created_at} (and, when {@code alsoUpdatedAt}, {@code updated_at}) of a
+     * ticket's rows in the given child table evenly across {@code [start, end]}, preserving id
+     * order so the conversation/work sequence stays intact.
+     *
+     * @return number of rows updated
+     */
+    private int spreadChildRows(Connection conn, String table, long ticketId,
+                                ZonedDateTime start, ZonedDateTime end, boolean alsoUpdatedAt)
+            throws SQLException {
+        List<Long> ids = childIds(conn, table, ticketId);
+        if (ids.isEmpty()) return 0;
+
+        List<ZonedDateTime> times = spread(start, end, ids.size());
+        String sql = alsoUpdatedAt
+                ? "UPDATE " + table + " SET created_at = ?, updated_at = ? WHERE id = ?"
+                : "UPDATE " + table + " SET created_at = ? WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < ids.size(); i++) {
+                Timestamp ts = toTs(times.get(i));
+                int col = 1;
+                ps.setTimestamp(col++, ts);
+                if (alsoUpdatedAt) ps.setTimestamp(col++, ts);
+                ps.setLong(col, ids.get(i));
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+        return ids.size();
+    }
+
+    /**
+     * Places the CSAT survey at the ticket's close moment (the customer's rating is what closes
+     * a RESOLVED ticket). No-op when the ticket never closed or has no survey row.
+     *
+     * @return 1 if a survey was updated, otherwise 0
+     */
+    private int backfillCsat(Connection conn, Anchors a) throws SQLException {
+        ZonedDateTime when = a.closedAt() != null ? a.closedAt() : a.resolvedAt();
+        if (when == null) return 0;
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE csat_surveys SET created_at = ? WHERE ticket_id = ?")) {
+            ps.setTimestamp(1, toTs(when));
+            ps.setLong(2, a.id());
+            return ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Anchors each audit-log row to the moment of the action it records (CREATED at creation,
+     * CLAIM/ASSIGN shortly after, the RESOLVED/CLOSED/WAITING status changes at their moments;
+     * anything else proportionally in the window), then enforces strictly increasing timestamps
+     * by id so the recorded order is never violated.
+     *
+     * @return number of audit rows updated
+     */
+    private int backfillAuditLogs(Connection conn, Anchors a, ZonedDateTime convEnd)
+            throws SQLException {
+        String selSql = "SELECT id, action_type, new_state FROM ticket_audit_logs "
+                + "WHERE ticket_id = ? ORDER BY id";
+        List<long[]> rows = new ArrayList<>();       // [id]
+        List<String> actions = new ArrayList<>();
+        List<String> newStates = new ArrayList<>();
+        try (PreparedStatement sel = conn.prepareStatement(selSql)) {
+            sel.setLong(1, a.id());
+            try (ResultSet rs = sel.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new long[]{rs.getLong("id")});
+                    actions.add(rs.getString("action_type"));
+                    newStates.add(rs.getString("new_state"));
+                }
+            }
+        }
+        if (rows.isEmpty()) return 0;
+
+        // Audit penceresinin sonu: kapanış/çözüm varsa o, yoksa konuşma sonu, yoksa şimdi.
+        ZonedDateTime auditEnd = firstNonNull(a.closedAt(), a.resolvedAt(), convEnd, now());
+
+        long prevMs = a.createdAt().toInstant().toEpochMilli() - 1000;
+        long endMs  = auditEnd.toInstant().toEpochMilli();
+        try (PreparedStatement upd = conn.prepareStatement(
+                "UPDATE ticket_audit_logs SET created_at = ? WHERE id = ?")) {
+            for (int i = 0; i < rows.size(); i++) {
+                ZonedDateTime target = auditTarget(a, actions.get(i), newStates.get(i), auditEnd);
+                long t = target.toInstant().toEpochMilli();
+                if (t <= prevMs) t = prevMs + 1000;            // id sırası = zaman sırası
+                if (t > endMs)   t = endMs;
+                prevMs = t;
+                upd.setTimestamp(1, toTs(ZonedDateTime.ofInstant(Instant.ofEpochMilli(t), ZoneOffset.UTC)));
+                upd.setLong(2, rows.get(i)[0]);
+                upd.addBatch();
+            }
+            upd.executeBatch();
+        }
+        return rows.size();
+    }
+
+    /** Maps an audit action to the timeline moment it should carry. */
+    private ZonedDateTime auditTarget(Anchors a, String action, String newState,
+                                      ZonedDateTime auditEnd) {
+        String act = action == null ? "" : action.toUpperCase();
+        String ns  = newState == null ? "" : newState.toUpperCase();
+        return switch (act) {
+            case "CREATED" -> a.createdAt();
+            // İlk müdahale: oluşturmadan 5–90 dk sonra.
+            case "CLAIM", "ASSIGN" -> a.createdAt().plus(Duration.ofMillis(randLong(300_000L, 5_400_000L)));
+            case "UNCLAIM" -> a.createdAt().plus(Duration.ofMillis(randLong(600_000L, 7_200_000L)));
+            case "STATUS_CHANGE", "REOPEN" -> switch (ns) {
+                case "RESOLVED" -> firstNonNull(a.resolvedAt(), auditEnd);
+                case "CLOSED"   -> firstNonNull(a.closedAt(), a.resolvedAt(), auditEnd);
+                case "WAITING_FOR_CUSTOMER" -> firstNonNull(a.pausedAt(), midpoint(a.createdAt(), auditEnd));
+                case "IN_PROGRESS" -> a.createdAt().plus(Duration.ofMillis(randLong(300_000L, 5_400_000L)));
+                default -> midpoint(a.createdAt(), auditEnd);
+            };
+            default -> midpoint(a.createdAt(), auditEnd);
+        };
+    }
+
+    /** Ids of a ticket's rows in a child table, ordered by id (= insertion order). */
+    private List<Long> childIds(Connection conn, String table, long ticketId) throws SQLException {
+        List<Long> ids = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT id FROM " + table + " WHERE ticket_id = ? ORDER BY id")) {
+            ps.setLong(1, ticketId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) ids.add(rs.getLong(1));
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * {@code n} strictly increasing timestamps spread across {@code (start, end)} with light
+     * jitter. Degenerate windows ({@code end <= start}) fall back to 1-minute steps from start.
+     */
+    private List<ZonedDateTime> spread(ZonedDateTime start, ZonedDateTime end, int n) {
+        List<ZonedDateTime> out = new ArrayList<>(n);
+        long startMs = start.toInstant().toEpochMilli();
+        long endMs   = end.toInstant().toEpochMilli();
+        if (endMs <= startMs) endMs = startMs + n * 60_000L; // güvenlik: dakikalık adımlar
+        long step = (endMs - startMs) / (n + 1);
+        long prev = startMs;
+        for (int i = 1; i <= n; i++) {
+            long base = startMs + step * i;
+            long jitter = (long) ((RNG.nextDouble() - 0.5) * Math.max(1, step / 3));
+            long t = base + jitter;
+            if (t <= prev)  t = prev + 1000;
+            if (t >= endMs) t = endMs - 1;
+            prev = t;
+            out.add(ZonedDateTime.ofInstant(Instant.ofEpochMilli(t), ZoneOffset.UTC));
+        }
+        return out;
+    }
+
+    private ZonedDateTime midpoint(ZonedDateTime a, ZonedDateTime b) {
+        long mid = (a.toInstant().toEpochMilli() + b.toInstant().toEpochMilli()) / 2;
+        return ZonedDateTime.ofInstant(Instant.ofEpochMilli(mid), ZoneOffset.UTC);
+    }
+
+    @SafeVarargs
+    private final ZonedDateTime firstNonNull(ZonedDateTime... candidates) {
+        for (ZonedDateTime c : candidates) if (c != null) return c;
+        return now();
     }
 
     // ---------------------------------------------------------------
