@@ -123,16 +123,59 @@ public class ApiClient {
     // Yardımcı metodlar
     // ---------------------------------------------------------------
 
+    /**
+     * Sends the request, transparently retrying on HTTP 429 (rate limit / comment cooldown)
+     * with a {@code Retry-After}-aware backoff. This makes the whole generator correct at any
+     * pacing: when the backend rate limit is relaxed (e.g. dev) callers can run flat-out, and
+     * when it is tight the request waits and retries instead of silently dropping the record.
+     */
     private JsonNode execute(Request request) throws IOException {
-        try (Response response = http.newCall(request).execute()) {
-            String body = response.body() != null ? response.body().string() : "{}";
-            if (!response.isSuccessful()) {
-                log.warn("API hatası [{} {}] → {}: {}",
-                        request.method(), request.url().encodedPath(),
-                        response.code(), body);
-                throw new ApiException(response.code(), body);
+        int attempt = 0;
+        while (true) {
+            attempt++;
+            try (Response response = http.newCall(request).execute()) {
+                String body = response.body() != null ? response.body().string() : "{}";
+
+                if (response.code() == 429 && attempt <= GeneratorConfig.RATE_LIMIT_RETRY_COUNT) {
+                    long backoff = retryAfterMs(response);
+                    log.warn("429 [{} {}] — {}ms sonra yeniden denenecek (deneme {}/{})",
+                            request.method(), request.url().encodedPath(), backoff,
+                            attempt, GeneratorConfig.RATE_LIMIT_RETRY_COUNT);
+                    sleepQuietly(backoff);
+                    continue;
+                }
+                if (!response.isSuccessful()) {
+                    log.warn("API hatası [{} {}] → {}: {}",
+                            request.method(), request.url().encodedPath(),
+                            response.code(), body);
+                    throw new ApiException(response.code(), body);
+                }
+                return body.isBlank() ? mapper.createObjectNode() : mapper.readTree(body);
             }
-            return body.isBlank() ? mapper.createObjectNode() : mapper.readTree(body);
+        }
+    }
+
+    /**
+     * Backoff for a 429: the {@code Retry-After} header (seconds) plus a small margin when the
+     * server advertised one, otherwise the configured default.
+     */
+    private long retryAfterMs(Response response) {
+        String header = response.header("Retry-After");
+        if (header != null && !header.isBlank()) {
+            try {
+                return Long.parseLong(header.trim()) * 1000L + 250L;
+            } catch (NumberFormatException ignored) {
+                // header bir tarih ya da geçersiz olabilir — sabit backoff'a düş.
+            }
+        }
+        return GeneratorConfig.RATE_LIMIT_BACKOFF_MS;
+    }
+
+    private void sleepQuietly(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

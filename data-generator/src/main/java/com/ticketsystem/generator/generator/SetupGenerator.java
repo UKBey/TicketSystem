@@ -360,7 +360,7 @@ public class SetupGenerator {
                                 adminAgent.getToken());
                         topicId = resp.path("id").asLong();
                         log.debug("Topic oluşturuldu: '{}' / '{}'", productName, topicName);
-                        Thread.sleep(150);
+                        Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
                         log.warn("Topic oluşturulamadı ({} / {}): {}", productName, topicName, e.getMessage());
                         continue;
@@ -419,7 +419,7 @@ public class SetupGenerator {
                                        "isActive", true),
                                 adminAgent.getToken());
                         created++;
-                        Thread.sleep(120);
+                        Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
                         log.warn("Known issue oluşturulamadı ({} / {}): {}", productName, title, e.getMessage());
                     }

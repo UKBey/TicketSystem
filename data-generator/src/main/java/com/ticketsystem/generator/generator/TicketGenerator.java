@@ -390,23 +390,14 @@ public class TicketGenerator {
         log.info("Tüm yorumlar gönderildi: {} ({} dalga)", sent, wave);
     }
 
-    private void sendComment(CommentTask task) throws InterruptedException {
+    private void sendComment(CommentTask task) {
         Map<String, String> body = Map.of("message", task.message, "type", task.type);
-        for (int attempt = 1; attempt <= GeneratorConfig.RATE_LIMIT_RETRY_COUNT; attempt++) {
-            try {
-                api.post("/tickets/" + task.ticketId + "/comments", body, task.user.getToken());
-                return;
-            } catch (ApiClient.ApiException e) {
-                if (e.getStatusCode() == 429 && attempt < GeneratorConfig.RATE_LIMIT_RETRY_COUNT) {
-                    Thread.sleep(GeneratorConfig.RATE_LIMIT_BACKOFF_MS);
-                } else {
-                    log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
-                    return;
-                }
-            } catch (Exception e) {
-                log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
-                return;
-            }
+        try {
+            // 429 (cooldown/rate limit) retry'ı ApiClient'ta merkezî olarak ele alınır;
+            // dalga mantığı zaten cooldown'a takılmamak için yorumları kullanıcı-bazlı yayar.
+            api.post("/tickets/" + task.ticketId + "/comments", body, task.user.getToken());
+        } catch (Exception e) {
+            log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
         }
     }
 

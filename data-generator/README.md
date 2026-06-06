@@ -19,6 +19,23 @@ accounts: the bootstrap admin, the Keycloak master admin, and the database user.
 - A running Ticket System stack (`docker compose up -d` or `make up`)
 - Access to PostgreSQL (port 5432 must be reachable — the date backfill connects directly)
 
+> **Recommended: disable the backend global rate limit while seeding.** The generator is
+> designed to run **as if there were no rate limit** — it fires requests back-to-back with no
+> pacing delay (`DELAY_MS = 0`), so the whole run finishes in a fraction of the time. The
+> backend rate limit is keyed **per user**, and all setup work goes through a single admin
+> account, so leaving a tight limit on (default 100 req/60 s) would throttle that one account
+> hard. Relax it in `.env` before `make gen`:
+>
+> ```ini
+> RATE_LIMIT_GLOBAL_MAX_REQUESTS=10000000
+> RATE_LIMIT_GLOBAL_DURATION_SECONDS=1
+> ```
+>
+> (or `RATE_LIMIT_GLOBAL_ENABLED=false`), then restart the backend. The only delay the
+> generator keeps is the **comment cooldown** (`app.comments.cooldown-seconds`), which is a
+> separate, always-on constraint. If you do leave a limit in place, the run still completes
+> correctly — `ApiClient` auto-retries any 429 with backoff — it just runs slower.
+
 ## Quick start
 
 ### 1. Prepare users.json
@@ -294,8 +311,8 @@ data-generator/
 | `KEYCLOAK_CLIENT` | `ticket-frontend` | — | public client used to obtain tokens |
 | `MASTER_ADMIN_CLIENT` | `admin-cli` | — | master-realm token client |
 | `TEMP_PASSWORD` | `Temp321654!` | — | temporary password set at user creation (forced change on first login) |
-| `DELAY_MS` | `600` | — | delay between API requests (ms) |
-| `COMMENT_COOLDOWN_SECONDS` | `3` | `COMMENT_COOLDOWN_SECONDS` | backend per-user comment cooldown (sec); **sourced from `.env` first** — keep in sync with the backend's `app.comments.cooldown-seconds` |
+| `DELAY_MS` | `0` | — | delay between API requests (ms); **0 by design** — the generator assumes the rate limit is disabled (see Requirements), so there is no pacing to pay. 429s are still auto-retried in `ApiClient`, so it stays correct if a limit is left on |
+| `COMMENT_COOLDOWN_SECONDS` | `3` | `COMMENT_COOLDOWN_SECONDS` | backend per-user comment cooldown (sec); **sourced from `.env` first** — keep in sync with the backend's `app.comments.cooldown-seconds`. This is the **only** deliberate wait left in a run |
 | `COMMENT_DELAY_MS` | `cooldown·1000 + 500` | — | delay between comment waves (ms); derived from `COMMENT_COOLDOWN_SECONDS` + a safety margin |
 | `RATE_LIMIT_BACKOFF_MS` | `6000` | — | wait after a 429 |
 | `RATE_LIMIT_RETRY_COUNT` | `3` | — | retries after a 429 |
@@ -334,10 +351,11 @@ the realm password policy. Other users continue.
 exactly.
 
 **"429 Too Many Requests"**
-→ The comment-wave pacing follows `COMMENT_COOLDOWN_SECONDS` (from `.env`, default 3)
-plus a safety margin. If you still see 429s, make sure `COMMENT_COOLDOWN_SECONDS`
-matches the backend's `app.comments.cooldown-seconds`, or relax the backend rate-limit
-config.
+→ The generator runs with no request pacing (`DELAY_MS = 0`), so a tight backend rate limit
+will be hit. `ApiClient` auto-retries each 429 with backoff so nothing is lost, but the run
+slows down. For a fast run, **disable the rate limit** while seeding (see Requirements). The
+comment cooldown is separate: make sure `COMMENT_COOLDOWN_SECONDS` matches the backend's
+`app.comments.cooldown-seconds`.
 
 **"Veritabanı bağlantısı kurulamadı" (DB connection failed, backfill)**
 → PostgreSQL port 5432 must be reachable. Check with `docker compose ps`.

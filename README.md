@@ -218,6 +218,11 @@ You can now log in at http://localhost.
 make gen       # build + run the data generator (products, tickets, history)
 ```
 
+> **Tip:** the generator runs fastest with the backend global rate limit disabled (it fires
+> requests with no pacing). Before `make gen`, set `RATE_LIMIT_GLOBAL_MAX_REQUESTS=10000000`
+> (or `RATE_LIMIT_GLOBAL_ENABLED=false`) in `.env` and restart the backend. It still works with
+> the limit on — 429s are auto-retried — just slower. See [data-generator/README.md](data-generator/README.md#requirements).
+
 ### 6. Demo users
 
 Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles are assigned by `make seed-roles`** (see step 3c) — roles are not stored in LDAP. All seed users share the password `321654`. Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.

@@ -74,8 +74,18 @@ public class GeneratorConfig {
     // ---------------------------------------------------------------
     // Request cadence
     // ---------------------------------------------------------------
-    /** Delay between two API requests (ms). */
-    public static final long DELAY_MS = 600;
+    /**
+     * Delay between two API requests (ms).
+     *
+     * <p><b>The generator is designed to run against a backend with the global rate limit
+     * disabled</b> (the recommended setup for seeding — see the README), so this is {@code 0}:
+     * there is no rate-limit pacing to pay. The only deliberate wait left in the run is the
+     * comment cooldown ({@link #COMMENT_DELAY_MS}), which is a separate, always-on backend
+     * constraint. As a safety net, {@link com.ticketsystem.generator.client.ApiClient} still
+     * auto-retries any 429 with backoff, so the run stays correct even if a limit is in force —
+     * it just slows down instead of dropping records.
+     */
+    public static final long DELAY_MS = 0;
 
     /**
      * Backend per-user comment cooldown (seconds). Mirrors the backend's
