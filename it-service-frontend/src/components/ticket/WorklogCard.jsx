@@ -117,7 +117,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
                   <div className="text-xs mt-1 leading-relaxed break-words" style={{ color: 'var(--text-primary)' }}>{w.description}</div>
                 )}
                 <div className="text-[11px] mt-1 flex flex-wrap gap-x-1 gap-y-0.5 break-words" style={{ color: 'var(--text-tertiary)' }}>
-                  <span className="break-all">{w.agentId}</span>
+                  <span className="break-all">{w.agentName || w.agentId}</span>
                   <span>·</span>
                   <span>{formatShortDate(w.createdAt)}</span>
                 </div>

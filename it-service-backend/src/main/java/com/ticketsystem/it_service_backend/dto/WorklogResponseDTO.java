@@ -25,6 +25,9 @@ public class WorklogResponseDTO {
     @Schema(description = "Kaydı oluşturan ajanın Keycloak ID'si", example = "f9e8d7c6-b5a4-3210-fedc-ba0987654321")
     private String agentId;
 
+    @Schema(description = "Kaydı oluşturan ajanın görünen adı", example = "Ahmet Yılmaz")
+    private String agentName;
+
     @Schema(description = "Harcanan süre (dakika)", example = "45")
     private Integer minutes;
 
@@ -38,10 +41,20 @@ public class WorklogResponseDTO {
     private ZonedDateTime updatedAt;
 
     public static WorklogResponseDTO fromEntity(TicketWorklog worklog) {
+        return fromEntity(worklog, null);
+    }
+
+    /**
+     * Variant that fills the agent's display name (resolved by the caller from the
+     * user store). Falls back to the agent ID when {@code agentName} is null so the UI
+     * always has something to show.
+     */
+    public static WorklogResponseDTO fromEntity(TicketWorklog worklog, String agentName) {
         return WorklogResponseDTO.builder()
                 .id(worklog.getId())
                 .ticketId(worklog.getTicketId())
                 .agentId(worklog.getAgentId())
+                .agentName(agentName != null ? agentName : worklog.getAgentId())
                 .minutes(worklog.getMinutes())
                 .description(worklog.getDescription())
                 .createdAt(worklog.getCreatedAt())

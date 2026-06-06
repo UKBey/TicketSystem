@@ -3,6 +3,8 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
+import com.ticketsystem.it_service_backend.entity.User;
+import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.WorklogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,8 +16,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,11 +30,17 @@ class TicketWorklogControllerTest {
     @Mock
     private WorklogService worklogService;
 
+    @Mock
+    private UserRepository userRepository;
+
     private TicketWorklogController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new TicketWorklogController(worklogService);
+        controller = new TicketWorklogController(worklogService, userRepository);
+        // Ad çözümü test kapsamı dışında; varsayılan olarak boş döndür → DTO agentId'ye düşer.
+        lenient().when(userRepository.findById(any())).thenReturn(Optional.empty());
+        lenient().when(userRepository.findAllById(any())).thenReturn(List.of());
     }
 
     @Test
@@ -54,6 +64,18 @@ class TicketWorklogControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().size());
+    }
+
+    @Test
+    void getWorklogsByTicket_resolvesAgentName() {
+        when(worklogService.getWorklogsByTicket(10L, "agent-1", List.of("AGENT")))
+                .thenReturn(List.of(TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(20).build()));
+        when(userRepository.findAllById(List.of("agent-1")))
+                .thenReturn(List.of(User.builder().id("agent-1").fullName("Ahmet Yılmaz").build()));
+
+        ResponseEntity<List<WorklogResponseDTO>> response = controller.getWorklogsByTicket(10L, jwtWithRoles("agent-1", List.of("AGENT")));
+
+        assertEquals("Ahmet Yılmaz", response.getBody().get(0).getAgentName());
     }
 
     @Test
