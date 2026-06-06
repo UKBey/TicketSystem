@@ -150,6 +150,38 @@ services:
       retries: 10
       start_period: 60s
 
+  # OpenSearch Dashboards saved-object'larini (3 index pattern + 9 gorsel + 1 pano)
+  # ilk ayaga kalkista otomatik import eder. Dashboards "healthy" olunca calisir,
+  # API'nin gercekten hazir olmasini /api/status ile bekler, ndjson'u POST eder ve
+  # cikar (one-shot). overwrite=true ile idempotenttir: her `make up`'ta tekrar
+  # calisip objeleri tazeleyebilir. Manuel re-import icin bkz. RUNBOOK.md.
+  opensearch-dashboards-import:
+    image: curlimages/curl:8.11.1
+    container_name: opensearch-dashboards-import
+    depends_on:
+      opensearch-dashboards:
+        condition: service_healthy
+    volumes:
+      - ./observability/opensearch-dashboards.ndjson:/import/dashboards.ndjson:ro
+    networks:
+      - it-service-net
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "[import] OpenSearch Dashboards API hazir olana kadar bekleniyor..."
+        until curl -sf http://opensearch-dashboards:5601/api/status >/dev/null 2>&1; do
+          sleep 3
+        done
+        echo "[import] API hazir, saved object'lar import ediliyor..."
+        curl -sf -X POST 'http://opensearch-dashboards:5601/api/saved_objects/_import?overwrite=true' \
+          -H 'osd-xsrf: true' \
+          -F file=@/import/dashboards.ndjson
+        echo ""
+        echo "[import] Tamamlandi."
+
   # Kod kalitesi analiz veritabani.
   sonarqube-db:
     image: postgres:15-alpine

@@ -480,7 +480,15 @@ docker logs --tail 50 data-prepper
 All OpenSearch Dashboards saved objects in a single file:
 `observability/opensearch-dashboards.ndjson` — 3 index patterns (`otel-logs*`,
 `ss4o_traces-*`, `otel-metrics-*`), 9 visualizations and 1 combined dashboard.
-For a clean OpenSearch or for re-import:
+
+In **dev** these are imported automatically: the `opensearch-dashboards-import`
+one-shot service (in `docker-compose.override.yaml`, run by `make up`) waits for
+OpenSearch Dashboards to be healthy, polls `/api/status` until the API is ready,
+then POSTs the ndjson with `overwrite=true` and exits. It is idempotent, so it
+re-runs harmlessly on every `make up`. Check it with
+`docker logs opensearch-dashboards-import`.
+
+For a clean OpenSearch, a manual re-import, or k8s (no importer service), run:
 
 ```bash
 curl -s -X POST 'http://localhost:5601/api/saved_objects/_import?overwrite=true' \
