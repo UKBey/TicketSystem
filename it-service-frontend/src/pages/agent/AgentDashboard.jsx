@@ -37,9 +37,10 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
     try {
       if (silent) setRefreshing(true); else setLoading(true);
       setError('');
+      // null (All time) → 0: backend pencereyi ilk veri tarihinden başlatır.
       const res = viewUserId
-        ? await metricService.getUserAgentDashboard(viewUserId, dateRange ?? 365)
-        : await metricService.getMyAgentDashboard(dateRange ?? 365);
+        ? await metricService.getUserAgentDashboard(viewUserId, dateRange ?? 0)
+        : await metricService.getMyAgentDashboard(dateRange ?? 0);
       setData(res);
     } catch (err) {
       console.error('Agent dashboard could not be loaded:', err);

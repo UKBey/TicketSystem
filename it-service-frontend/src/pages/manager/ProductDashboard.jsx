@@ -47,7 +47,8 @@ export default function ProductDashboard() {
     try {
       if (silent) setRefreshing(true); else setLoading(true);
       setError('');
-      const res = await metricService.getProductDashboard(productId, dateRange ?? 365);
+      // null (All time) → 0: backend pencereyi ilk veri tarihinden başlatır.
+      const res = await metricService.getProductDashboard(productId, dateRange ?? 0);
       setData(res);
     } catch (err) {
       console.error('Product dashboard could not be loaded:', err);

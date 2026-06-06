@@ -101,8 +101,9 @@ export default function Dashboard() {
       }
 
       setError('');
-      const timelineDays = dateRange ?? 365;
-      const worklogDays = dateRange ?? 365;
+      // null (All time) → 0: backend pencereyi ilk veri tarihinden başlatır.
+      const timelineDays = dateRange ?? 0;
+      const worklogDays = dateRange ?? 0;
       const [summaryRes, statusRes, agentRes, timelineRes, prioritySlaRes, productRes, csatRes, worklogRes] =
         await Promise.allSettled([
           metricService.getDashboardSummary(),

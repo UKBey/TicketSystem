@@ -48,6 +48,7 @@ import static com.ticketsystem.it_service_backend.config.CacheConfig.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.sql.Date;
@@ -55,7 +56,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.data.domain.PageRequest;
@@ -396,13 +400,13 @@ public class MetricsService {
     public TicketTimelineDTO getTicketTimeline(int days, List<Long> productIds, String scopeKey) {
         log.info("Ticket timeline metrikleri hesaplanıyor... (days={}, scope={})", days, scopeKey);
 
-        // Maksimum 365 gün sınırlaması
-        int safeDays = Math.min(Math.max(days, 1), 365);
+        // days<=0 → "All time": pencere ilk bilet tarihine göre genişler, baştaki boş günler kırpılır.
+        int window = resolveWindow(days);
 
         List<Object[]> rawRows = ticketRepository.getTicketTimelineMetricsScoped(
-                safeDays, filterByProduct(productIds), safeProductIds(productIds));
+                window, filterByProduct(productIds), safeProductIds(productIds));
 
-        TicketTimelineDTO result = buildTimeline(rawRows);
+        TicketTimelineDTO result = trimTimeline(buildTimeline(rawRows), isAllTime(days));
 
         log.info("Ticket timeline hesaplandı: {} günlük veri elde edildi", result.getTimeline().size());
 
@@ -741,7 +745,8 @@ public class MetricsService {
      */
     @Cacheable(value = WORKLOG_COMPLETION, key = "#scopeKey + ':' + #days")
     public WorklogCompletionDTO getWorklogCompletion(int days, List<Long> productIds, String scopeKey) {
-        int safeDays = Math.max(1, Math.min(days, 365));
+        // days<=0 → "All time": pencere ilk bilet tarihine kadar genişler (per-agent toplamlar).
+        int safeDays = resolveWindow(days);
         ZonedDateTime since = ZonedDateTime.now().minusDays(safeDays);
 
         boolean filter = filterByProduct(productIds);
@@ -809,10 +814,66 @@ public class MetricsService {
 
     private static final int DEFAULT_DASHBOARD_DAYS = 30;
 
-    /** Clamps a nullable day window into [1, 365]; null → {@value #DEFAULT_DASHBOARD_DAYS}. */
-    private static int safeDays(Integer days) {
+    /** Safety ceiling for the dynamically-sized "All time" window (~5 years). */
+    private static final int MAX_ALL_TIME_DAYS = 1825;
+
+    /** True when the caller asked for the whole history. The UI "All time" option sends {@code days=0}. */
+    private static boolean isAllTime(Integer days) {
+        return days != null && days <= 0;
+    }
+
+    /**
+     * Resolves the day window for the daily time-series charts. A positive value is
+     * clamped to [1, 365]; {@code null} (param omitted) falls back to the default; 0 or
+     * negative ("All time") expands to the span between the earliest ticket and today,
+     * bounded by {@link #MAX_ALL_TIME_DAYS}. The generate_series queries then scaffold
+     * exactly that many days, and {@link #trimTimeline}/{@link #trimDaily} drop the
+     * leading empty run so each chart starts at its own first data point.
+     */
+    private int resolveWindow(Integer days) {
         if (days == null) return DEFAULT_DASHBOARD_DAYS;
-        return Math.min(Math.max(days, 1), 365);
+        if (days > 0) return Math.min(days, 365);
+        LocalDate earliest = ticketRepository.findEarliestTicketDate();
+        if (earliest == null) return DEFAULT_DASHBOARD_DAYS;
+        long span = ChronoUnit.DAYS.between(earliest, LocalDate.now(ZoneOffset.UTC)) + 1;
+        return (int) Math.min(Math.max(span, 1), MAX_ALL_TIME_DAYS);
+    }
+
+    /**
+     * For "All time" charts, drops the leading run of empty days so the leftmost point
+     * is the first day with real activity (created/resolved/closed/SLA-breach). No-op for
+     * fixed windows, where the full N-day axis is intentionally shown even when empty.
+     */
+    private TicketTimelineDTO trimTimeline(TicketTimelineDTO dto, boolean allTime) {
+        if (!allTime) return dto;
+        List<DailyMetricsDTO> trimmed = trimDaily(dto.getTimeline(), true, DailyMetricsDTO::getDate,
+                r -> positive(r.getCreated()) || positive(r.getResolved())
+                        || positive(r.getClosed()) || positive(r.getSlaBreach()));
+        return TicketTimelineDTO.builder().timeline(trimmed).build();
+    }
+
+    /**
+     * Generic leading-empty trimmer for a date-ordered daily series: keeps only rows on
+     * or after the earliest row that {@code hasData}. Order-independent. No-op unless
+     * {@code allTime}.
+     */
+    private <T> List<T> trimDaily(List<T> rows, boolean allTime,
+                                  Function<T, LocalDate> dateFn, Predicate<T> hasData) {
+        if (!allTime || rows.isEmpty()) return rows;
+        LocalDate first = rows.stream()
+                .filter(hasData)
+                .map(dateFn)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+        if (first == null) return rows;
+        return rows.stream()
+                .filter(r -> dateFn.apply(r) != null && !dateFn.apply(r).isBefore(first))
+                .toList();
+    }
+
+    private static boolean positive(Long value) {
+        return value != null && value > 0;
     }
 
     /**
@@ -823,7 +884,7 @@ public class MetricsService {
     @Cacheable(value = ME_CUSTOMER_DASHBOARD, key = "#customerId + ':' + (#days == null ? 'all' : #days)")
     public CustomerDashboardDTO getMyCustomerDashboard(String customerId, Integer days) {
         log.info("Müşteri kişisel dashboard hesaplanıyor (customer={}, days={})", customerId, days);
-        int window = safeDays(days);
+        int window = resolveWindow(days);
 
         StatusDistributionDTO dist = buildStatusDistribution(
                 ticketRepository.countTicketsGroupedByStatusForCustomer(customerId));
@@ -842,8 +903,8 @@ public class MetricsService {
             csatCount = row[1] != null ? ((Number) row[1]).longValue() : 0L;
         }
 
-        TicketTimelineDTO timeline = buildTimeline(
-                ticketRepository.getCustomerTicketTimelineMetrics(window, customerId));
+        TicketTimelineDTO timeline = trimTimeline(buildTimeline(
+                ticketRepository.getCustomerTicketTimelineMetrics(window, customerId)), isAllTime(days));
 
         List<RecentTicketDTO> recent = ticketRepository
                 .findRecentByCustomerId(customerId, PageRequest.of(0, 5)).stream()
@@ -902,7 +963,8 @@ public class MetricsService {
      * effort logged on out-of-scope products.
      */
     private AgentDashboardDTO computeAgentDashboard(String agentId, Integer days, List<Long> productIds) {
-        int window = safeDays(days);
+        int window = resolveWindow(days);
+        boolean allTime = isAllTime(days);
         ZonedDateTime now = ZonedDateTime.now();
         boolean filter = filterByProduct(productIds);
         List<Long> pids = safeProductIds(productIds);
@@ -927,19 +989,20 @@ public class MetricsService {
         StatusDistributionDTO dist = buildStatusDistribution(
                 ticketRepository.countClaimedTicketsGroupedByStatusScoped(agentId, filter, pids));
 
-        TicketTimelineDTO timeline = buildTimeline(
-                ticketRepository.getAgentTicketTimelineMetricsScoped(window, agentId, filter, pids));
+        TicketTimelineDTO timeline = trimTimeline(buildTimeline(
+                ticketRepository.getAgentTicketTimelineMetricsScoped(window, agentId, filter, pids)), allTime);
 
-        // Günlük worklog dağılımı (gap-fill SQL tarafında, her gün mevcut).
-        List<WorklogDailyDTO> worklogTimeline = worklogRepository
-                .findAgentWorklogByDayScoped(agentId, window, filter, pids).stream()
-                .map(r -> WorklogDailyDTO.builder()
-                        .date(convertToLocalDate(r[0]))
-                        .minutes(asLong(r, 1))
-                        .build())
-                .toList();
+        // Günlük worklog dağılımı (gap-fill SQL tarafında, her gün mevcut). All time'da baştaki boş günler kırpılır.
+        List<WorklogDailyDTO> worklogTimeline = trimDaily(
+                worklogRepository.findAgentWorklogByDayScoped(agentId, window, filter, pids).stream()
+                        .map(r -> WorklogDailyDTO.builder()
+                                .date(convertToLocalDate(r[0]))
+                                .minutes(asLong(r, 1))
+                                .build())
+                        .toList(),
+                allTime, WorklogDailyDTO::getDate, w -> w.getMinutes() > 0);
 
-        AgentCsatDTO csat = buildAgentCsat(agentId, window, since, csatAvg, csatCount, filter, pids);
+        AgentCsatDTO csat = buildAgentCsat(agentId, window, since, csatAvg, csatCount, filter, pids, allTime);
 
         List<RecentTicketDTO> recent = ticketRepository
                 .findRecentClaimedByAgentScoped(agentId, filter, pids, PageRequest.of(0, 5)).stream()
@@ -971,20 +1034,24 @@ public class MetricsService {
      * by the self-metrics query.
      */
     private AgentCsatDTO buildAgentCsat(String agentId, int window, ZonedDateTime since,
-                                        double csatAvg, long csatCount, boolean filter, List<Long> pids) {
+                                        double csatAvg, long csatCount, boolean filter, List<Long> pids,
+                                        boolean allTime) {
         Map<Integer, Long> distribution = new HashMap<>();
         for (int r = 1; r <= 5; r++) distribution.put(r, 0L);
         for (Object[] row : csatRepository.findAgentRatingDistributionSince(agentId, since, filter, pids)) {
             distribution.put(((Number) row[0]).intValue(), ((Number) row[1]).longValue());
         }
 
-        List<CsatDailyDTO> trend = csatRepository.findAgentCsatByDayScoped(agentId, window, filter, pids).stream()
-                .map(r -> CsatDailyDTO.builder()
-                        .date(convertToLocalDate(r[0]))
-                        .avg(r[1] != null ? ((Number) r[1]).doubleValue() : null)
-                        .count(asLong(r, 2))
-                        .build())
-                .toList();
+        // All time'da yanıt gelmeyen baştaki günler kırpılır → trend ilk değerlendirmeden başlar.
+        List<CsatDailyDTO> trend = trimDaily(
+                csatRepository.findAgentCsatByDayScoped(agentId, window, filter, pids).stream()
+                        .map(r -> CsatDailyDTO.builder()
+                                .date(convertToLocalDate(r[0]))
+                                .avg(r[1] != null ? ((Number) r[1]).doubleValue() : null)
+                                .count(asLong(r, 2))
+                                .build())
+                        .toList(),
+                allTime, CsatDailyDTO::getDate, c -> positive(c.getCount()));
 
         return AgentCsatDTO.builder()
                 .average(csatAvg)
@@ -1008,7 +1075,7 @@ public class MetricsService {
             key = "#productId + ':' + #scopeKey + ':' + (#days == null ? 'all' : #days)")
     public ProductDashboardDTO getProductDashboard(Long productId, Integer days, String scopeKey) {
         log.info("Ürün dashboard hesaplanıyor (product={}, scope={}, days={})", productId, scopeKey, days);
-        int window = safeDays(days);
+        int window = resolveWindow(days);
         List<Long> pids = List.of(productId);
         final boolean filter = true;
 
@@ -1031,8 +1098,8 @@ public class MetricsService {
 
         PriorityMetricsDTO priority = getPriorityDistributionFromDb(filter, pids);
 
-        TicketTimelineDTO timeline = buildTimeline(
-                ticketRepository.getTicketTimelineMetricsScoped(window, filter, pids));
+        TicketTimelineDTO timeline = trimTimeline(buildTimeline(
+                ticketRepository.getTicketTimelineMetricsScoped(window, filter, pids)), isAllTime(days));
 
         // Bu ürün kapsamındaki ajan performansı (kendi içinde scope'lu).
         AgentPerformanceDTO topAgents = getAgentPerformance(pids, "product:" + productId);

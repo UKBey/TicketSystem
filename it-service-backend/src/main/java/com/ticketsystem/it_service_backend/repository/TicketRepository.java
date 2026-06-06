@@ -1375,6 +1375,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                         @Param("productIds") List<Long> productIds);
 
     /**
+     * Earliest ticket activity date (UTC) across all tickets — used to size the
+     * dynamic "all time" timeline window so charts start at the first real data point
+     * instead of a fixed look-back. Returns {@code null} when there are no tickets.
+     */
+    @Query(value = "SELECT MIN(DATE(created_at AT TIME ZONE 'UTC')) FROM tickets", nativeQuery = true)
+    java.time.LocalDate findEarliestTicketDate();
+
+    /**
      * Daily ticket timeline for the last N days — returns per-day counts of tickets
      * created, resolved, closed and SLA-breached. PostgreSQL's {@code generate_series}
      * ensures even days without tickets appear as rows with 0 (so the UI charts have
