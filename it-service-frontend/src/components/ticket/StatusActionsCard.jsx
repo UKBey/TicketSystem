@@ -10,9 +10,12 @@ export default function StatusActionsCard({
   const { t } = useTranslation();
   const currentUserId = user?.sub || user?.id;
   const hasClaimed = ticket?.claimers?.some((c) => c.agentId === currentUserId);
-  // Pure admin (silme yetkili ama operasyonel ajan olmayan) bilete önce claim
-  // almadan statü değiştiremez; lead_agent ise normal ajan gibi doğrudan çalışır.
-  const canDoStatusActions = !canDelete || hasClaimed;
+  // Statü aksiyonları (Resume/Waiting/Resolve) için claim şarttır: claim almamış sade
+  // ajan bu aksiyonları görmez (önce Üstlen/Katıl). Tek istisna lead_agent — ürünleri
+  // içinde claim almadan mutasyon yapabilir (canAssign && !canDelete = lead, admin değil).
+  // Pure admin de claim almalıdır.
+  const canActWithoutClaim = canAssign && !canDelete;
+  const canDoStatusActions = hasClaimed || canActWithoutClaim;
   const noClaimer = !ticket?.claimers || ticket.claimers.length === 0;
 
   // Unclaim, aktif claim'i olan ve kapalı olmayan her bilette mümkün. RESOLVED'de bilet
