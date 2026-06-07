@@ -17,6 +17,10 @@ import java.util.stream.Collectors;
  */
 public class JwtUtils {
 
+    private JwtUtils() {
+        // Utility class — not meant to be instantiated.
+    }
+
     /**
      * Extracts the role list from the token's {@code realm_access.roles}
      * claim.

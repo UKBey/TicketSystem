@@ -100,6 +100,6 @@ public class SlaPolicyService {
     }
 
     private long defaultMs(String priority) {
-        return (long) defaults(priority)[0] * 3_600_000L;
+        return defaults(priority)[0] * 3_600_000L;
     }
 }

@@ -2,7 +2,6 @@ package com.ticketsystem.it_service_backend.interceptor;
 
 import com.ticketsystem.it_service_backend.config.RateLimitConfig;
 import com.ticketsystem.it_service_backend.service.RateLimitConfigService;
-import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.distributed.BucketProxy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
@@ -35,7 +34,6 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
