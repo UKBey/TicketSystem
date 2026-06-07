@@ -51,6 +51,7 @@ class AuthControllerTest {
         controller = new AuthController(passwordResetService, bucketProxyManager);
         ReflectionTestUtils.setField(controller, "forgotMaxRequests", 5);
         ReflectionTestUtils.setField(controller, "forgotWindowSeconds", 3600);
+        ReflectionTestUtils.setField(controller, "forgotRateLimitEnabled", true);
     }
 
     @SuppressWarnings("unchecked")
@@ -98,6 +99,21 @@ class AuthControllerTest {
         assertThat(res.getBody()).containsEntry("error", "RATE_LIMIT_EXCEEDED");
         assertThat(res.getHeaders().getFirst("Retry-After")).isEqualTo("3600");
         verify(passwordResetService, never()).requestPasswordReset(anyString(), any(), any());
+    }
+
+    @Test
+    void forgotPassword_rateLimitDisabled_skipsBucketAndReturnsOk() {
+        ReflectionTestUtils.setField(controller, "forgotRateLimitEnabled", false);
+        ForgotPasswordRequest body = new ForgotPasswordRequest();
+        body.setEmail("a@b.com");
+
+        ResponseEntity<Map<String, String>> res =
+                controller.forgotPassword(body, requestWithIp(null, "10.0.0.9"));
+
+        assertThat(res.getStatusCode().value()).isEqualTo(200);
+        assertThat(res.getBody()).containsEntry("status", "ok");
+        verify(bucketProxyManager, never()).builder();
+        verify(passwordResetService).requestPasswordReset("a@b.com", null, null);
     }
 
     @Test
