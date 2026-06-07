@@ -465,11 +465,14 @@ public class WorkflowService {
         if (ticket.getSlaDeadline() != null) {
             deadline = ticket.getSlaDeadline().toInstant().toEpochMilli();
         } else {
-            long resumedMs = ticket.getSlaResumedAt() != null
-                    ? ticket.getSlaResumedAt().toInstant().toEpochMilli()
-                    : (ticket.getCreatedAt() != null
-                            ? ticket.getCreatedAt().toInstant().toEpochMilli()
-                            : System.currentTimeMillis());
+            long resumedMs;
+            if (ticket.getSlaResumedAt() != null) {
+                resumedMs = ticket.getSlaResumedAt().toInstant().toEpochMilli();
+            } else if (ticket.getCreatedAt() != null) {
+                resumedMs = ticket.getCreatedAt().toInstant().toEpochMilli();
+            } else {
+                resumedMs = System.currentTimeMillis();
+            }
             long remaining = durationMs - elapsedMs;
             deadline = resumedMs + remaining;
         }

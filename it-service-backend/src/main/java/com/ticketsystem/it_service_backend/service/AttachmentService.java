@@ -44,7 +44,7 @@ public class AttachmentService {
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "png", "jpg", "jpeg", "txt", "log");
         private static final Pattern SENSITIVE_KEYWORD_PATTERN = Pattern.compile(
             "(?i)\\b(password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\\b");
-        private static final Pattern BEARER_TOKEN_PATTERN = Pattern.compile("(?i)bearer\\s+[A-Za-z0-9._\\-+/=]{10,}");
+        private static final Pattern BEARER_TOKEN_PATTERN = Pattern.compile("(?i)bearer\\s+[A-Z0-9._\\-+/=]{10,}");
         private static final Pattern PRIVATE_KEY_BLOCK_PATTERN = Pattern.compile(
             "(?s)-----BEGIN [A-Z ]+ PRIVATE KEY-----.*?-----END [A-Z ]+ PRIVATE KEY-----");
 
