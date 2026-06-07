@@ -516,40 +516,7 @@ public class TicketService {
         if (productIds.isEmpty()) return Page.empty(pageable);
 
         List<String> statuses = teamStatusesOrActive(f);
-        if (isSortByPriority(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(productIds, statuses, f.getPriorities(), u)
-                : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, statuses, f.getPriorities(), u);
-        }
-        if (isSortBySla(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
-                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
-        }
-        if (isSortByCsat(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findTeamTicketsFullFilteredOrderByCsatAsc(
-                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
-                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u)
-                : ticketRepository.findTeamTicketsFullFilteredOrderByCsatDesc(
-                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
-                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), u);
-        }
-        if (hasExtraFilters(f)) {
-            return ticketRepository.findTeamTicketsFullFiltered(
-                    productIds, statuses, prioritiesOrAll(f), productIdsOrAll(f), toSearchPattern(f.getSearch()),
-                    slaStatusesOrAll(f), hasAgentFilter(f), agentIdsOrPlaceholder(f), hasTopicFilter(f), topicIdsOrPlaceholder(f), f.getCreatedAtFrom(), f.getCreatedAtTo(),
-                    csatFilterActive(f), csatRatingsOrPlaceholder(f), csatIncludeNone(f), toNativePageable(pageable));
-        }
-        return ticketRepository.findTeamTicketsFiltered(productIds, statuses, f.getPriorities(), pageable);
+        return routeTeamTicketQuery(productIds, statuses, f, pageable);
     }
 
     /**
@@ -573,6 +540,16 @@ public class TicketService {
         if (productIds.isEmpty()) return Page.empty(pageable);
 
         List<String> statuses = (f.getStatuses() != null && !f.getStatuses().isEmpty()) ? f.getStatuses() : ALL_STATUSES;
+        return routeTeamTicketQuery(productIds, statuses, f, pageable);
+    }
+
+    /**
+     * Shared sort/filter routing for team-scoped ticket queries
+     * ({@link #getTeamTicketsFiltered} and {@link #getAllAccessibleTicketsFiltered}),
+     * which differ only in how the {@code statuses} list is resolved.
+     */
+    private Page<Ticket> routeTeamTicketQuery(List<Long> productIds, List<String> statuses,
+                                              TicketFilterDTO f, Pageable pageable) {
         if (isSortByPriority(pageable)) {
             boolean asc = isAscending(pageable);
             Pageable u = toUnsorted(pageable);
