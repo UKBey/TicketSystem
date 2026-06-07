@@ -124,8 +124,8 @@ public class MetricsService {
         return userRepository.findById(userId)
                 .map(user -> user.getAuthorizedProducts().stream()
                         .map(p -> p.getId())
-                        .filter(id -> id != null)
-                        .collect(Collectors.toList()))
+                        .filter(Objects::nonNull)
+                        .toList())
                 .orElseGet(() -> {
                     log.warn("Scoped metrics: kullanıcı bulunamadı, boş ürün listesi dönülüyor: {}", userId);
                     return List.of();
@@ -377,7 +377,10 @@ public class MetricsService {
     private PriorityMetricsDTO getPriorityDistributionFromDb(boolean filter, List<Long> productIds) {
         List<Object[]> rows = ticketRepository.countByStatusInGroupByPriorityScoped(OPEN_STATUSES, filter, productIds);
 
-        long critical = 0, high = 0, medium = 0, low = 0;
+        long critical = 0;
+        long high = 0;
+        long medium = 0;
+        long low = 0;
         for (Object[] row : rows) {
             String priority = String.valueOf(row[0]);
             long count = ((Number) row[1]).longValue();
@@ -561,7 +564,7 @@ public class MetricsService {
      */
     @Cacheable(value = CSAT_METRICS, key = "#scopeKey + ':' + #months")
     public CSATMetricsDTO getCSATMetrics(int months, List<Long> productIds, String scopeKey) {
-        int safeMonths = Math.max(1, Math.min(months, 12));
+        int safeMonths = Math.clamp(months, 1, 12);
         ZonedDateTime since = ZonedDateTime.now().minusMonths(safeMonths);
         ZonedDateTime thisMonthStart = ZonedDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
         ZonedDateTime lastMonthStart = thisMonthStart.minusMonths(1);
@@ -586,7 +589,14 @@ public class MetricsService {
         Double lastMonthAvg = csatRepository.findAverageRatingSinceScoped(lastMonthStart, filter, pids);
         double thisMonth = thisMonthAvg != null ? thisMonthAvg : 0.0;
         double lastMonth = lastMonthAvg != null ? lastMonthAvg : 0.0;
-        String trendDir = thisMonth > lastMonth + 0.05 ? "UP" : thisMonth < lastMonth - 0.05 ? "DOWN" : "STABLE";
+        String trendDir;
+        if (thisMonth > lastMonth + 0.05) {
+            trendDir = "UP";
+        } else if (thisMonth < lastMonth - 0.05) {
+            trendDir = "DOWN";
+        } else {
+            trendDir = "STABLE";
+        }
 
         List<Object[]> rawPriority = csatRepository.findAverageRatingByPrioritySinceScoped(since, filter, pids);
         Map<String, CSATPriorityItemDTO> byPriority = new HashMap<>();
@@ -665,7 +675,7 @@ public class MetricsService {
         Set<String> customerIds = Stream.of(breachedTickets, upcomingTickets, waitingTickets, resolvedTickets)
                 .flatMap(List::stream)
                 .map(Ticket::getCustomerId)
-                .filter(id -> id != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<String, String> customerNames = userRepository.findAllById(customerIds).stream()
                 .collect(Collectors.toMap(
@@ -706,8 +716,14 @@ public class MetricsService {
         // resolvedAt) itibaren ölçülür — oluşturulma anından değil. En uzun bekleyen önce.
         List<AlertTicketItemDTO> waitingTooLong = Stream.concat(waitingTickets.stream(), resolvedTickets.stream())
                 .map(t -> {
-                    ZonedDateTime enteredAt = t.getSlaPausedAt() != null ? t.getSlaPausedAt()
-                            : (t.getResolvedAt() != null ? t.getResolvedAt() : t.getCreatedAt());
+                    ZonedDateTime enteredAt;
+                    if (t.getSlaPausedAt() != null) {
+                        enteredAt = t.getSlaPausedAt();
+                    } else if (t.getResolvedAt() != null) {
+                        enteredAt = t.getResolvedAt();
+                    } else {
+                        enteredAt = t.getCreatedAt();
+                    }
                     return AlertTicketItemDTO.builder()
                             .ticketId(t.getId())
                             .title(t.getTitle())
@@ -845,7 +861,7 @@ public class MetricsService {
         LocalDate earliest = ticketRepository.findEarliestTicketDate();
         if (earliest == null) return DEFAULT_DASHBOARD_DAYS;
         long span = ChronoUnit.DAYS.between(earliest, LocalDate.now(ZoneOffset.UTC)) + 1;
-        return (int) Math.min(Math.max(span, 1), MAX_ALL_TIME_DAYS);
+        return Math.clamp(span, 1, MAX_ALL_TIME_DAYS);
     }
 
     /**
