@@ -24,19 +24,21 @@ class CannedResponseFavoriteTest {
         CannedResponseFavorite.FavoriteId a = new CannedResponseFavorite.FavoriteId("u-1", 7L);
         CannedResponseFavorite.FavoriteId b = new CannedResponseFavorite.FavoriteId("u-1", 7L);
 
-        assertThat(a).isEqualTo(b);
-        assertThat(a).hasSameHashCodeAs(b);
-        assertThat(a).isEqualTo(a); // identity branch
+        assertThat(a)
+                .isEqualTo(b)
+                .hasSameHashCodeAs(b)
+                .isEqualTo(a); // identity branch
     }
 
     @Test
     void favoriteId_notEqual_whenComponentsDiffer() {
         CannedResponseFavorite.FavoriteId a = new CannedResponseFavorite.FavoriteId("u-1", 7L);
 
-        assertThat(a).isNotEqualTo(new CannedResponseFavorite.FavoriteId("u-2", 7L));
-        assertThat(a).isNotEqualTo(new CannedResponseFavorite.FavoriteId("u-1", 9L));
-        assertThat(a).isNotEqualTo("not-an-id"); // wrong type branch
-        assertThat(a).isNotEqualTo(null);
+        assertThat(a)
+                .isNotEqualTo(new CannedResponseFavorite.FavoriteId("u-2", 7L))
+                .isNotEqualTo(new CannedResponseFavorite.FavoriteId("u-1", 9L))
+                .isNotEqualTo("not-an-id") // wrong type branch
+                .isNotEqualTo(null);
     }
 
     @Test

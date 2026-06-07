@@ -109,7 +109,7 @@ class SlaPolicyServiceTest {
         @Test
         @DisplayName("Config'den CRITICAL → 0 (uyarı kapalı)")
         void critical_returns0() {
-            assertThat(service.getWarningThresholdHours("CRITICAL")).isEqualTo(0);
+            assertThat(service.getWarningThresholdHours("CRITICAL")).isZero();
         }
 
         @Test

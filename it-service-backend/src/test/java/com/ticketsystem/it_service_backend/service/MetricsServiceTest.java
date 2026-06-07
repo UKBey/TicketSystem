@@ -327,7 +327,7 @@ class MetricsServiceTest {
             assertThat(dto.getTimeline().get(0).getCreated()).isEqualTo(5L);
             assertThat(dto.getTimeline().get(0).getResolved()).isEqualTo(3L);
             assertThat(dto.getTimeline().get(0).getClosed()).isEqualTo(1L);
-            assertThat(dto.getTimeline().get(0).getSlaBreach()).isEqualTo(0L);
+            assertThat(dto.getTimeline().get(0).getSlaBreach()).isZero();
         }
 
         @Test

@@ -137,7 +137,7 @@ class MetricsControllerTest {
     void dashboardSummary_leadScope_usesResolvedProductIds() {
         when(metricsService.resolveScopedProductIds("lead-1")).thenReturn(List.of(10L, 20L));
         DashboardMetricsDTO dto = mock(DashboardMetricsDTO.class);
-        when(metricsService.getDashboardSummary(eq(List.of(10L, 20L)), eq("lead-1"))).thenReturn(dto);
+        when(metricsService.getDashboardSummary(List.of(10L, 20L), "lead-1")).thenReturn(dto);
 
         ResponseEntity<DashboardMetricsDTO> res = controller.getDashboardSummary(jwt("lead-1", "lead_agent"));
 

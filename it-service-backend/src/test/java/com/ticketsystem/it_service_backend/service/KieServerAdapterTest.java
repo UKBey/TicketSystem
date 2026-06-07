@@ -61,14 +61,14 @@ class KieServerAdapterTest {
         Long processInstanceId = adapter.startProcess("workflow", Map.of("k", "v"));
 
         assertEquals(88L, processInstanceId);
-        verify(processClient).startProcess(eq("ticket-container"), eq("workflow"), eq(Map.of("k", "v")));
+        verify(processClient).startProcess("ticket-container", "workflow", Map.of("k", "v"));
     }
 
     @Test
     void setProcessVariableDelegatesToProcessClient() {
         adapter.setProcessVariable(55L, "status", "IN_PROGRESS");
 
-        verify(processClient).setProcessVariables(eq("ticket-container"), eq(55L), eq(Map.of("status", "IN_PROGRESS")));
+        verify(processClient).setProcessVariables("ticket-container", 55L, Map.of("status", "IN_PROGRESS"));
     }
 
     @Test

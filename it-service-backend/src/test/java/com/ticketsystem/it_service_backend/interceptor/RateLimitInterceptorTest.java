@@ -150,7 +150,7 @@ class RateLimitInterceptorTest {
 
             assertThat(result).isFalse();
             verify(response).setStatus(429);
-            verify(response).setHeader(eq("Retry-After"), eq("30"));
+            verify(response).setHeader("Retry-After", "30");
             assertThat(sw.toString()).contains("RATE_LIMIT_EXCEEDED");
         }
 
