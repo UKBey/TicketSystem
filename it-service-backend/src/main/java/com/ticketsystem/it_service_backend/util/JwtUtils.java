@@ -4,7 +4,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Helper that extracts and normalizes role/user fields from a Keycloak JWT.
@@ -46,6 +45,6 @@ public class JwtUtils {
         return rawRoles.stream()
                 .map(String::toUpperCase)
                 .map(role -> role.startsWith("ROLE_") ? role.replace("ROLE_", "") : role)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

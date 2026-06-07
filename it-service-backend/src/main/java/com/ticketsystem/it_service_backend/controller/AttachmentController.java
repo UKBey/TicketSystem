@@ -15,7 +15,6 @@ import com.ticketsystem.it_service_backend.dto.AttachmentDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -123,7 +122,7 @@ public class AttachmentController {
 
         return ResponseEntity.ok(attachments.stream()
                 .map(AttachmentDTO::fromEntity)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     /**

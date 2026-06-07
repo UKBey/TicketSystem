@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Central service for the ticket lifecycle.
@@ -192,7 +191,7 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
 
         List<Long> productIds = user.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+                .map(Product::getId).toList();
 
         return ticketRepository.findByCustomerIdOrProductIdIn(userId, productIds);
     }
@@ -226,7 +225,7 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
 
         List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+                .map(Product::getId).toList();
 
         if (productIds.isEmpty()) return new ArrayList<>();
 
@@ -267,7 +266,7 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
 
         List<Long> productIds = agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+                .map(Product::getId).toList();
 
         if (productIds.isEmpty()) return new ArrayList<>();
 
@@ -704,12 +703,12 @@ public class TicketService {
     private List<Long> resolveScopedProductIds(String userId, List<String> roles) {
         if (AuthRoles.isGlobal(roles)) {
             return productRepository.findAll().stream()
-                    .map(Product::getId).collect(Collectors.toList());
+                    .map(Product::getId).toList();
         }
         User agent = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
         return agent.getAuthorizedProducts().stream()
-                .map(Product::getId).collect(Collectors.toList());
+                .map(Product::getId).toList();
     }
 
     /** Whether any "extra" filter (search, dateFrom, dateTo, slaStatus, agentIds, topicIds, productId) is active. */
@@ -799,7 +798,7 @@ public class TicketService {
         List<Long> p = f.getProductIds();
         if (p != null && !p.isEmpty()) return p;
         // Filtre yok — tüm ürün ID'lerini getir
-        return productRepository.findAll().stream().map(product -> product.getId()).collect(Collectors.toList());
+        return productRepository.findAll().stream().map(product -> product.getId()).toList();
     }
 
     /**
@@ -845,7 +844,7 @@ public class TicketService {
         List<Integer> nums = raw.stream()
                 .filter(s -> s != null && !s.isBlank() && s.chars().allMatch(Character::isDigit))
                 .map(Integer::valueOf)
-                .collect(Collectors.toList());
+                .toList();
         return nums.isEmpty() ? List.of(-1) : nums;
     }
 
@@ -892,7 +891,7 @@ public class TicketService {
                     };
                     return order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
                 })
-                .collect(Collectors.toList());
+                .toList();
         return org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), pageable.getPageSize(), Sort.by(nativeOrders));
     }

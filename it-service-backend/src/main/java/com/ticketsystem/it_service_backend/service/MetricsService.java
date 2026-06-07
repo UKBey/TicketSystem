@@ -283,7 +283,7 @@ public class MetricsService {
         List<User> agents = Stream.concat(
                 userRepository.findByRole("AGENT").stream(),
                 userRepository.findByRole("LEAD_AGENT").stream()
-        ).collect(Collectors.toList());
+        ).toList();
 
         List<User> activeAgents = agents.stream()
                 .filter(agent -> Boolean.TRUE.equals(agent.getIsActive()))
@@ -294,7 +294,7 @@ public class MetricsService {
                 .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .toList();
 
-        List<String> agentIds = activeAgents.stream().map(User::getId).collect(Collectors.toList());
+        List<String> agentIds = activeAgents.stream().map(User::getId).toList();
         ZonedDateTime last24Hours = ZonedDateTime.now().minusHours(24);
         ZonedDateTime last7Days = ZonedDateTime.now().minusDays(7);
 

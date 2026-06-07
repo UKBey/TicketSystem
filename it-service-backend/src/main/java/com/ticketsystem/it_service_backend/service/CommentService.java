@@ -20,7 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 
@@ -170,7 +169,7 @@ public class CommentService {
             log.debug("Müşteri filtresi uygulanıyor: Dahili yorumlar gizleniyor.");
             return allComments.stream()
                     .filter(c -> "EXTERNAL".equals(c.getType()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         return allComments;

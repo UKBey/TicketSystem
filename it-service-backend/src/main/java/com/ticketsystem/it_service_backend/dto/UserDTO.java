@@ -10,7 +10,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -101,7 +100,7 @@ public class UserDTO {
                 .preferredLanguage(user.getPreferredLanguage())
                 .preferredTheme(user.getPreferredTheme())
                 .authorizedProducts(user.getAuthorizedProducts() != null ? 
-                    user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).collect(Collectors.toList()) : null)
+                    user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).toList() : null)
                 .build();
     }
 }

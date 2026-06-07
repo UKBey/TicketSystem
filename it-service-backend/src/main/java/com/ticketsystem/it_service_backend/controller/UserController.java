@@ -159,7 +159,7 @@ public class UserController {
 
         return ResponseEntity.ok(agents.stream()
                 .map(UserDTO::fromEntity)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     /**
@@ -249,7 +249,7 @@ public class UserController {
         log.debug("Toplam {} kullanıcı döndü (sayfa {}/{})", userPage.getNumberOfElements(), page, userPage.getTotalPages());
 
         return ResponseEntity.ok(Map.of(
-                "content",       userPage.getContent().stream().map(UserDTO::fromEntity).collect(Collectors.toList()),
+                "content",       userPage.getContent().stream().map(UserDTO::fromEntity).toList(),
                 "totalElements", userPage.getTotalElements(),
                 "totalPages",    userPage.getTotalPages(),
                 "page",          userPage.getNumber(),
@@ -762,7 +762,7 @@ public class UserController {
         List<String> roles = keycloakAdminService.getAssignableRoles()
                 .stream()
                 .map(role -> role.getName())
-                .collect(Collectors.toList());
+                .toList();
 
         log.debug("Toplam {} atanabilir rol döndü.", roles.size());
         return ResponseEntity.ok(roles);

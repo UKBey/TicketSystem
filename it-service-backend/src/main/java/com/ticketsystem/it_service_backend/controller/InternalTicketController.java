@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Ticket data endpoints for service-to-service (internal) communication.
@@ -80,7 +79,7 @@ public class InternalTicketController {
                                 .map(User::getFullName).orElse("Unknown"))
                         .claimedAt(claim.getClaimedAt())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         TicketResponseDTO ticketDTO = TicketResponseDTO.fromEntity(ticket, false, productName, customerName, claimers);
         ticketDTO.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
@@ -90,7 +89,7 @@ public class InternalTicketController {
                                 userRepository.findById(log.getActorId())
                                         .map(User::getFullName)
                                         .orElse(log.getActorId())))
-                        .collect(Collectors.toList())
+                        .toList()
         );
 
         List<CommentDTO> comments = commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId).stream()
@@ -102,11 +101,11 @@ public class InternalTicketController {
                     String authorRole = author != null ? author.getRole() : null;
                     return CommentDTO.fromEntity(c, authorName, authorRole);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         List<WorklogResponseDTO> worklogs = worklogRepository.findByTicketId(ticketId).stream()
                 .map(WorklogResponseDTO::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
 
         // LLM özetinin "bilinen sorun eşleşmesi" yapabilmesi için bilet konusuna
         // ilişkin kayıtları da gönderiyoruz: bilete özel topic kayıtları + ürün
@@ -117,7 +116,7 @@ public class InternalTicketController {
                         .filter(ki -> ki.getTopicId() == null
                                 || ki.getTopicId().equals(ticket.getTopicId()))
                         .map(KnownIssueDTO::fromEntity)
-                        .collect(Collectors.toList())
+                        .toList()
                 : List.of();
 
         Map<String, Object> response = Map.of(

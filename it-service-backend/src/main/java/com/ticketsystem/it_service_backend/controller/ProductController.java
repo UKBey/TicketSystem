@@ -8,7 +8,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import java.util.List;
-import java.util.stream.Collectors;
 import com.ticketsystem.it_service_backend.dto.ProductDTO;
 import com.ticketsystem.it_service_backend.dto.ProductLimitUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
@@ -88,7 +87,7 @@ public class ProductController {
 
         return ResponseEntity.ok(products.stream()
                 .map(ProductDTO::fromEntity)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     /**

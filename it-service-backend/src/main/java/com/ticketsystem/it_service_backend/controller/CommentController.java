@@ -24,7 +24,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * REST controller for adding and listing comments (EXTERNAL/INTERNAL) on tickets.
@@ -144,7 +143,7 @@ public class CommentController {
 
         List<CommentDTO> commentDTOs = comments.stream()
                 .map(this::convertToDto)
-                .collect(Collectors.toList());
+                .toList();
 
         // Donen yorum adedi yanit oncesi loglanir.
         log.debug("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
