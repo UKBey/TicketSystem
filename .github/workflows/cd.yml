@@ -28,14 +28,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      # Log in BEFORE setting up Buildx so booting the builder pulls the
+      # moby/buildkit image authenticated (avoids anonymous Docker Hub
+      # rate-limit / token timeouts seen when buildx boots first).
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       # Backend image — iki tag: latest + commit SHA (rollback için)
       - name: Build & push backend image
