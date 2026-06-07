@@ -99,7 +99,7 @@ public class KeycloakAdminService {
                 // email ve username ayrı ayrı kontrol edilerek doğru alan belirlenir.
                 log.warn("Keycloak 409 Conflict. Username: {}, Email: {}",
                         request.getUsername(), request.getEmail());
-                resolveConflict(usersResource, request);
+                resolveConflict(request);
                 // resolveConflict her zaman exception fırlatır; bu satıra ulaşılmaz.
                 throw new RuntimeException("Conflict could not be resolved");
             }
@@ -455,7 +455,7 @@ public class KeycloakAdminService {
      * Determines which field caused a Keycloak 409 Conflict response and
      * throws the appropriate {@link UserAlreadyExistsException}.
      */
-    private void resolveConflict(UsersResource usersResource, CreateUserRequest request) {
+    private void resolveConflict(CreateUserRequest request) {
         // Email çakışmasını önce kontrol et (daha kritik)
         if (existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("email", request.getEmail());

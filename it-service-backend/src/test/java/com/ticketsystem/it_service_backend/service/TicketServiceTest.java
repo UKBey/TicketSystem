@@ -531,16 +531,6 @@ class TicketServiceTest {
                                 .productId(10L)
                                 .customerId("customer-1")
                                 .build();
-                Ticket resumed = Ticket.builder()
-                                .id(305L)
-                                .title("Ticket")
-                                .description("desc")
-                                .priority("HIGH")
-                                .status("WAITING_FOR_CUSTOMER")
-                                .productId(10L)
-                                .customerId("customer-1")
-                                .build();
-
                 when(ticketRepository.findById(305L)).thenReturn(Optional.of(waiting));
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

@@ -272,8 +272,8 @@ class KnownIssueServiceTest {
 
     @Test
     void update_allNull_noFieldChangesButSaves() {
-        KnownIssue existing = existingIssue();
-        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existing));
+        KnownIssue issue = existingIssue();
+        when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(issue));
         when(knownIssueRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         KnownIssue result = service.update(5L, null, null, null, null);
