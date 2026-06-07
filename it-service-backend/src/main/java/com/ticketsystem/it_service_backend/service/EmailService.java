@@ -608,7 +608,8 @@ public class EmailService {
 
     private String priorityBadge(String priority, Palette p) {
         String key = priority == null ? "" : priority.toUpperCase(Locale.ROOT);
-        String bg; String fg;
+        String bg;
+        String fg;
         switch (key) {
             case "CRITICAL" -> { bg = p.badgeCriticalBg; fg = p.badgeCriticalFg; }
             case "HIGH"     -> { bg = p.badgeHighBg;     fg = p.badgeHighFg; }
@@ -681,14 +682,25 @@ public class EmailService {
         );
 
         final String colorScheme;
-        final String bgBody, bgCard, bgPanel, border;
-        final String headerStart, headerEnd;
-        final String textPrimary, textSecondary, textMuted;
-        final String badgeCriticalBg, badgeCriticalFg;
-        final String badgeHighBg, badgeHighFg;
-        final String badgeMediumBg, badgeMediumFg;
-        final String badgeLowBg, badgeLowFg;
-        final String badgeNeutralBg, badgeNeutralFg;
+        final String bgBody;
+        final String bgCard;
+        final String bgPanel;
+        final String border;
+        final String headerStart;
+        final String headerEnd;
+        final String textPrimary;
+        final String textSecondary;
+        final String textMuted;
+        final String badgeCriticalBg;
+        final String badgeCriticalFg;
+        final String badgeHighBg;
+        final String badgeHighFg;
+        final String badgeMediumBg;
+        final String badgeMediumFg;
+        final String badgeLowBg;
+        final String badgeLowFg;
+        final String badgeNeutralBg;
+        final String badgeNeutralFg;
 
         Palette(String colorScheme,
                 String bgBody, String bgCard, String bgPanel, String border,
