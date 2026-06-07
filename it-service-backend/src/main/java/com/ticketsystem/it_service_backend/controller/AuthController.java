@@ -55,6 +55,9 @@ public class AuthController {
     @Value("${app.password-reset.rate-limit.window-seconds:3600}")
     private int forgotWindowSeconds;
 
+    @Value("${app.password-reset.rate-limit.enabled:true}")
+    private boolean forgotRateLimitEnabled;
+
     /**
      * Queues a password reset email; always returns {@code 200} regardless of the outcome to prevent enumeration.
      *
@@ -66,7 +69,7 @@ public class AuthController {
             summary = "Şifre sıfırlama linki iste",
             description = "Email kayıtlıysa tek kullanımlık reset linki gönderilir. "
                     + "Email enumeration'ı önlemek için, email kayıtlı olmasa bile "
-                    + "her zaman 200 döner. IP başına saatte 5 istek ile sınırlıdır."
+                    + "her zaman 200 döner. IP başına oran sınırlıdır (env ile ayarlanabilir/kapatılabilir)."
     )
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(
@@ -74,7 +77,7 @@ public class AuthController {
             HttpServletRequest request) {
 
         String ip = clientIp(request);
-        if (!consumeForgotPasswordBucket(ip)) {
+        if (forgotRateLimitEnabled && !consumeForgotPasswordBucket(ip)) {
             return tooManyRequests(ip);
         }
 
