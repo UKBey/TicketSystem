@@ -38,7 +38,7 @@ class MetricsControllerIT extends BaseIntegrationTest {
         java.util.List<String> roleList = java.util.List.of(roles);
         java.util.List<org.springframework.security.core.GrantedAuthority> auths = roleList.stream()
                 .map(r -> (org.springframework.security.core.GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + r))
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
         return jwt()
                 .jwt(j -> j.claim("realm_access", java.util.Map.of("roles", roleList)))
                 .authorities(auths);
