@@ -247,6 +247,10 @@ services:
       RATE_LIMIT_GLOBAL_DURATION_SECONDS: ${RATE_LIMIT_GLOBAL_DURATION_SECONDS:-60}
       RATE_LIMIT_GLOBAL_ENABLED: ${RATE_LIMIT_GLOBAL_ENABLED:-true}
 
+      # Sifre sifirlama: token omru (dk) ve mail linkindeki frontend taban URL
+      PASSWORD_RESET_TOKEN_TTL_MINUTES: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:-60}
+      PASSWORD_RESET_FRONTEND_BASE_URL: ${PASSWORD_RESET_FRONTEND_BASE_URL:-http://localhost}
+
       # Sifre sifirlama (forgot-password) rate limit — IP basina, ENABLED ile acilip kapatilabilir
       PASSWORD_RESET_RATE_LIMIT_ENABLED: ${PASSWORD_RESET_RATE_LIMIT_ENABLED:-true}
       PASSWORD_RESET_RATE_LIMIT_MAX: ${PASSWORD_RESET_RATE_LIMIT_MAX:-5}
