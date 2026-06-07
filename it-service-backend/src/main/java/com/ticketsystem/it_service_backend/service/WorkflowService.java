@@ -150,7 +150,7 @@ public class WorkflowService {
         public void pauseSla(Ticket ticket) {
         // Son baslangic noktasindan itibaren gecen sureyi toplama ekler.
         if (ticket.getSlaPausedAt() != null) {
-            log.debug("SLA zaten duraklatýlmý durumda gibi görünüyor. TicketId={}", ticket.getId());
+            log.debug("SLA zaten duraklatılmış durumda gibi görünüyor. TicketId={}", ticket.getId());
             return;
         }
 

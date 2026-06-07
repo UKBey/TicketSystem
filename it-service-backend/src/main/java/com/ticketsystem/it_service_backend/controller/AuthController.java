@@ -114,7 +114,7 @@ public class AuthController {
                     + "güncellenir. Token tek kullanımlıktır; başarılı işlemden sonra geçersizleşir."
     )
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
         try {
             passwordResetService.resetPassword(
                     body.getToken(), body.getNewPassword(),

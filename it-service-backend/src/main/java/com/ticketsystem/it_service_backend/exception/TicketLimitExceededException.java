@@ -10,7 +10,7 @@ package com.ticketsystem.it_service_backend.exception;
  */
 public class TicketLimitExceededException extends RuntimeException {
 
-    private final Object[] messageArgs;
+    private final transient Object[] messageArgs;
 
     /**
      * @param messageKey i18n bundle key (looked up in
