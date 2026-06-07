@@ -377,6 +377,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "OnlyFam".equals(u.getFullName())));
     }
 
     @Test
@@ -390,6 +393,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "preferred".equals(u.getFullName())));
     }
 
     @Test
@@ -403,6 +409,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn("x@y");
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "x@y".equals(u.getFullName())));
     }
 
     @Test
@@ -416,6 +425,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn(null);
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "Unknown".equals(u.getFullName())));
     }
 
     @Test
@@ -428,6 +440,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "AGENT".equals(u.getRole())));
     }
 
     @Test
@@ -440,6 +455,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> "CUSTOMER".equals(u.getRole())));
     }
 
     @Test
@@ -452,6 +470,9 @@ class UserControllerTest {
         lenient().when(jwt.getClaimAsString("email")).thenReturn("e@x");
 
         userController.syncCurrentUser(jwt);
+
+        org.mockito.Mockito.verify(userService).syncUser(
+                org.mockito.ArgumentMatchers.argThat(u -> u.getRole() == null));
     }
 
     @Test

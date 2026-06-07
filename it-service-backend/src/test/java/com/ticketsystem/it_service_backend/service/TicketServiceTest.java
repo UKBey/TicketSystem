@@ -2258,6 +2258,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2267,6 +2268,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2276,6 +2278,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2285,6 +2288,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2294,6 +2298,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2302,6 +2307,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -2311,6 +2317,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     // ------------------------------------------------------------------------
@@ -2633,6 +2640,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getCustomerTicketsPaged("c-1", "  ", "  ", PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFiltered(eq("c-1"), any(), any(), any());
     }
 
     @Test
@@ -2642,6 +2650,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getPoolTicketsPaged("u-1", List.of("AGENT"), "  ", PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findPoolTicketsFiltered(any(), any(), any());
     }
 
     @Test
@@ -2651,6 +2660,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFiltered(any(), any(), eq(List.of("HIGH")), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getTeamTicketsPaged("u-1", List.of("AGENT"), "HIGH", PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findTeamTicketsFiltered(any(), any(), eq(List.of("HIGH")), any());
     }
 
     @Test
@@ -2659,6 +2669,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFiltered(eq(List.of(1L)), eq(List.of("NEW")), eq(List.of("HIGH")), any()))
                 .thenReturn(new PageImpl<>(List.of()));
         ticketService.getAgentClaimedTicketsPaged("a-1", "NEW", "HIGH", PageRequest.of(0, 10));
+        org.mockito.Mockito.verify(ticketRepository).findClaimedTicketsFiltered(eq(List.of(1L)), eq(List.of("NEW")), eq(List.of("HIGH")), any());
     }
 
     @Test

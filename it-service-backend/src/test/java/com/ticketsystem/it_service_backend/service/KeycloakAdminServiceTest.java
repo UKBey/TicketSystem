@@ -366,7 +366,7 @@ class KeycloakAdminServiceTest {
         org.mockito.Mockito.doThrow(new RuntimeException("kc down")).when(usersResource).delete("u-3");
 
         // Should NOT throw — exception is logged and swallowed
-        service.deleteUser("u-3");
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> service.deleteUser("u-3"));
     }
 
     // ---- helpers --------------------------------------------------------------

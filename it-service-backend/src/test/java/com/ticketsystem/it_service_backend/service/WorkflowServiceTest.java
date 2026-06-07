@@ -571,7 +571,7 @@ class WorkflowServiceTest {
         doThrow(new RuntimeException("abort failed"))
                 .when(kieServerAdapter).abortProcess(124L);
 
-        workflowService.closeTicketWorkflow(ticket);
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> workflowService.closeTicketWorkflow(ticket));
     }
 
     // -----------------------------------------------------------------
