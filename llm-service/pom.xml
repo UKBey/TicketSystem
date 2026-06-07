@@ -13,7 +13,7 @@
 
     <groupId>com.ticketsystem</groupId>
     <artifactId>llm-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>llm-service</name>
     <description>LLM servis katmanı — Groq API üzerinden ticket özetleme</description>
 
