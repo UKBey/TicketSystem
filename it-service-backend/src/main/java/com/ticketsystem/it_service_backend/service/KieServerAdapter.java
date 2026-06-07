@@ -71,10 +71,10 @@ public class KieServerAdapter {
             return processInstanceId;
         } catch (CallNotPermittedException e) {
             log.error("KIE Server Circuit Breaker AÇIK! Süreç başlatılamıyor. processId={}", processId);
-            throw new RuntimeException("KIE Server şu anda erişilemez (Circuit Breaker açık)", e);
+            throw new IllegalStateException("KIE Server şu anda erişilemez (Circuit Breaker açık)", e);
         } catch (Exception e) {
             log.error("jBPM süreci başlatılamadı! processId={}, hata={}", processId, e.getMessage(), e);
-            throw new RuntimeException("Workflow süreci başlatılamadı: " + e.getMessage(), e);
+            throw new IllegalStateException("Workflow süreci başlatılamadı: " + e.getMessage(), e);
         }
     }
 
@@ -291,10 +291,10 @@ public class KieServerAdapter {
             log.info("jBPM task başarıyla tamamlandı: taskId={}", taskId);
         } catch (CallNotPermittedException e) {
             log.error("KIE Server Circuit Breaker açık — task tamamlanamıyor: taskId={}", taskId);
-            throw new RuntimeException("KIE Server erişilemez (Circuit Breaker açık)", e);
+            throw new IllegalStateException("KIE Server erişilemez (Circuit Breaker açık)", e);
         } catch (Exception e) {
             log.error("jBPM task tamamlanamadı: taskId={}, hata={}", taskId, e.getMessage(), e);
-            throw new RuntimeException("Task tamamlanamadı: " + e.getMessage(), e);
+            throw new IllegalStateException("Task tamamlanamadı: " + e.getMessage(), e);
         }
     }
 

@@ -101,13 +101,13 @@ public class KeycloakAdminService {
                         request.getUsername(), request.getEmail());
                 resolveConflict(request);
                 // resolveConflict her zaman exception fırlatır; bu satıra ulaşılmaz.
-                throw new RuntimeException("Conflict could not be resolved");
+                throw new IllegalStateException("Conflict could not be resolved");
             }
 
             if (status != 201) {
                 String body = response.readEntity(String.class);
                 log.error("Keycloak kullanıcı oluşturma başarısız. HTTP {}: {}", status, body);
-                throw new RuntimeException(
+                throw new IllegalStateException(
                         "Keycloak user creation failed with status " + status + ": " + body);
             }
 
@@ -439,7 +439,7 @@ public class KeycloakAdminService {
                         return realmResource.roles().get(roleName).toRepresentation();
                     } catch (Exception e) {
                         log.error("Rol bulunamadı veya atanamadı: '{}' — Hata: {}", roleName, e.getMessage());
-                        throw new RuntimeException("Keycloak'ta rol bulunamadı: " + roleName, e);
+                        throw new IllegalStateException("Keycloak'ta rol bulunamadı: " + roleName, e);
                     }
                 })
                 .toList();

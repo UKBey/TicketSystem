@@ -111,7 +111,7 @@ public class UserService {
         } catch (Exception e) {
             log.error("Yerel DB kaydı başarısız! Keycloak compensating action başlatılıyor. ID: {}", keycloakId);
             keycloakAdminService.deleteUser(keycloakId);
-            throw new RuntimeException("error.user.creation.db.failed", e);
+            throw new IllegalStateException("error.user.creation.db.failed", e);
         }
 
         return UserCreationResponseDTO.builder()
