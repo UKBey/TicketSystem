@@ -266,6 +266,15 @@ public class MetricsService {
      */
     @Cacheable(value = AGENT_PERFORMANCE, key = "#scopeKey")
     public AgentPerformanceDTO getAgentPerformance(List<Long> productIds, String scopeKey) {
+        return computeAgentPerformance(productIds, scopeKey);
+    }
+
+    /**
+     * Uncached agent-performance computation. Internal callers (e.g. the
+     * already-cached product dashboard) use this directly to avoid a
+     * proxy-bypassed self-invocation of the cached {@link #getAgentPerformance}.
+     */
+    private AgentPerformanceDTO computeAgentPerformance(List<Long> productIds, String scopeKey) {
         log.info("Agent performans metrikleri hesaplanıyor... (scope={})", scopeKey);
 
         boolean filter = filterByProduct(productIds);
@@ -1102,7 +1111,7 @@ public class MetricsService {
                 ticketRepository.getTicketTimelineMetricsScoped(window, filter, pids)), isAllTime(days));
 
         // Bu ürün kapsamındaki ajan performansı (kendi içinde scope'lu).
-        AgentPerformanceDTO topAgents = getAgentPerformance(pids, "product:" + productId);
+        AgentPerformanceDTO topAgents = computeAgentPerformance(pids, "product:" + productId);
 
         List<RecentTicketDTO> recent = ticketRepository
                 .findRecentByProductId(productId, PageRequest.of(0, 5)).stream()
