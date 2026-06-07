@@ -32,6 +32,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class TicketClaimService {
+    private static final String ST_IN_PROGRESS = "IN_PROGRESS";
+    private static final String SYNC_ERR_FMT = "Workflow sync hatası. TicketId={}, Hata={}";
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
@@ -106,13 +108,13 @@ public class TicketClaimService {
 
         // İlk claim ise bileti IN_PROGRESS'e taşır.
         if ("NEW".equals(currentStatus)) {
-            ticket.setStatus("IN_PROGRESS");
+            ticket.setStatus(ST_IN_PROGRESS);
             ticketRepository.save(ticket);
             log.info("İlk claim — bilet IN_PROGRESS'e alındı. Bilet: {}", id);
             try {
                 workflowService.syncTicketAssignment(ticket, agentId);
             } catch (Exception e) {
-                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
+                log.error(SYNC_ERR_FMT, id, e.getMessage());
             }
         }
 
@@ -161,14 +163,14 @@ public class TicketClaimService {
         ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
 
         long remaining = ticketClaimRepository.countByTicketId(id);
-        if (remaining == 0 && "IN_PROGRESS".equals(ticket.getStatus())) {
+        if (remaining == 0 && ST_IN_PROGRESS.equals(ticket.getStatus())) {
             log.info("Son claim bırakıldı — bilet havuza (NEW) geri dönüyor. Bilet: {}", id);
             ticket.setStatus("NEW");
             ticketRepository.save(ticket);
             try {
                 workflowService.syncTicketStatus(ticket);
             } catch (Exception e) {
-                log.error("Workflow sync hatası. TicketId={}, Hata={}", id, e.getMessage());
+                log.error(SYNC_ERR_FMT, id, e.getMessage());
             }
         }
 
@@ -254,7 +256,7 @@ public class TicketClaimService {
 
         String previousStatus = ticket.getStatus();
         if ("NEW".equals(previousStatus)) {
-            ticket.setStatus("IN_PROGRESS");
+            ticket.setStatus(ST_IN_PROGRESS);
             ticketRepository.save(ticket);
             log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
         }
@@ -268,7 +270,7 @@ public class TicketClaimService {
         try {
             workflowService.syncTicketAssignment(ticket, targetAgentId);
         } catch (Exception e) {
-            log.error("Workflow sync hatası. TicketId={}, Hata={}", ticketId, e.getMessage());
+            log.error(SYNC_ERR_FMT, ticketId, e.getMessage());
         }
 
         notificationService.notifyTicketAssigned(ticket, targetAgentId, adminId);

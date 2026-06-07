@@ -52,6 +52,12 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class TicketService {
+    private static final String ST_RESOLVED = "RESOLVED";
+    private static final String ST_WAITING = "WAITING_FOR_CUSTOMER";
+    private static final String ST_IN_PROGRESS = "IN_PROGRESS";
+    private static final String ST_CLOSED = "CLOSED";
+    private static final String MSG_USER_NOT_FOUND = "Kullanıcı bulunamadı: ";
+    private static final String VAR_SLA_DEADLINE = "slaDeadline";
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
@@ -75,8 +81,8 @@ public class TicketService {
     // valid mi olduğunu BPMN belirler. {@link #validateStateTransition} BPMN'i signal
     // edip process variable'ı geri okuyarak senkron olarak doğrular; BPMN reddederse
     // (state node signal'i dinlemiyorsa) 400 fırlatılır.
-    private static final Set<String> SLA_PAUSED_STATES = Set.of("WAITING_FOR_CUSTOMER", "RESOLVED");
-    private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", "IN_PROGRESS");
+    private static final Set<String> SLA_PAUSED_STATES = Set.of(ST_WAITING, ST_RESOLVED);
+    private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", ST_IN_PROGRESS);
 
     // -----------------------------------------------------------------
     // Bilet oluşturma
@@ -109,7 +115,7 @@ public class TicketService {
         log.info("Yeni bilet oluşturma. Müşteri: {}, Ürün: {}", customerId, ticket.getProductId());
 
         User customer = userRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + customerId));
+                .orElseThrow(() -> new RuntimeException(MSG_USER_NOT_FOUND + customerId));
 
         Product product = customer.getAuthorizedProducts().stream()
                 .filter(p -> p.getId().equals(ticket.getProductId()))
@@ -188,7 +194,7 @@ public class TicketService {
         if (userId == null) return new ArrayList<>();
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+                .orElseThrow(() -> new RuntimeException(MSG_USER_NOT_FOUND + userId));
 
         List<Long> productIds = user.getAuthorizedProducts().stream()
                 .map(Product::getId).toList();
@@ -222,7 +228,7 @@ public class TicketService {
         if (userId == null) return new ArrayList<>();
 
         User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+                .orElseThrow(() -> new RuntimeException(MSG_USER_NOT_FOUND + userId));
 
         List<Long> productIds = agent.getAuthorizedProducts().stream()
                 .map(Product::getId).toList();
@@ -263,7 +269,7 @@ public class TicketService {
         if (userId == null) return new ArrayList<>();
 
         User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+                .orElseThrow(() -> new RuntimeException(MSG_USER_NOT_FOUND + userId));
 
         List<Long> productIds = agent.getAuthorizedProducts().stream()
                 .map(Product::getId).toList();
@@ -706,7 +712,7 @@ public class TicketService {
                     .map(Product::getId).toList();
         }
         User agent = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userId));
+                .orElseThrow(() -> new RuntimeException(MSG_USER_NOT_FOUND + userId));
         return agent.getAuthorizedProducts().stream()
                 .map(Product::getId).toList();
     }
@@ -754,10 +760,10 @@ public class TicketService {
         return "%" + search.toLowerCase() + "%";
     }
 
-    private static final List<String> ALL_STATUSES   = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED");
+    private static final List<String> ALL_STATUSES   = List.of("NEW", ST_IN_PROGRESS, ST_WAITING, ST_RESOLVED, ST_CLOSED);
     private static final List<String> ALL_PRIORITIES = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
     /** Team list scope: all active statuses except NEW (in the pool) and CLOSED (in history). */
-    private static final List<String> ACTIVE_TEAM_STATUSES = List.of("IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED");
+    private static final List<String> ACTIVE_TEAM_STATUSES = List.of(ST_IN_PROGRESS, ST_WAITING, ST_RESOLVED);
     private static final List<String> ALL_SLA_STATUSES = List.of("BREACHED", "ACTIVE", "PAUSED");
 
     /**
@@ -821,7 +827,7 @@ public class TicketService {
 
     private boolean isSortBySla(Pageable pageable) {
         return pageable.getSort().stream()
-                .anyMatch(order -> "slaDeadline".equals(order.getProperty()));
+                .anyMatch(order -> VAR_SLA_DEADLINE.equals(order.getProperty()));
     }
 
     private boolean isSortByCsat(Pageable pageable) {
@@ -856,7 +862,7 @@ public class TicketService {
     private boolean isAscending(Pageable pageable) {
         return pageable.getSort().stream()
                 .filter(order -> "priority".equals(order.getProperty())
-                              || "slaDeadline".equals(order.getProperty())
+                              || VAR_SLA_DEADLINE.equals(order.getProperty())
                               || "csatRating".equals(order.getProperty()))
                 .findFirst()
                 .map(Sort.Order::isAscending)
@@ -883,7 +889,7 @@ public class TicketService {
                         case "createdAt"   -> "created_at";
                         case "resolvedAt"  -> "resolved_at";
                         case "closedAt"    -> "closed_at";
-                        case "slaDeadline" -> "sla_deadline";
+                        case VAR_SLA_DEADLINE -> "sla_deadline";
                         case "slaBreached" -> "sla_breached";
                         case "productId"   -> "product_id";
                         case "customerId"  -> "customer_id";
@@ -1053,17 +1059,17 @@ public class TicketService {
         Ticket ticket = getTicketById(id);
         String oldStatus = ticket.getStatus();
 
-        validateStateTransition(ticket, oldStatus, "CLOSED");
-        validateStatusChangePermission(ticket, oldStatus, "CLOSED", userId, roles);
+        validateStateTransition(ticket, oldStatus, ST_CLOSED);
+        validateStatusChangePermission(ticket, oldStatus, ST_CLOSED, userId, roles);
         validateReasonInput(reasonCode, note);
 
-        applyStatusSpecificRules(ticket, oldStatus, "CLOSED", userId);
+        applyStatusSpecificRules(ticket, oldStatus, ST_CLOSED, userId);
 
-        ticket.setStatus("CLOSED");
+        ticket.setStatus(ST_CLOSED);
         ticket.setClosedAt(ZonedDateTime.now());
 
         Ticket saved = ticketRepository.save(ticket);
-        handleWorkflowSignals(saved, oldStatus, "CLOSED");
+        handleWorkflowSignals(saved, oldStatus, ST_CLOSED);
         notificationService.notifyStatusChanged(saved, oldStatus);
         recordTicketAuditLog(saved, userId, "CLOSE", reasonCode, note, oldStatus, saved.getStatus());
 
@@ -1096,7 +1102,7 @@ public class TicketService {
     public Ticket updateTicketStatus(Long id, String newStatus, String reasonCode, String note,
                                      String userId, List<String> roles) {
         log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}, Sebep: {}", id, newStatus, userId, reasonCode);
-        if ("CLOSED".equals(newStatus)) {
+        if (ST_CLOSED.equals(newStatus)) {
             return closeTicket(id, reasonCode, note, userId, roles);
         }
 
@@ -1105,27 +1111,27 @@ public class TicketService {
 
         validateStateTransition(ticket, oldStatus, newStatus);
         validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
-        if ("RESOLVED".equals(newStatus)) {
+        if (ST_RESOLVED.equals(newStatus)) {
             validateReasonInput(reasonCode, note);
         }
 
         applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
 
         ticket.setStatus(newStatus);
-        if ("RESOLVED".equals(newStatus)) ticket.setResolvedAt(ZonedDateTime.now());
-        else if ("CLOSED".equals(newStatus))  ticket.setClosedAt(ZonedDateTime.now());
+        if (ST_RESOLVED.equals(newStatus)) ticket.setResolvedAt(ZonedDateTime.now());
+        else if (ST_CLOSED.equals(newStatus))  ticket.setClosedAt(ZonedDateTime.now());
 
         Ticket saved = ticketRepository.save(ticket);
         handleWorkflowSignals(saved, oldStatus, newStatus);
 
-        if ("RESOLVED".equals(newStatus)) notificationService.notifyTicketResolved(saved);
+        if (ST_RESOLVED.equals(newStatus)) notificationService.notifyTicketResolved(saved);
         else                               notificationService.notifyStatusChanged(saved, oldStatus);
 
         String actionType;
-        if ("RESOLVED".equals(newStatus)) actionType = "RESOLVE";
-        else if ("IN_PROGRESS".equals(newStatus) && "RESOLVED".equals(oldStatus)) actionType = "REOPEN";
-        else if ("WAITING_FOR_CUSTOMER".equals(newStatus)) actionType = "WAITING";
-        else if ("IN_PROGRESS".equals(newStatus) && "WAITING_FOR_CUSTOMER".equals(oldStatus)) actionType = "RESUME";
+        if (ST_RESOLVED.equals(newStatus)) actionType = "RESOLVE";
+        else if (ST_IN_PROGRESS.equals(newStatus) && ST_RESOLVED.equals(oldStatus)) actionType = "REOPEN";
+        else if (ST_WAITING.equals(newStatus)) actionType = "WAITING";
+        else if (ST_IN_PROGRESS.equals(newStatus) && ST_WAITING.equals(oldStatus)) actionType = "RESUME";
         else actionType = "STATUS_CHANGE";
         recordTicketAuditLog(saved, userId, actionType, reasonCode, note, oldStatus, newStatus);
 
@@ -1161,10 +1167,10 @@ public class TicketService {
         if (oldPriority.equals(newPriority)) return ticket;
 
         boolean isSlaActive = !Boolean.TRUE.equals(ticket.getSlaBreached())
-                && !"CLOSED".equals(ticket.getStatus());
+                && !ST_CLOSED.equals(ticket.getStatus());
         boolean isPaused    = ticket.getSlaPausedAt() != null
-                || "WAITING_FOR_CUSTOMER".equals(ticket.getStatus())
-                || "RESOLVED".equals(ticket.getStatus());
+                || ST_WAITING.equals(ticket.getStatus())
+                || ST_RESOLVED.equals(ticket.getStatus());
 
         // Aktif sayaç varsa önce dondur; elapsed süre doğru biriksin.
         if (isSlaActive && !isPaused) {
@@ -1337,9 +1343,9 @@ public class TicketService {
                         "error.ticket.status.own.only");
             }
             boolean allowed =
-                    ("WAITING_FOR_CUSTOMER".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
-                    ("RESOLVED".equals(oldStatus) && "IN_PROGRESS".equals(newStatus)) ||
-                    ("RESOLVED".equals(oldStatus) && "CLOSED".equals(newStatus));
+                    (ST_WAITING.equals(oldStatus) && ST_IN_PROGRESS.equals(newStatus)) ||
+                    (ST_RESOLVED.equals(oldStatus) && ST_IN_PROGRESS.equals(newStatus)) ||
+                    (ST_RESOLVED.equals(oldStatus) && ST_CLOSED.equals(newStatus));
             if (!allowed) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "error.ticket.status.customer.transition");
@@ -1365,12 +1371,12 @@ public class TicketService {
      * unclaim should go through DELETE /api/v1/tickets/{id}/claim instead.
      */
     private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
-        if ("IN_PROGRESS".equals(oldStatus) && "NEW".equals(newStatus)) {
+        if (ST_IN_PROGRESS.equals(oldStatus) && "NEW".equals(newStatus)) {
             log.warn("AUDIT: Tüm claim'ler temizleniyor. Bilet: {}, İşlemi yapan: {}", ticket.getId(), userId);
             ticketClaimRepository.deleteByTicketId(ticket.getId());
         }
 
-        if ("IN_PROGRESS".equals(oldStatus) && "CLOSED".equals(newStatus)) {
+        if (ST_IN_PROGRESS.equals(oldStatus) && ST_CLOSED.equals(newStatus)) {
             log.warn("AUDIT: Ajan müşteri yanıtı beklerken bileti kapattı. Bilet: {}, Ajan: {}",
                     ticket.getId(), userId);
         }
@@ -1389,7 +1395,7 @@ public class TicketService {
                 workflowService.resumeSla(ticket);
                 ticketRepository.save(ticket);
             }
-            if ("CLOSED".equals(newStatus)) {
+            if (ST_CLOSED.equals(newStatus)) {
                 // Authoritative state branch'in terminate end'i tüm süreci sonlandırır;
                 // legacy SLA branch için ticket_closed sinyali de hâlâ atılır (geriye
                 // uyumlu — paralel kol bağımsız olarak biter).

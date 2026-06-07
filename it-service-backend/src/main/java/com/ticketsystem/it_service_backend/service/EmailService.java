@@ -29,6 +29,8 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+    private static final String I18N_GREETING = "email.greeting";
+    private static final String I18N_FOOTER = "email.footer";
 
     private final JavaMailSender mailSender;
     private final MessageSource messageSource;
@@ -76,7 +78,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.ticket.created", ticket.getId());
         String body = buildHtml(locale, customer,
                 msg(locale, "email.title.ticket.created"),
-                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, I18N_GREETING, customer.getFullName()),
                 msg(locale, "email.body.ticket.created"),
                 ticket);
         send(customer.getEmail(), subject, body, Category.TICKET_CREATED);
@@ -94,7 +96,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.ticket.assigned", ticket.getId());
         String body = buildHtml(locale, agent,
                 msg(locale, "email.title.ticket.assigned"),
-                msg(locale, "email.greeting", agent.getFullName()),
+                msg(locale, I18N_GREETING, agent.getFullName()),
                 msg(locale, "email.body.ticket.assigned"),
                 ticket);
         send(agent.getEmail(), subject, body, Category.TICKET_ASSIGNED);
@@ -114,7 +116,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.status.changed", ticket.getId());
         String body = buildHtml(locale, customer,
                 msg(locale, "email.title.status.changed"),
-                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, I18N_GREETING, customer.getFullName()),
                 msg(locale, "email.body.status.changed", escapeHtml(oldStatus), escapeHtml(newStatus)),
                 ticket);
         send(customer.getEmail(), subject, body, Category.STATUS_CHANGED);
@@ -134,7 +136,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.comment.added", ticket.getId());
         String body = buildHtml(locale, recipient,
                 msg(locale, "email.title.comment.added"),
-                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, I18N_GREETING, recipient.getFullName()),
                 msg(locale, "email.body.comment.added", escapeHtml(commenterName), escapeHtml(commentMessage)),
                 ticket);
         send(recipient.getEmail(), subject, body, Category.COMMENT_ADDED);
@@ -152,7 +154,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.sla.warning", ticket.getId());
         String body = buildHtml(locale, recipient,
                 msg(locale, "email.title.sla.warning"),
-                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, I18N_GREETING, recipient.getFullName()),
                 msg(locale, "email.body.sla.warning"),
                 ticket);
         send(recipient.getEmail(), subject, body, Category.SLA_WARNING);
@@ -170,7 +172,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.sla.breached", ticket.getId());
         String body = buildHtml(locale, recipient,
                 msg(locale, "email.title.sla.breached"),
-                msg(locale, "email.greeting", recipient.getFullName()),
+                msg(locale, I18N_GREETING, recipient.getFullName()),
                 msg(locale, "email.body.sla.breached"),
                 ticket);
         send(recipient.getEmail(), subject, body, Category.SLA_BREACHED);
@@ -188,7 +190,7 @@ public class EmailService {
         String subject = msg(locale, "email.subject.ticket.resolved", ticket.getId());
         String body = buildHtml(locale, customer,
                 msg(locale, "email.title.ticket.resolved"),
-                msg(locale, "email.greeting", customer.getFullName()),
+                msg(locale, I18N_GREETING, customer.getFullName()),
                 msg(locale, "email.body.ticket.resolved"),
                 ticket);
         send(customer.getEmail(), subject, body, Category.TICKET_RESOLVED);
@@ -289,8 +291,8 @@ public class EmailService {
      */
     private String buildSecurityNotificationHtml(Locale locale, Palette p, User recipient,
                                                  String title, String body, String warning) {
-        String greeting = msg(locale, "email.greeting", recipient.getFullName());
-        String footer   = msg(locale, "email.footer");
+        String greeting = msg(locale, I18N_GREETING, recipient.getFullName());
+        String footer   = msg(locale, I18N_FOOTER);
 
         return """
                 <!DOCTYPE html>
@@ -363,12 +365,12 @@ public class EmailService {
 
     private String buildPasswordResetHtml(Locale locale, Palette p, User recipient, String resetUrl, int ttlMinutes) {
         String title    = msg(locale, "email.title.password.reset");
-        String greeting = msg(locale, "email.greeting", recipient.getFullName());
+        String greeting = msg(locale, I18N_GREETING, recipient.getFullName());
         String body     = msg(locale, "email.body.password.reset", ttlMinutes);
         String cta      = msg(locale, "email.cta.password.reset");
         String fallback = msg(locale, "email.fallback.password.reset");
         String ignore   = msg(locale, "email.ignore.password.reset");
-        String footer   = msg(locale, "email.footer");
+        String footer   = msg(locale, I18N_FOOTER);
 
         String safeUrl = escapeHtml(resetUrl);
 
@@ -496,7 +498,7 @@ public class EmailService {
         String labelTitle    = msg(locale, "email.label.title");
         String labelPriority = msg(locale, "email.label.priority");
         String labelStatus   = msg(locale, "email.label.status");
-        String footer        = msg(locale, "email.footer");
+        String footer        = msg(locale, I18N_FOOTER);
 
         Palette p = paletteOf(recipient);
         String priorityBadge = priorityBadge(ticket.getPriority(), p);

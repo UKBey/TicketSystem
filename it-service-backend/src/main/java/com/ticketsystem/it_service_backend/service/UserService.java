@@ -125,7 +125,7 @@ public class UserService {
 
     /** Uygulama rolleri (Keycloak realm rolleri). */
     public static final java.util.Set<String> APP_ROLES =
-            java.util.Set.of("CUSTOMER", "AGENT", "LEAD_AGENT", "ADMIN", "MANAGER");
+            java.util.Set.of(AuthRoles.CUSTOMER, AuthRoles.AGENT, AuthRoles.LEAD_AGENT, AuthRoles.ADMIN, AuthRoles.MANAGER);
 
     /**
      * Normalizes a requested role list for assignment: upper-cases, keeps only valid
@@ -146,10 +146,10 @@ public class UserService {
                 .filter(APP_ROLES::contains)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
-        if (valid.contains("LEAD_AGENT")) {
-            valid.removeIf("AGENT"::equals);
+        if (valid.contains(AuthRoles.LEAD_AGENT)) {
+            valid.removeIf(AuthRoles.AGENT::equals);
         }
-        if (valid.contains("CUSTOMER") && valid.size() > 1) {
+        if (valid.contains(AuthRoles.CUSTOMER) && valid.size() > 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.role.customer.exclusive");
         }
         return valid;
@@ -164,11 +164,11 @@ public class UserService {
      */
     public static String resolveHighestRole(List<String> roles) {
         if (roles == null || roles.isEmpty()) return null;
-        if (roles.contains("ADMIN")) return "ADMIN";
-        if (roles.contains("MANAGER"))    return "MANAGER";
-        if (roles.contains("LEAD_AGENT")) return "LEAD_AGENT";
-        if (roles.contains("AGENT"))      return "AGENT";
-        if (roles.contains("CUSTOMER"))   return "CUSTOMER";
+        if (roles.contains(AuthRoles.ADMIN)) return AuthRoles.ADMIN;
+        if (roles.contains(AuthRoles.MANAGER))    return AuthRoles.MANAGER;
+        if (roles.contains(AuthRoles.LEAD_AGENT)) return AuthRoles.LEAD_AGENT;
+        if (roles.contains(AuthRoles.AGENT))      return AuthRoles.AGENT;
+        if (roles.contains(AuthRoles.CUSTOMER))   return AuthRoles.CUSTOMER;
         return null;
     }
 
@@ -205,7 +205,7 @@ public class UserService {
      * @return list of AGENT users
      */
     public List<User> getAgents() {
-        return userRepository.findByRole("AGENT");
+        return userRepository.findByRole(AuthRoles.AGENT);
     }
 
     /**
@@ -496,7 +496,7 @@ public class UserService {
         log.debug("Agent kapasite listesi istendi. Product ID: {}", productId);
         
         // 1. Belirtilen product'a yetkili tüm agent'ları çek
-        List<User> agents = userRepository.findByRoleAndAuthorizedProductsId("AGENT", productId);
+        List<User> agents = userRepository.findByRoleAndAuthorizedProductsId(AuthRoles.AGENT, productId);
         log.debug("Toplam {} agent bulundu", agents.size());
         
         // 2. Product'ı yükle (default limit için)

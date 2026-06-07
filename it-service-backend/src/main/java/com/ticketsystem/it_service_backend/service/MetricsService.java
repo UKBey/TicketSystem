@@ -78,6 +78,10 @@ import org.springframework.data.domain.PageRequest;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MetricsService {
+    private static final String ST_IN_PROGRESS = "IN_PROGRESS";
+    private static final String ST_WAITING = "WAITING_FOR_CUSTOMER";
+    private static final String PR_CRITICAL = "CRITICAL";
+    private static final String PR_MEDIUM = "MEDIUM";
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
@@ -96,7 +100,7 @@ public class MetricsService {
      *
      * @return DashboardMetricsDTO — all KPI metrics
      */
-    private static final List<String> OPEN_STATUSES = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
+    private static final List<String> OPEN_STATUSES = List.of("NEW", ST_IN_PROGRESS, ST_WAITING);
 
     /**
      * Whether to apply the product filter. A {@code null} {@code productIds} means a
@@ -248,8 +252,8 @@ public class MetricsService {
 
                         switch (status) {
                                 case "NEW" -> builder.newCount(count);
-                                case "IN_PROGRESS" -> builder.inProgressCount(count);
-                                case "WAITING_FOR_CUSTOMER" -> builder.waitingForCustomerCount(count);
+                                case ST_IN_PROGRESS -> builder.inProgressCount(count);
+                                case ST_WAITING -> builder.waitingForCustomerCount(count);
                                 case "RESOLVED" -> builder.resolvedCount(count);
                                 case "CLOSED" -> builder.closedCount(count);
                                 default -> log.warn("Bilinmeyen ticket status değeri: {}", status);
@@ -385,9 +389,9 @@ public class MetricsService {
             String priority = String.valueOf(row[0]);
             long count = ((Number) row[1]).longValue();
             switch (priority) {
-                case "CRITICAL" -> critical = count;
+                case PR_CRITICAL -> critical = count;
                 case "HIGH"     -> high     = count;
-                case "MEDIUM"   -> medium   = count;
+                case PR_MEDIUM   -> medium   = count;
                 case "LOW"      -> low      = count;
                 default -> log.warn("Bilinmeyen priority değeri: {}", priority);
             }
@@ -488,9 +492,9 @@ public class MetricsService {
         log.info("Priority-SLA metrikleri hesaplanıyor (days={}, scope={})...", days, scopeKey);
 
         Map<String, Integer> priorityHours = Map.of(
-                "CRITICAL", slaPolicyService.getResolutionHours("CRITICAL"),
+                PR_CRITICAL, slaPolicyService.getResolutionHours(PR_CRITICAL),
                 "HIGH",     slaPolicyService.getResolutionHours("HIGH"),
-                "MEDIUM",   slaPolicyService.getResolutionHours("MEDIUM"),
+                PR_MEDIUM,   slaPolicyService.getResolutionHours(PR_MEDIUM),
                 "LOW",      slaPolicyService.getResolutionHours("LOW")
         );
 
@@ -640,8 +644,8 @@ public class MetricsService {
      */
     public AlertsBacklogDTO getAlertsAndBacklog(List<Long> productIds, String scopeKey) {
         log.debug("Alert ve backlog metrikleri hesaplanıyor... (scope={})", scopeKey);
-        List<String> openStatuses = List.of("NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER");
-        List<String> activeStatuses = List.of("NEW", "IN_PROGRESS");
+        List<String> openStatuses = List.of("NEW", ST_IN_PROGRESS, ST_WAITING);
+        List<String> activeStatuses = List.of("NEW", ST_IN_PROGRESS);
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime waitingThreshold  = now.minusHours(alertProperties.getWaitingForCustomerMaxHours());
         ZonedDateTime resolvedThreshold = now.minusHours(alertProperties.getResolvedMaxHours());
@@ -654,7 +658,7 @@ public class MetricsService {
 
         // Fetch upcoming-breach tickets per priority using the configured warning threshold,
         // then merge, deduplicate, sort by deadline, and cap at 10.
-        List<String> priorities = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
+        List<String> priorities = List.of(PR_CRITICAL, "HIGH", PR_MEDIUM, "LOW");
         List<Ticket> upcomingTickets = priorities.stream()
                 .flatMap(priority -> {
                     double thresholdHours = slaPolicyService.getWarningThresholdHours(priority);

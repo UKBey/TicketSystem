@@ -63,6 +63,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Validated
 public class TicketController {
+    private static final String UNKNOWN = "Unknown";
 
     private final TicketService ticketService;
     private final TicketClaimRepository ticketClaimRepository;
@@ -578,17 +579,17 @@ public class TicketController {
 
     private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat, List<String> roles) {
         String customerName = ticket.getCustomerId() != null
-                ? userRepository.findById(ticket.getCustomerId()).map(User::getFullName).orElse("Unknown")
-                : "Unknown";
+                ? userRepository.findById(ticket.getCustomerId()).map(User::getFullName).orElse(UNKNOWN)
+                : UNKNOWN;
         String productName = ticket.getProductId() != null
-                ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse("Unknown")
-                : "Unknown";
+                ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse(UNKNOWN)
+                : UNKNOWN;
 
         List<ClaimerDTO> claimers = ticketClaimRepository.findByTicketId(ticket.getId()).stream()
                 .map(claim -> ClaimerDTO.builder()
                         .agentId(claim.getAgentId())
                         .agentName(userRepository.findById(claim.getAgentId())
-                                .map(User::getFullName).orElse("Unknown"))
+                                .map(User::getFullName).orElse(UNKNOWN))
                         .claimedAt(claim.getClaimedAt())
                         .build())
                 .collect(Collectors.toList());

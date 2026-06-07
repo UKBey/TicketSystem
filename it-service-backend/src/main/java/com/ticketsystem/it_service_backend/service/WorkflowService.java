@@ -23,6 +23,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Log4j2
 public class WorkflowService {
+    private static final String K_DEADLINE_TS = "deadlineTimestamp";
+    private static final String K_REMAINING_MS = "remainingMs";
+    private static final String K_SLA_STATE = "slaState";
+    private static final String K_EXPIRED = "expired";
 
     private final KieServerAdapter kieServerAdapter;
 
@@ -401,15 +405,15 @@ public class WorkflowService {
      * <ul>
      *   <li>{@code "active"} — SLA counter is running (NEW, IN_PROGRESS)</li>
      *   <li>{@code "paused"} — SLA paused with remaining time (WAITING_FOR_CUSTOMER, RESOLVED)</li>
-     *   <li>{@code "expired"} — SLA time has elapsed (whether or not a breach was recorded)</li>
+     *   <li>{@code K_EXPIRED} — SLA time has elapsed (whether or not a breach was recorded)</li>
      *   <li>{@code "completed"} — Ticket closed, SLA no longer tracked (CLOSED)</li>
      * </ul>
      *
      * <p>Decision priority:
      * <ol>
      *   <li>CLOSED → always "completed" (breach record is preserved in the DB)</li>
-     *   <li>{@code slaBreached} → "expired"</li>
-     *   <li>Paused mode → "paused" when remaining &gt; 0, otherwise "expired"</li>
+     *   <li>{@code slaBreached} → K_EXPIRED</li>
+     *   <li>Paused mode → "paused" when remaining &gt; 0, otherwise K_EXPIRED</li>
      *   <li>Active mode → "active" with a live countdown</li>
      * </ol>
      *
@@ -423,17 +427,17 @@ public class WorkflowService {
 
         // CLOSED: süreç bitti — ihlal durumundan bağımsız olarak "completed"
         if ("CLOSED".equals(status)) {
-            result.put("deadlineTimestamp", -1L);
-            result.put("remainingMs", 0L);
-            result.put("slaState", "completed");
+            result.put(K_DEADLINE_TS, -1L);
+            result.put(K_REMAINING_MS, 0L);
+            result.put(K_SLA_STATE, "completed");
             return result;
         }
 
-        // Resmi ihlal kaydı varsa → "expired"
+        // Resmi ihlal kaydı varsa → K_EXPIRED
         if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
-            result.put("deadlineTimestamp", -1L);
-            result.put("remainingMs", 0L);
-            result.put("slaState", "expired");
+            result.put(K_DEADLINE_TS, -1L);
+            result.put(K_REMAINING_MS, 0L);
+            result.put(K_SLA_STATE, K_EXPIRED);
             return result;
         }
 
@@ -452,9 +456,9 @@ public class WorkflowService {
             // (cache yok), deterministiktir — flicker riski yoktur.
             long originalDurationMs = getSlaDurationMs(ticket.getPriority());
             long remaining = originalDurationMs - elapsedMs;
-            result.put("deadlineTimestamp", -1L);
-            result.put("remainingMs", Math.max(0L, remaining));
-            result.put("slaState", remaining > 0 ? "paused" : "expired");
+            result.put(K_DEADLINE_TS, -1L);
+            result.put(K_REMAINING_MS, Math.max(0L, remaining));
+            result.put(K_SLA_STATE, remaining > 0 ? "paused" : K_EXPIRED);
             return result;
         }
 
@@ -480,15 +484,15 @@ public class WorkflowService {
 
         if (remainingMs <= 0) {
             // Süre dolmuş ama slaBreached henüz DB'ye yazılmamış (async gecikme) → expired
-            result.put("deadlineTimestamp", deadline);
-            result.put("remainingMs", 0L);
-            result.put("slaState", "expired");
+            result.put(K_DEADLINE_TS, deadline);
+            result.put(K_REMAINING_MS, 0L);
+            result.put(K_SLA_STATE, K_EXPIRED);
             return result;
         }
 
-        result.put("deadlineTimestamp", deadline);
-        result.put("remainingMs", remainingMs);
-        result.put("slaState", "active");
+        result.put(K_DEADLINE_TS, deadline);
+        result.put(K_REMAINING_MS, remainingMs);
+        result.put(K_SLA_STATE, "active");
         return result;
     }
 

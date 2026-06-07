@@ -40,6 +40,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/internal/tickets")
 @RequiredArgsConstructor
 public class InternalTicketController {
+    private static final String UNKNOWN = "Unknown";
 
     private final TicketService ticketService;
     private final CommentRepository commentRepository;
@@ -67,16 +68,16 @@ public class InternalTicketController {
         Ticket ticket = ticketService.getTicketById(ticketId);
 
         String customerName = userRepository.findById(ticket.getCustomerId())
-                .map(User::getFullName).orElse("Unknown");
+                .map(User::getFullName).orElse(UNKNOWN);
         String productName = ticket.getProductId() != null
-                ? productRepository.findById(ticket.getProductId()).map(p -> p.getName()).orElse("Unknown")
-                : "Unknown";
+                ? productRepository.findById(ticket.getProductId()).map(p -> p.getName()).orElse(UNKNOWN)
+                : UNKNOWN;
 
         List<ClaimerDTO> claimers = ticketClaimRepository.findByTicketId(ticketId).stream()
                 .map(claim -> ClaimerDTO.builder()
                         .agentId(claim.getAgentId())
                         .agentName(userRepository.findById(claim.getAgentId())
-                                .map(User::getFullName).orElse("Unknown"))
+                                .map(User::getFullName).orElse(UNKNOWN))
                         .claimedAt(claim.getClaimedAt())
                         .build())
                 .toList();
@@ -97,7 +98,7 @@ public class InternalTicketController {
                     User author = c.getAuthorId() != null
                             ? userRepository.findById(c.getAuthorId()).orElse(null)
                             : null;
-                    String authorName = author != null ? author.getFullName() : "Unknown";
+                    String authorName = author != null ? author.getFullName() : UNKNOWN;
                     String authorRole = author != null ? author.getRole() : null;
                     return CommentDTO.fromEntity(c, authorName, authorRole);
                 })

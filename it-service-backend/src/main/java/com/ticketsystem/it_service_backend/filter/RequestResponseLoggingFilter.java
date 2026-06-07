@@ -26,6 +26,7 @@ import java.io.IOException;
 @Component
 @Order(1)
 public class RequestResponseLoggingFilter extends OncePerRequestFilter {
+    private static final String LOG_FMT = "{} {} → {} ({}ms)";
 
     /**
      * Excludes health / metric probes from the log.
@@ -53,11 +54,11 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             long duration = System.currentTimeMillis() - start;
             int status = response.getStatus();
             if (status >= 500) {
-                log.error("{} {} → {} ({}ms)", request.getMethod(), uri, status, duration);
+                log.error(LOG_FMT, request.getMethod(), uri, status, duration);
             } else if (status >= 400) {
-                log.warn("{} {} → {} ({}ms)", request.getMethod(), uri, status, duration);
+                log.warn(LOG_FMT, request.getMethod(), uri, status, duration);
             } else {
-                log.info("{} {} → {} ({}ms)", request.getMethod(), uri, status, duration);
+                log.info(LOG_FMT, request.getMethod(), uri, status, duration);
             }
         }
     }

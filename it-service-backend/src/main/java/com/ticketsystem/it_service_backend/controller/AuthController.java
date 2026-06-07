@@ -43,6 +43,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
+    private static final String ERR_KEY = "error";
 
     private static final String FORGOT_BUCKET_PREFIX = "forgot-password:";
 
@@ -123,11 +124,11 @@ public class AuthController {
         } catch (InvalidResetTokenException e) {
             log.info("Reset token reddedildi: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "INVALID_OR_EXPIRED_TOKEN"));
+                    .body(Map.of(ERR_KEY, "INVALID_OR_EXPIRED_TOKEN"));
         } catch (InvalidPasswordException e) {
             log.info("Şifre politikası ihlali: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "PASSWORD_POLICY_VIOLATION", "detail", e.getMessage()));
+                    .body(Map.of(ERR_KEY, "PASSWORD_POLICY_VIOLATION", "detail", e.getMessage()));
         }
     }
 
@@ -157,7 +158,7 @@ public class AuthController {
         log.warn("Forgot-password rate limit aşıldı. IP: {}", ip);
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(forgotWindowSeconds))
-                .body(Map.of("error", "RATE_LIMIT_EXCEEDED"));
+                .body(Map.of(ERR_KEY, "RATE_LIMIT_EXCEEDED"));
     }
 
     private String clientIp(HttpServletRequest request) {
