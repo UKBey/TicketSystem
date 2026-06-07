@@ -11,7 +11,7 @@ The system is made of two HTTP services:
 
 | Service | Default port | Documented here |
 |---|---|---|
-| `it-service-backend` — main API | `8081` | Authentication, Tickets, Comments, Attachments, Worklogs, CSAT, Users, Notifications, Notification Preferences, Products, Topics, Known Issues, Agent-Product Limits, Dashboard Metrics, Internal/Workflow |
+| `it-service-backend` — main API | `8081` | Authentication, Tickets, Comments, Attachments, Worklogs, CSAT, Users, Notifications, Notification Preferences, Products, Topics, Known Issues, Agent-Product Limits, Dashboard Metrics, Config, Internal/Workflow |
 | `llm-service` — AI summaries | `8082` | AI Summaries |
 
 ---
@@ -393,6 +393,10 @@ Comment types: `EXTERNAL` (visible to the customer), `INTERNAL` (operational sta
 lead_agent — only, hidden from customers). Customers may only add `EXTERNAL` comments to their
 own tickets.
 
+A per-user posting **cooldown** (default 3s, `COMMENT_COOLDOWN_SECONDS`) and the max message
+length (`COMMENT_MAX_LENGTH`, default 500) are enforced server-side; clients read the current
+values from `GET /api/v1/config/comments` (see [Config](#config)) rather than hardcoding them.
+
 ### POST `/api/v1/tickets/{ticketId}/comments`
 
 Path param `ticketId` (long). Body `CommentRequestDTO`:
@@ -427,6 +431,25 @@ Response `200 OK` (`CommentDTO`):
 
 Returns a JSON array of `CommentDTO` ordered chronologically. Customers receive only
 `EXTERNAL` comments; operational staff (agent / lead_agent) receive both types.
+
+---
+
+## Config
+
+`ConfigController` — base path `/api/v1/config`. Read-only client configuration so the frontend
+mirrors backend settings instead of hardcoding them.
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| GET | `/api/v1/config/comments` | Authenticated | Comment posting cooldown (seconds) and max length. |
+
+Response `200 OK`:
+
+```json
+{ "cooldownSeconds": 3, "maxLength": 500 }
+```
+
+These mirror the `COMMENT_COOLDOWN_SECONDS` and `COMMENT_MAX_LENGTH` (default 500) settings.
 
 ---
 
@@ -495,6 +518,7 @@ Response `201 Created` (`WorklogResponseDTO`):
   "id": 15,
   "ticketId": 42,
   "agentId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+  "agentName": "Mehmet Demir",
   "minutes": 45,
   "description": "Reviewed firewall logs, updated port rules.",
   "createdAt": "2026-05-21T14:00:00+03:00",
@@ -502,7 +526,8 @@ Response `201 Created` (`WorklogResponseDTO`):
 }
 ```
 
-`GET` endpoints return JSON arrays of `WorklogResponseDTO`. Agents may update/delete only
+`GET` endpoints return JSON arrays of `WorklogResponseDTO`; each entry carries `agentName`
+(the agent's display name) alongside `agentId`. Agents may update/delete only
 their own worklogs; lead_agent may delete any. `DELETE` returns `204 No Content`.
 
 ---
@@ -1024,6 +1049,7 @@ Returns `200` with a plain-text body on success; `400` for an unknown `eventType
 | Authentication (password reset) | 3 |
 | Tickets | 16 |
 | Ticket Comments | 2 |
+| Config | 1 |
 | Attachments | 4 |
 | Worklogs | 5 |
 | CSAT | 3 |
@@ -1037,4 +1063,4 @@ Returns `200` with a plain-text body on success; `400` for an unknown `eventType
 | Dashboard Metrics | 14 |
 | AI Summaries (llm-service) | 4 |
 | Internal / Workflow | 2 |
-| **Total** | **97** |
+| **Total** | **98** |

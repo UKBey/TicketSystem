@@ -267,7 +267,7 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 | **Roles** | **Additive multi-role** for staff (effective permissions = union of the held set): `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). `customer` (end user) is a **singleton** role — mutually exclusive with every staff role; the backend rejects mixing it with any other role. Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. A super-admin is a user holding all of `admin` + `lead_agent` + `manager`. |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
-| **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configurable at runtime |
+| **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configured via `application.yml` (`app.rate-limit.global-api.*`) and `RATE_LIMIT_GLOBAL_*` env vars |
 | **Input safety** | Bean Validation on all DTOs; attachment type/size checks and sensitive-data scanning |
 | **Data isolation** | Customers can only access their own tickets; agents act only on claimed tickets; agent / lead_agent are scoped to their authorised products; `admin` and `manager` are global |
 
@@ -276,11 +276,11 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 ## 9. Data Architecture
 
 - A single PostgreSQL instance hosts **`ticketdb`** (application data) and **`keycloakdb`** (Keycloak). The jBPM engine uses a **separate** `jbpm-db` instance — the two must not be conflated.
-- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V37). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
+- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V38). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
 - `llm-service` shares `ticketdb` but keeps an **isolated Flyway history table** (`flyway_schema_history_llm`, baselined from 0) so its migrations coexist with the backend's without collision.
 - DTOs form the API boundary; JPA entities are never serialised directly to clients.
 
-Core tables include `tickets`, `users`, `user_roles` (the cached additive role set, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` and `known_issues`.
+Core tables include `tickets`, `users`, `user_roles` (the cached additive role set, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` and `known_issues`.
 
 ---
 

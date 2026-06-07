@@ -267,7 +267,7 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 | **Roller** | Personel için **eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). `customer` (son kullanıcı) **tekil (singleton)** bir roldür — her personel rolüyle karşılıklı olarak dışlayıcıdır; backend onu başka bir rolle birleştirmeyi reddeder. Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Süper yönetici, `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır. |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
-| **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; çalışma zamanında yapılandırılabilir |
+| **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; `application.yml` (`app.rate-limit.global-api.*`) ve `RATE_LIMIT_GLOBAL_*` ortam değişkenleriyle yapılandırılır |
 | **Girdi güvenliği** | Tüm DTO'larda Bean Validation; ek dosya türü/boyutu denetimleri ve hassas veri taraması |
 | **Veri izolasyonu** | Müşteriler yalnızca kendi ticket'larına erişebilir; temsilciler yalnızca talep ettikleri ticket'lar üzerinde işlem yapar; agent / lead_agent yetkili oldukları ürünlerle sınırlandırılır; `admin` ve `manager` globaldir |
 
@@ -276,11 +276,11 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 ## 9. Veri Mimarisi
 
 - Tek bir PostgreSQL örneği, **`ticketdb`** (uygulama verisi) ve **`keycloakdb`** (Keycloak) veritabanlarını barındırır. jBPM motoru **ayrı** bir `jbpm-db` örneği kullanır — bu ikisi birbirine karıştırılmamalıdır.
-- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V37) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
+- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V38) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
 - `llm-service`, `ticketdb`'yi paylaşır ancak **izole bir Flyway geçmiş tablosu** (`flyway_schema_history_llm`, 0'dan baseline'lanmış) tutar; böylece migrasyonları backend'inkilerle çakışmadan bir arada bulunur.
 - DTO'lar API sınırını oluşturur; JPA entity'leri asla doğrudan istemcilere serileştirilmez.
 
-Çekirdek tablolar arasında `tickets`, `users`, `user_roles` (önbelleğe alınan eklemeli rol kümesi, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `rate_limit_config`, `access_requests` ve `known_issues` yer alır.
+Çekirdek tablolar arasında `tickets`, `users`, `user_roles` (önbelleğe alınan eklemeli rol kümesi, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` ve `known_issues` yer alır.
 
 ---
 
