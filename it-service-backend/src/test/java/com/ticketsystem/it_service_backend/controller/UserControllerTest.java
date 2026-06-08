@@ -3,7 +3,6 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.UserDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.EmailService;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
@@ -34,16 +33,13 @@ class UserControllerTest {
     private KeycloakAdminService keycloakAdminService;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private EmailService emailService;
 
     private UserController userController;
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(userService, keycloakAdminService, userRepository, emailService);
+        userController = new UserController(userService, keycloakAdminService, emailService);
     }
 
     @Test

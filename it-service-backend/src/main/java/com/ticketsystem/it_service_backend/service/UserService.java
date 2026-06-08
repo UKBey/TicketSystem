@@ -22,7 +22,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
@@ -263,6 +268,54 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortColumn(sortBy)));
         return userRepository.findFiltered(roleFilterActive, roleList, searchParam, excludeGlobalRoles,
                 productFilterActive, productList, pageable);
+    }
+
+    /**
+     * Returns the user by ID as an {@link Optional}, without throwing on absence and
+     * without initializing lazy collections. Intended for display/side-effect flows
+     * (e.g. "send email if the user still exists") that must not fail when the row
+     * is missing.
+     *
+     * @param id Keycloak subject (UUID)
+     * @return the user if present, otherwise empty
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> findById(String id) {
+        return userRepository.findById(id);
+    }
+
+    /**
+     * Batch-resolves user IDs to their display names in a single query (no N+1).
+     * Null IDs are ignored and unknown IDs are simply absent from the result, so
+     * callers decide their own fallback (e.g. "Unknown" or the raw ID).
+     *
+     * @param userIds user IDs to resolve (nulls/duplicates tolerated)
+     * @return map of user ID to {@code fullName} for the IDs that exist
+     */
+    @Transactional(readOnly = true)
+    public Map<String, String> getDisplayNames(Collection<String> userIds) {
+        if (userIds == null) return Map.of();
+        List<String> ids = userIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        return userRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName, (a, b) -> a));
+    }
+
+    /**
+     * Batch-resolves user IDs to their {@link User} entities in a single query (no
+     * N+1). Use when callers need more than the display name (e.g. name + role).
+     * Lazy collections are not initialized — touch only simple columns after return.
+     *
+     * @param userIds user IDs to resolve (nulls/duplicates tolerated)
+     * @return map of user ID to the {@link User} for the IDs that exist
+     */
+    @Transactional(readOnly = true)
+    public Map<String, User> getUsersByIds(Collection<String> userIds) {
+        if (userIds == null) return Map.of();
+        List<String> ids = userIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        return userRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a));
     }
 
     /**

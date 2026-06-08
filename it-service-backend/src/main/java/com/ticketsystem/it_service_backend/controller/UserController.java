@@ -8,7 +8,6 @@ import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.WrongCurrentPasswordException;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.EmailService;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
 import com.ticketsystem.it_service_backend.service.UserService;
@@ -61,7 +60,6 @@ public class UserController {
 
     private final UserService userService;
     private final KeycloakAdminService keycloakAdminService;
-    private final UserRepository userRepository;
     private final EmailService emailService;
 
     /**
@@ -319,7 +317,7 @@ public class UserController {
 
         // Şifre değişti — kullanıcıya bildirim maili gönder.
         // Kullanıcı oturum açmış olduğu için DB'deki dil/tema tercihleri güncel kabul edilir.
-        userRepository.findById(userId).ifPresent(user ->
+        userService.findById(userId).ifPresent(user ->
                 emailService.sendPasswordChangedEmail(user, null, null));
 
         return ResponseEntity.noContent().build();
@@ -384,7 +382,7 @@ public class UserController {
 
         keycloakAdminService.removeCredential(userId, credentialId);
 
-        userRepository.findById(userId).ifPresent(user ->
+        userService.findById(userId).ifPresent(user ->
                 emailService.send2FADeviceRemovedEmail(user, deviceLabel));
 
         return ResponseEntity.noContent().build();
@@ -419,7 +417,7 @@ public class UserController {
                 .map(c -> c.getUserLabel())
                 .orElse(null);
 
-        userRepository.findById(userId).ifPresent(user ->
+        userService.findById(userId).ifPresent(user ->
                 emailService.send2FADeviceAddedEmail(user, latestLabel));
 
         return ResponseEntity.noContent().build();
