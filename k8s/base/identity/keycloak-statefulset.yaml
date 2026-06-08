@@ -79,6 +79,19 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: KC_PROXY_HEADERS
+            # realm-export.json icindeki ${...} placeholder'lari import sirasinda
+            # bu env var'lardan cozulur: LDAP bind credential + ticket-client
+            # service-account secret'i. Boylece Keycloak admin UI'da elle ayar gerekmez.
+            - name: LDAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: LDAP_ADMIN_PASSWORD
+            - name: KEYCLOAK_ADMIN_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: KEYCLOAK_ADMIN_CLIENT_SECRET
           resources:
             requests:
               memory: 512Mi

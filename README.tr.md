@@ -157,30 +157,14 @@ make logs s=it-service-backend   # tek bir servisin günlüklerini izler
 
 İlk başlatma; imajları çeker, Flyway migrasyonlarını çalıştırır ve Keycloak realm'ini içe aktarır — birkaç dakika tanıyın. Uygulama kodunu değiştirdikten sonra `make rebuild`, durdurmak için `make down` kullanın.
 
-### 3. Keycloak kurulumunu tamamlayın (ilk `make up` sonrası bir defalık)
+### 3. Tohum kullanıcılarına realm rollerini atayın (ilk `make up` sonrası bir defalık)
 
-Realm export'u maskelenmiş gizli değerlerle (`**********`) gelir. İlk başlatmada bunları elle ayarlamanız gerekir:
+> **Keycloak admin-console'da kurulum gerekmez.** Realm import'u **LDAP bind şifresini** ve **`ticket-client` service-account secret'ını** doğrudan `.env`'den (`LDAP_ADMIN_PASSWORD`, `KEYCLOAK_ADMIN_CLIENT_SECRET`) gömer — yalnızca ilk `make up` öncesi bu iki değerin ayarlı olduğundan emin olun.
 
-#### 3a. LDAP bind şifresini girin
-1. http://localhost/auth → **Administration Console** → `admin` kullanıcısı ile `.env`'deki `KEYCLOAK_ADMIN_PASSWORD` ile giriş yapın.
-2. Sol üst menüden realm'i **TicketSystemRealm**'e değiştirin.
-3. **User Federation → ldap → Bind credentials**: `.env`'deki `LDAP_ADMIN_PASSWORD` değerini yapıştırın.
-4. **Test connection** ve **Test authentication** — ikisi de başarılı olmalı.
-5. **Save** edin, sonra **Action → Sync all users** ile LDAP kullanıcılarını Keycloak'a aktarın.
-
-#### 3b. Service-account client secret'ı yeniden üretin
-1. **Clients → ticket-client → Credentials → Regenerate**.
-2. Yeni secret'ı kopyalayın ve `.env` içinde `KEYCLOAK_ADMIN_CLIENT_SECRET=<yapıştır>` olarak ayarlayın.
-3. Backend'i yeniden başlatın ki yeni değeri okusun:
-   ```bash
-   make restart s=it-service-backend
-   ```
-
-#### 3c. Tohum kullanıcılarına realm rollerini atayın
-LDAP'tan senkronize edilen kullanıcılar realm rolü olmadan gelir — **roller LDAP'ta saklanmaz**. Hepsini tek seferde, idempotent tohumlama (seeder) işiyle atayın:
+Geriye kalan tek bir defalık adım: LDAP kullanıcıları Keycloak'a realm rolü olmadan gelir — **roller LDAP'ta saklanmaz**. Idempotent tohumlama (seeder) işini çalıştırın; bu iş LDAP kullanıcılarını içeri alır **ve** rollerini tek seferde atar:
 
 ```bash
-make seed-roles    # tek seferlik keycloak-seeder (tools profili); tekrar çalıştırmak güvenlidir
+make seed-roles    # tek seferlik keycloak-seeder (tools profili); LDAP kullanıcılarını import eder + rolleri atar; tekrar çalıştırmak güvenlidir
 ```
 
 Bu, her tohum kullanıcısını aşağıdaki rol(ler)e eşler. Roller **eklemelidir (additive)** — bir kullanıcı birden fazla rol taşıyabilir ve etkin yetkileri bunların birleşimidir.
@@ -220,7 +204,7 @@ make gen       # veri üreticisini derler + çalıştırır (ürünler, ticket'l
 
 ### 6. Demo kullanıcıları
 
-Kullanıcılar OpenLDAP'a eklenir ve Keycloak'a senkronize edilir; realm **rolleri `make seed-roles` ile atanır** (bkz. adım 3c) — roller LDAP'ta saklanmaz. Tüm tohum kullanıcıları `321654` parolasını paylaşır. Roller **eklemelidir** — bir kullanıcı bir rol kümesi taşır ve etkin yetkileri bunların birleşimidir.
+Kullanıcılar OpenLDAP'a eklenir ve Keycloak'a senkronize edilir; realm **rolleri `make seed-roles` ile atanır** (bkz. adım 3) — roller LDAP'ta saklanmaz. Tüm tohum kullanıcıları `321654` parolasını paylaşır. Roller **eklemelidir** — bir kullanıcı bir rol kümesi taşır ve etkin yetkileri bunların birleşimidir.
 
 | Kullanıcı Adı | Parola | Rol(ler) | Açılış Sayfası | Yetenekler |
 |----------|--------|----------|----------|--------------|

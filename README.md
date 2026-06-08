@@ -162,30 +162,14 @@ The first start pulls images, runs Flyway migrations and imports the Keycloak re
 > - `docker-compose.override.yaml` — **dev** layer, *auto-loaded* by `make up` / `docker compose up`: host-published ports, build-from-source, the dev tools (mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube) and dev settings (Swagger, SQL logging, mailpit SMTP). So `make up` stays pure dev — nothing changes.
 > - `docker-compose.prod.yaml` — **prod** layer, applied explicitly with `make up-prod` (`-f docker-compose.yaml -f docker-compose.prod.yaml`): pulls pinned images, exposes **only** nginx (80 + 443/TLS), drops every dev tool, runs Keycloak in production mode and adds `restart` policies. Images must be in a registry first (the CD pipeline pushes them to Docker Hub on `main`; selected via `DOCKERHUB_USERNAME`/`IMAGE_TAG`) and a prod `.env` prepared (KC hostname, real SMTP, strong secrets). For full production (autoscaling, secrets, cert-manager) use the **[k8s prod overlay](k8s/README.md)**.
 
-### 3. Finish the Keycloak setup (one-time, after the first `make up`)
+### 3. Assign realm roles to the seed users (one-time, after the first `make up`)
 
-The realm export ships with masked secrets (`**********`). On the very first start you must set them by hand:
+> **No Keycloak admin-console setup required.** The realm import injects the **LDAP bind credential** and the **`ticket-client` service-account secret** straight from your `.env` (`LDAP_ADMIN_PASSWORD`, `KEYCLOAK_ADMIN_CLIENT_SECRET`) — just make sure both are set before the first `make up`.
 
-#### 3a. Set the LDAP bind credential
-1. Open http://localhost/auth → **Administration Console** → log in as `admin` with `KEYCLOAK_ADMIN_PASSWORD` from your `.env`.
-2. Top-left dropdown → switch to realm **TicketSystemRealm**.
-3. **User Federation → ldap → Bind credentials**: paste the value of `LDAP_ADMIN_PASSWORD` from `.env`.
-4. Click **Test connection** and **Test authentication** — both must succeed.
-5. Click **Save**, then **Action → Sync all users** to pull the seeded LDAP users into Keycloak.
-
-#### 3b. Regenerate the service-account client secret
-1. **Clients → ticket-client → Credentials → Regenerate**.
-2. Copy the new secret and set `KEYCLOAK_ADMIN_CLIENT_SECRET=<paste>` in `.env`.
-3. Restart the backend so it picks the new value up:
-   ```bash
-   make restart s=it-service-backend
-   ```
-
-#### 3c. Assign realm roles to the seed users
-LDAP users land in Keycloak without realm roles by default — **roles are not stored in LDAP**. Assign them in one shot with the idempotent seeder job:
+The only remaining one-time step: LDAP users land in Keycloak without realm roles — **roles are not stored in LDAP**. Run the idempotent seeder job, which pulls the users in from LDAP **and** assigns their roles in one shot:
 
 ```bash
-make seed-roles    # one-shot keycloak-seeder (tools profile); safe to re-run
+make seed-roles    # one-shot keycloak-seeder (tools profile); imports LDAP users + assigns roles; safe to re-run
 ```
 
 This maps every seed user to the role(s) below. Roles are **additive** — a user may hold several, and effective permissions are their union.
@@ -230,7 +214,7 @@ make gen       # build + run the data generator (products, tickets, history)
 
 ### 6. Demo users
 
-Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles are assigned by `make seed-roles`** (see step 3c) — roles are not stored in LDAP. All seed users share the password `321654`. Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.
+Users are seeded into OpenLDAP and federated into Keycloak; their realm **roles are assigned by `make seed-roles`** (see step 3) — roles are not stored in LDAP. All seed users share the password `321654`. Roles are **additive** — a user holds a set of roles, and their effective permissions are the union of them.
 
 | Username | Password | Role(s) | Lands on | Capabilities |
 |----------|----------|---------|----------|--------------|

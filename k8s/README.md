@@ -88,32 +88,20 @@ kubectl -n ticketsystem rollout restart deploy/it-service-backend
 > After a full Docker Desktop / PC restart the kind container usually auto-starts; if not,
 > `make k8s-start` (or `make k8s-rebuild`, which also handles a missing/stopped cluster).
 
-### First-time Keycloak setup
+### Keycloak secrets & LDAP federation
 
-`realm-export.json` ships with the `ticket-client` confidential client's secret
-masked (`"**********"`). After the first bringup you must regenerate it:
+The realm import injects the `ticket-client` service-account secret and the LDAP
+`bindCredential` straight from `app-secrets` (`KEYCLOAK_ADMIN_CLIENT_SECRET` and
+`LDAP_ADMIN_PASSWORD`, set in `k8s/overlays/local/secrets.env`), so no Keycloak
+admin-console configuration is needed — just make sure both are set before
+`make k8s-up`.
 
-1. Open <http://localhost/auth/admin> (admin / value from `KEYCLOAK_ADMIN_PASSWORD`)
-2. Realm switcher → `TicketSystemRealm`
-3. **Clients → ticket-client → Credentials → Regenerate** → copy the secret
-4. Write it to `k8s/overlays/local/secrets.env` as `KEYCLOAK_ADMIN_CLIENT_SECRET=...`
-5. Re-apply secrets and restart the backend:
-   ```powershell
-   kubectl --context kind-ticketsystem kustomize k8s/overlays/local --load-restrictor=LoadRestrictionsNone | kubectl --context kind-ticketsystem apply -f -
-   kubectl -n ticketsystem rollout restart deploy/it-service-backend
-   ```
-
-### LDAP user federation
-
-The LDAP `bindCredential` is also masked in the realm export. In Keycloak admin
-UI: **User Federation → ldap → Bind credential** = your `LDAP_ADMIN_PASSWORD`
-(default `321654`) → Save → **Action: Sync all users**. Eight users will appear:
-`customer`, `agent`, `lead`, `manager`, `admin`, `adminmanager`, `leadmanager`,
-`superadmin` (all password `321654`). Their realm roles are not stored in LDAP —
-they are assigned by the in-cluster `seed-roles` Job, which runs automatically as
-part of `make k8s-up`. To (re-)run it manually use **`make k8s-seed-roles`**
-(NOT `make seed-roles`, which is the docker-compose variant and cannot reach the
-in-cluster Keycloak).
+The eight federated LDAP users — `customer`, `agent`, `lead`, `manager`, `admin`,
+`adminmanager`, `leadmanager`, `superadmin` (all password `321654`) — get their
+realm roles from the in-cluster `seed-roles` Job, which runs automatically as part
+of `make k8s-up` (roles are not stored in LDAP). To (re-)run it manually use
+**`make k8s-seed-roles`** (NOT `make seed-roles`, which is the docker-compose
+variant and cannot reach the in-cluster Keycloak).
 
 ## Manifests intentionally excluded vs docker-compose
 
