@@ -3,8 +3,6 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.dto.CommentRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.CommentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,30 +15,33 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+/**
+ * Controller-level tests. DTO assembly (author name/role resolution) now lives in
+ * {@link CommentService#toDto}/{@code toDtos}; here we verify the controller delegates
+ * to the service and returns its DTOs. The resolution logic itself is covered in
+ * {@code CommentServiceTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 class CommentControllerTest {
 
     @Mock
     private CommentService commentService;
-    @Mock
-    private UserRepository userRepository;
 
     private CommentController commentController;
 
     @BeforeEach
     void setUp() {
-        commentController = new CommentController(commentService, userRepository);
+        commentController = new CommentController(commentService);
     }
 
     @Test
-    void addComment_returnsDtoWithAuthorName() {
+    void addComment_returnsDtoFromService() {
         Comment saved = Comment.builder()
                 .id(1L)
                 .authorId("customer-1")
@@ -50,8 +51,8 @@ class CommentControllerTest {
                 .build();
 
         when(commentService.addComment(100L, "Need help", "EXTERNAL", "customer-1", List.of("CUSTOMER"))).thenReturn(saved);
-        when(userRepository.findById("customer-1")).thenReturn(Optional.of(
-                User.builder().id("customer-1").fullName("Customer One").build()));
+        when(commentService.toDto(saved)).thenReturn(
+                CommentDTO.fromEntity(saved, "Customer One", "CUSTOMER"));
 
         ResponseEntity<CommentDTO> response = commentController.addComment(
                 100L,
@@ -71,8 +72,9 @@ class CommentControllerTest {
         Comment c2 = Comment.builder().id(2L).authorId("u2").message("msg2").type("INTERNAL").createdAt(ZonedDateTime.now()).build();
 
         when(commentService.getCommentsByTicketId(100L, "agent-1", List.of("AGENT"))).thenReturn(List.of(c1, c2));
-        when(userRepository.findById("u1")).thenReturn(Optional.of(User.builder().id("u1").fullName("User One").build()));
-        when(userRepository.findById("u2")).thenReturn(Optional.of(User.builder().id("u2").fullName("User Two").build()));
+        when(commentService.toDtos(List.of(c1, c2))).thenReturn(List.of(
+                CommentDTO.fromEntity(c1, "User One", null),
+                CommentDTO.fromEntity(c2, "User Two", null)));
 
         ResponseEntity<List<CommentDTO>> response = commentController.getComments(
                 100L,

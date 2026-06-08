@@ -3,8 +3,6 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.dto.CommentRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.CommentService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import jakarta.validation.Valid;
@@ -44,7 +42,6 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
-    private final UserRepository userRepository;
 
     /**
      * Adds a new comment to the ticket; authorization rules are applied inside {@link CommentService}.
@@ -97,7 +94,7 @@ public class CommentController {
         // Kayit tamamlandiginda olusan yorum kimligi donus oncesi loglanir.
         log.info("Yorum başarıyla eklendi. Bilet ID: {}, Yeni Yorum ID: {}", ticketId, comment.getId());
 
-        return ResponseEntity.ok(convertToDto(comment));
+        return ResponseEntity.ok(commentService.toDto(comment));
     }
 
     /**
@@ -141,22 +138,11 @@ public class CommentController {
         log.debug("Bilet ID: {} için veritabanından {} adet yorum çekildi. Kontrol edilen roller: {}", ticketId,
                 comments.size(), roles);
 
-        List<CommentDTO> commentDTOs = comments.stream()
-                .map(this::convertToDto)
-                .toList();
+        List<CommentDTO> commentDTOs = commentService.toDtos(comments);
 
         // Donen yorum adedi yanit oncesi loglanir.
         log.debug("Bilet ID: {} için toplam {} yorum başarıyla listelendi.", ticketId, commentDTOs.size());
 
         return ResponseEntity.ok(commentDTOs);
-    }
-
-    private CommentDTO convertToDto(Comment comment) {
-        User author = comment.getAuthorId() != null
-            ? userRepository.findById(comment.getAuthorId()).orElse(null)
-            : null;
-        String authorName = author != null ? author.getFullName() : "Unknown";
-        String authorRole = author != null ? author.getRole() : null;
-        return CommentDTO.fromEntity(comment, authorName, authorRole);
     }
 }

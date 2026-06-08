@@ -2,8 +2,8 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +16,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,7 +39,7 @@ class CommentServiceTest {
     @Mock
     private NotificationService notificationService;
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
@@ -272,7 +273,7 @@ class CommentServiceTest {
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0); c.setId(5L); return c;
         });
-        when(userRepository.findById("customer-1")).thenReturn(java.util.Optional.empty()); // broadcast author null branch
+        when(userService.getUsersByIds(List.of("customer-1"))).thenReturn(Map.of()); // broadcast author null branch
 
         Comment saved = commentService.addComment(100L, "cevap", null, "customer-1", List.of("CUSTOMER"));
 
@@ -288,8 +289,8 @@ class CommentServiceTest {
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0); c.setId(6L); return c;
         });
-        when(userRepository.findById("agent-1")).thenReturn(java.util.Optional.of(
-                com.ticketsystem.it_service_backend.entity.User.builder().id("agent-1").fullName("Ajan").role("AGENT").build()));
+        when(userService.getUsersByIds(List.of("agent-1"))).thenReturn(
+                Map.of("agent-1", User.builder().id("agent-1").fullName("Ajan").role("AGENT").build()));
 
         commentService.addComment(100L, "iç not", "INTERNAL", "agent-1", List.of("AGENT"));
 

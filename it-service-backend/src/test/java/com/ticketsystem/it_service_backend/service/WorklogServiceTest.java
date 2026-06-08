@@ -32,6 +32,8 @@ class WorklogServiceTest {
     private TicketService ticketService;
     @Mock
     private TicketClaimRepository ticketClaimRepository;
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private WorklogService worklogService;

@@ -3,8 +3,6 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.WorklogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,31 +14,28 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Controller-level tests. Agent display-name resolution and DTO mapping now live in
+ * {@link WorklogService}; here we verify the controller delegates to the service's
+ * DTO methods. The resolution logic itself is covered in {@code WorklogServiceTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 class TicketWorklogControllerTest {
 
     @Mock
     private WorklogService worklogService;
 
-    @Mock
-    private UserRepository userRepository;
-
     private TicketWorklogController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new TicketWorklogController(worklogService, userRepository);
-        // Ad çözümü test kapsamı dışında; varsayılan olarak boş döndür → DTO agentId'ye düşer.
-        lenient().when(userRepository.findById(any())).thenReturn(Optional.empty());
-        lenient().when(userRepository.findAllById(any())).thenReturn(List.of());
+        controller = new TicketWorklogController(worklogService);
     }
 
     @Test
@@ -48,6 +43,7 @@ class TicketWorklogControllerTest {
         WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(30).description("debugging").build();
         TicketWorklog saved = TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(30).description("debugging").build();
         when(worklogService.addWorklog(10L, dto, "agent-1")).thenReturn(saved);
+        when(worklogService.toDto(saved)).thenReturn(WorklogResponseDTO.fromEntity(saved, null));
 
         ResponseEntity<WorklogResponseDTO> response = controller.addWorklog(10L, dto, jwtWithRoles("agent-1", List.of("AGENT")));
 
@@ -57,8 +53,9 @@ class TicketWorklogControllerTest {
 
     @Test
     void getWorklogsByTicket_returnsList() {
-        when(worklogService.getWorklogsByTicket(10L, "agent-1", List.of("AGENT")))
-                .thenReturn(List.of(TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(20).build()));
+        TicketWorklog w = TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(20).build();
+        when(worklogService.getWorklogDtosByTicket(10L, "agent-1", List.of("AGENT")))
+                .thenReturn(List.of(WorklogResponseDTO.fromEntity(w, null)));
 
         ResponseEntity<List<WorklogResponseDTO>> response = controller.getWorklogsByTicket(10L, jwtWithRoles("agent-1", List.of("AGENT")));
 
@@ -68,10 +65,9 @@ class TicketWorklogControllerTest {
 
     @Test
     void getWorklogsByTicket_resolvesAgentName() {
-        when(worklogService.getWorklogsByTicket(10L, "agent-1", List.of("AGENT")))
-                .thenReturn(List.of(TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(20).build()));
-        when(userRepository.findAllById(List.of("agent-1")))
-                .thenReturn(List.of(User.builder().id("agent-1").fullName("Ahmet Yılmaz").build()));
+        TicketWorklog w = TicketWorklog.builder().id(1L).ticketId(10L).agentId("agent-1").minutes(20).build();
+        when(worklogService.getWorklogDtosByTicket(10L, "agent-1", List.of("AGENT")))
+                .thenReturn(List.of(WorklogResponseDTO.fromEntity(w, "Ahmet Yılmaz")));
 
         ResponseEntity<List<WorklogResponseDTO>> response = controller.getWorklogsByTicket(10L, jwtWithRoles("agent-1", List.of("AGENT")));
 
@@ -80,7 +76,9 @@ class TicketWorklogControllerTest {
 
     @Test
     void getAllWorklogs_returnsList() {
-        when(worklogService.getAllWorklogs()).thenReturn(List.of(TicketWorklog.builder().id(1L).build(), TicketWorklog.builder().id(2L).build()));
+        when(worklogService.getAllWorklogDtos()).thenReturn(List.of(
+                WorklogResponseDTO.fromEntity(TicketWorklog.builder().id(1L).build(), null),
+                WorklogResponseDTO.fromEntity(TicketWorklog.builder().id(2L).build(), null)));
 
         ResponseEntity<List<WorklogResponseDTO>> response = controller.getAllWorklogs();
 
@@ -93,6 +91,7 @@ class TicketWorklogControllerTest {
         WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(45).description("done").build();
         TicketWorklog updated = TicketWorklog.builder().id(5L).ticketId(10L).agentId("agent-1").minutes(45).description("done").build();
         when(worklogService.updateWorklog(10L, 5L, dto, "agent-1")).thenReturn(updated);
+        when(worklogService.toDto(updated)).thenReturn(WorklogResponseDTO.fromEntity(updated, null));
 
         ResponseEntity<WorklogResponseDTO> response = controller.updateWorklog(10L, 5L, dto, jwtWithRoles("agent-1", List.of("AGENT")));
 

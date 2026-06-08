@@ -3,8 +3,6 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.service.WorklogService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,8 +29,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * REST controller hosting the CRUD endpoints for time logged against a ticket (worklog).
@@ -48,31 +44,6 @@ import java.util.stream.Collectors;
 public class TicketWorklogController {
 
     private final WorklogService worklogService;
-    private final UserRepository userRepository;
-
-    /** Resolves a single worklog to a DTO, filling the agent's display name. */
-    private WorklogResponseDTO toDto(TicketWorklog worklog) {
-        String name = userRepository.findById(worklog.getAgentId())
-                .map(User::getFullName)
-                .orElse(null);
-        return WorklogResponseDTO.fromEntity(worklog, name);
-    }
-
-    /** Batch-resolves agent display names (single findAllById, no N+1) and maps to DTOs. */
-    private List<WorklogResponseDTO> toDtos(List<TicketWorklog> worklogs) {
-        List<String> agentIds = worklogs.stream()
-                .map(TicketWorklog::getAgentId)
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .toList();
-        Map<String, String> nameById = agentIds.isEmpty() ? Map.of()
-                : userRepository.findAllById(agentIds).stream()
-                        .collect(Collectors.toMap(User::getId, User::getFullName, (a, b) -> a));
-        return worklogs.stream()
-                .map(w -> WorklogResponseDTO.fromEntity(w,
-                        w.getAgentId() == null ? null : nameById.get(w.getAgentId())))
-                .collect(Collectors.toList());
-    }
 
     /**
      * Adds a new worklog to the specified ticket; an agent can only add one to a ticket assigned to them.
@@ -103,7 +74,7 @@ public class TicketWorklogController {
         TicketWorklog saved = worklogService.addWorklog(id, dto, agentId);
 
         log.info("Worklog başarıyla oluşturuldu. Worklog ID: {}", saved.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(worklogService.toDto(saved));
     }
 
     /**
@@ -130,9 +101,7 @@ public class TicketWorklogController {
 
         log.debug("Worklog listeleme isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
 
-        List<TicketWorklog> worklogs = worklogService.getWorklogsByTicket(id, userId, roles);
-
-        return ResponseEntity.ok(toDtos(worklogs));
+        return ResponseEntity.ok(worklogService.getWorklogDtosByTicket(id, userId, roles));
     }
 
     /**
@@ -149,13 +118,13 @@ public class TicketWorklogController {
     @GetMapping("/all-worklogs")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getAllWorklogs() {
-                log.debug("Tüm worklogları listeleme isteği (Agent admin).");
+        log.debug("Tüm worklogları listeleme isteği (Agent admin).");
 
-        List<TicketWorklog> worklogs = worklogService.getAllWorklogs();
+        List<WorklogResponseDTO> worklogs = worklogService.getAllWorklogDtos();
 
         log.debug("Toplam {} worklog listelendi.", worklogs.size());
 
-        return ResponseEntity.ok(toDtos(worklogs));
+        return ResponseEntity.ok(worklogs);
     }
 
     /**
@@ -191,7 +160,7 @@ public class TicketWorklogController {
         TicketWorklog updated = worklogService.updateWorklog(id, worklogId, dto, agentId);
 
         log.info("Worklog başarıyla güncellendi. Worklog ID: {}", worklogId);
-        return ResponseEntity.ok(toDto(updated));
+        return ResponseEntity.ok(worklogService.toDto(updated));
     }
 
     /**

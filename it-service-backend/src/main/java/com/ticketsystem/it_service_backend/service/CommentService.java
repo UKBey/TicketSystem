@@ -5,7 +5,6 @@ import com.ticketsystem.it_service_backend.entity.Comment;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.extern.log4j.Log4j2;
@@ -41,7 +41,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final TicketService ticketService;
     private final NotificationService notificationService;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
 
     private final ConcurrentHashMap<String, Instant> lastCommentTime = new ConcurrentHashMap<>();
@@ -131,16 +131,65 @@ public class CommentService {
 
     // INTERNAL yorumlar agent-only topic'e gider; EXTERNAL'lar genel ticket topic'ine.
     private void broadcastComment(Long ticketId, Comment comment) {
-        User author = comment.getAuthorId() != null
-                ? userRepository.findById(comment.getAuthorId()).orElse(null)
-                : null;
-        String authorName = author != null ? author.getFullName() : "Unknown";
-        String authorRole = author != null ? author.getRole() : null;
-        CommentDTO dto = CommentDTO.fromEntity(comment, authorName, authorRole);
+        CommentDTO dto = toDto(comment);
         String destination = "INTERNAL".equals(comment.getType())
                 ? "/topic/tickets/" + ticketId + "/internal"
                 : "/topic/tickets/" + ticketId;
         messagingTemplate.convertAndSend(destination, TicketWebSocketEvent.commentAdded(dto));
+    }
+
+    // --------------------------------------------------------------------
+    // DTO assembly — author display name/role resolution lives here (not in the
+    // controller), so every comment-emitting path (REST, WebSocket broadcast,
+    // internal full-ticket bundle) renders authors identically.
+    // --------------------------------------------------------------------
+
+    /**
+     * Converts a single comment to a DTO, resolving the author's display name and role.
+     *
+     * @param comment the comment to convert
+     * @return the DTO with the author name ("Unknown" when missing) and role
+     */
+    @Transactional(readOnly = true)
+    public CommentDTO toDto(Comment comment) {
+        Map<String, User> authors = comment.getAuthorId() == null
+                ? Map.of()
+                : userService.getUsersByIds(List.of(comment.getAuthorId()));
+        return toDtoWith(comment, authors);
+    }
+
+    /**
+     * Converts a list of comments to DTOs, batch-resolving author names/roles in a
+     * single query (no N+1).
+     *
+     * @param comments comments to convert
+     * @return DTOs in the same order
+     */
+    @Transactional(readOnly = true)
+    public List<CommentDTO> toDtos(List<Comment> comments) {
+        Map<String, User> authors = userService.getUsersByIds(
+                comments.stream().map(Comment::getAuthorId).toList());
+        return comments.stream().map(c -> toDtoWith(c, authors)).toList();
+    }
+
+    private CommentDTO toDtoWith(Comment comment, Map<String, User> authorsById) {
+        User author = comment.getAuthorId() == null ? null : authorsById.get(comment.getAuthorId());
+        String authorName = author != null ? author.getFullName() : "Unknown";
+        String authorRole = author != null ? author.getRole() : null;
+        return CommentDTO.fromEntity(comment, authorName, authorRole);
+    }
+
+    /**
+     * Returns every comment for a ticket as DTOs, in oldest-to-newest order, with no
+     * role-based filtering. Intended for internal/service-to-service consumers (e.g.
+     * the LLM context bundle) that need the full conversation.
+     *
+     * @param ticketId target ticket ID
+     * @return all comment DTOs for the ticket
+     */
+    @Transactional(readOnly = true)
+    public List<CommentDTO> getAllCommentDtos(Long ticketId) {
+        return toDtos(commentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId));
     }
 
     /**

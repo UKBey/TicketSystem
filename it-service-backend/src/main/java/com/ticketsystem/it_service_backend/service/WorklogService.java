@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
+import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -10,9 +11,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manages time entries (worklogs) recorded against a ticket.
@@ -29,6 +32,7 @@ public class WorklogService {
     private final WorklogRepository worklogRepository;
     private final TicketService ticketService;
     private final TicketClaimRepository ticketClaimRepository;
+    private final UserService userService;
 
     /**
      * Lets the assigned agent record a duration + description against a ticket.
@@ -128,6 +132,78 @@ public class WorklogService {
     public List<TicketWorklog> getAllWorklogs() {
         log.debug("Tüm worklogları listeleme isteği (Manager).");
         return worklogRepository.findAll();
+    }
+
+    // --------------------------------------------------------------------
+    // DTO assembly — agent display-name resolution lives here (not in the
+    // controller), batch-resolved in a single query to avoid N+1.
+    // --------------------------------------------------------------------
+
+    /**
+     * Converts a single worklog to a DTO, resolving the agent's display name.
+     *
+     * @param worklog the worklog to convert
+     * @return the DTO (agent name {@code null} when missing)
+     */
+    @Transactional(readOnly = true)
+    public WorklogResponseDTO toDto(TicketWorklog worklog) {
+        String name = worklog.getAgentId() == null ? null
+                : userService.getDisplayNames(List.of(worklog.getAgentId())).get(worklog.getAgentId());
+        return WorklogResponseDTO.fromEntity(worklog, name);
+    }
+
+    /**
+     * Converts a list of worklogs to DTOs, batch-resolving agent names in a single
+     * query (no N+1).
+     *
+     * @param worklogs worklogs to convert
+     * @return DTOs in the same order
+     */
+    @Transactional(readOnly = true)
+    public List<WorklogResponseDTO> toDtos(List<TicketWorklog> worklogs) {
+        Map<String, String> nameById = userService.getDisplayNames(
+                worklogs.stream().map(TicketWorklog::getAgentId).toList());
+        return worklogs.stream()
+                .map(w -> WorklogResponseDTO.fromEntity(w,
+                        w.getAgentId() == null ? null : nameById.get(w.getAgentId())))
+                .toList();
+    }
+
+    /**
+     * Role-aware worklog listing for a ticket, returned as DTOs. Applies the same
+     * authorization as {@link #getWorklogsByTicket} and fills agent display names.
+     *
+     * @param ticketId target ticket ID
+     * @param userId requesting user
+     * @param roles role list of the user
+     * @return worklog DTOs visible to the caller
+     */
+    @Transactional(readOnly = true)
+    public List<WorklogResponseDTO> getWorklogDtosByTicket(Long ticketId, String userId, List<String> roles) {
+        return toDtos(getWorklogsByTicket(ticketId, userId, roles));
+    }
+
+    /**
+     * All worklogs in the system as DTOs (reporting screen). Caller authorization is
+     * enforced at the controller via {@code @PreAuthorize}.
+     *
+     * @return all worklog DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<WorklogResponseDTO> getAllWorklogDtos() {
+        return toDtos(getAllWorklogs());
+    }
+
+    /**
+     * All worklogs for a ticket as DTOs, with no role-based filtering. Intended for
+     * internal/service-to-service consumers (e.g. the LLM context bundle).
+     *
+     * @param ticketId target ticket ID
+     * @return all worklog DTOs for the ticket
+     */
+    @Transactional(readOnly = true)
+    public List<WorklogResponseDTO> getAllWorklogDtosByTicket(Long ticketId) {
+        return toDtos(worklogRepository.findByTicketId(ticketId));
     }
 
     /**
