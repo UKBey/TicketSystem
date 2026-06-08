@@ -2,8 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.WorkflowCallbackDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
-import com.ticketsystem.it_service_backend.repository.TicketRepository;
-import com.ticketsystem.it_service_backend.service.NotificationService;
+import com.ticketsystem.it_service_backend.service.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.ZonedDateTime;
 
 /**
  * Internal REST controller that receives process events from the jBPM KIE Server.
@@ -35,8 +33,7 @@ import java.time.ZonedDateTime;
 @RequiredArgsConstructor
 public class WorkflowCallbackController {
 
-    private final TicketRepository ticketRepository;
-    private final NotificationService notificationService;
+    private final TicketService ticketService;
 
     @Value("${jbpm.kie-server.callback-token}")
     private String expectedToken;
@@ -88,19 +85,21 @@ public class WorkflowCallbackController {
         log.info("jBPM Callback Alındı: TicketId={}, EventType={}, ProcessInstanceId={}, EkData={}",
                 callback.getTicketId(), callback.getEventType(), callback.getProcessInstanceId(), callback.getAdditionalData());
 
-        // Olayin bagli oldugu bilet kaydi bulunur.
-        Ticket ticket = ticketRepository.findById(callback.getTicketId())
-                .orElse(null);
+        // Olayin bagli oldugu bilet kaydi bulunur. Bulunamazsa protokol geregi 404 doneriz;
+        // bu yuzden servisin throw eden getTicketById'si yerine Optional donen findById kullanilir.
+        Ticket ticket = ticketService.findById(callback.getTicketId()).orElse(null);
 
         if (ticket == null) {
             log.error("Callback hatası: Bilet bulunamadı! TicketId={}", callback.getTicketId());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ticket not found");
         }
 
-        // Olay tipine gore alan guncelleme veya takip adimi calistirilir.
+        // Olay tipine gore is mantigi servis katmanina delege edilir; controller yalnizca
+        // protokol (token, event tipi, HTTP statu) ile ilgilenir.
         switch (callback.getEventType()) {
             case "SLA_BREACHED":
-                handleSlaBreach(ticket);
+                // SLA bayragini set+kaydet+bildir; idempotent — tekrar callback'te no-op.
+                ticketService.markSlaBreached(ticket);
                 break;
             case "PROCESS_COMPLETED":
                 log.info("TicketId={} süreci KIE Server'da başarıyla sonlandı.", ticket.getId());
@@ -111,25 +110,6 @@ public class WorkflowCallbackController {
         }
 
         return ResponseEntity.ok("Callback processed successfully");
-    }
-
-    private void handleSlaBreach(Ticket ticket) {
-        // jBPM aynı bilet için callback'i tekrar gönderirse, bayrak zaten set'tir ve
-        // mail tekrar gitmemeli. Scheduler de bu bayrağı kontrol ediyor — yani jBPM
-        // önce tetiklerse scheduler bir daha denemez ve double-mail riski yoktur.
-        if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
-            log.info("SLA breach callback tekrarı atlandı. TicketId={}", ticket.getId());
-            return;
-        }
-
-        log.warn("SLA AŞIMI GERÇEKLEŞTİ! TicketId={}", ticket.getId());
-        ticket.setSlaBreached(true);
-        ticketRepository.save(ticket);
-
-        // jBPM trigger'ından gelen SLA breach için de mail/notification dispatch et —
-        // scheduler bu bileti artık görmez (flag set'tir), o yüzden mail sadece burada
-        // tetiklenir.
-        notificationService.notifySlaBreached(ticket);
     }
 
     /**

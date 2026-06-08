@@ -34,6 +34,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -890,6 +891,46 @@ public class TicketService {
     public Ticket getTicketById(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bilet bulunamadı: " + id));
+    }
+
+    /**
+     * Returns the ticket by ID as an {@link Optional}, without authorization checks
+     * and without throwing on absence. Intended for callers (e.g. the jBPM callback)
+     * that need to translate a missing ticket into their own protocol response.
+     *
+     * @param id ticket ID
+     * @return the ticket if present, otherwise empty
+     */
+    @Transactional(readOnly = true)
+    public Optional<Ticket> findById(Long id) {
+        return ticketRepository.findById(id);
+    }
+
+    /**
+     * Idempotently marks the ticket as SLA-breached: sets the flag, persists it and
+     * dispatches the breach notification. If the flag is already set (e.g. the jBPM
+     * callback is redelivered, or the scheduler marked it first), this is a no-op and
+     * no duplicate notification is sent.
+     *
+     * @param ticket the ticket to mark (may be detached — it is merged on save)
+     * @return {@code true} if this call performed the breach, {@code false} if it was
+     *         already breached
+     */
+    @Transactional
+    public boolean markSlaBreached(Ticket ticket) {
+        // jBPM aynı bilet için callback'i tekrar gönderirse, bayrak zaten set'tir ve
+        // mail tekrar gitmemeli. Scheduler de bu bayrağı kontrol ediyor — yani jBPM
+        // önce tetiklerse scheduler bir daha denemez ve double-mail riski yoktur.
+        if (Boolean.TRUE.equals(ticket.getSlaBreached())) {
+            log.info("SLA breach tekrarı atlandı. TicketId={}", ticket.getId());
+            return false;
+        }
+
+        log.warn("SLA AŞIMI GERÇEKLEŞTİ! TicketId={}", ticket.getId());
+        ticket.setSlaBreached(true);
+        ticketRepository.save(ticket);
+        notificationService.notifySlaBreached(ticket);
+        return true;
     }
 
     /**
