@@ -1,24 +1,16 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AssignTicketRequestDTO;
-import com.ticketsystem.it_service_backend.dto.ClaimerDTO;
 import com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.PriorityChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
-import com.ticketsystem.it_service_backend.dto.TicketAuditLogDTO;
 import com.ticketsystem.it_service_backend.dto.TopicChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
-import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
-import com.ticketsystem.it_service_backend.entity.User;
-import com.ticketsystem.it_service_backend.repository.CsatRepository;
-import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
-import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
-import com.ticketsystem.it_service_backend.repository.UserRepository;
-import com.ticketsystem.it_service_backend.repository.ProductRepository;
+import com.ticketsystem.it_service_backend.service.TicketDtoAssembler;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
@@ -46,7 +38,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Main REST controller for the ticket lifecycle.
@@ -63,14 +54,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Validated
 public class TicketController {
-    private static final String UNKNOWN = "Unknown";
 
     private final TicketService ticketService;
-    private final TicketClaimRepository ticketClaimRepository;
-    private final TicketAuditLogRepository ticketAuditLogRepository;
-    private final UserRepository userRepository;
-    private final ProductRepository productRepository;
-    private final CsatRepository csatRepository;
+    private final TicketDtoAssembler ticketDtoAssembler;
 
     /**
      * Creates a new ticket and starts the jBPM workflow process.
@@ -574,46 +560,11 @@ public class TicketController {
     }
 
     // -----------------------------------------------------------------
-    // DTO dönüşümü
+    // DTO dönüşümü — derleme mantığı (isim çözümü, claim/audit/CSAT) servis
+    // katmanındaki TicketDtoAssembler'a taşındı; controller yalnızca delege eder.
     // -----------------------------------------------------------------
 
     private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat, List<String> roles) {
-        String customerName = ticket.getCustomerId() != null
-                ? userRepository.findById(ticket.getCustomerId()).map(User::getFullName).orElse(UNKNOWN)
-                : UNKNOWN;
-        String productName = ticket.getProductId() != null
-                ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse(UNKNOWN)
-                : UNKNOWN;
-
-        List<ClaimerDTO> claimers = ticketClaimRepository.findByTicketId(ticket.getId()).stream()
-                .map(claim -> ClaimerDTO.builder()
-                        .agentId(claim.getAgentId())
-                        .agentName(userRepository.findById(claim.getAgentId())
-                                .map(User::getFullName).orElse(UNKNOWN))
-                        .claimedAt(claim.getClaimedAt())
-                        .build())
-                .collect(Collectors.toList());
-
-        // CSAT denetim kayıtları (puan/yorum içerir) yalnızca ADMIN/MANAGER ile biletin
-        // sahibi müşteriye gösterilir; ajan/lead timeline'da görmez.
-        boolean canSeeCsat = AuthRoles.isGlobal(roles) || roles.contains(AuthRoles.CUSTOMER);
-        List<TicketAuditLogDTO> auditLogs = ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId()).stream()
-                .filter(log -> canSeeCsat || !"CSAT_SUBMITTED".equals(log.getActionType()))
-                .map(log -> TicketAuditLogDTO.fromEntity(log,
-                        userRepository.findById(log.getActorId())
-                                .map(User::getFullName)
-                                .orElse(log.getActorId())))
-                .collect(Collectors.toList());
-
-        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, claimers);
-        dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
-        dto.setAuditLogs(auditLogs);
-
-        // CSAT puanı liste/detayda yalnızca ADMIN/MANAGER'a açılır (gizlilik sınırı).
-        if (AuthRoles.isGlobal(roles)) {
-            csatRepository.findByTicketId(ticket.getId())
-                    .ifPresent(csat -> dto.setCsatRating(csat.getRating()));
-        }
-        return dto;
+        return ticketDtoAssembler.toDto(ticket, hasCsat, roles);
     }
 }

@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.dto.KnownIssueDTO;
 import com.ticketsystem.it_service_backend.entity.KnownIssue;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.KnownIssueRepository;
@@ -64,6 +65,25 @@ public class KnownIssueService {
         return activeOnly
                 ? knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(productId)
                 : knownIssueRepository.findByProductIdOrderByCreatedAtDesc(productId);
+    }
+
+    /**
+     * Returns the active known-issue records relevant to a ticket, newest first, as
+     * DTOs. "Relevant" means: same product, and either product-wide (no topic) or
+     * matching the ticket's topic. Intended for internal/service-to-service consumers
+     * (e.g. the LLM context bundle) — no per-user access check is applied.
+     *
+     * @param productId the ticket's product ID (null yields an empty list)
+     * @param topicId the ticket's topic ID (may be null)
+     * @return matching active known-issue DTOs (possibly empty)
+     */
+    @Transactional(readOnly = true)
+    public List<KnownIssueDTO> getActiveForTicket(Long productId, Long topicId) {
+        if (productId == null) return List.of();
+        return knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(productId).stream()
+                .filter(ki -> ki.getTopicId() == null || ki.getTopicId().equals(topicId))
+                .map(KnownIssueDTO::fromEntity)
+                .toList();
     }
 
     /**

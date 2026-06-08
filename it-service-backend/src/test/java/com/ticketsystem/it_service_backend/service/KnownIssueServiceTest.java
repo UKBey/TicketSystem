@@ -282,4 +282,45 @@ class KnownIssueServiceTest {
         assertThat(result.getContent()).isEqualTo("Eski içerik");
         assertThat(result.getIsActive()).isTrue();
     }
+
+    // ----------------------------------------------------------------
+    // getActiveForTicket — internal/LLM bundle helper
+    // ----------------------------------------------------------------
+
+    @Nested
+    @DisplayName("getActiveForTicket()")
+    class GetActiveForTicket {
+
+        @Test
+        @DisplayName("Ürün geneli (topic'siz) + bilet topic'ine ait kayıtlar döner; başka topic elenir")
+        void includesTopicAndProductWide_excludesOtherTopic() {
+            KnownIssue topicIssue = KnownIssue.builder()
+                    .id(1L).productId(10L).topicId(5L).title("Auth token expires")
+                    .content("Re-issue").isActive(true).build();
+            KnownIssue productWide = KnownIssue.builder()
+                    .id(2L).productId(10L).topicId(null).title("CRM slow")
+                    .content("Clear cache").isActive(true).build();
+            KnownIssue otherTopic = KnownIssue.builder()
+                    .id(3L).productId(10L).topicId(999L).title("Unrelated")
+                    .content("n/a").isActive(true).build();
+            when(knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(10L))
+                    .thenReturn(List.of(topicIssue, productWide, otherTopic));
+
+            List<com.ticketsystem.it_service_backend.dto.KnownIssueDTO> result =
+                    service.getActiveForTicket(10L, 5L);
+
+            assertThat(result).extracting(com.ticketsystem.it_service_backend.dto.KnownIssueDTO::getId)
+                    .containsExactly(1L, 2L);
+        }
+
+        @Test
+        @DisplayName("productId null ise boş liste döner ve repository'ye gidilmez")
+        void nullProductId_returnsEmpty() {
+            List<com.ticketsystem.it_service_backend.dto.KnownIssueDTO> result =
+                    service.getActiveForTicket(null, 5L);
+
+            assertThat(result).isEmpty();
+            verify(knownIssueRepository, never()).findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(any());
+        }
+    }
 }
