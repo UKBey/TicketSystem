@@ -17,7 +17,8 @@ class OpenApiConfigTest {
         assertNotNull(openAPI.getInfo());
         assertEquals("IT Service Desk — Ticket Management API", openAPI.getInfo().getTitle());
         assertTrue(openAPI.getInfo().getDescription().contains("Kurumsal IT destek bilet yönetim sistemi"));
-        assertEquals("0.10.6", openAPI.getInfo().getVersion());
+        // Surum `make set-version` ile guncellenir; tam degeri degil semver bicimini dogrula
+        assertTrue(openAPI.getInfo().getVersion().matches("\\d+\\.\\d+\\.\\d+.*"));
 
         // Contact bilgisi
         assertNotNull(openAPI.getInfo().getContact());
