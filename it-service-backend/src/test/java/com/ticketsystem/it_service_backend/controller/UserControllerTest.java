@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.controller;
 
+import com.ticketsystem.it_service_backend.dto.PdfPreferencesDTO;
 import com.ticketsystem.it_service_backend.dto.UserDTO;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -19,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -234,6 +236,44 @@ class UserControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("dark", response.getBody().getPreferredTheme());
+    }
+
+    // -------------------------------------------------------------------------
+    // getPdfPreferences / updatePdfPreferences
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getPdfPreferences_returnsStoredString() {
+        when(userService.getPdfExportPreferences("u-1")).thenReturn("{\"theme\":\"dark\"}");
+        Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
+
+        ResponseEntity<PdfPreferencesDTO> response = userController.getPdfPreferences(jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("{\"theme\":\"dark\"}", response.getBody().getPreferences());
+    }
+
+    @Test
+    void getPdfPreferences_returnsNullWhenNoneSaved() {
+        when(userService.getPdfExportPreferences("u-1")).thenReturn(null);
+        Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
+
+        ResponseEntity<PdfPreferencesDTO> response = userController.getPdfPreferences(jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNull(response.getBody().getPreferences());
+    }
+
+    @Test
+    void updatePdfPreferences_persistsAndReturnsNoContent() {
+        PdfPreferencesDTO body = new PdfPreferencesDTO();
+        body.setPreferences("{\"language\":\"tr\"}");
+        Jwt jwt = jwtWithRoles("u-1", List.of("AGENT"));
+
+        ResponseEntity<Void> response = userController.updatePdfPreferences(jwt, body);
+
+        assertEquals(204, response.getStatusCode().value());
+        verify(userService).updatePdfExportPreferences("u-1", "{\"language\":\"tr\"}");
     }
 
     // -------------------------------------------------------------------------

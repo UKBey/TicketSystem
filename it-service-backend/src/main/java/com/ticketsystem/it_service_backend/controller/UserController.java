@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.dto.ChangePasswordRequest;
+import com.ticketsystem.it_service_backend.dto.PdfPreferencesDTO;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
 import com.ticketsystem.it_service_backend.dto.TotpCredentialDTO;
 import com.ticketsystem.it_service_backend.dto.UpdateProfileRequest;
@@ -469,6 +470,38 @@ public class UserController {
         log.debug("Tema tercihi güncelleme isteği. Kullanıcı: {}, Tema: {}", userId, theme);
         User user = userService.updatePreferredTheme(userId, theme);
         return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
+
+    /**
+     * Returns the caller's last-used PDF export modal selections (sections, language,
+     * theme) as an opaque JSON string, or null when none have been saved yet.
+     *
+     * @return DTO wrapping the stored preferences string (nullable)
+     */
+    @Operation(summary = "PDF dışa aktarma tercihlerini getir",
+            description = "Kullanıcının PDF modalında en son kullandığı seçimleri (opak JSON string) döner; hiç kaydı yoksa null.")
+    @GetMapping("/me/pdf-preferences")
+    public ResponseEntity<PdfPreferencesDTO> getPdfPreferences(@AuthenticationPrincipal Jwt jwt) {
+        PdfPreferencesDTO dto = new PdfPreferencesDTO();
+        dto.setPreferences(userService.getPdfExportPreferences(jwt.getSubject()));
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Persists the caller's PDF export modal selections. The value is stored verbatim as
+     * an opaque JSON string (the frontend owns its shape); only the length is validated.
+     *
+     * @param body wrapper carrying the preferences JSON string (max 2000 chars)
+     * @return {@code 204 No Content}
+     */
+    @Operation(summary = "PDF dışa aktarma tercihlerini güncelle",
+            description = "Kullanıcının PDF modalındaki son seçimlerini saklar. Değer opak bir JSON string olarak tutulur.")
+    @PutMapping("/me/pdf-preferences")
+    public ResponseEntity<Void> updatePdfPreferences(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @org.springframework.web.bind.annotation.RequestBody PdfPreferencesDTO body) {
+        userService.updatePdfExportPreferences(jwt.getSubject(), body.getPreferences());
+        return ResponseEntity.noContent().build();
     }
 
     /**

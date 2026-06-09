@@ -72,6 +72,14 @@ public class User {
     @Builder.Default
     private String preferredTheme = "light";
 
+    /**
+     * Last-used selections in the PDF export modal (which sections, PDF language, PDF
+     * theme), stored as an opaque JSON string defined by the frontend. Null until the
+     * user generates their first PDF, after which defaults are derived client-side.
+     */
+    @Column(name = "pdf_export_preferences", length = 2000)
+    private String pdfExportPreferences;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

@@ -439,6 +439,41 @@ public class UserService {
     }
 
     /**
+     * Returns the user's last-used PDF export preferences (opaque JSON string defined by
+     * the frontend), or {@code null} when the user has never generated a PDF.
+     *
+     * @param userId target user ID
+     * @return the stored preferences string, or null
+     */
+    @Transactional(readOnly = true)
+    public String getPdfExportPreferences(String userId) {
+        return getUserById(userId).getPdfExportPreferences();
+    }
+
+    /**
+     * Persists the user's PDF export preferences. The backend treats the value as an
+     * opaque blob (the frontend owns its shape); only the length is bounded by the
+     * column ({@code VARCHAR(2000)}), enforced again here.
+     *
+     * @param userId target user ID
+     * @param preferences JSON string from the PDF export modal (max 2000 chars)
+     * @return the updated user
+     * @throws ResponseStatusException 400 when the payload exceeds the length cap
+     */
+    @Transactional
+    public User updatePdfExportPreferences(String userId, String preferences) {
+        if (preferences != null && preferences.length() > 2000) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "PDF preferences payload too large (max 2000 characters)");
+        }
+        User user = getUserById(userId);
+        user.setPdfExportPreferences(preferences);
+        log.debug("Kullanıcı PDF tercihleri güncellendi. ID: {}", userId);
+        return userRepository.save(user);
+    }
+
+    /**
      * Removes a product from the user's authorized list. Idempotent — does
      * nothing if the product is not in the list.
      *

@@ -589,6 +589,51 @@ class UserServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    // PDF export preferences (opak JSON string)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updatePdfExportPreferences → değer kullanıcıya yazılır ve döner")
+    void updatePdfExportPreferences_saves() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        String json = "{\"language\":\"tr\",\"theme\":\"dark\"}";
+        User result = userService.updatePdfExportPreferences("agent-1", json);
+
+        assertThat(result.getPdfExportPreferences()).isEqualTo(json);
+    }
+
+    @Test
+    @DisplayName("updatePdfExportPreferences → null → null olarak temizlenir")
+    void updatePdfExportPreferences_null_clears() {
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        User result = userService.updatePdfExportPreferences("agent-1", null);
+
+        assertThat(result.getPdfExportPreferences()).isNull();
+    }
+
+    @Test
+    @DisplayName("updatePdfExportPreferences → 2000+ karakter → ResponseStatusException 400")
+    void updatePdfExportPreferences_tooLong_throws() {
+        String tooLong = "x".repeat(2001);
+        assertThatThrownBy(() -> userService.updatePdfExportPreferences("agent-1", tooLong))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .extracting("statusCode").isEqualTo(org.springframework.http.HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @DisplayName("getPdfExportPreferences → kullanıcının saklı değerini döner")
+    void getPdfExportPreferences_returnsStored() {
+        user.setPdfExportPreferences("{\"theme\":\"light\"}");
+        when(userRepository.findById("agent-1")).thenReturn(Optional.of(user));
+
+        assertThat(userService.getPdfExportPreferences("agent-1")).isEqualTo("{\"theme\":\"light\"}");
+    }
+
+    // -------------------------------------------------------------------------
     // deactivate / reactivate
     // -------------------------------------------------------------------------
 
