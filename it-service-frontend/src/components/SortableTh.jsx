@@ -14,8 +14,10 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
  *                                ("asc" backend'de LOW→CRITICAL demek ama kullanıcı
  *                                "yukarı ok = en yüksek üstte" bekler)
  * @param {'left'|'right'} [align] başlık hizası — sağa yaslı işlem sütunları için 'right'
+ * @param {React.ReactNode} [resizeHandle] sağ kenara yerleşen sütun genişlik tutamacı
+ *                                         (TicketTable verir; verilmezse th sabit genişlikli)
  */
-export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false, align = 'left' }) {
+export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false, align = 'left', resizeHandle = null }) {
   const active = sortBy === field;
 
   const displayDir = invertArrow
@@ -28,10 +30,11 @@ export default function SortableTh({ field, label, sortBy, sortDir, onSort, inve
 
   const alignClass = align === 'right' ? 'text-right' : 'text-left';
   const baseClass = `${alignClass} px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b`;
-  const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' };
+  // position: relative — resizeHandle (absolute) bu th'e göre konumlanır.
+  const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', position: 'relative' };
 
   if (typeof onSort !== 'function') {
-    return <th className={baseClass} style={baseStyle}>{label}</th>;
+    return <th className={baseClass} style={baseStyle}>{label}{resizeHandle}</th>;
   }
 
   return (
@@ -45,6 +48,7 @@ export default function SortableTh({ field, label, sortBy, sortDir, onSort, inve
         {label}
         <Icon className="h-3 w-3" />
       </button>
+      {resizeHandle}
     </th>
   );
 }

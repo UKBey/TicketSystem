@@ -30,12 +30,30 @@ export default function TicketTable({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [tickSeconds, setTickSeconds] = useState(0);
+  // Sütun genişlikleri yalnızca oturum boyunca state'te tutulur (kalıcı değil —
+  // sayfa yenilenince DEFAULT_COL_WIDTHS'e döner). Anahtar: sütun id'si.
+  const [colWidths, setColWidths] = useState({});
+  const [resizing, setResizing] = useState(false);
 
   useEffect(() => {
     if (!showSla) return undefined;
     const timer = setInterval(() => setTickSeconds((v) => v + 1), 1000);
     return () => clearInterval(timer);
   }, [showSla]);
+
+  // Sürükleme sürerken metin seçimini ve imleci global olarak ayarla. DOM mutasyonu
+  // efekt içinde olmalı (react-hooks/immutability), o yüzden body stilini burada yönetiyoruz.
+  useEffect(() => {
+    if (!resizing) return undefined;
+    const prevSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    return () => {
+      document.body.style.userSelect = prevSelect;
+      document.body.style.cursor = prevCursor;
+    };
+  }, [resizing]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -65,6 +83,41 @@ export default function TicketTable({
   // Action sütunu kararı: renderActions öncelikli, yoksa shortcut showClaimButton.
   const useCustomActions = typeof renderActions === 'function';
   const showActionsColumn = useCustomActions || Boolean(showClaimButton);
+
+  // Aktif sütunlar colgroup/thead ile AYNI sırada; opsiyonel sütunlar bayrağa göre düşer.
+  const columnOrder = [
+    'id', 'title', 'status', 'priority',
+    showSla && 'sla',
+    showClaimers && 'claimers',
+    showCsat && 'csat',
+    'created',
+    showActionsColumn && 'actions',
+  ].filter(Boolean);
+  const widthOf = (id) => colWidths[id] ?? DEFAULT_COL_WIDTHS[id];
+  const tableWidth = columnOrder.reduce((sum, id) => sum + widthOf(id), 0);
+
+  // Tutamaca basılınca, bırakana kadar fareyi izleyip yalnızca o sütunun
+  // genişliğini günceller. Dinleyiciler aynı kapanış içinde eklenip kaldırıldığı
+  // için referanslar eşleşir (useCallback/ref gerekmez).
+  const startResize = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = widthOf(id);
+    const onMove = (ev) => {
+      const next = Math.max(MIN_COL_WIDTH, startW + (ev.clientX - startX));
+      setColWidths((prev) => ({ ...prev, [id]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setResizing(false);
+    };
+    setResizing(true);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  const handleFor = (id) => <ResizeHandle onStart={(e) => startResize(e, id)} />;
 
   return (
     <>
@@ -141,38 +194,31 @@ export default function TicketTable({
           + minWidth tablo intrinsic genişliğini koruyup container içinde yatay
           scroll bar gösterir; üst container'daki rounded-xl overflow-hidden bozulmaz. */}
       <div className="hidden lg:block overflow-x-auto">
-      <table className="w-full" style={{ tableLayout: 'fixed', minWidth: tableMinWidth(showSla, showClaimers, showActionsColumn, showCsat) }}>
+      {/* Sütunlar sürüklenerek yeniden boyutlandırılabilir; tablo genişliği aktif
+          sütunların toplamına eşittir, böylece bir sütunu büyütünce yalnızca o
+          büyür ve gerekirse yatay scroll çıkar. */}
+      <table style={{ tableLayout: 'fixed', width: `${tableWidth}px` }}>
         <colgroup>
-          <col style={{ width: '90px' }} />   {/* ID */}
-          <col style={{ width: '30%' }} />    {/* Title — fixed, truncates */}
-          <col style={{ width: '130px' }} />  {/* Status */}
-          <col style={{ width: '100px' }} />  {/* Priority */}
-          {showSla     && <col style={{ width: '130px' }} />}  {/* SLA */}
-          {showClaimers && <col style={{ width: '140px' }} />} {/* Claimers */}
-          {showCsat    && <col style={{ width: '120px' }} />}  {/* CSAT */}
-          <col style={{ width: '140px' }} />  {/* Created */}
-          {showActionsColumn && <col style={{ width: '160px' }} />} {/* Action — biraz daha geniş, iki butona yetsin */}
+          {columnOrder.map((id) => <col key={id} style={{ width: `${widthOf(id)}px` }} />)}
         </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <SortableTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortableTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortableTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
-            <SortableTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow />
+            <SortableTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('id')} />
+            <SortableTh field="title"       label={t('ticket.table.title')}    sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('title')} />
+            <SortableTh field="status"      label={t('ticket.table.status')}   sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('status')} />
+            <SortableTh field="priority"    label={t('ticket.table.priority')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} invertArrow resizeHandle={handleFor('priority')} />
             {showSla && (
-              <SortableTh field="slaDeadline" label={t('ticket.table.sla')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+              <SortableTh field="slaDeadline" label={t('ticket.table.sla')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('sla')} />
             )}
             {showClaimers && (
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.claimers')}</th>
+              <SortableTh label={t('ticket.table.claimers')} resizeHandle={handleFor('claimers')} />
             )}
             {showCsat && (
-              <SortableTh field="csatRating" label={t('ticket.table.csat')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+              <SortableTh field="csatRating" label={t('ticket.table.csat')} sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('csat')} />
             )}
-            <SortableTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} />
+            <SortableTh field="createdAt"   label={t('ticket.table.created')}  sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('created')} />
             {showActionsColumn && (
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b"
-                style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('ticket.table.actions')}</th>
+              <SortableTh label={t('ticket.table.actions')} resizeHandle={handleFor('actions')} />
             )}
           </tr>
         </thead>
@@ -263,19 +309,41 @@ export default function TicketTable({
   );
 }
 
+// Sütunların varsayılan piksel genişlikleri (id ile anahtarlanır). Kullanıcı
+// sürükleyip değiştirmediği sürece bunlar geçerlidir; sayfa yenilenince geri gelirler.
+const DEFAULT_COL_WIDTHS = {
+  id: 90,
+  title: 320,
+  status: 130,
+  priority: 100,
+  sla: 130,
+  claimers: 140,
+  csat: 120,
+  created: 140,
+  actions: 160,
+};
+// Bir sütun bu pikselin altına küçültülemez.
+const MIN_COL_WIDTH = 60;
+
 /**
- * Tablo için ihtiyaca göre minimum genişlik. Title sütununun (%30) gerçek
- * piksel değeri, diğer sabit sütunların toplamından sonra %70 dilim olarak
- * ortaya çıkıyor → minWidth = (fixedSum) / 0.70 ile başlığa makul (≥200px)
- * yer kalır.
+ * Başlığın sağ kenarındaki sürükleme tutamacı. 10px'lik tıklama alanı, üzerine
+ * gelince ince bir dikey çizgi gösterir. mousedown sıralamayı tetiklemesin diye
+ * onStart içinde event durdurulur.
  */
-function tableMinWidth(showSla, showClaimers, showActions, showCsat) {
-  let fixed = 90 + 130 + 100 + 140; // ID + Status + Priority + Created
-  if (showSla) fixed += 130;
-  if (showClaimers) fixed += 140;
-  if (showCsat) fixed += 120;
-  if (showActions) fixed += 160;
-  return `${Math.ceil(fixed / 0.70)}px`;
+function ResizeHandle({ onStart }) {
+  return (
+    <span
+      role="separator"
+      aria-orientation="vertical"
+      onMouseDown={onStart}
+      onClick={(e) => e.stopPropagation()}
+      className="group absolute top-0 right-0 h-full flex items-center justify-end select-none"
+      style={{ width: '10px', cursor: 'col-resize', touchAction: 'none' }}
+      title={'Sürükleyerek sütun genişliğini ayarla'}
+    >
+      <span className="h-1/2 w-px bg-transparent group-hover:bg-primary-400 transition-colors" />
+    </span>
+  );
 }
 
 /** CSAT yıldız puanı; puan yoksa nötr bir tire gösterir. */
