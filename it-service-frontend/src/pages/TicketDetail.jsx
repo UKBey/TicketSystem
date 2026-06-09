@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { StatusBadge, PriorityBadge } from '../components/Badges';
 import ActionReasonModal from '../components/ActionReasonModal';
 import AgentSelectionModal from '../components/AgentSelectionModal';
-import { ArrowLeft, Sparkles, User } from 'lucide-react';
+import { ArrowLeft, Sparkles, User, FileDown } from 'lucide-react';
 
 import { useTicketDetail } from '../hooks/useTicketDetail';
 import { STATUS_OPTIONS } from '../utils/ticketFormatters';
@@ -16,6 +16,7 @@ import StatusActionsCard from '../components/ticket/StatusActionsCard';
 import TicketDetailsCard from '../components/ticket/TicketDetailsCard';
 import WorklogCard from '../components/ticket/WorklogCard';
 import AiSummaryModal from '../components/ticket/AiSummaryModal';
+import PdfExportModal from '../components/ticket/PdfExportModal';
 import CsatModal from '../components/ticket/CsatModal';
 import ResolveModal from '../components/ticket/ResolveModal';
 import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
@@ -32,6 +33,7 @@ export default function TicketDetail() {
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [priorityInitial, setPriorityInitial] = useState(null);
 
   const {
@@ -107,17 +109,28 @@ export default function TicketDetail() {
               <PriorityBadge priority={ticket.priority} />
               <StatusBadge status={ticket.status} />
             </div>
-            {isAgent && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {isAgent && (
+                <button
+                  onClick={() => setAiSummaryModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 min-h-[40px] sm:min-h-0"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }}
+                  title={t('ticketDetail.aiSummaryTitle')}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {t('ticketDetail.aiSummary')}
+                </button>
+              )}
               <button
-                onClick={() => setAiSummaryModalOpen(true)}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 self-start sm:self-auto min-h-[40px] sm:min-h-0"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: '#fff' }}
-                title={t('ticketDetail.aiSummaryTitle')}
+                onClick={() => setPdfModalOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 min-h-[40px] sm:min-h-0"
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                title={t('ticketDetail.pdfTitle')}
               >
-                <Sparkles className="h-4 w-4" />
-                {t('ticketDetail.aiSummary')}
+                <FileDown className="h-4 w-4" />
+                {t('ticketDetail.pdf')}
               </button>
-            )}
+            </div>
           </div>
           <div className="text-lg font-semibold mt-1 break-words" style={{ color: 'var(--text-primary)' }}>
             {ticket.title}
@@ -240,6 +253,15 @@ export default function TicketDetail() {
         onClose={() => setAiSummaryModalOpen(false)}
         ticketId={id}
         isAgent={isAgent}
+      />
+
+      <PdfExportModal
+        isOpen={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        ticket={ticket}
+        ticketCode={ticketCode}
+        isAgent={isAgent}
+        isCustomer={isCustomer}
       />
 
       <ActionReasonModal

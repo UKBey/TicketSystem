@@ -176,6 +176,18 @@ export const getAllAiSummaries = (ticketId) =>
   api.get(`/ai/summaries/tickets/${ticketId}`);
 
 // ============================================================
+// PDF dışa aktarma tercihleri (kullanıcının son seçimleri — DB'de saklı)
+// ============================================================
+
+// Son kullanılan PDF modal seçimlerini getir ({ preferences: <json|null> })
+export const getPdfPreferences = () =>
+  api.get('/users/me/pdf-preferences');
+
+// PDF modal seçimlerini kaydet (opak JSON string)
+export const savePdfPreferences = (preferences) =>
+  api.put('/users/me/pdf-preferences', { preferences });
+
+// ============================================================
 // Known Issues (Sıkça Karşılaşılan Sorunlar) API
 // ============================================================
 
