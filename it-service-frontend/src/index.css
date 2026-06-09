@@ -193,10 +193,19 @@
 }
 
 /* Bilet listesi tablosu (TicketTable): dar sütunlarda badge/metin komşu sütuna
-   taşınca, sağdaki sütunun içeriği HER ZAMAN soldakinin üstünde kalsın. nth-child
-   ile soldan sağa artan z-index (yüksek z = üstte); z-index için position gerekli.
+   taşınca üst üste binmesin. Çözüm = OPAK hücre arka planı + soldan sağa artan
+   z-index: sağdaki hücre hem daha üstte hem opak olduğu için soldakinin taşan
+   kısmını fiziksel olarak kapatır (taşma komşu sütunun altında kalır, görünmez).
+   Arka plan satır/kart rengiyle aynıdır; z-index için position gerekli.
    En fazla 9 sütun var (id, title, status, priority, sla, claimers, csat, created, actions). */
-.ticket-table tbody td { position: relative; }
+.ticket-table tbody td {
+  position: relative;
+  background-color: var(--bg-surface);
+  /* Satır ayıracı tr yerine td'de — opak hücre arka planı tr border'ını gizleyebilir. */
+  border-bottom: 1px solid var(--border-color-light);
+  transition: background-color 150ms ease;
+}
+.ticket-table tbody tr:hover td { background-color: var(--bg-surface-hover); }
 .ticket-table tbody td:nth-child(1) { z-index: 1; }
 .ticket-table tbody td:nth-child(2) { z-index: 2; }
 .ticket-table tbody td:nth-child(3) { z-index: 3; }

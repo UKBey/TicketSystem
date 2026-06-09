@@ -236,10 +236,7 @@ export default function TicketTable({
             <tr
               key={ticket.id}
               onClick={() => navigate(`/tickets/${ticket.id}`)}
-              className="cursor-pointer transition-colors duration-150"
-              style={{ borderBottom: '1px solid var(--border-color-light)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className="cursor-pointer"
             >
               <td className="px-4 py-3 text-sm font-semibold text-primary-500 truncate">
                 TCK-{String(ticket.id).padStart(3, '0')}
