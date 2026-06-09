@@ -4,7 +4,7 @@
         infra dev dev-backend dev-frontend dev-mobile \
         build build-backend build-frontend \
         test test-backend test-frontend \
-        verify ci \
+        verify ci set-version \
         javadoc javadoc-backend javadoc-llm \
         sonar sonar-up sonar-down \
         lint install clean \
@@ -84,6 +84,7 @@ help:
 	@echo    test-backend     - Backend testleri - Maven
 	@echo    test-frontend    - Frontend testleri - Vitest
 	@echo    ci               - Continuous Integration: verify + test-frontend + lint
+	@echo    set-version V=x.y.z - Proje surumunu tum dosyalarda senkronlar - kjar haric - ornek: make set-version V=1.2.0
 	@$(ECHO_BLANK)
 	@echo  Kapsam - Coverage:
 	@echo    verify           - Backend testlerini calistirir ve JaCoCo HTML raporu uretir
@@ -261,6 +262,15 @@ lint:
 
 verify:
 	cd $(BACKEND_DIR) && $(MVNW) verify
+
+# --- Surum ---
+# Proje surumunu 7 yerde senkronlar: 3 pom <version>, 2 package.json, Expo app.json,
+# OpenAPI info.version. kjar (ayri deployment koordinati) ve npm lockfile'lar (kozmetik;
+# npm ci zorlamaz, npm install zaten senkronlar) HARIC. Asil surum kaynagi git tag'idir.
+# Cross-platform kalmasi icin Node ile (frontend/mobile zaten Node gerektirir).
+# Bir desen bulunamazsa hicbir sey yazmaz ve FAIL ile cikar. Cikti yalnizca OK / FAIL.
+set-version:
+	@node -e "const v=process.argv[1],fs=require('fs');if(!/^[0-9]+\.[0-9]+\.[0-9]/.test(v||'')){console.error('FAIL: gecersiz surum (V=x.y.z bekleniyor)');process.exit(1)}const J=[['it-service-backend/pom.xml',/(<artifactId>it-service-backend<\/artifactId>\s*<version>)[^<]+(<\/version>)/],['llm-service/pom.xml',/(<artifactId>llm-service<\/artifactId>\s*<version>)[^<]+(<\/version>)/],['data-generator/pom.xml',/(<artifactId>data-generator<\/artifactId>\s*<version>)[^<]+(<\/version>)/],['it-service-frontend/package.json',/(\x22version\x22\s*:\s*\x22)[^\x22]+(\x22)/],['it-service-mobile/package.json',/(\x22version\x22\s*:\s*\x22)[^\x22]+(\x22)/],['it-service-mobile/app.json',/(\x22version\x22\s*:\s*\x22)[^\x22]+(\x22)/],['it-service-backend/src/main/java/com/ticketsystem/it_service_backend/config/OpenApiConfig.java',/(\.version\(\x22)[^\x22]+(\x22\))/]];let ok=true;for(const[f,re]of J){let s;try{s=fs.readFileSync(f,'utf8')}catch(e){console.error('FAIL: okunamadi '+f);ok=false;continue}if(!re.test(s)){console.error('FAIL: desen yok '+f);ok=false;continue}fs.writeFileSync(f,s.replace(re,(m,a,b)=>a+v+b))}if(!ok)process.exit(1);console.log('OK: surum '+v)" $(V)
 
 # --- Javadoc ---
 # Plugin yapilandirmasi (doclint=none) pom.xml'de tanimli; ekstra flag gerekmez.
