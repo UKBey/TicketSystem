@@ -29,6 +29,8 @@ class CsatServiceTest {
     @Mock
     private TicketService ticketService;
     @Mock
+    private TicketCommandService ticketCommandService;
+    @Mock
     private TicketAuditHelper auditHelper;
 
     @InjectMocks
@@ -77,7 +79,7 @@ class CsatServiceTest {
         Csat saved = csatService.submitCsat(10L, dto, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(1L, saved.getId());
-        verify(ticketService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
+        verify(ticketCommandService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
     }
 
     @Test
@@ -165,7 +167,7 @@ class CsatServiceTest {
 
         assertEquals(400, ex.getStatusCode().value());
         verify(csatRepository, never()).save(org.mockito.ArgumentMatchers.any());
-        verify(ticketService, never()).updateTicketStatus(org.mockito.ArgumentMatchers.anyLong(),
+        verify(ticketCommandService, never()).updateTicketStatus(org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any());
@@ -189,7 +191,7 @@ class CsatServiceTest {
 
         assertEquals(7L, result.getId());
         assertEquals(4, result.getRating()); // original survey preserved, not overwritten
-        verify(ticketService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
+        verify(ticketCommandService).updateTicketStatus(10L, "CLOSED", "CSAT_SUBMITTED", null, "customer-1", List.of("CUSTOMER"));
         verify(csatRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 }

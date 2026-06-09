@@ -10,7 +10,9 @@ import com.ticketsystem.it_service_backend.dto.TopicChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.service.TicketCommandService;
 import com.ticketsystem.it_service_backend.service.TicketDtoAssembler;
+import com.ticketsystem.it_service_backend.service.TicketQueryService;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
@@ -44,8 +46,10 @@ import java.util.Map;
  *
  * <p>Exposes role-specific endpoints for customers, agents, agent admins and managers:
  * creation, listing, claiming, assignment, status/priority/topic changes and closing.
- * Business rules are delegated to {@link TicketService}; this class only handles
- * HTTP/JSON mapping and role-based authorization.
+ * Business rules are delegated to {@link TicketService} (creation, lookup, claim,
+ * delete), {@link TicketQueryService} (listing/filtering) and
+ * {@link TicketCommandService} (status/priority/topic mutations); this class only
+ * handles HTTP/JSON mapping and role-based authorization.
  */
 @Log4j2
 @Tag(name = "Bilet Yönetimi", description = "Destek biletlerinin oluşturulması, listelenmesi, sahiplenilmesi ve yönetimi")
@@ -56,6 +60,8 @@ import java.util.Map;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketQueryService ticketQueryService;
+    private final TicketCommandService ticketCommandService;
     private final TicketDtoAssembler ticketDtoAssembler;
 
     /**
@@ -131,9 +137,9 @@ public class TicketController {
         // Operasyonel personel (AGENT/LEAD_AGENT) ile global roller (ADMIN/MANAGER)
         // takım/tüm bilet görünümünü alır; saf müşteri yalnızca kendi biletlerini görür.
         if (AuthRoles.isAgentLevel(roles) || AuthRoles.isGlobal(roles)) {
-            tickets = ticketService.getTeamTicketsFiltered(userId, roles, filter, pageable);
+            tickets = ticketQueryService.getTeamTicketsFiltered(userId, roles, filter, pageable);
         } else {
-            tickets = ticketService.getCustomerTicketsFiltered(userId, filter, pageable);
+            tickets = ticketQueryService.getCustomerTicketsFiltered(userId, filter, pageable);
         }
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
@@ -171,7 +177,7 @@ public class TicketController {
                 .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
-        Page<Ticket> pool = ticketService.getPoolTicketsFiltered(userId, roles, filter, pageable);
+        Page<Ticket> pool = ticketQueryService.getPoolTicketsFiltered(userId, roles, filter, pageable);
         return ResponseEntity.ok(pool.map(t -> convertToDto(t, false, roles)));
     }
 
@@ -213,7 +219,7 @@ public class TicketController {
                 .csatRatings(canSeeCsat ? csatRating : null)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
-        Page<Ticket> tickets = ticketService.getAgentClaimedTicketsFiltered(agentUserId, filter, pageable);
+        Page<Ticket> tickets = ticketQueryService.getAgentClaimedTicketsFiltered(agentUserId, filter, pageable);
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
@@ -251,7 +257,7 @@ public class TicketController {
                 .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
-        Page<Ticket> tickets = ticketService.getTeamTicketsFiltered(userId, roles, filter, pageable);
+        Page<Ticket> tickets = ticketQueryService.getTeamTicketsFiltered(userId, roles, filter, pageable);
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
@@ -295,7 +301,7 @@ public class TicketController {
                 .csatRatings(canSeeCsat ? csatRating : null)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
-        Page<Ticket> tickets = ticketService.getAllAccessibleTicketsFiltered(userId, roles, filter, pageable);
+        Page<Ticket> tickets = ticketQueryService.getAllAccessibleTicketsFiltered(userId, roles, filter, pageable);
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 
@@ -411,7 +417,7 @@ public class TicketController {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet kapatma isteği. Bilet ID: {}, Kullanıcı: {}", id, userId);
-        Ticket ticket = ticketService.closeTicket(id, dto.getReasonCode(), dto.getNote(), userId, roles);
+        Ticket ticket = ticketCommandService.closeTicket(id, dto.getReasonCode(), dto.getNote(), userId, roles);
         log.info("Bilet başarıyla kapatıldı. Bilet ID: {}", id);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
@@ -434,7 +440,7 @@ public class TicketController {
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet statüsü güncelleme isteği. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
-        Ticket ticket = ticketService.updateTicketStatus(id, newStatus, body.getReasonCode(), body.getNote(), userId, roles);
+        Ticket ticket = ticketCommandService.updateTicketStatus(id, newStatus, body.getReasonCode(), body.getNote(), userId, roles);
         log.info("Bilet statüsü güncellendi. Bilet ID: {}, Statü: {}", id, newStatus);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
@@ -457,7 +463,7 @@ public class TicketController {
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet önceliği güncelleme isteği. Bilet ID: {}, Yeni Öncelik: {}, Sebep: {}, Kullanıcı: {}",
                 id, dto.getPriority(), dto.getReasonCode(), userId);
-        Ticket ticket = ticketService.updateTicketPriority(id, dto.getPriority(), dto.getReasonCode(), dto.getNote(), userId, roles);
+        Ticket ticket = ticketCommandService.updateTicketPriority(id, dto.getPriority(), dto.getReasonCode(), dto.getNote(), userId, roles);
         log.info("Bilet önceliği güncellendi. Bilet ID: {}, Öncelik: {}", id, dto.getPriority());
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
@@ -482,7 +488,7 @@ public class TicketController {
         List<String> roles = JwtUtils.extractRoles(jwt);
         log.info("Bilet konusu güncelleme isteği. Bilet ID: {}, Yeni Topic: {}, Sebep: {}, Kullanıcı: {}",
                 id, dto.getTopicId(), dto.getReasonCode(), userId);
-        Ticket ticket = ticketService.updateTicketTopic(id, dto.getTopicId(), dto.getReasonCode(), dto.getNote(), userId, roles);
+        Ticket ticket = ticketCommandService.updateTicketTopic(id, dto.getTopicId(), dto.getReasonCode(), dto.getNote(), userId, roles);
         log.info("Bilet konusu güncellendi. Bilet ID: {}, Topic: {}", id, dto.getTopicId());
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
@@ -538,7 +544,7 @@ public class TicketController {
                 .agentIds(agentId).topicIds(topicId).slaStatuses(slaStatus)
                 .createdAtFrom(dateFrom).createdAtTo(dateTo).build();
 
-        Page<Ticket> tickets = ticketService.getTicketsByProductFiltered(productId, userId, roles, filter, pageable);
+        Page<Ticket> tickets = ticketQueryService.getTicketsByProductFiltered(productId, userId, roles, filter, pageable);
         return ResponseEntity.ok(tickets.map(t -> convertToDto(t, false, roles)));
     }
 

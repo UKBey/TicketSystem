@@ -7,7 +7,9 @@ import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.service.TicketCommandService;
 import com.ticketsystem.it_service_backend.service.TicketDtoAssembler;
+import com.ticketsystem.it_service_backend.service.TicketQueryService;
 import com.ticketsystem.it_service_backend.service.TicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,13 +46,15 @@ import static org.mockito.Mockito.when;
 class TicketControllerTest {
 
     @Mock private TicketService ticketService;
+    @Mock private TicketQueryService ticketQueryService;
+    @Mock private TicketCommandService ticketCommandService;
     @Mock private TicketDtoAssembler ticketDtoAssembler;
 
     private TicketController ticketController;
 
     @BeforeEach
     void setUp() {
-        ticketController = new TicketController(ticketService, ticketDtoAssembler);
+        ticketController = new TicketController(ticketService, ticketQueryService, ticketCommandService, ticketDtoAssembler);
         // Assembler bir ürün/müşteri ismi çözümlemeden bileti DTO'ya yansıtır; controller
         // testleri yalnızca yönlendirme + id/status ile ilgilenir.
         lenient().when(ticketDtoAssembler.toDto(any(Ticket.class), anyBoolean(), anyList()))
@@ -93,7 +97,7 @@ class TicketControllerTest {
                 .priority("HIGH").status("NEW").productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getCustomerTicketsFiltered(eq("customer-1"), any(TicketFilterDTO.class), any(Pageable.class)))
+        when(ticketQueryService.getCustomerTicketsFiltered(eq("customer-1"), any(TicketFilterDTO.class), any(Pageable.class)))
                 .thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -112,7 +116,7 @@ class TicketControllerTest {
                 .priority("LOW").status("NEW").customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t1));
         // ADMIN is global: it goes through the team/all-products listing path.
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -129,7 +133,7 @@ class TicketControllerTest {
     void getTickets_withManagerRole_returnsEmptyList() {
         Page<Ticket> emptyPage = Page.empty();
         // MANAGER is now a global role and routes through the team/all-products listing path.
-        when(ticketService.getTeamTicketsFiltered(eq("manager-1"), eq(List.of("MANAGER")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("manager-1"), eq(List.of("MANAGER")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(emptyPage);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -151,7 +155,7 @@ class TicketControllerTest {
                 .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getPoolTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getPoolTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
@@ -170,7 +174,7 @@ class TicketControllerTest {
                 .priority("MEDIUM").status("NEW").productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getPoolTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
+        when(ticketQueryService.getPoolTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
@@ -192,7 +196,7 @@ class TicketControllerTest {
         Ticket t1 = Ticket.builder().id(9001L).title("T1").description("D1")
                 .priority("LOW").status("IN_PROGRESS").customerId("c1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t1));
-        when(ticketService.getAgentClaimedTicketsFiltered(eq("agent-1"),
+        when(ticketQueryService.getAgentClaimedTicketsFiltered(eq("agent-1"),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
@@ -246,7 +250,7 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4001L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.updateTicketStatus(4001L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
+        when(ticketCommandService.updateTicketStatus(4001L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
 
         StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
@@ -262,7 +266,7 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
 
-        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("ADMIN"))).thenReturn(updated);
+        when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("ADMIN"))).thenReturn(updated);
 
         StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
@@ -278,7 +282,7 @@ class TicketControllerTest {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority("HIGH").status("IN_PROGRESS").build();
 
-        when(ticketService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "c1", List.of())).thenReturn(updated);
+        when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "c1", List.of())).thenReturn(updated);
 
         Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
         when(jwt.getSubject()).thenReturn("c1");
@@ -350,7 +354,7 @@ class TicketControllerTest {
         Ticket t = Ticket.builder().id(6001L).title("Team ticket").description("desc")
                 .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
@@ -366,7 +370,7 @@ class TicketControllerTest {
     @Test
     void getTeamTickets_withAgentAdminRole_returnsOk() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
@@ -387,7 +391,7 @@ class TicketControllerTest {
         Ticket t = Ticket.builder().id(7001L).title("Product ticket").description("desc")
                 .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t));
-        when(ticketService.getTicketsByProductFiltered(eq(10L), eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getTicketsByProductFiltered(eq(10L), eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTicketsByProduct(
@@ -447,7 +451,7 @@ class TicketControllerTest {
     @Test
     void getTickets_withAgentRole_callsTeamFiltered() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -461,7 +465,7 @@ class TicketControllerTest {
     @Test
     void getTickets_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTickets(
@@ -475,7 +479,7 @@ class TicketControllerTest {
     @Test
     void getMyAssignedTickets_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getAgentClaimedTicketsFiltered(eq("agent-1"),
+        when(ticketQueryService.getAgentClaimedTicketsFiltered(eq("agent-1"),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getMyAssignedTickets(
@@ -489,7 +493,7 @@ class TicketControllerTest {
     @Test
     void getTeamTickets_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTeamTickets(
@@ -503,7 +507,7 @@ class TicketControllerTest {
     @Test
     void getTicketsByProduct_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getTicketsByProductFiltered(eq(10L), eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getTicketsByProductFiltered(eq(10L), eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getTicketsByProduct(
@@ -518,7 +522,7 @@ class TicketControllerTest {
     @Test
     void getPoolTickets_ascSort_triggersAscendingBranch() {
         Page<Ticket> page = new PageImpl<>(List.of());
-        when(ticketService.getPoolTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
+        when(ticketQueryService.getPoolTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
 
         ResponseEntity<Page<TicketResponseDTO>> response = ticketController.getPoolTickets(
@@ -541,7 +545,7 @@ class TicketControllerTest {
                 new com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO();
         body.setReasonCode("RESOLVED_CONFIRMED");
         body.setNote("done");
-        when(ticketService.closeTicket(7000L, "RESOLVED_CONFIRMED", "done", "agent-1", List.of("AGENT")))
+        when(ticketCommandService.closeTicket(7000L, "RESOLVED_CONFIRMED", "done", "agent-1", List.of("AGENT")))
                 .thenReturn(closed);
 
         ResponseEntity<TicketResponseDTO> response =
@@ -555,7 +559,7 @@ class TicketControllerTest {
     void updatePriority_returnsDto() {
         Ticket updated = Ticket.builder().id(7100L).title("t").description("d")
                 .priority("CRITICAL").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
-        when(ticketService.updateTicketPriority(7100L, "CRITICAL", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")))
+        when(ticketCommandService.updateTicketPriority(7100L, "CRITICAL", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")))
                 .thenReturn(updated);
 
         com.ticketsystem.it_service_backend.dto.PriorityChangeRequestDTO dto =

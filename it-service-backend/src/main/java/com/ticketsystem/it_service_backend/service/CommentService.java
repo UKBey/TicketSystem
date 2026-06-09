@@ -40,6 +40,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final TicketService ticketService;
+    private final TicketCommandService ticketCommandService;
     private final NotificationService notificationService;
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -123,7 +124,7 @@ public class CommentService {
         // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
         if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
             log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
-            ticketService.updateTicketStatus(ticketId, "IN_PROGRESS", null, null, userId, roles);
+            ticketCommandService.updateTicketStatus(ticketId, "IN_PROGRESS", null, null, userId, roles);
         }
 
         return savedComment;

@@ -93,6 +93,8 @@ class TicketServiceTest {
     private TicketTopicRepository ticketTopicRepository;
 
     private TicketService ticketService;
+    private TicketQueryService ticketQueryService;
+    private TicketCommandService ticketCommandService;
 
     private Product product;
     private TicketTopic topic;
@@ -107,10 +109,15 @@ class TicketServiceTest {
                 ticketRepository, ticketClaimRepository, productRepository, userRepository,
                 agentProductLimitRepository, workflowService, notificationService, auditHelper);
         ticketService = new TicketService(
-                ticketRepository, ticketClaimRepository, productRepository, ticketTopicRepository,
+                ticketRepository, ticketClaimRepository, ticketTopicRepository,
                 commentRepository, userRepository, workflowService, slaPolicyService,
                 eventPublisher, csatRepository, worklogRepository, attachmentRepository,
                 notificationService, auditHelper, ticketClaimService);
+        ticketQueryService = new TicketQueryService(
+                ticketRepository, ticketClaimRepository, productRepository, userRepository);
+        ticketCommandService = new TicketCommandService(
+                ticketRepository, ticketClaimRepository, ticketTopicRepository, userRepository,
+                workflowService, slaPolicyService, notificationService, auditHelper, ticketService);
 
         // BPMN state machine'i artık authoritative validator; testler aksi belirtmedikçe
         // geçişi kabul ediyor varsayımıyla çalışsın. Spesifik bir geçişi reddetmek
@@ -217,7 +224,7 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(700L).build();
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("ADMIN"));
+                List<Ticket> result = ticketQueryService.getAllTickets("admin-1", List.of("ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(700L, result.get(0).getId());
@@ -229,7 +236,7 @@ class TicketServiceTest {
                 when(ticketRepository.findAll()).thenReturn(List.of(ticket));
 
                 // MANAGER is now a global (read-only) role and sees every ticket.
-                List<Ticket> result = ticketService.getAllTickets("admin-1", List.of("MANAGER"));
+                List<Ticket> result = ticketQueryService.getAllTickets("admin-1", List.of("MANAGER"));
 
                 assertEquals(1, result.size());
                 assertEquals(701L, result.get(0).getId());
@@ -237,7 +244,7 @@ class TicketServiceTest {
 
         @Test
         void getAllTickets_whenUserIdMissing_returnsEmptyList() {
-                List<Ticket> result = ticketService.getAllTickets(null, List.of("AGENT"));
+                List<Ticket> result = ticketQueryService.getAllTickets(null, List.of("AGENT"));
 
                 assertEquals(0, result.size());
         }
@@ -256,7 +263,7 @@ class TicketServiceTest {
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agentUser));
                 when(ticketRepository.findByCustomerIdOrProductIdIn("agent-1", List.of(10L))).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getAllTickets("agent-1", List.of("AGENT"));
+                List<Ticket> result = ticketQueryService.getAllTickets("agent-1", List.of("AGENT"));
 
                 assertEquals(1, result.size());
                 assertEquals(702L, result.get(0).getId());
@@ -267,7 +274,7 @@ class TicketServiceTest {
                 Ticket ticket = Ticket.builder().id(702L).build();
                 when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("ADMIN"));
+                List<Ticket> result = ticketQueryService.getPoolTickets("admin-1", List.of("ADMIN"));
 
                 assertEquals(1, result.size());
                 assertEquals(702L, result.get(0).getId());
@@ -279,7 +286,7 @@ class TicketServiceTest {
                 when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
 
                 // MANAGER is now a global role; it sees the full NEW pool across all products.
-                List<Ticket> result = ticketService.getPoolTickets("admin-1", List.of("MANAGER"));
+                List<Ticket> result = ticketQueryService.getPoolTickets("admin-1", List.of("MANAGER"));
 
                 assertEquals(1, result.size());
                 assertEquals(703L, result.get(0).getId());
@@ -297,14 +304,14 @@ class TicketServiceTest {
 
                 when(userRepository.findById("agent-3")).thenReturn(Optional.of(agentWithoutProducts));
 
-                List<Ticket> result = ticketService.getPoolTickets("agent-3", List.of("AGENT"));
+                List<Ticket> result = ticketQueryService.getPoolTickets("agent-3", List.of("AGENT"));
 
                 assertEquals(0, result.size());
         }
 
         @Test
         void getPoolTickets_whenUserIdMissing_returnsEmptyList() {
-                List<Ticket> result = ticketService.getPoolTickets(null, List.of("AGENT"));
+                List<Ticket> result = ticketQueryService.getPoolTickets(null, List.of("AGENT"));
 
                 assertEquals(0, result.size());
         }
@@ -315,7 +322,7 @@ class TicketServiceTest {
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
                 when(ticketRepository.findByStatusAndProductIdIn("NEW", List.of(10L))).thenReturn(List.of(ticket));
 
-                List<Ticket> result = ticketService.getPoolTickets("agent-1", List.of("AGENT"));
+                List<Ticket> result = ticketQueryService.getPoolTickets("agent-1", List.of("AGENT"));
 
                 assertEquals(1, result.size());
                 assertEquals(703L, result.get(0).getId());
@@ -512,7 +519,7 @@ class TicketServiceTest {
                 when(ticketClaimRepository.existsByTicketIdAndAgentId(304L, "agent-1")).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketService.updateTicketStatus(304L, "RESOLVED", "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
+                Ticket updated = ticketCommandService.updateTicketStatus(304L, "RESOLVED", "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
 
                 assertEquals("RESOLVED", updated.getStatus());
                 assertNotNull(updated.getResolvedAt());
@@ -534,7 +541,7 @@ class TicketServiceTest {
                 when(ticketRepository.findById(305L)).thenReturn(Optional.of(waiting));
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketService.updateTicketStatus(305L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+                Ticket updated = ticketCommandService.updateTicketStatus(305L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
 
                 assertEquals("IN_PROGRESS", updated.getStatus());
                 verify(workflowService).resumeSla(updated);
@@ -614,7 +621,7 @@ class TicketServiceTest {
         when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -643,7 +650,7 @@ class TicketServiceTest {
         when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
         when(workflowService.isProcessInstanceMissing(any())).thenReturn(true);
 
-        Ticket updated = ticketService.updateTicketStatus(310L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
+        Ticket updated = ticketCommandService.updateTicketStatus(310L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals("CLOSED", updated.getStatus());
         assertNotNull(updated.getClosedAt());
@@ -664,7 +671,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(302L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(302L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.updateTicketStatus(302L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -722,7 +729,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(601L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(601L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketCommandService.updateTicketStatus(601L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("IN_PROGRESS", updated.getStatus());
         assertNull(updated.getResolvedAt());
@@ -753,7 +760,7 @@ class TicketServiceTest {
         when(workflowService.verifyTransitionApplied(any(), eq("NEW"))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -774,7 +781,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(604L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(604L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.updateTicketStatus(604L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -794,7 +801,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(605L, "NEW", null, null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.updateTicketStatus(605L, "NEW", null, null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -816,7 +823,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(606L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(606L, "NEW", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketCommandService.updateTicketStatus(606L, "NEW", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("NEW", updated.getStatus());
         verify(ticketClaimRepository).deleteByTicketId(606L);
@@ -838,7 +845,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(607L)).thenReturn(Optional.of(existing));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketService.updateTicketStatus(607L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
+        Ticket updated = ticketCommandService.updateTicketStatus(607L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals("CLOSED", updated.getStatus());
         assertNotNull(updated.getClosedAt());
@@ -868,7 +875,7 @@ class TicketServiceTest {
         doThrow(new RuntimeException("workflow unavailable"))
                 .when(workflowService).pauseSla(any(Ticket.class));
 
-        Ticket updated = ticketService.updateTicketStatus(608L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketCommandService.updateTicketStatus(608L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT"));
 
         assertEquals("WAITING_FOR_CUSTOMER", updated.getStatus());
         verify(ticketRepository, times(1)).save(any(Ticket.class));
@@ -1095,7 +1102,7 @@ class TicketServiceTest {
         Ticket t = Ticket.builder().id(900L).productId(10L).build();
         when(ticketRepository.findAllActive()).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getTeamTickets("admin-1", List.of("ADMIN"));
+        List<Ticket> result = ticketQueryService.getTeamTickets("admin-1", List.of("ADMIN"));
 
         assertEquals(1, result.size());
     }
@@ -1103,7 +1110,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("getTeamTickets → userId null → boş liste")
     void getTeamTickets_nullUserId_returnsEmpty() {
-        List<Ticket> result = ticketService.getTeamTickets(null, List.of("AGENT"));
+        List<Ticket> result = ticketQueryService.getTeamTickets(null, List.of("AGENT"));
         assertEquals(0, result.size());
     }
 
@@ -1113,7 +1120,7 @@ class TicketServiceTest {
         User agentNoProducts = User.builder().id("agent-2").authorizedProducts(List.of()).build();
         when(userRepository.findById("agent-2")).thenReturn(Optional.of(agentNoProducts));
 
-        List<Ticket> result = ticketService.getTeamTickets("agent-2", List.of("AGENT"));
+        List<Ticket> result = ticketQueryService.getTeamTickets("agent-2", List.of("AGENT"));
         assertEquals(0, result.size());
     }
 
@@ -1124,7 +1131,7 @@ class TicketServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.findActiveByProductIdIn(List.of(10L))).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getTeamTickets("agent-1", List.of("AGENT"));
+        List<Ticket> result = ticketQueryService.getTeamTickets("agent-1", List.of("AGENT"));
         assertEquals(1, result.size());
     }
 
@@ -1134,7 +1141,7 @@ class TicketServiceTest {
         Ticket t = Ticket.builder().id(902L).productId(10L).build();
         when(ticketRepository.findByProductId(10L)).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getTicketsByProduct(10L, "agent-1", List.of("AGENT"));
+        List<Ticket> result = ticketQueryService.getTicketsByProduct(10L, "agent-1", List.of("AGENT"));
         assertEquals(1, result.size());
     }
 
@@ -1144,14 +1151,14 @@ class TicketServiceTest {
         Ticket t = Ticket.builder().id(903L).productId(10L).customerId("customer-1").build();
         when(ticketRepository.findByCustomerIdAndProductId("customer-1", 10L)).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getTicketsByProduct(10L, "customer-1", List.of("CUSTOMER"));
+        List<Ticket> result = ticketQueryService.getTicketsByProduct(10L, "customer-1", List.of("CUSTOMER"));
         assertEquals(1, result.size());
     }
 
     @Test
     @DisplayName("getTicketsByProduct → bilinmeyen rol → boş liste")
     void getTicketsByProduct_unknownRole_returnsEmpty() {
-        List<Ticket> result = ticketService.getTicketsByProduct(10L, "user-1", List.of("VIEWER"));
+        List<Ticket> result = ticketQueryService.getTicketsByProduct(10L, "user-1", List.of("VIEWER"));
         assertEquals(0, result.size());
     }
 
@@ -1160,7 +1167,7 @@ class TicketServiceTest {
     void getAgentClaimedTickets_noClaims_returnsEmpty() {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of());
 
-        List<Ticket> result = ticketService.getAgentClaimedTickets("agent-1");
+        List<Ticket> result = ticketQueryService.getAgentClaimedTickets("agent-1");
         assertEquals(0, result.size());
     }
 
@@ -1171,7 +1178,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(904L));
         when(ticketRepository.findAllById(List.of(904L))).thenReturn(List.of(t));
 
-        List<Ticket> result = ticketService.getAgentClaimedTickets("agent-1");
+        List<Ticket> result = ticketQueryService.getAgentClaimedTickets("agent-1");
         assertEquals(1, result.size());
     }
 
@@ -1186,7 +1193,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1197,7 +1204,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1208,7 +1215,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1219,7 +1226,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1232,7 +1239,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1243,7 +1250,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1259,7 +1266,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1271,7 +1278,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1283,7 +1290,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1295,7 +1302,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1309,7 +1316,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), f, p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), f, p);
         assertNotNull(result);
     }
 
@@ -1321,7 +1328,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1332,7 +1339,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"),
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("ADMIN"),
                 TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
 
         assertNotNull(result);
@@ -1342,7 +1349,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("getPoolTicketsFiltered → AGENT userId null → boş sayfa")
     void getPoolTicketsFiltered_agent_nullUserId_returnsEmpty() {
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered(null, List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered(null, List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1353,7 +1360,7 @@ class TicketServiceTest {
         User agentNoProducts = User.builder().id("agent-2").authorizedProducts(List.of()).build();
         when(userRepository.findById("agent-2")).thenReturn(Optional.of(agentNoProducts));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-2", List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-2", List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1366,7 +1373,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1378,7 +1385,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1390,7 +1397,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1402,7 +1409,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1416,7 +1423,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), f, p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), f, p);
         assertNotNull(result);
     }
 
@@ -1428,7 +1435,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1444,7 +1451,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1456,7 +1463,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1468,7 +1475,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1480,7 +1487,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1494,7 +1501,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), f, p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), f, p);
         assertNotNull(result);
     }
 
@@ -1506,14 +1513,14 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
     @DisplayName("getTeamTicketsFiltered → AGENT userId null → boş sayfa")
     void getTeamTicketsFiltered_agent_nullUserId_returnsEmpty() {
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered(null, List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered(null, List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1524,7 +1531,7 @@ class TicketServiceTest {
         User agentNoProducts = User.builder().id("agent-2").authorizedProducts(List.of()).build();
         when(userRepository.findById("agent-2")).thenReturn(Optional.of(agentNoProducts));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-2", List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-2", List.of("AGENT"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1537,7 +1544,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1549,7 +1556,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1561,7 +1568,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1573,7 +1580,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1587,7 +1594,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), f, p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), f, p);
         assertNotNull(result);
     }
 
@@ -1599,7 +1606,7 @@ class TicketServiceTest {
         when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1615,7 +1622,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1627,7 +1634,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1639,7 +1646,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1651,7 +1658,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1664,7 +1671,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), f, p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), f, p);
         assertNotNull(result);
     }
 
@@ -1676,7 +1683,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1687,7 +1694,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1698,7 +1705,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1709,7 +1716,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1720,7 +1727,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1732,7 +1739,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), f, p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), f, p);
         assertNotNull(result);
     }
 
@@ -1743,14 +1750,14 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFiltered(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
     @Test
     @DisplayName("getTicketsByProductFiltered → bilinmeyen rol → boş sayfa")
     void getTicketsByProductFiltered_unknownRole_returnsEmpty() {
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "user-1", List.of("VIEWER"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "user-1", List.of("VIEWER"), TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1764,7 +1771,7 @@ class TicketServiceTest {
     void getAgentClaimedTicketsFiltered_emptyClaims_returnsEmpty() {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of());
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
     }
@@ -1777,7 +1784,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1789,7 +1796,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1801,7 +1808,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1813,7 +1820,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1827,7 +1834,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", f, p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", f, p);
         assertNotNull(result);
     }
 
@@ -1839,7 +1846,7 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
     }
 
@@ -1856,7 +1863,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1869,7 +1876,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1882,7 +1889,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1895,7 +1902,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1908,7 +1915,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1921,7 +1928,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1938,7 +1945,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1951,7 +1958,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1964,7 +1971,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1977,7 +1984,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -1989,7 +1996,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -2002,7 +2009,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -2015,7 +2022,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -2027,7 +2034,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -2044,7 +2051,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("customer-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", f, p);
         assertNotNull(result);
     }
 
@@ -2059,7 +2066,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsPaged("c-1", null, null, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsPaged("c-1", null, null, p);
         assertNotNull(result);
     }
 
@@ -2070,7 +2077,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsPaged("c-1", "NEW", "HIGH", p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsPaged("c-1", "NEW", "HIGH", p);
         assertNotNull(result);
     }
 
@@ -2083,7 +2090,7 @@ class TicketServiceTest {
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getPoolTicketsPaged("u-1", List.of("AGENT"), null, p);
+        Page<Ticket> result = ticketQueryService.getPoolTicketsPaged("u-1", List.of("AGENT"), null, p);
         assertNotNull(result);
     }
 
@@ -2095,14 +2102,14 @@ class TicketServiceTest {
         when(ticketRepository.findClaimedTicketsFiltered(eq(List.of(1L)), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getAgentClaimedTicketsPaged("a-1", "  ", "  ", p);
+        Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsPaged("a-1", "  ", "  ", p);
         assertNotNull(result);
     }
 
     @Test
     @DisplayName("getTeamTicketsPaged → null userId → empty page")
     void getTeamTicketsPaged_nullUser_empty() {
-        Page<Ticket> result = ticketService.getTeamTicketsPaged(null, List.of("AGENT"), null, PageRequest.of(0, 10));
+        Page<Ticket> result = ticketQueryService.getTeamTicketsPaged(null, List.of("AGENT"), null, PageRequest.of(0, 10));
         assertNotNull(result);
     }
 
@@ -2115,7 +2122,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdFiltered(eq(10L), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductPaged(10L, "agent-1", List.of("AGENT"), null, null, p);
+        Page<Ticket> result = ticketQueryService.getTicketsByProductPaged(10L, "agent-1", List.of("AGENT"), null, null, p);
         assertNotNull(result);
     }
 
@@ -2138,7 +2145,7 @@ class TicketServiceTest {
     @DisplayName("updateTicketPriority → geçersiz priority → BAD_REQUEST")
     void updateTicketPriority_invalid_throwsBadRequest() {
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketPriority(950L, "URGENT", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.updateTicketPriority(950L, "URGENT", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")));
     }
 
     @Test
@@ -2148,7 +2155,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "LOW", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.updateTicketPriority(950L, "LOW", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("LOW", result.getPriority());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -2163,7 +2170,7 @@ class TicketServiceTest {
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService).pauseSla(existing);
@@ -2180,7 +2187,7 @@ class TicketServiceTest {
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(7_200_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());
@@ -2197,7 +2204,7 @@ class TicketServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());
@@ -2212,7 +2219,7 @@ class TicketServiceTest {
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
         assertEquals("HIGH", result.getPriority());
         verify(workflowService, never()).pauseSla(any());
@@ -2230,7 +2237,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), eq(List.of("HIGH")), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("c-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("c-1", f, p);
         assertNotNull(result);
     }
 
@@ -2243,7 +2250,7 @@ class TicketServiceTest {
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getCustomerTicketsFiltered("c-1", f, p);
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("c-1", f, p);
         assertNotNull(result);
     }
 
@@ -2257,7 +2264,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2267,7 +2274,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2277,7 +2284,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2287,7 +2294,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2297,7 +2304,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2306,7 +2313,7 @@ class TicketServiceTest {
         TicketFilterDTO f = TicketFilterDTO.builder().productIds(List.of(10L)).build();
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2316,7 +2323,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of());
         when(ticketRepository.findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsFiltered("c-1", f, PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFullFiltered(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -2331,7 +2338,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(1900L, "agent-1")).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.closeTicket(1900L, "OTHER", "  ", "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.closeTicket(1900L, "OTHER", "  ", "agent-1", List.of("AGENT")));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
@@ -2342,7 +2349,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(1901L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
-        Ticket result = ticketService.closeTicket(1901L, "OTHER", "explanation", "agent-1", List.of("AGENT"));
+        Ticket result = ticketCommandService.closeTicket(1901L, "OTHER", "explanation", "agent-1", List.of("AGENT"));
         assertEquals("CLOSED", result.getStatus());
     }
 
@@ -2490,7 +2497,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(2301L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(2301L, "IN_PROGRESS", null, null, "c-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.updateTicketStatus(2301L, "IN_PROGRESS", null, null, "c-1", List.of("CUSTOMER")));
     }
 
     @Test
@@ -2500,7 +2507,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(2302L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(2302L, "NEW", null, null, "ghost", List.of()));
+                () -> ticketCommandService.updateTicketStatus(2302L, "NEW", null, null, "ghost", List.of()));
     }
 
     @Test
@@ -2512,7 +2519,7 @@ class TicketServiceTest {
 
         // A plain AGENT must hold a claim to change status; without one it is forbidden.
         assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT")));
     }
 
     @Test
@@ -2523,7 +2530,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(2400L, "agent-1")).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.closeTicket(2400L, "  ", "note", "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.closeTicket(2400L, "  ", "note", "agent-1", List.of("AGENT")));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
@@ -2576,7 +2583,7 @@ class TicketServiceTest {
         when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket saved = ticketService.updateTicketTopic(
+        Ticket saved = ticketCommandService.updateTicketTopic(
                 700L, 50L, "MISCATEGORIZED", null, "agent-1", List.of("AGENT"));
 
         assertEquals(50L, saved.getTopicId());
@@ -2639,7 +2646,7 @@ class TicketServiceTest {
     void getCustomerTicketsPaged_blankParams_buildsEmptyFilter() {
         when(ticketRepository.findByCustomerIdFiltered(eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getCustomerTicketsPaged("c-1", "  ", "  ", PageRequest.of(0, 10));
+        ticketQueryService.getCustomerTicketsPaged("c-1", "  ", "  ", PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findByCustomerIdFiltered(eq("c-1"), any(), any(), any());
     }
 
@@ -2649,7 +2656,7 @@ class TicketServiceTest {
                 User.builder().id("u-1").authorizedProducts(List.of(product)).build()));
         when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getPoolTicketsPaged("u-1", List.of("AGENT"), "  ", PageRequest.of(0, 10));
+        ticketQueryService.getPoolTicketsPaged("u-1", List.of("AGENT"), "  ", PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findPoolTicketsFiltered(any(), any(), any());
     }
 
@@ -2659,7 +2666,7 @@ class TicketServiceTest {
                 User.builder().id("u-1").authorizedProducts(List.of(product)).build()));
         when(ticketRepository.findTeamTicketsFiltered(any(), any(), eq(List.of("HIGH")), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getTeamTicketsPaged("u-1", List.of("AGENT"), "HIGH", PageRequest.of(0, 10));
+        ticketQueryService.getTeamTicketsPaged("u-1", List.of("AGENT"), "HIGH", PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findTeamTicketsFiltered(any(), any(), eq(List.of("HIGH")), any());
     }
 
@@ -2668,7 +2675,7 @@ class TicketServiceTest {
         when(ticketClaimRepository.findTicketIdsByAgentId("a-1")).thenReturn(List.of(1L));
         when(ticketRepository.findClaimedTicketsFiltered(eq(List.of(1L)), eq(List.of("NEW")), eq(List.of("HIGH")), any()))
                 .thenReturn(new PageImpl<>(List.of()));
-        ticketService.getAgentClaimedTicketsPaged("a-1", "NEW", "HIGH", PageRequest.of(0, 10));
+        ticketQueryService.getAgentClaimedTicketsPaged("a-1", "NEW", "HIGH", PageRequest.of(0, 10));
         org.mockito.Mockito.verify(ticketRepository).findClaimedTicketsFiltered(eq(List.of(1L)), eq(List.of("NEW")), eq(List.of("HIGH")), any());
     }
 
@@ -2677,7 +2684,7 @@ class TicketServiceTest {
         when(ticketRepository.findByProductIdAndCustomerIdFiltered(eq(10L), eq("c-1"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        Page<Ticket> result = ticketService.getTicketsByProductFiltered(10L, "c-1", List.of("CUSTOMER"),
+        Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "c-1", List.of("CUSTOMER"),
                 TicketFilterDTO.builder().build(), PageRequest.of(0, 10));
 
         assertNotNull(result);
@@ -2736,52 +2743,52 @@ class TicketServiceTest {
 
     @Test
     void getAllAccessibleTicketsFiltered_nullUser_returnsEmpty() {
-        Page<Ticket> page = ticketService.getAllAccessibleTicketsFiltered(null, MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
+        Page<Ticket> page = ticketQueryService.getAllAccessibleTicketsFiltered(null, MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
         assertEquals(0, page.getTotalElements());
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_noProducts_returnsEmpty() {
         when(productRepository.findAll()).thenReturn(List.of());
-        Page<Ticket> page = ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
+        Page<Ticket> page = ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "id"));
         assertEquals(0, page.getTotalElements());
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_sortByPriority_routesToPriorityQuery() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
-        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "priority"));
+        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "priority"));
         verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityDesc(any(), any(), any(), any());
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_sortBySla_routesToSlaQuery() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
+        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
         verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any());
-        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
         verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_sortByCsat_runsFullFilteredCsatBranch() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
-        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_extraFilters_runsFullFilteredBranch() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
     }
 
     @Test
     void getAllAccessibleTicketsFiltered_noSortNoExtra_routesToSimpleQuery() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findTeamTicketsFiltered(any(), any(), any(), any());
     }
 
@@ -2789,26 +2796,26 @@ class TicketServiceTest {
 
     @Test
     void getTeamTicketsFiltered_nullUser_returnsEmpty() {
-        Page<Ticket> page = ticketService.getTeamTicketsFiltered(null, MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        Page<Ticket> page = ticketQueryService.getTeamTicketsFiltered(null, MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         assertEquals(0, page.getTotalElements());
     }
 
     @Test
     void getTeamTicketsFiltered_sortBranches_routeCorrectly() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
-        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
         verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
-        ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findTeamTicketsFiltered(any(), any(), any(), any());
     }
 
     @Test
     void getTeamTicketsFiltered_csatAndExtra_runFullFiltered() {
         when(productRepository.findAll()).thenReturn(List.of(product));
-        assertDoesNotThrow(() -> ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
-        assertDoesNotThrow(() -> ticketService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+        assertDoesNotThrow(() -> ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
     }
 
     // ---- getAgentClaimedTicketsFiltered ----
@@ -2816,26 +2823,26 @@ class TicketServiceTest {
     @Test
     void getAgentClaimedTicketsFiltered_noClaims_returnsEmpty() {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of());
-        Page<Ticket> page = ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
+        Page<Ticket> page = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
         assertEquals(0, page.getTotalElements());
     }
 
     @Test
     void getAgentClaimedTicketsFiltered_sortBranches_routeCorrectly() {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(1L, 2L));
-        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findClaimedTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
-        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
         verify(ticketRepository).findClaimedTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
-        ticketService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
+        ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findClaimedTicketsFiltered(any(), any(), any(), any());
     }
 
     @Test
     void getAgentClaimedTicketsFiltered_csatAndExtra_runFullFiltered() {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(1L, 2L));
-        assertDoesNotThrow(() -> ticketService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
-        assertDoesNotThrow(() -> ticketService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
+        assertDoesNotThrow(() -> ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.DESC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", richFilter(), sortedBy(Sort.Direction.ASC, "createdAt")));
     }
 
     // ---- helper "filtre yok" (absent) dalları + csat varyantları ----
@@ -2845,7 +2852,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of(product));
         // emptyFilter → statusesOrAll/prioritiesOrAll/productIdsOrAll/slaStatusesOrAll absent dalları,
         // csatFilterActive=false, csatRatingsOrPlaceholder(null→[-1]), csatIncludeNone=false, toSearchPattern(null→null)
-        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "csatRating")));
     }
 
     @Test
@@ -2853,7 +2860,7 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of(product));
         // csatRatings=["NONE"] → sayısal yok → placeholder [-1]; csatIncludeNone=true; csatFilterActive=true
         TicketFilterDTO noneOnly = TicketFilterDTO.builder().csatRatings(List.of("NONE")).build();
-        assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, noneOnly, sortedBy(Sort.Direction.ASC, "csatRating")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, noneOnly, sortedBy(Sort.Direction.ASC, "csatRating")));
     }
 
     @Test
@@ -2871,7 +2878,7 @@ class TicketServiceTest {
                 TicketFilterDTO.builder().priorities(List.of("HIGH", "LOW")).build()
         );
         for (TicketFilterDTO f : singles) {
-            assertDoesNotThrow(() -> ticketService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, f, PageRequest.of(0, 20)));
+            assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, f, PageRequest.of(0, 20)));
         }
     }
 
@@ -2879,49 +2886,49 @@ class TicketServiceTest {
 
     @Test
     void getTicketsByProductPaged_statusAndPriorityPresentAndAbsent() {
-        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "NEW", "HIGH", PageRequest.of(0, 20));
+        ticketQueryService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "NEW", "HIGH", PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
-        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, null, null, PageRequest.of(0, 20));
-        ticketService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "  ", "  ", PageRequest.of(0, 20));
+        ticketQueryService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, null, null, PageRequest.of(0, 20));
+        ticketQueryService.getTicketsByProductPaged(10L, "mgr-1", MGR_ROLES, "  ", "  ", PageRequest.of(0, 20));
     }
 
     @Test
     void getTicketsByProductFiltered_globalRole_sortAndExtraBranches() {
-        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findByProductIdFilteredOrderByPriorityAsc(eq(10L), any(), any(), any());
-        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+        ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
         verify(ticketRepository).findByProductIdFilteredOrderBySlaUrgencyDesc(eq(10L), any(), any(), any());
-        assertDoesNotThrow(() -> ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
-        ticketService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
+        assertDoesNotThrow(() -> ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
+        ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
     }
 
     @Test
     void getTicketsByProductFiltered_agentAuthorizedAndUnauthorized() {
         when(userRepository.findById("agent-1")).thenReturn(java.util.Optional.of(agent)); // agent authorized for product 10
-        ticketService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
+        ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
 
         // 999 ürünü için yetkisiz → boş sayfa
-        Page<Ticket> page = ticketService.getTicketsByProductFiltered(999L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
+        Page<Ticket> page = ticketQueryService.getTicketsByProductFiltered(999L, "agent-1", List.of("AGENT"), emptyFilter(), PageRequest.of(0, 20));
         assertEquals(0, page.getTotalElements());
     }
 
     @Test
     void getTicketsByProductFiltered_customer_sortAndDefaultBranches() {
         List<String> cust = List.of("CUSTOMER");
-        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
+        ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(eq(10L), eq("customer-1"), any(), any(), any());
-        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
+        ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
         verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(eq(10L), eq("customer-1"), any(), any(), any());
-        assertDoesNotThrow(() -> ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
-        ticketService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), PageRequest.of(0, 20));
+        assertDoesNotThrow(() -> ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
+        ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdAndCustomerIdFiltered(eq(10L), eq("customer-1"), any(), any(), any());
     }
 
     @Test
     void getTicketsByProductFiltered_noMatchingRole_returnsEmpty() {
-        Page<Ticket> page = ticketService.getTicketsByProductFiltered(10L, "u-1", List.of("UNKNOWN"), emptyFilter(), PageRequest.of(0, 20));
+        Page<Ticket> page = ticketQueryService.getTicketsByProductFiltered(10L, "u-1", List.of("UNKNOWN"), emptyFilter(), PageRequest.of(0, 20));
         assertEquals(0, page.getTotalElements());
     }
 
@@ -2937,14 +2944,14 @@ class TicketServiceTest {
     @Test
     void updateTicketTopic_nullTopic_throwsBadRequest() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketTopic(700L, null, null, null, "admin-1", ADMIN_LIST));
+                () -> ticketCommandService.updateTicketTopic(700L, null, null, null, "admin-1", ADMIN_LIST));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
     void updateTicketTopic_sameTopic_returnsWithoutChange() {
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
-        Ticket result = ticketService.updateTicketTopic(700L, 50L, null, null, "admin-1", ADMIN_LIST);
+        Ticket result = ticketCommandService.updateTicketTopic(700L, 50L, null, null, "admin-1", ADMIN_LIST);
         assertEquals(50L, result.getTopicId());
         verify(ticketRepository, never()).save(any());
     }
@@ -2954,7 +2961,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.empty());
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+                () -> ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
@@ -2964,7 +2971,7 @@ class TicketServiceTest {
         TicketTopic otherProductTopic = TicketTopic.builder().id(60L).productId(99L).name("X").isActive(true).build();
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(otherProductTopic));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+                () -> ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
@@ -2974,7 +2981,7 @@ class TicketServiceTest {
         TicketTopic inactive = TicketTopic.builder().id(60L).productId(10L).name("X").isActive(false).build();
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(inactive));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
+                () -> ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
@@ -2986,7 +2993,7 @@ class TicketServiceTest {
         when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket result = ticketService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST);
+        Ticket result = ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST);
 
         assertEquals(60L, result.getTopicId());
         assertEquals("Yeni Konu", result.getTopicNameSnapshot());
@@ -3042,7 +3049,7 @@ class TicketServiceTest {
         User lead = User.builder().id("lead-1").role("LEAD_AGENT").authorizedProducts(List.of(product)).build();
         when(userRepository.findById("lead-1")).thenReturn(Optional.of(lead));
 
-        Ticket result = ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-1", List.of("LEAD_AGENT"));
+        Ticket result = ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-1", List.of("LEAD_AGENT"));
         assertEquals("WAITING_FOR_CUSTOMER", result.getStatus());
     }
 
@@ -3054,7 +3061,7 @@ class TicketServiceTest {
         when(userRepository.findById("lead-2")).thenReturn(Optional.of(lead));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-2", List.of("LEAD_AGENT")));
+                () -> ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-2", List.of("LEAD_AGENT")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
@@ -3063,7 +3070,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket result = ticketService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        Ticket result = ticketCommandService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
         assertEquals("IN_PROGRESS", result.getStatus());
     }
 
@@ -3071,7 +3078,7 @@ class TicketServiceTest {
     void updateTicketStatus_customerDisallowedTransition_forbidden() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "customer-1", List.of("CUSTOMER")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
@@ -3079,7 +3086,7 @@ class TicketServiceTest {
     void updateTicketStatus_customerOtherTicket_forbidden() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "other-cust", List.of("CUSTOMER")));
+                () -> ticketCommandService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "other-cust", List.of("CUSTOMER")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
@@ -3088,14 +3095,14 @@ class TicketServiceTest {
     @Test
     void updateTicketPriority_invalidPriority_throwsBadRequest() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketService.updateTicketPriority(800L, "URGENT", null, null, "admin-1", ADMIN_LIST));
+                () -> ticketCommandService.updateTicketPriority(800L, "URGENT", null, null, "admin-1", ADMIN_LIST));
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
     }
 
     @Test
     void updateTicketPriority_samePriority_returnsUnchanged() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS"))); // priority HIGH
-        Ticket result = ticketService.updateTicketPriority(800L, "HIGH", null, null, "admin-1", ADMIN_LIST);
+        Ticket result = ticketCommandService.updateTicketPriority(800L, "HIGH", null, null, "admin-1", ADMIN_LIST);
         assertEquals("HIGH", result.getPriority());
         verify(ticketRepository, never()).save(any());
     }
@@ -3107,7 +3114,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(t));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket result = ticketService.updateTicketPriority(800L, "CRITICAL", null, null, "admin-1", ADMIN_LIST);
+        Ticket result = ticketCommandService.updateTicketPriority(800L, "CRITICAL", null, null, "admin-1", ADMIN_LIST);
 
         assertEquals("CRITICAL", result.getPriority());
         verify(workflowService).pauseSla(t);
