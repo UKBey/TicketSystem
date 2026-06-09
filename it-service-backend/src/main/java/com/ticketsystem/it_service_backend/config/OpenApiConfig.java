@@ -66,7 +66,7 @@ public class OpenApiConfig {
                                                   → CLOSED (doğrudan kapatma)
                                 ```
                                 """)
-                        .version("0.10.6")
+                        .version("1.1.0")
                         .contact(new Contact()
                                 .name("IT Service Desk Ekibi")
                                 .email("support@ticketsystem.local")
