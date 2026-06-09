@@ -93,6 +93,9 @@ export default function TicketTable({
     'created',
     showActionsColumn && 'actions',
   ].filter(Boolean);
+  // Son sütun esnek kalır (sabit genişlik verilmez) ki tabloyu container'ın sağ
+  // kenarına kadar doldursun — diğerleri sürüklenebilir sabit genişlikli.
+  const lastColId = columnOrder[columnOrder.length - 1];
   const widthOf = (id) => colWidths[id] ?? DEFAULT_COL_WIDTHS[id];
   const tableWidth = columnOrder.reduce((sum, id) => sum + widthOf(id), 0);
 
@@ -117,7 +120,8 @@ export default function TicketTable({
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
-  const handleFor = (id) => <ResizeHandle onStart={(e) => startResize(e, id)} />;
+  // Son (esnek) sütun sürüklenemez — kalan alanı kendisi doldurur.
+  const handleFor = (id) => (id === lastColId ? null : <ResizeHandle onStart={(e) => startResize(e, id)} />);
 
   return (
     <>
@@ -194,12 +198,17 @@ export default function TicketTable({
           + minWidth tablo intrinsic genişliğini koruyup container içinde yatay
           scroll bar gösterir; üst container'daki rounded-xl overflow-hidden bozulmaz. */}
       <div className="hidden lg:block overflow-x-auto">
-      {/* Sütunlar sürüklenerek yeniden boyutlandırılabilir; tablo genişliği aktif
-          sütunların toplamına eşittir, böylece bir sütunu büyütünce yalnızca o
-          büyür ve gerekirse yatay scroll çıkar. */}
-      <table style={{ tableLayout: 'fixed', width: `${tableWidth}px` }}>
+      {/* Sütunlar sürüklenerek yeniden boyutlandırılabilir. Tablo container'ı tam
+          doldurur (width:100%); son sütun sabit genişlik almaz, kalan alanı kaplar
+          (sağ kenara yapışık). minWidth = sütun toplamı: container darsa o sütun
+          default'una iner ve yatay scroll çıkar, içerik ezilmez. */}
+      <table className="ticket-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: `${tableWidth}px` }}>
         <colgroup>
-          {columnOrder.map((id) => <col key={id} style={{ width: `${widthOf(id)}px` }} />)}
+          {columnOrder.map((id) => (
+            id === lastColId
+              ? <col key={id} />
+              : <col key={id} style={{ width: `${widthOf(id)}px` }} />
+          ))}
         </colgroup>
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
