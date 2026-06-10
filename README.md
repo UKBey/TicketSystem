@@ -56,6 +56,11 @@ Customers report technical problems, support agents resolve them under **SLA** r
 - Multi-channel notifications (in-app feed + email simulation via Mailpit) for ticket, status, comment and SLA events
 - Per-user notification preferences — **scoped to the user's role union** so only relevant event rows are shown — and **fully localised** notification content (rendered in the recipient's current language)
 
+### Personalization
+- **Light / dark theme** and **English / Turkish** UI, both shared with the Keycloak login screens
+- **User-selectable date format** applied to *every* date across the UI (`31/12/2026`, `12/31/2026`, `2026-12-31`, `31.12.2026`, or a localized month name) — persisted per user and synced across devices
+- Theme, language, date format and notification preferences are all set from the **profile** page
+
 ### AI Assistance
 - Dedicated `llm-service` generates **AI ticket summaries** (Groq / Llama 3.1) in Turkish or English
 
@@ -377,9 +382,6 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for deployment topology and
 
 ![Notification dropdown](docs/screenshots/in_app_notifications.png)
 *In-app notification feed (bell icon) — live STOMP updates with unread badge.*
-
-![Notification preferences](docs/screenshots/notification_pref.png)
-*Per-event notification preferences (role-union aware) — choose which events trigger an e-mail.*
 
 ![Mailpit captured e-mail](docs/screenshots/mailpit_mail.png)
 *Captured ticket / SLA e-mail in Mailpit (the dev SMTP catcher).*

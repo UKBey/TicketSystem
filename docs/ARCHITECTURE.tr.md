@@ -276,7 +276,7 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 ## 9. Veri Mimarisi
 
 - Tek bir PostgreSQL örneği, **`ticketdb`** (uygulama verisi) ve **`keycloakdb`** (Keycloak) veritabanlarını barındırır. jBPM motoru **ayrı** bir `jbpm-db` örneği kullanır — bu ikisi birbirine karıştırılmamalıdır.
-- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V38) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
+- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V40) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
 - `llm-service`, `ticketdb`'yi paylaşır ancak **izole bir Flyway geçmiş tablosu** (`flyway_schema_history_llm`, 0'dan baseline'lanmış) tutar; böylece migrasyonları backend'inkilerle çakışmadan bir arada bulunur.
 - DTO'lar API sınırını oluşturur; JPA entity'leri asla doğrudan istemcilere serileştirilmez.
 
@@ -352,6 +352,7 @@ Backend, `@EnableAsync` ve `@EnableScheduling` özelliklerini etkinleştirir:
 - **Diller:** İngilizce ve Türkçe, uçtan uca — SPA (i18next), backend mesajları (`messages_*.properties`), bildirimler, e-postalar ve Keycloak giriş ekranları.
 - Kullanıcının tercih ettiği dil kalıcılaştırılır (`users.preferred_language`) ve sunucu tarafı yerelleştirmeyi yönlendirir; bildirimler bir mesaj anahtarı + argümanlar saklar ve okuyanın o anki dilinde **okuma anında oluşturulur**.
 - **Tema:** açık/koyu mod, alan adı kapsamlı (domain-scoped) bir çerez aracılığıyla SPA ile özel Keycloak giriş teması arasında paylaşılır; arayüz dili, `kc_locale` parametresi üzerinden Keycloak'a taşınır.
+- **Tarih formatı:** arayüzde gösterilen her tarih, kullanıcının seçtiği tek bir format preset'iyle biçimlenir (`users.preferred_date_format` — `DMY_SLASH`/`MDY_SLASH`/`YMD_DASH`/`DMY_DOT`/`MED`); sunucuda kalıcılaştırılır (`PUT /users/me/date-format`), `localStorage`'da önbelleğe alınır ve cihazlar arası senkron için girişte sunucudan yeniden yüklenir. Profil sayfasındaki **Tercihler** modallerinden (bildirim tercihleriyle birlikte) ayarlanır.
 
 ---
 

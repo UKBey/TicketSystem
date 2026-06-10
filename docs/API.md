@@ -232,7 +232,7 @@ filters (all repeatable list parameters):
 |---|---|---|
 | `status` | string[] | Filter by status (`NEW`, `IN_PROGRESS`, `WAITING_FOR_CUSTOMER`, `RESOLVED`, `CLOSED`). Not accepted by `/pool`. |
 | `priority` | string[] | Filter by priority (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`). |
-| `search` | string | Free-text search over title/description. |
+| `search` | string | Case-insensitive free-text search over the ticket title (max 100 chars). |
 | `productId` | long[] | Filter by product ID. Not accepted by `/by-product/{productId}`. |
 | `agentId` | string[] | Filter by claiming agent's Keycloak ID. |
 | `topicId` | long[] | Filter by topic ID. |
@@ -582,6 +582,7 @@ Response `200 OK` (`Csat` entity):
 | POST | `/api/v1/users/me/password` | Authenticated | Change the caller's password. |
 | PUT | `/api/v1/users/me/language` | Authenticated | Update the caller's preferred language. |
 | PUT | `/api/v1/users/me/theme` | Authenticated | Update the caller's preferred theme. |
+| PUT | `/api/v1/users/me/date-format` | Authenticated | Update the caller's preferred date display format. |
 | GET | `/api/v1/users/me/2fa` | Authenticated | List the caller's registered TOTP devices. |
 | DELETE | `/api/v1/users/me/2fa/{credentialId}` | Authenticated | Delete one of the caller's TOTP devices. |
 | POST | `/api/v1/users/me/2fa/notify-added` | Authenticated | Trigger the "2FA device added" notification email. |
@@ -607,6 +608,7 @@ No body — the user is derived from the JWT. Returns a `UserDTO`:
   "isActive": true,
   "preferredLanguage": "tr",
   "preferredTheme": "dark",
+  "preferredDateFormat": "DMY_SLASH",
   "createdAt": "2026-01-15T09:00:00+03:00",
   "authorizedProducts": [
     { "id": 1, "name": "CRM", "isActive": true, "maxActiveTickets": 5 }
@@ -636,6 +638,7 @@ Query params: `search` (string, optional), `role` (string[], optional), `page` (
   `204 No Content`; `400` if the current password is wrong or the new one violates policy.
 - **PUT `/api/v1/users/me/language`** — query `lang` (string: `en` or `tr`). Returns `UserDTO`.
 - **PUT `/api/v1/users/me/theme`** — query `theme` (string: `light` or `dark`). Returns `UserDTO`.
+- **PUT `/api/v1/users/me/date-format`** — query `format` (string: one of `DMY_SLASH`, `MDY_SLASH`, `YMD_DASH`, `DMY_DOT`, `MED`). Drives every date shown in the UI. Returns `UserDTO`.
 - **GET `/api/v1/users/me/pdf-preferences`** — returns `PdfPreferencesDTO` containing the
   caller's last-used PDF export modal selections (selected sections, language, orientation, etc.)
   as an opaque JSON string. Returns `null` if no preference has been saved yet.

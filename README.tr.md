@@ -56,6 +56,11 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 - Ticket, durum, yorum ve SLA olayları için çok kanallı bildirimler (uygulama içi akış + Mailpit aracılığıyla e-posta simülasyonu)
 - Kullanıcı başına bildirim tercihleri — yalnızca ilgili olay satırları gösterilecek şekilde **kullanıcının rol birleşimine göre kapsamlanmış** — ve **tamamen yerelleştirilmiş** bildirim içeriği (alıcının o anki dilinde oluşturulur)
 
+### Kişiselleştirme
+- **Açık / koyu tema** ve **İngilizce / Türkçe** arayüz; ikisi de Keycloak giriş ekranlarıyla paylaşılır
+- **Kullanıcının seçtiği tarih formatı** arayüzdeki *her* tarihe uygulanır (`31/12/2026`, `12/31/2026`, `2026-12-31`, `31.12.2026` veya yerel ay-adlı biçim) — kullanıcı başına kalıcı, cihazlar arası senkron
+- Tema, dil, tarih formatı ve bildirim tercihlerinin tümü **profil** sayfasından ayarlanır
+
 ### Yapay Zekâ Desteği
 - Özel `llm-service`, Türkçe veya İngilizce **yapay zekâ destekli ticket özetleri** üretir (Groq / Llama 3.1)
 
@@ -364,9 +369,6 @@ Dağıtım topolojisi için **[docs/ARCHITECTURE.tr.md](docs/ARCHITECTURE.tr.md)
 
 ![Bildirim dropdown'u](docs/screenshots/in_app_notifications.png)
 *Uygulama içi bildirim akışı (zil ikonu) — STOMP canlı güncellemeleri, okunmamış sayacı.*
-
-![Bildirim tercihleri](docs/screenshots/notification_pref.png)
-*Olay bazlı bildirim tercihleri (rol birleşimine duyarlı) — hangi olayların e-posta tetikleyeceğini seç.*
 
 ![Mailpit'te yakalanmış e-posta](docs/screenshots/mailpit_mail.png)
 *Mailpit'te (geliştirme SMTP yakalayıcısı) yakalanmış ticket / SLA e-postası.*

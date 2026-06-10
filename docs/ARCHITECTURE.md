@@ -276,7 +276,7 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 ## 9. Data Architecture
 
 - A single PostgreSQL instance hosts **`ticketdb`** (application data) and **`keycloakdb`** (Keycloak). The jBPM engine uses a **separate** `jbpm-db` instance — the two must not be conflated.
-- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V38). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
+- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V40). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
 - `llm-service` shares `ticketdb` but keeps an **isolated Flyway history table** (`flyway_schema_history_llm`, baselined from 0) so its migrations coexist with the backend's without collision.
 - DTOs form the API boundary; JPA entities are never serialised directly to clients.
 
@@ -352,6 +352,7 @@ The non-functional target is a response time under ~2 seconds for typical operat
 - **Languages:** English and Turkish, end to end — SPA (i18next), backend messages (`messages_*.properties`), notifications, e-mails, and the Keycloak login screens.
 - The user's preferred language is persisted (`users.preferred_language`) and drives server-side localisation; notifications store a message key + arguments and are **rendered at read time** in the reader's current language.
 - **Theming:** light/dark mode is shared across the SPA and the custom Keycloak login theme via a domain-scoped cookie, with the UI language carried to Keycloak through the `kc_locale` parameter.
+- **Date format:** every date shown in the UI is rendered through a single user-chosen format preset (`users.preferred_date_format` — `DMY_SLASH`/`MDY_SLASH`/`YMD_DASH`/`DMY_DOT`/`MED`), persisted server-side (`PUT /users/me/date-format`), cached in `localStorage` and re-hydrated from the server on login for cross-device sync. Set from the **Preferences** modals on the profile page (alongside notification preferences).
 
 ---
 
