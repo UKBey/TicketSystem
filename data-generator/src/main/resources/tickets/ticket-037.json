@@ -1,92 +1,37 @@
-{
-  "title": "Mass VPN outage — finance team can't work",
-  "description": "Since 09:30 this morning, half of the finance team can't connect to the VPN. It's affecting the budgeting processes.",
-  "priority": "CRITICAL",
-  "productName": "VPN & Network",
-  "topicName": "VPN Connection",
-  "status": "CLOSED",
-  "reasonCode": "ROOT_CAUSE_FIXED",
-  "worklogs": [
-    {
-      "minutes": 10,
-      "description": "Compiled the list of affected users: 12 finance + 3 accounting = 15 people."
-    },
-    {
-      "minutes": 15,
-      "description": "An abnormal spike in failed-auth was observed on the VPN gateway monitoring panel."
-    },
-    {
-      "minutes": 30,
-      "description": "A 'token cache invalidation' error was identified in the RADIUS server logs."
-    },
-    {
-      "minutes": 20,
-      "description": "The RADIUS service was controlled-restarted and the cache was cleared."
-    },
-    {
-      "minutes": 15,
-      "description": "The connection of all 15 affected users was verified one by one."
-    },
-    {
-      "minutes": 30,
-      "description": "A post-mortem document was prepared, recording the root cause + prevention steps."
-    }
-  ],
-  "comments": [
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Urgent! The whole team has been unable to connect for 30 minutes. We have an 11:00 meeting with the CFO for the budget revision, please intervene."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hi, I've picked this up right away. I'm prioritizing it. First: how many people are affected, and are they all getting the same error message? Could you send a screenshot from one or two users?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Around 15 people, all getting 'Authentication failed'. I've attached 3 screenshots."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Thank you. The error is clear — there's an issue with the authentication infrastructure, not something caused by a single user. I've immediately started an escalation with the network and security teams. This is a major incident, and I'm handling it as a P1. Estimated fix: within 30 minutes. I'm tracking it live as well, and I'll update you here as things progress."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "On the RADIUS dashboard, the auth failed graph spiked starting at 09:25. I'm looking into it together with the network team (Murat). We suspect a token cache invalidation bug — an upgrade was done last week."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Update: Root cause identified — the authentication token cache on the RADIUS server is corrupted (a bug following last week's upgrade). To clear the cache, the service will be controlled-restarted within 5 minutes. Existing connections won't be affected during the restart, but anyone trying to connect anew may see a 2-3 minute delay."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "RADIUS has been restarted. Please test one user's VPN connection and let me know. 1 person out of all 15 is enough — if it works, it'll apply to the others too."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Ali tested it and connected! A couple more people tried, and it works. We made it to the CFO meeting. Thank you so much; we never imagined it could be this fast with you."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Glad to hear it. The whole team made the 11:00 meeting, and that's what really matters. I'm preparing a detailed post-mortem on this for prevention steps. I'll share it in the coming days — I'm going to recommend adding an automatic smoke-test for RADIUS upgrades. Your urgent response and clear communication also sped up the process; thank you."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Post-mortem: the token-cache bug is documented in the vendor's knowledge base (workaround: restart). For a permanent fix, a migration to the 8.5.2 patch will be planned — tracked as RFC-1142."
-    }
-  ],
-  "resolutionNote": "A token cache invalidation bug (post-upgrade) was identified on the RADIUS auth server. The cache was cleared via a controlled-restart of the service, and the connection of the 15 affected users returned to normal. Total impact duration ~50 minutes. A post-mortem document was prepared, and a migration to the 8.5.2 patch was planned.",
-  "csat": {
-    "rating": 5,
-    "comment": "We got very fast and clear support during a crisis. The communication was excellent — we were kept informed at every stage. Thank you."
-  }
+﻿{
+    "title":  "Swagger/OpenAPI spec import fails with \u0027invalid operationId\u0027 validation error",
+    "description":  "Trying to import an OpenAPI 3.0 spec for our new Inventory API into API Connect. The import keeps failing with a validation error saying two operationIds contain invalid characters. We generated this spec from our Spring Boot application.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM API Connect",
+    "topicName":  "API Olusturma ve Yayinlama",
+    "status":  "RESOLVED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Validated the spec with ibm-openapi-validator CLI. Two operationIds contain forward slashes: \u0027inventory/list\u0027 and \u0027inventory/search\u0027."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "OpenAPI spec corrected: operationIds changed to \u0027inventoryList\u0027 and \u0027inventorySearch\u0027."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hi, I ran the IBM OpenAPI validator against your spec and found the issue. Two operationId values contain forward slash characters (\u0027inventory/list\u0027 and \u0027inventory/search\u0027). The OpenAPI 3.0 spec requires operationIds to be unique strings with no special characters - the forward slash is not allowed. This was probably generated automatically from your Java method paths. You can fix this by changing the operationIds to camelCase equivalents like \u0027inventoryList\u0027 and \u0027inventorySearch\u0027. Could you..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Fixed both operationIds. Trying the import again now."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Import succeeded. The Inventory API is now visible in the API Manager. Thank you for the quick diagnosis."
+                     }
+                 ],
+    "resolutionNote":  "Two operationId values in the OpenAPI spec contained forward slash characters which are not valid. Corrected to camelCase values (\u0027inventoryList\u0027, \u0027inventorySearch\u0027). Import succeeded after correction."
 }

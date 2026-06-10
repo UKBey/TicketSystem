@@ -1,0 +1,147 @@
+﻿{
+    "title":  "FintechBox market data latency suddenly jumped from 2ms to 400ms - trading operations impacted",
+    "description":  "Trading operations team reporting that market data latency from FintechBox to trading desks has jumped from the normal 2ms to around 400ms as of 09:15 this morning. This is causing traders to miss fast-moving price opportunities. The 400ms delay makes the data effectively unusable for high-frequency strategies. All data sources and all instruments are affected.",
+    "priority":  "CRITICAL",
+    "productName":  "FintechBox",
+    "topicName":  "Market Data ve Veri Dagitimi",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked FintechBox Market Data Integrator performance metrics. CPU usage normal (18%). Network I/O: receiving normally from data sources. Output I/O: sending at 1/10th normal throughput."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Investigated the output data bus. The internal messaging queue (ActiveMQ) is at 98% capacity. Messages are being produced faster than consumed. Queue backlog creating the 400ms+ delay."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Identified what changed at 09:15. A new data distribution client (risk analytics system) was added to the subscription list this morning and is consuming messages slowly, causing backpressure."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Temporarily removed the risk analytics system from the real-time queue. Latency dropped to 3ms within 90 seconds."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Diagnosed risk analytics system performance issue. Its JVM heap was set to 256MB causing frequent GC pauses and slow consumption."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Increased risk analytics JVM heap to 2GB. Added it back to the real-time queue. Latency stable at 2-3ms."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "P1 response engaged. Checking FintechBox Market Data Integrator system metrics immediately. The jump to 400ms happened at 09:15 - looking for any changes or anomalies at that time."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Traders are unable to work. Please find this as fast as possible. The morning session is the busiest and we are missing trades every minute."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "First finding: the FintechBox Market Data Integrator\u0027s internal messaging queue (ActiveMQ) is at 98% capacity. The queue is filling up because messages are being produced faster than the consumers can process them. This backlog is causing every message to wait in queue for 400ms before delivery. The queue was at normal levels (under 10%) until 09:15. Something that started at 09:15 is either increasing message production or slowing down consumption. Checking both directions now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Narrowing down: market data production rates are normal (same message rate as yesterday). The consumption side is the problem. I see 7 consumers on the ActiveMQ queue. 6 of them are consuming at normal speed. One consumer - the risk analytics system - is consuming at about 10% of normal speed and is causing the queue to back up. Was the risk analytics system changed or added today?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes - the IT team added the new risk analytics system to the market data feed this morning at 09:15. That is exactly when the latency started."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That is the root cause. The slow risk analytics consumer is creating backpressure that delays all other consumers. In a shared queue model, one slow consumer affects everyone. I have two immediate options: Option 1 - temporarily remove the risk analytics system from the live queue so trading latency recovers immediately (I can put it on a separate delayed feed). Option 2 - investigate why the risk analytics system is consuming slowly and fix it first. Option 1 restores trading within 2..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Option 1 immediately. Get trading back to normal first. We can fix the analytics system separately."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Removing risk analytics system from the real-time queue now. Switching it to a separate delayed-delivery queue so it continues to receive data but cannot create backpressure on trading systems."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Done. The main queue is draining. Latency is dropping - now at 150ms and still falling."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Latency is back to 3ms. The trading queue is empty and all 6 trading consumers are receiving data at normal speed. Trading operations should have full-speed market data now. Please confirm."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Trading desk confirms data is live and fast again. Latency showing 2-3ms on the monitoring screen. Thank you. Now what about the risk analytics system?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Now diagnosing the risk analytics system. It is consuming messages at about 10% of expected speed. Checking its resource utilization: CPU 45% (high for a consumer), memory usage hovering at the JVM heap limit of 256MB with frequent garbage collection. The slow consumption is caused by the JVM heap being too small for the volume of messages it needs to hold in memory for analysis. At 256MB, the JVM is spending more time on garbage collection than actual work - GC pauses are causing the slow..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I need to check with the infrastructure team. One moment... They say the server has 32GB total, currently using 8GB. There is plenty available."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Good, plenty of room. I will increase the risk analytics JVM heap from 256MB to 2GB. This should eliminate the GC pressure and restore normal consumption speed. The risk analytics service will need to restart for the JVM change to take effect - it will miss approximately 30 seconds of market data during restart, which is fine since it reads from the delayed queue. Shall I proceed?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, proceed with the JVM change."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "JVM heap updated to 2GB. Risk analytics service restarting now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Risk analytics service is back up and consuming from the delayed queue at full speed. GC overhead has dropped from 40% to 1.2%. I am now testing whether it is safe to move it back to the real-time queue."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Test result: with 2GB heap, the risk analytics system processes messages fast enough to keep up with the real-time feed without causing any queue backlog. I am moving it back to the real-time queue. Watch the trading latency monitor for the next 2 minutes."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Trading latency is holding steady at 2-3ms with the analytics system back on the real-time queue. Both trading and analytics are receiving live data. This is working."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "All systems normal. Summary: the risk analytics system was added to the live queue with a 256MB JVM heap which was insufficient. JVM GC pressure caused it to consume messages slowly, creating queue backlog and 400ms latency for all trading systems. Fixed by increasing analytics JVM to 2GB. For future reference: any new consumer added to the trading data queue should have its consumption throughput validated in a test environment before being added to the live queue. I will document this..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please document that requirement. We need a runbook for adding new consumers. This morning\u0027s issue cost us real trading opportunity. Good resolution overall - thank you."
+                     }
+                 ],
+    "resolutionNote":  "Risk analytics system added to real-time market data queue with 256MB JVM heap. Insufficient heap caused GC pauses and slow consumption. Queue filled to 98%, creating 400ms latency for all consumers including trading systems. Trading latency restored by temporarily moving analytics to delayed queue. Permanent fix: JVM heap increased to 2GB, analytics moved back to real-time queue with normal consumption speed.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Excellent incident management. Clear communication throughout, fast trading restoration, thorough root cause fix. Will implement the consumer validation runbook."
+             }
+}

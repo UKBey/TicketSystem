@@ -1,0 +1,35 @@
+﻿{
+    "title":  "Automation Anywhere bot fails with \u0027Object not found\u0027 error on invoice processing screen",
+    "description":  "The invoice data extraction bot that processes incoming invoices from the ERP inbox has been failing since yesterday with the error \u0027Object not found for window: Invoice Entry Form\u0027. The bot was working without issues for 3 months. A Windows update was pushed to all workstations last night.",
+    "priority":  "HIGH",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Bot Gelistirme ve Tasarim",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Ran bot in debug mode. The bot is looking for the Invoice Entry Form window by its exact title. After the Windows update, the window title changed from \u0027Invoice Entry Form - Accounting Suite 8.2\u0027 to \u0027Invoice Entry Form - Accounting Suite 8.3\u0027."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Identified 4 places in the bot where the window title is used as a hard-coded string. Will update to use partial match or wildcard."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I ran the bot in debug mode and identified the failure point. The bot uses an exact window title match to find the Invoice Entry Form. The Accounting Suite software was updated from version 8.2 to 8.3 as part of last night\u0027s Windows patch deployment, and the application version number in the window title changed. The bot is looking for \u0027Invoice Entry Form - Accounting Suite 8.2\u0027 but finds \u0027Invoice Entry Form - Accounting Suite 8.3\u0027. I need to update the bot to use partial title..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please make the fix. While you are in there, can you check if there are other places in the bot that might have similar hardcoded version numbers?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Good call. I reviewed the entire bot and found 4 places where the Accounting Suite window title was hardcoded with the version number. Updating all 4 to use partial matching. I will test the full bot run after the changes."
+                     }
+                 ]
+}

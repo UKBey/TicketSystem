@@ -1,0 +1,50 @@
+﻿{
+    "title":  "Automation Anywhere bot completing but not creating output file",
+    "description":  "The monthly vendor reconciliation bot runs to completion (status shows \u0027Completed\u0027 in Control Room) but the output Excel file is not being created in the expected output folder. The previous month\u0027s file is still the latest in the folder. The bot has been running monthly for 6 months.",
+    "priority":  "MEDIUM",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Bot Gelistirme ve Tasarim",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Reviewed bot activity logs. The file write step completed without error but wrote to C:\\RPA\\output\\ on the bot runner VM, not to the network share \\\\fileserver\\rpa-output\\"
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "A network reconfiguration last month changed the mapped drive letter for the output share. Bot had hardcoded drive letter F: which now maps to a different share."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated bot to write directly to UNC path \\\\fileserver\\rpa-output\\ and tested."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I reviewed the bot activity logs in detail. The bot is actually creating the file successfully - but it is writing to the wrong location. The output file path in the bot uses drive letter F: which was mapped to the output network share when the bot was written. That drive mapping was changed during a network reconfiguration last month and F: no longer points to the reconciliation output share. The file is being created somewhere else under the new F: mapping. I will update the bot to..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Where is the file actually being written to? We would like to retrieve last month\u0027s output that got written to the wrong place."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "The current F: drive maps to \\\\storageserver\\archives\\ - that is where the output file landed. I found it: VENDOR_RECONCILE_2024-05.xlsx is in \\\\storageserver\\archives\\RPA\\output\\. Copying it to the correct \\\\fileserver\\rpa-output\\ folder now. I am also updating the bot\u0027s output path to the correct UNC path."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The finance team found the May reconciliation file in the correct location now. And the bot path is fixed for June onwards. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Bot output file was written to wrong network location because drive letter F: was remapped during a network reconfiguration. Updated bot to use UNC path directly. Recovered the misplaced May reconciliation file.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Good detective work finding the actual file location."
+             }
+}

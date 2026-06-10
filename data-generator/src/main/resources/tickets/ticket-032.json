@@ -1,26 +1,30 @@
-{
-  "title": "I can't connect to CORP-SECURE Wi-Fi",
-  "description": "When I try to connect my new device to the corporate Wi-Fi, I enter my username/password but I get 'cannot connect'.",
-  "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "Wi-Fi",
-  "status": "RESOLVED",
-  "worklogs": [
-    {
-      "minutes": 30,
-      "description": "The device needed PEAP-TLS instead of PEAP-MSCHAPv2; the setting was corrected."
-    },
-    {
-      "minutes": 15,
-      "description": "Certificate validation was disabled, so it was enabled. The connection was established."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "I updated your network settings to PEAP-TLS and it's connecting now. You can test it."
-    }
-  ],
-  "resolutionNote": "The PEAP-TLS authentication method for WPA2-Enterprise was enabled and server certificate validation was turned on."
+﻿{
+    "title":  "ACE FTP adapter connection drops after 5 minutes of inactivity",
+    "description":  "The monthly supplier file exchange flow uses FTP to collect files from 3 external suppliers. Since the FTP server was upgraded last month, connections that are idle for more than 5 minutes get dropped. This causes the flow to fail when it tries to list the directory after an idle period.",
+    "priority":  "LOW",
+    "productName":  "IBM App Connect Enterprise",
+    "topicName":  "Baglantilar ve Adaptorler",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Confirmed FTP server idle timeout is set to 300 seconds (5 minutes) in the new server configuration."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Reviewed ACE FTP configurable service settings. Connection pooling is enabled with no keepalive configured."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the cause. The new FTP server has a 5-minute idle timeout which is shorter than the time between file directory checks in your flow. The ACE FTP adapter maintains a pooled connection which gets dropped by the server after 5 minutes of no activity. I have two solutions: disable connection pooling for this adapter so each operation creates a fresh connection, or configure a keepalive that sends a NOOP command before the idle timeout. For a monthly batch flow like this, disabling..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Let me check with the integration team. We have a few other flows that use FTP - I need to understand if they would be affected by disabling the pool. Will get back to you tomorrow."
+                     }
+                 ]
 }

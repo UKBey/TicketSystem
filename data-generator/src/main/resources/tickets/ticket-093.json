@@ -1,0 +1,40 @@
+﻿{
+    "title":  "Automation Anywhere Control Room license usage at 95% - bots cannot run during peak hours",
+    "description":  "During morning peak hours (09:00-11:00), some bots fail to start because the Control Room license usage reaches 100%. The Control Room shows bot run requests queuing and then timing out. We have 20 runtime licenses and up to 22-23 concurrent bots scheduled during peak.",
+    "priority":  "HIGH",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Control Room ve Deployment",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Analyzed bot schedule and concurrent runtime license usage. Peak concurrent bots: 22 at 09:30. License count: 20. Gap of 2-3 concurrent licenses."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Identified 4 non-critical report generation bots that run daily at 09:00. Moving them to 13:00-14:00 would reduce peak concurrent from 22 to 18."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I analyzed the bot schedule against your 20 concurrent runtime license limit. At 09:30 AM, the peak concurrent bot count reaches 22, which exceeds the 20 available licenses by 2. The 2 bots that cannot start queue for 10 minutes and then timeout. I identified 4 report generation bots scheduled at 09:00 that are not time-critical: WEEKLY-SUMMARY-REPORT, MANAGEMENT-DASHBOARD-REPORT, VENDOR-AGING-REPORT, CUSTOMER-STATEMENT-REPORT. Moving these to 13:00-14:00 would reduce the 09:30 peak..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Those 4 report bots can run at 13:00 instead. But I need to confirm with the finance team that having those reports ready at 14:00 instead of 09:30 is acceptable for their workflow. Let me check."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "No problem. As an alternative, you could also purchase 2-3 additional runtime licenses to cover the peak. Given that the peak is only 2 over the limit, this is a relatively small investment. Either solution works - the schedule adjustment is free, the license purchase gives more flexibility for future growth. I will wait for your decision on the schedule change and can provide license cost information if needed."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Finance team says 14:00 report delivery is fine for the daily summaries. Please go ahead and reschedule those 4 bots to 13:00."
+                     }
+                 ]
+}

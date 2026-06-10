@@ -1,0 +1,9 @@
+﻿{
+    "title":  "Datacap application license error after adding a new scanning workstation",
+    "description":  "When a new scanning workstation was added to the Datacap deployment and a user tried to log in, Datacap returned a license error: \u0027Maximum licensed users exceeded\u0027. The existing workstations still work. The new user has a valid Datacap account.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Datacap",
+    "topicName": "Sistem Yonetimi",
+    "status":  "WAITING_FOR_CUSTOMER"
+}
+

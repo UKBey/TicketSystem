@@ -1,26 +1,8 @@
 {
-  "title": "There's a red dot constantly lit in the bottom-right corner of my new monitor",
-  "description": "The monitor I was given 2 weeks ago has a dead pixel, and it's very annoying.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Monitor",
-  "status": "RESOLVED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Ran a pixel test program and confirmed 1 dead pixel."
-    },
-    {
-      "minutes": 20,
-      "description": "Called the Dell warranty line, the replacement was approved, and the shipment was initiated."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The dead pixel is outside tolerance, so Dell is sending a new monitor. They'll collect the old monitor when the shipment arrives."
-    }
-  ],
-  "resolutionNote": "A monitor replacement was approved under warranty; the replacement unit was delivered to the user."
+  "title": "API publish to catalog fails with 'gateway service is not responding'",
+  "description": "We are trying to publish the new CRM API to the production catalog in API Connect but every attempt fails with 'gateway service is not responding'. The API was published fine to the sandbox catalog. This is blocking a go-live scheduled for tomorrow.",
+  "priority": "HIGH",
+  "productName": "IBM API Connect",
+  "topicName": "API Olusturma ve Yayinlama",
+  "status": "NEW"
 }

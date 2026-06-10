@@ -1,25 +1,8 @@
 {
-  "title": "Second monitor not detected on docking station",
-  "description": "I'm connecting two monitors to the Dell docking station I just received, but only one works. When I plug the same cable directly into the laptop, the monitor works fine.",
-  "priority": "MEDIUM",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Monitor",
-  "status": "IN_PROGRESS",
-  "worklogs": [
-    {
-      "minutes": 30,
-      "description": "Dock firmware upgraded to 2.1.0 via Dell Command | Update."
-    },
-    {
-      "minutes": 45,
-      "description": "Selected 'Extend' via Win+P, updated the driver and restarted; the second monitor still isn't getting a signal."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "I'll test with a spare dock; I've asked the user for their availability tomorrow."
-    }
-  ]
+  "title": "BAW cluster node throwing OutOfMemoryError under morning peak load",
+  "description": "Every morning between 08:30 and 09:30 when all users log in simultaneously, one of the BAW cluster nodes throws OutOfMemoryError: Java heap space and becomes unresponsive. The load balancer eventually routes traffic to the second node but it takes 2-3 minutes. This started after we onboarded 40 new users last week.",
+  "priority": "CRITICAL",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Performans ve Izleme",
+  "status": "NEW"
 }

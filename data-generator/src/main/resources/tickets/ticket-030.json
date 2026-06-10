@@ -1,26 +1,59 @@
-{
-  "title": "Office shows a 'There's a problem with your license' warning",
-  "description": "When I opened Excel this morning a license warning appeared and I can't save files.",
-  "priority": "MEDIUM",
-  "productName": "Enterprise Software",
-  "topicName": "Licensing",
-  "status": "RESOLVED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Determined in the Microsoft 365 Admin Center that no license was assigned to the user."
-    },
-    {
-      "minutes": 10,
-      "description": "Assigned an Office365 E3 license, asked the user to Sign-out/Sign-in."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Your license has been assigned. In the Office applications, go to File > Account > Sign Out and then sign back in."
-    }
-  ],
-  "resolutionNote": "License was unbound from the old device and a new license assigned to the user. After sign out/in, all Office applications are active."
+﻿{
+    "title":  "HTTP Request node in ACE flow times out calling slow payment gateway API",
+    "description":  "The payment status notification flow calls a third-party payment gateway API. The API sometimes takes 40-50 seconds to respond during peak hours. ACE is timing out after exactly 30 seconds and routing the message to the dead-letter queue, which means payment statuses are not being updated.",
+    "priority":  "HIGH",
+    "productName":  "IBM App Connect Enterprise",
+    "topicName":  "Baglantilar ve Adaptorler",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Confirmed the 30-second default timeout on the HTTP Request node properties."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed payment gateway SLA - documented response time up to 60 seconds under peak load."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Increased HTTP Request node timeout to 90 seconds and added a retry with exponential backoff for 504 Gateway Timeout responses."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Tested by simulating a 50-second response delay. Flow completed successfully."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Payment status updates are failing and the messages are piling up in the dead-letter queue. This is causing discrepancies between what the payment gateway shows and what our system shows. It is worse between 12:00 and 14:00."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I can see the issue - the HTTP timeout is set to the default 30 seconds, but the payment gateway API documentation shows response times can reach 60 seconds under peak load. Rather than just increasing the timeout, I am also adding a retry with backoff so messages are automatically retried instead of going to the dead-letter queue. I will set the timeout to 90 seconds and configure up to 2 retries with 10-second delays between them. This way even if the gateway is slow, the message will be..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That sounds like the right approach. Please proceed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Changes deployed and tested. The timeout is now 90 seconds and retries are configured. Also - 847 messages that were stuck in the dead-letter queue have been replayed and all processed successfully. Payment statuses should now be up to date. Can you confirm your system shows the correct statuses?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Checked 20 payment records and they all match the gateway. The DLQ backlog being replayed automatically is a bonus we were not expecting. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Default 30-second HTTP Request node timeout was insufficient for the payment gateway API which can take up to 60 seconds under peak load. Increased timeout to 90 seconds and added 2 retry attempts with 10-second delay. 847 messages in the dead-letter queue were replayed and processed.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Not only fixed the timeout but automatically cleared the backlog too. Really appreciated."
+             }
 }

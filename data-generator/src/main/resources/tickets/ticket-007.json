@@ -1,8 +1,45 @@
 {
-  "title": "C: drive shows a 'low disk space' warning",
-  "description": "When I turned it on this morning, it said only 3 GB left on the C: drive. I only use Office and a few PDFs.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Disk & Storage",
-  "status": "NEW"
+  "title": "Snapshot not found error after Process Center migration",
+  "description": "After migrating BAW Process Center to the new server last weekend, the PurchaseOrder process app shows as installed in PAC but end users get a 'snapshot not found' error when trying to start new PO processes. The snapshot name visible in PAC is different from what was deployed.",
+  "priority": "MEDIUM",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Surecl Tasarimi ve Deployment",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    {
+      "minutes": 20,
+      "description": "Compared snapshot names between old and new servers. Old: SNAPSHOT_v2.1, migrated version shows as 'Tip (migrated)'."
+    },
+    {
+      "minutes": 30,
+      "description": "Reviewed migration logs. The snapshot was renamed during import due to a naming conflict detection."
+    }
+  ],
+  "comments": [
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, thanks for raising this. I can see the snapshot name discrepancy. The migration tool renamed the snapshot during import when it detected a naming conflict. Before I make any changes, could you confirm whether you migrated only the v2.1 version or multiple versions of the PurchaseOrder app?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "We migrated only the most recent version, v2.1. There were no other versions on the old server."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thank you. The process app is still referencing the original snapshot name, but the migrated snapshot was renamed. I need to either reinstall with the original name or update the reference. I will test the reinstall approach in dev first - do you still have the original .twx export file from before the migration?"
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Dev test confirms re-importing from the original .twx file with the original snapshot name resolves the issue. The 'Tip (migrated)' artifact can then be deleted. Waiting for customer to provide the original .twx file."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "If you do not have the .twx file, I can restore it from the pre-migration backup archive. Just let me know and I will proceed with that option."
+    }
+  ]
 }

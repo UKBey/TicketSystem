@@ -1,0 +1,55 @@
+﻿{
+    "title":  "FiGO e-Invoice (e-Fatura) sending to GIB failing - connection timeout",
+    "description":  "FiGO is failing to send e-Invoices to the GIB (Gelir Idaresi Baskanligi) integration service. All invoices are queuing up and not being submitted. The error message is \u0027Connection timed out to GIB endpoint\u0027. This started this morning. About 80 invoices are currently stuck in the queue.",
+    "priority":  "CRITICAL",
+    "productName":  "FiGO",
+    "topicName":  "ERP ve Muhasebe Entegrasyonu",
+    "status":  "RESOLVED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked FiGO GIB endpoint configuration. The configured URL for GIB test environment is being used in production configuration."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "GIB updated their production endpoint URL last night. FiGO configuration still points to old URL."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated GIB production endpoint URL in FiGO configuration. Confirmed connection to new endpoint."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Re-queued and sent 80 stuck invoices to GIB. All accepted with status 200."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the FiGO e-Fatura connectivity. The connection is timing out on the GIB endpoint URL. I verified the GIB service announcement - GIB updated their production web service endpoint URL last night as part of their infrastructure migration. The new endpoint is published on the GIB developer portal. Your FiGO instance still has the old endpoint configured. I am updating the configuration now with the new GIB production endpoint URL."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please proceed. Do you need any downtime to update the configuration?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "No downtime needed - the endpoint URL change applies immediately on save. Configuration updated and I have confirmed a successful connection test to the new GIB endpoint. I am now processing the 80 invoices in the queue. I will update you when they are all sent."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "All 80 queued invoices have been sent to GIB successfully. All received status 200 (accepted). FiGO is now processing new invoices normally as well. You may want to check GIB\u0027s notification announcements or subscribe to their technical updates list so future endpoint changes are communicated in advance."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I will check the GIB portal for their announcement list. Thank you for the fast resolution - e-Invoice delays have serious legal implications for us."
+                     }
+                 ],
+    "resolutionNote":  "GIB updated their production e-Invoice web service endpoint URL as part of an infrastructure migration. FiGO was still configured with the old endpoint URL. Updated endpoint in FiGO configuration. Re-queued and sent 80 stuck invoices to GIB."
+}

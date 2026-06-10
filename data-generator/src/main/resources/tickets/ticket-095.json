@@ -1,0 +1,50 @@
+﻿{
+    "title":  "Finans Portali budget approval workflow stuck - submitted budgets not reaching approvers",
+    "description":  "Department managers submitted their annual budget proposals through the Finans Portali 3 days ago. None of the proposals have reached the finance committee for approval. The status shows \u0027Pending\u0027 on the manager side but the finance committee has no items in their approval queue.",
+    "priority":  "HIGH",
+    "productName":  "Finans Portali",
+    "topicName":  "Butce Planlama ve Takip",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked the approval workflow definition. The finance committee approval group is empty - all members were removed when the committee membership was reorganized last week."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Added 4 finance committee members back to the approval group: CFO and 3 senior finance managers."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Triggered re-evaluation of all 12 stuck budget proposals. All now visible in the finance committee approval queue."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the budget approval workflow. I found the issue: the \u0027Finance Committee\u0027 approval group in the Finans Portali workflow is currently empty. When a budget reaches the finance committee approval step, there are no assignees to route it to, so it sits in pending state. The group was likely cleared when the committee membership was updated last week. I need to add the current finance committee members to the approval group. Could you provide the list of current finance committee..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The finance committee consists of: Serdar Kaya (CFO), Aysun Demir (Finance Director), Tolga Ekinci (Senior Finance Manager), and Baris Sahin (Finance Controller)."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "All 4 members added to the Finance Committee approval group. I have also re-triggered the routing for all 12 stuck budget proposals - they are now visible in the committee\u0027s approval queue. Could you have one of the committee members log in to confirm they can see the pending budget approvals?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Serdar Kaya (CFO) confirmed - he can see all 12 budget proposals in his approval queue. The other committee members also confirm. Budget approval process is unblocked. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Finance Committee approval group in the budget workflow was emptied when committee membership was reorganized. No assignees meant workflow requests had nowhere to route. Re-added 4 committee members. Re-triggered routing for all 12 stuck budget proposals.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Fast fix. Budget approval process is critical for year-end planning."
+             }
+}

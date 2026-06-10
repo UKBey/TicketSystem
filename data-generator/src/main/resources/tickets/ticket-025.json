@@ -1,31 +1,60 @@
-{
-  "title": "Can't see the meeting room calendar in Outlook",
-  "description": "When setting up a meeting I can't select the room resources, the old calendar view doesn't show up.",
-  "priority": "MEDIUM",
-  "productName": "Email & Communication",
-  "topicName": "Calendar & Meetings",
-  "status": "WAITING_FOR_CUSTOMER",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Confirmed 'Reviewer' permission on the room resource (for room-bigblue@corp.local)."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Which meeting rooms are you looking for? Could you share a screenshot — I'd like to see what the 'Add Room' dialog looks like."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I used to be able to see the BigBlue and SmallRed rooms. I've attached a screenshot. The location list comes up completely empty."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The location list is empty — this is related to Outlook's Address Book cache. Could you close Outlook and reopen it with the /resetnavpane parameter? (Run → outlook.exe /resetnavpane). If that doesn't work, let's also try /cleanviews."
-    }
-  ]
+﻿{
+    "title":  "FileNet parallel approval workflow completes after first approver instead of waiting for all",
+    "description":  "The vendor invoice approval workflow has 3 parallel approvers (Finance, Legal, Operations). It should only proceed to payment when all 3 approve. But it is proceeding as soon as any one of them approves. This has caused 2 invoices to move to payment without all required approvals.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM FileNet Content Manager",
+    "topicName":  "Is Akisi ve Onay Surecleri",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Opened the workflow definition in Workflow Designer. The merge point after the 3 parallel approval branches is configured as Required Completions = 1 (ANY) instead of 3 (ALL)."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Updated the merge step to Required Completions = 3. Tested with a sample workflow."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Put the 2 invoices that proceeded incorrectly on hold in the payment system pending review."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "This is a compliance risk. Two invoices went through to payment with only one approval. We need this fixed urgently and need to know how to handle the already-approved invoices."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the configuration error in the workflow definition. The merge point after the three parallel approval branches is set to require only 1 completion instead of 3. This means the workflow proceeds as soon as any single approver clicks Approve, without waiting for the other two. I have corrected this to require all 3 completions and tested the fix. For the two invoices that already went through - do you have a way to put them on hold in the payment system while the missing..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, our Finance team can put payment holds. They have already been notified. The two vendors are being asked for a brief payment delay while we get the outstanding approvals. When was this workflow configuration created? We want to understand whether this has been wrong from the start."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Looking at the workflow version history, this workflow was created 8 months ago and the merge setting has been set to 1 since the beginning. The workflow has been running with this misconfiguration the whole time. I recommend reviewing all invoices that went through this workflow to determine if any others completed with fewer than 3 approvals. I can provide a query to identify those records from the Process Engine history tables."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please provide that query. We need to do an audit."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Query sent via email. The corrected workflow definition has been deployed. All new invoice submissions will now correctly require all 3 approvals before proceeding. Closing this ticket."
+                     }
+                 ],
+    "resolutionNote":  "The parallel approval workflow merge step was configured with Required Completions = 1 (ANY) instead of 3 (ALL). Corrected to require all 3 approvers. The misconfiguration had been in place since the workflow was created 8 months ago. A query was provided to audit historical invoices for compliance review.",
+    "csat":  {
+                 "rating":  3,
+                 "comment":  "Issue was fixed but it is concerning that a compliance-critical workflow was misconfigured for 8 months. Better testing process needed."
+             }
 }

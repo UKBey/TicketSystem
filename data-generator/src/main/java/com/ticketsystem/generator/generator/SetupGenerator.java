@@ -72,7 +72,7 @@ public class SetupGenerator {
      * @throws IllegalStateException if no agent or no customer was able to log in
      */
     public SetupResult setup() throws IOException, InterruptedException {
-        log.info("=== Sistem kurulumu başlıyor ===");
+        log.info("=== Setup starting ===");
 
         JsonNode spec = loadSetupSpec();
 
@@ -112,8 +112,8 @@ public class SetupGenerator {
         assignProductsToUsers(agents,    productByName.values());
         assignProductsToUsers(customers, productByName.values());
 
-        log.info("=== Sistem kurulumu tamamlandı ===");
-        log.info("  Agent: {}, Customer: {}, Ürün: {}, Topic: {}",
+        log.info("=== Setup complete ===");
+        log.info("  Agents: {}, Customers: {}, Products: {}, Topics: {}",
                 agents.size(), customers.size(), productByName.size(), topicByProductAndName.size());
 
         return new SetupResult(adminAgent, agents, customers, productByName, topicByProductAndName);
@@ -149,10 +149,10 @@ public class SetupGenerator {
             ensureUserExists(u, role);
             UserSession session = loginWithRecovery(u.username(), u.password(), role);
             if (session == null) {
-                log.warn("Kullanıcı oluşturuldu ancak oturum açılamadı, atlanıyor: {} ({})", u.username(), role);
+                log.warn("User created but login failed, skipping: {} ({})", u.username(), role);
                 continue;
             }
-            log.info("Kullanıcı hazır: {} ({})", u.username(), role);
+            log.info("User ready: {} ({})", u.username(), role);
             syncUser(session);
             sessions.add(session);
         }
@@ -176,16 +176,16 @@ public class SetupGenerator {
             body.put("temporaryPassword", true); // ilk girişte değişim zorunlu
             body.put("roles", List.of(realmRole));
             api.post("/users/admin/create", body, adminAgent.getToken());
-            log.info("Kullanıcı oluşturuldu (Agent Admin, geçici şifre): {}", u.username());
+            log.info("User created (Agent Admin, temporary password): {}", u.username());
         } catch (ApiClient.ApiException e) {
             if (e.getStatusCode() == 409) {
-                log.info("Kullanıcı zaten mevcut, yeniden oluşturulmuyor: {}", u.username());
+                log.info("User already exists, skipping creation: {}", u.username());
             } else {
-                log.warn("Kullanıcı oluşturulamadı ({}): {}", u.username(), e.getMessage());
+                log.warn("Failed to create user ({}): {}", u.username(), e.getMessage());
                 exists = false;
             }
         } catch (IOException e) {
-            log.warn("Kullanıcı oluşturulamadı ({}): {}", u.username(), e.getMessage());
+            log.warn("Failed to create user ({}): {}", u.username(), e.getMessage());
             exists = false;
         }
         Thread.sleep(GeneratorConfig.DELAY_MS);
@@ -206,17 +206,17 @@ public class SetupGenerator {
         if (first.session != null) return first.session;
 
         if (first.notFullySetUp) {
-            log.info("'{}' kullanıcısı required-action nedeniyle login olamadı, temizleniyor...", username);
+            log.info("'{}' could not log in due to a required action; clearing...", username);
             if (keycloakAdmin.clearRequiredActions(username)) {
                 LoginAttempt second = tryLoginOnce(username, password, role);
                 if (second.session != null) return second.session;
-                log.warn("Required-action temizlendikten sonra hala login olunamadı: {} — Keycloak: {}",
+                log.warn("Login still failed after clearing required actions: {} — Keycloak: {}",
                         username, second.errorMessage);
             }
             return null;
         }
 
-        log.warn("Login başarısız → kullanıcı atlanıyor: {} ({}) — Keycloak hatası: {}",
+        log.warn("Login failed → skipping user: {} ({}) — Keycloak error: {}",
                 username, role, first.errorMessage);
         return null;
     }
@@ -243,7 +243,7 @@ public class SetupGenerator {
             JsonNode resp = api.post("/users/sync", null, session.getToken());
             if (resp.has("id")) session.setUserId(resp.get("id").asText());
         } catch (Exception e) {
-            log.warn("Sync edilemedi ({}): {}", session.getUsername(), e.getMessage());
+            log.warn("Sync failed ({}): {}", session.getUsername(), e.getMessage());
         }
     }
 
@@ -260,7 +260,7 @@ public class SetupGenerator {
         try {
             existing = api.get("/products", adminAgent.getToken());
         } catch (Exception e) {
-            log.warn("Önceki ürünler listelenemedi, temizlik atlaniyor: {}", e.getMessage());
+            log.warn("Could not list existing products, skipping cleanup: {}", e.getMessage());
             return;
         }
         if (!existing.isArray()) return;
@@ -272,14 +272,14 @@ public class SetupGenerator {
             Long id = p.path("id").asLong();
             try {
                 api.delete("/products/" + id, null, adminAgent.getToken());
-                log.info("Önceki ürün silindi: '{}' (ID: {}) — cascade ile bilet/yorum/worklog/csat da temizlendi", name, id);
+                log.info("Previous product deleted: '{}' (ID: {}) — tickets/comments/worklogs/csat removed by cascade", name, id);
                 deleted++;
                 Thread.sleep(GeneratorConfig.DELAY_MS);
             } catch (Exception e) {
-                log.warn("Ürün silinemedi ({}, id={}): {}", name, id, e.getMessage());
+                log.warn("Failed to delete product ({}, id={}): {}", name, id, e.getMessage());
             }
         }
-        if (deleted > 0) log.info("Temizlik tamam: {} ürün silindi.", deleted);
+        if (deleted > 0) log.info("Cleanup done: {} product(s) deleted.", deleted);
     }
 
     // -----------------------------------------------------------------
@@ -298,7 +298,7 @@ public class SetupGenerator {
                 }
             }
         } catch (Exception e) {
-            log.warn("Ürün listesi alınamadı: {}", e.getMessage());
+            log.warn("Could not fetch product list: {}", e.getMessage());
         }
 
         for (JsonNode product : productArray) {
@@ -310,14 +310,14 @@ public class SetupGenerator {
                             Map.of("name", name, "isActive", true, "maxActiveTickets", 50),
                             adminAgent.getToken());
                     id = resp.path("id").asLong();
-                    log.info("Ürün oluşturuldu: '{}' (ID: {})", name, id);
+                    log.info("Product created: '{}' (ID: {})", name, id);
                     Thread.sleep(GeneratorConfig.DELAY_MS);
                 } catch (Exception e) {
-                    log.warn("Ürün oluşturulamadı ({}): {}", name, e.getMessage());
+                    log.warn("Failed to create product ({}): {}", name, e.getMessage());
                     continue;
                 }
             } else {
-                log.info("Ürün zaten mevcut: '{}' (ID: {})", name, id);
+                log.info("Product already exists: '{}' (ID: {})", name, id);
             }
             result.put(name, id);
         }
@@ -347,7 +347,7 @@ public class SetupGenerator {
                     }
                 }
             } catch (Exception e) {
-                log.warn("Topic listesi alınamadı ({}): {}", productName, e.getMessage());
+                log.warn("Could not fetch topic list ({}): {}", productName, e.getMessage());
             }
 
             for (JsonNode topic : product.path("topics")) {
@@ -359,16 +359,16 @@ public class SetupGenerator {
                                 Map.of("name", topicName, "isActive", true),
                                 adminAgent.getToken());
                         topicId = resp.path("id").asLong();
-                        log.debug("Topic oluşturuldu: '{}' / '{}'", productName, topicName);
+                        log.debug("Topic created: '{}' / '{}'", productName, topicName);
                         Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
-                        log.warn("Topic oluşturulamadı ({} / {}): {}", productName, topicName, e.getMessage());
+                        log.warn("Failed to create topic ({} / {}): {}", productName, topicName, e.getMessage());
                         continue;
                     }
                 }
                 result.put(SetupResult.topicKey(productName, topicName), topicId);
             }
-            log.info("'{}' için topic kurulumu tamam ({} topic).", productName,
+            log.info("Topics ready for '{}' ({} topics).", productName,
                     product.path("topics").size());
         }
         return result;
@@ -398,7 +398,7 @@ public class SetupGenerator {
                     }
                 }
             } catch (Exception e) {
-                log.warn("Known issues listesi alınamadı ({}): {}", productName, e.getMessage());
+                log.warn("Could not fetch known issues ({}): {}", productName, e.getMessage());
             }
 
             int created = 0;
@@ -421,11 +421,11 @@ public class SetupGenerator {
                         created++;
                         Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
-                        log.warn("Known issue oluşturulamadı ({} / {}): {}", productName, title, e.getMessage());
+                        log.warn("Failed to create known issue ({} / {}): {}", productName, title, e.getMessage());
                     }
                 }
             }
-            if (created > 0) log.info("'{}' için {} known issue oluşturuldu.", productName, created);
+            if (created > 0) log.info("{} known issue(s) created for '{}'.", created, productName);
         }
     }
 
@@ -445,7 +445,7 @@ public class SetupGenerator {
                 for (JsonNode c : resp) existingTitles.add(c.path("title").asText());
             }
         } catch (Exception e) {
-            log.warn("Hazır yanıt listesi alınamadı: {}", e.getMessage());
+            log.warn("Could not fetch canned responses: {}", e.getMessage());
         }
 
         int created = 0;
@@ -462,7 +462,7 @@ public class SetupGenerator {
             }
         }
 
-        log.info("Hazır yanıt kurulumu tamam: {} yeni paylaşılan şablon oluşturuldu (global + ürün başına).", created);
+        log.info("Canned response setup done: {} new shared template(s) created (global + per-product).", created);
     }
 
     /**
@@ -492,7 +492,7 @@ public class SetupGenerator {
             Thread.sleep(GeneratorConfig.DELAY_MS);
             return 1;
         } catch (Exception e) {
-            log.warn("Hazır yanıt oluşturulamadı ({}): {}", title, e.getMessage());
+            log.warn("Failed to create canned response ({}): {}", title, e.getMessage());
             return 0;
         }
     }
@@ -516,7 +516,7 @@ public class SetupGenerator {
                             Map.of(), adminAgent.getToken());
                 } catch (ApiClient.ApiException e) {
                     if (e.getStatusCode() != 409) {
-                        log.warn("Ürün atanamadı (user={}, product={}): {}",
+                        log.warn("Failed to assign product (user={}, product={}): {}",
                                 user.getUsername(), productId, e.getMessage());
                     }
                 }

@@ -1,8 +1,45 @@
 {
-  "title": "Network printer shows up as 'offline'",
-  "description": "The HP LaserJet printer in the side office has been in 'offline' mode for an hour. I restarted it but it didn't fix the issue.",
+  "title": "Task does not appear in process coordinator's task list after assignment",
+  "description": "After the 'Contract Review' step completes and routes to the Coordinator lane, the assigned coordinator user says she cannot see any tasks in Process Portal. Other team members on the same team do see the task. The process was deployed two months ago and was working fine until yesterday.",
   "priority": "MEDIUM",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Printer",
-  "status": "NEW"
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Gorev ve Yetkilendirme Yonetimi",
+  "status": "IN_PROGRESS",
+  "worklogs": [
+    {
+      "minutes": 20,
+      "description": "Verified the coordinator's team membership in PAC > User Management. Confirmed she is listed as a member."
+    },
+    {
+      "minutes": 15,
+      "description": "Ran the LDAP sync manually. Checked SystemOut.log for sync errors - no errors found."
+    }
+  ],
+  "comments": [
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, thanks for reaching out. I checked the user's team membership in the Process Admin Console and she is correctly listed in the Coordinators team. However I want to check one more thing - could you ask her to log out of Process Portal completely and log back in? Sometimes the task list cache does not refresh after the first login."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "She just did that and still no tasks visible. She restarted her browser too."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thanks for checking. I am now looking at the BPD instance directly. Can you tell me the process instance ID? You should find it in the URL when viewing the process in Process Portal, or the team lead might have it from the process tracking dashboard."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The instance ID is 1482. The team lead confirmed this from the admin view."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Checking instance 1482 in PAC. The task shows Available status, assigned to the Coordinators team. The user is in the team. Something is off with her user profile cache. Going to check whether she has a stale session token causing the display filter to exclude her tasks."
+    }
+  ]
 }

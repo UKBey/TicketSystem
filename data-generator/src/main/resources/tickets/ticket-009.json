@@ -1,30 +1,40 @@
-{
-  "title": "Guest Wi-Fi drops the connection every 5-10 minutes",
-  "description": "Guest users connect to the Guest Wi-Fi, but it drops automatically at certain intervals. Three different people complained about it today.",
-  "priority": "MEDIUM",
-  "productName": "VPN & Network",
-  "topicName": "Wi-Fi",
-  "status": "IN_PROGRESS",
-  "worklogs": [
-    {
-      "minutes": 30,
-      "description": "DHCP pool usage was checked — about 90% of the quota appears to be in use."
-    },
-    {
-      "minutes": 20,
-      "description": "A temporary workaround of shortening the lease time was passed on to the network team."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "The DHCP lease time was lowered from 1 hour to 30 minutes; I'm monitoring it."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "The customer was again able to stay connected for 5 minutes before dropping."
-    }
-  ]
+﻿{
+    "title":  "ESQL Compute node throws null reference error on incoming invoices",
+    "description":  "The invoice processing flow in App Connect Enterprise throws a null reference error when processing invoices from a specific supplier. The ESQL script is failing at the point where it reads the \u0027taxNumber\u0027 field from the JSON payload. Other suppliers\u0027 invoices process correctly.",
+    "priority":  "HIGH",
+    "productName":  "IBM Business Automation Workflow",
+    "topicName":  "Entegrasyon ve REST Servisleri",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Reproduced the error using a sample invoice JSON from the failing supplier. The \u0027taxNumber\u0027 field is absent from their payload."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Confirmed the ESQL reads taxNumber without a null check: SET OutputRoot.JSON.Data.tax = InputRoot.JSON.Data.invoice.taxNumber. This throws when the field does not exist."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I have looked at the error in the message flow log. The ESQL compute node is trying to read a \u0027taxNumber\u0027 field from the incoming invoice JSON, but this field does not exist in the payload from this particular supplier. The code does not have a null check for this field, so it throws an error when the field is missing. I have two options: add a null check in the ESQL so it handles missing tax numbers gracefully, or ask the supplier to always include the field. Which approach do you..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "We cannot change the supplier\u0027s invoice format - they are a large partner. We need to handle the missing field on our side."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Understood. I will add a null check so the field defaults to an empty string when absent. Before I make this change, could you send me 2-3 sample invoice payloads from this supplier so I can test the fix against their actual data format? I want to make sure there are no other missing fields we need to handle."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I will ask the supplier to send sample payloads. Will get back to you by end of today."
+                     }
+                 ]
 }

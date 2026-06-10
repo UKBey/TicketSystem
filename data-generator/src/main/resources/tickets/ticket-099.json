@@ -1,0 +1,42 @@
+﻿{
+    "title":  "Finans Portali invoice upload rejecting valid PDF invoices from a specific supplier",
+    "description":  "Invoices from supplier Tekno Yazilim AS are being rejected by the Finans Portali upload with \u0027Invalid PDF format\u0027 error. The PDFs open correctly in Adobe Acrobat and other tools. Invoices from other suppliers upload without issue. This has been happening for 2 weeks.",
+    "priority":  "MEDIUM",
+    "productName":  "Finans Portali",
+    "topicName":  "Fatura ve Odeme Yonetimi",
+    "status":  "RESOLVED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Analyzed the rejected PDFs. They are PDF/A-3 format (archival standard with embedded XML). The Finans Portali PDF validator only accepts PDF 1.4-1.7 and PDF/A-1. PDF/A-3 is rejected."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Added PDF/A-3 to the list of accepted PDF formats in the Finans Portali upload validator configuration."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I analyzed one of the rejected Tekno Yazilim invoices. The PDF file format is PDF/A-3, which is an archival PDF standard that includes embedded XML data. This format is increasingly used for electronic invoices in Turkey because it can embed the e-Invoice XML alongside the human-readable PDF. The Finans Portali PDF validator has a whitelist of accepted PDF versions and PDF/A-3 is not currently on it. Adding PDF/A-3 to the accepted formats list will fix the rejections without any risk..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please add the format. We expect more suppliers to move to PDF/A-3 for e-Invoice compliance so this will come up again."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "PDF/A-3 added to the accepted formats. Please re-upload one of the rejected Tekno Yazilim invoices to confirm."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Tested - the invoice uploaded successfully. We will also re-upload the invoices from the past 2 weeks that were rejected. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Finans Portali PDF validator whitelist did not include PDF/A-3 format. Supplier was using PDF/A-3 (archival format with embedded e-Invoice XML). Added PDF/A-3 to accepted PDF format list."
+}

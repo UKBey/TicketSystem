@@ -1,35 +1,26 @@
-{
-  "title": "New hire can't access the ERP invoicing module",
-  "description": "They need to get into the ERP for payroll, but they can't see the 'invoicing' menu. The other modules are fine.",
-  "priority": "MEDIUM",
-  "productName": "Enterprise Software",
-  "topicName": "ERP",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 20,
-      "description": "Checked the user's ERP role assignment; the invoicing module was missing."
-    },
-    {
-      "minutes": 15,
-      "description": "ERP-Admin > Authorized Modules > 'Invoicing' was added and the cache was refreshed."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The invoicing module permission has been assigned; it will appear in your menu within 5 minutes."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I can see it, the authorization was successful. Thanks."
-    }
-  ],
-  "resolutionNote": "The 'Invoicing' module permission was assigned to the user. The ERP cache refreshed within 5 minutes.",
-  "csat": {
-    "rating": 5,
-    "comment": "My issue was resolved very quickly."
-  }
+﻿{
+    "title":  "GraphQL API introspection disabled in production catalog",
+    "description":  "The GraphQL API we published through API Connect works correctly for data queries, but developers cannot perform introspection to explore the schema using tools like GraphQL Playground. The introspection query returns an error. This is only a problem in the production catalog - sandbox works fine.",
+    "priority":  "LOW",
+    "productName":  "IBM API Connect",
+    "topicName":  "Gelistirici Portali",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Confirmed GraphQL introspection is disabled in the production catalog API security policy as expected by default."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, this is by design. API Connect disables GraphQL introspection in production catalogs by default as a security best practice - introspection exposes the full API schema and is often used by attackers to map APIs. In sandbox catalogs it is enabled to help developers build against the API. The options are: 1) Create a separate catalog for your internal developers with introspection enabled, restricted by IP or client ID. 2) Enable introspection in production for specific trusted client..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The developers needing introspection are all internal. Option 1 or 3 both seem reasonable. Let me check with the development team which they prefer. I will get back to you tomorrow."
+                     }
+                 ]
 }

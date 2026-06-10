@@ -1,8 +1,60 @@
 {
-  "title": "Nightly backup didn't complete, no report email in the morning",
-  "description": "The Veeam backup report that comes every morning at 06:00 didn't arrive. When I checked the console, last night's job is in a 'failed' state.",
-  "priority": "CRITICAL",
-  "productName": "Cloud Services",
-  "topicName": "Backup",
-  "status": "NEW"
+  "title": "Team not found error when starting new supplier approval process instances",
+  "description": "After deploying the latest snapshot of the SupplierApproval process app to production, new process instances fail at the first user task with 'Team not found: SeniorApproversTeam'. This team exists and worked fine in staging.",
+  "priority": "MEDIUM",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Gorev ve Yetkilendirme Yonetimi",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
+  "worklogs": [
+    {
+      "minutes": 20,
+      "description": "Checked team definitions in production PAC. The SeniorApproversTeam entry is missing."
+    },
+    {
+      "minutes": 15,
+      "description": "Confirmed teams are not part of snapshot exports - they must be created manually per environment."
+    },
+    {
+      "minutes": 20,
+      "description": "Created missing team in production PAC, mapped to LDAP group, restarted stuck process instances."
+    }
+  ],
+  "comments": [
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hi, I investigated the team-not-found error. The SeniorApproversTeam was never created in the production environment. In BAW, team definitions are not exported with the snapshot - they must be set up manually in each environment and bound to local user groups. This is why staging worked but production does not."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "We did not know teams needed separate setup per environment. Who created the team in staging?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "It was created during the initial staging setup. I have now created the same team in production and mapped it to the SeniorApprovers LDAP group. I also restarted the two supplier approval instances that were stuck. Could you ask one of the senior approvers to log in and check their task list?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Just got confirmation from Ahmet Bey - he can see both tasks and has approved one. Everything is working."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Great. I have added this step to the deployment runbook so it is documented for future deployments. Closing the ticket now."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thanks for the quick fix and the runbook update."
+    }
+  ],
+  "resolutionNote": "SeniorApproversTeam was missing from the production environment. BAW teams are not included in snapshot exports and must be created and mapped in each environment. Created the team in production PAC and mapped it to the SeniorApprovers LDAP group. Stuck process instances restarted. Deployment runbook updated.",
+  "csat": {
+    "rating": 4,
+    "comment": "Quick fix. Would have been better with a deployment checklist but glad it got resolved."
+  }
 }

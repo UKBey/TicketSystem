@@ -1,26 +1,45 @@
 {
-  "title": "CRM mobile app not updating the customer list",
-  "description": "In the CRM app on my phone, my customer list is stuck at 3 days ago. When I log in from the computer, the up-to-date records show up.",
-  "priority": "MEDIUM",
-  "productName": "Enterprise Software",
-  "topicName": "CRM",
+  "title": "LDAP group members not showing in BAW task lists after AD restructure",
+  "description": "Our IT team restructured Active Directory groups last week - merged three department groups into one. Since then, members of the new combined group cannot see tasks assigned to their team in Process Portal. The group name changed from 'HR-Dept' to 'HR-Operations'.",
+  "priority": "HIGH",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Gorev ve Yetkilendirme Yonetimi",
   "status": "IN_PROGRESS",
   "worklogs": [
     {
+      "minutes": 15,
+      "description": "Checked PAC User Management. The team binding still references 'HR-Dept' which no longer exists in LDAP."
+    },
+    {
       "minutes": 20,
-      "description": "Cleared the mobile app cache, sent the user the re-login steps."
+      "description": "Updated team binding in PAC to reference 'HR-Operations'. Triggered manual LDAP sync."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Please follow these steps: Settings > Apps > CRM > Clear cache, then log back in."
+      "message": "Hi, I checked the BAW team configuration and found that the task routing team is still bound to the old 'HR-Dept' LDAP group which no longer exists after the AD restructure. I have updated the binding to 'HR-Operations' and triggered a manual LDAP sync. Could a few of the affected users log out and back in to test if they can now see their tasks?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "I did it, the first sync pulled in 100 customers but today's records are still missing."
+      "message": "Testing now with three users. Two of them can see the tasks but the third, Fatma Kaya, still cannot. She was in one of the old sub-groups that got merged."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The two users working confirms the main binding is correct. For Fatma, the issue might be a residual cache entry from her old group membership. Can you check whether she appears in the 'HR-Operations' group in Active Directory? If she does, I will flush the BAW LDAP cache for her specific user."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Checked AD - she is in HR-Operations. Must be a cache issue like you said."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Will restart the BAW user registry cache and force a full resync. Fatma's old group membership records from HR-Dept might still be cached in the WAS LDAP registry."
     }
   ]
 }

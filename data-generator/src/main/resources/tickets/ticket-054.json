@@ -1,0 +1,51 @@
+﻿{
+    "title":  "Inviso user cannot access assigned forms - \u0027No forms available\u0027 error",
+    "description":  "A new field technician, Mehmet Yildirim, was added to Inviso last week but when he logs in he sees \u0027No forms available\u0027 even though forms have been assigned to his user group. Other users in the same group can see and use the forms normally.",
+    "priority":  "MEDIUM",
+    "productName":  "Inviso",
+    "topicName": "Kullanici ve Sistem Yonetimi",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  10,
+                         "description":  "Checked Mehmet\u0027s group membership. He is assigned to \u0027FieldTechnicians\u0027 group."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Checked form assignments for FieldTechnicians group. Forms are assigned to the group."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Examined user account details. Mehmet\u0027s account status is \u0027Pending Activation\u0027 - he was created but the activation email link was not clicked."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked Mehmet Yildirim\u0027s account in the Inviso admin panel. His account status is \u0027Pending Activation\u0027 - the account was created but the activation email was sent to him and the link in that email was never clicked. Until the account is activated, Inviso treats the user as incomplete and does not display forms. Can you ask Mehmet if he received an activation email from Inviso? It might be in his spam folder."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I just asked Mehmet - he never received the activation email. His email address is correct in the system. Could it be a spam filter issue?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Possibly, but I can also just manually activate his account from the admin panel since you have confirmed his identity. I have activated Mehmet\u0027s account directly. He should now be able to log in and see the forms assigned to his FieldTechnicians group. Could you ask him to log out and log back in?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Mehmet logged in again - he can see all the forms now. Issue resolved. Thank you for the quick fix."
+                     }
+                 ],
+    "resolutionNote":  "User account was in \u0027Pending Activation\u0027 status - activation email was never received (likely filtered as spam). Account manually activated from admin panel.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Very quick resolution."
+             }
+}
+

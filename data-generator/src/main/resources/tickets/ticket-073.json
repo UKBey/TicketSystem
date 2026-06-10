@@ -1,0 +1,45 @@
+﻿{
+    "title":  "Datacap OCR quality poor on handwritten forms - recognition confidence below 50%",
+    "description":  "Our HR department uses handwritten forms that are scanned through Datacap. The OCR recognition confidence for these forms has always been lower than printed forms, but recently it dropped from around 70% to below 50%. Many fields now require manual correction. Nothing has changed on our end.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Datacap",
+    "topicName":  "OCR ve Veri Cikarma",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Compared recent scans with older ones. Scanner DPI setting changed from 300 to 150 after scanner firmware update."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Datacap handwriting recognition requires minimum 300 DPI for acceptable confidence. 150 DPI is the degradation cause."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I compared the image quality of recent scans with older ones from before the confidence dropped. The recent scan images are noticeably lower resolution. Checking the scanner settings - the DPI has changed from 300 to 150. IBM Datacap\u0027s handwriting recognition (ICR) engine requires at least 300 DPI for reliable results on handwritten text; at 150 DPI, fine strokes in handwritten characters are lost and confidence drops significantly. Did the scanner have a firmware update recently that..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, the scanner had a firmware update 2 weeks ago. The IT team that manages the scanner confirmed it. Should they change the DPI setting back?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, the scanner DPI should be set back to 300 DPI (or higher - 400 DPI is better for handwritten forms but increases file size by about 78%). After the scanner DPI is restored, could you please rescan one of the problem forms and send it to me? I want to verify that the OCR confidence returns to the expected range before we consider this resolved."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "IT team changed the scanner DPI back to 300. I rescanned a sample form and am sending it to you now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Received the rescan. Datacap OCR confidence on the 300 DPI scan is 78% - much better than the 47% we were seeing. The forms are back in acceptable range. I recommend setting up an alert in your Datacap batch monitoring for when average confidence drops below 65%, which would catch scanner configuration regressions early. Shall I configure that monitoring alert?"
+                     }
+                 ]
+}

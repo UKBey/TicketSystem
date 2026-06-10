@@ -1,0 +1,71 @@
+﻿{
+    "title":  "Inviso server performance degradation - form list takes 30+ seconds to load",
+    "description":  "Users are reporting that the Inviso form list takes 30 seconds or more to load since last month. Form filling and submission are also slow. The server hardware has not changed and no new users have been added. The number of form submissions has grown significantly over the past 3 months.",
+    "priority":  "HIGH",
+    "productName":  "Inviso",
+    "topicName": "Kullanici ve Sistem Yonetimi",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Checked Inviso server metrics. DB query times are high. Form list API query is doing full table scan on the submissions table."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Submissions table has 2.1 million rows and no index on the form_id and status columns used in the most common queries."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Added composite index on (form_id, status, created_at). Form list query now executes in 40ms instead of 28 seconds."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I ran query profiling on the Inviso database. The form list API makes a query against the submissions table that is doing a full table scan. The submissions table has grown to 2.1 million rows over your 3 months of active use - at this scale, a full table scan takes 25-30 seconds. The query filters by form_id and status but there is no index on these columns. Adding a composite database index will fix this. The index creation will take a few minutes on a 2.1M row table. Is this a..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, it is production. We have field teams actively using it during the day. Is it safe to add the index while users are online?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "In PostgreSQL, indexes are created with CONCURRENT mode which allows reads and writes to continue during the build - no downtime and no user impact. The form list will still be slow during the 3-5 minutes the index is building, but no data will be affected. I recommend doing it now to restore performance as soon as possible. Shall I proceed?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please proceed. The current 30 second load time is already causing users to give up and retry, making it even worse."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Index created successfully. I tested the form list API - it now returns in 40 milliseconds compared to 28 seconds before. That is a 700x improvement. Please ask a user to try loading the form list now."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I just tried it myself - forms loaded instantly. Field team is very happy. How did we not notice this building up over time?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Database query performance degradation is gradual - it is hard to notice until you cross a threshold. As a preventive measure, I recommend setting up Inviso server monitoring with alerts for slow query times. Also, the Inviso platform has built-in archive/purge settings for old submissions - if submissions older than 12 months do not need to stay in the active table, archiving them will keep the table size manageable. Would you like guidance on configuring that?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please share information on the archive settings. We probably do not need submissions older than 6 months in the active table."
+                     }
+                 ],
+    "resolutionNote":  "Form list API was doing a full table scan on the 2.1M row submissions table. Added composite index on (form_id, status, created_at). Query time dropped from 28 seconds to 40ms.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Performance fix worked immediately. Also appreciated the advice on archiving to prevent the problem from recurring."
+             }
+}
+

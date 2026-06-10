@@ -1,65 +1,35 @@
-{
-  "title": "My internet drops after connecting to the VPN",
-  "description": "As soon as I connect to the VPN my internet stops working, only internal company services open.",
-  "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "VPN Connection",
-  "status": "RESOLVED",
-  "reasonCode": "CONFIGURATION_CHANGE",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Reviewed the VPN profile file — 'Use default gateway on remote network' is checked."
-    },
-    {
-      "minutes": 20,
-      "description": "Compared the route table before/after; when the VPN connects, 0.0.0.0/0 goes to the VPN gateway."
-    },
-    {
-      "minutes": 25,
-      "description": "Updated the split tunneling profile, only corp.local subnets go through the VPN."
-    },
-    {
-      "minutes": 15,
-      "description": "5-minute test session with the user: internet and corp services work at the same time."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hi, this is a classic sign that the VPN client is running in 'full tunnel' mode — meaning all your traffic goes through the VPN and access to the external internet is cut off. Could you disconnect your VPN so I can push a profile update?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Okay, I've disconnected. I don't mind being without internet for about half an hour, go ahead and test."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Thanks. I switched your profile to 'split tunneling' mode — now only the corp.local subnets (10.10.0.0/16, 192.168.50.0/24) go through the VPN, and all remaining traffic goes directly over the internet. Could you download and install the new profile? You can access it from this link: [vpn-profile-v2.ovpn]"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I installed the new profile and connected. Internet works now 👍 But I'm wondering if I can reach the corp wiki, could you check?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The wiki URL is 'wiki.corp.local'. Please open it in your browser and let me know whether it 'works' or 'doesn't open'. Also try the address 'fileshare.corp.local'."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Both opened! Internet and corp services are working at the same time. Perfect. Thank you so much."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Great. The issue is resolved. I've saved the profile, so from now on this setup will apply automatically every time you connect. If anything goes wrong, just write to me again."
-    }
-  ],
-  "resolutionNote": "Updated the VPN profile from 'full tunnel' to 'split tunneling'. Only the corp.local subnets (10.10.0.0/16, 192.168.50.0/24) pass through the VPN; remaining traffic goes over the user's local internet connection. Tested live together with the user."
+﻿{
+    "title":  "ESQL compute node intermittently fails on invoices missing optional \u0027discountCode\u0027 field",
+    "description":  "The invoice enrichment flow processes invoices from 5 different suppliers. Three suppliers always include a discountCode field in their JSON, but two suppliers omit it. When an invoice without discountCode arrives, the ESQL compute node throws a null reference error and the invoice goes to the dead-letter queue.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM App Connect Enterprise",
+    "topicName":  "Mesaj Akisi Tasarimi",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed ESQL code for the compute node. Found the line: SET OutputRoot.JSON.Data.discount = InputRoot.JSON.Data.invoice.discountCode. No null check present."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Prepared fix: wrapping the field access in an EXISTS check and defaulting to empty string when absent."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the issue in the ESQL code. The compute node directly reads the discountCode field without checking whether it exists first. When a supplier omits this optional field, the ESQL throws an error. The fix is simple - I will add a null check so the code gracefully handles the missing field by defaulting to an empty string. Before I deploy the fix, could you share sample invoice payloads from both suppliers that omit the discountCode? I want to make sure there are no other optional..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Good idea to check all fields. I will ask the integration team to provide sample payloads from all 5 suppliers. Should have them by tomorrow."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Perfect. Once I have all 5 samples I can do a full audit of all field references in the ESQL and make the fix comprehensive rather than just patching the discountCode issue. Looking forward to the samples."
+                     }
+                 ]
 }

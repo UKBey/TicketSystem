@@ -1,0 +1,45 @@
+﻿{
+    "title":  "Instana distributed traces not connecting frontend and backend spans",
+    "description":  "We enabled distributed tracing across our React frontend and Spring Boot backend. Individual traces appear for frontend and backend operations but they are showing as separate unconnected traces rather than one end-to-end trace. We expected to see the full request chain from browser to database.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Instana",
+    "topicName":  "Uygulama ve Altyapi Izleme",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed frontend instrumentation. The React app is using Instana EUM (End User Monitoring) but the trace correlation header injection to backend API calls is not configured."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Backend correctly propagates W3C TraceContext headers between services. The break is at the frontend-to-backend boundary."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I analyzed the tracing configuration. The frontend (EUM) and backend (Java agent) are both sending traces to Instana separately. For the traces to connect into a single end-to-end trace, the frontend needs to inject the current EUM trace ID into outgoing HTTP request headers so the backend can correlate them. This is done by configuring the Instana EUM snippet to enable header correlation on XMLHttpRequest and fetch calls. Can you share how the Instana EUM snippet is currently..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I am checking with the frontend developer. He says the EUM snippet is added to the HTML but he only set the reportingUrl and key properties. No other configuration was done."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That is the gap. The EUM snippet needs the traceCorrelation: true option, and the API calls need to include the backend origins in the allowedOrigins list so Instana knows which requests to inject headers into. I will prepare the exact configuration snippet for your frontend developer to add. I will need your backend API domain (the origin your frontend calls) to put in the allowedOrigins list."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Backend API is at api.company.com. We also call a few third-party APIs but we only care about tracing our own backend."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Perfect. I am preparing the configuration. The traceCorrelation option with allowedOrigins set to api.company.com will inject trace headers only to your backend calls and not to third-party API calls. I will send the exact code snippet for your frontend developer to review and implement."
+                     }
+                 ]
+}

@@ -1,0 +1,47 @@
+﻿{
+    "title":  "FiGO duplicate expense detection flagging legitimate expenses from business trip",
+    "description":  "An employee on a multi-day business trip in Istanbul had all of their daily expense reports flagged as duplicates by FiGO. The system blocked submission of Day 2, Day 3, and Day 4 hotel receipts claiming they are duplicates of Day 1. The receipts are from the same hotel but are separate daily invoices.",
+    "priority":  "MEDIUM",
+    "productName":  "FiGO",
+    "topicName":  "Masraf Onay Sureci",
+    "status":  "CLOSED",
+    "reasonCode":  "USER_EDUCATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Reviewed the duplicate detection rules. Current config flags expenses within 7 days from the same vendor with the same amount as duplicates."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "The hotel issues identical daily invoices of 1,200 TL each. FiGO\u0027s rule triggers on same vendor + same amount within 7 days."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I looked at the duplicate detection logic. FiGO flags expenses as duplicates when they come from the same vendor with the same amount within a 7-day window. For a multi-day hotel stay, the hotel issues identical invoices each day for the same nightly rate, which triggers this rule. In this case the flag is a false positive - the receipts are legitimate daily charges. The employee can override the duplicate flag by selecting \u0027Mark as distinct expense\u0027 with a brief note explaining this..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Can you explain the steps to the employee directly? His name is Serhan Yilmaz."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello Serhan. For each flagged hotel expense, open the expense, click \u0027Review Duplicate Warning\u0027, then click \u0027Mark as Distinct Expense\u0027. In the note field, write something like \u0027Day 2 of 4-day hotel stay - separate nightly invoice\u0027. Submit after adding the note. The approver will see this note and the submission will go through. Repeat for each flagged day."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Serhan says it worked - all 3 hotel invoices are now submitted. Thank you. Should we adjust the duplicate detection settings to avoid this in the future?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "You could increase the identical-amount threshold for accommodation expenses specifically, or require the same invoice number (not just same amount) for duplicate detection in accommodation. However, relaxing the duplicate detection does increase the risk of real duplicates going through. For infrequent multi-day trips, the manual override with a note may be acceptable. I can prepare both options with the trade-offs for your expense policy owner to decide."
+                     }
+                 ],
+    "resolutionNote":  "Legitimate hotel daily invoices were being flagged as duplicates due to same vendor + same amount within 7 days rule. Employee used the \u0027Mark as Distinct Expense\u0027 override flow with explanation notes. Policy review for accommodation expense duplicate detection recommended."
+}

@@ -1,0 +1,42 @@
+﻿{
+    "title":  "FiGO expense policy limit not enforced - employees submitting above-limit amounts",
+    "description":  "The expense policy limit of 500 TL for meal expenses is not being enforced by FiGO. Employees are successfully submitting meal expense reports above 500 TL without any warning or rejection. The policy was configured in the FiGO policy management module 3 months ago.",
+    "priority":  "MEDIUM",
+    "productName":  "FiGO",
+    "topicName":  "Masraf Onay Sureci",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked FiGO expense policy configuration. The 500 TL limit is set for the \u0027Meal\u0027 category, but the enforcement action is set to \u0027Flag for review\u0027 not \u0027Block submission\u0027."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Changed enforcement action from \u0027Flag for review\u0027 to \u0027Reject and notify\u0027 for amounts over the limit."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the issue. The 500 TL meal expense limit is configured correctly in the FiGO policy module, but the enforcement action when the limit is exceeded is set to \u0027Flag for review\u0027 rather than \u0027Block submission\u0027. In \u0027Flag for review\u0027 mode, the expense goes through but is marked for the approver\u0027s attention. It does not actually prevent the submission. The stricter option is \u0027Reject and notify\u0027 which blocks the expense and tells the employee to split the receipt or seek approval for..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "It should be blocked. Employees should not be able to submit above 500 TL meal expenses without prior approval from their manager."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Understood. I have changed the enforcement action to \u0027Reject and notify\u0027 for the Meal expense category when the amount exceeds 500 TL. The rejection message will tell employees to either split the receipt or request a pre-approval exception. Existing submitted expenses above the limit that are already pending approval are not affected by this change - those will continue through the normal approval flow. New submissions from today will be enforced. Please test by trying to submit a meal..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Tested - the 600 TL test expense was blocked with the message you described. This is exactly what we needed. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Expense policy enforcement action was set to \u0027Flag for review\u0027 instead of \u0027Reject and notify\u0027. Changed to \u0027Reject and notify\u0027 for Meal category amounts exceeding 500 TL."
+}

@@ -1,35 +1,8 @@
 {
-  "title": "File transfer over FTP keeps timing out",
-  "description": "I'm connecting to the FTP server for backups, the listing comes through but the transfer hangs once it starts.",
-  "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "Firewall",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 25,
-      "description": "Found that the 49152-65535 outbound port range for passive FTP was closed."
-    },
-    {
-      "minutes": 20,
-      "description": "Added a PASV-RANGE rule on the firewall, transfer test successful."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The passive FTP port range has been opened. Could you try again and let me know?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I tested it, a 500MB file transferred without any issues. Thanks."
-    }
-  ],
-  "resolutionNote": "Added a 49152-65535 outbound allow rule for passive FTP to the firewall. Transfer successful.",
-  "csat": {
-    "rating": 5,
-    "comment": "Detailed and clear solution."
-  }
+  "title": "IBM MQ queue manager fails to start after disk cleanup on production server",
+  "description": "After the server team ran a disk cleanup script last night, the production MQ queue manager PROD.QMGR is no longer starting. Error in the log: AMQ7017 Log not available. All MQ-dependent integrations are down.",
+  "priority": "CRITICAL",
+  "productName": "IBM MQ",
+  "topicName": "Kuyruk Yoneticisi Yapilandirma",
+  "status": "NEW"
 }

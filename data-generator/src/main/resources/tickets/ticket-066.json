@@ -1,0 +1,55 @@
+﻿{
+    "title":  "IBM Instana agent not collecting metrics from new Kubernetes pods",
+    "description":  "After deploying 3 new microservices to the Kubernetes cluster this week, Instana is not showing any metrics for the new pods. Existing pods continue to report normally. The new pods are in a different namespace than the existing ones.",
+    "priority":  "HIGH",
+    "productName":  "IBM Instana",
+    "topicName":  "Agent Kurulumu ve Yapilandirma",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Instana DaemonSet configuration. The agent namespace selector only watches the default and production namespaces. The new services are deployed to the services-v2 namespace."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Added services-v2 namespace to the Instana agent namespace watch configuration."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Rolled the Instana DaemonSet to pick up the config change. New pods appearing in Instana within 5 minutes."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the Instana agent DaemonSet configuration on your Kubernetes cluster. The agent is configured to watch specific namespaces for pod discovery, and the namespace list only includes \u0027default\u0027 and \u0027production\u0027. Your new microservices are deployed to the \u0027services-v2\u0027 namespace which is not in the watch list. I need to add \u0027services-v2\u0027 to the Instana agent namespace configuration and re-deploy the DaemonSet. The rollout takes 2-3 minutes and should not interrupt monitoring for..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please go ahead. How should we handle this in future deployments? The team keeps creating new namespaces."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Configuration updated. New pods in services-v2 are appearing in Instana now. For future namespaces: you can configure the Instana agent to watch ALL namespaces by setting the namespace selector to a wildcard, which means any new namespace is automatically monitored without configuration changes. The trade-off is slightly higher agent memory usage. Alternatively, you can keep the explicit list and update it whenever a new namespace is created - more controlled but requires remembering to..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Given that we keep forgetting to update the list, the wildcard approach sounds better. Please configure that."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Wildcard namespace watch configured. All current namespaces confirmed in Instana. Any future namespaces will be automatically picked up within 5 minutes of DaemonSet pod scheduling."
+                     }
+                 ],
+    "resolutionNote":  "Instana agent was configured to watch only specific namespaces. New microservices were deployed to \u0027services-v2\u0027 namespace which was not in the watch list. Added services-v2 and reconfigured to wildcard namespace watch for future-proofing.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Good fix and proactive advice on the namespace watch configuration."
+             }
+}

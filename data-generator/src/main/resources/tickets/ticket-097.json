@@ -1,0 +1,45 @@
+﻿{
+    "title":  "Finans Portali payment approval showing incorrect payment amounts for foreign currency invoices",
+    "description":  "When approving foreign currency invoices (EUR and USD denominated), the Finans Portali approval screen shows the invoice amount in TRY using an incorrect exchange rate. The TRY equivalent shown is based on the rate from 2 weeks ago, not the current rate. Approvers are authorizing incorrect TRY amounts.",
+    "priority":  "HIGH",
+    "productName":  "Finans Portali",
+    "topicName":  "Fatura ve Odeme Yonetimi",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked FX rate source configuration. Finans Portali is configured to pull exchange rates from the finance department\u0027s shared Excel file on the file server."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "The Excel file contains exchange rates but was last updated 2 weeks ago. The finance team manually updates this file weekly but missed last week."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the cause of the incorrect TRY conversion. Finans Portali is pulling exchange rates from a shared Excel file on the file server: \\\\financeserver\\rates\\fx_rates.xlsx. That file shows rates last updated 12 days ago. The EUR/TRY rate in the file is 33.45 but the current market rate is approximately 34.82 - a significant difference. The finance team updates this file manually. Who is responsible for the weekly rate update, and can they update it now?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That is Neslihan Arslan in the finance team. I will ask her to update the file immediately. But going forward, should we automate the rate updates?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, manual rate updates are a risk - any missed update causes exactly this problem with financial approvals. Finans Portali can be configured to pull rates from the Turkish Central Bank (TCMB) official rate web service automatically, which publishes rates daily. This would eliminate the manual step entirely and always show current rates. Would you like me to assess the TCMB web service integration option and prepare a configuration plan?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please prepare the configuration plan. Neslihan has updated the rates file for now so today\u0027s approvals can proceed. But we want the automated solution going forward."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Rates file updated - confirmed EUR/TRY is now 34.82. Approval screen TRY values are now correct. I will prepare the TCMB integration configuration plan and share it with you by end of this week."
+                     }
+                 ]
+}

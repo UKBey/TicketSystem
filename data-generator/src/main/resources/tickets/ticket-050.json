@@ -1,35 +1,45 @@
-{
-  "title": "I get a 'duplicate tax number' error when adding a new customer",
-  "description": "I'm creating a new customer record but it says 'Tax number already exists in another record.' However, I don't see any record with that number.",
-  "priority": "MEDIUM",
-  "productName": "Enterprise Software",
-  "topicName": "CRM",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Found the same tax number on an old (deactivated) customer record."
-    },
-    {
-      "minutes": 20,
-      "description": "Merged the two records with the Customer Merge tool, added the new contact information."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The old deactivated record was merged, and all history was transferred onto the new record. You can see it in the CRM now."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "My customer is showing up, and the past business records are here too. Thanks."
-    }
-  ],
-  "resolutionNote": "The two customer records (old + new) were merged into a single record with the Customer Merge tool.",
-  "csat": {
-    "rating": 5,
-    "comment": "It was important to me not to lose the historical data either, thanks."
-  }
+﻿{
+    "title":  "Inviso mobile forms not syncing offline data after network reconnection",
+    "description":  "Field technicians using Inviso mobile forms report that data collected offline during site visits is not syncing when they reconnect to the network. The SQLite local database shows the records but the sync process appears to silently fail. This affects about 15 users.",
+    "priority":  "HIGH",
+    "productName":  "Inviso",
+    "topicName":  "Mobil Uygulama ve Senkronizasyon",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  30,
+                         "description":  "Reviewed Inviso sync logs on one affected device. Sync process starts but fails with HTTP 413 - request too large. Each sync attempt is sending all accumulated records in a single batch."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Inviso server configuration. Max upload size setting is 5MB. Some field technicians are collecting forms with photo attachments - their batches exceed 5MB."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I reviewed the sync logs from one of the affected devices. The sync process is failing with HTTP 413 Request Entity Too Large. The application is attempting to upload all offline records in a single batch, and when that batch includes photo attachments from the forms, it exceeds the 5MB server upload limit. I need to understand more about your form configuration: do all 15 affected users have photo capture fields in their forms, or only some?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The forms used by the field technicians do have a photo field - they take photos of equipment during site visits. Not all technicians take photos every visit, but most do."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That confirms the issue. There are two solutions: increase the server\u0027s max upload size, or configure Inviso to sync in smaller batches. I recommend the batch approach because it is more resilient - if a sync fails midway, only the failed batch retries rather than everything. Could you tell me what Inviso version is running on the server and the mobile devices? The batch sync configuration option was introduced in version 4.2."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The server is on Inviso 4.5 and the mobile devices have version 4.4 installed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Both versions support batch sync configuration. I will configure the server to accept batches of maximum 25 records per sync request. For forms with photos, this keeps each batch well under 5MB. The change will take effect on the next app startup by the field devices - no mobile app update needed. I will apply the configuration change now and ask you to test with one device."
+                     }
+                 ]
 }

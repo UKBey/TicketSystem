@@ -1,21 +1,45 @@
 {
-  "title": "'Normal.dotm not found' error when opening Word",
-  "description": "This morning when Word opened an error window came up, and now I can't edit any documents.",
-  "priority": "LOW",
-  "productName": "Enterprise Software",
-  "topicName": "Office Suite",
+  "title": "Document locked by previous user, cannot check in updated version",
+  "description": "A colleague checked out a policy document last Thursday before going on leave. We need to upload the reviewed version urgently but the document is locked. The colleague is not reachable until next week.",
+  "priority": "MEDIUM",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Dokuman Yukleme ve Yonetim",
   "status": "IN_PROGRESS",
   "worklogs": [
     {
       "minutes": 15,
-      "description": "Backed up and deleted %appdata%\\Microsoft\\Templates\\Normal.dotm, reopened Word."
+      "description": "Identified the locked document in ACCE. Confirmed it is checked out by user ekilic."
+    },
+    {
+      "minutes": 10,
+      "description": "Verified with manager that the colleague is on approved leave and the cancellation is authorized."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Could you close Word and reopen it? The template should have been recreated."
+      "message": "Hello, I can see the document is checked out by ekilic. In FileNet, an administrator can cancel a checkout which effectively releases the lock, but any changes the user had made locally will be lost since they have not checked them in. Before I proceed, could you confirm with the user's manager that it is acceptable to lose any local edits the user may have made? This is a required authorization step."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Confirmed with the manager Selin Arslan - she authorized the cancellation. The colleague had only made minor formatting changes that are not needed."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thank you for the confirmation. I will now cancel the checkout and release the document lock. This will make the document available for you to check out and upload the new version. Give me just a minute."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Cancelled checkout via ACCE > navigate to document > Reservation > Cancel Checkout. Confirmed the document is now in Checked In state."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The lock has been removed. You can now check out the document and upload the reviewed version. Let me know if you need any help with the check-in process."
     }
   ]
 }

@@ -1,54 +1,132 @@
-{
-  "title": "ERP annual sales report crashes with 'Out of Memory'",
-  "description": "I'm trying to pull the 2023-2024 sales report, it gives 'out of memory' at 85% and crashes.",
-  "priority": "HIGH",
-  "productName": "Enterprise Software",
-  "topicName": "ERP",
-  "status": "WAITING_FOR_CUSTOMER",
-  "worklogs": [
-    {
-      "minutes": 40,
-      "description": "Examined the report query in the DB — it consumes over 4GB of RAM due to 3 million rows + joins."
-    },
-    {
-      "minutes": 25,
-      "description": "Took an application server JVM heap profile — peak 5.2 GB. Current Xmx is 4 GB."
-    },
-    {
-      "minutes": 30,
-      "description": "As an alternative method, converted the report into a scheduled task format, tested successfully."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hi, when I looked into your report I saw that a wide 2-year date range is being pulled — the query joins ~3 million rows in one pass and the server runs out of RAM. We have three options: (1) split the report into 3-month chunks, run it 8 separate times, and combine in Excel, (2) run it as a scheduled report overnight and receive it by email in the morning, (3) temporarily increase server RAM to 8 GB (may impact production). Which one works for you?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I need it for tomorrow's management meeting, it has to be in my hands by 9 AM at the latest. I don't think there's time to split and combine."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Understood, time is tight. In that case my recommendation is option 2: if I trigger it now as a scheduled report, it'll finish around 02:00 and land in your inbox at 06:00. As a backup, let me also send you the 4 Excel chunks I prepare before the morning meeting — as a single combined file. Would you like that?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "That would be great, let's do both. I'll see which one I'll use in the meeting. Thanks so much."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Of course. I triggered the scheduled report, it's being monitored. I'm starting to prepare the 4 Excel chunks as well, they'll be in your mailbox by 08:30. If you can follow up after the meeting, let's talk with the team about a long-term solution — I think we should move the report to an OLAP cube."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Customer confirmed, dual-channel solution is in place. After tomorrow's meeting we'll discuss long-term OLAP — this isn't urgent, once the ticket is closed I'll open a separate initiative."
-    }
-  ]
+﻿{
+    "title":  "Intermittent \u0027Access denied\u0027 errors on HR documents for specific users after system upgrade",
+    "description":  "After last month\u0027s FileNet Content Engine upgrade from 5.5.8 to 5.5.11, a subset of HR department users are getting sporadic \u0027Access denied\u0027 errors when opening HR Policy documents. The access is denied seemingly at random - the same user might open a document fine in the morning but be denied in the afternoon. Security team cannot find a pattern. About 8 users are affected out of 45 in the HR department.",
+    "priority":  "HIGH",
+    "productName":  "IBM FileNet Content Manager",
+    "topicName":  "Guvenlik ve Erisim Izinleri",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  30,
+                         "description":  "Reviewed CE audit logs for the 8 affected users. Access denied events logged at irregular intervals for the same documents."
+                     },
+                     {
+                         "minutes":  45,
+                         "description":  "Compared security policy on HR Policy documents before and after upgrade. Found a new constraint added by the 5.5.11 upgrade that evaluates a time-based access restriction."
+                     },
+                     {
+                         "minutes":  60,
+                         "description":  "Traced the time-based restriction to a security template that was mistakenly applied to the HR Policy document class during the upgrade\u0027s default configuration migration."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Removed the incorrect security template from the HR Policy document class. Verified access is consistent for all 8 affected users."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed all document classes for similar incorrectly applied templates. Found 3 more affected classes. Cleaned all instances."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Documented the finding and raised with the FileNet upgrade team to fix the migration script for future upgrades."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "This is really confusing. The same user can open a document successfully at 09:00 but gets access denied at 14:00. They have not changed any settings. It is not consistent - some days they have no issues and other days they cannot access anything all day. Our HR team is losing trust in the system."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, the intermittent and time-varying nature you are describing is an unusual pattern. In FileNet, access permissions are typically static - a user either has access or they do not, and it does not normally change throughout the day unless something else is changing their effective permission. A time-based access control policy is one possible explanation. Could you tell me the exact document titles or IDs of three examples where a user got access denied? I want to look at the audit log..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Sure. Here are three examples: Document ID P-HR-2024-0089 was denied to user abilgic at 14:32 on Monday, but the same user opened it at 09:15 that same day. Document P-HR-2024-0091 denied to user zcelik at 11:50 on Tuesday. Document P-HR-2024-0095 denied to user abilgic again at 15:10 on Wednesday."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Thank you. I am pulling the CE audit logs for these document IDs now. I notice all three denials happened in the afternoon - that is worth noting."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Audit log review: all denied access events show the CE evaluated a \u0027TimeConstraintPolicy\u0027 object that is attached to the HR Policy document class. This was NOT present in the 5.5.8 deployment. It appears to have been applied during the 5.5.11 upgrade\u0027s configuration migration. The time constraint restricts access outside the hours 08:00-13:00 for non-admin users. So anyone trying to open an HR Policy document after 13:00 gets denied. That perfectly explains the pattern."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I found the root cause. During the Content Engine upgrade from 5.5.8 to 5.5.11, the configuration migration script incorrectly applied a time-restricted access policy to the HR Policy document class. This policy limits access to 08:00-13:00 only, which is why morning access works but afternoon access is denied. This is a bug in the upgrade migration script. I am going to remove the incorrectly applied policy from the HR Policy class. Before I do, I want to check all document classes for the..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please do. If it was applied to one class it could be on others too. Take the time you need to check everything."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Audit complete. I found the incorrectly applied time constraint policy on 4 document classes in total: HR Policy, HR Personnel Files, HR Training Records, and Benefits Administration. All four have been using the 08:00-13:00 access window since the upgrade. I am removing it from all four now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Removed TimeConstraintPolicy from all 4 affected document classes via ACCE. Will do a quick verification test for each class using a test user to confirm access is now granted outside 13:00."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Removal complete. I ran access tests at 15:30 (well outside the old restricted window) for all 4 document classes with a test account - all passed. Could you ask two of the affected users to try opening an HR Policy document right now and confirm they get access?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Asked abilgic and zcelik to test. Both opened documents successfully just now at 16:10. No access denied. This is great news."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Excellent. Could you monitor for the rest of today and tomorrow to make sure no further intermittent denials appear? Given the policy is now completely removed, I expect the issue to be fully resolved."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Monitored until close of business today - not a single access denied error from any of the 8 users. The whole HR team is relieved. We were starting to think the system was unreliable."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Very glad to hear it. I have raised a defect report with the FileNet upgrade team about the migration script incorrectly applying time-constraint policies. They need to fix this in the next release patch so other customers are not affected by the same bug. I have also documented the investigation steps and the fix in our internal knowledge base."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Thank you so much. The intermittent nature of the bug made it very hard to diagnose and we really appreciate the thorough investigation. And it is good to know it will be fixed in the next patch to protect others."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "One last thing - I am also going to send you a brief note on how to check for incorrectly applied security policies in ACCE so your admin team can do periodic audits going forward. These kinds of migration bugs can be subtle and it is worth having a regular check procedure."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That would be very helpful. Please send it over when you have a chance."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Note sent. Closing the ticket. If you see anything unusual after the next upgrade cycle, please reopen or raise a new ticket and reference this one."
+                     }
+                 ],
+    "resolutionNote":  "A time-restricted access policy (TimeConstraintPolicy) was incorrectly applied to 4 HR document classes during the FileNet CE 5.5.8 to 5.5.11 upgrade by a faulty configuration migration script. The policy restricted access to the 08:00-13:00 window, causing intermittent afternoon access denials that appeared random. Policy removed from all 4 affected classes. Defect raised with FileNet upgrade team. Audit guide sent to customer admin.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Brilliant investigation. The intermittent nature made this really hard to diagnose but the agent found the root cause systematically and fixed everything thoroughly. Really appreciated the defect report and the audit guide."
+             }
 }

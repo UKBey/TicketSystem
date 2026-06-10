@@ -1,26 +1,50 @@
 {
-  "title": "A black screen appears when I share my screen in Teams",
-  "description": "I'm trying to give a presentation, and when I share my screen the other side sees a black screen.",
+  "title": "ACE admin dashboard shows integration flow as Stopped but it is still processing messages",
+  "description": "The ACE admin dashboard shows the CustomerSync flow as Stopped (red status) but messages are still being processed by that flow. The discrepancy is causing our monitoring alerts to fire false positives all day.",
   "priority": "MEDIUM",
-  "productName": "Email & Communication",
-  "topicName": "Teams",
-  "status": "RESOLVED",
+  "productName": "IBM App Connect Enterprise",
+  "topicName": "Izleme ve Hata Ayiklama",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
       "minutes": 20,
-      "description": "GPU hardware acceleration was found to be enabled; suspected conflict with Citrix VDI."
+      "description": "Verified the flow is actually processing messages by checking message counters in ACE statistics API. Flow is active."
     },
     {
       "minutes": 15,
-      "description": "Settings > General > 'Disable GPU hardware acceleration' was enabled, and testing was done after a Teams restart."
+      "description": "Found the ACE admin agent has lost connection to the broker. Restarted the admin agent."
+    },
+    {
+      "minutes": 10,
+      "description": "Dashboard now shows correct flow status."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "I disabled the setting and restarted Teams. We tested it and the sharing looks fine now."
+      "message": "Hello, I checked the ACE statistics API directly and the CustomerSync flow is actively processing messages at its normal rate, so functionally the flow is fine. The problem is that the ACE admin agent (the component that reports status to the dashboard) has lost its connection to the broker and is reporting stale state. I am restarting the admin agent now - this does not affect the flow itself."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "So the flow is actually working? The monitoring alerts were all false positives?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Correct. The flow was working the entire time - only the status reporting was broken. Admin agent restarted and the dashboard now shows CustomerSync as Running (green). I am also adjusting your monitoring configuration to check the actual message processing rate from the ACE statistics API rather than the admin dashboard status, which can go stale when the admin agent drops. This will make your alerts more reliable."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "That makes a lot of sense. Thank you for the fix and the monitoring improvement."
     }
   ],
-  "resolutionNote": "GPU acceleration was disabled in the Teams settings, and screen sharing became stable in the VDI environment."
+  "resolutionNote": "The ACE admin agent lost connection to the broker, causing the dashboard to show stale Stopped status despite the flow actively processing messages. Restarted the admin agent to restore accurate status reporting. Updated monitoring to use the statistics API for actual message rate rather than dashboard status.",
+  "csat": {
+    "rating": 4,
+    "comment": "Quick fix. Good thinking to improve the monitoring while you were at it."
+  }
 }

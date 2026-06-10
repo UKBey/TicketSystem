@@ -52,7 +52,7 @@ public class DataGeneratorApp {
         log.info("╔══════════════════════════════════════╗");
         log.info("║   Ticket System — Data Generator     ║");
         log.info("╚══════════════════════════════════════╝");
-        log.info("Hedef: {}", GeneratorConfig.BASE_URL);
+        log.info("Target: {}", GeneratorConfig.BASE_URL);
 
         OkHttpClient http = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
@@ -68,11 +68,11 @@ public class DataGeneratorApp {
         // ---------------------------------------------------------------
         UserSession adminAgent = loginAdmin(http, mapper);
         if (adminAgent == null) {
-            log.error("admin oturumu açılamadı. Kullanıcı/şifre ve Keycloak ayarlarını kontrol et.");
+            log.error("Admin login failed. Check credentials and Keycloak configuration.");
             System.exit(1);
         }
         syncUser(api, adminAgent);
-        log.info("admin oturum açıldı: {}", adminAgent.getUsername());
+        log.info("Admin logged in: {}", adminAgent.getUsername());
 
         // ---------------------------------------------------------------
         // 2. Setup — kullanıcılar, ürünler, topic'ler, sıkça karşılaşılan sorunlar, hazır yanıtlar
@@ -96,9 +96,9 @@ public class DataGeneratorApp {
         long seconds = (elapsed % 60_000) / 1000;
 
         log.info("╔══════════════════════════════════════╗");
-        log.info("║   ✓ Tüm işlemler tamamlandı          ║");
-        log.info("║   Süre: {} dakika {} saniye           ║", minutes, seconds);
-        log.info("║   Üretilen bilet: {}                  ║", ticketIds.size());
+        log.info("║   ✓ All done                          ║");
+        log.info("║   Elapsed: {} min {} sec              ║", minutes, seconds);
+        log.info("║   Tickets created: {}                 ║", ticketIds.size());
         log.info("╚══════════════════════════════════════╝");
     }
 
@@ -108,7 +108,7 @@ public class DataGeneratorApp {
             tokenClient.login(GeneratorConfig.ADMIN_AGENT_USERNAME, GeneratorConfig.ADMIN_AGENT_PASSWORD);
             return new UserSession(GeneratorConfig.ADMIN_AGENT_USERNAME, "ADMIN", tokenClient);
         } catch (Exception e) {
-            log.error("admin login hatası: {}", e.getMessage());
+            log.error("Admin login error: {}", e.getMessage());
             return null;
         }
     }
@@ -118,7 +118,7 @@ public class DataGeneratorApp {
             JsonNode resp = api.post("/users/sync", null, session.getToken());
             if (resp.has("id")) session.setUserId(resp.get("id").asText());
         } catch (Exception e) {
-            log.warn("Sync edilemedi ({}): {}", session.getUsername(), e.getMessage());
+            log.warn("Sync failed ({}): {}", session.getUsername(), e.getMessage());
         }
     }
 }

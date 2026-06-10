@@ -1,0 +1,49 @@
+﻿{
+    "title":  "FintechBox Market Data Integrator not receiving data from Bloomberg feed",
+    "description":  "The FintechBox Market Data Integrator stopped receiving equity price updates from the Bloomberg B-PIPE feed since yesterday afternoon. The connection status shows \u0027Connected\u0027 in the FintechBox dashboard but no new data is arriving. Other data sources (Reuters, internal) are working.",
+    "priority":  "CRITICAL",
+    "productName":  "FintechBox",
+    "topicName":  "Market Data ve Veri Dagitimi",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Bloomberg B-PIPE subscription status. API shows \u0027Active\u0027 subscription but no events flowing."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed Bloomberg API logs. Token authentication is succeeding but subscription events stopped at 14:32 yesterday."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Bloomberg support confirms they did a backend maintenance on their B-PIPE infrastructure at 14:30. Some subscriptions require client-side re-subscribe after such maintenance."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I investigated the Bloomberg feed issue. The Bloomberg B-PIPE connection is authenticated and appears active at the network level, but no market data events are being received. I checked the Bloomberg API event logs and data flow stopped at exactly 14:32 yesterday. Bloomberg support confirmed they performed infrastructure maintenance on their B-PIPE backend at 14:30. Some B-PIPE subscriptions require a client-side re-subscribe call after such maintenance to resume receiving data - the..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "How many securities are subscribed? We have roughly 800 instruments. Will re-subscribing affect any other clients connected to the same FintechBox instance?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "There are 847 active Bloomberg subscriptions in the Market Data Integrator. Re-subscribing affects only the Bloomberg feed connector - other data sources (Reuters, internal) continue uninterrupted. During the re-subscribe process, there will be a 30-60 second gap in Bloomberg data while subscriptions are renewed. Trading systems connected to FintechBox via the internal data bus will continue receiving data from Reuters for any instruments that have Reuters coverage. Shall I proceed with the..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, proceed. The trading desk is aware and will rely on Reuters for the brief gap. Go ahead."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Bloomberg re-subscribe initiated for 847 instruments. Data events are starting to flow. 200 subscriptions active so far and counting."
+                     }
+                 ]
+}

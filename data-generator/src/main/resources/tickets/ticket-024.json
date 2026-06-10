@@ -1,31 +1,46 @@
-{
-  "title": "Can't even ping the network printer",
-  "description": "I can't connect to the HR printer, it doesn't even respond to ping. It used to work fine.",
-  "priority": "LOW",
-  "productName": "VPN & Network",
-  "topicName": "Office Network",
-  "status": "WAITING_FOR_CUSTOMER",
-  "worklogs": [
-    {
-      "minutes": 20,
-      "description": "Determined the printer is on VLAN 30, confirmed the user is on VLAN 10."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hi, the printer is on the HR department's VLAN. I asked the network team to add an ACL rule for the VLAN 10 → VLAN 30 printer port. In the meantime, so I can confirm, could you share the printer's IP (something like 10.0.30.x) and the make/model?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "IP is 10.0.30.45, model HP LaserJet Pro M404dn. By the way, I heard Ashley is having the same problem."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Opened an ACL change request for printing traffic from VLAN 10 to 30 (CR-2841). Asked Ashley to open a separate ticket — I need to clarify the scope of impact."
-    }
-  ]
+﻿{
+    "title":  "Documents uploaded via CMIS API missing required metadata fields",
+    "description":  "Our integration team is uploading invoice documents via the CMIS API but the Finance team is reporting that the uploaded documents are missing the VendorCode and InvoiceDate properties. These are required fields in the Invoice document class but the documents are being created without them.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM FileNet Content Manager",
+    "topicName":  "Dokuman Yukleme ve Yonetim",
+    "status":  "RESOLVED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked the CMIS API call payload in the integration log. VendorCode and InvoiceDate are not being included in the properties list."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Reviewed the Invoice document class definition in ACCE - both properties are required and have the correct property names."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Found the integration code was using old property names from before a document class schema update. Updated the property names in the integration code."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I reviewed the CMIS API calls from your integration log. The VendorCode and InvoiceDate properties are not being included in the upload request payload at all. Looking at the document class definition in ACCE, I can see these properties exist and are required. Could you share the integration code or configuration that builds the CMIS property list? The property names in the code might not match the current document class property names."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The integration developer Onur Karahan will send you the code. He built it 6 months ago."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Thank you. After reviewing the code Onur shared, I found the issue. The code is using \u0027vendor_code\u0027 and \u0027invoice_date\u0027 as the property names, but when the document class was updated 3 months ago the properties were renamed to \u0027VendorCode\u0027 and \u0027InvoiceDate\u0027 (without underscores, with PascalCase). The CMIS API silently ignores unknown property names, so the old property names were just discarded. I have sent Onur the corrected property names and he has updated the integration. Could you run a..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Onur just ran a test - both VendorCode and InvoiceDate are now showing correctly on the uploaded documents. Fixed."
+                     }
+                 ],
+    "resolutionNote":  "The CMIS integration code was using old property names (vendor_code, invoice_date) that were renamed 3 months ago when the document class was updated (VendorCode, InvoiceDate). CMIS silently ignores unknown property names. Integration code updated with correct property names."
 }

@@ -1,0 +1,45 @@
+﻿{
+    "title":  "FiGO automatic expense category detection misclassifying fuel receipts as food",
+    "description":  "The FiGO OCR auto-detection is incorrectly classifying fuel station receipts as \u0027Food and Beverages\u0027 instead of \u0027Fuel and Transport\u0027. This causes employees to submit under the wrong category and the accounting team has to manually correct them. About 20% of fuel receipts are misclassified.",
+    "priority":  "LOW",
+    "productName":  "FiGO",
+    "topicName":  "Fis ve Fatura Tanima",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Analyzed misclassified receipts. Fuel stations like Shell and Opet sometimes show cafe/food items alongside fuel. The OCR category model is picking up food keywords when the receipt has both fuel and food items."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Identified that the category model should use the highest-amount line item for classification, not keywords. For a receipt with 400 TL fuel and 20 TL coffee, fuel should win."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I analyzed a sample of the misclassified fuel receipts. The issue is that many fuel station receipts include a small food purchase (coffee, snack) alongside the fuel charge. FiGO\u0027s category detection is finding food-related keywords on the receipt and classifying the entire receipt as food. The correct behavior would be to classify based on the dominant line item by value - fuel is almost always the largest amount. I am looking at the FiGO ML category model configuration to see if..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That makes sense. Can it be fixed without too much effort? Our accounting team is spending time each week correcting these."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "There are two approaches: I can add specific fuel station merchant names (Shell, Opet, BP, Total, PO) to the FiGO merchant-based category override list, which would classify any receipt from these merchants as \u0027Fuel and Transport\u0027 regardless of content. This is quick to implement. The alternative is to tune the ML model\u0027s classification logic, which requires working with FiGO\u0027s vendor support. The merchant list approach would cover 90%+ of your fuel receipt misclassifications. Should I add..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please add the merchant overrides. That sounds like the practical solution. Which fuel brands would you add?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I will add: Shell, Opet, BP, TotalEnergies, Petrol Ofisi, Lukoil, and Aytemiz. These cover the major fuel brands operating in Turkey. I am configuring the overrides now - should be done within 30 minutes."
+                     }
+                 ]
+}

@@ -1,0 +1,51 @@
+﻿{
+    "title":  "FintechBox FX Platform end-of-day report generation failing with memory error",
+    "description":  "The end-of-day FX position and P\u0026L summary report started failing 3 days ago with an out of memory error. The report ran successfully for months before this. No configuration changes were made by the team.",
+    "priority":  "HIGH",
+    "productName":  "FintechBox",
+    "topicName":  "FX Platform ve Islem Motoru",
+    "status":  "RESOLVED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Analyzed the report generation failure. The report is loading all FX positions for the day into memory at once. 3 days ago trading volume jumped significantly - 4,800 position records vs previous average of 1,200."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "The FX volume increase is due to a new institutional client onboarded 3 days ago with high-frequency trading activity."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Modified report generation to use streaming/pagination. Report now processes 500 records at a time and writes to file incrementally."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I investigated the end-of-day report failure. The report queries all FX position records for the current day and loads them into memory for calculation. Looking at the position record counts over the past week: average was 1,200 per day until 3 days ago when it jumped to 4,800. The jump correlates with when the failures started. The 4x increase in records is exceeding the report generator\u0027s memory allocation. Was a new trading client or desk added approximately 3 days ago?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, a new institutional client started 3 days ago. They do high-frequency algo trading so their position count is much higher than typical clients."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That explains it exactly. The fix is to change the report generator from loading all records at once to processing them in streaming batches. This is more efficient and scales regardless of volume. I will modify the report generation logic and test it with today\u0027s full position dataset. The fix does not change the report output or format - only how it is computed internally."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please proceed. Can you also generate yesterday\u0027s and the day before\u0027s missed reports? The risk team needs them."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Report generation updated to streaming mode. I generated end-of-day reports for the 3 missed days successfully. The reports are in the usual output folder. Today\u0027s report will also be generated correctly at the scheduled end-of-day time."
+                     }
+                 ],
+    "resolutionNote":  "End-of-day report was loading all position records into memory. A new high-frequency institutional client increased daily position count from 1,200 to 4,800, exceeding the memory allocation. Modified report generator to use streaming/pagination. Regenerated 3 days of missed reports."
+}

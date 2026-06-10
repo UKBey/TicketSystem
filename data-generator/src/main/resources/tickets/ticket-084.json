@@ -1,0 +1,55 @@
+﻿{
+    "title":  "FintechBox FX Platform showing incorrect P\u0026L calculation for open positions",
+    "description":  "Traders noticed the P\u0026L displayed for open FX positions in the FintechBox FX Platform appears wrong. A EUR/USD long position of 500,000 shows a gain when the EUR has actually weakened against USD since the trade was opened. The position was opened last Thursday.",
+    "priority":  "CRITICAL",
+    "productName":  "FintechBox",
+    "topicName":  "FX Platform ve Islem Motoru",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Investigated P\u0026L calculation. The current rate used in P\u0026L is the mid rate. FX Platform is configured to use bid rate for long positions."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Traced the issue. A rate source update last Thursday changed the rate field names. FX Platform is picking up the \u0027offer\u0027 field where it expects \u0027bid\u0027."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Updated field mapping in FX Platform rate integration to correctly map \u0027bid\u0027 and \u0027offer\u0027 from the rate source."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I am treating this as a critical financial data integrity issue. Investigating P\u0026L calculation logic immediately. I will need to trace what rate the system is using for the open EUR/USD position vs what it should be using."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "All open long positions appear to have incorrect P\u0026L. The trading desk has flagged at least 8 positions where the direction of P\u0026L appears wrong."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I traced the P\u0026L calculation. The FX Platform should use the bid rate for valuing long positions. I found that the rate being used is the offer rate instead. This causes long positions to show a higher value than reality (offer \u003e bid). The root cause: last Thursday a rate source update changed the field names in the price feed - what was \u0027BidRate\u0027 became \u0027bid\u0027 and \u0027OfferRate\u0027 became \u0027offer\u0027, but there was also a new \u0027mid\u0027 field. The FX Platform mapping was not updated and is now reading..."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Field mapping corrected. The EUR/USD long position P\u0026L is now showing a loss, which correctly reflects that EUR has weakened since the trade. Can you ask the trading desk to verify the 8 flagged positions?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Trading desk confirms all 8 positions now show correct P\u0026L direction. Some positions are showing larger losses than displayed before. Risk management is now reviewing the actual risk exposure. Thank you for the quick fix."
+                     }
+                 ],
+    "resolutionNote":  "Rate source update changed field names from BidRate/OfferRate to bid/offer/mid. FX Platform field mapping was not updated and was reading \u0027offer\u0027 where \u0027bid\u0027 was expected for long position P\u0026L calculation. Corrected field mapping.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Critical issue fixed quickly. Good that it was caught by a trader rather than discovered later."
+             }
+}

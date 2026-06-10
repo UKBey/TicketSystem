@@ -1,8 +1,93 @@
 {
-  "title": "OneDrive sync stays in 'paused' state",
-  "description": "Every time I open it, I get a OneDrive paused warning. When I click 'Resume', it pauses again after 1-2 minutes.",
-  "priority": "MEDIUM",
-  "productName": "Cloud Services",
-  "topicName": "OneDrive",
-  "status": "NEW"
+  "title": "BAW server CPU spikes to 100% every hour, causing process timeouts",
+  "description": "Since the last server patch cycle, the BAW application server CPU hits 100% for about 3-4 minutes at the top of every hour. During this window new process instances cannot be created and task list operations time out. After the spike CPU returns to normal ~20% utilization.",
+  "priority": "CRITICAL",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Performans ve Izleme",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
+  "worklogs": [
+    {
+      "minutes": 30,
+      "description": "Captured thread dump during the 13:00 CPU spike. Identified a BPMDB cleanup task running a full table scan on LSW_TASK."
+    },
+    {
+      "minutes": 45,
+      "description": "Found two overlapping cleanup jobs in PAC both scheduled at minute 0 of every hour. One was the default, the other added manually during the patch process."
+    },
+    {
+      "minutes": 20,
+      "description": "Confirmed indexes on LSW_TASK were missing on STATUS and DUE_DATE columns."
+    },
+    {
+      "minutes": 60,
+      "description": "Added composite indexes. Removed duplicate cleanup job. Rescheduled remaining job to 23:30."
+    },
+    {
+      "minutes": 20,
+      "description": "Monitored for 3 hours post-change. No further spikes. Updated deployment runbook."
+    }
+  ],
+  "comments": [
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "This is critical. Every hour our users get timeouts for about 3 minutes. We have SLA-bound processes being delayed."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Treating this as critical priority. I am going to capture a thread dump at the next spike at 13:00 to identify what the JVM is doing. Could you confirm the BAW server hostname?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Primary node is baw-prod-01.corp.local, secondary is baw-prod-02.corp.local."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thank you. Thread dump collected at 13:00. Analyzing now."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Thread dump shows all threads blocked on the same BPMDB cleanup query doing a full table scan on 2.3M rows in LSW_TASK. Also found a duplicate scheduled cleanup job - looks like one was added during the patch cycle. Two jobs running the same expensive query simultaneously."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Found the root cause. Two cleanup scheduled tasks are running simultaneously at the top of each hour, both doing full table scans on a large task table that is missing the required indexes. I need to remove the duplicate job and add indexes. This requires a 10-minute maintenance window. Can we do tonight 21:00-21:30?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Approved for tonight 21:00. Please coordinate with Gokhan Yilmaz from the server team."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Maintenance completed. Duplicate job removed, indexes added, remaining cleanup rescheduled to 23:30. Could you confirm the 10:00 and 11:00 slots were clean today?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Confirmed. It is 11:30 and there has been no spike. CPU is at 18-22% which is perfectly normal. Users have not reported a single timeout. Massive improvement."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Excellent. I have updated the deployment runbook so the duplicate cleanup job issue is documented for future patch cycles. Closing this ticket."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thank you for the quick and thorough fix."
+    }
+  ],
+  "resolutionNote": "Two overlapping cleanup scheduled tasks were running simultaneously at every hour on the dot, both performing full table scans on the 2.3M-row LSW_TASK table which lacked indexes on STATUS and DUE_DATE. One duplicate job was introduced during the patch cycle. Removed the duplicate, added composite indexes, rescheduled remaining job to 23:30.",
+  "csat": {
+    "rating": 5,
+    "comment": "Very thorough root cause analysis and a fast fix on a business-critical issue. The runbook update was a nice touch."
+  }
 }

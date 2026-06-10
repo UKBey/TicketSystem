@@ -1,35 +1,55 @@
-{
-  "title": "The printer takes the print job into the queue but doesn't print it",
-  "description": "5 of my documents have piled up in the print queue, none of them print. There's no error showing on the printer.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Printer",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "The Print Spooler service was restarted and the queue was cleared."
-    },
-    {
-      "minutes": 10,
-      "description": "A test page was printed and it works."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "I restarted the print spooler and cleared its queue. You can resend your documents."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "It worked, thanks."
-    }
-  ],
-  "resolutionNote": "The Windows Print Spooler service was restarted and the queue was cleared. Printing is normal.",
-  "csat": {
-    "rating": 4,
-    "comment": "It was fast, but this issue could happen again."
-  }
+﻿{
+    "title":  "mTLS API returning 403 Forbidden even with correct client certificate",
+    "description":  "A new partner integration uses mutual TLS for API authentication. The partner is sending a valid client certificate signed by our corporate CA, but API Connect is returning 403 Forbidden. The certificate is valid and not expired.",
+    "priority":  "HIGH",
+    "productName":  "IBM API Connect",
+    "topicName":  "Guvenlik ve Kimlik Dogrulama",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  30,
+                         "description":  "Traced the mTLS handshake in DataPower. Client certificate is being received but the certificate validation policy in APIC cannot see it."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Found the DataPower multi-protocol gateway is configured for TLS offload without forwarding the client certificate to APIC. Enabled the \u0027Send Client Certificate\u0027 option in the TLS client profile."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Tested with partner certificate - API call returns 200 with valid partner identity."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Our partner has been trying to connect for 3 days. Their security team has confirmed the certificate is valid and signed by the corporate CA, but they keep getting 403. This is delaying a business-critical integration."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I traced the mTLS handshake in DataPower and found the issue. The TLS connection is established successfully and the client certificate is received by DataPower. However, the DataPower gateway is configured for TLS offload and is not forwarding the client certificate information to the API Connect security policy layer. From APIC\u0027s perspective, no client certificate is being presented, so it denies the request. I need to enable certificate forwarding in the DataPower TLS profile. This..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please go ahead. Our partner is waiting."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Configuration updated. I ran a test call with the partner\u0027s certificate and received a 200 response with the correct partner identity extracted from the certificate. Could you ask your partner to test from their side?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Partner just confirmed - their test calls are all succeeding. They are relieved. Thank you for finding the fix."
+                     }
+                 ],
+    "resolutionNote":  "DataPower TLS offload was configured without certificate forwarding enabled. The client certificate was terminated at DataPower and never forwarded to the APIC security policy. Enabled \u0027Send Client Certificate\u0027 in the DataPower TLS client profile.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Resolved a 3-day block for our partner in one afternoon. Very clear explanation of why it was failing."
+             }
 }

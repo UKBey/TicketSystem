@@ -1,0 +1,55 @@
+﻿{
+    "title":  "Automation Anywhere bot credentials failing after quarterly password rotation",
+    "description":  "Multiple bots stopped working this morning with authentication errors after the quarterly password rotation was completed overnight. The bots use service accounts to log into various enterprise applications and the passwords for those accounts were rotated.",
+    "priority":  "HIGH",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Control Room ve Deployment",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Identified 8 bot credential records in Control Room Credential Vault that need password updates."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Updated credentials in the Credential Vault for all 8 service accounts. Credentials are centralized so all bots using them are fixed simultaneously."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Tested each affected bot type - all authenticated correctly."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I identified the affected bots. The issue is that the service account passwords were rotated by the AD team but the corresponding credentials in the Automation Anywhere Credential Vault were not updated. The Credential Vault holds the passwords that bots use - when the actual AD passwords change, the Vault must be updated to match. I can see 8 credential records that need updating. Could you provide the new passwords for the following service accounts, or point me to a secure channel..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I am sending the new passwords through our secure password manager portal now. There are 8 accounts total as you listed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Received all 8 credentials. Updating the Credential Vault now. This is a centralized update - all bots that use each service account will automatically use the new credentials without any bot-level changes."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "All 8 credentials updated. I have run a test authentication for each service account type - all passing. The bots can now run normally. I strongly recommend setting up an automated process for the next quarterly rotation: either auto-sync between AD and the Credential Vault, or a notification task list that includes updating the Vault as a step. This will prevent the same downtime next quarter."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Bots are running again - we can confirm. Agreed on the automation recommendation. We will raise a separate improvement ticket for the auto-sync."
+                     }
+                 ],
+    "resolutionNote":  "Quarterly AD password rotation was completed without updating the Automation Anywhere Credential Vault. Updated 8 service account credentials in the Vault. All affected bots restored. Recommendation made to implement auto-sync or checklist process for future rotations.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Good fix. The process improvement recommendation was helpful."
+             }
+}

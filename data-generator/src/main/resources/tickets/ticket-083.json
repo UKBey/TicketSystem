@@ -1,0 +1,45 @@
+﻿{
+    "title":  "FintechBox historical data query API returning timeout for date ranges over 30 days",
+    "description":  "The FintechBox historical market data API times out when querying more than 30 days of data. Queries for 30 days or less return instantly. This is blocking the risk analytics team from running their end-of-quarter models which require 90-day historical data.",
+    "priority":  "HIGH",
+    "productName":  "FintechBox",
+    "topicName":  "Market Data ve Veri Dagitimi",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Profiled the API query for a 90-day range. Database query is doing a full scan on the market_data table with no date range index partition. 90 days of tick data is approximately 40 million rows."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Adding a composite index on (symbol, timestamp) to the market_data table. Estimated index creation time: 2 hours on 500M row table."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I profiled the historical data query that times out. The database query for a 90-day range is performing a full table scan on the market_data table, which has over 500 million rows of tick data. The scan for 90 days touches approximately 40 million rows but must scan all 500 million to find them. Adding a composite index on (symbol, timestamp) will reduce the query from a full table scan to an index seek, likely bringing 90-day queries well under 5 seconds. The index creation will..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please proceed. The risk team needs the 90-day data for their quarterly models and cannot wait."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Index creation started. Estimated completion in 2 hours. As an immediate workaround while the index builds: I can run the 90-day query as a background job that writes results to a temporary staging table, and your analytics team can query the staging table instead. This allows the risk team to proceed without waiting 2 hours. Shall I set that up?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, the staging table workaround sounds good. Please set it up. The risk team will be starting their models in 30 minutes."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Background query running - results being written to staging table ftbox_hist_staging_q1. I estimate 45 minutes for the full 90-day dataset to populate. I will notify the risk team lead when the staging table is ready."
+                     }
+                 ]
+}

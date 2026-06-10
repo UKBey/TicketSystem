@@ -1,0 +1,55 @@
+﻿{
+    "title":  "FintechBox FX Platform trade execution failing for amounts above 1 million USD",
+    "description":  "Traders are getting an error when trying to execute FX trades above 1 million USD through the FintechBox FX Platform. The error message is \u0027Trade amount exceeds configured limit\u0027. Trades below 1 million execute normally. The limit was not intentionally set - this may be a default configuration value.",
+    "priority":  "HIGH",
+    "productName":  "FintechBox",
+    "topicName":  "FX Platform ve Islem Motoru",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Found trade amount limit in FX Platform risk parameters: max single trade = 1,000,000 USD."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "This is the default value set during initial deployment. Customer\u0027s authorized limit should be 10,000,000 USD."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated max single trade limit to 10,000,000 USD with approval from customer\u0027s treasury operations manager."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the trade amount limit in the FX Platform risk parameter configuration: the maximum single trade amount is set to 1,000,000 USD. This is the default value from the initial deployment that was not customized for your operation. To change the limit, I need authorization from your treasury operations management. What is your intended maximum single trade amount, and who should authorize this change?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Our authorized maximum single trade is 10 million USD. Our treasury operations manager, Burak Yalcin, can authorize the change."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I have reached Burak Yalcin and received written authorization for the 10M USD limit. The FX Platform risk parameter has been updated. Please have a trader test a transaction above 1M USD."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Trader tested with a 2.5M USD EUR/TRY trade - executed successfully. The daily aggregate limit is also set at 10M by default - should that also be reviewed?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Good catch. The daily aggregate limit of 10M USD means that if you do a single 10M USD trade, no further trades are possible that day. Would you like me to get authorization to review and update the daily aggregate limit as well?"
+                     }
+                 ],
+    "resolutionNote":  "Default FX Platform max single trade limit (1,000,000 USD) was never customized after deployment. Updated to 10,000,000 USD with written authorization from treasury operations manager.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Quick fix. Good that the daily aggregate limit was flagged too."
+             }
+}

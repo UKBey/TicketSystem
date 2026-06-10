@@ -1,25 +1,50 @@
 {
-  "title": "SharePoint list filter stops working past 5000 items",
-  "description": "The customer records list reached 8000 items and the filter now throws a 'View threshold exceeded' error.",
+  "title": "Task due dates shown 3 hours earlier than expected in Process Portal",
+  "description": "Users are reporting that task due dates in Process Portal are showing 3 hours earlier than the actual deadline. For example a task due at 17:00 Istanbul time is showing as due at 14:00. This is causing users to prioritize tasks unnecessarily.",
   "priority": "LOW",
-  "productName": "Cloud Services",
-  "topicName": "SharePoint",
-  "status": "IN_PROGRESS",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Gorev ve Yetkilendirme Yonetimi",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
-      "minutes": 35,
-      "description": "Defined an indexed column for the relevant column (Customer Code)."
+      "minutes": 20,
+      "description": "Checked BAW application server timezone setting. JVM is running in UTC despite being in Istanbul."
     },
     {
-      "minutes": 25,
-      "description": "Recommended a Power Automate flow for lists with 5000+ items and shared a sample."
+      "minutes": 15,
+      "description": "Added -Duser.timezone=Europe/Istanbul to the WAS JVM startup properties."
+    },
+    {
+      "minutes": 10,
+      "description": "Restarted BAW server in a low-impact window. Verified due dates now show correctly."
     }
   ],
   "comments": [
     {
       "author": "agent",
-      "type": "INTERNAL",
-      "message": "The list threshold can't be raised in one go; recommended view-based filtering to the user."
+      "type": "EXTERNAL",
+      "message": "Hi, I found the cause. The BAW application server JVM is running in UTC timezone instead of Europe/Istanbul (UTC+3). This causes a 3-hour offset in all displayed timestamps. I need to add a timezone parameter to the server startup configuration and restart the BAW server. This will require a brief restart - I suggest doing it over the lunch break. Would 12:30 today work?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Yes, 12:30 works. Please go ahead."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Restart complete. Task due dates should now display correctly in Istanbul time. Could you check a few tasks and confirm the times look right?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Checked several tasks - they are all showing the correct Istanbul time now. The 3-hour offset is gone. Thanks for the quick fix."
     }
-  ]
+  ],
+  "resolutionNote": "BAW JVM was running in UTC timezone instead of Europe/Istanbul, causing a 3-hour offset in all displayed timestamps. Added -Duser.timezone=Europe/Istanbul to WAS JVM startup parameters and restarted the server.",
+  "csat": {
+    "rating": 5,
+    "comment": "Simple fix but really appreciate how quickly it was identified and resolved."
+  }
 }

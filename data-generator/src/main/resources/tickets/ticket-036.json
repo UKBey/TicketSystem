@@ -1,26 +1,40 @@
 {
-  "title": "Authenticator push notification isn't reaching my phone for MFA",
-  "description": "When logging in today, I can't receive the codes as a notification on my device; I have to enter a manual code.",
+  "title": "Developer Portal shows blank page after APIC upgrade to v10.0.7",
+  "description": "After upgrading API Connect to version 10.0.7 last weekend, the Developer Portal is displaying a completely blank page for all users. The portal URL loads but only shows a white screen. The API Manager and Gateway are working fine.",
   "priority": "MEDIUM",
-  "productName": "Cloud Services",
-  "topicName": "Azure",
-  "status": "RESOLVED",
+  "productName": "IBM API Connect",
+  "topicName": "Gelistirici Portali",
+  "status": "IN_PROGRESS",
   "worklogs": [
     {
-      "minutes": 20,
-      "description": "The phone's push service was blocked; the Authenticator app was reinstalled."
+      "minutes": 30,
+      "description": "Checked portal service logs. Found Drupal PHP errors related to a module incompatibility with APIC 10.0.7."
     },
     {
-      "minutes": 15,
-      "description": "The MFA device was re-registered and the push notification came through."
+      "minutes": 20,
+      "description": "Attempted to run apic portal:upgrade command. Encountered a pre-flight check failure related to the portal database schema."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "MFA was set up again, and I saw the 'Approve' notification come through on the phone. Please test again."
+      "message": "Hello, I checked the portal service logs and found PHP errors in the Drupal portal module layer. After an APIC upgrade, the portal Drupal installation also needs to be upgraded separately using the apic portal:upgrade command. This step appears to have been skipped during the weekend upgrade. I am running the portal upgrade command now - it will take approximately 15 minutes and the portal will be unavailable during this time."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Is there a risk the upgrade could cause data loss? We have registered developers and their app credentials in the portal."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "No data loss risk. The apic portal:upgrade command updates the Drupal code and database schema only - it does not touch application credentials, developer accounts, or API subscriptions. All of that data is stored in the API Manager database which is not affected. I will take a portal database snapshot before running the upgrade as a precaution. Proceeding now."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Pre-flight check is failing because the Drupal database schema has a pending migration that needs to run first. Running drush updatedb to clear the pending migrations before the full upgrade."
     }
-  ],
-  "resolutionNote": "The Authenticator app was reinstalled and the MFA device re-registered. Push notifications returned to normal."
+  ]
 }

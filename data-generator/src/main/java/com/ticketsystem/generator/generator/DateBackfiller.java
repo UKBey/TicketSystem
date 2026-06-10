@@ -57,11 +57,11 @@ public class DateBackfiller {
      */
     public void backfill(List<Long> ticketIds) {
         if (ticketIds.isEmpty()) {
-            log.info("Geriye çekilecek bilet yok.");
+            log.info("No tickets to backfill.");
             return;
         }
 
-        log.info("Tarihler ve SLA alanları güncelleniyor ({} bilet, son {} gün)...",
+        log.info("Backfilling dates and SLA fields ({} tickets, last {} days)...",
                 ticketIds.size(), GeneratorConfig.DATE_SPREAD_DAYS);
 
         try (Connection conn = DriverManager.getConnection(
@@ -72,11 +72,11 @@ public class DateBackfiller {
             conn.setAutoCommit(false);
             backfillTickets(conn, ticketIds);
             conn.commit();
-            log.info("Güncelleme tamamlandı.");
+            log.info("Backfill complete.");
 
         } catch (SQLException e) {
-            log.error("Veritabanı bağlantısı kurulamadı: {}", e.getMessage());
-            log.warn("Tarihler ve SLA alanları güncel kalacak.");
+            log.error("Could not connect to database: {}", e.getMessage());
+            log.warn("Dates and SLA fields will remain as-is.");
         }
     }
 
@@ -209,12 +209,12 @@ public class DateBackfiller {
 
                 if (count % 50 == 0) {
                     upd.executeBatch();
-                    log.debug("{} bilet güncellendi...", count);
+                    log.debug("{} tickets updated...", count);
                 }
             }
 
             upd.executeBatch();
-            log.info("Toplam {} biletin tarihi ve SLA alanları güncellendi.", count);
+            log.info("Dates and SLA fields updated for {} ticket(s).", count);
         }
 
         // Faz 2: child kayıtların (yorum/worklog/CSAT/audit) zaman damgalarını çizelgeye yay.
@@ -261,10 +261,10 @@ public class DateBackfiller {
                 csat   += backfillCsat(conn, a);
                 audits += backfillAuditLogs(conn, a, convEnd);
             } catch (SQLException e) {
-                log.warn("Bilet #{} alt kayıt tarihleri güncellenemedi: {}", a.id(), e.getMessage());
+                log.warn("Failed to backfill child timestamps for ticket #{}: {}", a.id(), e.getMessage());
             }
         }
-        log.info("Alt kayıt tarihleri çizelgeye yayıldı: {} yorum, {} worklog, {} CSAT, {} audit.",
+        log.info("Child timestamps spread across timeline: {} comment(s), {} worklog(s), {} CSAT, {} audit row(s).",
                 comments, worklogs, csat, audits);
     }
 

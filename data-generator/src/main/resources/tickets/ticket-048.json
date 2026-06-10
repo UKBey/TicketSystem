@@ -1,97 +1,40 @@
-{
-  "title": "I think I may have clicked a phishing email, what should I do?",
-  "description": "I clicked an email I thought was from my bank and entered my password, then realized it was fake.",
-  "priority": "HIGH",
-  "productName": "Email & Communication",
-  "topicName": "Spam & Security",
-  "status": "CLOSED",
-  "reasonCode": "ROOT_CAUSE_FIXED",
-  "worklogs": [
-    {
-      "minutes": 5,
-      "description": "Guided the user through the password reset steps on a live call."
-    },
-    {
-      "minutes": 15,
-      "description": "Opened an incident report with the IT Security team (incident ID: SEC-2024-0317)."
-    },
-    {
-      "minutes": 30,
-      "description": "Started a CrowdStrike EDR scan, the entire endpoint reported clean."
-    },
-    {
-      "minutes": 15,
-      "description": "Revoked all of the user's sessions in Active Directory."
-    },
-    {
-      "minutes": 20,
-      "description": "Re-registered the MFA devices (Authenticator + backup phone)."
-    },
-    {
-      "minutes": 10,
-      "description": "Added the phishing sample to IT Security's weekly security newsletter template."
-    }
-  ],
-  "comments": [
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "10 minutes ago I clicked an email that came in as 'My Bank', a normal-looking login page opened, and I entered my password. Then the page went blank. Now I've noticed the address isn't bankam.com but bankamtr.com.tr.online... I'm really scared, what should I do?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Stay calm, you've come to the right person — we'll go through this step by step together. Please close the browser completely NOW. Then: 1) Go to your bank's real website or mobile app (not from the email — type the address yourself), 2) Change your password immediately, 3) Check the recent login records. While you do that, I'll secure your company accounts."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I closed the browser. I changed my bank password, and there's nothing in the recent login records other than my own device. I'm very happy right now 😅"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Very good, you reacted quickly — that means the attacker hasn't been able to use the account yet. Now for company security: 1) Let's change your company password (corp.local) immediately, 2) I'll re-register your MFA devices (someone may have copied the old one), 3) I'll start a CrowdStrike EDR scan on your computer (it runs silently, won't affect you)."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "An incident was reported to IT Security as SEC-2024-0317. Even though the incident appears low-impact, the ticket won't be closed until the process is complete. EDR scan started, awaiting results."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I changed my company password. What do I need to do for MFA?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "I sent you a 're-registration' link for MFA — when you open your email, click the 'Set up Authenticator' button. In the Authenticator app, delete the old account and add it again (you'll scan a QR code). After this, all your currently active sessions will end and you'll be asked to log in again."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "MFA is done. What will the EDR result show?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "The EDR scan completed, no threats were found on your computer 🎉 The attacker only collected information over the web, no malicious code landed on the device. Incident management is complete: sessions revoked, new password, new MFA, clean EDR. We'd like to add this experience anonymously to our weekly security newsletter — it would be helpful for the team. Would you give us permission?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Of course, with peace of mind. Let no one else make this mistake again. You acted very quickly and professionally, thank you so much — otherwise I wouldn't have known what to do."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Incident closed, EDR clean, user sessions refreshed. Anonymized use case saved to the security newsletter template. The phishing sample will also be used by the SOC in a retrospective scan."
-    }
-  ],
-  "resolutionNote": "Responded quickly after the user clicked a phishing email: 1) The bank side was handled independently by the user, 2) Company password changed, 3) All active sessions revoked, 4) MFA devices re-registered, 5) Endpoint EDR scan clean. Incident impact was zero. The case was anonymized and added to the security newsletter.",
-  "csat": {
-    "rating": 5,
-    "comment": "I was very scared, but I got a very fast and professional response. The step-by-step guidance was great. Thanks."
-  }
+﻿{
+    "title":  "Multi-instance MQ queue manager not failing over to standby node",
+    "description":  "We tested the MQ multi-instance failover last week by stopping the active node, and the standby node did not take over. The business continuity test failed. The standby node shows as \u0027Standby\u0027 in the MQ status but does not become Active.",
+    "priority":  "CRITICAL",
+    "productName":  "IBM MQ",
+    "topicName":  "Kuyruk Yoneticisi Yapilandirma",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  30,
+                         "description":  "Checked the shared filesystem mount on the standby node. NFS mount is present but shows as read-only."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Investigated NFS server configuration. Export options for the MQ data share changed from rw to ro on the standby server\u0027s entry."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I investigated the failover failure. The standby node attempted to acquire the active role but could not because the shared filesystem (NFS) is mounted read-only on the standby server. The MQ data and log directories on the shared filesystem require read-write access for the standby to become active. The NFS server\u0027s export configuration was recently changed and the standby server\u0027s entry was inadvertently set to read-only. I need to work with the infrastructure team to correct the..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That would be the storage team - contact Hakan Sahin. He set up the NFS shares when the multi-instance was deployed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Contacting Hakan now. I have the specific NFS export entry that needs to change: the export for the standby server\u0027s IP address needs to include \u0027rw\u0027 instead of \u0027ro\u0027 in the options. I will also need the NFS service to reload its exports after the change (exportfs -r). Once done, I will re-test the failover to confirm it works correctly."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Hakan confirmed he can make the NFS export change but needs a 30-minute window to do it without affecting other NFS clients on the same server. Scheduled for today 17:00. Will retest failover at 17:30."
+                     }
+                 ]
 }

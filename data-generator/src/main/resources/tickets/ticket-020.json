@@ -1,40 +1,64 @@
 {
-  "title": "The emails I send land in my customer's spam",
-  "description": "I sent the same content twice, and both ended up in the customer's spam folder.",
-  "priority": "LOW",
-  "productName": "Email & Communication",
-  "topicName": "Mail Delivery",
-  "status": "WAITING_FOR_CUSTOMER",
+  "title": "Document approval workflow stuck - approver task not appearing in ICN inbox",
+  "description": "A batch of 12 documents was submitted for approval last week and none of the approval tasks appeared in the approvers' IBM Content Navigator inboxes. The workflow shows as active in the Process Engine but no tasks are assigned. The approvers have urgent deadlines.",
+  "priority": "HIGH",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Is Akisi ve Onay Surecleri",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
-      "minutes": 30,
-      "description": "Verified the SPF/DKIM/DMARC records via MX Toolbox, all valid."
+      "minutes": 25,
+      "description": "Checked Process Engine workflow roster. Found the ApprovalNotification email failed for all 12 workflows due to SMTP relay rejection."
     },
     {
-      "minutes": 10,
-      "description": "Sent a test message via Mailtrap, the scoreboard came back clean."
+      "minutes": 20,
+      "description": "Verified approvers' PE group membership - all are correctly in the ApproverGroup PE role."
+    },
+    {
+      "minutes": 15,
+      "description": "Used ICN Workflow Admin to reassign the stuck step for all 12 workflows back to the ApproverGroup queue."
+    },
+    {
+      "minutes": 15,
+      "description": "Fixed the SMTP relay configuration in the workflow step to prevent recurrence."
     }
   ],
   "comments": [
     {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hello, to resolve the issue I need you to share the recipient's mail headers. Could you ask your customer to open one of your emails in their spam folder and, by clicking 'Show original' or 'View message source', copy the full header block and send it to you?"
-    },
-    {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "I asked the customer, but they're not technical — they can't find the 'Show original' menu. Would a screenshot work?"
+      "message": "12 documents need approval by Friday for a regulatory submission. The approvers have checked their ICN inbox multiple times but nothing is there. Can this be fixed today?"
     },
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "I understand. If they're using Outlook web: open the email → top right '...' (More actions) → 'View message source'. If it's Gmail: open the email → '...' (top right) → 'Show original'. I've prepared an image with the steps, attached. Could you pass it to the customer and get back to me?"
+      "message": "Hello, I am looking at this now. I can see all 12 workflows are in an active state in the Process Engine but the notification step failed. The workflow is waiting for user response but the approvers never received notification because the step email could not be sent. The SMTP relay rejected the notification emails from the FileNet workflow server. I am going to use the workflow admin tool to manually reassign the tasks to the approver queue and also fix the email configuration."
     },
     {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "Waiting on the header from the customer. I need to see the Authentication-Results and Received-SPF values in the header — most likely the recipient's gateway doesn't recognize our IP."
+      "message": "SMTP rejection error in PE log: '550 5.7.1 Relaying denied - the FROM address is not in the allowed senders list'. The workflow notification FROM address is workflow@filenet.corp.local - this was not on the allowed senders list after the mail server migration last month. Adding it to the relay allowed list and will fix the FROM address in the workflow definition to use notifications@corp.local."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I have reassigned all 12 workflow tasks to the approvers' queue manually - they should now appear in their ICN inboxes. I have also fixed the email relay issue so future workflow notifications will send correctly. Could you ask one of the approvers to check their ICN inbox now?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Burak Sener just checked and all 12 items are in his queue. He has already approved 4 of them. This is a great relief."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Glad to hear it. The root cause was the workflow notification email being rejected by the SMTP relay after a mail server migration. Future notifications will now send correctly. Closing this ticket."
     }
-  ]
+  ],
+  "resolutionNote": "The workflow notification step was failing because the FROM address used by the FileNet workflow server was not in the SMTP relay's allowed senders list after a mail server migration. All 12 stuck workflow tasks were manually reassigned to the approver queue via ICN Workflow Admin. The SMTP relay allowed list was updated and the workflow notification FROM address changed to the approved notifications address.",
+  "csat": {
+    "rating": 5,
+    "comment": "Excellent support. Fixed a critical workflow blockage the same day and also addressed the root cause."
+  }
 }

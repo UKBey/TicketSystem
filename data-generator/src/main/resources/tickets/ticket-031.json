@@ -1,26 +1,45 @@
 {
-  "title": "OneDrive is creating a bunch of 'conflict' files",
-  "description": "I edited the same document from two devices, and now I'm seeing files with a '-conflict' suffix in every folder.",
-  "priority": "LOW",
-  "productName": "Cloud Services",
-  "topicName": "OneDrive",
-  "status": "RESOLVED",
+  "title": "ACE Kafka consumer flow not receiving messages from inventory topic",
+  "description": "After switching to a new Kafka cluster last week, the inventory update consumer flow in ACE stopped receiving messages. The producer side (from the warehouse management system) is sending messages correctly - we can see them in the Kafka admin tool. But ACE is not consuming them.",
+  "priority": "HIGH",
+  "productName": "IBM App Connect Enterprise",
+  "topicName": "Baglantilar ve Adaptorler",
+  "status": "IN_PROGRESS",
   "worklogs": [
     {
       "minutes": 25,
-      "description": "Reviewed the version history of the conflicting files and selected the most up-to-date version."
+      "description": "Verified Kafka topic messages are being produced correctly. Consumer group for ACE is listed in Kafka admin but shows lag of 15,000+ messages."
     },
     {
-      "minutes": 15,
-      "description": "Manually cleaned up the conflict files and gave the user a workflow recommendation."
+      "minutes": 20,
+      "description": "Checked ACE Kafka configurable service. The broker list still points to the old Kafka cluster."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "I paused OneDrive on one of the devices and the conflicts were cleared up. Instead of editing simultaneously from two devices, I'd suggest signing out from one of them."
+      "message": "Hello, I have checked the ACE Kafka configurable service and found that the broker list still points to the old Kafka cluster that was replaced last week. The consumer flow is trying to connect to servers that no longer exist. I need to update the broker address to the new Kafka cluster. Before I do this, could you confirm the exact broker addresses for the new cluster? I want to use the values from your official Kafka configuration rather than guessing."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The new cluster brokers are: kafka-01.corp.local:9092, kafka-02.corp.local:9092, kafka-03.corp.local:9092. All three are the new servers."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thank you. Updating the ACE Kafka configurable service now. There are also 15,000+ messages with a consumer lag on the new cluster - this is because ACE never consumed from the new cluster, so all those messages are waiting. After I update the broker list and restart the consumer flow, it will start processing from where it left off. This might take 20-30 minutes to clear the backlog. Is that acceptable?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Yes, that is fine. Please proceed. Inventory updates being 15,000 messages behind is a problem but 30 minutes to catch up is acceptable."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Updating broker list in ACE Kafka configurable service: kafka-01.corp.local:9092, kafka-02.corp.local:9092, kafka-03.corp.local:9092. Will restart the consumer flow after the update."
     }
-  ],
-  "resolutionNote": "Conflict files were cleaned up by keeping the most up-to-date version. The user was advised to use 'Files On-Demand'."
+  ]
 }

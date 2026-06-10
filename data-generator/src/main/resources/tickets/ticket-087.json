@@ -1,0 +1,46 @@
+﻿{
+    "title":  "FintechBox Market Data Integrator missing data for some symbols after vendor symbol change",
+    "description":  "Several equity symbols have stopped receiving market data in FintechBox. The missing symbols are for companies that changed their stock ticker symbols in the past month due to rebranding. FintechBox is still trying to subscribe with the old symbol names.",
+    "priority":  "MEDIUM",
+    "productName":  "FintechBox",
+    "topicName":  "Market Data ve Veri Dagitimi",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Identified affected symbols: TKFEN changed to TKFN, KORDS changed to KRDM, CIMSA changed to CMSA. All ticker changes were on Borsa Istanbul."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated the FintechBox symbol subscription list with the new ticker codes."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I identified the symbols with missing data. Three companies changed their Borsa Istanbul ticker symbols last month as part of corporate rebranding: TKFEN is now TKFN, KORDS is now KRDM, and CIMSA is now CMSA. FintechBox is still subscribed to the old symbols which no longer exist on the exchange. I will update the subscription list with the new ticker codes. Should I keep the old tickers in the configuration as inactive historical references, or remove them entirely?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Remove the old ones to keep the subscription list clean. We do not need historical subscription references."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Updated. Old tickers removed, new tickers added. All 3 symbols are now receiving live data from Bloomberg. Please verify in your trading applications."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Confirmed - all three symbols showing live prices. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Three Borsa Istanbul equities changed their ticker symbols (TKFEN to TKFN, KORDS to KRDM, CIMSA to CMSA). FintechBox subscription list still had the old tickers. Updated to new tickers.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Quick resolution."
+             }
+}

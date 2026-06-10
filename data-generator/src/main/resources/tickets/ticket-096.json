@@ -1,0 +1,46 @@
+﻿{
+    "title":  "Finans Portali AD login failing for users in newly created OU",
+    "description":  "New employees added to the recently created Active Directory OU \u0027HoldingOperations\u0027 cannot log into Finans Portali. The error message is \u0027Authentication failed. Please contact your administrator\u0027. Employees in other OUs can log in normally. All new employees are confirmed to have valid AD accounts.",
+    "priority":  "HIGH",
+    "productName":  "Finans Portali",
+    "topicName":  "Kullanici Erisimi ve Yetkilendirme",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Finans Portali LDAP/AD configuration. The search base is: OU=Finance,DC=company,DC=com. The new OU HoldingOperations is at: OU=HoldingOperations,DC=company,DC=com and is outside the Finance OU subtree."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated the LDAP search base to DC=company,DC=com to search the entire domain."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the Finans Portali AD/LDAP configuration. The user search is restricted to the OU=Finance subtree in Active Directory. The new \u0027HoldingOperations\u0027 OU is at the domain root level, not under Finance, so users in it are outside the Finans Portali search scope. The portal cannot find them and returns authentication failed. I need to expand the AD search base to cover the entire domain. This change may make additional AD users visible to the portal - do you have role-based access..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, every user must be explicitly added to a Finans Portali role before they can access any data. AD login just authenticates them - authorization is separate."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That is the right design. I have updated the LDAP search base to DC=company,DC=com. Users from any OU can now authenticate. They still need to be assigned portal roles before seeing any content. Please ask one of the new HoldingOperations employees to try logging in."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Tested with two new employees from HoldingOperations - both can now log in successfully. They see a welcome screen and need role assignment, which is expected. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Finans Portali LDAP search base was restricted to OU=Finance. New OU \u0027HoldingOperations\u0027 is at domain root, outside the Finance subtree. Expanded search base to domain root (DC=company,DC=com).",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Fast identification of the LDAP scope issue."
+             }
+}

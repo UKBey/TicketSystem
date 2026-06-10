@@ -1,0 +1,60 @@
+﻿{
+    "title":  "Finans Portali budget vs actual comparison showing wrong actuals - previous year data mixed in",
+    "description":  "The budget vs actual comparison dashboard is showing incorrect actual spend figures. Some line items show actuals that are clearly from last year - amounts that match last year\u0027s transactions exactly. The issue is only on the comparison dashboard, not on the individual transaction reports.",
+    "priority":  "HIGH",
+    "productName":  "Finans Portali",
+    "topicName":  "Butce Planlama ve Takip",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Checked the budget vs actual dashboard query. The fiscal year filter has a bug: when the fiscal year starts in January, the year filter should use calendar year 2025. The query has an off-by-one error and pulls January 2024 data for the \u0027January 2025\u0027 slot."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "The dashboard was built with the assumption that fiscal year starts in April. The company actually uses a January fiscal year. The fiscal year start parameter was not updated during setup."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Updated the fiscal year start configuration to January 1. Dashboard recalculated with correct actuals."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I investigated the budget vs actual comparison data. I traced which transactions are being included in the actuals. For January and February 2025, the dashboard is pulling data from January and February 2024 instead. This is a fiscal year configuration issue: the Finans Portali fiscal year is configured to start in April (common for Turkish government-aligned organizations), but your company uses a January fiscal year. When the system calculates \u0027Year to Date for 2025\u0027, it starts the..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Our fiscal year starts January 1st each year. How do we fix this?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I need to update the fiscal year start setting in Finans Portali from April to January. This will recalculate all year-to-date figures on the dashboard. It will also affect any saved period comparisons you have set up. Are there any custom period reports (quarterly splits, half-year comparisons) that use the fiscal year period definitions? Those will need to be verified after the change."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "We do not have any custom period reports set up yet - we are still in the first few months of using the system. Please proceed with the fiscal year change."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Fiscal year start updated to January 1. The dashboard is now recalculating. Please reload the budget vs actual comparison dashboard and verify the actuals look correct."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Dashboard reloaded. The actuals are now showing 2025 data correctly. The January 2025 figure matches what we see in the transaction reports. Very good, thank you."
+                     }
+                 ],
+    "resolutionNote":  "Finans Portali fiscal year start was configured for April (a common default). Company uses January fiscal year. The mismatch caused the budget vs actual dashboard to pull prior-year data for the first 3 months of the calendar year. Updated fiscal year start to January 1.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Dashboard now showing accurate data. Should have been caught during initial setup."
+             }
+}

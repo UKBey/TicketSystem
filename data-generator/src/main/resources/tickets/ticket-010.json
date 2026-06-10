@@ -1,25 +1,65 @@
 {
-  "title": "Outlook freezes on 'Trying to connect'",
-  "description": "When I opened it today, the 'Trying to connect' message keeps showing for 20 minutes. No mail comes in, and I can't send anything.",
+  "title": "Procurement approval process instance stuck in Running state with no active tasks",
+  "description": "Process instance #2741 for a high-value procurement request has been in Running state for 3 days with no tasks visible to any user. The instance started fine, the first task was completed, but then no second task appeared. The process has been running for 2 months without this issue.",
   "priority": "HIGH",
-  "productName": "Email & Communication",
-  "topicName": "Outlook",
-  "status": "IN_PROGRESS",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Gorev ve Yetkilendirme Yonetimi",
+  "status": "CLOSED",
+  "reasonCode": "WORKAROUND_PROVIDED",
   "worklogs": [
     {
-      "minutes": 25,
-      "description": "The OST file under %localappdata%\\Microsoft\\Outlook was found to be corrupted and was renamed."
+      "minutes": 20,
+      "description": "Opened instance 2741 in PAC. Execution path shows a token stuck at an intermediate message event - waiting for a correlation message that never arrived."
     },
     {
-      "minutes": 40,
-      "description": "Cached Mode was restarted — the mail has progressed to 1.2 GB and is still going."
+      "minutes": 15,
+      "description": "Reviewed the process definition. The intermediate event was waiting for a callback from an external system that had a webhook failure at the time."
+    },
+    {
+      "minutes": 20,
+      "description": "Used PAC move-token operation to advance the token past the stuck intermediate event to the next task node. Verified the new task appeared in the Finance Manager's task list."
     }
   ],
   "comments": [
     {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "This procurement is for a time-sensitive hardware order. The finance manager needs to approve it today or we lose the pricing. We cannot wait for a proper fix - is there any way to manually advance the process?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Yes, I can use the BAW admin console to manually advance the process token past the stuck event. Let me look at the instance first to understand exactly where it is stuck before I move anything."
+    },
+    {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "The OST is being rebuilt; the mailbox is ~4 GB, estimated to take about 1 hour."
+      "message": "Instance is stuck at an intermediate message catch event. It was waiting for a webhook callback from the ERP system that apparently failed 3 days ago. The webhook failure log shows a 500 error from the ERP. I can use move-token to skip past this event. The data it was supposed to receive is not critical for the approval - the finance manager has all the info they need in the initial task data."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Found the issue. The process was waiting for a callback from your ERP system that had an error 3 days ago and was never retried. I have used the admin tool to manually advance the process token past the waiting event. The finance approval task should now appear. Could you ask the finance manager to refresh their task list?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "She can see the task now and has approved it. The procurement can go ahead. Thank you for the quick intervention."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Glad we could unblock you. I am opening a separate investigation into the ERP webhook failure to understand why the callback was not retried. I will also look at adding a timeout to the intermediate event so similar instances do not get permanently stuck if the external callback fails. I will keep you updated on that work."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "That would be very helpful. This is the first time we have seen this but if it can happen again we need a more resilient design."
     }
-  ]
+  ],
+  "resolutionNote": "Process instance 2741 was stuck at an intermediate message catch event waiting for an ERP webhook callback that failed 3 days prior and was not retried. Used PAC move-token to advance the token past the event and unblock the approval task. Root cause (ERP webhook failure with no retry) has been raised as a separate improvement ticket.",
+  "csat": {
+    "rating": 4,
+    "comment": "Fast resolution for a time-sensitive issue. Appreciate the follow-up on the root cause."
+  }
 }

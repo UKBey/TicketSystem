@@ -1,35 +1,40 @@
 {
-  "title": "It gets rejected when I try to send a contract with a 40 MB attachment",
-  "description": "I need to send a contract to a customer, the attachment is 40 MB. Exchange gives a 'size exceeded' error.",
-  "priority": "MEDIUM",
-  "productName": "Email & Communication",
-  "topicName": "Mail Delivery",
-  "status": "CLOSED",
+  "title": "MQ sender channel stuck in RETRYING state after network maintenance",
+  "description": "Following last weekend's network maintenance, the PROD.TO.REPORTING sender channel is stuck in RETRYING state. Messages are building up in the transmission queue. The reporting system team says their MQ listener is running correctly.",
+  "priority": "HIGH",
+  "productName": "IBM MQ",
+  "topicName": "Kanal ve Baglanti Sorunlari",
+  "status": "IN_PROGRESS",
   "worklogs": [
     {
-      "minutes": 10,
-      "description": "File uploaded to OneDrive, share link created."
+      "minutes": 15,
+      "description": "Ran PING CHANNEL on PROD.TO.REPORTING - connection refused on port 1414."
     },
     {
-      "minutes": 10,
-      "description": "Explained to the user in detail how to attach the link."
+      "minutes": 20,
+      "description": "Checked firewall logs. The network maintenance changed the NAT rule for MQ communication - port 1414 is blocked."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "The Exchange limit is 25 MB. Upload your file to OneDrive, create a link with the 'Share' button, and add it to your email. You can call me for a step-by-step walkthrough."
+      "message": "Hello, I ran a PING CHANNEL test from the production queue manager and got a connection refused error on port 1414 to the reporting system. Looking at the firewall change log from the weekend maintenance, I can see that a NAT rule for the MQ port 1414 connection was modified. The change appears to have broken the outbound path. I am opening a firewall change request to restore the original NAT rule. Could you provide the IP address of the reporting system's MQ listener for the rule?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "I sent the link, the customer downloaded it. Thanks."
+      "message": "The reporting system MQ server is at 10.10.5.25, port 1414."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Thank you. Firewall change request submitted. The network team has confirmed they can restore the rule within 2 hours. Once connectivity is restored, the channel will automatically resume and the queued messages will be delivered in order. Current transmission queue depth is 3,420 messages."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Understood. The reporting team is aware and will be monitoring for the data catch-up. Thank you for the update."
     }
-  ],
-  "resolutionNote": "Recommended using a OneDrive share link instead of a large attachment, user completed the process.",
-  "csat": {
-    "rating": 4,
-    "comment": "Good suggestion, but it would be more practical if the Exchange limit were raised."
-  }
+  ]
 }

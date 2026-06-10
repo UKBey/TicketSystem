@@ -1,0 +1,8 @@
+﻿{
+    "title":  "Inviso dashboard reports showing wrong date range - data from wrong month",
+    "description":  "The weekly submission summary report in the Inviso dashboard is showing data from the wrong date range. This week\u0027s report shows last month\u0027s numbers. The report was working correctly until two weeks ago.",
+    "priority":  "LOW",
+    "productName":  "Inviso",
+    "topicName":  "Raporlama ve Veri Yonetimi",
+    "status":  "NEW"
+}

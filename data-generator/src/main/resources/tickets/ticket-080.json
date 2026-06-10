@@ -1,0 +1,69 @@
+﻿{
+    "title":  "FintechBox Rate Distribution Engine sending wrong USD/TRY rate to downstream systems",
+    "description":  "The FintechBox Rate Distribution Engine is distributing a USD/TRY rate that is approximately 0.5% higher than the actual market rate. The downstream foreign exchange systems are using this rate for transactions. This was caught by a trader comparing FintechBox rates against the Bloomberg terminal.",
+    "priority":  "CRITICAL",
+    "productName":  "FintechBox",
+    "topicName":  "Market Data ve Veri Dagitimi",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked rate calculation chain. Market data arrives from Bloomberg and Reuters. A spread rule applies a markup. The spread rule for USD/TRY was changed yesterday."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Found the spread rule. The \u0027ask spread\u0027 was accidentally set to 0.5% instead of 0.05%. A decimal point error."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Corrected the spread rule to 0.05%. Rate immediately corrected and verified against Bloomberg."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Worked with trading operations to identify and review any transactions executed with the incorrect rate during the affected window (approximately 3 hours)."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "This is a critical financial integrity issue. I am stopping and tracing the USD/TRY rate calculation chain immediately. Will update in 15 minutes."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please act fast. Trading operations has paused USD/TRY transactions until we understand what is happening."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Found the cause. The USD/TRY rate spread rule in the Rate Distribution Engine has a decimal error: the ask spread is configured as 0.5% instead of 0.05%. This is a 10x error that adds exactly 0.5% to the distributed ask rate. The spread rule was modified yesterday at 11:14 AM. I will correct it immediately - the fix takes effect within seconds of saving."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Spread rule corrected to 0.05%. The distributed USD/TRY rate is now matching the Bloomberg reference rate within the expected 0.05% tolerance. Trading operations can resume USD/TRY transactions. I need to work with you on the remediation for the transactions executed with the incorrect rate during the approximately 3-hour window."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Trading operations will review all USD/TRY transactions from the past 3 hours. Can you give me the exact time window and the magnitude of the rate error for each affected rate distribution?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "The incorrect spread was active from 11:14 AM to 14:23 PM (3 hours 9 minutes). The exact rate error at each distribution point: I have exported the distribution log for that window showing the distributed rate vs the reference rate at each 30-second interval. The error was consistently +0.45% to +0.51% above the correct rate (variation due to normal market movement). Sending the log now."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Received the log. Trading operations has reviewed the transactions. There were 23 USD/TRY client transactions during the window. Most were within tolerance but 4 transactions require rate adjustment with the clients. Operations will handle those. Thank you for the detailed log - it made the review much faster."
+                     }
+                 ],
+    "resolutionNote":  "USD/TRY ask spread rule was set to 0.5% (should be 0.05%) - a 10x decimal error made during a manual rule update. Error active for 3 hours 9 minutes. Corrected to 0.05%. Exported detailed rate log for the affected window to support transaction remediation. 4 client transactions required rate adjustment.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Fast fix and thorough rate log export. Root cause (manual rule changes without validation) should be addressed systematically."
+             }
+}

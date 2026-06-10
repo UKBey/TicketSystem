@@ -1,0 +1,158 @@
+﻿{
+    "title":  "Datacap nightly batch processing failing halfway - 3000 invoices stuck unprocessed",
+    "description":  "The nightly Datacap invoice processing batch has been failing halfway through for the past 4 nights. Each night the batch starts, processes between 1,400 and 1,700 invoices, then stops with \u0027Batch aborted - system error\u0027. Approximately 3,000 invoices have now accumulated as unprocessed. The accounting department cannot close accounts payable without these invoices in the system.",
+    "priority":  "CRITICAL",
+    "productName":  "IBM Datacap",
+    "topicName": "Toplu Isleme",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  30,
+                         "description":  "Analyzed batch error log. Failure occurs with \u0027OutOfMemoryError: Java heap space\u0027 in the Datacap Rulerunner process. Happens consistently after processing approximately 1,500 documents."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Reviewed batch configuration. Documents are being processed in one large batch with no intermediate cleanup. After 1,500 documents, intermediate result images and recognition data accumulate in Rulerunner memory."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Checked when this started. 4 nights ago a new invoice type was added to processing - the new invoices have 4 pages each (previous invoices were 1 page). This 4x page multiplier quadrupled memory consumption per batch."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Short-term fix: increased Datacap Rulerunner JVM heap from 1GB to 3GB. Batch now processes up to 4,000 documents without OOM."
+                     },
+                     {
+                         "minutes":  45,
+                         "description":  "Developed script to re-process accumulated 3,000 failed invoices. Ran batch in segments of 500 documents."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Long-term fix: configured batch size limit of 500 documents per run with automatic continuation to next batch. Memory stays stable even with large multi-page documents."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I am taking this as a P1 priority. I am examining the Datacap batch error logs from the past 4 nights right now. First update in 20 minutes."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please hurry. Accounts payable is on hold. We have supplier payment deadlines tomorrow."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I have a finding. The batch is failing with OutOfMemoryError in the Datacap Rulerunner process, consistently after processing around 1,500 documents. The Rulerunner JVM heap is currently set to 1GB. Something changed 4 nights ago that is causing it to consume more memory per document. Looking at what changed in the batch configuration or input data 4 nights ago."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "4 nights ago, our supplier Arcelik started sending multi-page invoices. Previously all invoices were single page. The Arcelik invoices have 4 pages each."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That is the root cause. Multi-page documents consume 4x more Rulerunner memory than single-page documents during processing because all page images are held in memory simultaneously. With 1,500 documents in memory and each consuming 4x more, the 1GB heap is exhausted. I have two fixes: an immediate short-term fix (increase JVM heap) and a proper long-term fix (batch size limiting). I will apply the JVM increase now so tonight\u0027s batch can run. Then we will implement proper batch segmentation..."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Rulerunner JVM heap increased from 1GB to 3GB. This should allow batches of up to 4,000+ documents even with multi-page invoices. However, 3GB is the maximum I can allocate on this server without impacting other processes. The long-term fix of batch segmentation is still needed for when your invoice volumes grow further."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Understood. Please also tell us how to recover the 3,000 invoices that failed over the past 4 nights. Are they in a failed state that can be reprocessed?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, they are recoverable. Datacap marks aborted batch documents as \u0027Aborted\u0027 status but retains all the original scanned images. I can write a script to identify all documents with \u0027Aborted\u0027 status from the past 4 nights and resubmit them to the batch queue. The reprocessing will take several hours given the volume. Should I run this during business hours or schedule it for tonight?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Run it now during business hours - we cannot wait until tonight. Will it slow down the system for current users?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "It will use CPU and memory but I will run the recovery in segments of 500 documents with a 2-minute pause between segments. This keeps the system responsive for interactive users while still progressing through the backlog. Starting recovery now. I will update you at each 500-document milestone."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Milestone: first 500 documents processed and exported to the accounts payable staging folder. No errors. System response for interactive users is normal."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "AP team confirms they can see the first 500 invoices arriving in the staging area. They are starting to process them manually for the urgent supplier payments. Continue."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Milestone: 1,000 of 3,000 documents processed. All exporting correctly. Continuing with next segment."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Arcelik is asking about their invoices specifically - do you know how many of the 3,000 are Arcelik invoices?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Checking the aborted batch records. Arcelik invoices have supplier code ARC-001 in the metadata. Counting now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Of the 3,000 aborted documents, 847 are from Arcelik (supplier code ARC-001). The rest are from other suppliers whose batches also got caught in the memory failure along with Arcelik documents. I will prioritize Arcelik documents first in the remaining recovery segments if that helps your AP team."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please prioritize Arcelik. They have the most urgent payment deadline."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Reordered the remaining recovery queue - Arcelik documents are processed first. Milestone: all 847 Arcelik documents processed and exported. The AP team can proceed with Arcelik payments now."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "AP team confirms Arcelik invoices are all visible. Supplier payment deadline met. Thank you. Continue with the remaining documents."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Milestone: 2,500 of 3,000 documents done. Nearly there."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Recovery complete. All 3,000 aborted documents have been reprocessed and exported. 0 errors during recovery. Now implementing the long-term batch segmentation fix to prevent recurrence."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Long-term fix implemented: configured the nightly batch to process in segments of maximum 500 documents per run, with automatic continuation until the input folder is empty. This means even if document volumes or page counts increase in the future, each segment stays within safe memory limits. Tonight\u0027s scheduled batch will use the new segmentation. I recommend monitoring the first 2-3 nights to confirm stable operation."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Outstanding support. You saved our supplier payment deadline and also fixed the underlying problem with proper batch segmentation. I will monitor the next few nights. Thank you very much."
+                     }
+                 ],
+    "resolutionNote":  "Nightly batch was failing with OutOfMemoryError after processing ~1,500 documents. Root cause: new Arcelik multi-page invoices (4 pages each) quadrupled per-document memory use, exhausting the 1GB Rulerunner JVM heap. Short-term: increased JVM heap to 3GB. Recovery: reprocessed all 3,000 aborted documents in priority order (Arcelik first). Long-term: configured 500-document batch segmentation with automatic continuation.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Saved our supplier payment deadline. Professional, thorough, and communicated clearly throughout a stressful situation."
+             }
+}
+

@@ -1,8 +1,8 @@
 {
-  "title": "VPN connection returns 'authentication failed' error",
-  "description": "I'm trying to connect from outside the office this morning, and even though my username/password are correct I get 'authentication failed'. The VPN client doesn't accept it even when my SSO session is active.",
+  "title": "Process App deployment fails with 'snapshot already exists' error",
+  "description": "We are trying to deploy the updated Claims Processing Process App to the test server and keep getting a 'snapshot already exists' error. The previous deployment was last week and we need this new version up today.",
   "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "VPN Connection",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Surecl Tasarimi ve Deployment",
   "status": "NEW"
 }

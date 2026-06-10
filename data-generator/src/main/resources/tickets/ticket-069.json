@@ -1,0 +1,42 @@
+﻿{
+    "title":  "Instana showing high error rate on a service that has no actual errors",
+    "description":  "The Instana dashboard shows a persistent 15% error rate on the payment service. However, looking at the application logs and the actual payment results, there are no actual payment failures. The error rate seems to be a false positive.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Instana",
+    "topicName":  "Uygulama ve Altyapi Izleme",
+    "status":  "RESOLVED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Analyzed which calls are being counted as errors. Instana is counting HTTP 302 redirects as errors. The payment service does 302 redirects for 3D Secure authentication flows."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Added HTTP 302 to the list of non-error status codes for the payment service instrumentation."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I looked at what Instana is counting as errors on the payment service. The 15% error rate is made up of HTTP 302 Redirect responses. Instana\u0027s default configuration counts HTTP status codes above 400 as errors, but in some configurations it also counts 3xx redirects as errors. Your payment service uses HTTP 302 redirects for the 3D Secure bank authentication flow - this is expected behavior and not an error. I can configure Instana to treat 302 as a success status code for the payment..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please configure that. The false error rate is causing confusion in our team and masking any real errors that might appear."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Configuration updated. HTTP 302 is now treated as a success status for the payment service. The error rate on the Instana dashboard should drop to near 0% within the next metrics refresh cycle (about 1 minute). Please verify."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Checked the dashboard - error rate is now at 0.1% which is likely actual occasional errors rather than 302 noise. Much better. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Instana was counting HTTP 302 redirects (used for 3D Secure payment flows) as errors. Added HTTP 302 to the success status code list for the payment service. False error rate dropped from 15% to \u003c0.2%."
+}

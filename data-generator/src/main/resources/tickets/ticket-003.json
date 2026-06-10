@@ -1,8 +1,49 @@
 {
-  "title": "Outlook search returns no results",
-  "description": "I'm trying to search old emails, but the search box keeps showing empty results. The index may be corrupted.",
-  "priority": "LOW",
-  "productName": "Email & Communication",
-  "topicName": "Outlook",
-  "status": "NEW"
+  "title": "REST service call to HR API times out after 30 seconds in BAW service flow",
+  "description": "The 'Employee Onboarding' process calls an external HR API to fetch employee data. Since Monday the call is timing out with a 30-second error. The HR API team says their service is running fine. The issue started after a firewall change on Friday evening.",
+  "priority": "HIGH",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Entegrasyon ve REST Servisleri",
+  "status": "WAITING_FOR_CUSTOMER",
+  "worklogs": [
+    {
+      "minutes": 30,
+      "description": "Tested the HR API URL directly from the BAW server using curl. Got a connection refused on port 8443."
+    },
+    {
+      "minutes": 20,
+      "description": "Opened a firewall change request with the network team. They confirmed the Friday evening change removed a NAT rule for BAW server to HR API."
+    },
+    {
+      "minutes": 15,
+      "description": "Network team confirmed the rule will be restored. Waiting for customer confirmation that the fix resolved the issue."
+    }
+  ],
+  "comments": [
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The timeout error is happening on every single onboarding process. We have 5 new starters this week and none of their data can be pulled in automatically. The HR team is having to enter everything manually in the meantime."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Understood, this is impacting operations. I tested the HR API connection directly from the BAW server and confirmed a connection refused error on port 8443. This points to a network issue rather than a problem in BAW itself. I noticed a firewall change was logged on Friday evening. I have raised this with the network team to investigate."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Network team confirmed a NAT rule was accidentally removed during Friday maintenance. They will restore it within the hour. Will confirm with customer once done."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The network team has identified the cause. A firewall rule for the BAW server to HR API connection was removed during Friday's maintenance window. They have restored it. Could you test the onboarding process again and let us know if it completes successfully?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Will do. We will test it right now."
+    }
+  ]
 }

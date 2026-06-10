@@ -1,0 +1,42 @@
+{
+  "title": "FiGO advance payment request feature not available for certain employees",
+  "description": "Some employees cannot see the 'Request Advance Payment' option in their FiGO expense module. The option is visible to some employees but not others. The employees who cannot see it are from the same department.",
+  "priority": "LOW",
+  "productName": "FiGO",
+  "topicName": "Masraf Onay Sureci",
+  "status": "CLOSED",
+  "reasonCode": "CONFIGURATION_UPDATED",
+  "worklogs": [
+    {
+      "minutes": 10,
+      "description": "Checked FiGO role permissions. Advance payment requests are controlled by the user's FiGO role."
+    },
+    {
+      "minutes": 10,
+      "description": "The affected employees are all in the 'Standard' role. The 'Standard with Advance' role has the advance payment feature enabled. The affected department was missed during the initial role assignment."
+    }
+  ],
+  "comments": [
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, I found the reason. In FiGO, the advance payment request feature is controlled by user role. There are two relevant roles: 'Standard' and 'Standard with Advance'. The employees who cannot see the option are assigned the 'Standard' role which does not include advance payment requests. Which department are the affected employees in, and should the entire department have the advance payment feature?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It is the Sales department - all 12 sales reps. Yes, all of them should be able to request advance payments for client visits."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I have updated all 12 Sales department users from 'Standard' to 'Standard with Advance' role in FiGO. They should see the advance payment option immediately after their next login. No action needed on their side - just log out and back in."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Checked with one of the sales reps - the option is now visible. Will notify the rest of the team. Thank you."
+    }
+  ],
+  "resolutionNote": "Sales department users (12 people) were assigned the 'Standard' FiGO role instead of 'Standard with Advance' which includes the advance payment request feature. Updated all 12 users to the correct role."
+}

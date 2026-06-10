@@ -1,40 +1,8 @@
 {
-  "title": "Bluetooth mouse disconnects every afternoon",
-  "description": "My Logitech MX Master 3 keeps losing its connection in the afternoon. The battery is full and I re-paired it, but it still happens.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Keyboard & Mouse",
-  "status": "WAITING_FOR_CUSTOMER",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Ran a 2.4 GHz spectrum analysis, identified a congested channel (channel 6)."
-    },
-    {
-      "minutes": 20,
-      "description": "Checked firmware version and connection type (Bluetooth vs Logi Bolt) via Logi Options+."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Hi, your issue is most likely caused by 2.4 GHz interference — especially in the afternoon when office Wi-Fi usage peaks. Connecting over USB with Logitech's 'Logi Bolt' receiver is much more stable than Bluetooth. I can provide a receiver, so you don't need to come into the office. Could you share your building and floor?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Building A, 3rd floor, door 312. I'm not coming to the office tomorrow, I'll be in on Thursday, so I'll manage until then."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Understood. I'll drop a Logi Bolt receiver at your desk on Thursday morning. Setup is automatic, you just need to plug it into USB. In the meantime, to keep the Bluetooth connection a bit more stable: could you try turning off the 'Smart shift' feature in the Logi Options+ app?"
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Bolt receiver reserved from stock for Thursday (inventory #LB-2024-058). Waiting on user confirmation — will hold until setup."
-    }
-  ]
+  "title": "FileNet file storage area at 98% capacity - uploads starting to fail",
+  "description": "We are getting alerts that the primary FileNet file storage area is at 98% capacity. Some document uploads have already started failing with storage errors. We store approximately 2TB of documents and add around 50GB per month.",
+  "priority": "CRITICAL",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Dokuman Yukleme ve Yonetim",
+  "status": "NEW"
 }

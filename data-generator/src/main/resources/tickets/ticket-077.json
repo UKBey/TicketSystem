@@ -1,0 +1,46 @@
+﻿{
+    "title":  "Datacap barcode recognition not reading QR codes on invoices",
+    "description":  "Our supplier invoices now include QR codes containing invoice metadata (invoice number, amount, date). Datacap is supposed to read these QR codes to populate fields automatically. The QR codes are completely ignored and the fields must be entered manually.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Datacap",
+    "topicName":  "OCR ve Veri Cikarma",
+    "status":  "RESOLVED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Datacap barcode recognition action configuration. Supported barcode types: Code 128, Code 39, EAN-13, PDF417. QR code type not enabled."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Enabled QR Code recognition in the Datacap barcode action profile."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Configured field mapping from QR code data to invoice form fields."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the issue in the Datacap barcode recognition action configuration. The enabled barcode types are Code 128, Code 39, EAN-13, and PDF417. QR Code support is not enabled. The supplier QR codes are being skipped because the recognition engine is not looking for QR format. Enabling QR Code recognition is a configuration change in the Datacap application. I will also need to know what data is encoded in the QR code - is it structured JSON, plain text, or a specific format? This..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "I can share a sample invoice with you. The QR code encodes: invoice_no=INV-2024-00123, amount=15250.00, date=2024-03-15, supplier_code=SUPP001. Plain text key=value pairs separated by semicolons."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Perfect, that is straightforward to parse. I have enabled QR Code recognition and configured the field mapping: invoice_no to the Invoice Number field, amount to the Total Amount field, date to the Invoice Date field, and supplier_code to the Supplier Code field. Please scan a sample invoice to test."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Tested with 3 sample invoices. All QR codes read and all fields populated correctly. This will save a lot of manual data entry. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "QR Code barcode type was not enabled in the Datacap barcode recognition action profile. Enabled QR Code support and configured field mapping from QR data (key=value pairs) to invoice form fields."
+}

@@ -1,8 +1,156 @@
 {
-  "title": "The whole dashboard is empty when I open the ERP home screen",
-  "description": "After logging in, none of the dashboard widgets load. I see a CORS error in the F12 console.",
-  "priority": "HIGH",
-  "productName": "Enterprise Software",
-  "topicName": "ERP",
-  "status": "NEW"
+  "title": "Process Portal dashboards extremely slow - taking 45+ seconds to load",
+  "description": "Since the database was migrated to the new server last month, Process Portal dashboards and the 'My Team Performance' widget are taking over 45 seconds to load, sometimes timing out completely. Before the migration everything loaded in under 3 seconds. This is affecting all 120 BAW users. We also noticed the Elasticsearch status shows as 'inactive' in PAC.",
+  "priority": "CRITICAL",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Performans ve Izleme",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
+  "worklogs": [
+    {
+      "minutes": 30,
+      "description": "Confirmed Elasticsearch index status in PAC - shows inactive. Attempted to reindex, job fails immediately."
+    },
+    {
+      "minutes": 45,
+      "description": "Collected EXPLAIN PLAN for dashboard queries. Full table scans confirmed on LSW_TASK and LSW_BPD_INSTANCE."
+    },
+    {
+      "minutes": 60,
+      "description": "Investigated Elasticsearch configuration on new server. Found ES service not started and JVM heap set to only 256MB instead of required 2GB."
+    },
+    {
+      "minutes": 90,
+      "description": "Reconfigured Elasticsearch with correct heap, restarted service, triggered full reindex from PAC."
+    },
+    {
+      "minutes": 40,
+      "description": "Reindex took 35 minutes to complete (2.1M task records). Verified index is active and populated."
+    },
+    {
+      "minutes": 30,
+      "description": "Added missing composite indexes on LSW_TASK (STATUS, DUE_DATE, ASSIGNED_TO_DEPT) to improve fallback SQL performance."
+    },
+    {
+      "minutes": 20,
+      "description": "Load tested dashboard with 10 concurrent users. Load time back to 1.5-2 seconds. Performance confirmed."
+    }
+  ],
+  "comments": [
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "This is urgent. All 120 users are affected and the team leads are especially impacted because they rely on the dashboards for daily standups. Some dashboards are not loading at all, just spinning forever. Can someone look at this today?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, I am picking this up now as a critical priority. First question - did the dashboard performance degrade gradually or did it happen all at once? You mentioned a database migration last month - was there a specific date when users first started noticing the slowness?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "It happened all at once on the same day as the database migration, June 3rd. Before that date everything was under 3 seconds. After the migration it jumped to 45+ seconds immediately."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "That is a very clear correlation. The database migration is the first thing I will look at. I am also going to check the PAC System Status page right now - could you send me the BAW admin console URL or give me access?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Access has been granted. Your account bawadmin was already set up on the new server. URL is https://baw-prod.corp.local:9443/ProcessAdmin."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Logged into PAC. Immediately noticed that Elasticsearch shows 'Inactive' in the System Status panel. The dashboard widgets use ES for search-backed queries. If ES is inactive, BAW falls back to direct SQL queries which are doing full table scans. That explains the 45-second times. The ES JVM heap is set to only 256MB - completely insufficient for a 2.1M record index. This should be 2GB minimum."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I found something significant. The Elasticsearch service that BAW uses for fast dashboard queries is showing as Inactive in the admin console. This was likely not configured correctly on the new server after the migration. When ES is inactive, BAW falls back to very slow direct database queries which explains the 45-second delays. I need to reconfigure ES on the new server. Is there a maintenance window I can use tonight to do this properly?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "You can use tonight from 20:00. The system is not used heavily after 19:00. How long will the maintenance take?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I estimate 2-3 hours including reindexing the 2.1 million task records. The reindex itself takes about 30-40 minutes once the service is up. The system will be fully usable while the reindex runs, just the dashboard widgets will remain slow until reindexing completes."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Approved for 20:00. Please send a confirmation when you start and when you finish."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Starting maintenance window now at 20:00. I will update you at key milestones."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Elasticsearch JVM config updated to -Xms2g -Xmx2g. Service started successfully. Index shows as Active in PAC. Triggering full reindex from PAC > System Lanes > Tracking. Estimated 35-40 minutes."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "20:45 update: Elasticsearch is running and healthy, full reindex is in progress. 680,000 of 2,100,000 task records indexed so far. On track to finish by 21:20."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thanks for the update. We will wait."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "21:15 update: Reindex complete - all 2.1 million records indexed successfully. Elasticsearch shows Active with a green status. I am now running a quick load test to verify dashboard performance before I close the maintenance window."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Load test results: 10 concurrent users opening dashboards. Average load time 1.8 seconds for My Team Performance widget, 2.1 seconds for Instance Overview. Before fix: 45+ seconds. Also added composite indexes on LSW_TASK to improve the SQL fallback path."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Maintenance window complete at 21:30. Dashboard performance is back to normal - under 2 seconds for all widgets in my testing. Could you ask a couple of your team leads to check first thing tomorrow morning and confirm their experience?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "I just tested it now actually - loaded the My Team Performance dashboard in about 1.5 seconds. This is back to where it was before the migration. Absolutely delighted."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Excellent! To summarize what was done: the Elasticsearch service on the new server was not started after the migration and was configured with insufficient heap memory (256MB instead of the required 2GB). Once the service was properly configured and the index was rebuilt, all dashboards returned to normal performance. I have documented the correct ES configuration in the BAW server runbook so this step is not missed on future server migrations. Closing this ticket now."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Thank you for the thorough work and for keeping us updated throughout the maintenance window. The team leads are very relieved."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "One more thing - could you make sure the ES configuration is also part of the BAW installation checklist? This seems like something that could catch others out in future migrations."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Absolutely. I have already added it to the installation checklist with the correct heap settings, the startup verification step, and a note about triggering a reindex after any database migration. The ES service configuration is now also part of our post-migration validation checklist."
+    }
+  ],
+  "resolutionNote": "Elasticsearch service on the new BAW server was not started after the database migration, and the JVM heap was incorrectly set to 256MB instead of the required 2GB minimum. Without ES, BAW fell back to direct SQL queries doing full table scans on 2.1M records, causing 45+ second dashboard load times. Fixed by reconfiguring ES heap to 2GB, starting the service, and triggering a full reindex (35 minutes). Added composite indexes on LSW_TASK as a fallback improvement. Dashboard performance restored to under 2 seconds. BAW server runbook and migration checklist updated.",
+  "csat": {
+    "rating": 5,
+    "comment": "Outstanding support. Found the root cause quickly, kept us informed throughout the maintenance window, and updated the documentation to prevent this happening again. Best experience we have had with this support team."
+  }
 }

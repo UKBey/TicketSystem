@@ -1,0 +1,52 @@
+﻿{
+    "title":  "Datacap batch processing stops at document 1 and waits for operator input",
+    "description":  "A batch that should run unattended overnight is stopping after the first document and waiting for operator input. The batch shows the document in the verification screen and is waiting for a human to click \u0027OK\u0027. The batch was previously running fully automated. A configuration change was made by a junior admin last week.",
+    "priority":  "HIGH",
+    "productName":  "IBM Datacap",
+    "topicName": "Toplu Isleme",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Reviewed batch job configuration. Verification action is set to \u0027Manual\u0027 instead of \u0027Automatic\u0027. For automatic processing, this should be \u0027Skip verification if confidence above threshold\u0027."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Changed verification setting from Manual to Automatic with 80% confidence threshold. Batch runs unattended again."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the configuration change that caused the issue. The batch job has a \u0027Verification\u0027 action that was changed to \u0027Manual Verification Required\u0027 mode. In this mode, every document waits for an operator to review it before continuing - which explains why the batch stops after document 1. Previously it was set to \u0027Automatic: skip verification for documents above 80% confidence threshold\u0027. I will change it back to the automatic setting. Only documents with low OCR confidence will..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please restore the automatic setting. Who can access the batch configuration to prevent this type of change in future?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Batch configuration restored. The overnight batch will run unattended again. Regarding access control: Datacap has role-based configuration in the Administration Console. Batch job configuration changes should be restricted to \u0027Datacap Administrator\u0027 role only. The junior admin who made the change should have \u0027Datacap Operator\u0027 role, which allows running batches but not changing their configuration. I can update their role if you want to prevent this from happening again."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please change the junior admin\u0027s role to Operator. Configuration changes should be made by senior staff only."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Done. Role changed from Administrator to Operator for the junior admin account. Batch tested - running unattended through all 50 test documents without stopping for verification."
+                     }
+                 ],
+    "resolutionNote":  "Batch verification setting was changed from Automatic (skip if confidence \u003e80%) to Manual verification required. A junior admin changed this while exploring the configuration. Restored automatic setting and changed the admin\u0027s role to Operator to prevent further unauthorized configuration changes.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Fixed root cause and also tightened access control. Excellent."
+             }
+}
+

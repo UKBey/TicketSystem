@@ -1,26 +1,50 @@
-{
-  "title": "I can't install the 'Lighthouse' extension in Chrome",
-  "description": "I'm trying to install the Lighthouse extension for performance testing, but I'm getting a 'blocked by organization policy' warning.",
-  "priority": "LOW",
-  "productName": "Enterprise Software",
-  "topicName": "Browser",
-  "status": "RESOLVED",
-  "worklogs": [
-    {
-      "minutes": 10,
-      "description": "Helped the user fill out the Browser Extension Request form."
-    },
-    {
-      "minutes": 15,
-      "description": "After Information Security approval, the extension was added to the GPO whitelist."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Lighthouse has been added to the allow-list. Restart Chrome and the extension will be visible in the store."
-    }
-  ],
-  "resolutionNote": "The Lighthouse extension was added to the allow-list with Information Security approval and enabled on the user's device."
+﻿{
+    "title":  "OAuth2 token issued by API Connect rejected by backend microservice",
+    "description":  "After configuring OAuth2 authorization on the Payments API in API Connect, the token issued by APIC is being rejected by the payments microservice with a 401 Invalid Token error. The same token is accepted when tested directly against the APIC token validation endpoint.",
+    "priority":  "HIGH",
+    "productName":  "IBM API Connect",
+    "topicName":  "Guvenlik ve Kimlik Dogrulama",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Decoded the JWT token. Found the iss (issuer) claim value does not match what the payments microservice expects."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Microservice is configured to validate tokens from \u0027https://api.corp.local/payments\u0027 but APIC is issuing tokens with issuer \u0027https://apic-gw.corp.local/corp/prod\u0027."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Updated payments microservice JWT validator to accept the APIC issuer URL."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I decoded the JWT token that APIC is issuing and compared it to what the payments microservice expects. The token is valid and correctly signed, but the issuer claim (iss) in the token is set to \u0027https://apic-gw.corp.local/corp/prod\u0027 - this is the APIC gateway\u0027s standard issuer format. The payments microservice is configured to only accept tokens from \u0027https://api.corp.local/payments\u0027 which was the old self-issued token setup. The microservice\u0027s JWT validator needs to be updated to..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please coordinate with Serhat Demirci - he owns the payments microservice."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Serhat has updated the JWT validator configuration. The payments microservice now accepts tokens from the APIC issuer. I have run a full OAuth2 flow test - the token is now accepted and the API call succeeds with a 200 response. Could you run a test from your application to confirm?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Tested - the payments flow is working end to end. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "The payments microservice JWT validator was configured to accept tokens from the old self-issued token issuer URL, not the API Connect gateway issuer URL. Updated the microservice JWT validator to accept the APIC issuer.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Clear diagnosis and worked well with our microservice team to get it fixed quickly."
+             }
 }

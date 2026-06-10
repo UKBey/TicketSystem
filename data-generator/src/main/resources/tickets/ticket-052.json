@@ -1,0 +1,35 @@
+﻿{
+    "title":  "Inviso form field validation rules not enforced on offline forms",
+    "description":  "We configured mandatory fields and format validations in Inviso form designer. The validations work correctly when online, but when the device is offline, the form can be submitted without filling the mandatory fields or with invalid data formats. This creates data quality issues when offline records sync.",
+    "priority":  "MEDIUM",
+    "productName":  "Inviso",
+    "topicName":  "Mobil Uygulama ve Senkronizasyon",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Reproduced the issue. In offline mode, form submits without required field validation."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Checked Inviso admin panel. Offline validation mode is set to \u0027Warn only\u0027 instead of \u0027Block submission\u0027."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I reproduced the validation bypass in offline mode. The cause is the offline validation setting in the Inviso admin panel: the form is configured for \u0027Warn only\u0027 offline validation, which shows a warning but still allows submission. The setting \u0027Block submission on validation failure\u0027 is available and would enforce the same validation as online mode. However, this setting applies globally to all forms in your Inviso instance, not just one form. Before I change it, I want to confirm:..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That is a good question. I need to check with the field operations team whether any forms are intentionally designed for partial offline submission. Let me ask and get back to you."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Take the time you need. If there are forms that need partial offline submission, we can configure per-form offline validation overrides in the form designer, so most forms block but those specific forms allow partial submission. I will wait for your feedback before making any changes."
+                     }
+                 ]
+}

@@ -1,40 +1,40 @@
 {
-  "title": "Can't reach some internal services over corp.local",
-  "description": "I can't access some services under corp.local such as the wiki and fileshare. DNS resolution is failing.",
+  "title": "Full-text search not returning results for documents uploaded in the last 2 weeks",
+  "description": "Users searching for content in recently uploaded documents are getting no results. Documents uploaded more than 2 weeks ago search fine. The issue is specifically with documents uploaded after June 1st. The documents are visible in the folder structure but their content cannot be searched.",
   "priority": "MEDIUM",
-  "productName": "VPN & Network",
-  "topicName": "DNS Issues",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Dokuman Yukleme ve Yonetim",
   "status": "WAITING_FOR_CUSTOMER",
   "worklogs": [
     {
       "minutes": 20,
-      "description": "Flushed the DNS cache (ipconfig /flushdns), tested different records with nslookup."
+      "description": "Checked CBR (Content-Based Retrieval) indexing status in ACCE. The indexer queue shows 4,500 pending documents."
     },
     {
       "minutes": 15,
-      "description": "Reviewed the DNS server logs with the network team — the user's requests are reaching the server."
+      "description": "Checked the CBR indexer service log. Found repeated errors starting June 1st: 'CBR indexer connection to OpenSearch lost'."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Hello, could you share a full list of which services you can't reach (e.g. wiki.corp.local, files.corp.local)? Also, could you run 'nslookup wiki.corp.local' in cmd and send a screenshot of the result?"
+      "message": "Hello, I found the cause. The Content Engine full-text indexer has been failing to connect to the OpenSearch indexing backend since June 1st, so any documents uploaded after that date are queued but not indexed. The CBR queue currently has 4,500 documents waiting. I can see the connection error in the CBR service log. Could you tell me whether any infrastructure changes happened around June 1st? For example, was the OpenSearch server password changed, or was OpenSearch moved to a different host?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "wiki.corp.local and files.corp.local won't open. But portal.corp.local opens, strangely."
+      "message": "I am checking with the infrastructure team. They did some OS patching on June 1st. Will get back to you today."
     },
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Thanks. Could you also share the 'ipconfig /all' output? I'd like to see which IPs you're using as DNS servers. By the way, is the VPN connected right now?"
+      "message": "Thanks. The OS patching could have changed the OpenSearch service user or the network configuration. While you are checking, I will review the CBR connection credentials in ACCE to see if anything looks wrong on the FileNet side."
     },
     {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "Waiting on the ipconfig output and VPN status from the customer. My guess is the split-DNS configuration is wrong — wiki/files are on a different subnet."
+      "message": "CBR connection settings look fine on the FileNet side. The OpenSearch host and port have not changed. Most likely the OS patch reset the OpenSearch service account password. Waiting for the infra team to confirm."
     }
   ]
 }

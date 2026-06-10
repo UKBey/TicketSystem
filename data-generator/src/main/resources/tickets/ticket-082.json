@@ -1,0 +1,56 @@
+﻿{
+    "title":  "MetaTrader bridge not receiving FintechBox price updates",
+    "description":  "The MetaTrader 4 bridge that receives prices from FintechBox stopped getting updates 2 days ago. The MetaTrader platform shows stale prices for all instruments. Client-facing quotes are frozen. The FintechBox side shows prices updating normally.",
+    "priority":  "CRITICAL",
+    "productName":  "FintechBox",
+    "topicName":  "FX Platform ve Islem Motoru",
+    "status":  "RESOLVED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked FintechBox MT4 bridge connector. Bridge is running but shows \u0027Client disconnected\u0027 for the MetaTrader feed receiver."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Checked the MetaTrader server. The Bridge Manager plugin on MT4 is running but not connected. MT4 server IP address in bridge configuration is wrong after server migration."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated MT4 server IP in the FintechBox bridge configuration. Bridge reconnected and prices started flowing."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the FintechBox MT4 bridge connector status. It shows \u0027Client disconnected\u0027 for the MetaTrader feed receiver. This means FintechBox is generating the price updates but the bridge cannot connect to the MetaTrader server to deliver them. Was there any change to the MetaTrader server recently - hostname, IP address, or port?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The MT4 server was migrated to new hardware 3 days ago. The IP address changed. Could that be it?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, that is exactly it. The FintechBox bridge configuration still has the old MT4 server IP address. I need the new IP address to update the configuration. Could you provide the new MT4 server IP?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "New MT4 server IP is 192.168.15.42, port 443."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Bridge configuration updated with new MT4 server address. The bridge reconnected immediately and price updates are now flowing from FintechBox to MetaTrader. Please verify that prices are updating on the MT4 platform and client quotes are live."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "MT4 is showing live prices again. Client quotes are active. 2 days of stale prices resolved in minutes. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "MT4 server was migrated to new hardware with a different IP address. FintechBox bridge configuration still pointed to the old IP. Updated bridge configuration with new MT4 server IP (192.168.15.42:443)."
+}

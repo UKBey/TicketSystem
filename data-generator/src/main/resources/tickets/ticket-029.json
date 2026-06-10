@@ -1,26 +1,46 @@
 {
-  "title": "My laptop isn't charging even though it's plugged in",
-  "description": "My device is plugged into the charger, but the battery percentage keeps dropping.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Laptop",
+  "title": "Turkish characters corrupted in ACE message flow output to downstream system",
+  "description": "ACE integration flow that processes customer data from an SAP system is corrupting Turkish characters (such as s, i, g, o, u with cedilla/breve) in the output. The characters are being replaced with question marks or Latin equivalents. The input from SAP contains correct Turkish characters.",
+  "priority": "MEDIUM",
+  "productName": "IBM App Connect Enterprise",
+  "topicName": "Mesaj Akisi Tasarimi",
   "status": "RESOLVED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
       "minutes": 20,
-      "description": "Determined the charging adapter was 45W instead of 65W, insufficient."
+      "description": "Traced the encoding through the flow. SAP input comes in as ISO-8859-9 (Turkish). The HTTP connector sends output as UTF-8 but applies string conversion without explicit encoding specification."
     },
     {
-      "minutes": 10,
-      "description": "Provided a spare 90W adapter, the battery started charging."
+      "minutes": 25,
+      "description": "Added an ESQL compute node before the HTTP output that explicitly converts the encoding from ISO-8859-9 to UTF-8."
+    },
+    {
+      "minutes": 15,
+      "description": "Tested with sample Turkish customer names including all diacritic characters. All characters preserved correctly in output."
     }
   ],
   "comments": [
     {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Customer names with Turkish special characters are showing as garbled in our CRM after the ACE integration runs. For example 'Mustafa Kucukcaglayan' loses the cedilla and breve characters."
+    },
+    {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "The old 45W adapter wasn't enough for your device, I replaced it with a 90W one. It's charging now, you can check."
+      "message": "Hello, this is a character encoding conversion issue. The SAP system sends data in ISO-8859-9 (the Turkish character encoding) but the ACE flow converts it to UTF-8 without explicitly mapping the Turkish characters. I can fix this by adding an explicit encoding conversion step. I will test this fix with a set of Turkish names that use all the affected characters before deploying."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Fix tested and deployed. Could you run a test with a customer record that has Turkish characters and check the output in the CRM?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Tested with Yusuf Caglaroglu - the name now appears correctly in the CRM with the breve and cedilla intact. Thank you."
     }
   ],
-  "resolutionNote": "Adapter upgraded from 45W to 90W. The device's charging speed is normal, it reached 100% within 1 hour."
+  "resolutionNote": "SAP source data is encoded in ISO-8859-9 (Turkish character set). The ACE HTTP output connector was applying a generic charset conversion without preserving Turkish-specific characters. Added an explicit ESQL encoding conversion step (1254 to UTF-8) before the output connector."
 }

@@ -1,39 +1,46 @@
 {
-  "title": "The nightly backup failed with a 'Repository Full' error",
-  "description": "This morning's 03:00 SQL backup job is in 'failed' status, it says the repository is full.",
-  "priority": "HIGH",
-  "productName": "Cloud Services",
-  "topicName": "Backup",
+  "title": "Application getting AMQ8135 Not authorized when trying to PUT messages to queue",
+  "description": "The new order processing service started this week is getting AMQ8135 Not authorized when attempting to put messages to the ORDER.PROCESSING.Q queue. The service account has been set up in AD but MQ access has not been configured.",
+  "priority": "MEDIUM",
+  "productName": "IBM MQ",
+  "topicName": "Kuyruk Yoneticisi Yapilandirma",
   "status": "CLOSED",
+  "reasonCode": "CONFIGURATION_UPDATED",
   "worklogs": [
     {
-      "minutes": 30,
-      "description": "Cleaned up backups older than 4 months that were outside the retention policy (~800 GB)."
+      "minutes": 15,
+      "description": "Verified service account 'svc-orderproc' does not have any MQ authority records set."
     },
     {
-      "minutes": 25,
-      "description": "Manually re-triggered the Veeam job, completed successfully."
-    },
-    {
-      "minutes": 20,
-      "description": "Started designing an S3 Glacier target for long-term retention."
+      "minutes": 10,
+      "description": "Granted PUT authority on ORDER.PROCESSING.Q and CONNECT authority on the queue manager."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Old backups were cleaned up, the nightly job ran successfully. For the long term, we've added the Glacier target to the process."
+      "message": "Hello, the service account svc-orderproc has not been granted MQ authority. I need to grant it PUT authority on the ORDER.PROCESSING.Q queue and CONNECT authority to the queue manager. I will also grant INQQ (inquire) access which is typically needed by applications. Before I apply these, could you confirm whether the service also needs to GET messages from any queue, or only PUT?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "Thank you very much, I got the report this morning."
+      "message": "It only PUTs messages to ORDER.PROCESSING.Q. It does not read from any queue."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Perfect, minimal permissions applied. CONNECT and INQQ on the queue manager, and PUT + INQQ on ORDER.PROCESSING.Q only. Please test your service."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Service is now putting messages successfully. The order processing pipeline is running. Thank you."
     }
   ],
-  "resolutionNote": "Cleaned up 800 GB of backups outside the retention policy, manually triggered and completed the main job. Glacier capacity planning started.",
+  "resolutionNote": "Service account svc-orderproc had no MQ authority records. Granted CONNECT and INQQ on queue manager, PUT and INQQ on ORDER.PROCESSING.Q.",
   "csat": {
     "rating": 5,
-    "comment": "Resolved smoothly."
+    "comment": "Fast and to the point."
   }
 }

@@ -1,35 +1,45 @@
 {
-  "title": "Printer won't do double-sided (duplex) printing",
-  "description": "I'm printing HR forms as duplex output, but the printer always prints single-sided.",
-  "priority": "MEDIUM",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Printer",
-  "status": "WAITING_FOR_CUSTOMER",
+  "title": "Message flow deployment fails with 'BIP2010E: node type not recognized' on ACE server",
+  "description": "We are trying to deploy a new integration flow that uses a Database Input node to read from our Oracle DB. The deployment fails with BIP2010E saying the node type is not recognized. The same flow deploys fine on our development ACE server.",
+  "priority": "HIGH",
+  "productName": "IBM App Connect Enterprise",
+  "topicName": "Mesaj Akisi Tasarimi",
+  "status": "IN_PROGRESS",
   "worklogs": [
     {
-      "minutes": 25,
-      "description": "Updated Duplex Unit = Installed under driver Device Settings."
+      "minutes": 20,
+      "description": "Compared ACE server profiles between dev and production. Production ACE server is missing the JDBC feature enablement."
     },
     {
-      "minutes": 10,
-      "description": "Verified the driver version on the user's workstation: 7.83 (current)."
+      "minutes": 15,
+      "description": "Located the admin command to enable JDBC node support on the production execution group."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "On the driver side I marked the Duplex Unit as 'Installed'. Could you do a test print now? In the Print dialog, do you see a 'Print on both sides' or 'Two-sided' option? Could you send a screenshot?"
+      "message": "Hello, I compared the ACE server configurations between your dev and production environments. The production ACE server's execution group does not have the JDBC/Database node feature enabled. On the dev server this feature is enabled, which is why the flow works there. I need to enable the Database node feature on the production execution group. This requires a brief restart of the execution group. Is there a maintenance window I should use, or can we do this now during business hours?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "The option showed up, I selected 'Long edge' but it still printed single-sided. I've attached the screenshot."
+      "message": "The execution group handles other live flows. Can we restart just the execution group without affecting the other flows?"
     },
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "Thanks for the screenshot. I can see the options are set correctly. Now we need to check on the printer side: on the printer's panel under Menu > Settings > Default Print Settings, is 'Default Duplex' active? Also, is the duplex module physically installed (you can open the printer's rear cover to check)?"
+      "message": "Yes, restarting an execution group causes a brief interruption to all flows within that group but does not affect other execution groups. All flows recover automatically when the group restarts - they pick up message processing where they left off if their queues retain the messages. For the Database Input flow specifically, it will resume polling from its configured starting point. How many other flows are in this execution group, and is this a good time to restart it?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "There are 3 other flows in the group. They are all low-volume and a 2-minute restart is acceptable. Please go ahead."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "Enabling JDBC feature now via mqsichangeproperties command on the execution group. Will restart and redeploy the flow."
     }
   ]
 }

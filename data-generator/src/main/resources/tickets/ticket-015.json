@@ -1,64 +1,40 @@
-{
-  "title": "No audio in Teams meeting, the other side can't hear me",
-  "description": "My microphone didn't work in 3 separate meetings today. The headset works fine in other apps on Windows.",
-  "priority": "CRITICAL",
-  "productName": "Email & Communication",
-  "topicName": "Teams",
-  "status": "IN_PROGRESS",
-  "worklogs": [
-    {
-      "minutes": 20,
-      "description": "Checked Windows Privacy > Microphone settings, Teams was set to 'Allow'."
-    },
-    {
-      "minutes": 25,
-      "description": "Cleared the Teams Modern Auth cache (%appdata%\\Microsoft\\Teams\\Cache), user signed in again."
-    },
-    {
-      "minutes": 15,
-      "description": "Device Manager: USB Audio driver showed as 'up to date'; ran an enumeration of the sound panel."
-    }
-  ],
-  "comments": [
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I have a critical customer meeting at 2 PM right now, let's please find a quick fix."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Got it, I'm on it right away. First some quick checks: in Teams > Settings > Devices > Microphone, which device is selected? Does the 'Make a test call' button work?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "'Headset Microphone (Jabra Evolve 65)' is selected. On the test call it says 'Hi, this is Test Call' but then it doesn't play my voice back — just silence."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "OK, that means the mic isn't reaching Teams. Could you unplug the headset from USB and plug it back in? Also, right-click the sound icon on the computer and in 'Sound settings > Input', I'd like to see whether the progress bar for the Jabra moves when you speak."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I did the USB unplug-replug. In Sound settings the bar DOES RESPOND when I speak — so Windows hears it. But Teams doesn't."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Excellent diagnosis. The problem is specifically between Teams and the device. Let's go through these steps in order: 1) Fully close Teams (Task Manager → End Task the Teams process), 2) Open the %appdata%\\Microsoft\\Teams folder, 3) DELETE the 'Cache', 'GPUCache', and 'IndexedDB' subfolders (your app data won't be lost), 4) Reopen Teams. In my experience this method works 90% of the time."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Did it! Teams reopened and on the test call it now hears my voice 🎉 I'll make the 2 PM meeting. Thank you so much."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "Teams cache corruption — my 3rd case in the last month. I'll send a notification to the endpoint management team; these kinds of issues happen after a Teams auto-update. I'll get confirmation from the user after the meeting and resolve it."
-    }
-  ]
+﻿{
+    "title":  "BAW service flow returns null for employee data when calling internal People API",
+    "description":  "The HR Onboarding BAW process has a service flow that calls our internal People API to fetch the new employee\u0027s manager information. Since last Tuesday the service flow is returning null for the manager field even though the API endpoint returns correct data when tested directly.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM Business Automation Workflow",
+    "topicName":  "Entegrasyon ve REST Servisleri",
+    "status":  "IN_PROGRESS",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Tested the People API directly - returns correct manager data. Tested the BAW HTTP connector call - returns the same correct JSON. The issue is in the variable mapping after the HTTP call."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Reviewed the service flow output mapping. The JSON path in the variable mapping uses $.manager.displayName but the API response changed its structure - it is now $.managerInfo.displayName."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I have traced the issue. The BAW service flow is correctly calling the People API and receiving the right data, but the JSON path used to extract the manager\u0027s name from the response has become incorrect. The API changed its response structure last week - the manager information moved from $.manager.displayName to $.managerInfo.displayName. The BAW service flow still has the old path. I need to update the path in the variable mapping and redeploy the snapshot. This is a 30-minute fix...."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please proceed now - we have new starters tomorrow who need their manager correctly set up in the onboarding workflow."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Working on it now. While I update the mapping, could you ask the People API team to let us know in advance whenever they change their response structure? A change like this with no notice is what causes these kinds of issues."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Also need to check if there are other fields in the service flow that map from the People API - might be more broken paths if the API refactored its structure. Doing a full audit of all JSON paths in this service flow before deploying."
+                     }
+                 ]
 }

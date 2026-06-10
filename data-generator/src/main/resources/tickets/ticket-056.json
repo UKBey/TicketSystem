@@ -1,0 +1,55 @@
+﻿{
+    "title":  "FiGO OCR failing on printed receipts from a specific retail chain",
+    "description":  "Expense receipts from Migros stores are consistently failing FiGO OCR recognition. The receipt data is not being extracted - amount, date, and merchant fields show empty. Receipts from other retailers work fine. We have been manually entering Migros receipts for two weeks.",
+    "priority":  "MEDIUM",
+    "productName":  "FiGO",
+    "topicName":  "Fis ve Fatura Tanima",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Analyzed sample Migros receipts. They use a narrow thermal print format with text compressed to 35 characters per line. FiGO OCR profile for Turkish retailers does not have a pattern for this narrow format."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Created a new OCR extraction pattern for Migros narrow-format receipts. Mapped field positions for amount, date, VAT, and merchant."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Tested new pattern against 10 sample Migros receipts - all extracted correctly."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I analyzed the Migros receipts you shared. They use a compressed narrow-format thermal print that is different from other major Turkish retailers. The FiGO OCR engine recognizes receipt formats using pattern templates, and the Migros narrow format does not have a template in the current library. I am adding a new OCR pattern for Migros receipts. I will need a few sample Migros receipts to calibrate the pattern - could you share 3-4 photo samples? Both old and recent receipts would be..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Attaching 5 Migros receipts from different dates. Two from this month, two from last month, and one from three months ago."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Thank you for the samples. I built and tested the new Migros OCR pattern. All 5 sample receipts extracted correctly - amount, date, VAT breakdown, and merchant name all captured. I have deployed the new pattern to your FiGO instance. Please test by uploading a Migros receipt through the normal expense flow."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Just tested with a new Migros receipt - all fields extracted correctly on the first try. Great. Can we also check BIM and A101 receipts? I have heard some colleagues have issues with those too."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "BIM and A101 are in the standard Turkish retailer template library so they should work, but I will test both. If you can share one or two sample receipts from each, I can confirm and add patterns for any that are missing."
+                     }
+                 ],
+    "resolutionNote":  "Migros receipts use a compressed narrow thermal print format not covered by the FiGO OCR template library. Created and deployed a new OCR pattern for Migros narrow format receipts. All fields (amount, date, VAT, merchant) now extract correctly.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Problem that was annoying us for two weeks solved in one day."
+             }
+}

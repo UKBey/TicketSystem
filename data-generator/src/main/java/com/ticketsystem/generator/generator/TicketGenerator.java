@@ -88,10 +88,10 @@ public class TicketGenerator {
      * @throws InterruptedException if {@code Thread.sleep} (used for request pacing) is interrupted
      */
     public List<Long> generate() throws IOException, InterruptedException {
-        log.info("=== Bilet üretimi başlıyor (JSON şablon tabanlı) ===");
+        log.info("=== Ticket generation starting (JSON template-based) ===");
 
         List<JsonNode> specs = loadTicketSpecs();
-        log.info("Okunan ticket şablonu: {}", specs.size());
+        log.info("Ticket templates loaded: {}", specs.size());
 
         // Önce CLOSED ve RESOLVED'ler oluşturulur ki claim limiti dolmasın
         specs.sort(Comparator.comparingInt(this::statusPriority));
@@ -114,7 +114,7 @@ public class TicketGenerator {
                     pending.add(pt);
                 }
             } catch (Exception e) {
-                log.warn("Şablon işlenirken hata (#{}, başlık: {}): {}",
+                log.warn("Error processing template (#{}, title: {}): {}",
                         i, spec.path("title").asText(), e.getMessage());
             }
             sleep();
@@ -128,11 +128,11 @@ public class TicketGenerator {
             try {
                 finishTicket(pt);
             } catch (Exception e) {
-                log.warn("Bilet sonlandırılamadı #{}: {}", pt.ticketId, e.getMessage());
+                log.warn("Failed to finish ticket #{}: {}", pt.ticketId, e.getMessage());
             }
         }
 
-        log.info("=== Bilet üretimi tamamlandı. Üretilen bilet: {} ===", ticketIds.size());
+        log.info("=== Ticket generation complete. Tickets created: {} ===", ticketIds.size());
         return ticketIds;
     }
 
@@ -155,7 +155,7 @@ public class TicketGenerator {
 
         Long productId = setup.productByName().get(productName);
         if (productId == null) {
-            log.warn("Şablonda geçen ürün bulunamadı: '{}'. Şablon atlanıyor.", productName);
+            log.warn("Product not found in setup: '{}'. Skipping template.", productName);
             return null;
         }
         Long topicId = setup.topicByProductAndName().get(SetupResult.topicKey(productName, topicName));
@@ -217,7 +217,7 @@ public class TicketGenerator {
                 submitCsat(pt.ticketId, pt.customer, pt.spec.path("csat"));
                 sleep();
             }
-            default -> log.warn("Bilinmeyen status: {}", pt.status);
+            default -> log.warn("Unknown status: {}", pt.status);
         }
     }
 
@@ -276,7 +276,7 @@ public class TicketGenerator {
             JsonNode resp = api.post("/tickets", body, customer.getToken());
             return resp.path("id").asLong();
         } catch (Exception e) {
-            log.warn("Bilet oluşturulamadı (başlık: {}): {}", spec.path("title").asText(), e.getMessage());
+            log.warn("Failed to create ticket (title: {}): {}", spec.path("title").asText(), e.getMessage());
             return null;
         }
     }
@@ -286,7 +286,7 @@ public class TicketGenerator {
             api.put("/tickets/" + ticketId + "/claim", Map.of(), agent.getToken());
             return true;
         } catch (Exception e) {
-            log.warn("Claim alınamadı #{}: {}", ticketId, e.getMessage());
+            log.warn("Failed to claim ticket #{}: {}", ticketId, e.getMessage());
             return false;
         }
     }
@@ -300,7 +300,7 @@ public class TicketGenerator {
             try {
                 api.post("/tickets/" + ticketId + "/worklogs", body, agent.getToken());
             } catch (Exception e) {
-                log.warn("Worklog eklenemedi #{}: {}", ticketId, e.getMessage());
+                log.warn("Failed to add worklog #{}: {}", ticketId, e.getMessage());
             }
             sleep();
         }
@@ -332,7 +332,7 @@ public class TicketGenerator {
             api.put("/tickets/" + ticketId + "/status", body, user.getToken());
             return true;
         } catch (Exception e) {
-            log.warn("Statü güncellenemedi #{} ({}): {}", ticketId, status, e.getMessage());
+            log.warn("Failed to update status #{} ({}): {}", ticketId, status, e.getMessage());
             return false;
         }
     }
@@ -344,7 +344,7 @@ public class TicketGenerator {
             api.post("/tickets/" + ticketId + "/csat",
                     Map.of("rating", rating, "comment", comment), customer.getToken());
         } catch (Exception e) {
-            log.warn("CSAT gönderilemedi #{}: {}", ticketId, e.getMessage());
+            log.warn("Failed to submit CSAT #{}: {}", ticketId, e.getMessage());
         }
     }
 
@@ -365,7 +365,7 @@ public class TicketGenerator {
         int total = pending.stream().mapToInt(p -> p.comments.size()).sum();
         if (total == 0) return;
 
-        log.info("Yorumlar gönderiliyor: {} adet, {} bilet (global dalga round-robin)",
+        log.info("Sending comments: {} total across {} ticket(s) (global wave round-robin)",
                 total, pending.size());
 
         int sent = 0;
@@ -387,7 +387,7 @@ public class TicketGenerator {
             boolean moreLeft = pending.stream().anyMatch(p -> !p.comments.isEmpty());
             if (moreLeft) Thread.sleep(GeneratorConfig.COMMENT_DELAY_MS);
         }
-        log.info("Tüm yorumlar gönderildi: {} ({} dalga)", sent, wave);
+        log.info("All comments sent: {} ({} wave(s))", sent, wave);
     }
 
     private void sendComment(CommentTask task) {
@@ -397,7 +397,7 @@ public class TicketGenerator {
             // dalga mantığı zaten cooldown'a takılmamak için yorumları kullanıcı-bazlı yayar.
             api.post("/tickets/" + task.ticketId + "/comments", body, task.user.getToken());
         } catch (Exception e) {
-            log.warn("Yorum eklenemedi #{}: {}", task.ticketId, e.getMessage());
+            log.warn("Failed to add comment #{}: {}", task.ticketId, e.getMessage());
         }
     }
 

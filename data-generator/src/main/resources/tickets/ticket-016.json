@@ -1,25 +1,8 @@
 {
-  "title": "Laptop overheating and slowing down",
-  "description": "My device has been overheating for about a week, the temperature goes above 90°C. CPU usage is high even when idle.",
-  "priority": "MEDIUM",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Laptop",
-  "status": "IN_PROGRESS",
-  "worklogs": [
-    {
-      "minutes": 25,
-      "description": "Monitored CPU temperature with HWiNFO, set the fan profile to 'Cool' in Dell PowerManager."
-    },
-    {
-      "minutes": 40,
-      "description": "Created a service appointment, the thermal paste will be replaced."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "The user is on a 3-year-old Latitude; periodic maintenance will be performed."
-    }
-  ]
+  "title": "Document upload to FileNet Object Store fails with 'ObjectStore not found'",
+  "description": "Our document management application is throwing an ObjectStore not found error when trying to upload new contracts to FileNet. The issue started this morning and is preventing any new documents from being saved. The system was working fine yesterday.",
+  "priority": "HIGH",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Dokuman Yukleme ve Yonetim",
+  "status": "NEW"
 }

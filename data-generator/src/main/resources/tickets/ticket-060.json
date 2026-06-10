@@ -1,0 +1,151 @@
+﻿{
+    "title":  "FiGO-SAP ERP integration broken - approved expenses not posting to cost centers",
+    "description":  "For the past 5 days, approved expense reports in FiGO are not being posted to the corresponding cost centers in SAP. The accounting team noticed this morning that there are 0 entries from FiGO in SAP for the entire week. All expenses are approved in FiGO and show status \u0027Posted\u0027 but nothing appears in SAP. Month-end closing is in 3 days and the accounting team cannot complete their reconciliation.",
+    "priority":  "CRITICAL",
+    "productName":  "FiGO",
+    "topicName":  "ERP ve Muhasebe Entegrasyonu",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Checked FiGO ERP integration log. Integration has been running but SAP posting returns error: BAPI_ACC_DOCUMENT_POST - GL account 400200 not found in company code 1000."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Consulted with SAP team. GL account 400200 was deprecated last week as part of chart of accounts restructuring. The new account for business travel expenses is 400250."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Found GL account mapping in FiGO ERP configuration. Travel expense category mapped to 400200. Updated to 400250."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "FiGO marks expenses as \u0027Posted\u0027 even when the ERP call fails - this is a misleading status. Confirmed issue is a FiGO product bug, raised to vendor."
+                     },
+                     {
+                         "minutes":  40,
+                         "description":  "Extracted 5 days of unposted approved expenses from FiGO (312 records). Prepared SAP posting batch."
+                     },
+                     {
+                         "minutes":  60,
+                         "description":  "Worked with SAP consultant to post 312 records to correct GL accounts. All posted successfully."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Verified reconciliation. All FiGO expenses accounted for in SAP. Accounting team confirmed month-end closing can proceed."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I have taken this as a critical priority given the month-end deadline. I am checking the FiGO ERP integration logs now. The FiGO integration service appears to be running but I want to see the actual BAPI call responses from SAP."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please hurry. Our CFO is asking for the reconciliation status. We need everything in SAP before Friday."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I found something. The FiGO ERP integration log shows that SAP BAPI calls are being made but SAP is returning an error: BAPI_ACC_DOCUMENT_POST failed - GL account 400200 not found in company code 1000. This is why nothing is posting to SAP. The FiGO status is showing \u0027Posted\u0027 even though SAP rejected the posting - which is a bug in FiGO\u0027s status update logic. The actual question is why GL account 400200 suddenly stopped being valid in SAP."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "400200 was the travel expense GL account. Let me check with our SAP team. One moment."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "SAP team confirms - GL account 400200 was deactivated last week. They restructured the chart of accounts and travel expenses now go to 400250. They were supposed to notify all integrated systems but FiGO was missed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That explains everything. The GL account change happened on exactly the same day as the first missing postings. I need to update the FiGO ERP configuration to map the travel expense category to GL account 400250. Before I change it, I want to confirm: is 400250 the only GL account that changed, or did other expense categories also move to new accounts? Meal expenses, accommodation, transport - do those have their own GL accounts and were any of them changed?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Asking the SAP team now... They confirm only the travel expense category moved from 400200 to 400250. All other expense GL accounts (400100 for meals, 400300 for accommodation, 400400 for transport) are unchanged."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Good. I have updated the FiGO ERP mapping for travel expenses from GL 400200 to GL 400250. New expense postings from this point will go to the correct GL account. Now I need to address the 5 days of backlogged expenses. FiGO shows them as \u0027Posted\u0027 even though they were never actually posted to SAP. I need to extract these from FiGO and determine the best way to post them to SAP. How many expense reports were approved this week?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Our accounting manager says there should be roughly 300-320 expense records from this week. Some are single receipts, some are multi-item reports."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I extracted the data from FiGO. There are exactly 312 approved expense records from the past 5 days that never posted to SAP due to the GL account error. I have the full list with employee IDs, cost center assignments, amounts, and expense categories. I need to work with your SAP team to post these. Can you connect me with the SAP consultant who handles BAPI integrations? We will need to do a batch posting."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That is Kerem Demir on our SAP team. I will connect you and Kerem in this ticket. Kerem, can you see this ticket and help with the batch posting?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Escalated to SAP consultant Kerem Demir. He is reviewing the 312 records now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Working with Kerem on the batch posting. We are using SAP transaction FB50 for the manual batch since the records all have the same posting date structure. Kerem is verifying the cost center assignments for each record before we post. I will update when the first batch is complete."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "First batch of 100 records posted to SAP successfully. Kerem is verifying the postings in SAP. Continuing with the next 100."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Accounting manager is monitoring in SAP and confirming the entries are appearing correctly. Please continue."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Second batch of 100 records posted. 212 total, 100 remaining. All amounts and cost center assignments matching FiGO records. No errors so far."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "All 312 records posted to SAP. Final count: 312 postings, 0 errors. Total amount posted: 94,780 TL across 47 cost centers. Kerem has confirmed the postings are visible in SAP."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Accounting manager confirms all entries are in SAP and the reconciliation is complete. Month-end closing can proceed. Thank you for managing this under pressure."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I also want to flag two things for follow-up: First, the FiGO status bug where expenses show \u0027Posted\u0027 even when SAP rejected the posting - I have raised this to the FiGO vendor and they confirmed it will be fixed in the next release. Until then, I recommend the accounting team do a weekly check on the SAP side to confirm FiGO postings are actually arriving. Second, I recommend establishing a change notification process between SAP and FiGO: any GL account changes in SAP should be..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Both good points. I will take the process recommendation to the finance director. The weekly SAP check is a sensible interim measure. Closing this ticket and please keep it escalated until the FiGO vendor confirms the status bug fix is deployed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Understood. I will monitor the FiGO vendor\u0027s update schedule and confirm when the status bug fix is deployed. I will reach out to you at that point."
+                     }
+                 ],
+    "resolutionNote":  "FiGO ERP integration was failing silently because SAP GL account 400200 (travel expenses) was deactivated and replaced with 400250 during a chart of accounts restructuring. FiGO was not notified of the change. FiGO GL mapping updated. 312 backlogged expense records (94,780 TL) manually posted to SAP in batches. FiGO status display bug (shows \u0027Posted\u0027 even on failed ERP calls) raised to vendor for fix.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Incredible handling under time pressure. Not only fixed the root cause but also managed the full data recovery and coordination with SAP. Prevented a month-end closing disaster."
+             }
+}

@@ -1,0 +1,50 @@
+﻿{
+    "title":  "Finans Portali financial report export timing out for large date ranges",
+    "description":  "The quarterly financial summary report export to PDF is timing out when running for a full quarter. Monthly reports work fine (complete in about 2 minutes). The quarterly report covers 3 months of data. Finance management needs this report for the board presentation tomorrow.",
+    "priority":  "HIGH",
+    "productName":  "Finans Portali",
+    "topicName":  "Finansal Raporlama",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Report query analysis. The quarterly report uses a SUM/GROUP BY query across 3 months of transaction data without date-range indexes. Full table scan on 450,000 rows."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Added index on the transaction_date column in the transactions table."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Quarterly report now generates in 45 seconds. Previously timing out at 120 seconds."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I ran a query analysis on the quarterly report. The report query is doing a full table scan on the transactions table for the date range filter. The transactions table has 450,000 rows and no index on the transaction_date column. For a monthly report, the full scan takes about 90 seconds - which is under the 2-minute display timeout so it works. For a quarterly report covering 3x more data, the scan takes 4+ minutes and times out. Adding a date column index will fix this. I will add..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please do it quickly. Board presentation is tomorrow morning."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Index created. Tested the quarterly report - it generated in 42 seconds. Please run the board presentation report now to verify."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Quarterly report generated successfully. PDF looks correct. Board presentation is ready. Thank you for the fast turnaround."
+                     }
+                 ],
+    "resolutionNote":  "Transactions table had no index on transaction_date. Monthly reports ran in ~90s (under timeout) but quarterly reports timed out at 4+ minutes. Added index on transaction_date - quarterly report now generates in 42 seconds.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Saved the board presentation. Thank you."
+             }
+}

@@ -1,44 +1,59 @@
 {
-  "title": "Can't SSH into production EC2 instances",
-  "description": "I SSH into the EC2 instances behind the production load balancer via the bastion, and they all time out.",
-  "priority": "MEDIUM",
-  "productName": "Cloud Services",
-  "topicName": "AWS",
-  "status": "WAITING_FOR_CUSTOMER",
+  "title": "Retention policy is deleting active project documents before their retention period ends",
+  "description": "The retention policy applied to the Project Documents class is marking and scheduling documents for deletion even though they are still active projects. Three documents from ongoing 2024 projects were already deleted last week. We believe the trigger date configuration is wrong.",
+  "priority": "CRITICAL",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Dokuman Yukleme ve Yonetim",
+  "status": "IN_PROGRESS",
   "worklogs": [
     {
-      "minutes": 25,
-      "description": "Checked Security Group inbound rules, port 22 is only open for the bastion — no changes."
+      "minutes": 30,
+      "description": "Reviewed retention policy configuration in ACCE. Found the retention trigger is set to 'Create Date' instead of 'Project Close Date' custom property."
     },
     {
       "minutes": 20,
-      "description": "Reviewed the bastion host /var/log/auth.log — the connection reaches the bastion but the EC2 rejects it."
+      "description": "Halted the retention job via ACCE to prevent further deletions while the policy is corrected."
     },
     {
-      "minutes": 15,
-      "description": "Searched CloudTrail for a KeyRotation event in the last 24 hours — none found."
+      "minutes": 25,
+      "description": "Attempted to restore the 3 deleted documents from the archive storage. Two recovered, one was permanently purged."
     }
   ],
   "comments": [
     {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "This is very serious. Three documents from active projects were deleted and we only noticed because a project manager went looking for them. How many more are scheduled for deletion? Can we stop it?"
+    },
+    {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "The bastion is reachable but the backend EC2s are rejecting the connection. I need to check a few things: (1) which pem file are you using, and what's its filename/fingerprint? Command: ssh-keygen -lf <key.pem>. (2) Could you share the '-v' output of your last SSH command? Something like 'ssh -v -i key.pem ec2-user@10.0.5.x'."
+      "message": "I have immediately halted the retention job to prevent any further deletions. No more documents will be deleted until we fix the policy configuration. I can see 47 more documents in the deletion queue - they are safe for now. I found the configuration error: the retention trigger was set to use the document Create Date instead of the Project Close Date property. A document created 2 years ago is treated as 2 years old regardless of whether the project is still active."
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "I'm using prod-eu-2024.pem. ssh-keygen output: SHA256:abc123def456... I've attached the verbose output."
+      "message": "Can we recover the 3 documents that were already deleted?"
     },
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "I reviewed the verbose output — the server is throwing 'Permission denied (publickey)'. This indicates your pem file isn't in that instance's authorized_keys list. Do you know if we did a key rotation in the past week? If so, you were probably issued a new pem file."
+      "message": "I am checking the archive storage now. FileNet typically keeps deleted documents in a second-stage recycle for 30 days. I found two of the three documents and am restoring them now. Unfortunately the third document was a smaller one that was permanently purged immediately after deletion due to its document class settings. I will need you to re-upload that document. Could you tell me the document title so I can create a placeholder for your records?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The lost document was 'Project Harmony - Scope Agreement v1.2'. We have a local copy saved on the project manager's PC. We can re-upload it once the policy is fixed."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Good that you have a local copy. I am correcting the retention policy now to use the Project Close Date property as the trigger instead of Create Date. Once corrected, I will clear the deletion queue and re-evaluate which documents should actually be scheduled for retention. The 47 documents in the queue will all be reviewed against the corrected policy."
     },
     {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "I couldn't find the event in CloudTrail, but maybe it was done via manual SSH. I've asked the user's team lead, waiting for a reply."
+      "message": "Policy corrected: trigger changed from 'Create Date' to 'Project Close Date' property. Cleared the deletion queue. Re-running the retention evaluation - 0 documents now meet the retention criteria since no projects have a Close Date older than the retention period. Two previously deleted documents restored to their original location."
     }
   ]
 }

@@ -1,0 +1,50 @@
+﻿{
+    "title":  "Instana agent consuming excessive memory on production servers - 4GB heap",
+    "description":  "Our operations team flagged that the Instana agent process on production servers is consuming 4GB of memory. This is causing the host\u0027s other processes to be starved of memory. The default Instana agent heap size is much smaller - something seems to have changed.",
+    "priority":  "HIGH",
+    "productName":  "IBM Instana",
+    "topicName":  "Agent Kurulumu ve Yapilandirma",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Instana agent JVM options. JAVA_OPTS in the agent startup script has -Xmx4096m set. Default should be 768m."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Found a recent deployment script that overwrote the agent startup configuration and added the -Xmx4096m flag."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Reverted JAVA_OPTS to the default -Xmx768m. Agent restarted - memory consumption back to ~600MB."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the cause. The Instana agent\u0027s startup script has JAVA_OPTS set to -Xmx4096m which gives the agent a 4GB JVM heap limit. The default Instana agent heap is 768MB which is normally sufficient. This setting was added by a deployment script run 10 days ago. I need to revert the JVM options to the default. The agent will need to restart - this causes a brief gap in metrics collection (typically 60-90 seconds). Should I restart now or schedule for a maintenance window?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The memory impact is severe - please restart now. 90 seconds of metrics gap is acceptable."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Agent restarted with default JVM settings. Memory consumption is now at 580MB, down from 4GB. Monitoring data gap of 85 seconds. Please check if other processes on the server have improved their memory availability."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Operations team confirms the server is healthy again - the Java application that was being starved now has the memory it needs. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Instana agent startup script had -Xmx4096m (4GB heap limit) instead of the default 768MB. Added by a deployment script. Reverted to default JVM settings. Agent memory consumption dropped from 4GB to 580MB.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Good. Worth tracking how the deployment script got the wrong JVM config though."
+             }
+}

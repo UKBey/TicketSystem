@@ -1,35 +1,50 @@
 {
-  "title": "Some external websites give 'DNS_PROBE_FINISHED_NXDOMAIN'",
-  "description": "Some news sites won't open in Chrome, but they open fine on the same connection on mobile.",
-  "priority": "LOW",
-  "productName": "VPN & Network",
-  "topicName": "DNS Issues",
-  "status": "CLOSED",
+  "title": "Large order messages (150MB) causing MQ channel to stall",
+  "description": "The e-commerce platform sends large order bundles as single MQ messages. Since file sizes increased to 150MB, the MQ channel periodically stalls and does not recover without a manual restart. Smaller messages (under 50MB) process without issue.",
+  "priority": "HIGH",
+  "productName": "IBM MQ",
+  "topicName": "Mesaj Isleme",
+  "status": "RESOLVED",
+  "reasonCode": "CONFIGURATION_UPDATED",
   "worklogs": [
     {
-      "minutes": 10,
-      "description": "ipconfig /flushdns + cleared the browser DNS cache, the issue persisted."
+      "minutes": 20,
+      "description": "Checked MAXMSGL setting on the channel and queue. Channel MAXMSGL is 100MB, queue MAXMSGL is 200MB. Channel is the bottleneck."
     },
     {
       "minutes": 15,
-      "description": "Identified a bad-cached record on the internal resolver, manually purged it."
+      "description": "Increased channel MAXMSGL to 200MB on both sender and receiver channels."
+    },
+    {
+      "minutes": 10,
+      "description": "Also increased queue manager MAXMSGL to 200MB."
+    },
+    {
+      "minutes": 20,
+      "description": "Tested with a 150MB test message - processed successfully without channel stall."
     }
   ],
   "comments": [
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "There was bad cache on the internal resolver, I cleared it. You can try opening them again now."
+      "message": "Hello, I found the issue. The MQ channel's maximum message length (MAXMSGL) is set to 100MB, which is less than your 150MB messages. When the channel tries to transmit a message larger than its MAXMSGL, it stalls. I need to increase the MAXMSGL on both the sender and receiver channel definitions as well as on the queue manager itself. This change does not require a channel restart - it takes effect immediately."
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "It's open now, thanks."
+      "message": "Please go ahead. Are there any risks to increasing this setting?"
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The only consideration is memory - very large messages require proportionally more buffer memory in MQ. Since you are sending 150MB messages, the current server has sufficient memory for this. I am setting MAXMSGL to 200MB to give you 33% headroom beyond current message sizes. Done - please test with a 150MB bundle."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Tested with a 155MB order bundle - processed completely without the channel stalling. This has been causing us hours of downtime over the past weeks. Thank you for the fix."
     }
   ],
-  "resolutionNote": "Cleared corrupted cache records on the internal DNS resolver, affected domains are resolving again.",
-  "csat": {
-    "rating": 4,
-    "comment": "Resolved, could have been a bit faster."
-  }
+  "resolutionNote": "MAXMSGL on the channel was set to 100MB which was less than the 150MB messages being sent. Increased MAXMSGL to 200MB on the sender channel, receiver channel, and queue manager."
 }

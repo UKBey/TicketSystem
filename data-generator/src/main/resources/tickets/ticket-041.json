@@ -1,35 +1,55 @@
-{
-  "title": "Our SharePoint site is giving 'Access Denied'",
-  "description": "I can't access the HR department's SharePoint site, I get a 'Sorry, you don't have access' warning.",
-  "priority": "MEDIUM",
-  "productName": "Cloud Services",
-  "topicName": "SharePoint",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "User was not found in the site permissions list."
-    },
-    {
-      "minutes": 10,
-      "description": "Approval obtained from the site owner, user added to the 'Members' group."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "You've been added to Site Members. Access will be available within 5-10 minutes."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "It's open now, I can access the files, thanks."
-    }
-  ],
-  "resolutionNote": "User added to the HR SharePoint site Members group. Access confirmed.",
-  "csat": {
-    "rating": 5,
-    "comment": "Very good support."
-  }
+﻿{
+    "title":  "Existing app subscriptions broken after API product version upgrade",
+    "description":  "We upgraded the Logistics API product from v2.0 to v2.1 in API Connect. Since the upgrade, 4 external partner applications that were subscribed to v2.0 are no longer working - they are getting 404 errors. The partners had not been migrated to the new version.",
+    "priority":  "MEDIUM",
+    "productName":  "IBM API Connect",
+    "topicName":  "API Olusturma ve Yayinlama",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Confirmed 4 partner apps are still subscribed to v2.0 which is now retired. No subscription migration was performed during the upgrade."
+                     },
+                     {
+                         "minutes":  25,
+                         "description":  "Used API Manager \u0027Migrate subscriptions\u0027 wizard to move all 4 subscriptions from v2.0 to v2.1."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Contacted all 4 partners with notification that their subscriptions were updated."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Three partner companies are calling us saying their integrations are broken. They were using the Logistics API without issues for months."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the issue. When the Logistics API product was upgraded from v2.0 to v2.1, the subscription migration step was not completed. The 4 partner applications are still subscribed to v2.0 which has now been retired. I will use the subscription migration wizard in API Manager to move all 4 subscriptions to v2.1. This should restore their access immediately. In future upgrades, please use the migration wizard before retiring the old version to ensure there is no service interruption..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please go ahead with the migration. Can we notify the partners at the same time?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Migration complete for all 4 partner subscriptions. They should have access again immediately - no changes needed on their side. I have prepared notification emails for all 4 partners explaining what happened and confirming their access is restored. Please review and send from your account since they are your business partners."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Partners confirmed access is restored. Notifications sent. Thank you for the quick resolution."
+                     }
+                 ],
+    "resolutionNote":  "Subscription migration was not performed when upgrading the Logistics API product from v2.0 to v2.1. Four partner app subscriptions remained on the retired v2.0 plan. Migrated all 4 subscriptions to v2.1 using the API Manager migration wizard.",
+    "csat":  {
+                 "rating":  3,
+                 "comment":  "Fixed quickly but this should have been caught before the upgrade was done."
+             }
 }

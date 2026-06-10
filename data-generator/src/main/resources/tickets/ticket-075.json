@@ -1,0 +1,66 @@
+﻿{
+    "title":  "Datacap export to FileNet failing - object store connection refused",
+    "description":  "After the FileNet Content Engine was upgraded to version 5.5.10 last week, the Datacap export action that sends processed documents to FileNet is failing with \u0027Connection to object store refused\u0027. The Datacap server and FileNet server are on the same network.",
+    "priority":  "HIGH",
+    "productName":  "IBM Datacap",
+    "topicName": "Entegrasyon ve Disari Aktarim",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Datacap FileNet connector configuration. The Content Engine URL is using HTTP on port 9080."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "FileNet 5.5.10 upgrade enforced HTTPS-only. HTTP port 9080 is no longer accepting connections."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated Datacap FileNet connector to use HTTPS port 9443. Connection test successful."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the Datacap FileNet connector configuration. The connector is using HTTP on port 9080 to connect to the FileNet Content Engine. I ran a connectivity test from the Datacap server to that address and the connection is actively refused. Can you confirm: did the FileNet 5.5.10 upgrade change the HTTP/HTTPS configuration? The newer FileNet versions often enforce HTTPS-only."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Checking with the FileNet team... Yes, they confirm that the upgrade enabled HTTPS-only mode. HTTP port 9080 was disabled. FileNet is now on port 9443 HTTPS."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "That is the cause. Updating the Datacap FileNet connector URL from http://filenet-server:9080/wsi/FNCEWS40MTOM/ to https://filenet-server:9443/wsi/FNCEWS40MTOM/. I also need to verify that the Datacap server trusts the SSL certificate on the FileNet server - if it is a self-signed or internal CA certificate, it will need to be added to the Java truststore. Is the FileNet SSL certificate from your internal certificate authority?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, it is issued by our internal CA. The same CA certificate is already used on other servers in our environment."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I checked the Datacap Java truststore - your internal CA certificate is already present. Connector URL updated to HTTPS. Running a test export now."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Test document exported to FileNet successfully over HTTPS. The connection is working. Please run your next Datacap batch and confirm documents are flowing through."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Ran a test batch - 15 documents exported to FileNet without error. Issue resolved. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "FileNet 5.5.10 upgrade enforced HTTPS-only. Datacap FileNet connector URL was still using HTTP port 9080. Updated connector to HTTPS port 9443. Internal CA certificate was already in the Datacap Java truststore.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Good. Glad the CA cert was already in place."
+             }
+}
+

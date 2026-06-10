@@ -1,8 +1,60 @@
 {
-  "title": "Wi-Fi keeps dropping in meeting room 3",
-  "description": "While giving a presentation, my Wi-Fi connection drops every 2-3 minutes. There's no problem in the other rooms.",
-  "priority": "MEDIUM",
-  "productName": "VPN & Network",
-  "topicName": "Wi-Fi",
-  "status": "NEW"
+  "title": "Coach view shows blank screen after BAW upgrade to 23.0.2",
+  "description": "Since the BAW upgrade last week, users opening the Contract Approval step see a blank white screen instead of the Contract Summary coach. Other coaches in the same process are working fine. This is blocking all contract approvals.",
+  "priority": "HIGH",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Surecl Tasarimi ve Deployment",
+  "status": "RESOLVED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
+  "worklogs": [
+    {
+      "minutes": 25,
+      "description": "Reproduced blank coach issue in dev. Browser console shows JavaScript error: 'coach.view.bind is not a function'."
+    },
+    {
+      "minutes": 35,
+      "description": "Traced to deprecated API removed in BAW 23.0.2. The tw.coach.view.bind API no longer exists."
+    },
+    {
+      "minutes": 45,
+      "description": "Updated coach view JS to use the new tw.coach.context.get/set API. Tested in sandbox."
+    },
+    {
+      "minutes": 15,
+      "description": "Deployed updated snapshot to production. Verified coach renders correctly."
+    }
+  ],
+  "comments": [
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "All contract approvers are blocked since Monday morning. Every time they open the task they get a blank screen. We are processing approvals by email which is not sustainable."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I can reproduce this. The browser developer console shows a JavaScript error in the coach view code. This is a compatibility issue with the updated BAW 23.0.2 JavaScript API. A specific API was removed in this version. I will prepare a fix and test it in the sandbox first."
+    },
+    {
+      "author": "agent",
+      "type": "INTERNAL",
+      "message": "The ContractSummaryCoach uses tw.coach.view.bind() which was removed in 23.0.2. Need to replace with tw.coach.context.get/set. Only one place in the codebase uses the old API."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Fix is ready and tested in sandbox. I will deploy to production at 12:30 during your lunch break to minimize disruption. Takes about 5 minutes."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Deployment complete. Contract Summary coach is working in production. Could you ask one of your approvers to test?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Just tested - everything is showing correctly and the approve/reject buttons work. We processed three backlogged approvals. Thank you for the fast fix."
+    }
+  ],
+  "resolutionNote": "The ContractSummaryCoach used the tw.coach.view.bind() API which was removed in BAW 23.0.2. Updated to use the supported tw.coach.context.get/set pattern. New snapshot deployed to production."
 }

@@ -1,0 +1,60 @@
+﻿{
+    "title":  "Automation Anywhere Control Room bot runner VM offline - 45 bots unable to run",
+    "description":  "Bot runner VM \u0027BOT-RUNNER-03\u0027 went offline last night and did not come back up. 45 scheduled bots that run on this VM are all in \u0027Pending\u0027 state waiting for a runner. The VM is showing as powered off in the hypervisor.",
+    "priority":  "CRITICAL",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Control Room ve Deployment",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "VM was powered off by the automated backup system due to a snapshot storage space issue. Backup agent shut down the VM to take a consistent snapshot but the post-snapshot restart failed."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Powered the VM back on. Bot runner service started automatically. Control Room shows BOT-RUNNER-03 as Active."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Rescheduled the 45 pending bots that missed their windows during the outage. High-priority bots rerun manually."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I investigated BOT-RUNNER-03. The VM was powered off by the automated backup system. The backup agent tried to take a consistent VM snapshot but ran out of snapshot storage space. When snapshot storage is full, the VMware backup agent shuts down the VM to take a crash-consistent snapshot instead of a running-VM snapshot. The post-snapshot VM restart failed silently because the restart script timed out. I am powering the VM back on now."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please power it on. Also, which of the 45 pending bots are most critical? Some of those bots have downstream dependencies."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "VM is back online. BOT-RUNNER-03 is Active in Control Room and the bot runner service is running. Looking at the 45 pending bots - I can see the following appear to be time-sensitive based on their names and schedules: INVOICE-EXTRACT-DAILY, PAYROLL-IMPORT-AM, VENDOR-RECONCILE. Are these the critical ones, or are there others I should know about?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, INVOICE-EXTRACT-DAILY is the most critical - it feeds today\u0027s invoices to AP processing. PAYROLL-IMPORT-AM is time-critical because payroll runs at noon. Can you trigger those two immediately?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Both triggered manually and running now. PAYROLL-IMPORT-AM started at 10:47, should complete well before noon. INVOICE-EXTRACT-DAILY running in parallel. The remaining 43 bots have been rescheduled within the next 2 hours. I will also work with the infrastructure team to increase snapshot storage allocation to prevent this from recurring."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Both critical bots completed successfully. The bot runner situation is resolved. Thank you for the fast response."
+                     }
+                 ],
+    "resolutionNote":  "BOT-RUNNER-03 was shut down by the VMware backup agent due to snapshot storage exhaustion. Post-snapshot restart failed silently. Powered VM back on, rescheduled 45 pending bots, manually ran 2 critical bots. Infrastructure team alerted about snapshot storage capacity.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "VM back online and critical bots running within 45 minutes of the ticket being opened."
+             }
+}

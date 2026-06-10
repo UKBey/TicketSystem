@@ -1,0 +1,8 @@
+﻿{
+    "title":  "Instana infrastructure map not showing database connections from application",
+    "description":  "The Instana infrastructure and dependency map shows our application services but the database connections are not visible. We expect to see lines from the app services to the database in the map. Database calls are working correctly - just not appearing in the topology map.",
+    "priority":  "LOW",
+    "productName":  "IBM Instana",
+    "topicName":  "Uygulama ve Altyapi Izleme",
+    "status":  "NEW"
+}

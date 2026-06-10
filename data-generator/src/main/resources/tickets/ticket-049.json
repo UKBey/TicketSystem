@@ -1,35 +1,35 @@
-{
-  "title": "The 'E' and 'D' keys on my keyboard aren't working",
-  "description": "When I try to type quickly, these two keys stick or don't work at all.",
-  "priority": "LOW",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Keyboard & Mouse",
-  "status": "CLOSED",
-  "worklogs": [
-    {
-      "minutes": 10,
-      "description": "Cleaned with compressed air, partially fixed."
-    },
-    {
-      "minutes": 5,
-      "description": "Provided a spare keyboard, user tested all the keys."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "A spare keyboard was provided for you to use. We sent your old keyboard to service."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "The new keyboard works without any issues, thank you very much."
-    }
-  ],
-  "resolutionNote": "Spare keyboard delivered, the faulty keyboard sent to service for repair.",
-  "csat": {
-    "rating": 4,
-    "comment": "It was fast."
-  }
+﻿{
+    "title":  "Expired MQ messages remain on queue and are not automatically purged",
+    "description":  "Messages sent to the NOTIFICATIONS.Q with a 24-hour expiry time are not being removed from the queue when they expire. The queue depth keeps growing and old expired messages are being consumed by the application. The EXPIRY property is set correctly in the message headers.",
+    "priority":  "LOW",
+    "productName":  "IBM MQ",
+    "topicName":  "Mesaj Isleme",
+    "status":  "WAITING_FOR_CUSTOMER",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked message properties on queued messages. EXPIRY set to 864000 (24 hours in tenths of seconds). This is correct."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Reviewed queue definition. NORETRIEVE is not set. However, the application is using MQGMO_NO_WAIT which may be preventing the MQ expiry mechanism from running."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I looked into the expired message handling. In IBM MQ, expired messages are only removed from the queue when a GET operation is attempted and the expiry is evaluated at that point. The messages are not automatically removed in the background. Your application is using MQGMO_NO_WAIT mode which gets messages immediately without triggering the expiry cleanup for other messages on the queue. I have a few questions: What language is the consuming application written in, and can you share..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The application is a Java Spring application using the JMS client library. I am not sure of the exact MQGET configuration - I will need to ask the developer."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "No problem. When you get the JMS configuration details from the developer, look specifically for the JMS receive timeout setting and whether ACCEPT_TRUNCATED_MSG is configured. In the meantime, I can suggest a quick interim fix: creating a separate housekeeping application or MQ trigger that periodically does a GET with ACCEPT_TRUNCATED_MSG to force expiry evaluation. This does not require application changes."
+                     }
+                 ]
 }

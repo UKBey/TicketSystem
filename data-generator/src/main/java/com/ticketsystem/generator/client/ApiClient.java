@@ -39,7 +39,7 @@ public class ApiClient {
     }
 
     // ---------------------------------------------------------------
-    // Genel HTTP metodları
+    // HTTP methods
     // ---------------------------------------------------------------
 
     /**
@@ -120,7 +120,7 @@ public class ApiClient {
     }
 
     // ---------------------------------------------------------------
-    // Yardımcı metodlar
+    // Helpers
     // ---------------------------------------------------------------
 
     /**
@@ -138,16 +138,18 @@ public class ApiClient {
 
                 if (response.code() == 429 && attempt <= GeneratorConfig.RATE_LIMIT_RETRY_COUNT) {
                     long backoff = retryAfterMs(response);
-                    log.warn("429 [{} {}] — {}ms sonra yeniden denenecek (deneme {}/{})",
+                    log.warn("429 [{} {}] — retrying in {}ms (attempt {}/{})",
                             request.method(), request.url().encodedPath(), backoff,
                             attempt, GeneratorConfig.RATE_LIMIT_RETRY_COUNT);
                     sleepQuietly(backoff);
                     continue;
                 }
                 if (!response.isSuccessful()) {
-                    log.warn("API hatası [{} {}] → {}: {}",
-                            request.method(), request.url().encodedPath(),
-                            response.code(), body);
+                    if (response.code() != 409) {
+                        log.warn("API error [{} {}] → {}: {}",
+                                request.method(), request.url().encodedPath(),
+                                response.code(), body);
+                    }
                     throw new ApiException(response.code(), body);
                 }
                 return body.isBlank() ? mapper.createObjectNode() : mapper.readTree(body);
@@ -165,7 +167,7 @@ public class ApiClient {
             try {
                 return Long.parseLong(header.trim()) * 1000L + 250L;
             } catch (NumberFormatException ignored) {
-                // header bir tarih ya da geçersiz olabilir — sabit backoff'a düş.
+                // header may be a date or otherwise unparseable — fall back to fixed backoff.
             }
         }
         return GeneratorConfig.RATE_LIMIT_BACKOFF_MS;

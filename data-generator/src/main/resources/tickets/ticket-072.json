@@ -1,0 +1,55 @@
+﻿{
+    "title":  "IBM Datacap scanner recognition profile not finding documents in input folder",
+    "description":  "The overnight scanning batch that imports scanned documents from the shared input folder has not run for two days. The documents are in the folder but Datacap is not picking them up. No errors in the Datacap log - it just reports \u0027No documents found\u0027.",
+    "priority":  "HIGH",
+    "productName":  "IBM Datacap",
+    "topicName":  "Tarama ve Belge Alimi",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Checked Datacap application configuration. The input folder path has a mapped drive letter (Z:). The Datacap service account does not have the Z: mapped drive."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "The server was rebooted 2 days ago for patching. Mapped drives are user-session-specific and were lost after reboot."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Changed Datacap input folder configuration from Z:\\ to the UNC path \\\\fileserver\\datacap\\input. UNC paths persist across reboots."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the issue. The Datacap input folder is configured as a mapped drive letter (Z:\\datacap\\input). This mapped drive was established in a user session but not as a persistent system-level mount. When the server was rebooted for patching two days ago, the mapped drive was lost. Datacap\u0027s service account cannot see Z: and reports \u0027No documents found\u0027. The fix is to change the folder path from the drive letter to the UNC path (\\\\fileserver\\datacap\\input). UNC paths work at the system..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Please make the change. Also, do we need to reprocess the documents that were missed over the past 2 days?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Configuration updated to UNC path. The documents from the past 2 days are still in the input folder - they have not been removed. I can trigger an immediate batch run to process all of them now rather than waiting for the scheduled overnight run. Shall I trigger the batch now?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please trigger the batch now. We need those documents processed."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Batch triggered. 284 documents are being processed from the 2-day backlog. Estimated completion: 45 minutes. I will confirm when done."
+                     }
+                 ],
+    "resolutionNote":  "Datacap input folder was configured with a mapped drive letter (Z:) which was lost when the server was rebooted for patching. Changed to UNC path. Triggered immediate batch to process 2-day document backlog.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Fast fix. Lesson learned: always use UNC paths for server-side configurations."
+             }
+}

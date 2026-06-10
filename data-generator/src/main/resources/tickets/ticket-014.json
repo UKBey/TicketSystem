@@ -1,25 +1,56 @@
 {
-  "title": "Our new SaaS app Figma is being blocked by the firewall",
-  "description": "The design team can't access Figma; they get 'Connection refused'. There's no issue on an external network.",
+  "title": "Custom SCA module bindings reset after upgrading process app snapshot",
+  "description": "After upgrading the SalesForce Integration snapshot from v3.1 to v3.2, the custom SCA endpoint bindings for the Salesforce adapter were reset to their default values. This means the integration is now pointing at the wrong Salesforce environment. We need to restore the production bindings urgently.",
   "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "Firewall",
-  "status": "IN_PROGRESS",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Surecl Tasarimi ve Deployment",
+  "status": "RESOLVED",
+  "reasonCode": "CONFIGURATION_UPDATED",
   "worklogs": [
     {
-      "minutes": 15,
-      "description": "Obtained Figma's official IP/DNS list and added the vendor documentation."
+      "minutes": 25,
+      "description": "Exported the current (incorrect) SCA bindings for the snapshot. Retrieved the pre-upgrade binding values from the change management runbook."
     },
     {
       "minutes": 30,
-      "description": "Opened firewall change request CR-2826, awaiting approval."
+      "description": "Re-applied the correct SCA binding values for the Salesforce production endpoint via wsadmin jython script."
+    },
+    {
+      "minutes": 15,
+      "description": "Verified Salesforce integration is connecting to the correct production endpoint and test call succeeded."
     }
   ],
   "comments": [
     {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "The Salesforce integration is completely broken after the upgrade. New leads from BAW are not being created in Salesforce and errors are showing in the integration log."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, I can confirm the issue - the SCA module bindings for the Salesforce adapter were reset to defaults during the snapshot upgrade. This is a known behaviour: when a new snapshot version is deployed in a clustered environment, SCA bindings can revert to the default values defined in the source code. I am restoring the correct production endpoint bindings now."
+    },
+    {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "The CR approval time is 4 hours, I'm following up. As soon as it's approved, outbound 443 will be opened."
+      "message": "Retrieved correct binding values from the runbook: Salesforce prod endpoint = https://corp.my.salesforce.com, API version 58.0. Restored via wsadmin. Also adding a note to the upgrade procedure doc - SCA bindings MUST be re-applied after every snapshot upgrade."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "The correct production Salesforce bindings have been restored. I ran a test call and a new lead was successfully created in Salesforce. The integration should be working normally again. Could you verify that leads submitted through BAW are appearing in Salesforce?"
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Confirmed - tested with two new leads and both appeared in Salesforce correctly. Thank you for the quick fix."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "I have also updated the process app upgrade runbook to include a mandatory step for re-applying SCA bindings after every snapshot upgrade. This will prevent the same issue on future upgrades."
     }
-  ]
+  ],
+  "resolutionNote": "SCA module bindings for the Salesforce adapter were reset to default values during the snapshot upgrade. This is expected BAW behaviour in clustered environments. Restored correct production bindings using wsadmin jython. Upgrade runbook updated with mandatory SCA binding re-application step."
 }

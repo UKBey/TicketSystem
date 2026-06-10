@@ -1,25 +1,60 @@
 {
-  "title": "'AllocationFailed' error when starting Azure VM",
-  "description": "Our D8s_v5 VM in the West Europe region hasn't been able to start via stop->start for 30 minutes. It looks like the entire SKU stock is depleted.",
+  "title": "Users getting 'Access denied' after security policy update on Legal document class",
+  "description": "After the Legal team applied a new security policy to the Legal Contracts document class last Friday, approximately 15 users from the Finance department who previously had read access are now getting 'Access denied'. The Legal admin made the change but is not sure what went wrong.",
   "priority": "HIGH",
-  "productName": "Cloud Services",
-  "topicName": "Azure",
-  "status": "IN_PROGRESS",
+  "productName": "IBM FileNet Content Manager",
+  "topicName": "Guvenlik ve Erisim Izinleri",
+  "status": "CLOSED",
+  "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
-      "minutes": 20,
-      "description": "Tried the same SKU in the North Europe region, it came up successfully."
+      "minutes": 30,
+      "description": "Reviewed the Legal Contracts document class security policy change in ACCE. The new policy replaced the existing ACL instead of merging with it."
     },
     {
-      "minutes": 30,
-      "description": "Brought up the North Europe replica as a temporary failover."
+      "minutes": 25,
+      "description": "Found that the Finance-Readers group was removed from the document class ACL in the new policy. Added the group back with View Content and Read Properties rights."
+    },
+    {
+      "minutes": 15,
+      "description": "Tested access for 3 affected Finance users - all can now open documents successfully."
     }
   ],
   "comments": [
     {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Finance users are completely blocked from accessing contracts they need for month-end reconciliation. This is urgent - month-end is in 2 days."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Hello, I have reviewed the security policy change in ACCE. When the new policy was applied, it replaced the entire ACL on the document class. The Finance-Readers group was in the old ACL but was not included in the new one. I am adding the group back now with the appropriate read-only rights."
+    },
+    {
       "author": "agent",
       "type": "INTERNAL",
-      "message": "We'll start the process to purchase 1-year reserved capacity for Tier-1 prod."
+      "message": "Added Finance-Readers group to Legal Contracts document class ACL with View Content and Read Properties rights. The new security policy now has both the Legal team write permissions and the Finance read permissions. The ACL replacement is the root cause - when the Legal admin applied their new policy they used 'Replace' instead of 'Merge'."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "Finance-Readers group has been restored to the access list. I tested with three affected users and they can now open Legal Contracts documents again. For future security policy changes on this document class, I recommend using the 'Add to existing ACL' option instead of 'Replace ACL' to avoid accidentally removing other groups. I will share a step-by-step guide with the Legal admin."
+    },
+    {
+      "author": "customer",
+      "type": "EXTERNAL",
+      "message": "Access is restored. The Finance team confirmed they can see the contracts. Thank you for the quick fix before month-end."
+    },
+    {
+      "author": "agent",
+      "type": "EXTERNAL",
+      "message": "You are welcome. I will close this ticket and send the guide to your Legal admin to prevent a recurrence."
     }
-  ]
+  ],
+  "resolutionNote": "When the Legal admin applied a new security policy to the Legal Contracts document class, they used 'Replace ACL' mode which removed all existing access entries including the Finance-Readers group. Added Finance-Readers back with View Content and Read Properties rights. Shared guidance on using the Merge ACL option for future changes.",
+  "csat": {
+    "rating": 5,
+    "comment": "Fast fix before a critical deadline. Really appreciated the explanation of what went wrong and the guide to prevent it."
+  }
 }

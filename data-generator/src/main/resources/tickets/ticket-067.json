@@ -1,0 +1,55 @@
+﻿{
+    "title":  "Instana alerts firing with 30-minute delay - notification is too late to be useful",
+    "description":  "Our Instana alert for high CPU usage is configured to fire when CPU exceeds 85% for 5 minutes. However, the alert notifications are arriving 30-35 minutes after the threshold was actually crossed. By the time the on-call engineer receives the alert, the incident is usually over or much worse. The alert is configured as \u0027Smart Alerting\u0027 type.",
+    "priority":  "HIGH",
+    "productName":  "IBM Instana",
+    "topicName":  "Alarm ve Bildirim Kurallari",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  20,
+                         "description":  "Reviewed alert configuration. Smart Alerting has a 30-minute \u0027grace period\u0027 to confirm the issue is not transient before notifying."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Discussed with customer. For production CPU alerts, the grace period should be maximum 2 minutes."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Changed Smart Alerting grace period from 30 minutes to 2 minutes for critical infrastructure alerts."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I found the reason for the delay. Your alerts are configured as \u0027Smart Alerting\u0027 type in Instana. Smart Alerting includes a built-in grace period before notifications are sent - this period is intended to avoid noise from brief spikes. Your current grace period is set to 30 minutes. This means Instana waits 30 minutes after the threshold is crossed to confirm the issue persists before notifying. For a critical production CPU alert, 30 minutes is far too long. What maximum delay is..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "For CPU over 85%, we want to know within 2-3 minutes. A 30 minute delay is completely useless for an operational alert."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I have changed the grace period from 30 minutes to 2 minutes for your critical infrastructure alerts. I also reviewed your other Instana alerts - your memory and disk space alerts also have 30-minute grace periods. Should I apply the same 2-minute grace period to those as well, or would a longer grace period be acceptable for memory and disk?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Memory alerts should also be 2 minutes. Disk space alerts can stay at 5 minutes since those are less time-critical."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Done. CPU and memory alerts: 2-minute grace period. Disk space alerts: 5-minute grace period. I ran a test alert to confirm delivery time - the test notification arrived in under 3 minutes."
+                     }
+                 ],
+    "resolutionNote":  "Smart Alerting grace period was set to 30 minutes, causing a 30-minute delay between threshold crossing and notification. Changed CPU and memory alert grace period to 2 minutes, disk space to 5 minutes.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "This change will make our alerting actually useful. Should have been done at setup."
+             }
+}

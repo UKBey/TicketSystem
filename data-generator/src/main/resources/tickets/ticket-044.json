@@ -1,84 +1,45 @@
 {
-  "title": "C: drive is full, it keeps filling up even though I clean it regularly",
-  "description": "There's 5 GB left on the C: drive. I run Disk Cleanup, but it's full again after 2-3 days.",
-  "priority": "MEDIUM",
-  "productName": "Hardware & Infrastructure",
-  "topicName": "Disk & Storage",
+  "title": "MQ SSL channel fails after certificate renewal - CipherSpec mismatch",
+  "description": "After renewing SSL certificates on both the sender and receiver MQ servers last week, the SSL-encrypted channel between the two queue managers is failing with AMQ9641 CipherSpec did not match. Channel worked fine before the certificate renewal.",
+  "priority": "HIGH",
+  "productName": "IBM MQ",
+  "topicName": "Kanal ve Baglanti Sorunlari",
   "status": "CLOSED",
   "reasonCode": "ROOT_CAUSE_FIXED",
   "worklogs": [
     {
-      "minutes": 30,
-      "description": "Analyzed with WinDirStat, identified %temp% (24 GB) and old .iso backups (45 GB)."
-    },
-    {
       "minutes": 20,
-      "description": "Enabled OneDrive Files On-Demand, freed up 80 GB of local cache."
+      "description": "Checked CipherSpec settings on both channels. Sender channel has TLS_RSA_WITH_AES_256_CBC_SHA256, receiver has TLS_RSA_WITH_AES_128_CBC_SHA."
     },
     {
       "minutes": 15,
-      "description": "Checked the service inventory, a 512 GB SSD upgrade is in stock."
+      "description": "During certificate renewal, the receiver channel CipherSpec was inadvertently changed by the admin. Reverted to TLS_RSA_WITH_AES_256_CBC_SHA256 on both ends."
     },
     {
-      "minutes": 60,
-      "description": "Service appointment scheduled and SSD upgrade performed; data migrated."
+      "minutes": 10,
+      "description": "Started channel - connected successfully. Verified encrypted message transmission."
     }
   ],
   "comments": [
     {
-      "author": "customer",
+      "author": "agent",
       "type": "EXTERNAL",
-      "message": "This problem has been going on for 6 months, I keep fixing it temporarily but it comes back every time. The computer is very slow, please do something permanent."
+      "message": "Hello, I checked the CipherSpec configuration on both channel ends. The sender channel is configured for TLS_RSA_WITH_AES_256_CBC_SHA256 but the receiver was changed to TLS_RSA_WITH_AES_128_CBC_SHA during the certificate renewal process - the two must match. I will revert the receiver to TLS_RSA_WITH_AES_256_CBC_SHA256."
     },
     {
       "author": "agent",
       "type": "EXTERNAL",
-      "message": "I understand, that must be very frustrating. Let's get the full picture first, then I'll recommend a solution that's both fast and permanent. We'll run a tool to see the big areas: 'winget install WinDirStat' (run it → accept). After it's installed, open it and analyze C:\\, then could you send me a screenshot of the result?"
+      "message": "CipherSpec aligned on both ends. I have started the channel and it connected successfully. Could you verify that messages are flowing correctly through this channel?"
     },
     {
       "author": "customer",
       "type": "EXTERNAL",
-      "message": "WinDirStat ran, I've attached a screenshot. The biggest: AppData\\Local\\Temp 24 GB, then D:\\ISOs 45 GB (old Windows isos). Then Outlook OST 8 GB."
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Excellent diagnosis. The %temp% folder is 24 GB! The OS normally cleans it, but something is blocking it. The old .iso files aren't needed anymore either. As a temporary fix, let's do these steps now:\n1) Win+R → %temp% → Select all files → Delete (skip the ones in use)\n2) Delete the .iso files in D:\\ISOs (if you really need them, let's move them to the file share)\n3) Enable OneDrive Files On-Demand\nThese steps will free up ~80 GB. Can you do them?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "I did all of it! C: now has 90 GB free. It's a huge difference, the computer is 2x faster. But what if it fills up again in 6 months?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Glad to hear it! For a permanent fix: your device has a 256 GB SSD. For developers like you, that's now too small. There's a 512 GB SSD in the service inventory, I'll get approval. The process is as follows: 1) My IT manager approves within 1 day, 2) You drop off the device with me for a day, 3) The data is cloned (3-4 hours), 4) You get the computer back. When works for you?"
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "On Fridays I work from home. Could I drop it off Thursday evening and pick it up end of Friday/Monday morning?"
-    },
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "Perfect plan. I'll take it Thursday at 17:00, and it'll be ready at your desk Monday at 09:00. There won't be any data loss — I'll use the disk clone method. I've reserved the appointment for this Thursday. You'll be comfortable now with the temporary fix, and the permanent fix will be ready next week."
-    },
-    {
-      "author": "customer",
-      "type": "EXTERNAL",
-      "message": "Great, I'm very happy. See you Thursday."
-    },
-    {
-      "author": "agent",
-      "type": "INTERNAL",
-      "message": "SSD upgrade appointment recorded (inventory slot #SU-2024-019). I'll use Macrium Reflect for the clone. After the work, I'll wait for the user's approval to close the ticket."
+      "message": "Checked the receiving system - messages that were queued are now arriving. Channel is working. Thank you."
     }
   ],
-  "resolutionNote": "Short-term: cleaned up %temp% (24 GB) and old .isos (45 GB) with WinDirStat, enabled OneDrive Files On-Demand → ~90 GB freed. Permanent: 256 GB → 512 GB SSD upgrade completed in the Thursday-Monday window, data transferred via clone. User is satisfied with both solutions.",
+  "resolutionNote": "CipherSpec was inadvertently changed on the receiver channel during the certificate renewal process. Sender was using TLS_RSA_WITH_AES_256_CBC_SHA256, receiver was changed to TLS_RSA_WITH_AES_128_CBC_SHA. Aligned both to TLS_RSA_WITH_AES_256_CBC_SHA256.",
   "csat": {
-    "rating": 5,
-    "comment": "Both an immediate and a permanent solution, plus a very detailed explanation. The process was managed very well."
+    "rating": 4,
+    "comment": "Quick fix once the cause was identified."
   }
 }

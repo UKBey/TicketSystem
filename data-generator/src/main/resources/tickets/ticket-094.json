@@ -1,0 +1,60 @@
+﻿{
+    "title":  "Automation Anywhere bot speed significantly slower after server migration",
+    "description":  "After the bot runner VMs were migrated from the old VMware cluster to the new one last month, all bots are running slower than before. A payroll import bot that previously took 12 minutes now takes 35 minutes. All bots show similar slowdown ratios.",
+    "priority":  "HIGH",
+    "productName":  "Automation Anywhere RPA",
+    "topicName":  "Control Room ve Deployment",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Compared VM specifications. Old cluster: 4 vCPU, 8GB RAM per bot runner. New cluster: 2 vCPU, 4GB RAM per bot runner. VMs were provisioned smaller during migration."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Confirmed with infrastructure team. Bot runner VMs should be at 4 vCPU / 8GB RAM. Increased VM resources to match original spec."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Tested payroll import bot - now runs in 13 minutes. Back to normal."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I compared the bot runner VM specifications between the old and new clusters. The old cluster had bot runner VMs at 4 vCPU and 8GB RAM. The new cluster VMs were provisioned at 2 vCPU and 4GB RAM - half the CPU and half the RAM of the original spec. This would cause exactly the kind of uniform slowdown you are describing. The migration team appears to have used a smaller VM template. I will request that the infrastructure team resize the bot runner VMs back to 4 vCPU / 8GB RAM."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That makes sense. Can they resize without downtime?"
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Memory resize can be done hot (no VM restart) in VMware. CPU resize typically requires a VM restart (1-2 minutes downtime per VM). There are 4 bot runner VMs. If we restart them during non-peak hours (e.g., 07:00), the impact on bot execution is minimal. Would a 07:00 restart window tomorrow work?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "07:00 tomorrow is fine. Please coordinate with the infrastructure team."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "VMs resized at 07:05 this morning. All 4 bot runner VMs now at 4 vCPU / 8GB RAM. I tested the payroll import bot - runs in 13 minutes, back to normal. All bots should show similar improvement."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Confirmed - all bots are running at normal speed again. The 35-minute payroll run was really slowing down the morning. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Bot runner VMs were provisioned at 2 vCPU / 4GB RAM during migration instead of the original 4 vCPU / 8GB RAM. Halved resources caused proportional slowdown across all bots. Resized VMs to correct specification during 07:00 maintenance window.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Good diagnosis. Performance fully restored."
+             }
+}

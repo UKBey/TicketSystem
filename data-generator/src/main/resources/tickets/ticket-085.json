@@ -1,0 +1,42 @@
+﻿{
+    "title":  "FintechBox user unable to access risk reports after role change",
+    "description":  "A risk analyst was promoted to Risk Manager last week. Her account was updated in the system but she cannot access the executive risk dashboard and scenario analysis reports that are part of the Risk Manager role. Regular risk reports still work.",
+    "priority":  "MEDIUM",
+    "productName":  "FintechBox",
+    "topicName":  "Kullanici Erisim ve Lisans Yonetimi",
+    "status":  "CLOSED",
+    "reasonCode":  "CONFIGURATION_UPDATED",
+    "worklogs":  [
+                     {
+                         "minutes":  10,
+                         "description":  "Checked user role assignment. User has Risk Manager role assigned but the role-to-report permissions mapping for executive dashboard was not updated when the role was created."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Added executive dashboard and scenario analysis modules to the Risk Manager role permissions."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the user\u0027s FintechBox access configuration. She has the Risk Manager role assigned correctly. However, the Risk Manager role definition does not include the executive risk dashboard and scenario analysis modules - these were added to the FintechBox instance after the Risk Manager role was initially created, and the role permissions were not updated at that time. I will add those module permissions to the Risk Manager role now. This will affect all current and future Risk..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please add them. We only have one Risk Manager currently so no concern about broader impact."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Done. Executive risk dashboard and scenario analysis module access added to the Risk Manager role. Please ask her to log out and log back in for the permission changes to take effect."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "She logged back in and can see both the executive dashboard and scenario analysis. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "Risk Manager role in FintechBox was missing permissions for executive dashboard and scenario analysis modules that were added after the role was created. Added the missing module permissions to the Risk Manager role."
+}

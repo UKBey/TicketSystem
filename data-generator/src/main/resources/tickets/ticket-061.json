@@ -1,0 +1,51 @@
+﻿{
+    "title":  "FiGO mobile app crashes on startup on Android 14 devices",
+    "description":  "After some employees updated their Android phones to Android 14 in the latest update cycle, the FiGO mobile app crashes immediately on startup. The app worked correctly on Android 13. The crash affects FiGO mobile version 3.2.1.",
+    "priority":  "HIGH",
+    "productName":  "FiGO",
+    "topicName":  "Mobil Uygulama ve Kullanici Hesabi",
+    "status":  "CLOSED",
+    "reasonCode":  "THIRD_PARTY_RESOLVED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Checked FiGO release notes. Version 3.3.0 released 2 weeks ago includes Android 14 compatibility fixes."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Confirmed with customer that their MDM (Mobile Device Management) system has not pushed the FiGO app update to devices yet."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the FiGO release history. Version 3.3.0 was released 2 weeks ago and includes compatibility updates for Android 14, which introduced changes to how apps handle certain system permissions. The crash you are experiencing on Android 14 is a known issue that is fixed in 3.3.0. Your devices are running version 3.2.1 which predates the Android 14 fix. How are you managing app updates for FiGO on your employees\u0027 devices - through Google Play directly or via an MDM system?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "We use Microsoft Intune for MDM and manage FiGO updates through Intune. The 3.3.0 update is in the approved apps list but has not been pushed yet because we were waiting to test it."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Given the Android 14 crash issue, I recommend prioritizing the 3.3.0 rollout. For your testing: the main changes in 3.3.0 are Android 14 compatibility and a minor UI refresh for the receipt scan screen. The backend API compatibility has not changed so there is no server-side preparation needed. If you can run a quick smoke test on a test device first, the update should be safe to push via Intune."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "We tested 3.3.0 on a test Android 14 device - it launches correctly. We are pushing the update via Intune now. It will reach all devices within 2 hours."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Update has been pushed to all devices. Users on Android 14 confirm the app is working now. Thank you."
+                     }
+                 ],
+    "resolutionNote":  "FiGO app version 3.2.1 has a known incompatibility with Android 14. FiGO 3.3.0 includes the fix. MDM (Microsoft Intune) was used to push the update to all employee devices.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Quick identification of the version issue and clear guidance on update path."
+             }
+}

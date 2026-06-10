@@ -1,0 +1,55 @@
+﻿{
+    "title":  "FiGO expense approval emails not being sent to approvers",
+    "description":  "Since last Friday, expense approval notifications are not being delivered to managers. Employees are submitting expense reports but managers are not receiving the approval request emails. Expenses are stuck in \u0027Pending Approval\u0027 status and no one is approving them because managers don\u0027t know there is anything to approve.",
+    "priority":  "HIGH",
+    "productName":  "FiGO",
+    "topicName":  "Masraf Onay Sureci",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  15,
+                         "description":  "Checked FiGO email notification log. Emails are being generated but delivery is failing - SMTP authentication error."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Checked SMTP configuration. Email server password expired last Friday as part of scheduled rotation."
+                     },
+                     {
+                         "minutes":  10,
+                         "description":  "Updated SMTP credentials in FiGO configuration with new password. Email delivery restored."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Hello, I checked the FiGO email delivery log. Emails are being queued and generated but failing at the SMTP delivery stage with an authentication error. The SMTP service account password used by FiGO expired last Friday - this aligns with when you first noticed the issue. The password was likely rotated as part of a scheduled AD/email service maintenance. I have the correct credentials from your environment configuration. Shall I update the FiGO SMTP settings with the new password now?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes please. Also, is there a way to set up an alert when email delivery fails? This has been silent for 4 days."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "SMTP credentials updated. I just tested by triggering a test expense notification - email delivered successfully. For the alert, FiGO has an email delivery health check that can be configured to notify the system administrator when email delivery failures exceed a threshold. I recommend setting it to alert after 5 consecutive failures. I will configure that now. Also, for the backlog of expenses stuck in pending approval - do you want me to re-trigger the approval notifications for all..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "Yes, please re-trigger notifications for all pending expenses. There are 34 pending approval reports currently."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Done. Notifications re-triggered for all 34 pending expense reports. Managers should now receive all 34 approval request emails. Email delivery health monitoring has also been configured. Issue resolved - closing the ticket."
+                     }
+                 ],
+    "resolutionNote":  "SMTP service account password for FiGO email delivery expired Friday during a scheduled AD password rotation. Updated FiGO SMTP configuration with new credentials. Re-triggered approval notifications for 34 stuck pending expense reports. Added email delivery health monitoring.",
+    "csat":  {
+                 "rating":  4,
+                 "comment":  "Good fix. Wish the alert had been there from the start."
+             }
+}

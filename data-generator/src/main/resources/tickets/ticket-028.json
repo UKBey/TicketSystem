@@ -1,26 +1,83 @@
-{
-  "title": "Critical email from a customer got quarantined",
-  "description": "The customer said they sent a contract file, but it's not in my inbox, it may have been quarantined.",
-  "priority": "MEDIUM",
-  "productName": "Email & Communication",
-  "topicName": "Spam & Security",
-  "status": "RESOLVED",
-  "worklogs": [
-    {
-      "minutes": 15,
-      "description": "Found the email in the Mimecast quarantine interface and released it."
-    },
-    {
-      "minutes": 10,
-      "description": "Added the sender to the 'permitted senders' list."
-    }
-  ],
-  "comments": [
-    {
-      "author": "agent",
-      "type": "EXTERNAL",
-      "message": "We released the email to your inbox and added the sender to the safe list. Please take another look."
-    }
-  ],
-  "resolutionNote": "Email was released from Mimecast quarantine, sender domain added to the whitelist. User confirmed receipt."
+﻿{
+    "title":  "JDBC connection pool exhausted causing integration flows to queue up",
+    "description":  "Since yesterday afternoon, several ACE integration flows that use database operations are failing with CWBRE0043E connection pool exhausted error. The flows are backing up and messages are queuing. Some SLA-bound reporting flows have already missed their windows.",
+    "priority":  "CRITICAL",
+    "productName":  "IBM App Connect Enterprise",
+    "topicName":  "Baglantilar ve Adaptorler",
+    "status":  "CLOSED",
+    "reasonCode":  "ROOT_CAUSE_FIXED",
+    "worklogs":  [
+                     {
+                         "minutes":  25,
+                         "description":  "Checked JDBC connection pool metrics. Active connections at maximum (30), wait queue growing."
+                     },
+                     {
+                         "minutes":  30,
+                         "description":  "Reviewed database slow query log. Found a new Oracle SQL report query added yesterday that holds connections for 8+ minutes, never releasing them."
+                     },
+                     {
+                         "minutes":  20,
+                         "description":  "Temporarily increased connection pool maxConnections from 30 to 60 to relieve immediate pressure."
+                     },
+                     {
+                         "minutes":  45,
+                         "description":  "Identified the slow query and worked with DBA to add a covering index. Query time dropped from 8 minutes to 4 seconds."
+                     },
+                     {
+                         "minutes":  15,
+                         "description":  "Reset pool to original size of 30 after query optimization - connections are now released quickly and pool is not exhausted."
+                     }
+                 ],
+    "comments":  [
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "This is critical. Multiple reporting flows are failing and our operations team is missing data. Also the daily KPI report to management did not run this morning."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "I am treating this as critical. Looking at the JDBC pool metrics now - I can see all 30 connections are in use and there is a growing wait queue. A connection is not being released means something is holding connections open much longer than normal. Let me check when this started and what changed around that time."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "INTERNAL",
+                         "message":  "Database slow query log shows a new query introduced yesterday at 14:30 that runs for 8+ minutes and does not release the connection until it completes. The query appears to be from a new Oracle report integration added by the BI team. This one slow query is monopolizing the connection pool."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Found the root cause. A new report integration added yesterday afternoon is running a very slow Oracle query that holds each database connection for over 8 minutes. With 30 connections in the pool and multiple instances of this flow running, the pool is exhausted. As an immediate fix, I am temporarily doubling the connection pool size to 60 to relieve the pressure and let the queued messages process. This buys us time to optimize the slow query. Do you know which team added the new report..."
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "That would be the BI team - Kemal Aydin is the contact. He deployed a new quarterly report integration yesterday afternoon."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Pool temporarily expanded to 60 - the queued messages are now processing and the backlog is clearing. I am connecting with Kemal now to optimize the query. I will keep you updated."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Update: Kemal and I have optimized the slow query with a covering index on the Oracle table. The query time dropped from 8 minutes to 4 seconds. I have restored the connection pool to its original size of 30 and the pool is healthy - connections are being acquired and released normally. Could you confirm the KPI report and other critical flows are processing correctly now?"
+                     },
+                     {
+                         "author":  "customer",
+                         "type":  "EXTERNAL",
+                         "message":  "The KPI report just completed successfully. All other flows are green. The backlog from this morning has cleared. Thank you for the rapid response."
+                     },
+                     {
+                         "author":  "agent",
+                         "type":  "EXTERNAL",
+                         "message":  "Excellent. I am also adding a connection hold time alert to the ACE monitoring so we get notified early next time a query holds connections unusually long. Closing this ticket."
+                     }
+                 ],
+    "resolutionNote":  "A new BI Oracle report integration deployed the previous day was holding JDBC connections for 8+ minutes per execution, exhausting the 30-connection pool. Temporary fix: doubled pool to 60. Permanent fix: added a covering index to the Oracle table reducing query time from 8 minutes to 4 seconds. Pool restored to 30.",
+    "csat":  {
+                 "rating":  5,
+                 "comment":  "Fast, methodical diagnosis and a proper permanent fix rather than just a workaround. The monitoring improvement was a bonus."
+             }
 }
