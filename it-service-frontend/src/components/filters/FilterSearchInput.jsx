@@ -10,6 +10,7 @@ export default function FilterSearchInput({
   placeholder,
   width = '11rem',
   debounceMs = 350,
+  maxLength = 100,
 }) {
   const [local, setLocal] = useState(value ?? '');
   const timer = useRef(null);
@@ -32,6 +33,7 @@ export default function FilterSearchInput({
         value={local}
         onChange={handleChange}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="w-full sm:w-[var(--fsi-w)] rounded-lg border pl-8 pr-7 py-1.5 text-xs outline-none transition-all focus:ring-2"
         style={{
           backgroundColor: local ? 'rgba(59,130,246,0.06)' : 'var(--bg-input)',

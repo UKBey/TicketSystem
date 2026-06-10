@@ -26,6 +26,7 @@ import lombok.extern.log4j.Log4j2;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import com.ticketsystem.it_service_backend.util.Pageables;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -117,7 +118,7 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
@@ -161,7 +162,7 @@ public class TicketController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
@@ -198,7 +199,7 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
@@ -241,7 +242,7 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
@@ -280,7 +281,7 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<Long> productId,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
@@ -529,7 +530,7 @@ public class TicketController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> priority,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @Size(max = 100, message = "Arama metni en fazla 100 karakter olabilir") String search,
             @RequestParam(required = false) List<String> agentId,
             @RequestParam(required = false) List<Long> topicId,
             @RequestParam(required = false) List<String> slaStatus,
