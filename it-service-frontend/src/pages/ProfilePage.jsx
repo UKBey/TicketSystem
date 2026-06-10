@@ -5,13 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
   User, Shield, ShieldCheck, ShieldAlert, Globe, ExternalLink, Settings,
-  Pencil, Check, X, Lock,
+  Pencil, Check, X, Lock, CalendarDays,
 } from 'lucide-react';
 import api from '../services/api';
 import userService from '../services/userService';
 import i18n from '../i18n';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import TwoFactorModal from '../components/TwoFactorModal';
+import NotificationPreferencesModal from '../components/NotificationPreferencesModal';
+import DateFormatModal from '../components/DateFormatModal';
 
 /* ── Role meta ─────────────────────────────────────────────── */
 const ROLE_META = {
@@ -333,6 +335,8 @@ export default function ProfilePage() {
   const triggerPasswordChange = () => setPasswordModalOpen(true);
 
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
+  const [notifPrefsModalOpen, setNotifPrefsModalOpen] = useState(false);
+  const [dateFormatModalOpen, setDateFormatModalOpen] = useState(false);
 
   const { firstName: currentFirstName, lastName: currentLastName } = splitFullName(user?.name);
 
@@ -497,11 +501,19 @@ export default function ProfilePage() {
             <div className="p-4 space-y-3">
               <ActionCard
                 icon={Bell}
-                iconColor="#3b82f6"
-                iconBg="rgba(59,130,246,0.12)"
+                iconColor="#8b5cf6"
+                iconBg="rgba(139,92,246,0.12)"
                 title={t('profile.notificationPreferences')}
                 description={t('profile.manageNotifications')}
-                onClick={() => navigate('/notification-preferences')}
+                onClick={() => setNotifPrefsModalOpen(true)}
+              />
+              <ActionCard
+                icon={CalendarDays}
+                iconColor="#3b82f6"
+                iconBg="rgba(59,130,246,0.12)"
+                title={t('preferences.dateFormat.title')}
+                description={t('preferences.dateFormat.desc')}
+                onClick={() => setDateFormatModalOpen(true)}
               />
               <ActionCard
                 icon={Lock}
@@ -623,6 +635,14 @@ export default function ProfilePage() {
         open={twoFactorModalOpen}
         onClose={() => { setTwoFactorModalOpen(false); refreshTwoFactor(); }}
         lang={currentLang}
+      />
+      <NotificationPreferencesModal
+        open={notifPrefsModalOpen}
+        onClose={() => setNotifPrefsModalOpen(false)}
+      />
+      <DateFormatModal
+        open={dateFormatModalOpen}
+        onClose={() => setDateFormatModalOpen(false)}
       />
     </div>
   );

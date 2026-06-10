@@ -966,6 +966,19 @@
       "hide": "Gizle"
     }
   },
+  "preferences": {
+    "title": "Tercihler",
+    "subtitle": "Uygulamanın görünümünü ve sizi nasıl bilgilendireceğini kişiselleştirin.",
+    "dateFormat": {
+      "title": "Tarih formatı",
+      "desc": "Sitedeki tüm tarihler bu formatta gösterilir.",
+      "label": "Format",
+      "preview": "Önizleme"
+    },
+    "notifications": {
+      "title": "Bildirimler"
+    }
+  },
   "notificationPrefs": {
     "title": "Bildirim Tercihleri",
     "subtitle": "Hangi olaylar için e-posta ve uygulama içi bildirim almak istediğinizi seçin.",
@@ -1061,6 +1074,7 @@
     }
   },
   "common": {
+    "close": "Kapat",
     "loading": "Yükleniyor...",
     "loadingData": "Veri yükleniyor",
     "error": "Bir hata oluştu.",

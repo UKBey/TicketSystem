@@ -966,6 +966,19 @@
       "hide": "Hide"
     }
   },
+  "preferences": {
+    "title": "Preferences",
+    "subtitle": "Personalize how the app looks and notifies you.",
+    "dateFormat": {
+      "title": "Date format",
+      "desc": "All dates across the site are shown in this format.",
+      "label": "Format",
+      "preview": "Preview"
+    },
+    "notifications": {
+      "title": "Notifications"
+    }
+  },
   "notificationPrefs": {
     "title": "Notification Preferences",
     "subtitle": "Choose which events you want to receive email and in-app notifications for.",
@@ -1061,6 +1074,7 @@
     }
   },
   "common": {
+    "close": "Close",
     "loading": "Loading...",
     "loadingData": "Loading data",
     "error": "An error occurred.",

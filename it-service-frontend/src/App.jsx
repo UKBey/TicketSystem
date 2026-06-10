@@ -27,7 +27,6 @@ import UserPerformancePage from './pages/manager/UserPerformancePage';
 import TicketDetail from './pages/TicketDetail';
 import ProductPage from './pages/ProductPage';
 import ProfilePage from './pages/ProfilePage';
-import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 import KnownIssuesPage from './pages/KnownIssuesPage';
 import CannedResponsesPage from './pages/CannedResponsesPage';
 import NoRolePage from './pages/NoRolePage';
@@ -252,16 +251,6 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
               <AppLayout><ProfilePage /></AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Tum rollerin erisebildigi bildirim tercihleri sayfasi. */}
-        <Route
-          path="/notification-preferences"
-          element={
-            <ProtectedRoute allowedRoles={['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER']}>
-              <AppLayout><NotificationPreferencesPage /></AppLayout>
             </ProtectedRoute>
           }
         />

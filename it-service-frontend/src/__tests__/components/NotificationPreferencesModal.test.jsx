@@ -12,7 +12,7 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
-import NotificationPreferencesPage from '../../pages/NotificationPreferencesPage';
+import NotificationPreferencesModal from '../../components/NotificationPreferencesModal';
 import { getPreferences, updatePreferences } from '../../services/notificationApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -35,7 +35,7 @@ const SAMPLE_PREFS = {
   notifyOnTicketResolved: true,
 };
 
-describe('NotificationPreferencesPage', () => {
+describe('NotificationPreferencesModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: a user holding every role sees the full set (keeps the
@@ -45,13 +45,13 @@ describe('NotificationPreferencesPage', () => {
 
   it('shows loading spinner on initial render', () => {
     getPreferences.mockReturnValue(new Promise(() => {}));
-    const { container } = render(<NotificationPreferencesPage />);
+    const { container } = render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
   it('renders all 7 event labels after load', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => {
       expect(screen.getByText('Ticket created')).toBeInTheDocument();
       expect(screen.getByText('Ticket assigned to me')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('NotificationPreferencesPage', () => {
 
   it('renders 14 toggles — 2 per event', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => {
       expect(screen.getAllByRole('switch')).toHaveLength(14);
     });
@@ -73,7 +73,7 @@ describe('NotificationPreferencesPage', () => {
 
   it('shows column headers for Email and In-App', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => {
       // Headers are now icon-only with title attributes (text labels were removed by design)
       expect(document.querySelector('[title="Email"]')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('NotificationPreferencesPage', () => {
 
   it('reflects correct initial checked state for email toggle', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket assigned to me'));
 
     // emailOnTicketAssigned=false → switch at index 2 (row 1, col email)
@@ -93,7 +93,7 @@ describe('NotificationPreferencesPage', () => {
 
   it('reflects correct initial checked state for in-app toggle', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket status changed'));
 
     // notifyOnStatusChanged=false → switch at index 5 (row 2, col in-app)
@@ -103,7 +103,7 @@ describe('NotificationPreferencesPage', () => {
 
   it('shows error feedback when preferences fail to load', async () => {
     getPreferences.mockRejectedValue(new Error('Network error'));
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => {
       expect(screen.getByText('Failed to load preferences.')).toBeInTheDocument();
     });
@@ -113,7 +113,7 @@ describe('NotificationPreferencesPage', () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     updatePreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     const user = userEvent.setup();
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Save'));
     await user.click(screen.getByText('Save'));
     await waitFor(() => {
@@ -125,7 +125,7 @@ describe('NotificationPreferencesPage', () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     updatePreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     const user = userEvent.setup();
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Save'));
     await user.click(screen.getByText('Save'));
     await waitFor(() => {
@@ -137,7 +137,7 @@ describe('NotificationPreferencesPage', () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     updatePreferences.mockRejectedValue(new Error('Server error'));
     const user = userEvent.setup();
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Save'));
     await user.click(screen.getByText('Save'));
     await waitFor(() => {
@@ -148,7 +148,7 @@ describe('NotificationPreferencesPage', () => {
   it('toggling an email switch updates its aria-checked', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     const user = userEvent.setup();
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket assigned to me'));
 
     // emailOnTicketAssigned starts false (index 2)
@@ -161,7 +161,7 @@ describe('NotificationPreferencesPage', () => {
   it('toggling an in-app switch updates its aria-checked', async () => {
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
     const user = userEvent.setup();
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket status changed'));
 
     // notifyOnStatusChanged starts false (index 5)
@@ -175,7 +175,7 @@ describe('NotificationPreferencesPage', () => {
   it('customer sees only customer-relevant events (no assigned / SLA)', async () => {
     useAuth.mockReturnValue({ isCustomer: true, isAgent: false, isLeadAgent: false, isManager: false, isAdmin: false });
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket created'));
 
     // Customer-relevant: created, status changed, comment, resolved (4 events → 8 toggles)
@@ -192,7 +192,7 @@ describe('NotificationPreferencesPage', () => {
   it('agent sees assigned + comment + SLA events (no created / resolved)', async () => {
     useAuth.mockReturnValue({ isCustomer: false, isAgent: true, isLeadAgent: false, isManager: false, isAdmin: false });
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('Ticket assigned to me'));
 
     expect(screen.getByText('Comment added')).toBeInTheDocument();
@@ -208,7 +208,7 @@ describe('NotificationPreferencesPage', () => {
   it('manager sees only SLA events', async () => {
     useAuth.mockReturnValue({ isCustomer: false, isAgent: false, isLeadAgent: false, isManager: true, isAdmin: false });
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => screen.getByText('SLA warning'));
 
     expect(screen.getByText('SLA breached')).toBeInTheDocument();
@@ -220,7 +220,7 @@ describe('NotificationPreferencesPage', () => {
   it('shows empty-state and no toggles for a role with no notifications (admin only)', async () => {
     useAuth.mockReturnValue({ isCustomer: false, isAgent: false, isLeadAgent: false, isManager: false, isAdmin: true });
     getPreferences.mockResolvedValue({ data: SAMPLE_PREFS });
-    render(<NotificationPreferencesPage />);
+    render(<NotificationPreferencesModal open={true} onClose={() => {}} />);
     await waitFor(() => {
       expect(screen.getByText('There are no notification preferences for your role.')).toBeInTheDocument();
     });
