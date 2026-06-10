@@ -473,6 +473,32 @@ public class UserController {
     }
 
     /**
+     * Updates the user's preferred date display format.
+     *
+     * @param format date format preset key
+     *               ({@code DMY_SLASH/MDY_SLASH/YMD_DASH/DMY_DOT/MED})
+     * @return DTO of the updated user
+     */
+    @Operation(summary = "Kullanıcı tarih formatı tercihini güncelle",
+            description = "Arayüzdeki tüm tarih gösterimleri için tek-tip formatı günceller. "
+                    + "Desteklenen değerler: `DMY_SLASH`, `MDY_SLASH`, `YMD_DASH`, `DMY_DOT`, `MED`.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tarih formatı tercihi başarıyla güncellendi",
+                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Geçersiz format değeri"),
+            @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
+    })
+    @PutMapping("/me/date-format")
+    public ResponseEntity<UserDTO> updateDateFormat(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String format) {
+        String userId = jwt.getSubject();
+        log.debug("Tarih formatı tercihi güncelleme isteği. Kullanıcı: {}, Format: {}", userId, format);
+        User user = userService.updatePreferredDateFormat(userId, format);
+        return ResponseEntity.ok(UserDTO.fromEntity(user));
+    }
+
+    /**
      * Returns the caller's last-used PDF export modal selections (sections, language,
      * theme) as an opaque JSON string, or null when none have been saved yet.
      *

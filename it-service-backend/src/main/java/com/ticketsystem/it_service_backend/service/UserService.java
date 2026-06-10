@@ -438,6 +438,32 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /** Frontend ile aynı tarih formatı preset anahtarları. */
+    private static final java.util.Set<String> ALLOWED_DATE_FORMATS =
+            java.util.Set.of("DMY_SLASH", "MDY_SLASH", "YMD_DASH", "DMY_DOT", "MED");
+
+    /**
+     * Updates the user's preferred date format. Only the known preset keys are
+     * accepted; other values are rejected with 400.
+     *
+     * @param userId target user ID
+     * @param format date format preset key
+     * @return the updated user
+     * @throws ResponseStatusException 400 on an unsupported format
+     */
+    @Transactional
+    public User updatePreferredDateFormat(String userId, String format) {
+        if (format == null || !ALLOWED_DATE_FORMATS.contains(format)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Unsupported date format. Supported: " + ALLOWED_DATE_FORMATS);
+        }
+        User user = getUserById(userId);
+        user.setPreferredDateFormat(format);
+        log.debug("Kullanıcı tarih formatı tercihi güncellendi. ID: {}, Format: {}", userId, format);
+        return userRepository.save(user);
+    }
+
     /**
      * Returns the user's last-used PDF export preferences (opaque JSON string defined by
      * the frontend), or {@code null} when the user has never generated a PDF.

@@ -73,6 +73,15 @@ public class User {
     private String preferredTheme = "light";
 
     /**
+     * The user's preferred date display format (a preset key the frontend understands):
+     * {@code DMY_SLASH}, {@code MDY_SLASH}, {@code YMD_DASH}, {@code DMY_DOT}, {@code MED}.
+     * Drives every date shown in the UI.
+     */
+    @Column(name = "preferred_date_format", length = 20, nullable = false)
+    @Builder.Default
+    private String preferredDateFormat = "DMY_SLASH";
+
+    /**
      * Last-used selections in the PDF export modal (which sections, PDF language, PDF
      * theme), stored as an opaque JSON string defined by the frontend. Null until the
      * user generates their first PDF, after which defaults are derived client-side.

@@ -50,6 +50,10 @@ public class UserDTO {
     @Schema(description = "Kullanıcının tercih ettiği tema", example = "dark", allowableValues = {"light", "dark"})
     private String preferredTheme;
 
+    @Schema(description = "Kullanıcının tercih ettiği tarih formatı (preset anahtarı)", example = "DMY_SLASH",
+            allowableValues = {"DMY_SLASH", "MDY_SLASH", "YMD_DASH", "DMY_DOT", "MED"})
+    private String preferredDateFormat;
+
     @Schema(description = "Kullanıcının sisteme ilk kaydedildiği tarih", example = "2026-01-15T09:00:00+03:00")
     private ZonedDateTime createdAt;
 
@@ -99,6 +103,7 @@ public class UserDTO {
                 .createdAt(user.getCreatedAt())
                 .preferredLanguage(user.getPreferredLanguage())
                 .preferredTheme(user.getPreferredTheme())
+                .preferredDateFormat(user.getPreferredDateFormat())
                 .authorizedProducts(user.getAuthorizedProducts() != null ? 
                     user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).toList() : null)
                 .build();
