@@ -50,6 +50,7 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 - **Dahili** (yalnızca temsilciye görünür) ve **harici** (müşteriye görünür) yorumlarla sohbet tarzı ticket görüşmesi
 - **İçerik doğrulamalı** ek dosya yükleme — dosya türü/boyutu denetimleri, anahtar kelime taraması ve hassas veri tespiti (token'lar, özel anahtarlar)
 - Temsilci başına çalışma kaydı (worklog) ile süre takibi
+- Ticket detayından **PDF dışa aktarma** — bölümler (yorumlar, worklog'lar, ekler, denetim izi), dil ve yön yapılandırılabilir; tercihler kullanıcı başına kalıcı olarak saklanır, böylece modal bir sonraki açılışta son kullanılan seçimlerle açılır
 
 ### Bildirimler
 - Ticket, durum, yorum ve SLA olayları için çok kanallı bildirimler (uygulama içi akış + Mailpit aracılığıyla e-posta simülasyonu)

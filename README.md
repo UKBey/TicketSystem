@@ -50,6 +50,7 @@ Customers report technical problems, support agents resolve them under **SLA** r
 - Chat-style ticket conversation with **internal** (agent-only) and **external** (customer-visible) comments
 - Attachment upload with **content validation** — file type/size checks, keyword scan, and sensitive-data detection (tokens, private keys)
 - Worklog time tracking per agent
+- **PDF export** of ticket detail — configurable sections (comments, worklogs, attachments, audit log), language and orientation; preferences persisted per user so the modal reopens with last-used selections
 
 ### Notifications
 - Multi-channel notifications (in-app feed + email simulation via Mailpit) for ticket, status, comment and SLA events

@@ -585,6 +585,8 @@ Response `200 OK` (`Csat` entity):
 | GET | `/api/v1/users/me/2fa` | Authenticated | List the caller's registered TOTP devices. |
 | DELETE | `/api/v1/users/me/2fa/{credentialId}` | Authenticated | Delete one of the caller's TOTP devices. |
 | POST | `/api/v1/users/me/2fa/notify-added` | Authenticated | Trigger the "2FA device added" notification email. |
+| GET | `/api/v1/users/me/pdf-preferences` | Authenticated | Get the caller's last-used PDF export modal selections. |
+| PUT | `/api/v1/users/me/pdf-preferences` | Authenticated | Persist the caller's PDF export modal selections. |
 | POST | `/api/v1/users/{userId}/products/{productId}` | admin | Grant an agent access to a product. |
 | DELETE | `/api/v1/users/{userId}/products/{productId}` | admin | Revoke an agent's product access. |
 | PUT | `/api/v1/users/{userId}/status` | admin | Activate / deactivate a user. |
@@ -634,6 +636,12 @@ Query params: `search` (string, optional), `role` (string[], optional), `page` (
   `204 No Content`; `400` if the current password is wrong or the new one violates policy.
 - **PUT `/api/v1/users/me/language`** — query `lang` (string: `en` or `tr`). Returns `UserDTO`.
 - **PUT `/api/v1/users/me/theme`** — query `theme` (string: `light` or `dark`). Returns `UserDTO`.
+- **GET `/api/v1/users/me/pdf-preferences`** — returns `PdfPreferencesDTO` containing the
+  caller's last-used PDF export modal selections (selected sections, language, orientation, etc.)
+  as an opaque JSON string. Returns `null` if no preference has been saved yet.
+- **PUT `/api/v1/users/me/pdf-preferences`** — Body `PdfPreferencesDTO`; persists the export
+  modal selections verbatim. The frontend reads this back to pre-fill the modal on next open.
+  Returns `204 No Content`.
 - **PUT `/api/v1/users/{userId}/status`** — query `active` (boolean). An admin cannot deactivate
   themselves (`400`). Returns `UserDTO`.
 - **PUT `/api/v1/users/{userId}/roles`** — Body: JSON array of role strings (non-empty); roles are
@@ -857,6 +865,76 @@ Response `KnownIssueDTO`:
 
 ---
 
+## Canned Responses
+
+`CannedResponseController` — base path `/api/v1/canned-responses`. Reusable reply templates
+for agents. Every endpoint requires one of `agent`, `lead_agent`, or `admin` — customers cannot
+access this feature.
+
+Two scopes: `PERSONAL` (owned by the creating agent, only they can see/edit/delete it) and
+`SHARED` (product-wide or global; only `lead_agent` / `admin` may create or mutate shared
+templates). Three visibility values control which comment type the template targets: `EXTERNAL`,
+`INTERNAL`, or `BOTH`.
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| GET | `/api/v1/canned-responses` | agent, lead_agent, admin | List canned responses visible to the caller. |
+| POST | `/api/v1/canned-responses` | agent, lead_agent, admin | Create a canned response. |
+| PUT | `/api/v1/canned-responses/{id}` | agent, lead_agent, admin | Update a canned response. |
+| DELETE | `/api/v1/canned-responses/{id}` | agent, lead_agent, admin | Delete a canned response. |
+| POST | `/api/v1/canned-responses/{id}/favorite` | agent, lead_agent, admin | Mark a response as a favorite (idempotent). |
+| DELETE | `/api/v1/canned-responses/{id}/favorite` | agent, lead_agent, admin | Remove a favorite mark (idempotent). |
+
+### GET `/api/v1/canned-responses`
+
+Returns the caller's own personal templates plus all shared templates (global shared + those
+tied to the caller's authorized products). Optional query params:
+
+| Param | Type | Description |
+|---|---|---|
+| `productId` | long | Scope shared templates to this product (global + product-specific). |
+| `scope` | string | `PERSONAL` or `SHARED`. |
+| `visibility` | string | `EXTERNAL`, `INTERNAL`, or `BOTH`. |
+| `q` | string | Free-text search over title and shortcut. |
+
+Returns a JSON array of `CannedResponseDTO`.
+
+### POST / PUT body `CannedResponseDTO`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `title` | string | yes | Max 150 chars. Language-neutral management label. |
+| `shortcut` | string | no | Max 50 chars. Slash-command shortcut (without the `/`). |
+| `contentTr` | string | conditional | Turkish content variant (max 2000 chars). At least one of `contentTr` / `contentEn` required. |
+| `contentEn` | string | conditional | English content variant (max 2000 chars). |
+| `scope` | string | yes | `PERSONAL` or `SHARED`. Creating `SHARED` requires `lead_agent` or `admin`. |
+| `productId` | long | no | Optional product association (meaningful only for `SHARED`; `null` = global). |
+| `visibility` | string | yes | `EXTERNAL`, `INTERNAL`, or `BOTH`. |
+
+Response `CannedResponseDTO`:
+
+```json
+{
+  "id": 7,
+  "title": "VPN bağlantı adımları",
+  "shortcut": "vpn",
+  "contentTr": "VPN sorununuzu çözmek için şu adımları uygulayın: ...",
+  "contentEn": "To resolve your VPN issue, follow these steps: ...",
+  "scope": "PERSONAL",
+  "ownerAgentId": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
+  "productId": null,
+  "visibility": "EXTERNAL",
+  "favorite": false,
+  "createdAt": "2026-05-10T09:00:00+03:00",
+  "updatedAt": "2026-05-10T09:00:00+03:00"
+}
+```
+
+`DELETE` returns `204 No Content`. `POST /{id}/favorite` and `DELETE /{id}/favorite` return
+`204 No Content` (both idempotent).
+
+---
+
 ## Agent-Product Limits
 
 `AgentProductLimitController` — base path `/api/v1/agents/{agentId}/limits`. Per-agent overrides
@@ -1047,20 +1125,21 @@ Returns `200` with a plain-text body on success; `400` for an unknown `eventType
 | Resource | Endpoints |
 |---|---|
 | Authentication (password reset) | 3 |
-| Tickets | 16 |
+| Tickets | 17 |
 | Ticket Comments | 2 |
 | Config | 1 |
 | Attachments | 4 |
 | Worklogs | 5 |
 | CSAT | 3 |
-| Users | 18 |
+| Users | 20 |
 | Notifications | 6 |
 | Notification Preferences | 2 |
 | Products | 6 |
 | Ticket Topics | 4 |
 | Known Issues | 5 |
+| Canned Responses | 6 |
 | Agent-Product Limits | 3 |
 | Dashboard Metrics | 14 |
 | AI Summaries (llm-service) | 4 |
 | Internal / Workflow | 2 |
-| **Total** | **98** |
+| **Total** | **107** |
