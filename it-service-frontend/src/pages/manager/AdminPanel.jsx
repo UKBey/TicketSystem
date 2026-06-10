@@ -5,6 +5,7 @@ import api, { getAgentLimits, setAgentLimit } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import SortableTh from '../../components/SortableTh';
+import { useColumnResize } from '../../hooks/useColumnResize';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
@@ -289,9 +290,14 @@ function AgentLimitsPanel({ user, t }) {
   );
 }
 
+// Sürüklenebilir sütun varsayılan genişlikleri (px). Son sütun esner.
+const COL_WIDTHS = { name: 150, email: 210, role: 110, authorized: 480, assign: 360, agentLimits: 120 };
+const COL_ORDER = ['name', 'email', 'role', 'authorized', 'assign', 'agentLimits'];
+
 export default function AdminPanel() {
   const { t } = useTranslation();
   const toast = useToast();
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
 
   const [users, setUsers]               = useState([]);
   const [products, setProducts]         = useState([]);
@@ -566,24 +572,17 @@ export default function AdminPanel() {
             </ul>
 
             {/* Desktop: table */}
-            <div className="hidden lg:block">
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '21%' }} />
-                <col style={{ width: '10%' }} />
-              </colgroup>
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full resizable-table" style={{ tableLayout: 'fixed', minWidth: `${tableWidth}px` }}>
+              {renderColgroup()}
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortableTh field="name"  label={t('admin.panel.colName')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="email" label={t('admin.panel.colEmail')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="role"  label={t('admin.panel.colRole')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="authorized" label={t('admin.panel.colAuthorized')} />
-                  <SortableTh field="assign"     label={t('admin.panel.colAssign')} />
-                  <SortableTh field="agentLimits" label={t('admin.panel.agentLimits')} />
+                  <SortableTh field="name"  label={t('admin.panel.colName')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('name')} />
+                  <SortableTh field="email" label={t('admin.panel.colEmail')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('email')} />
+                  <SortableTh field="role"  label={t('admin.panel.colRole')}  sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('role')} />
+                  <SortableTh field="authorized" label={t('admin.panel.colAuthorized')} resizeHandle={handleFor('authorized')} />
+                  <SortableTh field="assign"     label={t('admin.panel.colAssign')} resizeHandle={handleFor('assign')} />
+                  <SortableTh field="agentLimits" label={t('admin.panel.agentLimits')} align="right" className="pr-8" />
                 </tr>
               </thead>
               <tbody>
@@ -592,7 +591,7 @@ export default function AdminPanel() {
                   const limitOpen = expandedLimitUserId === user.id;
                   return (
                     <React.Fragment key={user.id}>
-                      <tr key={user.id} style={{ borderBottom: limitOpen ? 'none' : '1px solid var(--border-color-light)' }}>
+                      <tr key={user.id} className={limitOpen ? 'is-open' : undefined}>
                         <td className="px-4 py-3 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                           {user.fullName}
                         </td>
@@ -631,7 +630,7 @@ export default function AdminPanel() {
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
                             <select
-                              className="flex-1 rounded-lg border px-2 py-1.5 text-xs outline-none transition-all focus:ring-2 cursor-pointer"
+                              className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-xs outline-none transition-all focus:ring-2 cursor-pointer"
                               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                               onChange={(e) => setSelectedProductId(e.target.value)}
                               value={selectedProductId}
@@ -653,8 +652,9 @@ export default function AdminPanel() {
                             </button>
                           </div>
                         </td>
-                        {/* Limit butonu — sadece agent rolleri için */}
-                        <td className="px-4 py-3">
+                        {/* Limit butonu — sadece agent rolleri için. Sağa yaslı,
+                            kenardan biraz boşluklu (pr-6). */}
+                        <td className="py-3 pl-4 pr-6 text-right">
                           {isAgent ? (
                             <button
                               onClick={() => setExpandedLimitUserId(limitOpen ? null : user.id)}
@@ -677,7 +677,7 @@ export default function AdminPanel() {
 
                       {/* Inline limit paneli */}
                       {limitOpen && (
-                        <tr key={`${user.id}-limits`} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+                        <tr key={`${user.id}-limits`}>
                           <td colSpan="6" className="px-6 pb-4 pt-0">
                             <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)' }}>
                               <div className="flex items-center justify-between mb-3">

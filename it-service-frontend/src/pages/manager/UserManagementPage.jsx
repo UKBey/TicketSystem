@@ -8,6 +8,7 @@ import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
 import SortableTh from '../../components/SortableTh';
+import { useColumnResize } from '../../hooks/useColumnResize';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
@@ -23,9 +24,14 @@ const formatDate = (isoString) => {
   });
 };
 
+// Sürüklenebilir sütun varsayılan genişlikleri (px). Son sütun (actions) esner.
+const COL_WIDTHS = { name: 200, email: 260, role: 130, username: 180, createdAt: 140, actions: 110 };
+const COL_ORDER = ['name', 'email', 'role', 'username', 'createdAt', 'actions'];
+
 export default function UserManagementPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
   const { user: currentUser, isAdmin, isManager } = useAuth();
 
   // Rol düzenleme ve aktif/pasif alma yalnızca ADMIN yetkisidir. MANAGER bu sayfayı
@@ -417,23 +423,16 @@ export default function UserManagementPage() {
                 </li>
               )}
             </ul>
-            <div className="hidden lg:block">
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '26%' }} />
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '13%' }} />
-                <col style={{ width: '10%' }} />
-              </colgroup>
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full resizable-table" style={{ tableLayout: 'fixed', minWidth: `${tableWidth}px` }}>
+              {renderColgroup()}
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                  <SortableTh field="name"      label={t('userManagement.table.name')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="email"     label={t('userManagement.table.email')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="role"      label={t('userManagement.table.role')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                  <SortableTh field="username"  label={t('userManagement.table.username')} />
-                  <SortableTh field="createdAt" label={t('userManagement.table.createdAt')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableTh field="name"      label={t('userManagement.table.name')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('name')} />
+                  <SortableTh field="email"     label={t('userManagement.table.email')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('email')} />
+                  <SortableTh field="role"      label={t('userManagement.table.role')}      sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('role')} />
+                  <SortableTh field="username"  label={t('userManagement.table.username')} resizeHandle={handleFor('username')} />
+                  <SortableTh field="createdAt" label={t('userManagement.table.createdAt')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('createdAt')} />
                   <SortableTh field="actions"   label={t('userManagement.table.actions')} align="right" />
                 </tr>
               </thead>
@@ -444,10 +443,7 @@ export default function UserManagementPage() {
                   return (
                   <tr
                     key={user.id}
-                    style={{
-                      borderBottom: '1px solid var(--border-color-light)',
-                      opacity: isInactive ? 0.5 : 1,
-                    }}
+                    style={{ opacity: isInactive ? 0.5 : 1 }}
                   >
                     {/* Ad Soyad */}
                     <td

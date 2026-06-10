@@ -157,7 +157,7 @@ export default function TicketTable({
           doldurur (width:100%); son sütun sabit genişlik almaz, kalan alanı kaplar
           (sağ kenara yapışık). minWidth = sütun toplamı: container darsa o sütun
           default'una iner ve yatay scroll çıkar, içerik ezilmez. */}
-      <table className="ticket-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: `${tableWidth}px` }}>
+      <table className="resizable-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: `${tableWidth}px` }}>
         {renderColgroup()}
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>

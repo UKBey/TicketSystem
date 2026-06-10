@@ -17,7 +17,7 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
  * @param {React.ReactNode} [resizeHandle] sağ kenara yerleşen sütun genişlik tutamacı
  *                                         (TicketTable verir; verilmezse th sabit genişlikli)
  */
-export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false, align = 'left', resizeHandle = null }) {
+export default function SortableTh({ field, label, sortBy, sortDir, onSort, invertArrow = false, align = 'left', resizeHandle = null, className = '' }) {
   const active = sortBy === field;
 
   const displayDir = invertArrow
@@ -29,7 +29,7 @@ export default function SortableTh({ field, label, sortBy, sortDir, onSort, inve
     : ArrowUpDown;
 
   const alignClass = align === 'right' ? 'text-right' : 'text-left';
-  const baseClass = `${alignClass} px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b`;
+  const baseClass = `${alignClass} px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b ${className}`.trim();
   // position: relative — resizeHandle (absolute) bu th'e göre konumlanır.
   const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', position: 'relative' };
 

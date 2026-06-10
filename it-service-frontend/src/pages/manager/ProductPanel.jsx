@@ -8,13 +8,19 @@ import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 import SortableTh from '../../components/SortableTh';
+import { useColumnResize } from '../../hooks/useColumnResize';
 
 const PAGE_SIZE = 10;
+
+// Sürüklenebilir sütun varsayılan genişlikleri (px). Son sütun (actions) esner.
+const COL_WIDTHS = { id: 90, name: 280, status: 130, maxActiveTickets: 350, actions: 170 };
+const COL_ORDER = ['id', 'name', 'status', 'maxActiveTickets', 'actions'];
 
 export default function ProductPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
   const { isLeadAgent, isAdmin, isManager } = useAuth();
   // Ürün CRUD (oluştur/düzenle/sil) sistem-config'tir — yalnızca admin.
   const canManageProducts = isAdmin;
@@ -329,15 +335,16 @@ export default function ProductPanel() {
           )}
         </ul>
 
-        <div className="hidden lg:block">
-          <table className="w-full">
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full resizable-table" style={{ tableLayout: 'fixed', minWidth: `${tableWidth}px` }}>
+            {renderColgroup()}
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-                <SortableTh field="id"               label={t('productPanel.colId')}         sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <SortableTh field="name"             label={t('productPanel.colName')}       sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <SortableTh field="status"           label={t('productPanel.colStatus')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <SortableTh field="maxActiveTickets" label={t('productPanel.colMaxTickets')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
-                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '170px' }}>{t('productPanel.colActions')}</th>
+                <SortableTh field="id"               label={t('productPanel.colId')}         sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('id')} />
+                <SortableTh field="name"             label={t('productPanel.colName')}       sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('name')} />
+                <SortableTh field="status"           label={t('productPanel.colStatus')}     sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('status')} />
+                <SortableTh field="maxActiveTickets" label={t('productPanel.colMaxTickets')} sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} resizeHandle={handleFor('maxActiveTickets')} />
+                <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}>{t('productPanel.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -345,7 +352,7 @@ export default function ProductPanel() {
                 const topicsOpen = expandedTopicsProductId === product.id;
                 return (
                 <React.Fragment key={product.id}>
-                <tr style={{ borderBottom: topicsOpen ? 'none' : '1px solid var(--border-color-light)' }}>
+                <tr className={topicsOpen ? 'is-open' : undefined}>
                   <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{product.id}</td>
                   <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{product.name}</td>
                   <td className="px-4 py-3">
@@ -434,7 +441,7 @@ export default function ProductPanel() {
                   </td>
                 </tr>
                 {topicsOpen && (
-                  <tr style={{ borderBottom: '1px solid var(--border-color-light)' }}>
+                  <tr>
                     <td colSpan="5" className="px-6 pb-4 pt-0">
                       <ProductTopicsSection productId={product.id} isAdmin={canManageTopics} />
                     </td>
