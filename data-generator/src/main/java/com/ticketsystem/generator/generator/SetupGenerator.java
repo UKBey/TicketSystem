@@ -86,8 +86,8 @@ public class SetupGenerator {
         List<UserSession> customers = createAndLoginUsers(GeneratorConfig.customers(), "CUSTOMER");
 
         if (agents.isEmpty() || customers.isEmpty()) {
-            throw new IllegalStateException("Setup başarısız: en az bir agent ve bir customer gerekli. " +
-                    "data-generator/users.json içindeki agents/customers listelerini doldur (örnek: users.example.json).");
+            throw new IllegalStateException("Setup failed: at least one agent and one customer required. " +
+                    "Populate the agents/customers arrays in data-generator/users.json (see users.example.json).");
         }
 
         // 2a. Generator'in onceden uretmis oldugu urunler varsa temizle. Backend

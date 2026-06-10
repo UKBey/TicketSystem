@@ -144,11 +144,12 @@ anything other than the generator are left untouched.
 
 Then, from the `products` list in `src/main/resources/setup.json`:
 
-- **5 products** (VPN & Network, Email & Communication, Hardware & Infrastructure,
-  Enterprise Software, Cloud Services) — idempotent by `name`.
-- **5 topics** under each product (25 total) — idempotent by `(productId, name)`.
-- ~12 **known-issue** records per topic (~300 total, title + content) — idempotent
-  by title within the product.
+- **12 products** (IBM Business Automation Workflow, IBM FileNet Content Manager,
+  IBM App Connect Enterprise, IBM API Connect, IBM MQ, Inviso, FiGO, IBM Instana,
+  IBM Datacap, FintechBox, Automation Anywhere RPA, Finans Portalı) — idempotent by `name`.
+- **3–6 topics** per product (42 total) — idempotent by `(productId, name)`.
+- ~199 **known-issue** records in total (title + content) — idempotent by title within
+  the product.
 
 ### 3. Canned responses
 
@@ -166,16 +167,16 @@ products. HTTP 409 (already assigned) is skipped silently.
 
 ### 5. Ticket generation (JSON template based)
 
-The **51 ticket templates** in `src/main/resources/tickets/ticket-NNN.json` are
+The **100 ticket templates** in `src/main/resources/tickets/ticket-NNN.json` are
 processed. Each file declaratively describes a ticket's full lifecycle:
 
 ```json
 {
-  "title": "VPN connection keeps dropping",
+  "title": "IBM BAW process instance stuck in error state",
   "description": "Detailed description...",
   "priority": "HIGH",
-  "productName": "VPN & Network",
-  "topicName": "VPN Connection",
+  "productName": "IBM Business Automation Workflow",
+  "topicName": "Surecler ve Uygulamalar",
   "status": "RESOLVED",
   "reasonCode": "SOLUTION_PROVIDED",
   "worklogs":  [{ "minutes": 25, "description": "..." }],
@@ -187,19 +188,21 @@ processed. Each file declaratively describes a ticket's full lifecycle:
 
 Templates are processed in the order CLOSED → RESOLVED → WAITING_FOR_CUSTOMER →
 IN_PROGRESS → NEW so the per-agent active-claim limit is not exhausted before all
-types are created. The 51 templates break down as:
+types are created. The 100 templates break down as:
 
 | Status | Count |
 |--------|-------|
-| CLOSED | 15 |
-| RESOLVED | 10 |
-| IN_PROGRESS | 10 |
-| WAITING_FOR_CUSTOMER | 8 |
+| CLOSED | 49 |
+| RESOLVED | 13 |
+| IN_PROGRESS | 20 |
+| WAITING_FOR_CUSTOMER | 10 |
 | NEW | 8 |
 
-> `ticket-051.json` is a deliberately long, **23-comment** CLOSED case (an Outlook /
-> Exchange disconnect saga with 6 worklogs and a 5★ CSAT) — a stress-test of the
-> comment-wave pacing and a showcase of a realistic, multi-turn conversation thread.
+> Five tickets carry **20+ comments** for rich multi-turn conversation demos:
+> `ticket-045.json` (24 comments), `ticket-074.json` (23 comments), `ticket-005.json`
+> (22 comments), `ticket-060.json` and `ticket-088.json` (21 comments each). These
+> are CLOSED cases with full worklogs and 5★ CSAT ratings — good stress-tests of the
+> comment-wave pacing.
 
 Generation runs in three phases so the per-user comment cooldown overlaps across all
 tickets instead of being paid ticket-by-ticket:
@@ -272,12 +275,11 @@ data-generator/
 ├── users.json                    ← login credentials + seed-user definitions (gitignored)
 ├── users.example.json            ← template (committed, placeholder passwords)
 └── src/main/resources/
-    ├── setup.json                ← 5 products × 5 topics × ~12 known-issues + canned responses
+    ├── setup.json                ← 12 products × 3–6 topics × ~199 known-issues + canned responses
     └── tickets/
-        ├── ticket-001.json       ← 51 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
+        ├── ticket-001.json       ← 100 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
         ├── ...
-        ├── ticket-050.json
-        └── ticket-051.json       ← long 23-comment showcase case
+        └── ticket-100.json       ← 5 long tickets (20+ comments): 005, 045, 060, 074, 088
 ```
 
 > To add a new ticket, just drop in a new `tickets/ticket-NNN.json` — no code change
@@ -331,24 +333,24 @@ data-generator/
 
 ## Troubleshooting
 
-**"admin oturumu açılamadı" (admin login failed)**
+**"Admin login failed. Check credentials and Keycloak configuration."**
 → `adminAgent` username/password is wrong, or the user does not exist in Keycloak
 (`superadmin` must hold the `ADMIN + LEAD_AGENT + MANAGER` roles, assigned via
 `make seed-roles`). Log in once through `http://localhost` first.
 
-**"Kullanıcı oluşturuldu ancak oturum açılamadı" / "Login başarısız → kullanıcı atlanıyor"**
+**"User created but login failed, skipping" / "Login failed → skipping user"**
 → A seed user was created but could not log in. The generator already clears the
 forced-change required action and retries once on "Account is not fully set up";
 if it still fails, check that the user's password matches `users.json` and satisfies
 the realm password policy. Other users continue.
 
-**"Setup başarısız: en az bir agent ve bir customer gerekli"**
+**"Setup failed: at least one agent and one customer required"**
 → The `agents`/`customers` arrays in `users.json` are empty. Populate them (see
 `users.example.json`).
 
-**"Şablonda geçen ürün bulunamadı" (product in template not found)**
+**"Product not found in setup: '...'. Skipping template."**
 → The `productName` in a ticket JSON must match a product `name` in `setup.json`
-exactly.
+exactly (case-sensitive).
 
 **"429 Too Many Requests"**
 → The generator runs with no request pacing (`DELAY_MS = 0`), so a tight backend rate limit
@@ -357,7 +359,7 @@ slows down. For a fast run, **disable the rate limit** while seeding (see Requir
 comment cooldown is separate: make sure `COMMENT_COOLDOWN_SECONDS` matches the backend's
 `app.comments.cooldown-seconds`.
 
-**"Veritabanı bağlantısı kurulamadı" (DB connection failed, backfill)**
+**"Could not connect to database" (backfill)**
 → PostgreSQL port 5432 must be reachable. Check with `docker compose ps`.
 
 **"known-issue duplicate" / title collision**
