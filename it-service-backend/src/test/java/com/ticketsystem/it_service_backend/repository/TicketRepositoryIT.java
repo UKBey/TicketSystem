@@ -215,42 +215,9 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         assertEquals(List.of(closed, resolved, waiting, inprog, neu), desc);
     }
 
-    /**
-     * SLA sort is a single continuous remaining-time scale (= slaDeadline): breached/overdue
-     * at the urgent end, most-remaining at the other. Paused tickets are NOT pulled into a
-     * separate tier — they sort inline by their deadline (the old behaviour did tier them).
-     */
-    @Test
-    void findByCustomerIdFilteredOrderBySlaUrgency_ordersByRemainingTimeContinuously() {
-        userRepository.save(User.builder().id("cust-sla").email("csla@test.com").fullName("Sla Cust").role("CUSTOMER").build());
-        java.time.ZonedDateTime now = java.time.ZonedDateTime.now();
-        Long far      = saveSla("cust-sla", now.plusHours(20), false, null);            // 20h left
-        Long paused   = saveSla("cust-sla", now.plusHours(10), false, now.minusHours(1)); // 10h left, paused
-        Long soon     = saveSla("cust-sla", now.plusHours(1),  false, null);            // 1h left
-        Long breached = saveSla("cust-sla", now.minusHours(5), true,  null);            // overdue
-
-        List<Long> desc = ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(
-                "cust-sla", null, null, PageRequest.of(0, 20))
-                .getContent().stream().map(Ticket::getId).toList();
-        assertEquals(List.of(far, paused, soon, breached), desc); // most remaining → breached last
-
-        List<Long> asc = ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(
-                "cust-sla", null, null, PageRequest.of(0, 20))
-                .getContent().stream().map(Ticket::getId).toList();
-        assertEquals(List.of(breached, soon, paused, far), asc); // most urgent (overdue) first
-    }
-
     private Long saveStatus(String customerId, String status) {
         return ticketRepository.save(Ticket.builder()
                 .title(status).description("d").status(status).priority("MEDIUM")
                 .productId(productId1).topicId(topicId1).customerId(customerId).build()).getId();
-    }
-
-    private Long saveSla(String customerId, java.time.ZonedDateTime deadline, boolean breached,
-                         java.time.ZonedDateTime pausedAt) {
-        return ticketRepository.save(Ticket.builder()
-                .title("sla").description("d").status("IN_PROGRESS").priority("MEDIUM")
-                .productId(productId1).topicId(topicId1).customerId(customerId)
-                .slaDeadline(deadline).slaBreached(breached).slaPausedAt(pausedAt).build()).getId();
     }
 }

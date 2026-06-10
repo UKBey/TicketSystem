@@ -114,7 +114,7 @@ class TicketServiceTest {
                 eventPublisher, csatRepository, worklogRepository, attachmentRepository,
                 notificationService, auditHelper, ticketClaimService);
         ticketQueryService = new TicketQueryService(
-                ticketRepository, ticketClaimRepository, productRepository, userRepository);
+                ticketRepository, ticketClaimRepository, productRepository, userRepository, slaPolicyService);
         ticketCommandService = new TicketCommandService(
                 ticketRepository, ticketClaimRepository, ticketTopicRepository, userRepository,
                 workflowService, slaPolicyService, notificationService, auditHelper, ticketService);
@@ -1212,7 +1212,7 @@ class TicketServiceTest {
     @DisplayName("getCustomerTicketsFiltered → slaDeadline ASC sort")
     void getCustomerTicketsFiltered_sortBySlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
-        when(ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
@@ -1223,11 +1223,35 @@ class TicketServiceTest {
     @DisplayName("getCustomerTicketsFiltered → slaDeadline DESC sort")
     void getCustomerTicketsFiltered_sortBySlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
-        when(ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
+        when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered("customer-1", TicketFilterDTO.builder().build(), p);
         assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("getCustomerTicketsFiltered → SLA sort, gösterilen kalan süreye göre sıralar (paused bütçe-duyarlı)")
+    void getCustomerTicketsFiltered_sortBySla_ordersByDisplayedRemaining() {
+        ZonedDateTime now = ZonedDateTime.now();
+        // Paused biletin kalan süresi DONMUŞ (budget - elapsed) ve slaDeadline ile ilişkisiz —
+        // bu yüzden 50h'lik paused, deadline'ı 20h olan aktif biletin ÜSTÜNE çıkmalı.
+        Ticket far      = Ticket.builder().id(1L).status("IN_PROGRESS").priority("LOW").slaDeadline(now.plusHours(20)).build();
+        Ticket paused   = Ticket.builder().id(2L).status("WAITING_FOR_CUSTOMER").priority("LOW").slaElapsedMs(22L * 3_600_000L).build(); // 72h - 22h = 50h
+        Ticket soon     = Ticket.builder().id(3L).status("IN_PROGRESS").priority("LOW").slaDeadline(now.plusHours(1)).build();
+        Ticket breached = Ticket.builder().id(4L).status("IN_PROGRESS").priority("LOW").slaBreached(true).build();
+        Ticket closed   = Ticket.builder().id(5L).status("CLOSED").priority("LOW").build();
+
+        when(slaPolicyService.getSlaDurationMs("LOW")).thenReturn(72L * 3_600_000L);
+        when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(far, paused, soon, breached, closed)));
+
+        Page<Ticket> result = ticketQueryService.getCustomerTicketsFiltered(
+                "customer-1", TicketFilterDTO.builder().build(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
+
+        // En çok kalan → paused(50h), far(20h), soon(1h), breached(0), completed(null) en sonda.
+        assertEquals(List.of(2L, 1L, 3L, 4L, 5L),
+                result.getContent().stream().map(Ticket::getId).toList());
     }
 
     @Test
@@ -1287,7 +1311,7 @@ class TicketServiceTest {
     void getPoolTicketsFiltered_agentAdmin_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
-        when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1299,7 +1323,7 @@ class TicketServiceTest {
     void getPoolTicketsFiltered_agentAdmin_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
-        when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1394,7 +1418,7 @@ class TicketServiceTest {
     void getPoolTicketsFiltered_agent_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1406,7 +1430,7 @@ class TicketServiceTest {
     void getPoolTicketsFiltered_agent_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any()))
+        when(ticketRepository.findPoolTicketsFiltered(any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getPoolTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1472,7 +1496,7 @@ class TicketServiceTest {
     void getTeamTicketsFiltered_agentAdmin_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
-        when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1484,7 +1508,7 @@ class TicketServiceTest {
     void getTeamTicketsFiltered_agentAdmin_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
-        when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("admin-1", List.of("LEAD_AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1565,7 +1589,7 @@ class TicketServiceTest {
     void getTeamTicketsFiltered_agent_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1577,7 +1601,7 @@ class TicketServiceTest {
     void getTeamTicketsFiltered_agent_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
+        when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTeamTicketsFiltered("agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1643,7 +1667,7 @@ class TicketServiceTest {
     void getTicketsByProductFiltered_agent_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1655,7 +1679,7 @@ class TicketServiceTest {
     void getTicketsByProductFiltered_agent_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "agent-1", List.of("AGENT"), TicketFilterDTO.builder().build(), p);
@@ -1713,7 +1737,7 @@ class TicketServiceTest {
     @DisplayName("getTicketsByProductFiltered → CUSTOMER SLA ASC")
     void getTicketsByProductFiltered_customer_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
-        when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdAndCustomerIdFiltered(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
@@ -1724,7 +1748,7 @@ class TicketServiceTest {
     @DisplayName("getTicketsByProductFiltered → CUSTOMER SLA DESC")
     void getTicketsByProductFiltered_customer_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
-        when(ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any(), any()))
+        when(ticketRepository.findByProductIdAndCustomerIdFiltered(any(), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", List.of("CUSTOMER"), TicketFilterDTO.builder().build(), p);
@@ -1805,7 +1829,7 @@ class TicketServiceTest {
     void getAgentClaimedTicketsFiltered_sortSlaAsc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "slaDeadline"));
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(100L));
-        when(ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any()))
+        when(ticketRepository.findClaimedTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
@@ -1817,7 +1841,7 @@ class TicketServiceTest {
     void getAgentClaimedTicketsFiltered_sortSlaDesc() {
         Pageable p = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "slaDeadline"));
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(100L));
-        when(ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any()))
+        when(ticketRepository.findClaimedTicketsFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<Ticket> result = ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", TicketFilterDTO.builder().build(), p);
@@ -2764,12 +2788,14 @@ class TicketServiceTest {
     }
 
     @Test
-    void getAllAccessibleTicketsFiltered_sortBySla_routesToSlaQuery() {
+    void getAllAccessibleTicketsFiltered_sortBySla_fetchesViaTeamQueryAndSortsInMemory() {
+        // SLA sort artık ayrı bir DB sorgusuna yönlenmez: basit team sorgusuyla (unpaged) çeker,
+        // sıralamayı TicketQueryService.slaSortedPage bellekte yapar.
         when(productRepository.findAll()).thenReturn(List.of(product));
-        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
-        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyAsc(any(), any(), any(), any());
-        ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
-        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
+        when(ticketRepository.findTeamTicketsFiltered(any(), any(), any(), any())).thenReturn(new PageImpl<>(List.of()));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline")));
+        assertDoesNotThrow(() -> ticketQueryService.getAllAccessibleTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline")));
+        verify(ticketRepository, times(2)).findTeamTicketsFiltered(any(), any(), any(), any());
     }
 
     @Test
@@ -2805,8 +2831,6 @@ class TicketServiceTest {
         when(productRepository.findAll()).thenReturn(List.of(product));
         ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findTeamTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
-        ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
-        verify(ticketRepository).findTeamTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
         ticketQueryService.getTeamTicketsFiltered("mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findTeamTicketsFiltered(any(), any(), any(), any());
     }
@@ -2832,8 +2856,6 @@ class TicketServiceTest {
         when(ticketClaimRepository.findTicketIdsByAgentId("agent-1")).thenReturn(List.of(1L, 2L));
         ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findClaimedTicketsFilteredOrderByPriorityAsc(any(), any(), any(), any());
-        ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
-        verify(ticketRepository).findClaimedTicketsFilteredOrderBySlaUrgencyDesc(any(), any(), any(), any());
         ticketQueryService.getAgentClaimedTicketsFiltered("agent-1", emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findClaimedTicketsFiltered(any(), any(), any(), any());
     }
@@ -2896,8 +2918,6 @@ class TicketServiceTest {
     void getTicketsByProductFiltered_globalRole_sortAndExtraBranches() {
         ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findByProductIdFilteredOrderByPriorityAsc(eq(10L), any(), any(), any());
-        ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), sortedBy(Sort.Direction.DESC, "slaDeadline"));
-        verify(ticketRepository).findByProductIdFilteredOrderBySlaUrgencyDesc(eq(10L), any(), any(), any());
         assertDoesNotThrow(() -> ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
         ticketQueryService.getTicketsByProductFiltered(10L, "mgr-1", MGR_ROLES, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdFiltered(eq(10L), any(), any(), any());
@@ -2919,8 +2939,6 @@ class TicketServiceTest {
         List<String> cust = List.of("CUSTOMER");
         ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "priority"));
         verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderByPriorityAsc(eq(10L), eq("customer-1"), any(), any(), any());
-        ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), sortedBy(Sort.Direction.ASC, "slaDeadline"));
-        verify(ticketRepository).findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(eq(10L), eq("customer-1"), any(), any(), any());
         assertDoesNotThrow(() -> ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, TicketFilterDTO.builder().search("x").build(), PageRequest.of(0, 20)));
         ticketQueryService.getTicketsByProductFiltered(10L, "customer-1", cust, emptyFilter(), PageRequest.of(0, 20));
         verify(ticketRepository).findByProductIdAndCustomerIdFiltered(eq(10L), eq("customer-1"), any(), any(), any());

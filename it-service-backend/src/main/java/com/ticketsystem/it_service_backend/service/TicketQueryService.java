@@ -11,6 +11,7 @@ import com.ticketsystem.it_service_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -45,6 +47,7 @@ public class TicketQueryService {
     private final TicketClaimRepository ticketClaimRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final SlaPolicyService slaPolicyService;
 
     // -----------------------------------------------------------------
     // Listeleme
@@ -214,11 +217,9 @@ public class TicketQueryService {
                 : ticketRepository.findByCustomerIdFilteredOrderByPriorityDesc(customerId, f.getStatuses(), f.getPriorities(), u);
         }
         if (isSortBySla(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(customerId, f.getStatuses(), f.getPriorities(), u)
-                : ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(customerId, f.getStatuses(), f.getPriorities(), u);
+            List<Ticket> all = ticketRepository.findByCustomerIdFiltered(
+                    customerId, f.getStatuses(), f.getPriorities(), Pageable.unpaged()).getContent();
+            return slaSortedPage(all, pageable);
         }
         if (isSortByStatus(pageable)) {
             boolean asc = isAscending(pageable);
@@ -280,11 +281,9 @@ public class TicketQueryService {
                 : ticketRepository.findPoolTicketsFilteredOrderByPriorityDesc(productIds, f.getPriorities(), u);
         }
         if (isSortBySla(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyAsc(productIds, f.getPriorities(), u)
-                : ticketRepository.findPoolTicketsFilteredOrderBySlaUrgencyDesc(productIds, f.getPriorities(), u);
+            List<Ticket> all = ticketRepository.findPoolTicketsFiltered(
+                    productIds, f.getPriorities(), Pageable.unpaged()).getContent();
+            return slaSortedPage(all, pageable);
         }
         if (hasExtraFilters(f)) {
             return ticketRepository.findPoolTicketsFullFiltered(
@@ -329,11 +328,9 @@ public class TicketQueryService {
                 : ticketRepository.findClaimedTicketsFilteredOrderByPriorityDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
         }
         if (isSortBySla(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, f.getStatuses(), f.getPriorities(), u)
-                : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
+            List<Ticket> all = ticketRepository.findClaimedTicketsFiltered(
+                    ticketIds, f.getStatuses(), f.getPriorities(), Pageable.unpaged()).getContent();
+            return slaSortedPage(all, pageable);
         }
         if (isSortByStatus(pageable)) {
             boolean asc = isAscending(pageable);
@@ -445,11 +442,9 @@ public class TicketQueryService {
                 : ticketRepository.findTeamTicketsFilteredOrderByPriorityDesc(productIds, statuses, f.getPriorities(), u);
         }
         if (isSortBySla(pageable)) {
-            boolean asc = isAscending(pageable);
-            Pageable u = toUnsorted(pageable);
-            return asc
-                ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
-                : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
+            List<Ticket> all = ticketRepository.findTeamTicketsFiltered(
+                    productIds, statuses, f.getPriorities(), Pageable.unpaged()).getContent();
+            return slaSortedPage(all, pageable);
         }
         if (isSortByStatus(pageable)) {
             boolean asc = isAscending(pageable);
@@ -531,11 +526,9 @@ public class TicketQueryService {
                     : ticketRepository.findByProductIdFilteredOrderByPriorityDesc(productId, f.getStatuses(), f.getPriorities(), u);
             }
             if (isSortBySla(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(productId, f.getStatuses(), f.getPriorities(), u)
-                    : ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(productId, f.getStatuses(), f.getPriorities(), u);
+                List<Ticket> all = ticketRepository.findByProductIdFiltered(
+                        productId, f.getStatuses(), f.getPriorities(), Pageable.unpaged()).getContent();
+                return slaSortedPage(all, pageable);
             }
             if (isSortByStatus(pageable)) {
                 boolean asc = isAscending(pageable);
@@ -560,11 +553,9 @@ public class TicketQueryService {
                     : ticketRepository.findByProductIdAndCustomerIdFilteredOrderByPriorityDesc(productId, userId, f.getStatuses(), f.getPriorities(), u);
             }
             if (isSortBySla(pageable)) {
-                boolean asc = isAscending(pageable);
-                Pageable u = toUnsorted(pageable);
-                return asc
-                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(productId, userId, f.getStatuses(), f.getPriorities(), u)
-                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(productId, userId, f.getStatuses(), f.getPriorities(), u);
+                List<Ticket> all = ticketRepository.findByProductIdAndCustomerIdFiltered(
+                        productId, userId, f.getStatuses(), f.getPriorities(), Pageable.unpaged()).getContent();
+                return slaSortedPage(all, pageable);
             }
             if (isSortByStatus(pageable)) {
                 boolean asc = isAscending(pageable);
@@ -763,6 +754,62 @@ public class TicketQueryService {
     private Pageable toUnsorted(Pageable pageable) {
         return org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(), pageable.getPageSize());
+    }
+
+    /**
+     * Sorts the given tickets by SLA <em>remaining time</em> and returns the requested page.
+     *
+     * <p>The DB fetch only scopes/filters the rows (and gives a stable base order); the
+     * user-visible order is applied here because a PAUSED ticket's displayed remaining is
+     * frozen at {@code budget(priority) - elapsed} and bears no relation to {@code slaDeadline}
+     * (only re-projected on resume) — ordering by the deadline column would scatter paused
+     * tickets. {@link #slaRemainingForSort} mirrors {@code WorkflowService.getSlaTimerInfo} so
+     * the order matches the SLA badge exactly. Row counts are bounded by the role/product
+     * scope, so this in-memory pass is cheap.
+     */
+    private Page<Ticket> slaSortedPage(List<Ticket> tickets, Pageable pageable) {
+        Comparator<Long> byValue = isAscending(pageable) ? Comparator.naturalOrder() : Comparator.reverseOrder();
+        // Completed (CLOSED → null remaining) always sinks to the end, regardless of direction.
+        Comparator<Ticket> cmp = Comparator
+                .comparing(this::slaRemainingForSort, Comparator.nullsLast(byValue))
+                .thenComparing(Ticket::getId);
+        List<Ticket> sorted = new ArrayList<>(tickets);
+        sorted.sort(cmp);
+
+        int total = sorted.size();
+        int from = (int) Math.min(pageable.getOffset(), total);
+        int to = Math.min(from + pageable.getPageSize(), total);
+        return new PageImpl<>(sorted.subList(from, to), pageable, total);
+    }
+
+    /**
+     * Remaining SLA time (ms) used only for sorting; mirrors {@code WorkflowService.getSlaTimerInfo}:
+     * CLOSED → {@code null} (sinks last, shown as "Completed"); breached/expired → 0 (most urgent end);
+     * paused (paused-at set or WAITING/RESOLVED) → {@code budget(priority) - elapsed}; otherwise the
+     * live {@code slaDeadline - now}. Floored at 0 so all expired tickets tie at the urgent end.
+     */
+    private Long slaRemainingForSort(Ticket t) {
+        String status = t.getStatus() != null ? t.getStatus() : "";
+        if (ST_CLOSED.equals(status)) return null;
+        if (Boolean.TRUE.equals(t.getSlaBreached())) return 0L;
+
+        long elapsed = t.getSlaElapsedMs() != null ? t.getSlaElapsedMs() : 0L;
+        boolean paused = t.getSlaPausedAt() != null || ST_RESOLVED.equals(status) || ST_WAITING.equals(status);
+        if (paused) {
+            return Math.max(0L, slaPolicyService.getSlaDurationMs(t.getPriority()) - elapsed);
+        }
+
+        long deadline;
+        if (t.getSlaDeadline() != null) {
+            deadline = t.getSlaDeadline().toInstant().toEpochMilli();
+        } else {
+            long duration = slaPolicyService.getSlaDurationMs(t.getPriority());
+            long resumedMs = t.getSlaResumedAt() != null ? t.getSlaResumedAt().toInstant().toEpochMilli()
+                    : t.getCreatedAt() != null ? t.getCreatedAt().toInstant().toEpochMilli()
+                    : System.currentTimeMillis();
+            deadline = resumedMs + (duration - elapsed);
+        }
+        return Math.max(0L, deadline - System.currentTimeMillis());
     }
 
     /**
