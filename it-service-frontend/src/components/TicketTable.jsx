@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 import SortableTh from './SortableTh';
+import { useColumnResize } from '../hooks/useColumnResize';
 import { AlertTriangle, Inbox, Star } from 'lucide-react';
 
 export default function TicketTable({
@@ -30,10 +31,6 @@ export default function TicketTable({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [tickSeconds, setTickSeconds] = useState(0);
-  // Sütun genişlikleri yalnızca oturum boyunca state'te tutulur (kalıcı değil —
-  // sayfa yenilenince DEFAULT_COL_WIDTHS'e döner). Anahtar: sütun id'si.
-  const [colWidths, setColWidths] = useState({});
-  const [resizing, setResizing] = useState(false);
 
   useEffect(() => {
     if (!showSla) return undefined;
@@ -41,19 +38,25 @@ export default function TicketTable({
     return () => clearInterval(timer);
   }, [showSla]);
 
-  // Sürükleme sürerken metin seçimini ve imleci global olarak ayarla. DOM mutasyonu
-  // efekt içinde olmalı (react-hooks/immutability), o yüzden body stilini burada yönetiyoruz.
-  useEffect(() => {
-    if (!resizing) return undefined;
-    const prevSelect = document.body.style.userSelect;
-    const prevCursor = document.body.style.cursor;
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
-    return () => {
-      document.body.style.userSelect = prevSelect;
-      document.body.style.cursor = prevCursor;
-    };
-  }, [resizing]);
+  const showClaimers = typeof forceShowClaimers === 'boolean'
+    ? forceShowClaimers
+    : (tickets || []).some((tk) => tk.claimers?.length > 0);
+  const sortable = typeof onSort === 'function';
+  // Action sütunu kararı: renderActions öncelikli, yoksa shortcut showClaimButton.
+  const useCustomActions = typeof renderActions === 'function';
+  const showActionsColumn = useCustomActions || Boolean(showClaimButton);
+
+  // Aktif sütunlar colgroup/thead ile AYNI sırada; opsiyonel sütunlar bayrağa göre düşer.
+  const columnOrder = [
+    'id', 'title', 'status', 'priority',
+    showSla && 'sla',
+    showClaimers && 'claimers',
+    showCsat && 'csat',
+    'created',
+    showActionsColumn && 'actions',
+  ].filter(Boolean);
+  // Sürüklenebilir sütun genişlikleri — hook erken return'den önce çağrılmalı.
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULT_COL_WIDTHS, columnOrder);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -74,54 +77,6 @@ export default function TicketTable({
       </div>
     );
   }
-
-  const showClaimers = typeof forceShowClaimers === 'boolean'
-    ? forceShowClaimers
-    : tickets.some((tk) => tk.claimers?.length > 0);
-  const sortable = typeof onSort === 'function';
-
-  // Action sütunu kararı: renderActions öncelikli, yoksa shortcut showClaimButton.
-  const useCustomActions = typeof renderActions === 'function';
-  const showActionsColumn = useCustomActions || Boolean(showClaimButton);
-
-  // Aktif sütunlar colgroup/thead ile AYNI sırada; opsiyonel sütunlar bayrağa göre düşer.
-  const columnOrder = [
-    'id', 'title', 'status', 'priority',
-    showSla && 'sla',
-    showClaimers && 'claimers',
-    showCsat && 'csat',
-    'created',
-    showActionsColumn && 'actions',
-  ].filter(Boolean);
-  // Son sütun esnek kalır (sabit genişlik verilmez) ki tabloyu container'ın sağ
-  // kenarına kadar doldursun — diğerleri sürüklenebilir sabit genişlikli.
-  const lastColId = columnOrder[columnOrder.length - 1];
-  const widthOf = (id) => colWidths[id] ?? DEFAULT_COL_WIDTHS[id];
-  const tableWidth = columnOrder.reduce((sum, id) => sum + widthOf(id), 0);
-
-  // Tutamaca basılınca, bırakana kadar fareyi izleyip yalnızca o sütunun
-  // genişliğini günceller. Dinleyiciler aynı kapanış içinde eklenip kaldırıldığı
-  // için referanslar eşleşir (useCallback/ref gerekmez).
-  const startResize = (e, id) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startW = widthOf(id);
-    const onMove = (ev) => {
-      const next = Math.max(MIN_COL_WIDTH, startW + (ev.clientX - startX));
-      setColWidths((prev) => ({ ...prev, [id]: next }));
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      setResizing(false);
-    };
-    setResizing(true);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-  // Son (esnek) sütun sürüklenemez — kalan alanı kendisi doldurur.
-  const handleFor = (id) => (id === lastColId ? null : <ResizeHandle onStart={(e) => startResize(e, id)} />);
 
   return (
     <>
@@ -203,13 +158,7 @@ export default function TicketTable({
           (sağ kenara yapışık). minWidth = sütun toplamı: container darsa o sütun
           default'una iner ve yatay scroll çıkar, içerik ezilmez. */}
       <table className="ticket-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: `${tableWidth}px` }}>
-        <colgroup>
-          {columnOrder.map((id) => (
-            id === lastColId
-              ? <col key={id} />
-              : <col key={id} style={{ width: `${widthOf(id)}px` }} />
-          ))}
-        </colgroup>
+        {renderColgroup()}
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
             <SortableTh field="id"          label={t('ticket.table.id')}       sortBy={sortBy} sortDir={sortDir} onSort={sortable ? onSort : null} resizeHandle={handleFor('id')} />
@@ -328,29 +277,6 @@ const DEFAULT_COL_WIDTHS = {
   created: 140,
   actions: 160,
 };
-// Bir sütun bu pikselin altına küçültülemez.
-const MIN_COL_WIDTH = 60;
-
-/**
- * Başlığın sağ kenarındaki sürükleme tutamacı. 10px'lik tıklama alanı, üzerine
- * gelince ince bir dikey çizgi gösterir. mousedown sıralamayı tetiklemesin diye
- * onStart içinde event durdurulur.
- */
-function ResizeHandle({ onStart }) {
-  return (
-    <span
-      role="separator"
-      aria-orientation="vertical"
-      onMouseDown={onStart}
-      onClick={(e) => e.stopPropagation()}
-      className="group absolute top-0 right-0 h-full flex items-center justify-end select-none"
-      style={{ width: '10px', cursor: 'col-resize', touchAction: 'none' }}
-      title={'Sürükleyerek sütun genişliğini ayarla'}
-    >
-      <span className="h-1/2 w-px bg-transparent group-hover:bg-primary-400 transition-colors" />
-    </span>
-  );
-}
 
 /** CSAT yıldız puanı; puan yoksa nötr bir tire gösterir. */
 function CsatStars({ rating, t }) {
