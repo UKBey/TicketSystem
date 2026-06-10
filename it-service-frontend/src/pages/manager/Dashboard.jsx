@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { formatTime } from '../../utils/dateFormat';
 import { ArrowUpRight, CalendarRange, Clock3, LayoutDashboard, RefreshCw, ShieldAlert, Star } from 'lucide-react';
 import metricService from '../../services/metricService';
 import KpiCard from '../../components/dashboard/KpiCard';
@@ -194,7 +195,7 @@ export default function Dashboard() {
   ]), [summary, t]);
 
   const syncLabel = lastUpdated
-    ? t('dashboard.lastUpdated', { time: lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) })
+    ? t('dashboard.lastUpdated', { time: formatTime(lastUpdated) })
     : t('dashboard.notYetSynced');
 
   return (

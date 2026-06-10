@@ -12,6 +12,7 @@ import api, {
   unfavoriteCannedResponse,
 } from '../services/api';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } from '../utils/cannedResponses';
+import { formatDate } from '../utils/dateFormat';
 import PaginationBar from '../components/PaginationBar';
 
 const EMPTY_FORM = {
@@ -65,16 +66,13 @@ export default function CannedResponsesPage() {
 
   const sampleCtx = useMemo(() => {
     const tr = i18n.language?.startsWith('tr');
-    let date = '';
-    try { date = new Date().toLocaleDateString(tr ? 'tr-TR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }); }
-    catch { date = new Date().toLocaleDateString(); }
     return {
       'musteri.ad': tr ? 'Ahmet Yılmaz' : 'John Doe',
       'agent.ad': user?.name || 'Agent',
       'bilet.no': 'TCK-001',
       urun: 'VPN',
       konu: tr ? 'Bağlantı sorunu' : 'Connection issue',
-      tarih: date,
+      tarih: formatDate(new Date()),
     };
   }, [i18n.language, user]);
 

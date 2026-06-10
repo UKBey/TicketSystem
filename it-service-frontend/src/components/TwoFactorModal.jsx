@@ -4,18 +4,12 @@ import { X, Smartphone, Plus, Trash2, ShieldCheck, AlertTriangle } from 'lucide-
 import userService from '../services/userService';
 import { redirectToKeycloakLogin } from '../keycloak';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
+import { formatDateTime } from '../utils/dateFormat';
 
-function formatDate(epochMillis, lang) {
-  if (!epochMillis) return '—';
-  const d = new Date(Number(epochMillis));
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US', {
-    year:   'numeric',
-    month:  'short',
-    day:    'numeric',
-    hour:   '2-digit',
-    minute: '2-digit',
-  });
+// Tarih biçimi kullanıcının seçtiği formatta (utils/dateFormat); dil util içinden (i18n)
+// okunur, bu yüzden lang param'ı (geriye dönük imza uyumu için durur) yok sayılır.
+function formatDate(epochMillis, _lang) {
+  return formatDateTime(epochMillis);
 }
 
 function DeviceRow({ device, lang, onDelete, deletingId, t }) {

@@ -13,16 +13,9 @@ import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
+import { formatDate } from '../../utils/dateFormat';
 
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
-
-/** Tarih formatlayıcı */
-const formatDate = (isoString) => {
-  if (!isoString) return '—';
-  return new Date(isoString).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-  });
-};
 
 // Sürüklenebilir sütun varsayılan genişlikleri (px). Son sütun (actions) esner.
 const COL_WIDTHS = { name: 200, email: 260, role: 130, username: 180, createdAt: 140, actions: 110 };

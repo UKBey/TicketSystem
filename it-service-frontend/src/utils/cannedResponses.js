@@ -5,6 +5,7 @@
  * Placeholders are stored raw on the server ({@code {{...}}}) and filled here at
  * insertion time from the ticket/agent context the frontend already holds.
  */
+import { formatDate } from './dateFormat';
 
 /** Supported merge-field tokens (used by the management editor's "insert placeholder" helper). */
 export const PLACEHOLDER_TOKENS = [
@@ -22,22 +23,15 @@ const TOKEN_RE = /\{\{\s*([\w.]+)\s*\}\}/g;
  * Builds the placeholder value map from the ticket and the current agent.
  * @param {{ ticket?: object, user?: object, language?: string }} args
  */
-export function buildPlaceholderContext({ ticket, user, language } = {}) {
+export function buildPlaceholderContext({ ticket, user } = {}) {
   const ticketNo = ticket?.id != null ? `TCK-${String(ticket.id).padStart(3, '0')}` : '';
-  const locale = language === 'tr' ? 'tr-TR' : 'en-US';
-  let date = '';
-  try {
-    date = new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    date = new Date().toLocaleDateString();
-  }
   return {
     'musteri.ad': ticket?.customerName || '',
     'agent.ad': user?.name || '',
     'bilet.no': ticketNo,
     urun: ticket?.productName || '',
     konu: ticket?.topicName || '',
-    tarih: date,
+    tarih: formatDate(new Date()),
   };
 }
 

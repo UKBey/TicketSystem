@@ -5,6 +5,7 @@ import { StatusBadge, PriorityBadge } from './Badges';
 import SlaTimerBadge from './SlaTimerBadge';
 import SortableTh from './SortableTh';
 import { useColumnResize } from '../hooks/useColumnResize';
+import { formatDateTime } from '../utils/dateFormat';
 import { AlertTriangle, Inbox, Star } from 'lucide-react';
 
 export default function TicketTable({
@@ -58,13 +59,6 @@ export default function TicketTable({
   // Sürüklenebilir sütun genişlikleri — hook erken return'den önce çağrılmalı.
   const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULT_COL_WIDTHS, columnOrder);
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-    });
-  };
 
   if (!tickets || tickets.length === 0) {
     return (
@@ -118,7 +112,7 @@ export default function TicketTable({
                 <CsatStars rating={ticket.csatRating} t={t} />
               </div>
             )}
-            <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDate(ticket.createdAt)}</div>
+            <div className="text-[11px] mb-2" style={{ color: 'var(--text-secondary)' }}>{formatDateTime(ticket.createdAt)}</div>
             {showActionsColumn && (
               <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: 'var(--border-color-light)' }}>
                 {useCustomActions ? (
@@ -227,7 +221,7 @@ export default function TicketTable({
                 </td>
               )}
               <td className="px-4 py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                {formatDate(ticket.createdAt)}
+                {formatDateTime(ticket.createdAt)}
               </td>
               {showActionsColumn && (
                 <td className="px-4 py-3">

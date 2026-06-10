@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Inbox } from 'lucide-react';
 import { StatusBadge, PriorityBadge } from '../Badges';
 import Skeleton from '../Skeleton';
+import { formatDateTime as formatDate } from '../../utils/dateFormat';
 
 /**
  * Compact, clickable "recent tickets" list for the personal dashboards. Reuses the
@@ -12,13 +13,6 @@ import Skeleton from '../Skeleton';
 export default function RecentTicketsList({ tickets, loading, title, emptyText }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
-
-  const formatDate = (value) => {
-    if (!value) return '—';
-    return new Date(value).toLocaleDateString('en-US', {
-      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-    });
-  };
 
   return (
     <section className="rounded-2xl border p-4 shadow-sm sm:rounded-3xl sm:p-6" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>

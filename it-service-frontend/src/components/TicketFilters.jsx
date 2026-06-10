@@ -5,6 +5,7 @@ import api from '../services/api';
 import MultiSelectFilter from './filters/MultiSelectFilter';
 import FilterSearchInput from './filters/FilterSearchInput';
 import FilterChip from './filters/FilterChip';
+import { formatDate } from '../utils/dateFormat';
 import ClearFiltersButton from './filters/ClearFiltersButton';
 
 const STATUSES   = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
@@ -215,7 +216,7 @@ export default function TicketFilters({
           ))}
           {(dateFrom || dateTo) && (
             <FilterChip
-              label={`${t('ticket.filters.from')}: ${dateFrom ? new Date(dateFrom).toLocaleDateString() : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString() : '…'}`}
+              label={`${t('ticket.filters.from')}: ${dateFrom ? formatDate(dateFrom) : '…'} → ${dateTo ? formatDate(dateTo) : '…'}`}
               onRemove={() => { onDateFrom(''); onDateTo(''); }}
             />
           )}
@@ -274,7 +275,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
         }}
       >
         {hasDate
-          ? `${dateFrom ? new Date(dateFrom).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '…'} → ${dateTo ? new Date(dateTo).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '…'}`
+          ? `${dateFrom ? formatDate(dateFrom) : '…'} → ${dateTo ? formatDate(dateTo) : '…'}`
           : t('ticket.filters.dateRange')}
         <ChevronDown className="h-3 w-3" />
       </button>

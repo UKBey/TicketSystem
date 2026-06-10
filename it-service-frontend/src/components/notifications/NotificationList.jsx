@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, Trash2 } from 'lucide-react';
 import { getNotifications } from '../../services/notificationApi';
 import { useNotifications } from '../../hooks/useNotifications';
+import { formatDate } from '../../utils/dateFormat';
 
 function timeAgo(dateStr, t) {
   if (!dateStr) return '';
@@ -11,7 +12,7 @@ function timeAgo(dateStr, t) {
   if (diff < 60)    return t('notification.justNow');
   if (diff < 3600)  return t('notification.minutesAgo', { count: Math.floor(diff / 60) });
   if (diff < 86400) return t('notification.hoursAgo',   { count: Math.floor(diff / 3600) });
-  return new Date(dateStr).toLocaleDateString();
+  return formatDate(dateStr);
 }
 
 export default function NotificationList({ onMarkAllRead, onClose }) {

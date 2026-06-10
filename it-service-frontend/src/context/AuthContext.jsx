@@ -4,6 +4,7 @@ import keycloak, { redirectToKeycloakLogin, redirectToKeycloakLogout } from '../
 import api from '../services/api';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
+import { useDateFormat } from './DateFormatContext';
 
 const AuthContext = createContext(null);
 
@@ -15,6 +16,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
   const { theme, setTheme } = useTheme();
+  const { applyServerDateFormat } = useDateFormat();
   // useEffect tek-seferlik calistigi icin theme'i closure'a hapsetmek istemiyoruz —
   // sync sirasinda guncel degeri okuyabilelim diye ref'te tutuyoruz.
   const themeRef = useRef(theme);
@@ -47,11 +49,13 @@ export function AuthProvider({ children }) {
     // deger client'i ezmez; oncelik her zaman Keycloak ekranindaki secimdedir.
     const syncUserPreferences = () => {
       api.post('/users/sync')
-        .then(() => {
+        .then((res) => {
           const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
           api.put('/users/me/language', null, { params: { lang } }).catch(() => {});
           // setTheme temayi (gorsel degisiklik olmadan) ayarlar ve backend'e persist eder.
           setTheme(themeRef.current);
+          // Tarih formatinin Keycloak ekrani kaynagi yok — DB'deki deger client'i besler.
+          if (res.data?.preferredDateFormat) applyServerDateFormat(res.data.preferredDateFormat);
         })
         .catch(err => console.error('Sync error:', err));
     };
@@ -96,7 +100,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
     };
-  }, [extractUserInfo, setTheme]);
+  }, [extractUserInfo, setTheme, applyServerDateFormat]);
 
   const refreshUser = useCallback(async () => {
     // Force-refresh token so updated claims (name/email) reach the client,

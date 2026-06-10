@@ -1,3 +1,5 @@
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from './dateFormat';
+
 export const STATUS_OPTIONS = {
   NEW: ['IN_PROGRESS'],
   IN_PROGRESS: ['NEW', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'],
@@ -18,20 +20,15 @@ export function formatSlaTime(ms) {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
+// Tarih biçimlendirme tek kaynaktan (utils/dateFormat) — kullanıcının seçtiği formatı
+// kullanır. formatDate = tarih + saat; formatShortDate = yalnız tarih (geriye dönük
+// uyumluluk için boş değerde '' döner).
 export function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'numeric', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
+  return fmtDateTime(dateStr);
 }
 
 export function formatShortDate(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
+  return dateStr ? fmtDate(dateStr) : '';
 }
 
 export function formatMinutes(mins) {
