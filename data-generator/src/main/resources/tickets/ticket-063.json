@@ -1,4 +1,4 @@
-﻿{
+{
     "title":  "FiGO report export to Excel producing files with corrupted Turkish characters",
     "description":  "When exporting expense reports from FiGO to Excel format, Turkish characters (c, s, g, u, o, i with Turkish diacritics) appear as question marks or garbage characters in the Excel file. The FiGO web view shows the characters correctly. The Excel export is used for monthly reporting to management.",
     "priority":  "MEDIUM",
@@ -34,7 +34,7 @@
                      {
                          "author":  "customer",
                          "type":  "EXTERNAL",
-                         "message":  "Re-exported and opened in Excel - Turkish characters are now showing correctly. SÃ¼kran, GÃ¼neÅŸ, Ã–zkan - all correct. Thank you."
+                         "message":  "Re-exported and opened in Excel - Turkish characters are now showing correctly. Sükran, Güneş, Özkan - all correct. Thank you."
                      }
                  ],
     "resolutionNote":  "FiGO Excel export was generating UTF-8 files without BOM. Excel on Windows defaults to Windows-1252 when BOM is absent, corrupting Turkish characters. Changed FiGO export encoding to UTF-8 with BOM."

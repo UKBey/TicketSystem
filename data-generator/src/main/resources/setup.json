@@ -1,4 +1,4 @@
-﻿{
+{
     "products":  [
                      {
                          "name":  "IBM Business Automation Workflow",
@@ -1073,63 +1073,63 @@
                                                "title":  "Greeting",
                                                "shortcut":  "hello",
                                                "visibility":  "BOTH",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, ben {{agent.ad}}. {{bilet.no}} numaralÄ± talebinizle ilgileniyorum. Size nasÄ±l yardÄ±mcÄ± olabilirim?",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, ben {{agent.ad}}. {{bilet.no}} numaralı talebinizle ilgileniyorum. Size nasıl yardımcı olabilirim?",
                                                "contentEn":  "Hello {{musteri.ad}}, I\u0027m {{agent.ad}} and I\u0027ll be handling your ticket {{bilet.no}}. How can I help you?"
                                            },
                                            {
                                                "title":  "Request received",
                                                "shortcut":  "received",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, talebinizi aldÄ±k ve incelemeye baÅŸladÄ±k. En kÄ±sa sÃ¼rede size dÃ¶nÃ¼ÅŸ yapacaÄŸÄ±z.",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, talebinizi aldık ve incelemeye başladık. En kısa sürede size dönüş yapacağız.",
                                                "contentEn":  "Hi {{musteri.ad}}, we\u0027ve received your request and started reviewing it. We\u0027ll get back to you shortly."
                                            },
                                            {
                                                "title":  "Additional information request",
                                                "shortcut":  "inforequest",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, sorunu daha hÄ±zlÄ± Ã§Ã¶zebilmemiz iÃ§in ekran gÃ¶rÃ¼ntÃ¼sÃ¼, tam hata mesajÄ± ve sorunun ne zaman baÅŸladÄ±ÄŸÄ± bilgisini paylaÅŸÄ±r mÄ±sÄ±nÄ±z?",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, sorunu daha hızlı çözebilmemiz için ekran görüntüsü, tam hata mesajı ve sorunun ne zaman başladığı bilgisini paylaşır mısınız?",
                                                "contentEn":  "Hi {{musteri.ad}}, to resolve this faster, could you share a screenshot, the exact error message, and when the issue started?"
                                            },
                                            {
                                                "title":  "Resolution confirmation",
                                                "shortcut":  "resolved",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, {{bilet.no}} numaralÄ± talebinizde bildirdiÄŸiniz sorunu Ã§Ã¶zdÃ¼k. Her ÅŸeyin yolunda olduÄŸunu teyit eder misiniz?",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, {{bilet.no}} numaralı talebinizde bildirdiğiniz sorunu çözdük. Her şeyin yolunda olduğunu teyit eder misiniz?",
                                                "contentEn":  "Hi {{musteri.ad}}, we\u0027ve resolved the issue reported in ticket {{bilet.no}}. Could you confirm everything is working now?"
                                            },
                                            {
                                                "title":  "Closure",
                                                "shortcut":  "closure",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Geri bildiriminiz iÃ§in teÅŸekkÃ¼rler {{musteri.ad}}. BaÅŸka bir sorun yaÅŸarsanÄ±z bu talebi yeniden aÃ§abilir veya yeni bir talep oluÅŸturabilirsiniz. Ä°yi gÃ¼nler dileriz.",
+                                               "contentTr":  "Geri bildiriminiz için teşekkürler {{musteri.ad}}. Başka bir sorun yaşarsanız bu talebi yeniden açabilir veya yeni bir talep oluşturabilirsiniz. İyi günler dileriz.",
                                                "contentEn":  "Thanks for your feedback, {{musteri.ad}}. If anything else comes up, feel free to reopen this ticket or open a new one. Have a great day!"
                                            },
                                            {
                                                "title":  "Follow-up and reminder",
                                                "shortcut":  "followup",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, {{bilet.no}} numaralÄ± talebinizle ilgili geri dÃ¶nÃ¼ÅŸÃ¼nÃ¼zÃ¼ bekliyoruz. Sorun devam ediyorsa bize yazmanÄ±z yeterli.",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, {{bilet.no}} numaralı talebinizle ilgili geri dönüşünüzü bekliyoruz. Sorun devam ediyorsa bize yazmanız yeterli.",
                                                "contentEn":  "Hi {{musteri.ad}}, we\u0027re still waiting for your reply on ticket {{bilet.no}}. Just let us know if the issue persists."
                                            },
                                            {
                                                "title":  "Remote connection request",
                                                "shortcut":  "remote",
                                                "visibility":  "EXTERNAL",
-                                               "contentTr":  "Merhaba {{musteri.ad}}, sorunu birlikte incelemek iÃ§in kÄ±sa bir uzak baÄŸlantÄ± oturumu aÃ§abilir miyiz? Uygun olduÄŸunuz bir zaman aralÄ±ÄŸÄ± paylaÅŸÄ±rsanÄ±z baÄŸlantÄ±yÄ± iletelim.",
+                                               "contentTr":  "Merhaba {{musteri.ad}}, sorunu birlikte incelemek için kısa bir uzak bağlantı oturumu açabilir miyiz? Uygun olduğunuz bir zaman aralığı paylaşırsanız bağlantıyı iletelim.",
                                                "contentEn":  "Hi {{musteri.ad}}, could we start a short remote session to look into this together? Share a time that works for you and we\u0027ll send the connection link."
                                            },
                                            {
                                                "title":  "Internal: escalation note",
                                                "shortcut":  "escalation",
                                                "visibility":  "INTERNAL",
-                                               "contentTr":  "Dahili not: Bu talep ({{bilet.no}}) 2. seviye ekibe yÃ¶nlendirildi. Sebep: ilk mÃ¼dahalede Ã§Ã¶zÃ¼lemedi. Ä°lgili loglar ve denenen adÄ±mlar eklendi.",
+                                               "contentTr":  "Dahili not: Bu talep ({{bilet.no}}) 2. seviye ekibe yönlendirildi. Sebep: ilk müdahalede çözülemedi. İlgili loglar ve denenen adımlar eklendi.",
                                                "contentEn":  "Internal note: This ticket ({{bilet.no}}) has been escalated to L2. Reason: not resolved on first response. Relevant logs and attempted steps attached."
                                            },
                                            {
                                                "title":  "Internal: awaiting customer response",
                                                "shortcut":  "pending",
                                                "visibility":  "INTERNAL",
-                                               "contentTr":  "Dahili not: MÃ¼ÅŸteriden ek bilgi/teyit bekleniyor. {{tarih}} itibarÄ±yla yanÄ±t gelmedi; 48 saat iÃ§inde dÃ¶nÃ¼ÅŸ olmazsa talep otomatik kapatÄ±lacak.",
+                                               "contentTr":  "Dahili not: Müşteriden ek bilgi/teyit bekleniyor. {{tarih}} itibarıyla yanıt gelmedi; 48 saat içinde dönüş olmazsa talep otomatik kapatılacak.",
                                                "contentEn":  "Internal note: Waiting on the customer for more info/confirmation. No reply as of {{tarih}}; the ticket will auto-close if there\u0027s no response within 48 hours."
                                            }
                                        ],
@@ -1138,49 +1138,49 @@
                                                    "title":  "{product} -- Installation and setup steps",
                                                    "shortcut":  "setup",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} kurulumu iÃ§in: 1) YazÄ±lÄ±m merkezinden paketi indirin. 2) YÃ¶netici olarak Ã§alÄ±ÅŸtÄ±rÄ±n. 3) Kurumsal hesabÄ±nÄ±zla oturum aÃ§Ä±n. Kurulum sonrasÄ± sorun yaÅŸarsanÄ±z {{bilet.no}} Ã¼zerinden bize yazÄ±n.",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} kurulumu için: 1) Yazılım merkezinden paketi indirin. 2) Yönetici olarak çalıştırın. 3) Kurumsal hesabınızla oturum açın. Kurulum sonrası sorun yaşarsanız {{bilet.no}} üzerinden bize yazın.",
                                                    "contentEn":  "Hi {{musteri.ad}}, to install {{urun}}: 1) Download the package from Software Center. 2) Run it as administrator. 3) Sign in with your corporate account. If you hit any issue after install, reply on {{bilet.no}}."
                                                },
                                                {
                                                    "title":  "{product} -- Version and update",
                                                    "shortcut":  "version",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} iÃ§in en gÃ¼ncel sÃ¼rÃ¼mÃ¼ kullandÄ±ÄŸÄ±nÄ±zdan emin olalÄ±m. YardÄ±m \u003e HakkÄ±nda menÃ¼sÃ¼nden sÃ¼rÃ¼m numaranÄ±zÄ± paylaÅŸÄ±r mÄ±sÄ±nÄ±z?",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} için en güncel sürümü kullandığınızdan emin olalım. Yardım \u003e Hakkında menüsünden sürüm numaranızı paylaşır mısınız?",
                                                    "contentEn":  "Hi {{musteri.ad}}, let\u0027s make sure you\u0027re on the latest {{urun}} version. Could you share your version number from Help \u003e About?"
                                                },
                                                {
                                                    "title":  "{product} -- Known issue guidance",
                                                    "shortcut":  "knownissue",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, \u0027{{konu}}\u0027 konusundaki bu durum {{urun}} iÃ§in bilinen bir sorun olabilir. Bilgi tabanÄ±ndaki ilgili Ã§Ã¶zÃ¼mÃ¼ uyguladÄ±ktan sonra sonucu bizimle paylaÅŸÄ±r mÄ±sÄ±nÄ±z?",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, \u0027{{konu}}\u0027 konusundaki bu durum {{urun}} için bilinen bir sorun olabilir. Bilgi tabanındaki ilgili çözümü uyguladıktan sonra sonucu bizimle paylaşır mısınız?",
                                                    "contentEn":  "Hi {{musteri.ad}}, this \u0027{{konu}}\u0027 situation may be a known issue for {{urun}}. Could you try the matching knowledge-base resolution and let us know the result?"
                                                },
                                                {
                                                    "title":  "{product} -- Log collection request",
                                                    "shortcut":  "logs",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, sorunu analiz edebilmemiz iÃ§in {{urun}} uygulama log dosyasÄ±nÄ± paylaÅŸÄ±r mÄ±sÄ±nÄ±z? Loglar genellikle kurulum dizini altÄ±ndaki \u0027logs\u0027 klasÃ¶rÃ¼nde bulunur.",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, sorunu analiz edebilmemiz için {{urun}} uygulama log dosyasını paylaşır mısınız? Loglar genellikle kurulum dizini altındaki \u0027logs\u0027 klasöründe bulunur.",
                                                    "contentEn":  "Hi {{musteri.ad}}, to investigate further, could you share the {{urun}} application log file? Logs are typically in the \u0027logs\u0027 folder under the installation directory."
                                                },
                                                {
                                                    "title":  "{product} -- License and access request",
                                                    "shortcut":  "license",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} iÃ§in lisans/eriÅŸim talebinizi aldÄ±k. YÃ¶neticinizin onayÄ±nÄ±n ardÄ±ndan eriÅŸiminiz {{tarih}} tarihinden itibaren en geÃ§ 1 iÅŸ gÃ¼nÃ¼ iÃ§inde tanÄ±mlanacaktÄ±r.",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} için lisans/erişim talebinizi aldık. Yöneticinizin onayının ardından erişiminiz {{tarih}} tarihinden itibaren en geç 1 iş günü içinde tanımlanacaktır.",
                                                    "contentEn":  "Hi {{musteri.ad}}, we\u0027ve received your {{urun}} license/access request. After your manager\u0027s approval, access will be granted within 1 business day from {{tarih}}."
                                                },
                                                {
                                                    "title":  "{product} -- Internal: configuration note",
                                                    "shortcut":  "confignote",
                                                    "visibility":  "INTERNAL",
-                                                   "contentTr":  "Dahili not ({{urun}}): Standart yapÄ±landÄ±rma uygulandÄ±, sÃ¼rÃ¼m uyumu kontrol edildi. Sonraki agent iÃ§in: mÃ¼ÅŸteri ortamÄ±nda Ã¶zel ayar var, {{bilet.no}} geÃ§miÅŸine bakÄ±lmalÄ±.",
+                                                   "contentTr":  "Dahili not ({{urun}}): Standart yapılandırma uygulandı, sürüm uyumu kontrol edildi. Sonraki agent için: müşteri ortamında özel ayar var, {{bilet.no}} geçmişine bakılmalı.",
                                                    "contentEn":  "Internal note ({{urun}}): Standard configuration applied; version compatibility checked. For the next agent: the customer has a custom setting, check the {{bilet.no}} history."
                                                },
                                                {
                                                    "title":  "{product} -- Maintenance window notice",
                                                    "shortcut":  "maintenance",
                                                    "visibility":  "EXTERNAL",
-                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} Ã¼zerinde planlÄ± bir bakÄ±m Ã§alÄ±ÅŸmasÄ± nedeniyle hizmet kÄ±sa sÃ¼reliÄŸine kesintiye uÄŸrayabilir. Ã‡alÄ±ÅŸma {{tarih}} tarihinde gerÃ§ekleÅŸtirilecek, tamamlanÄ±nca sizi bilgilendireceÄŸiz.",
+                                                   "contentTr":  "Merhaba {{musteri.ad}}, {{urun}} üzerinde planlı bir bakım çalışması nedeniyle hizmet kısa süreliğine kesintiye uğrayabilir. Çalışma {{tarih}} tarihinde gerçekleştirilecek, tamamlanınca sizi bilgilendireceğiz.",
                                                    "contentEn":  "Hi {{musteri.ad}}, please note that {{urun}} may experience a brief interruption due to a planned maintenance window scheduled for {{tarih}}. We will notify you once it is complete."
                                                }
                                            ]
