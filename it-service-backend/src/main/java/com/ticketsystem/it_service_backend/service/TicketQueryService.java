@@ -39,6 +39,7 @@ public class TicketQueryService {
     private static final String ST_CLOSED = "CLOSED";
     private static final String MSG_USER_NOT_FOUND = "Kullanıcı bulunamadı: ";
     private static final String VAR_SLA_DEADLINE = "slaDeadline";
+    private static final String VAR_STATUS = "status";
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
@@ -219,6 +220,13 @@ public class TicketQueryService {
                 ? ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyAsc(customerId, f.getStatuses(), f.getPriorities(), u)
                 : ticketRepository.findByCustomerIdFilteredOrderBySlaUrgencyDesc(customerId, f.getStatuses(), f.getPriorities(), u);
         }
+        if (isSortByStatus(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findByCustomerIdFilteredOrderByStatusAsc(customerId, f.getStatuses(), f.getPriorities(), u)
+                : ticketRepository.findByCustomerIdFilteredOrderByStatusDesc(customerId, f.getStatuses(), f.getPriorities(), u);
+        }
         // Full filter (includes search, dateFrom, dateTo, slaStatus, agentId, productId)
         if (hasExtraFilters(f)) {
             return ticketRepository.findByCustomerIdFullFiltered(
@@ -326,6 +334,13 @@ public class TicketQueryService {
             return asc
                 ? ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyAsc(ticketIds, f.getStatuses(), f.getPriorities(), u)
                 : ticketRepository.findClaimedTicketsFilteredOrderBySlaUrgencyDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
+        }
+        if (isSortByStatus(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findClaimedTicketsFilteredOrderByStatusAsc(ticketIds, f.getStatuses(), f.getPriorities(), u)
+                : ticketRepository.findClaimedTicketsFilteredOrderByStatusDesc(ticketIds, f.getStatuses(), f.getPriorities(), u);
         }
         if (isSortByCsat(pageable)) {
             boolean asc = isAscending(pageable);
@@ -436,6 +451,13 @@ public class TicketQueryService {
                 ? ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyAsc(productIds, statuses, f.getPriorities(), u)
                 : ticketRepository.findTeamTicketsFilteredOrderBySlaUrgencyDesc(productIds, statuses, f.getPriorities(), u);
         }
+        if (isSortByStatus(pageable)) {
+            boolean asc = isAscending(pageable);
+            Pageable u = toUnsorted(pageable);
+            return asc
+                ? ticketRepository.findTeamTicketsFilteredOrderByStatusAsc(productIds, statuses, f.getPriorities(), u)
+                : ticketRepository.findTeamTicketsFilteredOrderByStatusDesc(productIds, statuses, f.getPriorities(), u);
+        }
         if (isSortByCsat(pageable)) {
             boolean asc = isAscending(pageable);
             Pageable u = toUnsorted(pageable);
@@ -515,6 +537,13 @@ public class TicketQueryService {
                     ? ticketRepository.findByProductIdFilteredOrderBySlaUrgencyAsc(productId, f.getStatuses(), f.getPriorities(), u)
                     : ticketRepository.findByProductIdFilteredOrderBySlaUrgencyDesc(productId, f.getStatuses(), f.getPriorities(), u);
             }
+            if (isSortByStatus(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable u = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdFilteredOrderByStatusAsc(productId, f.getStatuses(), f.getPriorities(), u)
+                    : ticketRepository.findByProductIdFilteredOrderByStatusDesc(productId, f.getStatuses(), f.getPriorities(), u);
+            }
             if (hasExtraFilters(f)) {
                 return ticketRepository.findByProductIdFullFiltered(
                         productId, statusesOrAll(f), prioritiesOrAll(f), toSearchPattern(f.getSearch()),
@@ -536,6 +565,13 @@ public class TicketQueryService {
                 return asc
                     ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(productId, userId, f.getStatuses(), f.getPriorities(), u)
                     : ticketRepository.findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(productId, userId, f.getStatuses(), f.getPriorities(), u);
+            }
+            if (isSortByStatus(pageable)) {
+                boolean asc = isAscending(pageable);
+                Pageable u = toUnsorted(pageable);
+                return asc
+                    ? ticketRepository.findByProductIdAndCustomerIdFilteredOrderByStatusAsc(productId, userId, f.getStatuses(), f.getPriorities(), u)
+                    : ticketRepository.findByProductIdAndCustomerIdFilteredOrderByStatusDesc(productId, userId, f.getStatuses(), f.getPriorities(), u);
             }
             if (hasExtraFilters(f)) {
                 return ticketRepository.findByProductIdAndCustomerIdFullFiltered(
@@ -679,6 +715,11 @@ public class TicketQueryService {
                 .anyMatch(order -> VAR_SLA_DEADLINE.equals(order.getProperty()));
     }
 
+    private boolean isSortByStatus(Pageable pageable) {
+        return pageable.getSort().stream()
+                .anyMatch(order -> VAR_STATUS.equals(order.getProperty()));
+    }
+
     private boolean isSortByCsat(Pageable pageable) {
         return pageable.getSort().stream()
                 .anyMatch(order -> "csatRating".equals(order.getProperty()));
@@ -712,6 +753,7 @@ public class TicketQueryService {
         return pageable.getSort().stream()
                 .filter(order -> "priority".equals(order.getProperty())
                               || VAR_SLA_DEADLINE.equals(order.getProperty())
+                              || VAR_STATUS.equals(order.getProperty())
                               || "csatRating".equals(order.getProperty()))
                 .findFirst()
                 .map(Sort.Order::isAscending)

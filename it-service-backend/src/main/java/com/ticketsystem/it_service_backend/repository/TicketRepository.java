@@ -544,21 +544,19 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             Pageable pageable);
 
     /**
-     * Customer tickets — paged in SLA urgency order.
-     * Group 0: overdue ({@code slaBreached=true}) — deadline ASC (longest overdue = most urgent).
-     * Group 1: timer running ({@code slaBreached=false}, not paused) — deadline ASC (least time remaining = urgent).
-     * Group 2: paused ({@code slaPausedAt IS NOT NULL}) — deadline ASC.
+     * Customer tickets — paged by SLA deadline (remaining time).
+     * Since remaining = {@code slaDeadline - now} and {@code now} is constant within a query,
+     * ordering by {@code slaDeadline} is equivalent to ordering by remaining time on a single
+     * continuous scale: overdue/breached tickets (deadline in the past) sit at the urgent end,
+     * the most time-remaining at the other; {@code NULLS LAST} keeps deadline-less tickets last.
+     * ASC = least remaining first (most urgent → breached at top); DESC = most remaining first.
      */
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findByCustomerIdFilteredOrderBySlaUrgencyAsc(
             @Param("customerId") String customerId,
@@ -571,11 +569,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.customerId = :customerId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findByCustomerIdFilteredOrderBySlaUrgencyDesc(
             @Param("customerId") String customerId,
@@ -605,6 +599,39 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
     Page<Ticket> findByCustomerIdFilteredOrderByPriorityDesc(
+            @Param("customerId") String customerId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    /**
+     * Customer tickets — paged in ticket-lifecycle status order
+     * (NEW → IN_PROGRESS → WAITING_FOR_CUSTOMER → RESOLVED → CLOSED). ASC follows the
+     * lifecycle, DESC reverses it. Mirrors the priority-sort variants.
+     */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderByStatusAsc(
+            @Param("customerId") String customerId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.customerId = :customerId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
+        """)
+    Page<Ticket> findByCustomerIdFilteredOrderByStatusDesc(
             @Param("customerId") String customerId,
             @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
@@ -654,11 +681,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.status = 'NEW'
           AND t.productId IN :productIds
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findPoolTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("productIds") List<Long> productIds,
@@ -670,11 +693,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.status = 'NEW'
           AND t.productId IN :productIds
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findPoolTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("productIds") List<Long> productIds,
@@ -755,6 +774,35 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
+    /** Claimed tickets — paged in ticket-lifecycle status order (see {@link #findByCustomerIdFilteredOrderByStatusAsc}). */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderByStatusAsc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.id IN :ticketIds
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
+        """)
+    Page<Ticket> findClaimedTicketsFilteredOrderByStatusDesc(
+            @Param("ticketIds") List<Long> ticketIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
     /** Team tickets — paged with status + priority filters, scoped to the agent's authorized products. */
     @Query("""
         SELECT t FROM Ticket t
@@ -791,6 +839,35 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
     Page<Ticket> findTeamTicketsFilteredOrderByPriorityDesc(
+            @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    /** Team tickets — paged in ticket-lifecycle status order (see {@link #findByCustomerIdFilteredOrderByStatusAsc}). */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status IN :statuses
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderByStatusAsc(
+            @Param("productIds") List<Long> productIds,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId IN :productIds
+          AND t.status IN :statuses
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
+        """)
+    Page<Ticket> findTeamTicketsFilteredOrderByStatusDesc(
             @Param("productIds") List<Long> productIds,
             @Param("statuses") List<String> statuses,
             @Param("priorities") List<String> priorities,
@@ -869,6 +946,35 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
+    /** Product tickets (agent/admin) — paged in ticket-lifecycle status order (see {@link #findByCustomerIdFilteredOrderByStatusAsc}). */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
+        """)
+    Page<Ticket> findByProductIdFilteredOrderByStatusAsc(
+            @Param("productId") Long productId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
+        """)
+    Page<Ticket> findByProductIdFilteredOrderByStatusDesc(
+            @Param("productId") Long productId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
     /** Product tickets (customer view) — paged per product, restricted to the given customer. */
     @Query("""
         SELECT t FROM Ticket t
@@ -916,16 +1022,45 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("priorities") List<String> priorities,
             Pageable pageable);
 
+    /** Product tickets (customer view) — paged in ticket-lifecycle status order (see {@link #findByCustomerIdFilteredOrderByStatusAsc}). */
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderByStatusAsc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
+    @Query("""
+        SELECT t FROM Ticket t
+        WHERE t.productId = :productId
+          AND t.customerId = :customerId
+          AND (:statuses IS NULL OR t.status IN :statuses)
+          AND (:priorities IS NULL OR t.priority IN :priorities)
+        ORDER BY
+          CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
+        """)
+    Page<Ticket> findByProductIdAndCustomerIdFilteredOrderByStatusDesc(
+            @Param("productId") Long productId,
+            @Param("customerId") String customerId,
+            @Param("statuses") List<String> statuses,
+            @Param("priorities") List<String> priorities,
+            Pageable pageable);
+
     // Havuz (NEW) biletleri — ADMIN/MANAGER icin tum urunler, SLA urgency sirasi ile
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findAllPoolTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("priorities") List<String> priorities,
@@ -935,11 +1070,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findAllPoolTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("priorities") List<String> priorities,
@@ -951,11 +1082,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.id IN :ticketIds
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findClaimedTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("ticketIds") List<Long> ticketIds,
@@ -968,11 +1095,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.id IN :ticketIds
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findClaimedTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("ticketIds") List<Long> ticketIds,
@@ -986,11 +1109,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.productId IN :productIds
           AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("productIds") List<Long> productIds,
@@ -1003,11 +1122,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.productId IN :productIds
           AND t.status IN :statuses
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findTeamTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("productIds") List<Long> productIds,
@@ -1020,11 +1135,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findAllTeamTicketsFilteredOrderBySlaUrgencyAsc(
             @Param("priorities") List<String> priorities,
@@ -1034,11 +1145,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findAllTeamTicketsFilteredOrderBySlaUrgencyDesc(
             @Param("priorities") List<String> priorities,
@@ -1050,11 +1157,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.productId = :productId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findByProductIdFilteredOrderBySlaUrgencyAsc(
             @Param("productId") Long productId,
@@ -1067,11 +1170,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.productId = :productId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findByProductIdFilteredOrderBySlaUrgencyDesc(
             @Param("productId") Long productId,
@@ -1086,11 +1185,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND t.customerId = :customerId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END ASC,
-          t.slaDeadline ASC NULLS LAST
+        ORDER BY t.slaDeadline ASC NULLS LAST
         """)
     Page<Ticket> findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyAsc(
             @Param("productId") Long productId,
@@ -1105,11 +1200,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND t.customerId = :customerId
           AND (:statuses IS NULL OR t.status IN :statuses)
           AND (:priorities IS NULL OR t.priority IN :priorities)
-        ORDER BY
-          CASE WHEN t.slaBreached = true THEN 0
-               WHEN t.slaPausedAt IS NULL THEN 1
-               ELSE 2 END DESC,
-          t.slaDeadline DESC NULLS LAST
+        ORDER BY t.slaDeadline DESC NULLS LAST
         """)
     Page<Ticket> findByProductIdAndCustomerIdFilteredOrderBySlaUrgencyDesc(
             @Param("productId") Long productId,
