@@ -142,6 +142,7 @@ function TicketTimelineChart({
                     dot={false}
                     activeDot={{ r: 5 }}
                     hide={!visibleSeries[series.key] || loading}
+                    isAnimationActive={false}
                   />
                 ))}
 
