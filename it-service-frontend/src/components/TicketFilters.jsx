@@ -107,7 +107,6 @@ export default function TicketFilters({
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 px-4 py-3">
 
         <FilterSearchInput
-          key={search || '__empty__'}
           value={search}
           onChange={onSearch}
           placeholder={t('ticket.filters.searchPlaceholder')}
