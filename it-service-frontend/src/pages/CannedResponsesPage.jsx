@@ -11,7 +11,7 @@ import api, {
   favoriteCannedResponse,
   unfavoriteCannedResponse,
 } from '../services/api';
-import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs } from '../utils/cannedResponses';
+import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } from '../utils/cannedResponses';
 import PaginationBar from '../components/PaginationBar';
 
 const EMPTY_FORM = {
@@ -365,7 +365,9 @@ export default function CannedResponsesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {pageItems.map((item) => {
             const langs = availableLangs(item);
-            const preview = fillPlaceholders(item.contentTr || item.contentEn || '', sampleCtx);
+            // Seçili UI dilinde göster; o dil yoksa pickContent diğer varyanta düşer.
+            const { content } = pickContent(item, i18n.language?.startsWith('tr') ? 'tr' : 'en');
+            const preview = fillPlaceholders(content, sampleCtx);
             return (
               <div
                 key={item.id}
