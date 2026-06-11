@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -253,7 +254,10 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
         </>
       )}
 
-      {isModalOpen && (
+      {/* Portal şart: bu bileşen ProductPanel'de resizable-table hücresi içinde render edilir;
+          td'lerin position+z-index'i stacking context yarattığından fixed modal tabloda öteki
+          satırların ALTINDA kalır. body'ye taşınınca z-50 overlay her zaman en üsttedir. */}
+      {isModalOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
@@ -338,7 +342,8 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
