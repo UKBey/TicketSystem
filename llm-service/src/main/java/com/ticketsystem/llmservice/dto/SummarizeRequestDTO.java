@@ -3,7 +3,6 @@ package com.ticketsystem.llmservice.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
-import java.time.ZonedDateTime;
 import java.util.List;
 
 /**

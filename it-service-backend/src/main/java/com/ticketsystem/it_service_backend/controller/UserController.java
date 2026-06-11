@@ -100,7 +100,7 @@ public class UserController {
         java.util.Set<String> appRoles = roles.stream()
                 .map(String::toUpperCase)
                 .filter(UserService.APP_ROLES::contains)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         String assignedRole = UserService.resolveHighestRole(new java.util.ArrayList<>(appRoles));
 
         User user = User.builder()

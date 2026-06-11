@@ -1,7 +1,6 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
-import com.ticketsystem.it_service_backend.service.SlaPolicyService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
