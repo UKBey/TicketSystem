@@ -1,3 +1,7 @@
+# Host degisikligi (ticketsystem.local -> example.com) kustomization.yaml'daki
+# JSON6902 patch ile yapilir — strategic merge ile `rules:` listesine dokunmak
+# base'deki TUM path tanimlarini siliyordu (Ingress rules'ta merge key yok,
+# liste komple replace edilir). Burada yalniz annotation + tls eklenir.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -15,5 +19,3 @@ spec:
     - hosts:
         - ticketsystem.example.com
       secretName: ticketsystem-tls
-  rules:
-    - host: ticketsystem.example.com

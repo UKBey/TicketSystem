@@ -6,15 +6,19 @@ data:
   # ============================================================================
   # OPS-8 — Keycloak URL tek dogruluk kaynagi
   #
-  # Bu dosyada Keycloak hostname'i 4 yerde tekrar eder (KEYCLOAK_FRONTEND_URL,
-  # KC_HOSTNAME_URL, KC_HOSTNAME_ADMIN_URL, JWT_ISSUER_URI). Kustomize
-  # ConfigMap icinde value substitution yapmadigi icin elle hizalanir.
+  # Bu dosyada Keycloak hostname'i 3 yerde tekrar eder (KEYCLOAK_FRONTEND_URL,
+  # KC_HOSTNAME_URL, JWT_ISSUER_URI). Kustomize ConfigMap icinde value
+  # substitution yapmadigi icin elle hizalanir.
   #
-  # KURAL: Hostname'i degistirirken bu dosyadaki TUM 4 girisi + ilgili overlay'i
+  # KURAL: Hostname'i degistirirken bu dosyadaki TUM 3 girisi + ilgili overlay'i
   # ayni anda guncelle. Asagidaki gruplar agresif olarak yakindir; senkron tut:
   #   base:           ticketsystem.local
   #   overlays/local: localhost
   #   overlays/prod:  ticketsystem.example.com (override)
+  #
+  # KC_HOSTNAME_ADMIN_URL hostname'i TAKIP ETMEZ — ingress /auth/admin'i route
+  # etmedigi icin admin konsolu yalniz port-forward ile erisilir ve URL'i
+  # localhost:8080'e sabitlidir (tum overlay'lerde ayni; override edilmez).
   #
   # JWK_SET_URI ayri tutulur — in-cluster service hostname (nginx'i atlar);
   # performans icin frontend URL'den ayri.
@@ -22,9 +26,11 @@ data:
 
   # ---- Public Keycloak URLs (tek dogruluk kaynagi) ----
   KEYCLOAK_FRONTEND_URL: "http://ticketsystem.local/auth"
-  # Asagidakiler KEYCLOAK_FRONTEND_URL ile ayni olmali — Kustomize replace mi yok.
+  # Asagidaki KEYCLOAK_FRONTEND_URL ile ayni olmali — Kustomize replace mi yok.
   KC_HOSTNAME_URL: "http://ticketsystem.local/auth"
-  KC_HOSTNAME_ADMIN_URL: "http://ticketsystem.local/auth"
+  # Admin konsolu ingress'ten sunulmaz (yalniz /auth/realms + /auth/resources
+  # route'lu). Erisim: kubectl -n ticketsystem port-forward svc/keycloak-iam 8080:8080
+  KC_HOSTNAME_ADMIN_URL: "http://localhost:8080/auth"
   KC_HTTP_RELATIVE_PATH: "/auth"
   KC_PROXY_HEADERS: "xforwarded"
   KC_DB: "postgres"

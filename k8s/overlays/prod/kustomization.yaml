@@ -21,6 +21,29 @@ patches:
   - path: patches/replicas.yaml
   - path: patches/ingress-prod.yaml
   - path: patches/configmap-app-prod.yaml
+  # Ingress host'unu sadece tek alanda degistirmek icin JSON6902 patch
+  # (local overlay'deki ile ayni teknik). Strategic merge ile rules listesine
+  # dokunulsa base'deki path tanimlari komple kaybolur.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: ticketsystem
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: ticketsystem.example.com
+  # WebSocket ingress ayni host'u kullanmali — TLS sertifikasi ana ingress'in
+  # tls bloğundan gelir, ayrica tanimlamaya gerek yok.
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: ticketsystem-websocket
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: ticketsystem.example.com
 
 # Image tag stratejisi — silent downgrade'i (`:latest` + `IfNotPresent`) önlemek
 # için CD pipeline'ı her deploy'da `kustomize edit set image` ile newTag'i git

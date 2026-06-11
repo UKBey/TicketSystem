@@ -32,7 +32,25 @@ spec:
                 name: it-service-backend
                 port:
                   number: 8081
-          - path: /auth
+          # Keycloak — YALNIZ son-kullanici yuzeyi route edilir (compose'daki
+          # nginx/nginx.conf allowlist'inin birebir karsiligi):
+          #   /auth/realms    -> OIDC + login-actions (login, TOTP, forgot-password), account
+          #   /auth/resources -> login/account temasi asset'leri
+          # /auth/admin, /auth/welcome ve ciplak /auth KASITLI olarak route edilmez:
+          # catch-all `/` ile frontend SPA'ya duser — ziyaretci hata sayfasi degil
+          # uygulamanin "boyle bir sayfa yok" akisini gorur, arkada IAM oldugu belli
+          # olmaz. Admin konsoluna erisim ingress'ten DEGIL port-forward ile yapilir:
+          #   kubectl -n ticketsystem port-forward svc/keycloak-iam 8080:8080
+          #   tarayicida: http://localhost:8080/auth/admin/
+          # (KC_HOSTNAME_ADMIN_URL bu adrese sabitlenmistir — bkz. configmap-app.yaml)
+          - path: /auth/realms
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-iam
+                port:
+                  number: 8080
+          - path: /auth/resources
             pathType: Prefix
             backend:
               service:

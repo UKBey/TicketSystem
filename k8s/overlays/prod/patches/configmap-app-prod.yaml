@@ -6,10 +6,11 @@
 # `ticketsystem.example.com` placeholder — `ingress-prod.yaml`'daki host ile
 # ayni olmali. Gercek prod domain'iyle degistir.
 #
-# OPS-8: Domain'i degistirirken asagidaki 4 satiri (KEYCLOAK_FRONTEND_URL,
-# KC_HOSTNAME_URL, KC_HOSTNAME_ADMIN_URL, JWT_ISSUER_URI) ve `ingress-prod.yaml`'i
-# birlikte guncelle. JWK_SET_URI base'den miras kalir — in-cluster servis hostname'i
-# kullandigi icin domain degisikliginden etkilenmez.
+# OPS-8: Domain'i degistirirken asagidaki 3 satiri (KEYCLOAK_FRONTEND_URL,
+# KC_HOSTNAME_URL, JWT_ISSUER_URI) ve `ingress-prod.yaml`'i birlikte guncelle.
+# KC_HOSTNAME_ADMIN_URL override EDILMEZ — base'de localhost:8080'e (port-forward)
+# sabitli; ingress admin'i route etmiyor. JWK_SET_URI de base'den miras kalir —
+# in-cluster servis hostname'i kullandigi icin domain degisikliginden etkilenmez.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,6 +18,5 @@ metadata:
 data:
   KEYCLOAK_FRONTEND_URL: "https://ticketsystem.example.com/auth"
   KC_HOSTNAME_URL: "https://ticketsystem.example.com/auth"
-  KC_HOSTNAME_ADMIN_URL: "https://ticketsystem.example.com/auth"
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "https://ticketsystem.example.com/auth/realms/TicketSystemRealm"
   MAIL_FROM: "noreply@ticketsystem.example.com"

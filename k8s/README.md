@@ -47,6 +47,15 @@ kubectl -n ticketsystem get pods -w
 
 Site opens at <http://localhost>.
 
+> **Keycloak Admin Console** is intentionally NOT served through the ingress
+> (only `/auth/realms` and `/auth/resources` are routed; anything else under
+> `/auth` falls through to the SPA). Reach it via port-forward:
+>
+> ```powershell
+> kubectl -n ticketsystem port-forward svc/keycloak-iam 8080:8080
+> # browser: http://localhost:8080/auth/admin/
+> ```
+
 > Pods stay `Pending` / `ImagePullBackOff` until `make k8s-load-images` (step 4) finishes —
 > `kind load` needs the cluster to exist first, so it runs after `make k8s-up`.
 >

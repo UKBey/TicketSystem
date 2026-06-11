@@ -3,10 +3,12 @@
 # alanlari override ediyoruz. Keycloak realm export'u zaten localhost'a gore
 # client redirect URI tanimli (keycloak-init/realm-export.json).
 #
-# OPS-8: 4 URL ayni hostname kullanir — base'deki yorumla ayni kural:
-# Hostname'i degistirirken 4 satiri (FRONTEND_URL, HOSTNAME_URL, ADMIN_URL,
-# JWT_ISSUER_URI) birlikte guncelle. JWK_SET_URI overlay'lerde override edilmez
-# cunku in-cluster service hostname'i (keycloak-iam:8080) degismez.
+# OPS-8: 3 URL ayni hostname kullanir — base'deki yorumla ayni kural:
+# Hostname'i degistirirken 3 satiri (FRONTEND_URL, HOSTNAME_URL, JWT_ISSUER_URI)
+# birlikte guncelle. KC_HOSTNAME_ADMIN_URL override EDILMEZ — base'de
+# localhost:8080'e (port-forward) sabitli; ingress admin'i route etmiyor.
+# JWK_SET_URI de override edilmez cunku in-cluster service hostname'i
+# (keycloak-iam:8080) degismez.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -14,7 +16,6 @@ metadata:
 data:
   KEYCLOAK_FRONTEND_URL: "http://localhost/auth"
   KC_HOSTNAME_URL: "http://localhost/auth"
-  KC_HOSTNAME_ADMIN_URL: "http://localhost/auth"
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost/auth/realms/TicketSystemRealm"
   MAIL_FROM: "noreply@localhost"
   # Lokal test/seed icin rate limit pratikte kapali — data-generator yuksek hizla

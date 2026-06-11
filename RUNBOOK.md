@@ -207,8 +207,9 @@ git add k8s/overlays/prod/app-secrets.sealed.yaml
 Single source of truth: `KEYCLOAK_FRONTEND_URL`. When it changes, update the following places IN SYNC:
 
 - **Compose:** `KEYCLOAK_FRONTEND_URL` in `.env` (compose derives `JWT_ISSUER_URI` from it)
-- **K8s base:** `k8s/base/configmap-app.yaml` — 4 lines (`KEYCLOAK_FRONTEND_URL`, `KC_HOSTNAME_URL`, `KC_HOSTNAME_ADMIN_URL`, `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI`)
-- **K8s overlay:** the relevant overlay (`overlays/local|prod/patches/configmap-app-*.yaml`) — the same 4 lines
+- **K8s base:** `k8s/base/configmap-app.yaml` — 3 lines (`KEYCLOAK_FRONTEND_URL`, `KC_HOSTNAME_URL`, `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI`)
+- **K8s overlay:** the relevant overlay (`overlays/local|prod/patches/configmap-app-*.yaml`) — the same 3 lines
+- **`KC_HOSTNAME_ADMIN_URL` does NOT follow the hostname** — the ingress only routes `/auth/realms` + `/auth/resources`, so the admin console is reachable solely via `kubectl -n ticketsystem port-forward svc/keycloak-iam 8080:8080` and its URL is pinned to `http://localhost:8080/auth` in the base configmap (never overridden).
 - **Ingress (prod):** `k8s/overlays/prod/patches/ingress-prod.yaml` `tls.hosts` + `rules.host`
 - **JWK_SET_URI:** uses the in-cluster service hostname (`http://keycloak-iam:8080/...`); NOT AFFECTED by a domain change — don't touch it.
 
