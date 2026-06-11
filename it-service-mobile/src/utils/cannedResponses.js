@@ -3,6 +3,7 @@
  * varyant seçimi ve görünürlük eşleşmesi. Web tarafıyla aynı mantık (saf JS).
  * Placeholder'lar sunucuda ham ({{...}}) saklanır; ekleme anında istemcide doldurulur.
  */
+import { localizedName } from './localizedName';
 
 export const PLACEHOLDER_TOKENS = [
   'musteri.ad',
@@ -28,8 +29,8 @@ export function buildPlaceholderContext({ ticket, user, language } = {}) {
     'musteri.ad': ticket?.customerName || '',
     'agent.ad': user?.name || '',
     'bilet.no': ticketNo,
-    urun: ticket?.productName || '',
-    konu: ticket?.topicName || '',
+    urun: localizedName(ticket, 'productName') || '',
+    konu: localizedName(ticket, 'topicName') || '',
     tarih: date,
   };
 }

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { getAgentLimits, setAgentLimit } from '../api/users';
 import SheetBackdrop from './SheetBackdrop';
+import { localizedName } from '../utils/localizedName';
 
 /**
  * Bir agent'ın ürün bazlı bilet limit override'larını yöneten modal.
@@ -123,7 +124,7 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
                   >
                     <View style={styles.rowHead}>
                       <Text style={[styles.prodName, { color: theme.textPrimary }]} numberOfLines={1}>
-                        {p.name}
+                        {localizedName(p)}
                       </Text>
                       <Text style={[styles.default, { color: theme.textTertiary }]}>
                         {t('admin.panel.agentLimitsDefault', 'Varsayılan')}:{' '}

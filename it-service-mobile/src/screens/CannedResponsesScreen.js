@@ -13,6 +13,7 @@ import {
 import PickerField from '../components/PickerField';
 import SheetBackdrop from '../components/SheetBackdrop';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs } from '../utils/cannedResponses';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 const EMPTY = { title: '', shortcut: '', scope: 'PERSONAL', productId: null, visibility: 'BOTH', contentTr: '', contentEn: '' };
 
@@ -206,7 +207,7 @@ export default function CannedResponsesScreen() {
           options={[
             { label: t('cannedResponses.allProducts', 'All products'), value: 'ALL' },
             { label: t('cannedResponses.productGlobal', 'Global (all products)'), value: 'GLOBAL' },
-            ...products.map((p) => ({ label: p.name, value: p.id })),
+            ...sortByLocalizedName(products).map((p) => ({ label: localizedName(p), value: p.id })),
           ]}
         />
 
@@ -338,7 +339,7 @@ export default function CannedResponsesScreen() {
                 onChange={(v) => setForm((f) => ({ ...f, productId: v }))}
                 options={[
                   { label: t('cannedResponses.productGlobal', 'Global (all products)'), value: null },
-                  ...products.map((p) => ({ label: p.name, value: p.id })),
+                  ...sortByLocalizedName(products).map((p) => ({ label: localizedName(p), value: p.id })),
                 ]}
               />
 

@@ -22,6 +22,7 @@ import {
 } from '../api/products';
 import PickerField from '../components/PickerField';
 import SheetBackdrop from '../components/SheetBackdrop';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 /** Bilinen sorunlar bilgi tabanı — ürün seç, akordeon liste; admin ekler/siler. */
 export default function KnownIssuesScreen() {
@@ -115,7 +116,7 @@ export default function KnownIssuesScreen() {
           placeholder={t('knownIssues.selectProduct', 'Ürün seç')}
           value={productId}
           onChange={setProductId}
-          options={products.map((p) => ({ label: p.name, value: p.id }))}
+          options={sortByLocalizedName(products).map((p) => ({ label: localizedName(p), value: p.id }))}
         />
 
         {canManage && productId && (
@@ -196,7 +197,7 @@ export default function KnownIssuesScreen() {
               onChange={(v) => setForm((f) => ({ ...f, topicId: v }))}
               options={[
                 { label: t('knownIssues.noTopic', 'Konu yok'), value: null },
-                ...topics.map((tp) => ({ label: tp.name, value: tp.id })),
+                ...sortByLocalizedName(topics).map((tp) => ({ label: localizedName(tp), value: tp.id })),
               ]}
             />
             <View style={styles.sheetActions}>

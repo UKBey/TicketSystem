@@ -28,6 +28,7 @@ import {
 import SheetBackdrop from '../components/SheetBackdrop';
 import SlaBadge from '../components/SlaBadge';
 import PickerField from '../components/PickerField';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 const STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -266,7 +267,7 @@ export default function TicketListScreen({ navigation, route }) {
         <Text style={[styles.metaText, { color: priorityColor(item.priority) }]}>
           {priorityLabel(item.priority, t)}
         </Text>
-        <Text style={[styles.metaText, { color: theme.textTertiary }]}>{item.productName || '—'}</Text>
+        <Text style={[styles.metaText, { color: theme.textTertiary }]}>{localizedName(item, 'productName') || '—'}</Text>
         <Text style={[styles.metaText, { color: theme.textTertiary }]}>{formatDate(item.createdAt)}</Text>
       </View>
     </Pressable>
@@ -274,11 +275,11 @@ export default function TicketListScreen({ navigation, route }) {
 
   const productOptions = [
     { label: t('ticket.filters.allProducts', 'Tüm ürünler'), value: null },
-    ...products.map((p) => ({ label: p.name, value: p.id })),
+    ...sortByLocalizedName(products).map((p) => ({ label: localizedName(p), value: p.id })),
   ];
   const topicOptions = [
     { label: t('ticket.filters.allTopics', 'Tüm konular'), value: null },
-    ...topics.map((tp) => ({ label: tp.name, value: tp.id })),
+    ...sortByLocalizedName(topics).map((tp) => ({ label: localizedName(tp), value: tp.id })),
   ];
   const agentOptions = [
     { label: t('ticket.filters.allAgents', 'Tüm ajanlar'), value: null },

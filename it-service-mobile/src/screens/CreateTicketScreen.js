@@ -15,6 +15,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getProducts, getProductTopics, getKnownIssues } from '../api/products';
 import { createTicket } from '../api/tickets';
 import { priorityLabel } from '../utils/format';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import PickerField from '../components/PickerField';
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -144,7 +145,7 @@ export default function CreateTicketScreen({ navigation }) {
           placeholder={t('createTicket.selectProduct', 'Ürün seç')}
           value={productId}
           onChange={setProductId}
-          options={products.map((p) => ({ label: p.name, value: p.id }))}
+          options={sortByLocalizedName(products).map((p) => ({ label: localizedName(p), value: p.id }))}
         />
 
         <PickerField
@@ -160,7 +161,7 @@ export default function CreateTicketScreen({ navigation }) {
           options={
             productId && topics.length === 0
               ? [{ label: t('createTicket.noTopicOption', 'Konusuz'), value: NO_TOPIC }]
-              : topics.map((tp) => ({ label: tp.name, value: tp.id }))
+              : sortByLocalizedName(topics).map((tp) => ({ label: localizedName(tp), value: tp.id }))
           }
         />
 

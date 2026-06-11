@@ -27,6 +27,7 @@ import {
   deleteTopic,
 } from '../api/products';
 import SheetBackdrop from '../components/SheetBackdrop';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 /** Ürünler — liste, ürün biletleri, konular; admin için ürün/konu ekle-düzenle-sil. */
 export default function ProductsScreen({ navigation }) {
@@ -43,8 +44,8 @@ export default function ProductsScreen({ navigation }) {
   const [expanded, setExpanded] = useState(null);
   const [topicsById, setTopicsById] = useState({});
 
-  const [productForm, setProductForm] = useState(null); // { id?, name, isActive, maxActiveTickets }
-  const [topicForm, setTopicForm] = useState(null); // { id?, productId, name, isActive }
+  const [productForm, setProductForm] = useState(null); // { id?, nameTr, nameEn, isActive, maxActiveTickets }
+  const [topicForm, setTopicForm] = useState(null); // { id?, productId, nameTr, nameEn, isActive }
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
@@ -82,14 +83,16 @@ export default function ProductsScreen({ navigation }) {
   };
 
   const saveProduct = async () => {
-    const name = (productForm.name || '').trim();
-    if (!name) {
-      Alert.alert(t('productPanel.errorNameRequired', 'Ürün adı boş olamaz.'));
+    const nameTr = (productForm.nameTr || '').trim();
+    const nameEn = (productForm.nameEn || '').trim();
+    if (!nameTr && !nameEn) {
+      Alert.alert(t('productPanel.errorNameRequired', 'En az bir ürün adı (Türkçe veya İngilizce) girilmelidir.'));
       return;
     }
     const maxRaw = String(productForm.maxActiveTickets ?? '').trim();
     const body = {
-      name,
+      nameTr,
+      nameEn,
       isActive: productForm.isActive,
       maxActiveTickets: maxRaw ? parseInt(maxRaw, 10) : null,
     };
@@ -109,7 +112,7 @@ export default function ProductsScreen({ navigation }) {
   const removeProduct = (product) => {
     Alert.alert(
       t('productPanel.confirmDelete', 'Bu ürünü silmek istediğinizden emin misiniz?'),
-      product.name,
+      localizedName(product),
       [
         { text: t('common.cancel', 'İptal'), style: 'cancel' },
         {
@@ -129,12 +132,13 @@ export default function ProductsScreen({ navigation }) {
   };
 
   const saveTopic = async () => {
-    const name = (topicForm.name || '').trim();
-    if (!name) {
-      Alert.alert(t('topic.errorNameRequired', 'Konu adı zorunludur.'));
+    const nameTr = (topicForm.nameTr || '').trim();
+    const nameEn = (topicForm.nameEn || '').trim();
+    if (!nameTr && !nameEn) {
+      Alert.alert(t('topic.errorNameRequired', 'En az bir konu adı (Türkçe veya İngilizce) girilmelidir.'));
       return;
     }
-    const body = { name, isActive: topicForm.isActive };
+    const body = { nameTr, nameEn, isActive: topicForm.isActive };
     const pid = topicForm.productId;
     setSaving(true);
     try {
@@ -151,7 +155,7 @@ export default function ProductsScreen({ navigation }) {
 
   const removeTopic = (productId, topic) => {
     Alert.alert(
-      t('topic.confirmDelete', '"{{name}}" konusunu silmek istediğinize emin misiniz?', { name: topic.name }),
+      t('topic.confirmDelete', '"{{name}}" konusunu silmek istediğinize emin misiniz?', { name: localizedName(topic) }),
       undefined,
       [
         { text: t('common.cancel', 'İptal'), style: 'cancel' },
@@ -178,7 +182,7 @@ export default function ProductsScreen({ navigation }) {
       <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
         <View style={styles.cardHead}>
           <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>
-            {item.name}
+            {localizedName(item)}
           </Text>
           {canManageProducts && (
             <View style={styles.iconRow}>
@@ -187,7 +191,8 @@ export default function ProductsScreen({ navigation }) {
                 onPress={() =>
                   setProductForm({
                     id: item.id,
-                    name: item.name,
+                    nameTr: item.nameTr ?? '',
+                    nameEn: item.nameEn ?? '',
                     isActive: item.isActive !== false,
                     maxActiveTickets: item.maxActiveTickets != null ? String(item.maxActiveTickets) : '',
                   })
@@ -215,7 +220,7 @@ export default function ProductsScreen({ navigation }) {
             onPress={() =>
               navigation.navigate('ProductTickets', {
                 endpoint: `/tickets/by-product/${item.id}`,
-                title: item.name,
+                title: localizedName(item),
                 filters: ['status', 'priority', 'sla', 'date'],
               })
             }
@@ -250,7 +255,7 @@ export default function ProductsScreen({ navigation }) {
                     {t('topic.emptyUser', 'Bu ürün için tanımlı talep konusu bulunmuyor.')}
                   </Text>
                 )}
-                {topics.map((tp) => (
+                {sortByLocalizedName(topics).map((tp) => (
                   <View key={tp.id} style={[styles.topicRow, { borderColor: theme.border }]}>
                     <Text
                       style={[
@@ -258,7 +263,7 @@ export default function ProductsScreen({ navigation }) {
                         { color: tp.isActive === false ? theme.textTertiary : theme.textPrimary },
                       ]}
                     >
-                      {tp.name}
+                      {localizedName(tp)}
                       {tp.isActive === false ? ` (${t('topic.statusInactive', 'Pasif')})` : ''}
                     </Text>
                     {canManageTopics && (
@@ -269,7 +274,8 @@ export default function ProductsScreen({ navigation }) {
                             setTopicForm({
                               id: tp.id,
                               productId: item.id,
-                              name: tp.name,
+                              nameTr: tp.nameTr ?? '',
+                              nameEn: tp.nameEn ?? '',
                               isActive: tp.isActive !== false,
                             })
                           }
@@ -285,7 +291,7 @@ export default function ProductsScreen({ navigation }) {
                 ))}
                 {canManageTopics && (
                   <Pressable
-                    onPress={() => setTopicForm({ productId: item.id, name: '', isActive: true })}
+                    onPress={() => setTopicForm({ productId: item.id, nameTr: '', nameEn: '', isActive: true })}
                     style={[styles.addTopicBtn, { borderColor: theme.primary }]}
                   >
                     <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>
@@ -306,7 +312,7 @@ export default function ProductsScreen({ navigation }) {
       {canManageProducts && (
         <View style={styles.toolbar}>
           <Pressable
-            onPress={() => setProductForm({ name: '', isActive: true, maxActiveTickets: '' })}
+            onPress={() => setProductForm({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' })}
             style={[styles.newBtn, { backgroundColor: theme.primary }]}
           >
             <Text style={{ color: theme.onPrimary, fontWeight: '700' }}>
@@ -349,13 +355,24 @@ export default function ProductsScreen({ navigation }) {
                 ? t('productPanel.modalEditTitle', 'Ürünü Düzenle')
                 : t('productPanel.modalNewTitle', 'Yeni Ürün')}
             </Text>
-            <FormField label={t('productPanel.labelName', 'Ürün Adı')} theme={theme}>
+            <FormField label={t('productPanel.labelNameTr', 'Ürün Adı (Türkçe)')} theme={theme}>
               <TextInput
-                value={productForm?.name}
-                onChangeText={(v) => setProductForm((f) => ({ ...f, name: v }))}
+                value={productForm?.nameTr}
+                onChangeText={(v) => setProductForm((f) => ({ ...f, nameTr: v }))}
                 placeholderTextColor={theme.textTertiary}
                 style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
               />
+            </FormField>
+            <FormField label={t('productPanel.labelNameEn', 'Ürün Adı (İngilizce)')} theme={theme}>
+              <TextInput
+                value={productForm?.nameEn}
+                onChangeText={(v) => setProductForm((f) => ({ ...f, nameEn: v }))}
+                placeholderTextColor={theme.textTertiary}
+                style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
+              />
+              <Text style={[styles.hint, { color: theme.textTertiary }]}>
+                {t('productPanel.nameHint', 'En az bir dil zorunludur. Biri boş bırakılırsa o dilde diğer ad gösterilir.')}
+              </Text>
             </FormField>
             <FormField label={t('productPanel.labelMaxTickets', 'Maksimum Eşzamanlı Bilet')} theme={theme}>
               <TextInput
@@ -402,13 +419,24 @@ export default function ProductsScreen({ navigation }) {
                 ? t('topic.modalEditTitle', 'Talep Konusunu Düzenle')
                 : t('topic.modalNewTitle', 'Yeni Talep Konusu')}
             </Text>
-            <FormField label={t('topic.labelName', 'Konu Adı')} theme={theme}>
+            <FormField label={t('topic.labelNameTr', 'Konu Adı (Türkçe)')} theme={theme}>
               <TextInput
-                value={topicForm?.name}
-                onChangeText={(v) => setTopicForm((f) => ({ ...f, name: v }))}
+                value={topicForm?.nameTr}
+                onChangeText={(v) => setTopicForm((f) => ({ ...f, nameTr: v }))}
                 placeholderTextColor={theme.textTertiary}
                 style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
               />
+            </FormField>
+            <FormField label={t('topic.labelNameEn', 'Konu Adı (İngilizce)')} theme={theme}>
+              <TextInput
+                value={topicForm?.nameEn}
+                onChangeText={(v) => setTopicForm((f) => ({ ...f, nameEn: v }))}
+                placeholderTextColor={theme.textTertiary}
+                style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
+              />
+              <Text style={[styles.hint, { color: theme.textTertiary }]}>
+                {t('topic.nameHint', 'En az bir dil zorunludur. Biri boş bırakılırsa o dilde diğer ad gösterilir.')}
+              </Text>
             </FormField>
             <View style={styles.switchRow}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
@@ -504,6 +532,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 17, fontWeight: '700' },
   group: { gap: 5 },
   fieldLabel: { fontSize: 13, fontWeight: '600' },
+  hint: { fontSize: 11, marginTop: 2 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 4 },

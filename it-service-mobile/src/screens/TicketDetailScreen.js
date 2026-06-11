@@ -37,6 +37,7 @@ import { getAgentsWithCapacity } from '../api/users';
 import { getAttachments, uploadAttachment } from '../api/attachments';
 import { downloadAttachment } from '../utils/download';
 import { formatDate, statusColor, priorityColor, statusLabel, priorityLabel } from '../utils/format';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import { REASON_CODES } from '../constants/reasonCodes';
 import { useTicketWebSocket } from '../hooks/useTicketWebSocket';
 import ReasonSheet from '../components/ReasonSheet';
@@ -310,7 +311,7 @@ export default function TicketDetailScreen({ route, navigation }) {
     if (mode === 'TOPIC' && ticket?.productId) {
       try {
         const res = await getProductTopics(ticket.productId);
-        setTopicOptions((res.data ?? []).map((tp) => ({ label: tp.name, value: tp.id })));
+        setTopicOptions(sortByLocalizedName(res.data ?? []).map((tp) => ({ label: localizedName(tp), value: tp.id })));
       } catch {
         setTopicOptions([]);
       }
@@ -445,8 +446,8 @@ export default function TicketDetailScreen({ route, navigation }) {
       <View style={[styles.card, { backgroundColor: theme.bgSurface, borderColor: theme.border }]}>
         <Field label={t('ticketDetail.priority', 'Öncelik')} theme={theme}
           value={priorityLabel(ticket.priority, t)} valueColor={priorityColor(ticket.priority)} />
-        <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={ticket.productName} />
-        <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={ticket.topicName} />
+        <Field label={t('ticketDetail.product', 'Ürün')} theme={theme} value={localizedName(ticket, 'productName')} />
+        <Field label={t('ticketDetail.topic', 'Konu')} theme={theme} value={localizedName(ticket, 'topicName')} />
         <Field label={t('ticketDetail.customer', 'Müşteri')} theme={theme} value={ticket.customerName} />
         <Field label={t('ticketDetail.created', 'Oluşturulma')} theme={theme} value={formatDate(ticket.createdAt)} />
       </View>

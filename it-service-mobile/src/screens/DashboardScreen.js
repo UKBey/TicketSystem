@@ -20,6 +20,7 @@ import {
   getWorklogCompletion,
 } from '../api/metrics';
 import { statusColor, statusLabel, priorityLabel } from '../utils/format';
+import { localizedName } from '../utils/localizedName';
 import { PRIORITY_COLORS } from '../theme/theme';
 
 const n = (v) => (v == null || Number.isNaN(Number(v)) ? 0 : Number(v));
@@ -480,7 +481,7 @@ export default function DashboardScreen() {
                 ]}
               >
                 <Text style={[styles.rowLabel, { color: theme.textPrimary, fontWeight: '700' }]}>
-                  {p.productName || '—'}
+                  {localizedName(p, 'productName') || '—'}
                 </Text>
                 <View style={styles.statRow}>
                   <Stat

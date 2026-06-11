@@ -17,6 +17,7 @@ import { getUsers, assignProduct, removeProduct } from '../api/users';
 import { getProducts } from '../api/products';
 import AgentLimitsSheet from '../components/AgentLimitsSheet';
 import RoleFilterChips from '../components/RoleFilterChips';
+import { localizedName } from '../utils/localizedName';
 
 const fullNameOf = (u) =>
   u.fullName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || '—';
@@ -87,7 +88,7 @@ export default function AdminPanelScreen() {
   const remove = (user, product) => {
     Alert.alert(
       t('admin.panel.confirmRemove', 'Bu ürün yetkisini kaldırmak istediğinizden emin misiniz?'),
-      product.name,
+      localizedName(product),
       [
         { text: t('common.cancel', 'İptal'), style: 'cancel' },
         {
@@ -142,7 +143,7 @@ export default function AdminPanelScreen() {
                 onPress={() => remove(item, p)}
                 style={[styles.chip, { backgroundColor: theme.bgSurfaceSecondary, borderColor: theme.border }]}
               >
-                <Text style={[styles.chipText, { color: theme.textPrimary }]}>{p.name}</Text>
+                <Text style={[styles.chipText, { color: theme.textPrimary }]}>{localizedName(p)}</Text>
                 <Ionicons name="close-circle" size={15} color={theme.textTertiary} />
               </Pressable>
             ))}
@@ -251,7 +252,7 @@ export default function AdminPanelScreen() {
                     onPress={() => assign(addUser.id, item.id)}
                     style={[styles.option, { borderBottomColor: theme.border }]}
                   >
-                    <Text style={{ fontSize: 15, color: theme.textPrimary }}>{item.name}</Text>
+                    <Text style={{ fontSize: 15, color: theme.textPrimary }}>{localizedName(item)}</Text>
                   </Pressable>
                 )}
               />
