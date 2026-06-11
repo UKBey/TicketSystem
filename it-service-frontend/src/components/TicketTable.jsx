@@ -6,6 +6,7 @@ import SlaTimerBadge from './SlaTimerBadge';
 import SortableTh from './SortableTh';
 import { useColumnResize } from '../hooks/useColumnResize';
 import { formatDateTime } from '../utils/dateFormat';
+import { localizedName } from '../utils/localizedName';
 import { AlertTriangle, Inbox, Star } from 'lucide-react';
 
 export default function TicketTable({
@@ -87,8 +88,8 @@ export default function TicketTable({
               <StatusBadge status={ticket.status} />
             </div>
             <div className="text-sm font-medium break-words mb-1" style={{ color: 'var(--text-primary)' }}>{ticket.title}</div>
-            {(ticket.topicName || ticket.topicId) && (
-              <div className="text-[11px] mb-2" style={{ color: 'var(--text-tertiary)' }}>{ticket.topicName || `#${ticket.topicId}`}</div>
+            {(localizedName(ticket, 'topicName') || ticket.topicId) && (
+              <div className="text-[11px] mb-2" style={{ color: 'var(--text-tertiary)' }}>{localizedName(ticket, 'topicName') || `#${ticket.topicId}`}</div>
             )}
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <PriorityBadge priority={ticket.priority} />
@@ -195,10 +196,10 @@ export default function TicketTable({
                       </span>
                     )}
                   </div>
-                  {showTopic && (ticket.topicName || ticket.topicId) && (
+                  {showTopic && (localizedName(ticket, 'topicName') || ticket.topicId) && (
                     <span className="block truncate text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}
-                      title={ticket.topicName || `#${ticket.topicId}`}>
-                      {ticket.topicName || `#${ticket.topicId}`}
+                      title={localizedName(ticket, 'topicName') || `#${ticket.topicId}`}>
+                      {localizedName(ticket, 'topicName') || `#${ticket.topicId}`}
                     </span>
                   )}
                 </div>

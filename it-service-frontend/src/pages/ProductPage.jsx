@@ -8,6 +8,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
 import PaginationBar from '../components/PaginationBar';
 import ProductTopicsSection from '../components/ProductTopicsSection';
+import { localizedName } from '../utils/localizedName';
 import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings } from 'lucide-react';
 
 export default function ProductPage() {
@@ -86,7 +87,7 @@ export default function ProductPage() {
               <Package className="h-6 w-6" style={{ color: 'var(--text-secondary)' }} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold break-words" style={{ color: 'var(--text-primary)' }}>{product.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold break-words" style={{ color: 'var(--text-primary)' }}>{localizedName(product)}</h1>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold mt-1 ${
                 product.isActive
                   ? 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300'

@@ -66,7 +66,7 @@ export default function Dashboard() {
   const handleProductClick = useCallback((product) => {
     if (!product?.productId) return;
     navigate(`/products/${product.productId}/dashboard`, {
-      state: { product: { id: product.productId, name: product.productName } },
+      state: { product: { id: product.productId, nameTr: product.productNameTr, nameEn: product.productNameEn } },
     });
   }, [navigate]);
 

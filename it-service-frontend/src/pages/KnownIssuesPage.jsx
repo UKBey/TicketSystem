@@ -11,6 +11,7 @@ import {
   deleteKnownIssue,
 } from '../services/api';
 import PaginationBar from '../components/PaginationBar';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 /**
  * Sıkça Karşılaşılan Sorunlar sayfası.
@@ -21,7 +22,7 @@ import PaginationBar from '../components/PaginationBar';
  * - Tasarım mobile-first: tek sütun kart düzeni, sm+ iki sütun.
  */
 export default function KnownIssuesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const toast = useToast();
   const { isLeadAgent, isAdmin } = useAuth();
   // Ürün içeriği (bilinen sorunlar) yönetimi — lead agent veya admin.
@@ -185,9 +186,11 @@ export default function KnownIssuesPage() {
   // ---------------------------------------------------------------
   const topicLookup = useMemo(() => {
     const map = {};
-    topics.forEach((tp) => { map[tp.id] = tp.name; });
+    topics.forEach((tp) => { map[tp.id] = localizedName(tp); });
     return map;
-  }, [topics]);
+    // localizedName aktif dili global i18n'den okur — dil değişince yeniden hesaplanmalı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topics, i18n.language]);
 
   return (
     <>
@@ -226,8 +229,8 @@ export default function KnownIssuesPage() {
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
             >
               {products.length === 0 && <option value="">{t('knownIssues.noProducts')}</option>}
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+              {sortByLocalizedName(products).map((p) => (
+                <option key={p.id} value={p.id}>{localizedName(p)}</option>
               ))}
             </select>
           </div>
@@ -245,8 +248,8 @@ export default function KnownIssuesPage() {
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 <option value="">{t('knownIssues.allTopics')}</option>
-                {topics.map((tp) => (
-                  <option key={tp.id} value={tp.id}>{tp.name}</option>
+                {sortByLocalizedName(topics).map((tp) => (
+                  <option key={tp.id} value={tp.id}>{localizedName(tp)}</option>
                 ))}
               </select>
             </div>
@@ -439,8 +442,8 @@ export default function KnownIssuesPage() {
                     style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   >
                     <option value="">{t('knownIssues.noTopic')}</option>
-                    {topics.map((tp) => (
-                      <option key={tp.id} value={tp.id}>{tp.name}</option>
+                    {sortByLocalizedName(topics).map((tp) => (
+                      <option key={tp.id} value={tp.id}>{localizedName(tp)}</option>
                     ))}
                   </select>
                 </div>

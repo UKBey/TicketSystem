@@ -10,6 +10,7 @@ import {
 import api from '../services/api';
 import userService from '../services/userService';
 import i18n from '../i18n';
+import { localizedName } from '../utils/localizedName';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import TwoFactorModal from '../components/TwoFactorModal';
 import NotificationPreferencesModal from '../components/NotificationPreferencesModal';
@@ -595,7 +596,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {product.name}
+                          {localizedName(product)}
                         </p>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                           #{product.id}

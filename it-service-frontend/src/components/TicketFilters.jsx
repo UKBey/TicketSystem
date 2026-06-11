@@ -7,6 +7,7 @@ import FilterSearchInput from './filters/FilterSearchInput';
 import FilterChip from './filters/FilterChip';
 import { formatDate } from '../utils/dateFormat';
 import ClearFiltersButton from './filters/ClearFiltersButton';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 const STATUSES   = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'];
 const PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
@@ -150,7 +151,7 @@ export default function TicketFilters({
             values={productIds}
             onChange={onProductIds}
             placeholder={t('ticket.filters.allProducts')}
-            options={products.map((p) => ({ value: String(p.id), label: p.name }))}
+            options={sortByLocalizedName(products).map((p) => ({ value: String(p.id), label: localizedName(p) }))}
           />
         )}
 
@@ -159,7 +160,7 @@ export default function TicketFilters({
             values={topicIds}
             onChange={onTopicIds}
             placeholder={t('ticket.filters.allTopics')}
-            options={topics.map((tp) => ({ value: String(tp.id), label: tp.name }))}
+            options={sortByLocalizedName(topics).map((tp) => ({ value: String(tp.id), label: localizedName(tp) }))}
           />
         )}
 

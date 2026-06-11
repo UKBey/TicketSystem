@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 export default function ProductTopicsSection({ productId, isAdmin }) {
   const { t } = useTranslation();
@@ -13,7 +14,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [formData, setFormData] = useState({ name: '', isActive: true });
+  const [formData, setFormData] = useState({ nameTr: '', nameEn: '', isActive: true });
   const [saving, setSaving] = useState(false);
 
   const fetchTopics = useCallback(async () => {
@@ -22,7 +23,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
       const res = await api.get(`/products/${productId}/topics`, {
         params: isAdmin ? { includeInactive: true } : undefined,
       });
-      setTopics(res.data);
+      setTopics(sortByLocalizedName(res.data));
     } catch (err) {
       console.error('Could not load topics:', err);
       setError(t('topic.errorLoad'));
@@ -37,13 +38,13 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
 
   const openCreate = () => {
     setEditing(null);
-    setFormData({ name: '', isActive: true });
+    setFormData({ nameTr: '', nameEn: '', isActive: true });
     setIsModalOpen(true);
   };
 
   const openEdit = (topic) => {
     setEditing(topic);
-    setFormData({ name: topic.name, isActive: topic.isActive });
+    setFormData({ nameTr: topic.nameTr || '', nameEn: topic.nameEn || '', isActive: topic.isActive });
     setIsModalOpen(true);
   };
 
@@ -54,7 +55,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
+    if (!formData.nameTr.trim() && !formData.nameEn.trim()) {
       toast.error(t('topic.errorNameRequired'));
       return;
     }
@@ -65,7 +66,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
         setTopics((prev) => prev.map((tp) => (tp.id === editing.id ? res.data : tp)));
       } else {
         const res = await api.post(`/products/${productId}/topics`, formData);
-        setTopics((prev) => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
+        setTopics((prev) => sortByLocalizedName([...prev, res.data]));
       }
       closeModal();
     } catch (err) {
@@ -76,7 +77,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
   };
 
   const handleDelete = async (topic) => {
-    if (!window.confirm(t('topic.confirmDelete', { name: topic.name }))) return;
+    if (!window.confirm(t('topic.confirmDelete', { name: localizedName(topic) }))) return;
     try {
       await api.delete(`/topics/${topic.id}`);
       setTopics((prev) => prev.filter((tp) => tp.id !== topic.id));
@@ -142,7 +143,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
-                    {topic.name}
+                    {localizedName(topic)}
                   </span>
                   <span
                     className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
@@ -210,7 +211,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
                 {topics.map((topic) => (
                   <tr key={topic.id} style={{ borderBottom: '1px solid var(--border-color-light)' }}>
                     <td className="px-4 py-2.5 text-sm font-medium break-words" style={{ color: 'var(--text-primary)' }}>
-                      {topic.name}
+                      {localizedName(topic)}
                     </td>
                     <td className="px-4 py-2.5">
                       <span
@@ -279,16 +280,32 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('topic.labelName')}
+                    {t('topic.labelNameTr')}
                   </label>
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.nameTr}
+                    onChange={(e) => setFormData({ ...formData, nameTr: e.target.value })}
                     maxLength={255}
                     className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                     style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    {t('topic.labelNameEn')}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nameEn}
+                    onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                    maxLength={255}
+                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+                  />
+                  <p className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    {t('topic.nameHint')}
+                  </p>
                 </div>
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input

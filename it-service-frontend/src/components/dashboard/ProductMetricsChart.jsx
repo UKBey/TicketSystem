@@ -1,7 +1,9 @@
 import { memo, useState, useMemo } from 'react';
 import { Package } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Skeleton from '../Skeleton';
 import { PRODUCT_COLORS } from './ChartColors';
+import { localizedName } from '../../utils/localizedName';
 import './dashboard.css';
 
 const TOP_N = 6;
@@ -11,10 +13,12 @@ function fmt1(v) {
 }
 
 function ProductMetricsChart({ data, loading, onProductClick }) {
+  const { i18n } = useTranslation();
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const { rows, otherRow, maxTotal } = useMemo(() => {
-    const items = data?.productMetrics ?? [];
+    // productName, satır bazında aktif UI diline çözülür (dil değişiminde yeniden hesaplanır).
+    const items = (data?.productMetrics ?? []).map((p) => ({ ...p, productName: localizedName(p, 'productName') }));
     const sorted = [...items].sort((a, b) => (b.totalTickets ?? 0) - (a.totalTickets ?? 0));
     const top = sorted.slice(0, TOP_N);
     const rest = sorted.slice(TOP_N);
@@ -36,7 +40,9 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
     }
 
     return { rows: top, otherRow, maxTotal: max };
-  }, [data]);
+    // localizedName aktif dili global i18n'den okur — dil değişince yeniden hesaplanmalı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, i18n.language]);
 
   const totalTickets = useMemo(
     () => (data?.productMetrics ?? []).reduce((s, p) => s + (p.totalTickets ?? 0), 0),

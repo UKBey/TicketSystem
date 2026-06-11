@@ -80,7 +80,7 @@ describe('suitsCommentType', () => {
 describe('buildPlaceholderContext', () => {
   it('maps ticket and user fields and pads the ticket number', () => {
     const ctx = buildPlaceholderContext({
-      ticket: { id: 7, customerName: 'Ali', productName: 'CRM', topicName: 'Login' },
+      ticket: { id: 7, customerName: 'Ali', productNameEn: 'CRM', topicNameEn: 'Login' },
       user: { name: 'Agent Smith' },
       language: 'en',
     });

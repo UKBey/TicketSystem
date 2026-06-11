@@ -1,5 +1,6 @@
 import { formatDate, formatShortDate, formatMinutes } from './ticketFormatters';
 import { STATUS_COLORS, PRIORITY_COLORS } from '../constants/ticketColors';
+import { pickLocalized } from './localizedName';
 
 // Tarayıcının native "Yazdır / PDF olarak kaydet" ekranı için tam bir HTML dökümanı
 // üretir; PdfExportModal bunu gizli bir iframe'e yazıp yazdırır (uygulama içinde ekran yok).
@@ -71,16 +72,19 @@ function localizeState(actionType, value, t) {
   return String(value);
 }
 
-function ticketDetailSection(ticket, t, theme, hideDescription) {
+// Ürün/konu adı PDF'in kendi dil seçimine (lang) göre çözülür — UI dilinden bağımsız.
+function ticketDetailSection(ticket, t, theme, hideDescription, lang) {
+  const productName = pickLocalized(ticket.productNameTr, ticket.productNameEn, lang);
+  const topicName = pickLocalized(ticket.topicNameTr, ticket.topicNameEn, lang);
   const rows = [
     [t('ticket.table.title'), esc(ticket.title)],
     [t('ticket.table.status'), statusBadge(ticket.status, theme, t)],
     [t('ticket.table.priority'), priorityBadge(ticket.priority, theme, t)],
     [t('ticketDetail.customerLabel'), esc(ticket.customerName || ticket.customerId)],
-    [t('ticketDetail.productLabel'), esc(ticket.productName || ticket.productId)],
+    [t('ticketDetail.productLabel'), esc(productName || ticket.productId)],
   ];
-  if (ticket.topicName || ticket.topicId) {
-    rows.push([t('ticketDetail.topicLabel'), esc(ticket.topicName || `#${ticket.topicId}`)]);
+  if (topicName || ticket.topicId) {
+    rows.push([t('ticketDetail.topicLabel'), esc(topicName || `#${ticket.topicId}`)]);
   }
   rows.push([t('ticketDetail.pdfFieldCreated'), esc(formatDate(ticket.createdAt))]);
 
@@ -308,7 +312,7 @@ export function buildTicketPdfHtml({ ticket, ticketCode, sections, comments = []
   ];
 
   const parts = [];
-  if (sections.ticketDetail)  parts.push(ticketDetailSection(ticket, t, theme, sections.conversation));
+  if (sections.ticketDetail)  parts.push(ticketDetailSection(ticket, t, theme, sections.conversation, lang));
   if (sections.conversation || sections.internalNotes)
     parts.push(conversationChatSection(chatComments, viewerIsCustomer, ticket, t));
   if (sections.worklog)       parts.push(worklogSection(worklogs, t));

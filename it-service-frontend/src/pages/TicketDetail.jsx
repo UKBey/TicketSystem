@@ -24,6 +24,7 @@ import DeleteTicketModal from '../components/ticket/DeleteTicketModal';
 import AuditTimeline from '../components/ticket/AuditTimeline';
 import ChangeFieldModal from '../components/ticket/ChangeFieldModal';
 import { REASON_CODES } from '../utils/reasonCodes';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 export default function TicketDetail() {
   const { t }        = useTranslation();
@@ -141,11 +142,11 @@ export default function TicketDetail() {
               {ticket.customerName || ticket.customerId}
             </span>
             <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>•</span>
-            <span>{t('ticketDetail.productLabel')}: {ticket.productName || ticket.productId}</span>
-            {(ticket.topicName || ticket.topicId) && (
+            <span>{t('ticketDetail.productLabel')}: {localizedName(ticket, 'productName') || ticket.productId}</span>
+            {(localizedName(ticket, 'topicName') || ticket.topicId) && (
               <>
                 <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>•</span>
-                <span>{t('ticketDetail.topicLabel')}: {ticket.topicName || ticket.topicId}</span>
+                <span>{t('ticketDetail.topicLabel')}: {localizedName(ticket, 'topicName') || ticket.topicId}</span>
               </>
             )}
           </div>
@@ -318,7 +319,7 @@ export default function TicketDetail() {
         label={t('ticketDetail.changeTopicLabel')}
         currentValue={ticket.topicId}
         loading={topicsLoading}
-        options={topicsList.map((tp) => ({ value: tp.id, label: tp.name }))}
+        options={sortByLocalizedName(topicsList).map((tp) => ({ value: tp.id, label: localizedName(tp) }))}
         reasonCodes={REASON_CODES.TOPIC_CHANGE}
         reasonTranslationPrefix="reasonCode.TOPIC_CHANGE"
       />

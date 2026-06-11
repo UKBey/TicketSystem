@@ -9,6 +9,7 @@ import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTa
 import RecentTicketsList from '../../components/dashboard/RecentTicketsList';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import { localizedName } from '../../utils/localizedName';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
@@ -28,8 +29,8 @@ const PRIORITY_COLORS = {
 
 /**
  * Tek bir ürünün dashboard'u. Products panel'inden ya da yönetici dashboard'undaki
- * ürün tablosundan açılır. Ürün adı önce yönlendirme state'inden okunur; yoksa
- * dashboard yanıtındaki productName kullanılır.
+ * ürün tablosundan açılır. Ürün adı önce dashboard yanıtından (tr/en), yoksa
+ * yönlendirme state'inden aktif dile göre çözülür.
  */
 export default function ProductDashboard() {
   const { productId } = useParams();
@@ -61,7 +62,7 @@ export default function ProductDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const productName = data?.productName || location.state?.product?.name || `#${productId}`;
+  const productName = localizedName(data, 'productName') || localizedName(location.state?.product) || `#${productId}`;
 
   const handleAgentClick = useCallback((agent) => {
     if (!agent?.agentId) return;

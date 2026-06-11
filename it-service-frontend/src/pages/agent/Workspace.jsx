@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { getAgentLimits } from '../../services/api';
+import { localizedName } from '../../utils/localizedName';
 import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
@@ -59,7 +60,7 @@ export default function Workspace() {
             return (
               <div key={limit.productId} className="rounded-lg border p-4 min-w-0"
                 style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-                <p className="text-xs font-semibold mb-2 truncate" style={{ color: 'var(--text-tertiary)' }} title={limit.productName}>{limit.productName}</p>
+                <p className="text-xs font-semibold mb-2 truncate" style={{ color: 'var(--text-tertiary)' }} title={localizedName(limit, 'productName')}>{localizedName(limit, 'productName')}</p>
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{activeCount}</span>
                   {effectiveLimit && (

@@ -12,6 +12,7 @@ import api, {
   unfavoriteCannedResponse,
 } from '../services/api';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } from '../utils/cannedResponses';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import { formatDate } from '../utils/dateFormat';
 import PaginationBar from '../components/PaginationBar';
 
@@ -60,9 +61,11 @@ export default function CannedResponsesPage() {
 
   const productLookup = useMemo(() => {
     const map = {};
-    products.forEach((p) => { map[p.id] = p.name; });
+    products.forEach((p) => { map[p.id] = localizedName(p); });
     return map;
-  }, [products]);
+    // localizedName aktif dili global i18n'den okur — dil değişince yeniden hesaplanmalı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, i18n.language]);
 
   const sampleCtx = useMemo(() => {
     const tr = i18n.language?.startsWith('tr');
@@ -301,7 +304,7 @@ export default function CannedResponsesPage() {
             >
               <option value="ALL">{t('cannedResponses.allProducts')}</option>
               <option value="GLOBAL">{t('cannedResponses.productGlobal')}</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {sortByLocalizedName(products).map((p) => <option key={p.id} value={p.id}>{localizedName(p)}</option>)}
             </select>
           </div>
           <div className="w-full sm:w-auto sm:min-w-[7rem] min-w-0">
@@ -544,7 +547,7 @@ export default function CannedResponsesPage() {
                         style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                       >
                         <option value="">{t('cannedResponses.productGlobal')}</option>
-                        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {sortByLocalizedName(products).map((p) => <option key={p.id} value={p.id}>{localizedName(p)}</option>)}
                       </select>
                   </div>
                 </div>

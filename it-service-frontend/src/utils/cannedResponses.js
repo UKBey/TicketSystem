@@ -6,6 +6,7 @@
  * insertion time from the ticket/agent context the frontend already holds.
  */
 import { formatDate } from './dateFormat';
+import { localizedName } from './localizedName';
 
 /** Supported merge-field tokens (used by the management editor's "insert placeholder" helper). */
 export const PLACEHOLDER_TOKENS = [
@@ -29,8 +30,8 @@ export function buildPlaceholderContext({ ticket, user } = {}) {
     'musteri.ad': ticket?.customerName || '',
     'agent.ad': user?.name || '',
     'bilet.no': ticketNo,
-    urun: ticket?.productName || '',
-    konu: ticket?.topicName || '',
+    urun: localizedName(ticket, 'productName') || '',
+    konu: localizedName(ticket, 'topicName') || '',
     tarih: formatDate(new Date()),
   };
 }

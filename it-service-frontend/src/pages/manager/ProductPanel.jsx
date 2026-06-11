@@ -9,6 +9,7 @@ import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 import SortableTh from '../../components/SortableTh';
 import { useColumnResize } from '../../hooks/useColumnResize';
+import { localizedName } from '../../utils/localizedName';
 
 const PAGE_SIZE = 10;
 
@@ -41,7 +42,7 @@ export default function ProductPanel() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
-  const [formData, setFormData] = useState({ name: '', isActive: true, maxActiveTickets: '' });
+  const [formData, setFormData] = useState({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' });
   const [expandedTopicsProductId, setExpandedTopicsProductId] = useState(null);
 
   const fetchProducts = useCallback(async () => {
@@ -61,15 +62,18 @@ export default function ProductPanel() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Arama her iki dil varyantında da eşleşir.
   const filtered = products.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase())
+    !search
+    || (p.nameTr ?? '').toLowerCase().includes(search.toLowerCase())
+    || (p.nameEn ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
   // Sıralama istemci tarafında — ürün listesi tek seferde (sayfalamasız) çekildiği için.
   const sorted = [...filtered].sort((a, b) => {
     let av, bv;
     switch (sortBy) {
-      case 'name':             av = (a.name ?? '').toLowerCase(); bv = (b.name ?? '').toLowerCase(); break;
+      case 'name':             av = localizedName(a).toLowerCase(); bv = localizedName(b).toLowerCase(); break;
       case 'status':           av = a.isActive ? 1 : 0;           bv = b.isActive ? 1 : 0;           break;
       case 'maxActiveTickets': av = a.maxActiveTickets ?? Infinity; bv = b.maxActiveTickets ?? Infinity; break; // sınırsız → en sona
       default:                 av = a.id;                          bv = b.id; // 'id'
@@ -97,13 +101,14 @@ export default function ProductPanel() {
     if (product) {
       setCurrentProduct(product);
       setFormData({
-        name: product.name,
+        nameTr: product.nameTr ?? '',
+        nameEn: product.nameEn ?? '',
         isActive: product.isActive,
         maxActiveTickets: product.maxActiveTickets ?? ''
       });
     } else {
       setCurrentProduct(null);
-      setFormData({ name: '', isActive: true, maxActiveTickets: '' });
+      setFormData({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' });
     }
     setIsModalOpen(true);
   };
@@ -115,7 +120,7 @@ export default function ProductPanel() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
+    if (!formData.nameTr.trim() && !formData.nameEn.trim()) {
       toast.error(t('productPanel.errorNameRequired'));
       return;
     }
@@ -225,7 +230,7 @@ export default function ProductPanel() {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
-                    {product.name}
+                    {localizedName(product)}
                   </span>
                   <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                     product.isActive
@@ -286,7 +291,7 @@ export default function ProductPanel() {
                   {canViewDashboard && (
                     <button
                       type="button"
-                      onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, name: product.name } } })}
+                      onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, nameTr: product.nameTr, nameEn: product.nameEn } } })}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
                       style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
                     >
@@ -354,7 +359,7 @@ export default function ProductPanel() {
                 <React.Fragment key={product.id}>
                 <tr className={topicsOpen ? 'is-open' : undefined}>
                   <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{product.id}</td>
-                  <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{product.name}</td>
+                  <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{localizedName(product)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                       product.isActive
@@ -406,7 +411,7 @@ export default function ProductPanel() {
                           type="button"
                           className="inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-500/10"
                           style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-                          onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, name: product.name } } })}
+                          onClick={() => navigate(`/products/${product.id}/dashboard`, { state: { product: { id: product.id, nameTr: product.nameTr, nameEn: product.nameEn } } })}
                           title={t('productDashboard.viewAction')}
                           aria-label={t('productDashboard.viewAction')}
                         >
@@ -488,15 +493,27 @@ export default function ProductPanel() {
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelName')}</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelNameTr')}</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.nameTr}
+                  onChange={e => setFormData({ ...formData, nameTr: e.target.value })}
+                  placeholder="örn. E-Ticaret Modülü"
+                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelNameEn')}</label>
+                <input
+                  type="text"
+                  value={formData.nameEn}
+                  onChange={e => setFormData({ ...formData, nameEn: e.target.value })}
                   placeholder="e.g. E-Commerce Module"
                   className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
                 />
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('productPanel.nameHint')}</p>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelMaxTickets')}</label>

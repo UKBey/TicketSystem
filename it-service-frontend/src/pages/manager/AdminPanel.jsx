@@ -10,6 +10,7 @@ import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
+import { localizedName } from '../../utils/localizedName';
 
 const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -40,7 +41,7 @@ function ProductChips({ products, onRemove, t }) {
           className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium"
           style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
         >
-          {prod.name}
+          {localizedName(prod)}
           <button
             onClick={() => onRemove(prod.id)}
             title="Remove"
@@ -177,7 +178,7 @@ function AgentLimitsPanel({ user, t }) {
           return (
             <li key={prod.id} className="rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{prod.name}</span>
+                <span className="text-sm font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{localizedName(prod)}</span>
                 <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
                   {t('admin.panel.agentLimitsDefault')}: {prod.maxActiveTickets ?? t('admin.panel.agentLimitsUnlimited')}
                 </span>
@@ -238,7 +239,7 @@ function AgentLimitsPanel({ user, t }) {
               const entry = limits[prod.id] || { useCustom: false, value: '', saving: false, saved: false, error: '' };
               return (
                 <tr key={prod.id} style={{ borderTop: '1px solid var(--border-color-light)' }}>
-                  <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{prod.name}</td>
+                  <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{localizedName(prod)}</td>
                   <td className="px-3 py-2" style={{ color: 'var(--text-secondary)' }}>
                     {prod.maxActiveTickets ?? <span style={{ color: 'var(--text-tertiary)' }}>{t('admin.panel.agentLimitsUnlimited')}</span>}
                   </td>
@@ -439,7 +440,7 @@ export default function AdminPanel() {
               values={productFilter}
               onChange={setProductFilter}
               placeholder={t('admin.panel.allProducts')}
-              options={products.map((p) => ({ value: String(p.id), label: p.name }))}
+              options={products.map((p) => ({ value: String(p.id), label: localizedName(p) }))}
             />
             {(search || roleFilter.length > 0 || productFilter.length > 0) && (
               <ClearFiltersButton onClick={() => { setSearch(''); setRoleFilter([]); setProductFilter([]); }} />
@@ -509,7 +510,7 @@ export default function AdminPanel() {
                           {products
                             .filter(p => !(user.authorizedProducts || []).some(ap => ap.id === p.id))
                             .map(p => (
-                              <option key={p.id} value={p.id}>{p.name}</option>
+                              <option key={p.id} value={p.id}>{localizedName(p)}</option>
                             ))
                           }
                         </select>
@@ -639,7 +640,7 @@ export default function AdminPanel() {
                               {products
                                 .filter(p => !(user.authorizedProducts || []).some(ap => ap.id === p.id))
                                 .map(p => (
-                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                  <option key={p.id} value={p.id}>{localizedName(p)}</option>
                                 ))
                               }
                             </select>

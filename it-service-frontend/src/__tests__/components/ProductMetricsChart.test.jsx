@@ -5,9 +5,9 @@ import ProductMetricsChart from '../../components/dashboard/ProductMetricsChart'
 
 const SAMPLE_DATA = {
   productMetrics: [
-    { productName: 'Windows Server', totalTickets: 54, openTickets: 48, avgResolutionHours: 12.5, csatAverage: 4.7, slaBreachPercentage: 3.7 },
-    { productName: 'SQL Database',   totalTickets: 38, openTickets: 20, avgResolutionHours: 8.0,  csatAverage: 4.5, slaBreachPercentage: 5.2 },
-    { productName: 'Exchange',        totalTickets: 28, openTickets: 15, avgResolutionHours: 6.0,  csatAverage: 4.3, slaBreachPercentage: 11.0 },
+    { productNameEn: 'Windows Server', totalTickets: 54, openTickets: 48, avgResolutionHours: 12.5, csatAverage: 4.7, slaBreachPercentage: 3.7 },
+    { productNameEn: 'SQL Database',   totalTickets: 38, openTickets: 20, avgResolutionHours: 8.0,  csatAverage: 4.5, slaBreachPercentage: 5.2 },
+    { productNameEn: 'Exchange',        totalTickets: 28, openTickets: 15, avgResolutionHours: 6.0,  csatAverage: 4.3, slaBreachPercentage: 11.0 },
   ],
 };
 
@@ -44,7 +44,7 @@ describe('ProductMetricsChart', () => {
   it('groups products beyond TOP_N into "Other" row', () => {
     const manyProducts = {
       productMetrics: Array.from({ length: 8 }, (_, i) => ({
-        productName: `Product ${i + 1}`,
+        productNameEn: `Product ${i + 1}`,
         totalTickets: 10 - i,
         openTickets: 5,
         avgResolutionHours: 4.0,

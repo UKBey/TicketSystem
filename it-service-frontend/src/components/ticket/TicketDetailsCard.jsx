@@ -3,6 +3,7 @@ import { PriorityBadge } from '../Badges';
 import { AlertTriangle, Pencil } from 'lucide-react';
 import { formatDate, formatSlaTime } from '../../utils/ticketFormatters';
 import { PRIORITY_COLORS } from '../../constants/ticketColors';
+import { localizedName } from '../../utils/localizedName';
 
 function DetailRow({ label, value }) {
   return (
@@ -133,15 +134,15 @@ export default function TicketDetailsCard({
 
         {/* Render for agents even when the ticket has no topic, so the change-topic
             affordance stays reachable for a ticket that was opened without one. */}
-        {(ticket.topicName || ticket.topicId || isAgent) && (
+        {(localizedName(ticket, 'topicName') || ticket.topicId || isAgent) && (
           <div>
             <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('ticketDetail.topicLabel')}</div>
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className="text-sm font-medium break-words"
-                style={{ color: (ticket.topicName || ticket.topicId) ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                style={{ color: (localizedName(ticket, 'topicName') || ticket.topicId) ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
               >
-                {ticket.topicName || (ticket.topicId ? `#${ticket.topicId}` : t('ticketDetail.noTopic'))}
+                {localizedName(ticket, 'topicName') || (ticket.topicId ? `#${ticket.topicId}` : t('ticketDetail.noTopic'))}
               </span>
               {isAgent && ticket.status !== 'CLOSED' && (
                 <button

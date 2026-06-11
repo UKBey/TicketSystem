@@ -12,7 +12,7 @@ const baseTicket = {
   title: 'VPN sorunu',
   customerId: 'c1',
   customerName: 'Müşteri',
-  productName: 'CRM',
+  productNameEn: 'CRM',
   createdAt: '2026-06-01T10:00:00Z',
   description: 'Açılış açıklaması',
   auditLogs: [],

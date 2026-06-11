@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
+import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 // Sentinel value for the "No Topic" choice — only offered when the selected
 // product has no active topics. Submitted to the API as topicId: null.
@@ -27,7 +28,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
 
   useEffect(() => {
     if (isOpen) {
-      api.get('/products').then((res) => setProducts(res.data)).catch(() => {});
+      api.get('/products').then((res) => setProducts(sortByLocalizedName(res.data))).catch(() => {});
     }
   }, [isOpen]);
 
@@ -41,7 +42,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     setTopicId('');
     api
       .get(`/products/${productId}/topics`)
-      .then((res) => setTopics(res.data))
+      .then((res) => setTopics(sortByLocalizedName(res.data)))
       .catch(() => setTopics([]))
       .finally(() => setTopicsLoading(false));
   }, [productId]);
@@ -174,7 +175,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               >
                 <option value="">{t('ticket.createModal.selectProduct')}</option>
                 {products.filter((p) => p.isActive).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{localizedName(p)}</option>
                 ))}
               </select>
             </div>
@@ -201,7 +202,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                   <option value={NO_TOPIC}>{t('ticket.createModal.noTopicOption')}</option>
                 )}
                 {topics.map((tp) => (
-                  <option key={tp.id} value={tp.id}>{tp.name}</option>
+                  <option key={tp.id} value={tp.id}>{localizedName(tp)}</option>
                 ))}
               </select>
             </div>
