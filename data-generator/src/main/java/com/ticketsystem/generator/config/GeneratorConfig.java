@@ -44,6 +44,13 @@ public class GeneratorConfig {
     public static final String KEYCLOAK_REALM  = "TicketSystemRealm";
     public static final String KEYCLOAK_CLIENT = "ticket-frontend";
 
+    // Admin REST nginx'ten GECMEZ (nginx yalniz /auth/realms ve /auth/resources
+    // proxy'ler; /auth/admin SPA'ya duser). Dogrudan Keycloak portuna gidilir:
+    // host'ta dev override'in yayinladigi localhost:8080, container'da
+    // GEN_KEYCLOAK_ADMIN_URL=http://keycloak-iam:8080/auth.
+    public static final String KEYCLOAK_ADMIN_URL =
+            envOrDefault("GEN_KEYCLOAK_ADMIN_URL", "http://localhost:8080/auth");
+
     // ---------------------------------------------------------------
     // Bootstrap admin (single account) — creates the remaining users,
     // adds products/topics/issues and authorizes them. Defaults to the

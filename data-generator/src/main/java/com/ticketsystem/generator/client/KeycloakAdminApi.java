@@ -42,8 +42,10 @@ public class KeycloakAdminApi {
     public KeycloakAdminApi(OkHttpClient http, ObjectMapper mapper) {
         this.http   = http;
         this.mapper = mapper;
-        this.tokenUrl       = GeneratorConfig.KEYCLOAK_URL + "/realms/master/protocol/openid-connect/token";
-        this.adminUsersUrl  = GeneratorConfig.KEYCLOAK_URL + "/admin/realms/"
+        // Admin REST + master token dogrudan Keycloak portundan: nginx /auth/admin'i
+        // proxy'lemez (SPA'ya duser), master realm de son-kullanici yuzeyi degildir.
+        this.tokenUrl       = GeneratorConfig.KEYCLOAK_ADMIN_URL + "/realms/master/protocol/openid-connect/token";
+        this.adminUsersUrl  = GeneratorConfig.KEYCLOAK_ADMIN_URL + "/admin/realms/"
                             + GeneratorConfig.KEYCLOAK_REALM + "/users";
     }
 

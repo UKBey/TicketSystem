@@ -46,6 +46,9 @@
     </dependencies>
 
     <build>
+        <!-- Sabit jar adi: surum bump'lari (make set-version) jar yolunu degistirmesin
+             diye surumsuz. Makefile gen-run ve Dockerfile bu ada guvenir. -->
+        <finalName>data-generator</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

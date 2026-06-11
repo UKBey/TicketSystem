@@ -16,10 +16,8 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Shaded uber-jar; sürümden bağımsız glob. `data-generator-*` deseni shade'in
-# bıraktığı `original-data-generator-*.jar`'ı (original- önekiyle) eşleştirmez,
-# yani tek dosya seçilir ve sürüm bump'larında bu satır güncellenmek zorunda kalmaz.
-COPY --from=builder /app/target/data-generator-*.jar app.jar
+# Shaded uber-jar; pom.xml <finalName> sayesinde adi surumden bagimsiz sabittir.
+COPY --from=builder /app/target/data-generator.jar app.jar
 
 # users.json (kimlik bilgileri + seed kullanici listeleri) calisma aninda
 # /app/users.json olarak compose volume ile mount edilir; jar'a gomulmez.

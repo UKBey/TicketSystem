@@ -308,7 +308,8 @@ data-generator/
 | Setting | Default | Env override | Description |
 |---------|---------|--------------|-------------|
 | `BASE_URL` | `http://localhost` | `GEN_BASE_URL` | application base URL |
-| `KEYCLOAK_URL` | `${BASE_URL}/auth` | — | Keycloak root URL |
+| `KEYCLOAK_URL` | `${BASE_URL}/auth` | — | Keycloak root URL (user-facing: token via `/auth/realms/...`) |
+| `KEYCLOAK_ADMIN_URL` | `http://localhost:8080/auth` | `GEN_KEYCLOAK_ADMIN_URL` | Keycloak root URL for the **Admin REST API** — nginx only proxies `/auth/realms` and `/auth/resources`, so admin calls must go straight to the Keycloak port (host: dev-published `localhost:8080`; container: `http://keycloak-iam:8080/auth`) |
 | `KEYCLOAK_REALM` | `TicketSystemRealm` | — | realm name |
 | `KEYCLOAK_CLIENT` | `ticket-frontend` | — | public client used to obtain tokens |
 | `MASTER_ADMIN_CLIENT` | `admin-cli` | — | master-realm token client |

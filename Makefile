@@ -323,24 +323,29 @@ $(GENERATOR_DIR)/users.json:
 # Generator'u host JVM uzerinde calistirir (Dockersiz) -- gen-k8s ve dogrudan JVM icin.
 gen-host: gen-build gen-run
 
-# k8s: DB cluster ici oldugu icin once port-forward, sonra host JVM ile (gen-host).
-# Bu target sadece talimat verir.
+# k8s: DB ve Keycloak admin portu cluster ici oldugu icin once port-forward,
+# sonra host JVM ile (gen-host). Keycloak admin ingress'ten SUNULMAZ (yalniz
+# /auth/realms + /auth/resources) — generator'in Admin REST cagrilari dogrudan
+# 8080 port-forward'una gider. Bu target sadece talimat verir.
 gen-k8s:
 	@echo ============================================================
-	@echo  K8s ortaminda Generator Calistirma -- 2 ADIM
+	@echo  K8s ortaminda Generator Calistirma -- 3 ADIM
 	@echo ============================================================
 	@echo  1. AYRI BIR terminal penceresinde sunu calistir:
 	@echo        kubectl -n $(K8S_NAMESPACE) port-forward svc/it-service-db 5432:5432
-	@echo  2. Sonra bu pencerede:
+	@echo  2. IKINCI bir ayri pencerede (Keycloak Admin REST icin):
+	@echo        kubectl -n $(K8S_NAMESPACE) port-forward svc/keycloak-iam 8080:8080
+	@echo  3. Sonra bu pencerede:
 	@echo        make gen-host
-	@echo  Pencere acik kalmali -- bittikten sonra Ctrl+C ile kapat.
+	@echo  Pencereler acik kalmali -- bittikten sonra Ctrl+C ile kapat.
 	@echo ============================================================
 
 gen-build:
 	cd $(GENERATOR_DIR) && $(MVNW_UP) package -q -DskipTests
 
+# Jar adi pom.xml <finalName> ile surumsuz sabitlendi — set-version bunu etkilemez.
 gen-run:
-	java -jar $(GENERATOR_DIR)/target/data-generator-1.0.0.jar
+	java -jar $(GENERATOR_DIR)/target/data-generator.jar
 
 # --- Seed kullanici rolleri ---
 

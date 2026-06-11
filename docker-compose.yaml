@@ -601,6 +601,9 @@ services:
     environment:
       # Container compose agindan servislere isimle erisir (localhost yerine).
       GEN_BASE_URL: "http://nginx-proxy"
+      # Keycloak Admin REST nginx'ten proxy'lenmez (nginx yalniz /auth/realms ve
+      # /auth/resources servis eder) — dogrudan Keycloak portuna gidilir.
+      GEN_KEYCLOAK_ADMIN_URL: "http://keycloak-iam:8080/auth"
       GEN_DB_URL: "jdbc:postgresql://it-service-db:5432/ticketdb"
       # DB kimlik bilgileri .env'den (backend ile ayni kaynak); bos ise users.json'a duser.
       GEN_DB_USER: ${SPRING_DATASOURCE_USERNAME:-ticketadmin}
