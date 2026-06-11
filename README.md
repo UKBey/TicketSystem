@@ -151,7 +151,7 @@ flowchart TB
 cp .env.example .env
 ```
 
-Fill in the placeholder values in `.env` (database passwords, LDAP/Keycloak passwords, `GROQ_API_KEY`, etc.). Every variable is documented inline in `.env.example`.
+That's it for development — the example ships with **working dev defaults** (shared dev password `321654`, matching internal tokens, the KIE server image's built-in credentials). The only optional blank is `GROQ_API_KEY`, needed solely for the AI summary feature. Every variable is documented inline in `.env.example`; change all passwords/secrets before any production use.
 
 ### 2. Start the full stack
 
