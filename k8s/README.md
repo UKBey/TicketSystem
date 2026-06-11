@@ -143,6 +143,9 @@ building `local/kie-server:latest`, so the kjar JAR is always fresh.
 
 ## Secrets
 
-Local secrets are sourced from `k8s/overlays/local/secrets.env` (gitignored).
+Local secrets are sourced from `k8s/overlays/local/secrets.env` (gitignored);
+create it by copying `k8s/overlays/local/secrets.env.example`, which is also
+the canonical list of keys the `app-secrets` Secret must provide.
 Production uses SealedSecrets committed under `k8s/overlays/prod/`
-(`kustomization.yaml` has the bootstrap instructions).
+(`kustomization.yaml` has the bootstrap instructions) — seal a plain Secret
+built from the same key list.
