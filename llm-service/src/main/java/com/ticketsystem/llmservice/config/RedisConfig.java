@@ -2,7 +2,7 @@ package com.ticketsystem.llmservice.config;
 
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.bucket4j.redis.lettuce.Bucket4jLettuce;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -94,17 +94,17 @@ public class RedisConfig {
     }
 
     /**
-     * Bucket4j {@link LettuceBasedProxyManager} bean — manages buckets in a
-     * distributed fashion in Redis. Entries expire 10 minutes after the last
-     * write via TTL.
+     * Bucket4j {@link ProxyManager} bean (built via {@link Bucket4jLettuce}) —
+     * manages buckets in a distributed fashion in Redis. Entries expire
+     * 10 minutes after the last write via TTL.
      *
      * @param connection the {@link #bucketRedisConnection(RedisClient)} bean
      * @return proxy manager used by the rate-limit interceptor
      */
     @Bean
     public ProxyManager<String> bucketProxyManager(StatefulRedisConnection<String, byte[]> connection) {
-        return LettuceBasedProxyManager.builderFor(connection)
-                .withExpirationStrategy(
+        return Bucket4jLettuce.casBasedBuilder(connection)
+                .expirationAfterWrite(
                         ExpirationAfterWriteStrategy.basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(10)))
                 .build();
     }

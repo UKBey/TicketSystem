@@ -34,7 +34,6 @@ import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
-import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -85,7 +84,6 @@ public class MetricsService {
     private static final String PR_MEDIUM = "MEDIUM";
 
     private final TicketRepository ticketRepository;
-    private final TicketClaimRepository ticketClaimRepository;
     private final CsatRepository csatRepository;
     private final UserRepository userRepository;
     private final WorklogRepository worklogRepository;

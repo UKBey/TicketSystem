@@ -5,7 +5,6 @@ import com.ticketsystem.llmservice.config.RateLimitProperties;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import io.github.bucket4j.distributed.BucketProxy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import jakarta.servlet.http.HttpServletRequest;
@@ -112,17 +111,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     /**
      * Maps the "N requests / D seconds" model onto Bucket4j's
-     * {@code Refill.intervally} (the bucket is fully refilled every D seconds) —
+     * {@code refillIntervally} (the bucket is fully refilled every D seconds) —
      * i.e. fixed-window behavior.
      */
     private BucketConfiguration buildBucketConfiguration() {
-        Bandwidth limit = Bandwidth.classic(
-                properties.getMaxRequests(),
-                Refill.intervally(
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(properties.getMaxRequests())
+                .refillIntervally(
                         properties.getMaxRequests(),
                         Duration.ofSeconds(properties.getDurationSeconds())
                 )
-        );
+                .build();
         return BucketConfiguration.builder().addLimit(limit).build();
     }
 }

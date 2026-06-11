@@ -6,7 +6,6 @@ import com.ticketsystem.it_service_backend.service.RateLimitConfigService;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import io.github.bucket4j.distributed.BucketProxy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -154,17 +153,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     /**
      * Token-bucket configuration matching the legacy semantics:
-     * {@code Refill.intervally} refills the full capacity in one shot every
+     * {@code refillIntervally} refills the full capacity in one shot every
      * {@code durationSeconds} — i.e. a fixed-window "N requests per period".
      */
     private BucketConfiguration bucketConfigurationOf(RateLimitConfig config) {
-        Bandwidth limit = Bandwidth.classic(
-                config.getMaxRequests(),
-                Refill.intervally(
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(config.getMaxRequests())
+                .refillIntervally(
                         config.getMaxRequests(),
                         Duration.ofSeconds(config.getDurationSeconds())
                 )
-        );
+                .build();
         return BucketConfiguration.builder().addLimit(limit).build();
     }
 }

@@ -1,7 +1,7 @@
 package com.ticketsystem.it_service_backend.config;
 
 import io.github.bucket4j.distributed.proxy.ProxyManager;
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.bucket4j.redis.lettuce.Bucket4jLettuce;
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
@@ -33,8 +33,9 @@ import java.time.Duration;
  *   <li>Raw Lettuce {@link RedisClient} and {@link StatefulRedisConnection} —
  *       required by the Bucket4j ProxyManager and not obtainable from Spring's
  *       {@code LettuceConnectionFactory}.</li>
- *   <li>{@link LettuceBasedProxyManager} — the distributed Bucket4j proxy
- *       manager consumed by the rate-limit interceptor.</li>
+ *   <li>{@link ProxyManager} (built via {@link Bucket4jLettuce}) — the
+ *       distributed Bucket4j proxy manager consumed by the rate-limit
+ *       interceptor.</li>
  * </ul>
  */
 @Log4j2
@@ -62,7 +63,13 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         StringRedisSerializer keys = new StringRedisSerializer();
-        GenericJackson2JsonRedisSerializer values = new GenericJackson2JsonRedisSerializer();
+        // Jackson 3 tabanlı serializer — Jackson 2'li öncülü Spring Data Redis 4'te
+        // removal işaretli. enableUnsafeDefaultTyping eski no-arg ctor'un birebir
+        // karşılığı (değerler @class tip bilgisiyle yazılır, deserializasyon sınırsız).
+        // Gerçek cache/queue kodu geldiğinde typeValidator ile allow-list'e daraltın.
+        GenericJacksonJsonRedisSerializer values = GenericJacksonJsonRedisSerializer.builder()
+                .enableUnsafeDefaultTyping()
+                .build();
         template.setKeySerializer(keys);
         template.setHashKeySerializer(keys);
         template.setValueSerializer(values);
@@ -108,8 +115,8 @@ public class RedisConfig {
      */
     @Bean
     public ProxyManager<String> bucketProxyManager(StatefulRedisConnection<String, byte[]> connection) {
-        return LettuceBasedProxyManager.builderFor(connection)
-                .withExpirationStrategy(
+        return Bucket4jLettuce.casBasedBuilder(connection)
+                .expirationAfterWrite(
                         ExpirationAfterWriteStrategy.basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(10)))
                 .build();
     }

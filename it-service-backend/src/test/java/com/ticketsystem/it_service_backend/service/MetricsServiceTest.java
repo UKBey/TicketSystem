@@ -15,7 +15,6 @@ import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.SLAPolicyRepository;
-import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.TicketRepository;
 import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -50,7 +49,6 @@ import static org.mockito.Mockito.when;
 class MetricsServiceTest {
 
     @Mock TicketRepository ticketRepository;
-    @Mock TicketClaimRepository ticketClaimRepository;
     @Mock CsatRepository csatRepository;
     @Mock UserRepository userRepository;
     @Mock WorklogRepository worklogRepository;

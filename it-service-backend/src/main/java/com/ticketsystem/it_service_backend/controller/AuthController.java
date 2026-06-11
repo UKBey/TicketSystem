@@ -8,7 +8,6 @@ import com.ticketsystem.it_service_backend.service.PasswordResetService.InvalidR
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
-import io.github.bucket4j.Refill;
 import io.github.bucket4j.distributed.BucketProxy;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.swagger.v3.oas.annotations.Operation;
@@ -144,10 +143,10 @@ public class AuthController {
         BucketProxy bucket = bucketProxyManager.builder().build(
                 FORGOT_BUCKET_PREFIX + ip,
                 () -> BucketConfiguration.builder()
-                        .addLimit(Bandwidth.classic(
-                                forgotMaxRequests,
-                                Refill.intervally(forgotMaxRequests, Duration.ofSeconds(forgotWindowSeconds))
-                        ))
+                        .addLimit(Bandwidth.builder()
+                                .capacity(forgotMaxRequests)
+                                .refillIntervally(forgotMaxRequests, Duration.ofSeconds(forgotWindowSeconds))
+                                .build())
                         .build()
         );
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
