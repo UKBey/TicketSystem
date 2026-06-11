@@ -252,8 +252,10 @@ public class SetupGenerator {
     // -----------------------------------------------------------------
 
     private void cleanupOwnProducts(JsonNode productArray) throws InterruptedException {
+        // Ürün adları artık iki dilli; setup.json marka adını nameEn'de tutar ve
+        // eşleştirme nameEn üzerinden yapılır.
         Set<String> ownNames = new HashSet<>();
-        for (JsonNode p : productArray) ownNames.add(p.path("name").asText());
+        for (JsonNode p : productArray) ownNames.add(p.path("nameEn").asText());
         if (ownNames.isEmpty()) return;
 
         JsonNode existing;
@@ -267,7 +269,7 @@ public class SetupGenerator {
 
         int deleted = 0;
         for (JsonNode p : existing) {
-            String name = p.path("name").asText();
+            String name = p.path("nameEn").asText();
             if (!ownNames.contains(name)) continue;
             Long id = p.path("id").asLong();
             try {
@@ -294,7 +296,7 @@ public class SetupGenerator {
             JsonNode resp = api.get("/products", adminAgent.getToken());
             if (resp.isArray()) {
                 for (JsonNode p : resp) {
-                    existing.put(p.path("name").asText(), p.path("id").asLong());
+                    existing.put(p.path("nameEn").asText(), p.path("id").asLong());
                 }
             }
         } catch (Exception e) {
@@ -302,12 +304,12 @@ public class SetupGenerator {
         }
 
         for (JsonNode product : productArray) {
-            String name = product.path("name").asText();
+            String name = product.path("nameEn").asText();
             Long id = existing.get(name);
             if (id == null) {
                 try {
                     JsonNode resp = api.post("/products",
-                            Map.of("name", name, "isActive", true, "maxActiveTickets", 50),
+                            Map.of("nameEn", name, "isActive", true, "maxActiveTickets", 50),
                             adminAgent.getToken());
                     id = resp.path("id").asLong();
                     log.info("Product created: '{}' (ID: {})", name, id);
@@ -333,17 +335,21 @@ public class SetupGenerator {
         Map<String, Long> result = new HashMap<>();
 
         for (JsonNode product : productArray) {
-            String productName = product.path("name").asText();
+            String productName = product.path("nameEn").asText();
             Long productId = productByName.get(productName);
             if (productId == null) continue;
 
+            // Mevcut konular her iki dil adıyla da indekslenir; idempotency hangi dil
+            // varsa onun üzerinden çalışır.
             Map<String, Long> existingTopics = new HashMap<>();
             try {
                 JsonNode resp = api.get("/products/" + productId + "/topics?includeInactive=true",
                         adminAgent.getToken());
                 if (resp.isArray()) {
                     for (JsonNode t : resp) {
-                        existingTopics.put(t.path("name").asText(), t.path("id").asLong());
+                        Long id = t.path("id").asLong();
+                        if (t.hasNonNull("nameTr")) existingTopics.put(t.path("nameTr").asText(), id);
+                        if (t.hasNonNull("nameEn")) existingTopics.put(t.path("nameEn").asText(), id);
                     }
                 }
             } catch (Exception e) {
@@ -351,22 +357,31 @@ public class SetupGenerator {
             }
 
             for (JsonNode topic : product.path("topics")) {
-                String topicName = topic.path("name").asText();
-                Long topicId = existingTopics.get(topicName);
+                String nameTr = topic.path("nameTr").asText("");
+                String nameEn = topic.path("nameEn").asText("");
+                String displayName = !nameTr.isBlank() ? nameTr : nameEn;
+                Long topicId = existingTopics.get(nameTr);
+                if (topicId == null) topicId = existingTopics.get(nameEn);
                 if (topicId == null) {
                     try {
-                        JsonNode resp = api.post("/products/" + productId + "/topics",
-                                Map.of("name", topicName, "isActive", true),
+                        Map<String, Object> body = new HashMap<>();
+                        if (!nameTr.isBlank()) body.put("nameTr", nameTr);
+                        if (!nameEn.isBlank()) body.put("nameEn", nameEn);
+                        body.put("isActive", true);
+                        JsonNode resp = api.post("/products/" + productId + "/topics", body,
                                 adminAgent.getToken());
                         topicId = resp.path("id").asLong();
-                        log.debug("Topic created: '{}' / '{}'", productName, topicName);
+                        log.debug("Topic created: '{}' / '{}'", productName, displayName);
                         Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
-                        log.warn("Failed to create topic ({} / {}): {}", productName, topicName, e.getMessage());
+                        log.warn("Failed to create topic ({} / {}): {}", productName, displayName, e.getMessage());
                         continue;
                     }
                 }
-                result.put(SetupResult.topicKey(productName, topicName), topicId);
+                // Bilet şablonları (tickets/*.json) konuyu Türkçe adıyla referansladığı için
+                // harita her iki dil adıyla da anahtarlanır.
+                if (!nameTr.isBlank()) result.put(SetupResult.topicKey(productName, nameTr), topicId);
+                if (!nameEn.isBlank()) result.put(SetupResult.topicKey(productName, nameEn), topicId);
             }
             log.info("Topics ready for '{}' ({} topics).", productName,
                     product.path("topics").size());
@@ -384,7 +399,7 @@ public class SetupGenerator {
             throws IOException, InterruptedException {
 
         for (JsonNode product : productArray) {
-            String productName = product.path("name").asText();
+            String productName = product.path("nameEn").asText();
             Long productId = productByName.get(productName);
             if (productId == null) continue;
 
@@ -403,7 +418,7 @@ public class SetupGenerator {
 
             int created = 0;
             for (JsonNode topic : product.path("topics")) {
-                String topicName = topic.path("name").asText();
+                String topicName = topic.path("nameTr").asText(topic.path("nameEn").asText(""));
                 Long topicId = topicByProductAndName.get(SetupResult.topicKey(productName, topicName));
                 if (topicId == null) continue;
 

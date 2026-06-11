@@ -349,8 +349,9 @@ the realm password policy. Other users continue.
 `users.example.json`).
 
 **"Product not found in setup: '...'. Skipping template."**
-→ The `productName` in a ticket JSON must match a product `name` in `setup.json`
-exactly (case-sensitive).
+→ The `productName` in a ticket JSON must match a product `nameEn` in `setup.json`
+exactly (case-sensitive). Topics are bilingual (`nameTr`/`nameEn`); a ticket JSON's
+`topicName` may use either language variant.
 
 **"429 Too Many Requests"**
 → The generator runs with no request pacing (`DELAY_MS = 0`), so a tight backend rate limit
