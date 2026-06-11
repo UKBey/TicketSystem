@@ -61,8 +61,9 @@ public class TicketDataFetcher {
         req.setTicketId(ticketId);
         req.setLanguage(language != null ? language : "tr");
 
-        // Ticket ana verisi
-        TicketDataDTO ticket = parseTicket(root.get("ticket"));
+        // Ticket ana verisi — ürün/konu adları çift dilli gelir; özetin üretileceği
+        // dile uyan varyant seçilir (boşsa diğerine düşülür).
+        TicketDataDTO ticket = parseTicket(root.get("ticket"), req.getLanguage());
         req.setTicket(ticket);
 
         // Yorumlar
@@ -88,7 +89,7 @@ public class TicketDataFetcher {
         return req;
     }
 
-    private TicketDataDTO parseTicket(JsonNode node) {
+    private TicketDataDTO parseTicket(JsonNode node, String language) {
         if (node == null) return new TicketDataDTO();
         TicketDataDTO t = new TicketDataDTO();
         t.setId(longVal(node, "id"));
@@ -96,8 +97,8 @@ public class TicketDataFetcher {
         t.setDescription(strVal(node, "description"));
         t.setStatus(strVal(node, "status"));
         t.setPriority(strVal(node, "priority"));
-        t.setProductName(strVal(node, "productName"));
-        t.setTopicName(strVal(node, "topicName"));
+        t.setProductName(pickLocalized(strVal(node, "productNameTr"), strVal(node, "productNameEn"), language));
+        t.setTopicName(pickLocalized(strVal(node, "topicNameTr"), strVal(node, "topicNameEn"), language));
         t.setCustomerName(strVal(node, "customerName"));
         t.setSlaBreached(boolVal(node, "slaBreached"));
         t.setSlaDeadline(dateVal(node, "slaDeadline"));
@@ -191,6 +192,13 @@ public class TicketDataFetcher {
     }
 
     // ---- Yardımcı metodlar ----
+
+    /** Hedef özet diline uyan ad varyantını seçer; o dil boşsa diğer dile düşer. */
+    private String pickLocalized(String tr, String en, String language) {
+        String primary = "en".equalsIgnoreCase(language) ? en : tr;
+        String fallback = "en".equalsIgnoreCase(language) ? tr : en;
+        return (primary != null && !primary.isBlank()) ? primary : fallback;
+    }
 
     private String strVal(JsonNode node, String field) {
         JsonNode f = node.get(field);
