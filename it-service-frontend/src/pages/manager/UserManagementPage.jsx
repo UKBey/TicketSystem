@@ -24,7 +24,7 @@ const COL_ORDER = ['name', 'email', 'role', 'username', 'createdAt', 'actions'];
 export default function UserManagementPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER, 'colw:users');
   const { user: currentUser, isAdmin, isManager } = useAuth();
 
   // Rol düzenleme ve aktif/pasif alma yalnızca ADMIN yetkisidir. MANAGER bu sayfayı

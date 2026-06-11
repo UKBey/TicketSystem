@@ -21,7 +21,7 @@ export default function ProductPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER, 'colw:products');
   const { isLeadAgent, isAdmin, isManager } = useAuth();
   // Ürün CRUD (oluştur/düzenle/sil) sistem-config'tir — yalnızca admin.
   const canManageProducts = isAdmin;

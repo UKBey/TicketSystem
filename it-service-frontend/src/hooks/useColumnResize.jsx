@@ -1,16 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ResizeHandle from '../components/ResizeHandle';
 
 // Bir sütun bu pikselin altına küçültülemez.
 const MIN_COL_WIDTH = 60;
 
+// localStorage'dan kayıtlı genişlikleri okur; bozuk/eski kayıtlara karşı yalnız
+// pozitif sayısal değerleri alır (tarayıcı verisi her zaman güvenilmez).
+function loadStoredWidths(storageKey) {
+  if (!storageKey) return {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey));
+    return Object.fromEntries(
+      Object.entries(parsed ?? {}).filter(([, w]) => typeof w === 'number' && w >= MIN_COL_WIDTH),
+    );
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Sürüklenerek ayarlanabilen tablo sütun genişlikleri — tüm liste tablolarında
- * paylaşılan tek kaynak. Genişlikler yalnızca oturum boyunca state'te tutulur
- * (kalıcı değil — sayfa yenilenince {@code defaults}'a döner).
+ * paylaşılan tek kaynak. Genişlikler {@code storageKey} verilirse localStorage'da
+ * kalıcı tutulur (tarayıcı profiline bağlı, backend'e gitmez); verilmezse yalnız
+ * oturum boyunca state'te yaşar ve yenilemede {@code defaults}'a döner.
  *
  * Kullanım (tablo şablonu):
- *   const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULTS, columnOrder);
+ *   const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULTS, columnOrder, 'colw:tickets');
  *   <table style={{ tableLayout: 'fixed', width: '100%', minWidth: `${tableWidth}px` }}>
  *     {renderColgroup()}
  *     ...<SortableTh resizeHandle={handleFor('id')} />...
@@ -19,11 +34,15 @@ const MIN_COL_WIDTH = 60;
  *
  * @param {Record<string, number>} defaults     sütun id → varsayılan px genişlik
  * @param {string[]} columnOrder                 sütun id'leri görünüm sırasıyla
+ * @param {string} [storageKey]                  localStorage anahtarı (tablo başına benzersiz)
  * @returns {{ widthOf: (id:string)=>number, tableWidth: number, lastColId: string,
  *            handleFor: (id:string)=>React.ReactNode, renderColgroup: ()=>React.ReactNode }}
  */
-export function useColumnResize(defaults, columnOrder) {
-  const [colWidths, setColWidths] = useState({});
+export function useColumnResize(defaults, columnOrder, storageKey) {
+  const [colWidths, setColWidths] = useState(() => loadStoredWidths(storageKey));
+  // setColWidths closure'larda bayat kaldığı için güncel haritayı ref'te aynalıyoruz;
+  // sürükleme bitişinde (onUp) localStorage'a bu ref yazılır.
+  const colWidthsRef = useRef(colWidths);
   const [resizing, setResizing] = useState(false);
 
   // Sürükleme sürerken metin seçimini ve imleci global olarak ayarla. DOM mutasyonu
@@ -54,12 +73,19 @@ export function useColumnResize(defaults, columnOrder) {
     const startW = widthOf(id);
     const onMove = (ev) => {
       const next = Math.max(MIN_COL_WIDTH, startW + (ev.clientX - startX));
-      setColWidths((prev) => ({ ...prev, [id]: next }));
+      colWidthsRef.current = { ...colWidthsRef.current, [id]: next };
+      setColWidths(colWidthsRef.current);
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       setResizing(false);
+      // Her mousemove'da değil sürükleme bitince tek sefer yaz (gereksiz disk I/O olmasın).
+      if (storageKey) {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(colWidthsRef.current));
+        } catch { /* depolama dolu/kapalıysa sessizce vazgeç — genişlikler oturumda yine çalışır */ }
+      }
     };
     setResizing(true);
     window.addEventListener('mousemove', onMove);

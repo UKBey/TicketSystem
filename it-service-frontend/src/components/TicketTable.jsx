@@ -58,7 +58,9 @@ export default function TicketTable({
     showActionsColumn && 'actions',
   ].filter(Boolean);
   // Sürüklenebilir sütun genişlikleri — hook erken return'den önce çağrılmalı.
-  const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULT_COL_WIDTHS, columnOrder);
+  // Anahtar tüm ticket listelerinde ortak — genişlikler sütun id'siyle saklandığı
+  // için sayfalar arası tutarlı kalır (opsiyonel sütunlar sadece kendi sayfasında görünür).
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(DEFAULT_COL_WIDTHS, columnOrder, 'colw:tickets');
 
 
   if (!tickets || tickets.length === 0) {

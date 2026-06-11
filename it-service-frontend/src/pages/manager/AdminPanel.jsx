@@ -298,7 +298,7 @@ const COL_ORDER = ['name', 'email', 'role', 'authorized', 'assign', 'agentLimits
 export default function AdminPanel() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER);
+  const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER, 'colw:admin-panel');
 
   const [users, setUsers]               = useState([]);
   const [products, setProducts]         = useState([]);
