@@ -199,8 +199,8 @@ You can now log in at http://localhost.
 |---------|-----|
 | **Web application** | http://localhost |
 | API (Swagger UI) | http://localhost/swagger-ui/index.html |
-| Keycloak | http://localhost/auth |
-| Keycloak Admin Console | http://localhost/auth/admin — login: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (from `.env`) |
+| Keycloak (OIDC, via nginx) | http://localhost/auth/realms/TicketSystemRealm — nginx only proxies `/auth/realms` and `/auth/resources`; everything else under `/auth` falls through to the SPA |
+| Keycloak Admin Console | http://localhost:8080/auth/admin — direct Keycloak port (dev only; never served through nginx). Login: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (from `.env`). In prod the port is bound to `127.0.0.1` — reach it via SSH tunnel |
 | Mailpit (captured e-mails) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 — login: `cn=admin,dc=ticketsystem,dc=com` / `LDAP_ADMIN_PASSWORD` |

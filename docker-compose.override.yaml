@@ -32,6 +32,11 @@ services:
   keycloak-iam:
     # Dev: start-dev — realm import + dinamik hostname (web localhost, mobil LAN IP).
     command: start-dev --import-realm
+    # Admin konsolu nginx'ten (localhost/auth/admin) SUNULMAZ — nginx yalniz
+    # /auth/realms ve /auth/resources proxy'ler. Dev'de admin'e dogrudan
+    # Keycloak portundan girilir: http://localhost:8080/auth/admin/
+    ports:
+      - "8080:8080"
 
   redis:
     ports:

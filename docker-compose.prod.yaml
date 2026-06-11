@@ -34,6 +34,16 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
+    # Admin konsolu nginx'ten sunulmaz (nginx yalniz /auth/realms ve /auth/resources
+    # proxy'ler; /auth/admin SPA'ya duser). Operator admin'e YALNIZCA SSH tuneli ile
+    # erisir — port host'un loopback'ine bagli, disaridan erisilemez:
+    #   ssh -L 8080:127.0.0.1:8080 <prod-host>
+    #   tarayicida: http://localhost:8080/auth/admin/
+    # KC_HOSTNAME_STRICT=false oldugu icin admin konsolu istek host'undan cozulur;
+    # tunel uzerinden redirect sorunu yasanirsa KC_HOSTNAME_ADMIN: http://localhost:8080
+    # ekleyin.
+    ports:
+      - "127.0.0.1:8080:8080"
 
   redis:
     restart: unless-stopped

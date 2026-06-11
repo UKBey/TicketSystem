@@ -194,8 +194,8 @@ Artık http://localhost adresinden giriş yapabilirsiniz.
 |---------|-----|
 | **Web uygulaması** | http://localhost |
 | API (Swagger UI) | http://localhost/swagger-ui/index.html |
-| Keycloak | http://localhost/auth |
-| Keycloak Admin Console | http://localhost/auth/admin — giriş: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (`.env`'den) |
+| Keycloak (OIDC, nginx üzerinden) | http://localhost/auth/realms/TicketSystemRealm — nginx yalnız `/auth/realms` ve `/auth/resources`'ı proxy'ler; `/auth` altındaki diğer her şey SPA'ya düşer |
+| Keycloak Admin Console | http://localhost:8080/auth/admin — doğrudan Keycloak portu (yalnız dev; nginx üzerinden asla sunulmaz). Giriş: `admin` / `KEYCLOAK_ADMIN_PASSWORD` (`.env`'den). Prod'da port `127.0.0.1`'e bağlıdır — SSH tüneli ile erişilir |
 | Mailpit (yakalanan e-postalar) | http://localhost:8025 |
 | OpenSearch Dashboards | http://localhost:5601 |
 | phpLDAPadmin | http://localhost:8085 — giriş: `cn=admin,dc=ticketsystem,dc=com` / `LDAP_ADMIN_PASSWORD` |

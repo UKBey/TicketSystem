@@ -89,7 +89,9 @@ services:
       timeout: 5s
       retries: 12
       start_period: 60s
-    # Keycloak portu disariya kapali — nginx uzerinden /realms/ path'i ile erisim.
+    # Port yayini ortama gore overlay'de: DEV=8080 (admin konsolu icin),
+    # PROD=127.0.0.1:8080 (yalniz SSH tuneli). nginx ise sadece /auth/realms ve
+    # /auth/resources'i proxy'ler — admin konsolu hicbir ortamda nginx'ten sunulmaz.
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://it-service-db:5432/keycloakdb
