@@ -12,6 +12,7 @@
 ![Keycloak](https://img.shields.io/badge/Keycloak-24-4D4D4D?logo=keycloak&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-kind-326CE5?logo=kubernetes&logoColor=white)
+![Ziyaretçi](https://visitor-badge.laobi.icu/badge?page_id=UKBey.TicketSystem&left_text=Ziyaret%C3%A7i)
 
 Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **SLA** kuralları çerçevesinde çözer ve yöneticiler operasyonu **canlı panolar** üzerinden izler. Sistem; kimlik federasyonu, iş akışı orkestrasyonu, asenkron işleme, gözlemlenebilirlik ve bir yapay zekâ özetleme servisini bir araya getiren, üretime yakın yapıda tam yığın bir mimariyi sergileyen, konteynerleştirilmiş ve çok dilli (polyglot) bir monorepo olarak inşa edilmiştir.
 

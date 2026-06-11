@@ -12,6 +12,7 @@
 ![Keycloak](https://img.shields.io/badge/Keycloak-24-4D4D4D?logo=keycloak&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-kind-326CE5?logo=kubernetes&logoColor=white)
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=UKBey.TicketSystem&left_text=Visitors)
 
 Customers report technical problems, support agents resolve them under **SLA** rules, and managers monitor the operation through **live dashboards**. The system is built as a containerised, polyglot monorepo that demonstrates a production-shaped full-stack architecture: identity federation, workflow orchestration, asynchronous processing, observability, and an AI summarisation service.
 
