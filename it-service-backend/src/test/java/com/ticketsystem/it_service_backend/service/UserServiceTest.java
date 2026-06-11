@@ -56,7 +56,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        product = Product.builder().id(55L).name("Support").isActive(true).build();
+        product = Product.builder().id(55L).nameEn("Support").isActive(true).build();
         user = User.builder()
                 .id("agent-1")
                 .email("agent@example.com")

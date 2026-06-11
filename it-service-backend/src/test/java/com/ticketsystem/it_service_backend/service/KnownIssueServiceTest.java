@@ -53,7 +53,7 @@ class KnownIssueServiceTest {
     }
 
     private User userWithProduct(Long productId) {
-        Product p = Product.builder().id(productId).name("Test").isActive(true).build();
+        Product p = Product.builder().id(productId).nameEn("Test").isActive(true).build();
         return User.builder()
                 .id("agent-1")
                 .email("a@example.com")
@@ -115,7 +115,7 @@ class KnownIssueServiceTest {
         @Test
         @DisplayName("Yetkisiz kullanici 403 alir")
         void unauthorizedUser_throwsForbidden() {
-            Product p = Product.builder().id(99L).name("Other").isActive(true).build();
+            Product p = Product.builder().id(99L).nameEn("Other").isActive(true).build();
             User user = User.builder().id("agent-1").role("AGENT")
                     .authorizedProducts(new java.util.ArrayList<>(List.of(p))).build();
             when(productRepository.existsById(10L)).thenReturn(true);
@@ -150,7 +150,7 @@ class KnownIssueServiceTest {
         void valid_persists() {
             when(productRepository.existsById(10L)).thenReturn(true);
             when(topicRepository.findById(20L)).thenReturn(Optional.of(
-                    TicketTopic.builder().id(20L).productId(10L).name("Şifre").isActive(true).build()));
+                    TicketTopic.builder().id(20L).productId(10L).nameTr("Şifre").isActive(true).build()));
             when(knownIssueRepository.save(any(KnownIssue.class))).thenAnswer(i -> i.getArgument(0));
 
             KnownIssue saved = service.create(10L, 20L, " Başlık ", " İçerik ", null, "admin-1");
@@ -175,7 +175,7 @@ class KnownIssueServiceTest {
         void topicMismatch_throwsBadRequest() {
             when(productRepository.existsById(10L)).thenReturn(true);
             when(topicRepository.findById(20L)).thenReturn(Optional.of(
-                    TicketTopic.builder().id(20L).productId(999L).name("X").isActive(true).build()));
+                    TicketTopic.builder().id(20L).productId(999L).nameTr("X").isActive(true).build()));
 
             assertThatThrownBy(() -> service.create(10L, 20L, "T", "C", true, "admin-1"))
                     .isInstanceOf(ResponseStatusException.class)

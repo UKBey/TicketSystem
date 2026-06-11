@@ -29,14 +29,14 @@ class TicketTopicControllerTest {
 
     @Test
     void listByProduct_defaultActiveOnly() {
-        TicketTopic t = TicketTopic.builder().id(1L).productId(10L).name("Şifre").isActive(true).build();
+        TicketTopic t = TicketTopic.builder().id(1L).productId(10L).nameTr("Şifre").isActive(true).build();
         when(topicService.listByProduct(10L, true)).thenReturn(List.of(t));
 
         ResponseEntity<List<TicketTopicDTO>> res = controller.listByProduct(10L, false);
 
         assertThat(res.getStatusCode().value()).isEqualTo(200);
         assertThat(res.getBody()).hasSize(1);
-        assertThat(res.getBody().get(0).getName()).isEqualTo("Şifre");
+        assertThat(res.getBody().get(0).getNameTr()).isEqualTo("Şifre");
     }
 
     @Test
@@ -50,9 +50,9 @@ class TicketTopicControllerTest {
 
     @Test
     void create_returnsDtoFromService() {
-        TicketTopicDTO body = TicketTopicDTO.builder().name("Yeni").isActive(true).build();
-        TicketTopic created = TicketTopic.builder().id(42L).productId(10L).name("Yeni").isActive(true).build();
-        when(topicService.create(10L, "Yeni", true)).thenReturn(created);
+        TicketTopicDTO body = TicketTopicDTO.builder().nameTr("Yeni").nameEn("New").isActive(true).build();
+        TicketTopic created = TicketTopic.builder().id(42L).productId(10L).nameTr("Yeni").nameEn("New").isActive(true).build();
+        when(topicService.create(10L, "Yeni", "New", true)).thenReturn(created);
 
         ResponseEntity<TicketTopicDTO> res = controller.create(10L, body);
 
@@ -63,9 +63,9 @@ class TicketTopicControllerTest {
 
     @Test
     void update_passesArgsAndReturnsDto() {
-        TicketTopicDTO body = TicketTopicDTO.builder().name("Düzenli").isActive(false).build();
-        TicketTopic updated = TicketTopic.builder().id(5L).productId(10L).name("Düzenli").isActive(false).build();
-        when(topicService.update(5L, "Düzenli", false)).thenReturn(updated);
+        TicketTopicDTO body = TicketTopicDTO.builder().nameTr("Düzenli").isActive(false).build();
+        TicketTopic updated = TicketTopic.builder().id(5L).productId(10L).nameTr("Düzenli").isActive(false).build();
+        when(topicService.update(5L, "Düzenli", null, false)).thenReturn(updated);
 
         ResponseEntity<TicketTopicDTO> res = controller.update(5L, body);
 

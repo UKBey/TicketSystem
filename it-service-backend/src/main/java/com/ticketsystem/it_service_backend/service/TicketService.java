@@ -80,8 +80,8 @@ public class TicketService {
      * @param customerId ID of the customer opening the ticket (assigned automatically)
      * <p>The topic is required only when the product still has at least one active
      * topic to choose from. When the product has no active topics, the ticket may be
-     * created without a topic ("No Topic"); {@code topicId} and {@code topicNameSnapshot}
-     * are left null in that case.
+     * created without a topic ("No Topic"); {@code topicId} and the topic name
+     * snapshots (tr/en) are left null in that case.
      *
      * @return the persisted ticket
      * @throws ResponseStatusException 400 if topic is missing while active topics exist, or mismatched,
@@ -109,11 +109,11 @@ public class TicketService {
             // Konusuz ("No Topic") bilet yalnızca ürünün hiç aktif konusu yoksa açılabilir.
             // Üründe seçilebilecek aktif konu varsa konu zorunludur.
             boolean hasActiveTopics = !ticketTopicRepository
-                    .findByProductIdAndIsActiveTrueOrderByNameAsc(product.getId()).isEmpty();
+                    .findByProductIdAndIsActiveTrueOrderByIdAsc(product.getId()).isEmpty();
             if (hasActiveTopics) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.required");
             }
-            // topicId ve topicNameSnapshot null kalır.
+            // topicId ve topic ad snapshot'ları (tr/en) null kalır.
         } else {
             TicketTopic topic = ticketTopicRepository.findById(ticket.getTopicId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.topic.not.found"));
@@ -123,7 +123,8 @@ public class TicketService {
             if (!Boolean.TRUE.equals(topic.getIsActive())) {
                 throw new ResponseStatusException(HttpStatusCode.valueOf(422), "error.ticket.topic.inactive");
             }
-            ticket.setTopicNameSnapshot(topic.getName());
+            ticket.setTopicNameSnapshotTr(topic.getNameTr());
+            ticket.setTopicNameSnapshotEn(topic.getNameEn());
         }
 
         ticket.setCustomerId(customerId);

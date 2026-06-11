@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -40,14 +41,20 @@ public class TicketResponseDTO {
     @Schema(description = "Ürün/kategori ID'si", example = "1")
     private Long productId;
 
-    @Schema(description = "Ürün/kategori adı", example = "CRM")
-    private String productName;
+    @Schema(description = "Ürün/kategori adı (Türkçe varyant; boşsa istemci nameEn'e düşer)", example = "Müşteri Yönetimi", nullable = true)
+    private String productNameTr;
+
+    @Schema(description = "Ürün/kategori adı (İngilizce varyant; boşsa istemci nameTr'ye düşer)", example = "CRM", nullable = true)
+    private String productNameEn;
 
     @Schema(description = "Seçilen talep konusunun ID'si", example = "12")
     private Long topicId;
 
-    @Schema(description = "Konu adının bilet oluşturulduğu andaki anlık görüntüsü", example = "Şifre sıfırlama")
-    private String topicName;
+    @Schema(description = "Konu adının bilet oluşturulduğu andaki anlık görüntüsü (Türkçe)", example = "Şifre sıfırlama", nullable = true)
+    private String topicNameTr;
+
+    @Schema(description = "Konu adının bilet oluşturulduğu andaki anlık görüntüsü (İngilizce)", example = "Password reset", nullable = true)
+    private String topicNameEn;
 
     @Schema(description = "Bileti oluşturan müşterinin Keycloak ID'si")
     private String customerId;
@@ -92,7 +99,7 @@ public class TicketResponseDTO {
     private List<TicketAuditLogDTO> auditLogs;
 
     public static TicketResponseDTO fromEntity(Ticket ticket, boolean hasCsat,
-                                               String productName, String customerName,
+                                               Product product, String customerName,
                                                List<ClaimerDTO> claimers) {
         return TicketResponseDTO.builder()
                 .id(ticket.getId())
@@ -101,9 +108,11 @@ public class TicketResponseDTO {
                 .status(ticket.getStatus())
                 .priority(ticket.getPriority())
                 .productId(ticket.getProductId())
-                .productName(productName)
+                .productNameTr(product != null ? product.getNameTr() : null)
+                .productNameEn(product != null ? product.getNameEn() : null)
                 .topicId(ticket.getTopicId())
-                .topicName(ticket.getTopicNameSnapshot())
+                .topicNameTr(ticket.getTopicNameSnapshotTr())
+                .topicNameEn(ticket.getTopicNameSnapshotEn())
                 .customerId(ticket.getCustomerId())
                 .customerName(customerName)
                 .claimers(claimers)
@@ -118,8 +127,8 @@ public class TicketResponseDTO {
                 .build();
     }
 
-    public static TicketResponseDTO fromEntity(Ticket ticket, String productName,
+    public static TicketResponseDTO fromEntity(Ticket ticket, Product product,
                                                String customerName, List<ClaimerDTO> claimers) {
-        return fromEntity(ticket, false, productName, customerName, claimers);
+        return fromEntity(ticket, false, product, customerName, claimers);
     }
 }

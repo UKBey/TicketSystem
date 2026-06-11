@@ -17,13 +17,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * resolution hours, CSAT average, SLA breach count and breach percentage in a
      * single round-trip. {@code days} null or 0 means all time; otherwise it limits
      * to tickets created within the last N days.
-     * Returned columns, in order: id, name, total_tickets, open_tickets,
+     * Returned columns, in order: id, name_tr, name_en, total_tickets, open_tickets,
      * avg_resolution_hours, csat_average, sla_breach_count, sla_breach_percentage.
      */
     @Query(value = """
             SELECT
                 p.id,
-                p.name,
+                p.name_tr,
+                p.name_en,
                 COUNT(t.id)                                                         AS total_tickets,
                 COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END) AS open_tickets,
                 AVG(CASE WHEN t.resolved_at IS NOT NULL
@@ -40,7 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                      OR t.created_at >= NOW() - make_interval(days => CAST(:days AS INTEGER)))
             LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
             WHERE p.is_active = true
-            GROUP BY p.id, p.name
+            GROUP BY p.id, p.name_tr, p.name_en
             ORDER BY total_tickets DESC
             """, nativeQuery = true)
     List<Object[]> findProductMetrics(@Param("days") Integer days);
@@ -53,7 +54,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = """
             SELECT
                 p.id,
-                p.name,
+                p.name_tr,
+                p.name_en,
                 COUNT(t.id)                                                         AS total_tickets,
                 COUNT(CASE WHEN t.status IN ('NEW','IN_PROGRESS','WAITING_FOR_CUSTOMER') THEN 1 END) AS open_tickets,
                 AVG(CASE WHEN t.resolved_at IS NOT NULL
@@ -71,7 +73,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             LEFT JOIN csat_surveys cs ON cs.ticket_id = t.id
             WHERE p.is_active = true
               AND (:filterByProduct = false OR p.id IN (:productIds))
-            GROUP BY p.id, p.name
+            GROUP BY p.id, p.name_tr, p.name_en
             ORDER BY total_tickets DESC
             """, nativeQuery = true)
     List<Object[]> findProductMetricsScoped(@Param("days") Integer days,

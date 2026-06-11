@@ -11,7 +11,8 @@ import lombok.Data;
 @Builder
 public class ProductDetailDTO {
     private Long productId;
-    private String productName;
+    private String productNameTr;
+    private String productNameEn;
     private Long totalTickets;
     private Long openTickets;
     private Double avgResolutionHours;

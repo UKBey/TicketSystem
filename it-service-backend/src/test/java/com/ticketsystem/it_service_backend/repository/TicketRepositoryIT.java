@@ -48,12 +48,12 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         userRepository.deleteAll();
         productRepository.deleteAll();
 
-        Product p1 = productRepository.save(Product.builder().name("Support").isActive(true).build());
-        Product p2 = productRepository.save(Product.builder().name("Network").isActive(true).build());
+        Product p1 = productRepository.save(Product.builder().nameEn("Support").isActive(true).build());
+        Product p2 = productRepository.save(Product.builder().nameEn("Network").isActive(true).build());
         productId1 = p1.getId();
         productId2 = p2.getId();
-        topicId1 = ticketTopicRepository.save(TicketTopic.builder().productId(productId1).name("Diğer").isActive(true).build()).getId();
-        topicId2 = ticketTopicRepository.save(TicketTopic.builder().productId(productId2).name("Diğer").isActive(true).build()).getId();
+        topicId1 = ticketTopicRepository.save(TicketTopic.builder().productId(productId1).nameTr("Diğer").isActive(true).build()).getId();
+        topicId2 = ticketTopicRepository.save(TicketTopic.builder().productId(productId2).nameTr("Diğer").isActive(true).build()).getId();
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
         userRepository.save(User.builder().id("customer-2").email("customer-2@test.com").fullName("Customer Two").role("CUSTOMER").build());

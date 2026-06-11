@@ -51,12 +51,15 @@ public class Ticket {
     private Long topicId;
 
     /**
-     * Snapshot of the topic name at the time the ticket was created. Even if the
-     * {@link TicketTopic} is later deleted or renamed, the original name remains
-     * visible on the ticket detail.
+     * Snapshot of the topic names (per language) at the time the ticket was created.
+     * Even if the {@link TicketTopic} is later deleted or renamed, the original names
+     * remain visible on the ticket detail in both languages.
      */
-    @Column(name = "topic_name_snapshot")
-    private String topicNameSnapshot;
+    @Column(name = "topic_name_snapshot_tr")
+    private String topicNameSnapshotTr;
+
+    @Column(name = "topic_name_snapshot_en")
+    private String topicNameSnapshotEn;
 
     /** Keycloak UUID — corresponds to {@link User#id} (denormalized, not an FK). */
     @Column(name = "customer_id", nullable = false, length = 36)

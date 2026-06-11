@@ -41,7 +41,7 @@ class AgentProductLimitServiceTest {
 
     @BeforeEach
     void setUp() {
-        product = Product.builder().id(10L).name("CRM").maxActiveTickets(4).build();
+        product = Product.builder().id(10L).nameEn("CRM").maxActiveTickets(4).build();
         agent = User.builder().id("agent-1").role("AGENT").build();
     }
 
@@ -59,7 +59,7 @@ class AgentProductLimitServiceTest {
         List<AgentProductLimitResponseDTO> result = agentProductLimitService.getAgentLimits("agent-1");
 
         assertEquals(1, result.size());
-        assertEquals("CRM", result.get(0).getProductName());
+        assertEquals("CRM", result.get(0).getProductNameEn());
         assertEquals(2, result.get(0).getEffectiveLimit());
     }
 

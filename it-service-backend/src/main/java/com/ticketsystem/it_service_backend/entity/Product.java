@@ -11,6 +11,10 @@ import lombok.*;
  * {@link KnownIssue} and {@link AgentProductLimit} all reference this product. The
  * {@code isActive} flag implements a soft-delete pattern — records are deactivated
  * rather than deleted.
+ *
+ * <p>The name is bilingual ({@code nameTr} / {@code nameEn}); at least one variant
+ * must be present (DB CHECK). Brand-name products typically fill a single variant —
+ * the UI falls back to whichever one exists.
  */
 @Entity
 @Table(name = "products")
@@ -25,8 +29,11 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // Otomatik artan ID
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "name_tr")
+    private String nameTr;
+
+    @Column(name = "name_en")
+    private String nameEn;
 
     @Column(name = "is_active")
     @Builder.Default

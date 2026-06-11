@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
+import com.ticketsystem.it_service_backend.util.LocalizedText;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -261,16 +262,21 @@ public class TicketCommandService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.topic.inactive");
         }
 
+        // Audit kaydı dil-bağımsız kalıcı bir metin ister; iki ad farklıysa "tr / en" yazılır.
         String oldTopicName = oldTopicId != null
-                ? ticketTopicRepository.findById(oldTopicId).map(TicketTopic::getName).orElse(String.valueOf(oldTopicId))
+                ? ticketTopicRepository.findById(oldTopicId)
+                        .map(t -> LocalizedText.label(t.getNameTr(), t.getNameEn()))
+                        .orElse(String.valueOf(oldTopicId))
                 : null;
 
         ticket.setTopicId(newTopicId);
-        // Keep the denormalized name snapshot in sync so the response (and every later
+        // Keep the denormalized name snapshots in sync so the response (and every later
         // read) shows the topic name instead of falling back to "#<id>".
-        ticket.setTopicNameSnapshot(newTopic.getName());
+        ticket.setTopicNameSnapshotTr(newTopic.getNameTr());
+        ticket.setTopicNameSnapshotEn(newTopic.getNameEn());
         Ticket saved = ticketRepository.save(ticket);
-        recordTicketAuditLog(saved, userId, "TOPIC_CHANGE", reasonCode, note, oldTopicName, newTopic.getName());
+        recordTicketAuditLog(saved, userId, "TOPIC_CHANGE", reasonCode, note, oldTopicName,
+                LocalizedText.label(newTopic.getNameTr(), newTopic.getNameEn()));
         return saved;
     }
 

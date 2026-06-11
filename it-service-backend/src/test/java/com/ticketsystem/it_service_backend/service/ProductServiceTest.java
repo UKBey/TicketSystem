@@ -52,7 +52,7 @@ class ProductServiceTest {
 
     @BeforeEach
     void setUp() {
-        product = Product.builder().id(10L).name("ERP").isActive(true).build();
+        product = Product.builder().id(10L).nameEn("ERP").isActive(true).build();
     }
 
     @Test
@@ -63,7 +63,7 @@ class ProductServiceTest {
         List<Product> result = productService.getAllProducts("admin-1", List.of("ADMIN"));
 
         assertEquals(1, result.size());
-        assertEquals("ERP", result.get(0).getName());
+        assertEquals("ERP", result.get(0).getNameEn());
     }
 
     @Test
@@ -89,32 +89,32 @@ class ProductServiceTest {
 
     @Test
     void createProduct_setsActiveTrueWhenNull() {
-        Product input = Product.builder().name("CRM").isActive(null).build();
+        Product input = Product.builder().nameEn("CRM").isActive(null).build();
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Product saved = productService.createProduct(input);
 
         assertEquals(true, saved.getIsActive());
-        assertEquals("CRM", saved.getName());
+        assertEquals("CRM", saved.getNameEn());
     }
 
     @Test
     void updateProduct_updatesOnlyProvidedFields() {
-        Product existing = Product.builder().id(10L).name("Old").isActive(true).build();
-        Product patch = Product.builder().name("New").build();
+        Product existing = Product.builder().id(10L).nameEn("Old").isActive(true).build();
+        Product patch = Product.builder().nameEn("New").build();
 
         when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Product updated = productService.updateProduct(10L, patch);
 
-        assertEquals("New", updated.getName());
+        assertEquals("New", updated.getNameEn());
         assertEquals(true, updated.getIsActive());
     }
 
     @Test
     void updateMaxActiveTickets_setsLimit() {
-        Product existing = Product.builder().id(11L).name("CRM").isActive(true).build();
+        Product existing = Product.builder().id(11L).nameEn("CRM").isActive(true).build();
 
         when(productRepository.findById(11L)).thenReturn(Optional.of(existing));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -127,7 +127,7 @@ class ProductServiceTest {
 
     @Test
     void updateMaxActiveTickets_nullClearsLimit() {
-        Product existing = Product.builder().id(12L).name("ERP").isActive(true).maxActiveTickets(3).build();
+        Product existing = Product.builder().id(12L).nameEn("ERP").isActive(true).maxActiveTickets(3).build();
 
         when(productRepository.findById(12L)).thenReturn(Optional.of(existing));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -237,7 +237,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("updateProduct → mevcut maxActiveTickets varken null patch → limit kaldırılır")
     void updateProduct_existingLimitWithNullPatch_clearsLimit() {
-        Product existing = Product.builder().id(10L).name("ERP").isActive(true).maxActiveTickets(5).build();
+        Product existing = Product.builder().id(10L).nameEn("ERP").isActive(true).maxActiveTickets(5).build();
         Product patch = Product.builder().build(); // name=null, isActive=null, maxActiveTickets=null
 
         when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
@@ -303,7 +303,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("createProduct → isActive null → varsayılan true atanır")
     void createProduct_nullIsActive_defaultsToTrue() {
-        Product input = Product.builder().name("X").build();
+        Product input = Product.builder().nameEn("X").build();
         when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.createProduct(input);
@@ -314,7 +314,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("createProduct → isActive false → değiştirilmez")
     void createProduct_explicitFalse_keepsFalse() {
-        Product input = Product.builder().name("X").isActive(false).build();
+        Product input = Product.builder().nameEn("X").isActive(false).build();
         when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Product result = productService.createProduct(input);
@@ -362,15 +362,15 @@ class ProductServiceTest {
     @Test
     @DisplayName("updateProduct → name + isActive + maxActiveTickets patch → her üçü de güncellenir")
     void updateProduct_fullPatch_updatesAllFields() {
-        Product existing = Product.builder().id(10L).name("Old").isActive(true).maxActiveTickets(3).build();
-        Product patch = Product.builder().name("New").isActive(false).maxActiveTickets(7).build();
+        Product existing = Product.builder().id(10L).nameEn("Old").isActive(true).maxActiveTickets(3).build();
+        Product patch = Product.builder().nameEn("New").isActive(false).maxActiveTickets(7).build();
 
         when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
         when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Product updated = productService.updateProduct(10L, patch);
 
-        assertThat(updated.getName()).isEqualTo("New");
+        assertThat(updated.getNameEn()).isEqualTo("New");
         assertThat(updated.getIsActive()).isFalse();
         assertThat(updated.getMaxActiveTickets()).isEqualTo(7);
     }
@@ -389,7 +389,7 @@ class ProductServiceTest {
     @Test
     @DisplayName("updateMaxActiveTickets → null limit → temizler")
     void updateMaxActiveTickets_null_clears() {
-        Product existing = Product.builder().id(10L).name("X").isActive(true).maxActiveTickets(5).build();
+        Product existing = Product.builder().id(10L).nameEn("X").isActive(true).maxActiveTickets(5).build();
         when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
         when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 

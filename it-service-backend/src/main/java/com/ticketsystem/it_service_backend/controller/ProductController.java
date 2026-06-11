@@ -11,6 +11,7 @@ import java.util.List;
 import com.ticketsystem.it_service_backend.dto.ProductDTO;
 import com.ticketsystem.it_service_backend.dto.ProductLimitUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
+import com.ticketsystem.it_service_backend.util.LocalizedText;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -107,10 +108,10 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Oluşturulacak ürün bilgileri",
-                    content = @Content(schema = @Schema(example = "{\"name\": \"ERP\", \"isActive\": true}")))
+                    description = "Oluşturulacak ürün bilgileri (nameTr/nameEn'den en az biri zorunlu)",
+                    content = @Content(schema = @Schema(example = "{\"nameTr\": \"Kurumsal Kaynak Planlama\", \"nameEn\": \"ERP\", \"isActive\": true}")))
             @RequestBody Product product) {
-        log.info("Yeni ürün oluşturma isteği: {}", product.getName());
+        log.info("Yeni ürün oluşturma isteği: {}", LocalizedText.label(product.getNameTr(), product.getNameEn()));
         
         Product created = productService.createProduct(product);
         
@@ -170,7 +171,8 @@ public class ProductController {
             @Parameter(description = "Güncellenecek ürünün ID'si", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody Product product) {
-        log.info("Ürün güncelleme isteği. ID: {}, Yeni İsim: {}", id, product.getName());
+        log.info("Ürün güncelleme isteği. ID: {}, Yeni İsim: {}", id,
+                LocalizedText.label(product.getNameTr(), product.getNameEn()));
 
         Product updated = productService.updateProduct(id, product);
         

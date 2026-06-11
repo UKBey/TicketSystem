@@ -60,7 +60,7 @@ class TicketControllerTest {
         lenient().when(ticketDtoAssembler.toDto(any(Ticket.class), anyBoolean(), anyList()))
                 .thenAnswer(inv -> {
                     Ticket t = inv.getArgument(0);
-                    return TicketResponseDTO.fromEntity(t, false, "Unknown", "Unknown", List.of());
+                    return TicketResponseDTO.fromEntity(t, false, null, "Unknown", List.of());
                 });
     }
 

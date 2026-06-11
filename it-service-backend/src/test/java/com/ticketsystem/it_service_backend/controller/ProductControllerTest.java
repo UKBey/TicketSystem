@@ -36,7 +36,7 @@ class ProductControllerTest {
 
     @Test
     void getAllProducts_withAgentAdminRole_returnsMappedDtos() {
-        Product product = Product.builder().id(11L).name("ERP").isActive(true).build();
+        Product product = Product.builder().id(11L).nameEn("ERP").isActive(true).build();
         when(productService.getAllProducts("admin-1", List.of("ADMIN"))).thenReturn(List.of(product));
 
         ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("admin-1", "ADMIN"));
@@ -44,12 +44,12 @@ class ProductControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
-        assertEquals("ERP", response.getBody().get(0).getName());
+        assertEquals("ERP", response.getBody().get(0).getNameEn());
     }
 
     @Test
     void getAllProducts_withManagerRole_returnsMappedDtos() {
-        Product product = Product.builder().id(12L).name("CRM").isActive(true).build();
+        Product product = Product.builder().id(12L).nameEn("CRM").isActive(true).build();
         when(productService.getAllProducts("manager-1", List.of("MANAGER"))).thenReturn(List.of(product));
 
         ResponseEntity<List<ProductDTO>> response = productController.getAllProducts(jwtWithRoles("manager-1", "MANAGER"));
@@ -57,13 +57,13 @@ class ProductControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
-        assertEquals("CRM", response.getBody().get(0).getName());
+        assertEquals("CRM", response.getBody().get(0).getNameEn());
     }
 
     @Test
     void createProduct_returnsCreatedDto() {
-        Product input = Product.builder().name("CRM").build();
-        Product created = Product.builder().id(12L).name("CRM").isActive(true).build();
+        Product input = Product.builder().nameEn("CRM").build();
+        Product created = Product.builder().id(12L).nameEn("CRM").isActive(true).build();
         when(productService.createProduct(input)).thenReturn(created);
 
         ResponseEntity<ProductDTO> response = productController.createProduct(input);
@@ -75,22 +75,22 @@ class ProductControllerTest {
 
     @Test
     void updateProduct_returnsUpdatedDto() {
-        Product patch = Product.builder().name("New Name").build();
-        Product updated = Product.builder().id(13L).name("New Name").isActive(false).build();
+        Product patch = Product.builder().nameEn("New Name").build();
+        Product updated = Product.builder().id(13L).nameEn("New Name").isActive(false).build();
         when(productService.updateProduct(13L, patch)).thenReturn(updated);
 
         ResponseEntity<ProductDTO> response = productController.updateProduct(13L, patch);
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals("New Name", response.getBody().getName());
+        assertEquals("New Name", response.getBody().getNameEn());
         assertEquals(false, response.getBody().getIsActive());
     }
 
     @Test
     void updateProductLimit_returnsUpdatedDto() {
         ProductLimitUpdateRequestDTO request = ProductLimitUpdateRequestDTO.builder().maxActiveTickets(8).build();
-        Product updated = Product.builder().id(15L).name("ERP").isActive(true).maxActiveTickets(8).build();
+        Product updated = Product.builder().id(15L).nameEn("ERP").isActive(true).maxActiveTickets(8).build();
         when(productService.updateMaxActiveTickets(15L, 8)).thenReturn(updated);
 
         ResponseEntity<ProductDTO> response = productController.updateProductLimit(15L, request);
@@ -110,7 +110,7 @@ class ProductControllerTest {
 
     @Test
     void getProductById_withNonNullJwt_returnsOk() {
-        Product product = Product.builder().id(10L).name("ERP").isActive(true).build();
+        Product product = Product.builder().id(10L).nameEn("ERP").isActive(true).build();
         when(productService.getProductById(10L, "admin-1", List.of("ADMIN"))).thenReturn(product);
 
         ResponseEntity<ProductDTO> response = productController.getProductById(10L, jwtWithRoles("admin-1", "ADMIN"));
@@ -122,7 +122,7 @@ class ProductControllerTest {
 
     @Test
     void getProductById_withNullJwt_callsServiceWithNullAndEmptyRoles() {
-        Product product = Product.builder().id(10L).name("ERP").isActive(true).build();
+        Product product = Product.builder().id(10L).nameEn("ERP").isActive(true).build();
         when(productService.getProductById(10L, null, List.of())).thenReturn(product);
 
         ResponseEntity<ProductDTO> response = productController.getProductById(10L, null);

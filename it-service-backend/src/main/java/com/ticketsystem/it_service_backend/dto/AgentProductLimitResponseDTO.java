@@ -25,8 +25,11 @@ public class AgentProductLimitResponseDTO {
     @Schema(description = "Ürün kimliği", example = "10")
     private Long productId;
 
-    @Schema(description = "Ürün adı", example = "CRM")
-    private String productName;
+    @Schema(description = "Ürün adı (Türkçe varyant)", example = "Müşteri Yönetimi", nullable = true)
+    private String productNameTr;
+
+    @Schema(description = "Ürün adı (İngilizce varyant)", example = "CRM", nullable = true)
+    private String productNameEn;
 
     @Schema(description = "Özel limit kullanılıyor mu?", example = "true")
     private boolean useCustomLimit;
@@ -46,7 +49,8 @@ public class AgentProductLimitResponseDTO {
         return AgentProductLimitResponseDTO.builder()
                 .agentId(limit.getAgentId())
                 .productId(product.getId())
-                .productName(product.getName())
+                .productNameTr(product.getNameTr())
+                .productNameEn(product.getNameEn())
                 .useCustomLimit(Boolean.TRUE.equals(limit.getUseCustomLimit()))
                 .maxActiveTickets(limit.getMaxActiveTickets())
                 .effectiveLimit(effectiveLimit)
@@ -60,7 +64,8 @@ public class AgentProductLimitResponseDTO {
         return AgentProductLimitResponseDTO.builder()
                 .agentId(agentId)
                 .productId(product.getId())
-                .productName(product.getName())
+                .productNameTr(product.getNameTr())
+                .productNameEn(product.getNameEn())
                 .useCustomLimit(useCustomLimit)
                 .maxActiveTickets(maxActiveTickets)
                 .effectiveLimit(effectiveLimit)

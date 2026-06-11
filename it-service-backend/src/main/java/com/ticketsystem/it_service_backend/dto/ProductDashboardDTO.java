@@ -23,8 +23,11 @@ public class ProductDashboardDTO {
     @Schema(description = "Ürün ID'si", example = "3")
     private Long productId;
 
-    @Schema(description = "Ürün adı", example = "Billing")
-    private String productName;
+    @Schema(description = "Ürün adı (Türkçe varyant; boşsa istemci productNameEn'e düşer)", example = "Faturalama", nullable = true)
+    private String productNameTr;
+
+    @Schema(description = "Ürün adı (İngilizce varyant; boşsa istemci productNameTr'ye düşer)", example = "Billing", nullable = true)
+    private String productNameEn;
 
     @Schema(description = "Ürüne ait toplam bilet sayısı", example = "128")
     private long totalTickets;

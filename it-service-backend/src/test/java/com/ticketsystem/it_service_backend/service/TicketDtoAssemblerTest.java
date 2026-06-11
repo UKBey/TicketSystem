@@ -77,13 +77,13 @@ class TicketDtoAssemblerTest {
 
         when(userService.getDisplayNames(any())).thenReturn(
                 Map.of("customer-1", "Alice Customer", "agent-1", "Bob Agent"));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("CRM").build()));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).nameEn("CRM").build()));
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of("deadlineTs", 1234L));
 
         TicketResponseDTO dto = assembler.toDto(ticket, false, List.of("AGENT"));
 
         assertThat(dto.getCustomerName()).isEqualTo("Alice Customer");
-        assertThat(dto.getProductName()).isEqualTo("CRM");
+        assertThat(dto.getProductNameEn()).isEqualTo("CRM");
         assertThat(dto.getClaimers()).hasSize(1);
         assertThat(dto.getClaimers().get(0).getAgentName()).isEqualTo("Bob Agent");
         // CSAT_SUBMITTED audit entry hidden from non-privileged (agent) callers.
@@ -102,7 +102,7 @@ class TicketDtoAssemblerTest {
                 .actionType("CSAT_SUBMITTED").createdAt(ZonedDateTime.now()).build();
         when(ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(43L)).thenReturn(List.of(csatLog));
         when(userService.getDisplayNames(any())).thenReturn(Map.of("customer-1", "Alice Customer"));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("CRM").build()));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).nameEn("CRM").build()));
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of());
         when(csatRepository.findByTicketId(43L)).thenReturn(Optional.of(Csat.builder().rating(5).build()));
 
@@ -114,7 +114,7 @@ class TicketDtoAssemblerTest {
     }
 
     @Test
-    void toDto_missingUserAndProduct_fallsBackToUnknown() {
+    void toDto_missingUserAndProduct_fallsBackToUnknownUserAndNullProductNames() {
         Ticket ticket = sampleTicket(44L, 99L, null);
 
         when(ticketClaimRepository.findByTicketId(44L)).thenReturn(List.of());
@@ -126,11 +126,13 @@ class TicketDtoAssemblerTest {
         TicketResponseDTO dto = assembler.toDto(ticket, false, List.of("AGENT"));
 
         assertThat(dto.getCustomerName()).isEqualTo("Unknown");
-        assertThat(dto.getProductName()).isEqualTo("Unknown");
+        // Ürün bulunamadığında ad alanları null kalır; istemci productId'ye düşer.
+        assertThat(dto.getProductNameTr()).isNull();
+        assertThat(dto.getProductNameEn()).isNull();
     }
 
     @Test
-    void toDto_nullProductId_skipsProductLookupAndUsesUnknown() {
+    void toDto_nullProductId_skipsProductLookupAndLeavesNamesNull() {
         Ticket ticket = sampleTicket(45L, null, null);
 
         when(ticketClaimRepository.findByTicketId(45L)).thenReturn(List.of());
@@ -140,7 +142,8 @@ class TicketDtoAssemblerTest {
 
         TicketResponseDTO dto = assembler.toDto(ticket, false, List.of("AGENT"));
 
-        assertThat(dto.getProductName()).isEqualTo("Unknown");
+        assertThat(dto.getProductNameTr()).isNull();
+        assertThat(dto.getProductNameEn()).isNull();
     }
 
     // -----------------------------------------------------------------------
@@ -158,7 +161,7 @@ class TicketDtoAssemblerTest {
                 .actionType("CSAT_SUBMITTED").createdAt(ZonedDateTime.now()).build();
         when(ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(46L)).thenReturn(List.of(ghost, csatLog));
         when(userService.getDisplayNames(any())).thenReturn(Map.of("customer-1", "Alice"));
-        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("CRM").build()));
+        when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).nameEn("CRM").build()));
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of());
 
         TicketResponseDTO dto = assembler.toInternalDto(ticket);
@@ -183,7 +186,7 @@ class TicketDtoAssemblerTest {
         lenient().when(ticketClaimRepository.findByTicketId(ticketId)).thenReturn(List.of());
         lenient().when(ticketAuditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)).thenReturn(List.of());
         lenient().when(userService.getDisplayNames(any())).thenReturn(Map.of("customer-1", "Alice"));
-        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).name("CRM").build()));
+        lenient().when(productRepository.findById(10L)).thenReturn(Optional.of(Product.builder().id(10L).nameEn("CRM").build()));
         lenient().when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.of());
 
         when(commentService.getAllCommentDtos(ticketId)).thenReturn(List.of());

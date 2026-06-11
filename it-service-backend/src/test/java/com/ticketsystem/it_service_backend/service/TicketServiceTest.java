@@ -124,8 +124,8 @@ class TicketServiceTest {
         // isteyen test override eder.
         lenient().when(workflowService.verifyTransitionApplied(any(), any())).thenReturn(true);
 
-        product = Product.builder().id(10L).name("CRM").build();
-        topic = TicketTopic.builder().id(50L).productId(10L).name("Diğer").isActive(true).build();
+        product = Product.builder().id(10L).nameEn("CRM").build();
+        topic = TicketTopic.builder().id(50L).productId(10L).nameTr("Diğer").isActive(true).build();
 
         customer = User.builder()
                 .id("customer-1")
@@ -460,7 +460,7 @@ class TicketServiceTest {
                                 .customerId("customer-1")
                                 .build();
 
-                Product limitedProduct = Product.builder().id(10L).name("CRM").maxActiveTickets(5).build();
+                Product limitedProduct = Product.builder().id(10L).nameEn("CRM").maxActiveTickets(5).build();
 
                 when(ticketRepository.findById(203L)).thenReturn(Optional.of(existing));
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -487,7 +487,7 @@ class TicketServiceTest {
                                 .customerId("customer-1")
                                 .build();
 
-                Product limitedProduct = Product.builder().id(10L).name("CRM").maxActiveTickets(1).build();
+                Product limitedProduct = Product.builder().id(10L).nameEn("CRM").maxActiveTickets(1).build();
 
                 when(ticketRepository.findById(204L)).thenReturn(Optional.of(existing));
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -1033,7 +1033,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("createTicket → ürün inaktifse 422 fırlatır")
     void createTicket_whenProductInactive_throwsUnprocessableEntity() {
-        Product inactive = Product.builder().id(10L).name("CRM").isActive(false).build();
+        Product inactive = Product.builder().id(10L).nameEn("CRM").isActive(false).build();
         User cust = User.builder().id("c1").authorizedProducts(List.of(inactive)).build();
         Ticket input = Ticket.builder().title("T").description("D").priority("LOW").productId(10L).build();
 
@@ -2464,7 +2464,7 @@ class TicketServiceTest {
     void claimTicket_customLimitDisabled_usesProductLimit() {
         Ticket existing = Ticket.builder().id(2202L).status("NEW")
                 .priority("HIGH").productId(10L).customerId("c-1").build();
-        Product productWithLimit = Product.builder().id(10L).name("X").maxActiveTickets(5).build();
+        Product productWithLimit = Product.builder().id(10L).nameEn("X").maxActiveTickets(5).build();
         when(ticketRepository.findById(2202L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findById(10L)).thenReturn(Optional.of(productWithLimit));
@@ -2563,7 +2563,7 @@ class TicketServiceTest {
         Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
                 .productId(10L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
-        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByNameAsc(10L))
+        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByIdAsc(10L))
                 .thenReturn(List.of(topic));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -2578,7 +2578,7 @@ class TicketServiceTest {
         Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
                 .productId(10L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
-        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByNameAsc(10L))
+        when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByIdAsc(10L))
                 .thenReturn(List.of());
         when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
@@ -2592,7 +2592,7 @@ class TicketServiceTest {
         assertNotNull(saved.getId());
         assertEquals("NEW", saved.getStatus());
         assertNull(saved.getTopicId());
-        assertNull(saved.getTopicNameSnapshot());
+        assertNull(saved.getTopicNameSnapshotTr());
         verify(ticketTopicRepository, never()).findById(any());
     }
 
@@ -2613,7 +2613,7 @@ class TicketServiceTest {
         assertEquals(50L, saved.getTopicId());
         // Regression: the name snapshot must follow the new topic, otherwise the
         // response shows "#<id>" instead of the topic name.
-        assertEquals("Diğer", saved.getTopicNameSnapshot());
+        assertEquals("Diğer", saved.getTopicNameSnapshotTr());
     }
 
     @Test
@@ -2634,7 +2634,7 @@ class TicketServiceTest {
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
                 com.ticketsystem.it_service_backend.entity.TicketTopic.builder()
-                        .id(20L).productId(999L).name("Other").isActive(true).build()));
+                        .id(20L).productId(999L).nameTr("Other").isActive(true).build()));
 
         assertThrows(ResponseStatusException.class,
                 () -> ticketService.createTicket(input, "customer-1"));
@@ -2647,7 +2647,7 @@ class TicketServiceTest {
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
                 com.ticketsystem.it_service_backend.entity.TicketTopic.builder()
-                        .id(20L).productId(10L).name("Inactive").isActive(false).build()));
+                        .id(20L).productId(10L).nameTr("Inactive").isActive(false).build()));
 
         assertThrows(ResponseStatusException.class,
                 () -> ticketService.createTicket(input, "customer-1"));
@@ -2655,7 +2655,7 @@ class TicketServiceTest {
 
     @Test
     void createTicket_productInactive_throws422() {
-        Product inactive = Product.builder().id(10L).name("X").isActive(false).build();
+        Product inactive = Product.builder().id(10L).nameEn("X").isActive(false).build();
         User c = User.builder().id("customer-1")
                 .authorizedProducts(List.of(inactive)).build();
         Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
@@ -2986,7 +2986,7 @@ class TicketServiceTest {
     @Test
     void updateTicketTopic_productMismatch_throwsBadRequest() {
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
-        TicketTopic otherProductTopic = TicketTopic.builder().id(60L).productId(99L).name("X").isActive(true).build();
+        TicketTopic otherProductTopic = TicketTopic.builder().id(60L).productId(99L).nameTr("X").isActive(true).build();
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(otherProductTopic));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
@@ -2996,7 +2996,7 @@ class TicketServiceTest {
     @Test
     void updateTicketTopic_inactiveTopic_throwsBadRequest() {
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
-        TicketTopic inactive = TicketTopic.builder().id(60L).productId(10L).name("X").isActive(false).build();
+        TicketTopic inactive = TicketTopic.builder().id(60L).productId(10L).nameTr("X").isActive(false).build();
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(inactive));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST));
@@ -3006,7 +3006,7 @@ class TicketServiceTest {
     @Test
     void updateTicketTopic_validChange_savesAndSnapshotsName() {
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(ticketWithTopic(50L)));
-        TicketTopic newTopic = TicketTopic.builder().id(60L).productId(10L).name("Yeni Konu").isActive(true).build();
+        TicketTopic newTopic = TicketTopic.builder().id(60L).productId(10L).nameTr("Yeni Konu").isActive(true).build();
         when(ticketTopicRepository.findById(60L)).thenReturn(Optional.of(newTopic));
         when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -3014,7 +3014,7 @@ class TicketServiceTest {
         Ticket result = ticketCommandService.updateTicketTopic(700L, 60L, null, null, "admin-1", ADMIN_LIST);
 
         assertEquals(60L, result.getTopicId());
-        assertEquals("Yeni Konu", result.getTopicNameSnapshot());
+        assertEquals("Yeni Konu", result.getTopicNameSnapshotTr());
     }
 
     // ---- validateMutationAccess: lead + customer dalları ----

@@ -12,6 +12,7 @@ import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
+import com.ticketsystem.it_service_backend.util.LocalizedText;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -365,7 +366,7 @@ public class UserService {
                 .anyMatch(p -> p.getId().equals(productId));
 
         if (!alreadyHasProduct) {
-            log.info("Yeni ürün yetkisi ekleniyor: {}", product.getName());
+            log.info("Yeni ürün yetkisi ekleniyor: {}", LocalizedText.label(product.getNameTr(), product.getNameEn()));
             user.getAuthorizedProducts().add(product);
             userRepository.save(user);
         } else {

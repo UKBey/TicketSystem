@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.TicketTopicDTO;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.service.TicketTopicService;
+import com.ticketsystem.it_service_backend.util.LocalizedText;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -49,7 +50,7 @@ public class TicketTopicController {
      * Creates a new ticket topic under the specified product.
      *
      * @param productId product identifier
-     * @param body topic name and active flag
+     * @param body topic names (tr/en — at least one required) and active flag
      * @return DTO of the created topic
      */
     @Operation(summary = "Yeni talep konusu oluştur")
@@ -58,16 +59,17 @@ public class TicketTopicController {
     public ResponseEntity<TicketTopicDTO> create(
             @PathVariable Long productId,
             @Valid @RequestBody TicketTopicDTO body) {
-        log.info("Talep konusu oluşturma isteği. Ürün: {}, Ad: {}", productId, body.getName());
-        TicketTopic created = topicService.create(productId, body.getName(), body.getIsActive());
+        log.info("Talep konusu oluşturma isteği. Ürün: {}, Ad: {}", productId,
+                LocalizedText.label(body.getNameTr(), body.getNameEn()));
+        TicketTopic created = topicService.create(productId, body.getNameTr(), body.getNameEn(), body.getIsActive());
         return ResponseEntity.ok(TicketTopicDTO.fromEntity(created));
     }
 
     /**
-     * Updates the name or active status of an existing topic.
+     * Updates the names or active status of an existing topic.
      *
      * @param id identifier of the topic to update
-     * @param body new name and active flag
+     * @param body new names (tr/en) and active flag
      * @return DTO of the updated topic
      */
     @Operation(summary = "Talep konusunu güncelle (ad veya aktiflik)")
@@ -77,7 +79,7 @@ public class TicketTopicController {
             @PathVariable Long id,
             @Valid @RequestBody TicketTopicDTO body) {
         log.info("Talep konusu güncelleme isteği. ID: {}", id);
-        TicketTopic updated = topicService.update(id, body.getName(), body.getIsActive());
+        TicketTopic updated = topicService.update(id, body.getNameTr(), body.getNameEn(), body.getIsActive());
         return ResponseEntity.ok(TicketTopicDTO.fromEntity(updated));
     }
 

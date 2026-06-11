@@ -128,9 +128,10 @@ public class TicketDtoAssembler {
 
         String customerName = ticket.getCustomerId() != null
                 ? names.getOrDefault(ticket.getCustomerId(), UNKNOWN) : UNKNOWN;
-        String productName = ticket.getProductId() != null
-                ? productRepository.findById(ticket.getProductId()).map(Product::getName).orElse(UNKNOWN)
-                : UNKNOWN;
+        // Ürün adları (tr/en) DTO'ya birlikte taşınır; dil seçimi istemcide yapılır.
+        Product product = ticket.getProductId() != null
+                ? productRepository.findById(ticket.getProductId()).orElse(null)
+                : null;
 
         List<ClaimerDTO> claimers = claims.stream()
                 .map(claim -> ClaimerDTO.builder()
@@ -147,7 +148,7 @@ public class TicketDtoAssembler {
                 .map(a -> TicketAuditLogDTO.fromEntity(a, names.getOrDefault(a.getActorId(), a.getActorId())))
                 .toList();
 
-        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, productName, customerName, claimers);
+        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, product, customerName, claimers);
         dto.setSlaInfo(ticketService.getSlaTimerInfo(ticket));
         dto.setAuditLogs(auditLogs);
         return dto;

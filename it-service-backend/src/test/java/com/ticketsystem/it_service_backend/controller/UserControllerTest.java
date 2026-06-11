@@ -177,7 +177,7 @@ class UserControllerTest {
 
     @Test
     void assignProductToUser_returnsUpdatedUser() {
-        Product product = Product.builder().id(55L).name("Support").build();
+        Product product = Product.builder().id(55L).nameEn("Support").build();
         User user = User.builder().id("agent-1").fullName("Agent One").role("AGENT").authorizedProducts(List.of(product)).build();
         when(userService.assignProductToUser("agent-1", 55L)).thenReturn(user);
 

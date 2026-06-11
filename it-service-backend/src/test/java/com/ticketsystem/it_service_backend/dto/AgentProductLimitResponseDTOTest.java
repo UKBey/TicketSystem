@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AgentProductLimitResponseDTOTest {
 
     private Product product(int max) {
-        return Product.builder().id(10L).name("CRM").maxActiveTickets(max).build();
+        return Product.builder().id(10L).nameEn("CRM").maxActiveTickets(max).build();
     }
 
     @Test
@@ -22,7 +22,7 @@ class AgentProductLimitResponseDTOTest {
         assertThat(dto.isUseCustomLimit()).isTrue();
         assertThat(dto.getEffectiveLimit()).isEqualTo(2);
         assertThat(dto.getProductId()).isEqualTo(10L);
-        assertThat(dto.getProductName()).isEqualTo("CRM");
+        assertThat(dto.getProductNameEn()).isEqualTo("CRM");
     }
 
     @Test

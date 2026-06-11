@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
+import com.ticketsystem.it_service_backend.util.LocalizedText;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,10 @@ import java.util.List;
 /**
  * CRUD management for ticket topics belonging to a product.
  *
- * <p>Topic names are unique within a product (case-insensitive). Listing is open,
+ * <p>Topic names are bilingual (tr/en): at least one variant must be non-blank and
+ * each variant is unique within its product (case-insensitive). Listing is open,
  * so authorization is enforced at the controller level; management
- * (create/update/delete) is restricted to ADMIN / MANAGER roles.
+ * (create/update/delete) is restricted to LEAD_AGENT / ADMIN roles.
  */
 @Log4j2
 @Service
@@ -28,7 +30,8 @@ public class TicketTopicService {
     private final ProductRepository productRepository;
 
     /**
-     * Returns the ticket topics under the given product, sorted by name.
+     * Returns the ticket topics under the given product in stable (id) order; the
+     * client sorts by the display name of its active language.
      *
      * @param productId target product ID
      * @param activeOnly when {@code true}, lists only active topics
@@ -39,8 +42,8 @@ public class TicketTopicService {
     public List<TicketTopic> listByProduct(Long productId, boolean activeOnly) {
         ensureProductExists(productId);
         return activeOnly
-                ? topicRepository.findByProductIdAndIsActiveTrueOrderByNameAsc(productId)
-                : topicRepository.findByProductIdOrderByNameAsc(productId);
+                ? topicRepository.findByProductIdAndIsActiveTrueOrderByIdAsc(productId)
+                : topicRepository.findByProductIdOrderByIdAsc(productId);
     }
 
     /**
@@ -59,64 +62,66 @@ public class TicketTopicService {
     /**
      * Creates a new ticket topic.
      *
-     * <p>The name is trimmed and a case-insensitive duplicate check is performed
-     * within the same product.
+     * <p>Names are trimmed; at least one language variant must be non-blank. Each
+     * provided variant is checked (case-insensitively) for duplicates within the
+     * same product.
      *
      * @param productId ID of the product the topic belongs to
-     * @param name topic name; cannot be blank
+     * @param nameTr Turkish name (optional when {@code nameEn} is present)
+     * @param nameEn English name (optional when {@code nameTr} is present)
      * @param isActive active/inactive flag; defaults to {@code true} if {@code null}
      * @return the created record
-     * @throws ResponseStatusException 404 if product is missing, 400 if name is blank,
-     *         409 if the name conflicts
+     * @throws ResponseStatusException 404 if product is missing, 400 if both names are blank,
+     *         409 if either name conflicts
      */
     @Transactional
-    public TicketTopic create(Long productId, String name, Boolean isActive) {
+    public TicketTopic create(Long productId, String nameTr, String nameEn, Boolean isActive) {
         ensureProductExists(productId);
-        String trimmed = name == null ? null : name.trim();
-        if (trimmed == null || trimmed.isEmpty()) {
+        String tr = normalize(nameTr);
+        String en = normalize(nameEn);
+        if (tr == null && en == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.topic.name.empty");
         }
-        topicRepository.findByProductIdAndNameIgnoreCase(productId, trimmed).ifPresent(t -> {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "error.topic.name.duplicate");
-        });
+        ensureNamesAvailable(productId, tr, en, null);
 
         TicketTopic topic = TicketTopic.builder()
                 .productId(productId)
-                .name(trimmed)
+                .nameTr(tr)
+                .nameEn(en)
                 .isActive(isActive == null ? Boolean.TRUE : isActive)
                 .build();
         TicketTopic saved = topicRepository.save(topic);
-        log.info("Talep konusu oluşturuldu. Ürün: {}, Konu ID: {}, Ad: {}", productId, saved.getId(), saved.getName());
+        log.info("Talep konusu oluşturuldu. Ürün: {}, Konu ID: {}, Ad: {}", productId, saved.getId(),
+                LocalizedText.label(saved.getNameTr(), saved.getNameEn()));
         return saved;
     }
 
     /**
-     * Partially updates an existing topic record; only non-{@code null} fields are
-     * modified. When the name changes, a case-insensitive duplicate check is applied.
+     * Partially updates an existing topic record. When at least one name field is
+     * present the pair is treated as the new full name set (a blank variant clears
+     * that language); when both are {@code null} the names are left untouched, so
+     * isActive-only updates remain possible.
      *
      * @param id topic ID to update
-     * @param name new name (optional)
+     * @param nameTr new Turkish name (optional)
+     * @param nameEn new English name (optional)
      * @param isActive new active/inactive flag (optional)
      * @return the updated record
-     * @throws ResponseStatusException 404 if not found, 400 if name is blank,
-     *         409 if the name conflicts
+     * @throws ResponseStatusException 404 if not found, 400 if both names end up blank,
+     *         409 if either name conflicts
      */
     @Transactional
-    public TicketTopic update(Long id, String name, Boolean isActive) {
+    public TicketTopic update(Long id, String nameTr, String nameEn, Boolean isActive) {
         TicketTopic existing = getById(id);
-        if (name != null) {
-            String trimmed = name.trim();
-            if (trimmed.isEmpty()) {
+        if (nameTr != null || nameEn != null) {
+            String tr = normalize(nameTr);
+            String en = normalize(nameEn);
+            if (tr == null && en == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.topic.name.empty");
             }
-            if (!trimmed.equalsIgnoreCase(existing.getName())) {
-                topicRepository.findByProductIdAndNameIgnoreCase(existing.getProductId(), trimmed).ifPresent(t -> {
-                    if (!t.getId().equals(id)) {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, "error.topic.name.duplicate");
-                    }
-                });
-            }
-            existing.setName(trimmed);
+            ensureNamesAvailable(existing.getProductId(), tr, en, id);
+            existing.setNameTr(tr);
+            existing.setNameEn(en);
         }
         if (isActive != null) {
             existing.setIsActive(isActive);
@@ -138,6 +143,34 @@ public class TicketTopicService {
         TicketTopic existing = getById(id);
         topicRepository.delete(existing);
         log.info("Talep konusu silindi. ID: {}", id);
+    }
+
+    /** Trims and converts blank to {@code null} so "cleared" and "absent" collapse to one state. */
+    private String normalize(String name) {
+        if (name == null) return null;
+        String trimmed = name.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Case-insensitive per-language duplicate check within the product;
+     * {@code selfId} excludes the record being updated.
+     */
+    private void ensureNamesAvailable(Long productId, String tr, String en, Long selfId) {
+        if (tr != null) {
+            topicRepository.findByProductIdAndNameTrIgnoreCase(productId, tr).ifPresent(t -> {
+                if (!t.getId().equals(selfId)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "error.topic.name.duplicate");
+                }
+            });
+        }
+        if (en != null) {
+            topicRepository.findByProductIdAndNameEnIgnoreCase(productId, en).ifPresent(t -> {
+                if (!t.getId().equals(selfId)) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "error.topic.name.duplicate");
+                }
+            });
+        }
     }
 
     private void ensureProductExists(Long productId) {

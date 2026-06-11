@@ -28,6 +28,7 @@ import com.ticketsystem.it_service_backend.dto.TicketTimelineDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogCompletionDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogSummaryItemDTO;
 import com.ticketsystem.it_service_backend.config.AlertProperties;
+import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
@@ -540,13 +541,14 @@ public class MetricsService {
         List<ProductDetailDTO> products = rawRows.stream()
                 .map(row -> ProductDetailDTO.builder()
                         .productId(((Number) row[0]).longValue())
-                        .productName(String.valueOf(row[1]))
-                        .totalTickets(((Number) row[2]).longValue())
-                        .openTickets(((Number) row[3]).longValue())
-                        .avgResolutionHours(row[4] != null ? ((Number) row[4]).doubleValue() : 0.0)
-                        .csatAverage(row[5] != null ? ((Number) row[5]).doubleValue() : 0.0)
-                        .slaBreachCount(((Number) row[6]).longValue())
-                        .slaBreachPercentage(((Number) row[7]).doubleValue())
+                        .productNameTr(row[1] != null ? String.valueOf(row[1]) : null)
+                        .productNameEn(row[2] != null ? String.valueOf(row[2]) : null)
+                        .totalTickets(((Number) row[3]).longValue())
+                        .openTickets(((Number) row[4]).longValue())
+                        .avgResolutionHours(row[5] != null ? ((Number) row[5]).doubleValue() : 0.0)
+                        .csatAverage(row[6] != null ? ((Number) row[6]).doubleValue() : 0.0)
+                        .slaBreachCount(((Number) row[7]).longValue())
+                        .slaBreachPercentage(((Number) row[8]).doubleValue())
                         .build())
                 .toList();
 
@@ -1108,9 +1110,9 @@ public class MetricsService {
         List<Long> pids = List.of(productId);
         final boolean filter = true;
 
-        String productName = productRepository.findById(productId)
-                .map(p -> p.getName())
-                .orElse("#" + productId);
+        Product product = productRepository.findById(productId).orElse(null);
+        String productNameTr = product != null ? product.getNameTr() : null;
+        String productNameEn = product != null ? product.getNameEn() : null;
 
         StatusDistributionDTO dist = buildStatusDistribution(
                 ticketRepository.countTicketsGroupedByStatusScoped(filter, pids));
@@ -1140,7 +1142,8 @@ public class MetricsService {
 
         return ProductDashboardDTO.builder()
                 .productId(productId)
-                .productName(productName)
+                .productNameTr(productNameTr)
+                .productNameEn(productNameEn)
                 .totalTickets(dist.getTotalCount())
                 .openTickets(open)
                 .resolvedTickets(resolvedClosed)

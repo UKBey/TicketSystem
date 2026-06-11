@@ -45,12 +45,12 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
         productRepository.deleteAll();
 
         Product product = productRepository.save(Product.builder()
-            .name("Support")
+            .nameEn("Support")
             .isActive(true)
             .build());
 
         TicketTopic topic = ticketTopicRepository.save(TicketTopic.builder()
-            .productId(product.getId()).name("Diğer").isActive(true).build());
+            .productId(product.getId()).nameTr("Diğer").isActive(true).build());
 
         userRepository.save(User.builder().id("customer-1").email("customer-1@test.com").fullName("Customer One").role("CUSTOMER").build());
 

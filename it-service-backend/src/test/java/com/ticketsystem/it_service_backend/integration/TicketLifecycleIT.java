@@ -96,7 +96,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         // Test urunu olustur
         testProduct = productRepository.save(
                 Product.builder()
-                        .name("IT Support")
+                        .nameEn("IT Support")
                         .isActive(true)
                         .build()
         );
@@ -105,7 +105,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
         testTopic = ticketTopicRepository.save(
                 TicketTopic.builder()
                         .productId(testProduct.getId())
-                        .name("Diğer")
+                        .nameTr("Diğer")
                         .isActive(true)
                         .build()
         );
@@ -165,7 +165,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.priority").value("HIGH"))
                 .andExpect(jsonPath("$.customerId").value(CUSTOMER_ID))
                 .andExpect(jsonPath("$.customerName").value("Test Customer"))
-                .andExpect(jsonPath("$.productName").value("IT Support"))
+                .andExpect(jsonPath("$.productNameEn").value("IT Support"))
                 .andReturn();
 
         // Yanit govdesinden bilet ID'sini cikar
