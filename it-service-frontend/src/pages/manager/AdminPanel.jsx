@@ -9,6 +9,7 @@ import { useColumnResize } from '../../hooks/useColumnResize';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
+import { useUrlState } from '../../hooks/useUrlState';
 import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
 import { localizedName } from '../../utils/localizedName';
 
@@ -306,45 +307,38 @@ export default function AdminPanel() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [error, setError]               = useState('');
 
-  const [search, setSearch]   = useState('');
-  const [roleFilter, setRoleFilter] = useState([]);
-  const [productFilter, setProductFilter] = useState([]);
+  // Arama + rol/ürün filtresi + sayfalama + sıralama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
+  const { str, num, arr, setParams, searchParams } = useUrlState();
+  const search        = str('search');
+  const roleFilter    = arr('role');
+  const productFilter = arr('productId');
+  const page    = num('page', 0);
+  const size    = num('size', 20);
+  const sortBy  = str('sortBy', 'name');
+  const sortDir = str('sortDir', 'asc');
+  const setSearch        = (v) => setParams({ search: v });
+  const setRoleFilter    = (v) => setParams({ role: v });
+  const setProductFilter = (v) => setParams({ productId: v });
+  const setPage = (v) => setParams({ page: v ? v : '' }, { resetPage: false });
+  const setSize = (v) => setParams({ size: v === 20 ? '' : v });
 
-  const [page, setPage]             = useState(0);
-  const [size, setSize]             = useState(20);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-
-  // Sıralama — bilet tablolarıyla aynı davranış.
-  const [sortBy, setSortBy]   = useState('name');
-  const [sortDir, setSortDir] = useState('asc');
 
   // Hangi agent'ın limit paneli açık
   const [expandedLimitUserId, setExpandedLimitUserId] = useState(null);
 
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => { setPage(0); }, [debouncedSearch, roleFilter, productFilter, sortBy, sortDir]);
-
   // Sütun başlığına tıklanınca sıralamayı çevirir (bilet tablolarındaki toggleSort ile aynı).
   const toggleSort = (field) => {
-    if (sortBy === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortDir('asc');
-    }
+    const nextDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+    setParams({ sortBy: field === 'name' ? '' : field, sortDir: nextDir === 'asc' ? '' : nextDir });
   };
 
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page, size, sortBy, sortDir });
-      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (search) params.set('search', search);
       roleFilter.forEach((r) => params.append('role', r));
       productFilter.forEach((pid) => params.append('productId', pid));
       // ADMIN/MANAGER kullanıcılar (tüm ürünlere erişimli) ürün-erişim panelinde listelenmez.
@@ -360,7 +354,9 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter, productFilter, sortBy, sortDir, t]);
+    // searchParams tüm filtre/sayfa/sıralama paramlarını kapsar — kimliği yalnızca URL değişince değişir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -428,7 +424,7 @@ export default function AdminPanel() {
               onChange={setSearch}
               placeholder={t('admin.panel.searchPlaceholder')}
               width="13rem"
-              debounceMs={0}
+              debounceMs={300}
             />
             <MultiSelectFilter
               values={roleFilter}
@@ -443,7 +439,7 @@ export default function AdminPanel() {
               options={products.map((p) => ({ value: String(p.id), label: localizedName(p) }))}
             />
             {(search || roleFilter.length > 0 || productFilter.length > 0) && (
-              <ClearFiltersButton onClick={() => { setSearch(''); setRoleFilter([]); setProductFilter([]); }} />
+              <ClearFiltersButton onClick={() => setParams({ search: '', role: [], productId: [] })} />
             )}
           </div>
         </div>
@@ -726,7 +722,7 @@ export default function AdminPanel() {
           totalItems={totalItems}
           size={size}
           onPageChange={setPage}
-          onSizeChange={(s) => { setSize(s); setPage(0); }}
+          onSizeChange={setSize}
         />
       </div>
 

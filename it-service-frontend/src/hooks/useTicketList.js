@@ -1,10 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
+import { useUrlState } from './useUrlState';
 
 const DEFAULT_PAGE_SIZE = 20;
 
+// URL query parametre anahtarları. İsimler backend API sözleşmesiyle birebir aynı
+// (status, priority, productId, ...) — böylece URL hem paylaşılabilir hem okunabilir.
+const ARRAY_KEYS = ['status', 'priority', 'productId', 'agentId', 'topicId', 'slaStatus', 'csatRating'];
+
 /**
  * Generic hook for paginated + filtered + sorted ticket list endpoints.
+ *
+ * Tüm filtre/sayfa/sıralama state'i URL query string'inde tutulur (useSearchParams).
+ * Böylece F5 / yer imi / link paylaşımı / geri-ileri butonu filtreleri korur.
+ * Dışarıya verilen arayüz state'in URL'de olduğunu gizler — tüketici sayfalar değişmez.
  *
  * @param {string} endpoint  - API path, e.g. '/tickets', '/tickets/pool'
  * @param {object} [opts]
@@ -25,22 +34,24 @@ export function useTicketList(endpoint, opts = {}) {
   const extraParamsRef = useRef(extraParams);
   useEffect(() => { extraParamsRef.current = extraParams; }, [extraParams]);
 
-  const [page, setPage]           = useState(0);
-  const [size, setSize]           = useState(initialSize);
-  const [sortBy, setSortBy]       = useState(initialSortBy);
-  const [sortDir, setSortDir]     = useState(initialSortDir);
+  // ── URL'den oku (varsayılanlar URL'e yazılmaz, böylece adres temiz kalır) ──
+  const { searchParams, str, num, arr, setParams } = useUrlState();
 
-  // Filters
-  const [status, setStatus]       = useState([]);
-  const [priority, setPriority]   = useState([]);
-  const [search, setSearch]       = useState('');
-  const [productIds, setProductIds] = useState([]);
-  const [agentIds, setAgentIds]    = useState([]);
-  const [topicIds, setTopicIds]   = useState([]);
-  const [slaStatuses, setSlaStatuses] = useState([]);
-  const [csatRatings, setCsatRatings] = useState([]);
-  const [dateFrom, setDateFrom]    = useState('');
-  const [dateTo, setDateTo]       = useState('');
+  const page        = num('page', 0);
+  const size        = num('size', initialSize);
+  const sortBy      = str('sortBy', initialSortBy);
+  const sortDir     = str('sortDir', initialSortDir);
+
+  const status      = arr('status');
+  const priority    = arr('priority');
+  const search      = str('search');
+  const productIds  = arr('productId');
+  const agentIds    = arr('agentId');
+  const topicIds    = arr('topicId');
+  const slaStatuses = arr('slaStatus');
+  const csatRatings = arr('csatRating');
+  const dateFrom    = str('dateFrom');
+  const dateTo      = str('dateTo');
 
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,37 +93,27 @@ export function useTicketList(endpoint, opts = {}) {
     } finally {
       setLoading(false);
     }
-  }, [endpoint, page, size, sortBy, sortDir,
-      status, priority, search, productIds, agentIds, topicIds, slaStatuses, csatRatings, dateFrom, dateTo]);
+    // searchParams değişince (herhangi bir filtre/sayfa/sıralama) yeniden çek.
+  }, [endpoint, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  // Reset to page 0 on filter/sort change
-  const reset = (setter) => (v) => { setter(v); setPage(0); };
+  // ── Setter'lar: URL'e yaz, filtre/sıralama değişiminde page 0'a döner ──────────
+  const setPage = (v) => setParams({ page: v ? v : '' }, { resetPage: false });
+  const setSize = (v) => setParams({ size: v === initialSize ? '' : v });
 
   const toggleSort = (field) => {
-    if (sortBy === field) {
-      reset(setSortDir)(sortDir === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      reset(setSortDir)('desc');
-      setPage(0);
-    }
+    const nextDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'desc';
+    setParams({
+      sortBy:  field === initialSortBy ? '' : field,
+      sortDir: nextDir === initialSortDir ? '' : nextDir,
+    });
   };
 
-  const clearFilters = () => {
-    setStatus([]);
-    setPriority([]);
-    setSearch('');
-    setProductIds([]);
-    setAgentIds([]);
-    setTopicIds([]);
-    setSlaStatuses([]);
-    setCsatRatings([]);
-    setDateFrom('');
-    setDateTo('');
-    setPage(0);
-  };
+  const clearFilters = () => setParams({
+    status: [], priority: [], search: '', productId: [], agentId: [],
+    topicId: [], slaStatus: [], csatRating: [], dateFrom: '', dateTo: '',
+  });
 
   return {
     // Data
@@ -125,23 +126,23 @@ export function useTicketList(endpoint, opts = {}) {
 
     // Pagination
     page, setPage,
-    size, setSize: reset(setSize),
+    size, setSize,
 
     // Sort
     sortBy, sortDir,
     toggleSort,
 
     // Filters
-    status,    setStatus:    reset(setStatus),
-    priority,  setPriority:  reset(setPriority),
-    search,    setSearch:    reset(setSearch),
-    productIds, setProductIds: reset(setProductIds),
-    agentIds,   setAgentIds:  reset(setAgentIds),
-    topicIds,   setTopicIds:  reset(setTopicIds),
-    slaStatuses, setSlaStatuses: reset(setSlaStatuses),
-    csatRatings, setCsatRatings: reset(setCsatRatings),
-    dateFrom,  setDateFrom:  reset(setDateFrom),
-    dateTo,    setDateTo:    reset(setDateTo),
+    status,    setStatus:    (v) => setParams({ status: v }),
+    priority,  setPriority:  (v) => setParams({ priority: v }),
+    search,    setSearch:    (v) => setParams({ search: v }),
+    productIds, setProductIds: (v) => setParams({ productId: v }),
+    agentIds,   setAgentIds:  (v) => setParams({ agentId: v }),
+    topicIds,   setTopicIds:  (v) => setParams({ topicId: v }),
+    slaStatuses, setSlaStatuses: (v) => setParams({ slaStatus: v }),
+    csatRatings, setCsatRatings: (v) => setParams({ csatRating: v }),
+    dateFrom,  setDateFrom:  (v) => setParams({ dateFrom: v }),
+    dateTo,    setDateTo:    (v) => setParams({ dateTo: v }),
     clearFilters,
   };
 }

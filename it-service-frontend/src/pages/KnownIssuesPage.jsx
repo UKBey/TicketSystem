@@ -11,6 +11,7 @@ import {
   deleteKnownIssue,
 } from '../services/api';
 import PaginationBar from '../components/PaginationBar';
+import { useUrlState } from '../hooks/useUrlState';
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
 /**
@@ -29,16 +30,23 @@ export default function KnownIssuesPage() {
   const canManage = isLeadAgent || isAdmin;
 
   const [products, setProducts]                 = useState([]);
-  const [selectedProductId, setSelectedProductId] = useState(null);
   const [topics, setTopics]                     = useState([]);
-  const [topicFilter, setTopicFilter]           = useState('');
   const [items, setItems]                       = useState([]);
   const [loading, setLoading]                   = useState(false);
   const [error, setError]                       = useState('');
 
-  // Sayfalama — liste tek seferde çekildiği için istemci tarafında dilimlenir.
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
+  // Ürün / konu filtresi + sayfalama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
+  // Liste tek seferde çekilir; sayfalama istemci tarafında dilimlenir.
+  const { str, num, setParams, searchParams } = useUrlState();
+  const productParam = str('product');
+  const selectedProductId = productParam ? Number(productParam) : null;
+  const topicFilter = str('topic');
+  const page = num('page', 0);
+  const size = num('size', 10);
+  const setSelectedProductId = (v) => setParams({ product: v ? String(v) : '', topic: '' });
+  const setTopicFilter = (v) => setParams({ topic: v });
+  const setPage = (v) => setParams({ page: v ? v : '' }, { resetPage: false });
+  const setSize = (v) => setParams({ size: v === 10 ? '' : v });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing]         = useState(null);
@@ -62,10 +70,14 @@ export default function KnownIssuesPage() {
     api.get('/products')
       .then((res) => {
         setProducts(res.data);
-        if (res.data.length > 0) setSelectedProductId(res.data[0].id);
+        // URL'de ürün yoksa ilk ürüne varsayılan olarak geç.
+        if (res.data.length > 0 && !searchParams.get('product')) {
+          setParams({ product: String(res.data[0].id) });
+        }
       })
       .catch(() => setError(t('knownIssues.errorLoadProducts')));
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---------------------------------------------------------------
   // Seçili ürünün topic'leri (admin'in form'da seçebilmesi için)
@@ -109,12 +121,10 @@ export default function KnownIssuesPage() {
   const totalPages = Math.ceil(items.length / size);
   const paginated  = items.slice(page * size, page * size + size);
 
-  // Ürün/topic filtresi değişince ilk sayfaya dön.
-  useEffect(() => { setPage(0); }, [selectedProductId, topicFilter]);
-
   // Silme/azalma sonrası mevcut sayfa aralık dışında kalırsa son geçerli sayfaya çek.
   useEffect(() => {
     if (page > 0 && page >= totalPages) setPage(Math.max(0, totalPages - 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, totalPages]);
 
   // ---------------------------------------------------------------
@@ -224,7 +234,7 @@ export default function KnownIssuesPage() {
             </label>
             <select
               value={selectedProductId ?? ''}
-              onChange={(e) => { setSelectedProductId(Number(e.target.value)); setTopicFilter(''); }}
+              onChange={(e) => setSelectedProductId(Number(e.target.value))}
               className="w-full rounded-lg border px-3 py-2 text-sm outline-none cursor-pointer focus:ring-2"
               style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
             >
@@ -369,7 +379,7 @@ export default function KnownIssuesPage() {
             totalItems={items.length}
             size={size}
             onPageChange={setPage}
-            onSizeChange={(s) => { setSize(s); setPage(0); }}
+            onSizeChange={setSize}
           />
         </div>
       )}

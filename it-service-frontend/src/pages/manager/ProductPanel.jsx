@@ -9,6 +9,7 @@ import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 import SortableTh from '../../components/SortableTh';
 import { useColumnResize } from '../../hooks/useColumnResize';
+import { useUrlState } from '../../hooks/useUrlState';
 import { localizedName } from '../../utils/localizedName';
 
 const PAGE_SIZE = 10;
@@ -34,11 +35,16 @@ export default function ProductPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(0);
-  const [size, setSize]       = useState(PAGE_SIZE);
-  const [sortBy, setSortBy]   = useState('id');
-  const [sortDir, setSortDir] = useState('asc');
+  // Filtre / sayfa / sıralama state'i URL'de tutulur (F5 / yer imi / link paylaşımı korur).
+  const { str, num, setParams } = useUrlState();
+  const search  = str('search');
+  const page    = num('page', 0);
+  const size    = num('size', PAGE_SIZE);
+  const sortBy  = str('sortBy', 'id');
+  const sortDir = str('sortDir', 'asc');
+  const setSearch = (v) => setParams({ search: v });
+  const setPage   = (v) => setParams({ page: v ? v : '' }, { resetPage: false });
+  const setSize   = (v) => setParams({ size: v === PAGE_SIZE ? '' : v });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
@@ -86,16 +92,9 @@ export default function ProductPanel() {
   const paginated  = sorted.slice(page * size, page * size + size);
 
   const toggleSort = (field) => {
-    if (sortBy === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortDir('asc');
-    }
-    setPage(0);
+    const nextDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+    setParams({ sortBy: field === 'id' ? '' : field, sortDir: nextDir === 'asc' ? '' : nextDir });
   };
-
-  useEffect(() => { setPage(0); }, [search]);
 
   const openModal = (product = null) => {
     if (product) {
@@ -472,7 +471,7 @@ export default function ProductPanel() {
           totalItems={filtered.length}
           size={size}
           onPageChange={setPage}
-          onSizeChange={(s) => { setSize(s); setPage(0); }}
+          onSizeChange={setSize}
         />
       </div>
 

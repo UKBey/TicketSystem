@@ -15,6 +15,7 @@ import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } fro
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import { formatDate } from '../utils/dateFormat';
 import PaginationBar from '../components/PaginationBar';
+import { useUrlState } from '../hooks/useUrlState';
 
 const EMPTY_FORM = {
   title: '',
@@ -44,13 +45,22 @@ export default function CannedResponsesPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [scopeFilter, setScopeFilter] = useState('ALL');
-  const [productFilter, setProductFilter] = useState('ALL');
-  const [langFilter, setLangFilter] = useState('ALL');
-  const [visibilityFilter, setVisibilityFilter] = useState('ALL');
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(20);
+  // Arama + filtreler + sayfalama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
+  const { str, num, setParams } = useUrlState();
+  const search           = str('search');
+  const scopeFilter      = str('scope', 'ALL');
+  const productFilter    = str('product', 'ALL');
+  const langFilter       = str('lang', 'ALL');
+  const visibilityFilter = str('visibility', 'ALL');
+  const page = num('page', 0);
+  const size = num('size', 20);
+  const setSearch           = (v) => setParams({ search: v });
+  const setScopeFilter      = (v) => setParams({ scope: v === 'ALL' ? '' : v });
+  const setProductFilter    = (v) => setParams({ product: v === 'ALL' ? '' : v });
+  const setLangFilter       = (v) => setParams({ lang: v === 'ALL' ? '' : v });
+  const setVisibilityFilter = (v) => setParams({ visibility: v === 'ALL' ? '' : v });
+  const setPage = (v) => setParams({ page: v ? v : '' }, { resetPage: false });
+  const setSize = (v) => setParams({ size: v === 20 ? '' : v });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -127,9 +137,9 @@ export default function CannedResponsesPage() {
     [filtered, safePage, size],
   );
 
-  // Filtre/arama/sayfa boyutu değişince ilk sayfaya dön.
-  useEffect(() => { setPage(0); }, [search, scopeFilter, productFilter, langFilter, visibilityFilter, size]);
-  // Silme sonrası mevcut sayfa taşarsa son geçerli sayfaya kıs.
+  // Silme sonrası mevcut sayfa taşarsa son geçerli sayfaya kıs (filtre değişiminde
+  // page sıfırlaması zaten setter'larda — setParams resetPage ile — yapılıyor).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (page !== safePage) setPage(safePage); }, [page, safePage]);
 
   // ---- modal ---------------------------------------------------------------
