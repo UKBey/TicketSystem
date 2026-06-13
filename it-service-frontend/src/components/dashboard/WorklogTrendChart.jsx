@@ -65,7 +65,9 @@ function WorklogTrendChart({
       ) : (
         <div className="timeline-chart-scroll">
           <div className="timeline-chart-inner">
-            <ResponsiveContainer width="100%" height="100%">
+            {/* initialDimension: ilk frame'de Recharts default -1x-1 olcumuyle uyari basmasin
+                diye container'in gercek boyutunu (.timeline-chart-inner: 680x340) veriyoruz. */}
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 680, height: 340 }}>
               <BarChart data={chartData} margin={{ top: 10, right: 8, left: -8, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                 <XAxis dataKey="dateLabel" tick={{ fill: CHART_COLORS.axis, fontSize: 12 }} tickLine={false} axisLine={{ stroke: CHART_COLORS.grid }} interval="preserveStartEnd" minTickGap={16} />

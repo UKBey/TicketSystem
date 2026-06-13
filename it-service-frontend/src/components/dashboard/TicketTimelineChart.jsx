@@ -112,7 +112,11 @@ function TicketTimelineChart({
       ) : (
         <div className="timeline-chart-scroll">
           <div className="timeline-chart-inner">
-            <ResponsiveContainer width="100%" height="100%">
+            {/* initialDimension: ResizeObserver olcumunden onceki ilk frame'de Recharts
+                default -1x-1 kullanir ve "width(-1)/height(-1)" uyarisi basar. Container'in
+                gercek boyutunu (.timeline-chart-inner: 680x340) baslangic degeri vererek
+                uyariyi engelliyoruz; olcum gelince zaten gercek boyuta gecer. */}
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 680, height: 340 }}>
               <LineChart data={chartData} margin={{ top: 10, right: 8, left: -8, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                 <XAxis dataKey="dateLabel" tick={{ fill: CHART_COLORS.axis, fontSize: 12 }} tickLine={false} axisLine={{ stroke: CHART_COLORS.grid }} />

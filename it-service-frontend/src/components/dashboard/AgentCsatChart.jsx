@@ -97,7 +97,9 @@ function AgentCsatChart({
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{trendLabel}</p>
             {hasTrend ? (
               <div className="flex-1" style={{ height: '200px' }}>
-                <ResponsiveContainer width="100%" height="100%">
+                {/* initialDimension: ilk frame'de Recharts default -1x-1 olcumuyle uyari
+                    basmasin diye container'in gercek yuksekligini (200px) baslangic veriyoruz. */}
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 200 }}>
                   <LineChart data={trend} margin={{ top: 10, right: 8, left: -16, bottom: 6 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                     <XAxis dataKey="dateLabel" tick={{ fill: CHART_COLORS.axis, fontSize: 11 }} tickLine={false} axisLine={{ stroke: CHART_COLORS.grid }} interval="preserveStartEnd" minTickGap={20} />
