@@ -2,7 +2,9 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.CommentDTO;
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
@@ -106,10 +108,11 @@ public class CommentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.comment.customer.type.forbidden");
         }
 
+        CommentType commentType = CommentType.fromNullable(type);
         Comment comment = Comment.builder()
                 .ticket(ticket)
                 .message(message)
-                .type(type != null ? type : "EXTERNAL")
+                .type(commentType != null ? commentType : CommentType.EXTERNAL)
                 .authorId(userId)
                 .build();
 
@@ -122,9 +125,9 @@ public class CommentService {
         broadcastComment(ticketId, savedComment);
 
         // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
-        if ("WAITING_FOR_CUSTOMER".equals(ticket.getStatus()) && ticket.getCustomerId().equals(userId)) {
+        if (ticket.getStatus() == TicketStatus.WAITING_FOR_CUSTOMER && ticket.getCustomerId().equals(userId)) {
             log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
-            ticketCommandService.updateTicketStatus(ticketId, "IN_PROGRESS", null, null, userId, roles);
+            ticketCommandService.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.name(), null, null, userId, roles);
         }
 
         return savedComment;
@@ -133,7 +136,7 @@ public class CommentService {
     // INTERNAL yorumlar agent-only topic'e gider; EXTERNAL'lar genel ticket topic'ine.
     private void broadcastComment(Long ticketId, Comment comment) {
         CommentDTO dto = toDto(comment);
-        String destination = "INTERNAL".equals(comment.getType())
+        String destination = comment.getType() == CommentType.INTERNAL
                 ? "/topic/tickets/" + ticketId + "/internal"
                 : "/topic/tickets/" + ticketId;
         messagingTemplate.convertAndSend(destination, TicketWebSocketEvent.commentAdded(dto));
@@ -218,7 +221,7 @@ public class CommentService {
         if (isOnlyCustomer) {
             log.debug("Müşteri filtresi uygulanıyor: Dahili yorumlar gizleniyor.");
             return allComments.stream()
-                    .filter(c -> "EXTERNAL".equals(c.getType()))
+                    .filter(c -> c.getType() == CommentType.EXTERNAL)
                     .toList();
         }
 

@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.dto.WorklogRequestDTO;
 import com.ticketsystem.it_service_backend.dto.WorklogResponseDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.TicketWorklog;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
 import com.ticketsystem.it_service_backend.repository.WorklogRepository;
@@ -72,7 +73,7 @@ public class WorklogService {
         }
 
         // Kapali kayitta yeni worklog olusturulmaz.
-        if ("CLOSED".equals(ticket.getStatus())) {
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
             log.warn("Worklog reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "error.worklog.ticket.closed");
@@ -262,7 +263,7 @@ public class WorklogService {
 
         // Kapali bilette worklog degisikligi kabul edilmez.
         Ticket ticket = ticketService.getTicketById(ticketId);
-        if ("CLOSED".equals(ticket.getStatus())) {
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
             log.warn("Worklog güncelleme reddedildi: Bilet CLOSED statüsünde. Bilet ID: {}", ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "error.worklog.update.ticket.closed");

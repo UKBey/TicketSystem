@@ -4,8 +4,10 @@ import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketClaim;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
+import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -32,7 +34,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class TicketClaimService {
-    private static final String ST_IN_PROGRESS = "IN_PROGRESS";
     private static final String SYNC_ERR_FMT = "Workflow sync hatası. TicketId={}, Hata={}";
 
     private final TicketRepository ticketRepository;
@@ -62,9 +63,9 @@ public class TicketClaimService {
         log.info("Claim isteği. Bilet: {}, Ajan: {}", id, agentId);
         Ticket ticket = loadTicket(id);
 
-        String currentStatus = ticket.getStatus();
+        TicketStatus currentStatus = ticket.getStatus();
         // Kapalı bilet dışında her statüdeki bilet claim alınabilir (manuel assign ile tutarlı).
-        if ("CLOSED".equals(currentStatus)) {
+        if (currentStatus == TicketStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "error.ticket.claim.invalid.status");
         }
@@ -107,8 +108,8 @@ public class TicketClaimService {
         ticketClaimRepository.save(claim);
 
         // İlk claim ise bileti IN_PROGRESS'e taşır.
-        if ("NEW".equals(currentStatus)) {
-            ticket.setStatus(ST_IN_PROGRESS);
+        if (currentStatus == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
             ticketRepository.save(ticket);
             log.info("İlk claim — bilet IN_PROGRESS'e alındı. Bilet: {}", id);
             try {
@@ -119,7 +120,7 @@ public class TicketClaimService {
         }
 
         notificationService.notifyTicketClaimed(ticket, agentId);
-        auditHelper.record(ticket, agentId, "CLAIM", null, currentStatus, ticket.getStatus());
+        auditHelper.record(ticket, agentId, AuditAction.CLAIM, null, currentStatus.name(), ticket.getStatus().name());
         return ticket;
     }
 
@@ -152,7 +153,7 @@ public class TicketClaimService {
     public Ticket unclaimTicket(Long id, String agentId, String reasonCode, String note) {
         log.info("Unclaim isteği. Bilet: {}, Ajan: {}, Sebep: {}", id, agentId, reasonCode);
         Ticket ticket = loadTicket(id);
-        String previousStatus = ticket.getStatus();
+        TicketStatus previousStatus = ticket.getStatus();
 
         if (!ticketClaimRepository.existsByTicketIdAndAgentId(id, agentId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -163,9 +164,9 @@ public class TicketClaimService {
         ticketClaimRepository.deleteByTicketIdAndAgentId(id, agentId);
 
         long remaining = ticketClaimRepository.countByTicketId(id);
-        if (remaining == 0 && ST_IN_PROGRESS.equals(ticket.getStatus())) {
+        if (remaining == 0 && ticket.getStatus() == TicketStatus.IN_PROGRESS) {
             log.info("Son claim bırakıldı — bilet havuza (NEW) geri dönüyor. Bilet: {}", id);
-            ticket.setStatus("NEW");
+            ticket.setStatus(TicketStatus.NEW);
             ticketRepository.save(ticket);
             try {
                 workflowService.syncTicketStatus(ticket);
@@ -174,7 +175,8 @@ public class TicketClaimService {
             }
         }
 
-        auditHelper.record(ticket, agentId, "UNCLAIM", reasonCode, note, previousStatus, ticket.getStatus());
+        auditHelper.record(ticket, agentId, AuditAction.UNCLAIM, reasonCode, note,
+                previousStatus.name(), ticket.getStatus().name());
         return ticket;
     }
 
@@ -200,7 +202,7 @@ public class TicketClaimService {
 
         Ticket ticket = loadTicket(ticketId);
 
-        if ("CLOSED".equals(ticket.getStatus())) {
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.assign.closed");
         }
 
@@ -254,9 +256,9 @@ public class TicketClaimService {
                 .build();
         ticketClaimRepository.save(claim);
 
-        String previousStatus = ticket.getStatus();
-        if ("NEW".equals(previousStatus)) {
-            ticket.setStatus(ST_IN_PROGRESS);
+        TicketStatus previousStatus = ticket.getStatus();
+        if (previousStatus == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
             ticketRepository.save(ticket);
             log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
         }
@@ -264,8 +266,8 @@ public class TicketClaimService {
         // Note stays free-form/optional: when the admin supplies none we persist null
         // rather than a hardcoded literal — the audit timeline already renders a
         // localized "Assigned" label per the viewer's language (i18n-correct).
-        auditHelper.record(ticket, adminId, "ASSIGN", note,
-                previousStatus, ticket.getStatus());
+        auditHelper.record(ticket, adminId, AuditAction.ASSIGN, note,
+                previousStatus.name(), ticket.getStatus().name());
 
         try {
             workflowService.syncTicketAssignment(ticket, targetAgentId);

@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,8 +35,8 @@ public class CommentDTO {
     @Schema(description = "Yorum içeriği", example = "VPN ayarlarınızı kontrol ettim, port 443 engelli görünüyor.")
     private String message;
 
-    @Schema(description = "Yorum tipi: EXTERNAL = müşteriye görünür, INTERNAL = sadece agent/manager görebilir", example = "EXTERNAL", allowableValues = {"EXTERNAL", "INTERNAL"})
-    private String type;
+    @Schema(description = "Yorum tipi: EXTERNAL = müşteriye görünür, INTERNAL = sadece agent/manager görebilir", example = "EXTERNAL")
+    private CommentType type;
 
     @Schema(description = "Yorumun oluşturulma tarihi", example = "2026-04-21T11:30:00+03:00")
     private ZonedDateTime createdAt;

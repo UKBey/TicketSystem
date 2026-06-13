@@ -55,6 +55,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
@@ -157,14 +160,14 @@ class TicketServiceTest {
         Ticket input = Ticket.builder()
                 .title("Cannot login")
                 .description("Login fails with 500")
-                .priority("HIGH")
+                .priority(Priority.HIGH)
                 .productId(10L)
                 .topicId(50L)
                 .build();
 
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(50L)).thenReturn(Optional.of(topic));
-        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
             Ticket toSave = invocation.getArgument(0);
             toSave.setId(101L);
@@ -174,7 +177,7 @@ class TicketServiceTest {
         Ticket saved = ticketService.createTicket(input, "customer-1");
 
         assertNotNull(saved.getId());
-        assertEquals("NEW", saved.getStatus());
+        assertEquals(TicketStatus.NEW, saved.getStatus());
         assertEquals("customer-1", saved.getCustomerId());
         assertNotNull(saved.getSlaDeadline(), "slaDeadline bilet oluşturulurken set edilmeli");
 
@@ -183,7 +186,7 @@ class TicketServiceTest {
         Comment firstComment = commentCaptor.getValue();
         assertEquals("customer-1", firstComment.getAuthorId());
         assertEquals("Login fails with 500", firstComment.getMessage());
-        assertEquals("EXTERNAL", firstComment.getType());
+        assertEquals(CommentType.EXTERNAL, firstComment.getType());
         assertEquals(101L, firstComment.getTicket().getId());
 
         ArgumentCaptor<TicketCreatedEvent> eventCaptor = ArgumentCaptor.forClass(TicketCreatedEvent.class);
@@ -204,7 +207,7 @@ class TicketServiceTest {
         Ticket input = Ticket.builder()
                 .title("Issue")
                 .description("Description")
-                .priority("LOW")
+                .priority(Priority.LOW)
                 .productId(10L)
                 .build();
 
@@ -272,7 +275,7 @@ class TicketServiceTest {
         @Test
         void getPoolTickets_whenAgentAdmin_returnsNewTickets() {
                 Ticket ticket = Ticket.builder().id(702L).build();
-                when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
+                when(ticketRepository.findByStatus(TicketStatus.NEW)).thenReturn(List.of(ticket));
 
                 List<Ticket> result = ticketQueryService.getPoolTickets("admin-1", List.of("ADMIN"));
 
@@ -283,7 +286,7 @@ class TicketServiceTest {
         @Test
         void getPoolTickets_whenManager_returnsNewTickets() {
                 Ticket ticket = Ticket.builder().id(703L).build();
-                when(ticketRepository.findByStatus("NEW")).thenReturn(List.of(ticket));
+                when(ticketRepository.findByStatus(TicketStatus.NEW)).thenReturn(List.of(ticket));
 
                 // MANAGER is now a global role; it sees the full NEW pool across all products.
                 List<Ticket> result = ticketQueryService.getPoolTickets("admin-1", List.of("MANAGER"));
@@ -318,9 +321,9 @@ class TicketServiceTest {
 
         @Test
         void getPoolTickets_whenAgentHasProducts_returnsMatchingNewTickets() {
-                Ticket ticket = Ticket.builder().id(703L).status("NEW").productId(10L).build();
+                Ticket ticket = Ticket.builder().id(703L).status(TicketStatus.NEW).productId(10L).build();
                 when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-                when(ticketRepository.findByStatusAndProductIdIn("NEW", List.of(10L))).thenReturn(List.of(ticket));
+                when(ticketRepository.findByStatusAndProductIdIn(TicketStatus.NEW, List.of(10L))).thenReturn(List.of(ticket));
 
                 List<Ticket> result = ticketQueryService.getPoolTickets("agent-1", List.of("AGENT"));
 
@@ -454,8 +457,8 @@ class TicketServiceTest {
                                 .id(203L)
                                 .title("Pool ticket")
                                 .description("desc")
-                                .priority("MEDIUM")
-                                .status("NEW")
+                                .priority(Priority.MEDIUM)
+                                .status(TicketStatus.NEW)
                                 .productId(10L)
                                 .customerId("customer-1")
                                 .build();
@@ -471,7 +474,7 @@ class TicketServiceTest {
 
                 Ticket updated = ticketService.claimTicket(203L, "agent-1");
 
-                assertEquals("IN_PROGRESS", updated.getStatus());
+                assertEquals(TicketStatus.IN_PROGRESS, updated.getStatus());
                 verify(workflowService).syncTicketAssignment(updated, "agent-1");
         }
 
@@ -481,8 +484,8 @@ class TicketServiceTest {
                                 .id(204L)
                                 .title("Limit ticket")
                                 .description("desc")
-                                .priority("MEDIUM")
-                                .status("NEW")
+                                .priority(Priority.MEDIUM)
+                                .status(TicketStatus.NEW)
                                 .productId(10L)
                                 .customerId("customer-1")
                                 .build();
@@ -508,8 +511,8 @@ class TicketServiceTest {
                                 .id(304L)
                                 .title("Ticket")
                                 .description("desc")
-                                .priority("HIGH")
-                                .status("IN_PROGRESS")
+                                .priority(Priority.HIGH)
+                                .status(TicketStatus.IN_PROGRESS)
                                 .productId(10L)
                                 .customerId("customer-1")
 
@@ -521,7 +524,7 @@ class TicketServiceTest {
 
                 Ticket updated = ticketCommandService.updateTicketStatus(304L, "RESOLVED", "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
 
-                assertEquals("RESOLVED", updated.getStatus());
+                assertEquals(TicketStatus.RESOLVED, updated.getStatus());
                 assertNotNull(updated.getResolvedAt());
                 verify(workflowService).pauseSla(updated);
                 verify(ticketRepository, times(2)).save(any(Ticket.class));
@@ -533,8 +536,8 @@ class TicketServiceTest {
                                 .id(305L)
                                 .title("Ticket")
                                 .description("desc")
-                                .priority("HIGH")
-                                .status("WAITING_FOR_CUSTOMER")
+                                .priority(Priority.HIGH)
+                                .status(TicketStatus.WAITING_FOR_CUSTOMER)
                                 .productId(10L)
                                 .customerId("customer-1")
                                 .build();
@@ -543,7 +546,7 @@ class TicketServiceTest {
 
                 Ticket updated = ticketCommandService.updateTicketStatus(305L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
 
-                assertEquals("IN_PROGRESS", updated.getStatus());
+                assertEquals(TicketStatus.IN_PROGRESS, updated.getStatus());
                 verify(workflowService).resumeSla(updated);
                 verify(ticketRepository, times(2)).save(any(Ticket.class));
         }
@@ -554,8 +557,8 @@ class TicketServiceTest {
                 .id(201L)
                 .title("Already closed")
                 .description("desc")
-                .priority("MEDIUM")
-                .status("CLOSED")
+                .priority(Priority.MEDIUM)
+                .status(TicketStatus.CLOSED)
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
@@ -576,8 +579,8 @@ class TicketServiceTest {
                 .id(202L)
                 .title("Pool ticket")
                 .description("desc")
-                .priority("MEDIUM")
-                .status("NEW")
+                .priority(Priority.MEDIUM)
+                .status(TicketStatus.NEW)
                 .productId(999L)
                 .customerId("customer-1")
                 .build();
@@ -610,15 +613,15 @@ class TicketServiceTest {
                 .id(301L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("NEW")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.NEW)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7301L)
                 .build();
 
         when(ticketRepository.findById(301L)).thenReturn(Optional.of(existing));
-        when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
+        when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.CLOSED))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketCommandService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
@@ -638,8 +641,8 @@ class TicketServiceTest {
                 .id(310L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("RESOLVED")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.RESOLVED)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(9999L)
@@ -647,12 +650,12 @@ class TicketServiceTest {
 
         when(ticketRepository.findById(310L)).thenReturn(Optional.of(existing));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(workflowService.verifyTransitionApplied(any(), eq("CLOSED"))).thenReturn(false);
+        when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.CLOSED))).thenReturn(false);
         when(workflowService.isProcessInstanceMissing(any())).thenReturn(true);
 
         Ticket updated = ticketCommandService.updateTicketStatus(310L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
-        assertEquals("CLOSED", updated.getStatus());
+        assertEquals(TicketStatus.CLOSED, updated.getStatus());
         assertNotNull(updated.getClosedAt());
     }
 
@@ -662,8 +665,8 @@ class TicketServiceTest {
                 .id(302L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("NEW")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.NEW)
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
@@ -683,8 +686,8 @@ class TicketServiceTest {
                 .id(401L)
                 .title("Delete me")
                 .description("desc")
-                .priority("LOW")
-                .status("NEW")
+                .priority(Priority.LOW)
+                .status(TicketStatus.NEW)
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
@@ -718,8 +721,8 @@ class TicketServiceTest {
                 .id(601L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("NEW")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.NEW)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7601L)
@@ -731,14 +734,14 @@ class TicketServiceTest {
 
         Ticket updated = ticketCommandService.updateTicketStatus(601L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
 
-        assertEquals("IN_PROGRESS", updated.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, updated.getStatus());
         assertNull(updated.getResolvedAt());
         // BPMN state branch'i status değişkenini kendi script task'ında günceller;
         // backend artık ayrıca syncTicketStatus çağırmıyor — onun yerine
         // requestStatusTransition + verifyTransitionApplied ile BPMN'i otoriter
         // validator olarak konuşuyor.
-        verify(workflowService).requestStatusTransition(updated, "IN_PROGRESS");
-        verify(workflowService).verifyTransitionApplied(updated, "IN_PROGRESS");
+        verify(workflowService).requestStatusTransition(updated, TicketStatus.IN_PROGRESS);
+        verify(workflowService).verifyTransitionApplied(updated, TicketStatus.IN_PROGRESS);
     }
 
     @Test
@@ -749,15 +752,15 @@ class TicketServiceTest {
                 .id(603L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("UNKNOWN_STATE")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7603L)
                 .build();
 
         when(ticketRepository.findById(603L)).thenReturn(Optional.of(existing));
-        when(workflowService.verifyTransitionApplied(any(), eq("NEW"))).thenReturn(false);
+        when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.NEW))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> ticketCommandService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
@@ -772,8 +775,8 @@ class TicketServiceTest {
                 .id(604L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("RESOLVED")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.RESOLVED)
                 .productId(10L)
                 .customerId("customer-2")
                 .build();
@@ -792,8 +795,8 @@ class TicketServiceTest {
                 .id(605L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("IN_PROGRESS")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(99L)
                 .customerId("customer-1")
                 .build();
@@ -812,8 +815,8 @@ class TicketServiceTest {
                 .id(606L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("IN_PROGRESS")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7606L)
@@ -825,9 +828,9 @@ class TicketServiceTest {
 
         Ticket updated = ticketCommandService.updateTicketStatus(606L, "NEW", null, null, "agent-1", List.of("AGENT"));
 
-        assertEquals("NEW", updated.getStatus());
+        assertEquals(TicketStatus.NEW, updated.getStatus());
         verify(ticketClaimRepository).deleteByTicketId(606L);
-        verify(workflowService).requestStatusTransition(updated, "NEW");
+        verify(workflowService).requestStatusTransition(updated, TicketStatus.NEW);
     }
 
     @Test
@@ -836,8 +839,8 @@ class TicketServiceTest {
                 .id(607L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("RESOLVED")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.RESOLVED)
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
@@ -847,7 +850,7 @@ class TicketServiceTest {
 
         Ticket updated = ticketCommandService.updateTicketStatus(607L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
-        assertEquals("CLOSED", updated.getStatus());
+        assertEquals(TicketStatus.CLOSED, updated.getStatus());
         assertNotNull(updated.getClosedAt());
         verify(workflowService).closeTicketWorkflow(updated);
     }
@@ -862,8 +865,8 @@ class TicketServiceTest {
                 .id(608L)
                 .title("Ticket")
                 .description("desc")
-                .priority("HIGH")
-                .status("IN_PROGRESS")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7608L)
@@ -877,7 +880,7 @@ class TicketServiceTest {
 
         Ticket updated = ticketCommandService.updateTicketStatus(608L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT"));
 
-        assertEquals("WAITING_FOR_CUSTOMER", updated.getStatus());
+        assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, updated.getStatus());
         verify(ticketRepository, times(1)).save(any(Ticket.class));
     }
 
@@ -888,7 +891,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenTicketClosed_throwsBadRequest() {
         Ticket closed = Ticket.builder()
-                .id(700L).status("CLOSED").productId(10L).build();
+                .id(700L).status(TicketStatus.CLOSED).productId(10L).build();
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(closed));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -900,7 +903,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenAdminNotAuthorizedForProduct_throwsForbidden() {
         Ticket ticket = Ticket.builder()
-                .id(701L).status("NEW").productId(10L).build();
+                .id(701L).status(TicketStatus.NEW).productId(10L).build();
         User adminUser = User.builder()
                 .id("admin-1").authorizedProducts(List.of()).build();
 
@@ -916,7 +919,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenAgentNotAuthorizedForProduct_throwsForbidden() {
         Ticket ticket = Ticket.builder()
-                .id(702L).status("NEW").productId(10L).build();
+                .id(702L).status(TicketStatus.NEW).productId(10L).build();
         User adminUser = User.builder()
                 .id("admin-1").authorizedProducts(List.of(product)).build();
         User unauthorizedAgent = User.builder()
@@ -935,7 +938,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenCapacityExceeded_throwsBadRequest() {
         Ticket ticket = Ticket.builder()
-                .id(703L).status("NEW").productId(10L).build();
+                .id(703L).status(TicketStatus.NEW).productId(10L).build();
         Product limitedProduct = Product.builder()
                 .id(10L).maxActiveTickets(2).build();
         User adminUser = User.builder()
@@ -959,7 +962,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenNewTicket_setsInProgressAndCreatesClaim() {
         Ticket ticket = Ticket.builder()
-                .id(704L).status("NEW").productId(10L).build();
+                .id(704L).status(TicketStatus.NEW).productId(10L).build();
         Product unlimited = Product.builder().id(10L).maxActiveTickets(null).build();
         User adminUser = User.builder()
                 .id("admin-1").authorizedProducts(List.of(unlimited)).build();
@@ -976,7 +979,7 @@ class TicketServiceTest {
 
         Ticket result = ticketService.assignTicket(704L, "agent-1", "admin-1", "Test note");
 
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
         verify(ticketClaimRepository).save(any(TicketClaim.class));
         verify(notificationService).notifyTicketAssigned(ticket, "agent-1", "admin-1");
     }
@@ -984,7 +987,7 @@ class TicketServiceTest {
     @Test
     void assignTicket_whenInProgressTicket_statusUnchanged() {
         Ticket ticket = Ticket.builder()
-                .id(705L).status("IN_PROGRESS").productId(10L).build();
+                .id(705L).status(TicketStatus.IN_PROGRESS).productId(10L).build();
         Product unlimited = Product.builder().id(10L).maxActiveTickets(null).build();
         User adminUser = User.builder()
                 .id("admin-1").authorizedProducts(List.of(unlimited)).build();
@@ -1000,14 +1003,14 @@ class TicketServiceTest {
 
         Ticket result = ticketService.assignTicket(705L, "agent-1", "admin-1", null);
 
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
     @Test
     void assignTicket_whenAlreadyClaimed_returnsEarlyWithoutDuplicate() {
         Ticket ticket = Ticket.builder()
-                .id(706L).status("IN_PROGRESS").productId(10L).build();
+                .id(706L).status(TicketStatus.IN_PROGRESS).productId(10L).build();
         Product unlimited = Product.builder().id(10L).maxActiveTickets(null).build();
         User adminUser = User.builder()
                 .id("admin-1").authorizedProducts(List.of(unlimited)).build();
@@ -1035,7 +1038,7 @@ class TicketServiceTest {
     void createTicket_whenProductInactive_throwsUnprocessableEntity() {
         Product inactive = Product.builder().id(10L).nameEn("CRM").isActive(false).build();
         User cust = User.builder().id("c1").authorizedProducts(List.of(inactive)).build();
-        Ticket input = Ticket.builder().title("T").description("D").priority("LOW").productId(10L).build();
+        Ticket input = Ticket.builder().title("T").description("D").priority(Priority.LOW).productId(10L).build();
 
         when(userRepository.findById("c1")).thenReturn(Optional.of(cust));
 
@@ -1052,7 +1055,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("unclaimTicket → claim yoksa BAD_REQUEST")
     void unclaimTicket_whenNoClaim_throwsBadRequest() {
-        Ticket t = Ticket.builder().id(800L).status("IN_PROGRESS").build();
+        Ticket t = Ticket.builder().id(800L).status(TicketStatus.IN_PROGRESS).build();
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(t));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(800L, "agent-1")).thenReturn(false);
 
@@ -1065,7 +1068,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("unclaimTicket → son claim bırakılırsa bilet NEW'e döner")
     void unclaimTicket_whenLastClaim_revertsTicketToNew() {
-        Ticket t = Ticket.builder().id(801L).status("IN_PROGRESS").build();
+        Ticket t = Ticket.builder().id(801L).status(TicketStatus.IN_PROGRESS).build();
         when(ticketRepository.findById(801L)).thenReturn(Optional.of(t));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(801L, "agent-1")).thenReturn(true);
         when(ticketClaimRepository.countByTicketId(801L)).thenReturn(0L);
@@ -1073,7 +1076,7 @@ class TicketServiceTest {
 
         Ticket result = ticketService.unclaimTicket(801L, "agent-1", "WORKLOAD", "giving up");
 
-        assertEquals("NEW", result.getStatus());
+        assertEquals(TicketStatus.NEW, result.getStatus());
         verify(ticketClaimRepository).deleteByTicketIdAndAgentId(801L, "agent-1");
         verify(ticketAuditLogRepository).save(any());
     }
@@ -1081,14 +1084,14 @@ class TicketServiceTest {
     @Test
     @DisplayName("unclaimTicket → başka claimerlar varsa statü değişmez")
     void unclaimTicket_whenOtherClaimersExist_statusUnchanged() {
-        Ticket t = Ticket.builder().id(802L).status("IN_PROGRESS").build();
+        Ticket t = Ticket.builder().id(802L).status(TicketStatus.IN_PROGRESS).build();
         when(ticketRepository.findById(802L)).thenReturn(Optional.of(t));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(802L, "agent-1")).thenReturn(true);
         when(ticketClaimRepository.countByTicketId(802L)).thenReturn(1L);
 
         Ticket result = ticketService.unclaimTicket(802L, "agent-1", "WORKLOAD", null);
 
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
@@ -1127,7 +1130,7 @@ class TicketServiceTest {
     @Test
     @DisplayName("getTeamTickets → agent yetkili ürünlerdeki aktif biletleri döner")
     void getTeamTickets_agent_withProducts_returnsActive() {
-        Ticket t = Ticket.builder().id(901L).productId(10L).status("IN_PROGRESS").build();
+        Ticket t = Ticket.builder().id(901L).productId(10L).status(TicketStatus.IN_PROGRESS).build();
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.findActiveByProductIdIn(List.of(10L))).thenReturn(List.of(t));
 
@@ -1236,13 +1239,13 @@ class TicketServiceTest {
         ZonedDateTime now = ZonedDateTime.now();
         // Paused biletin kalan süresi DONMUŞ (budget - elapsed) ve slaDeadline ile ilişkisiz —
         // bu yüzden 50h'lik paused, deadline'ı 20h olan aktif biletin ÜSTÜNE çıkmalı.
-        Ticket far      = Ticket.builder().id(1L).status("IN_PROGRESS").priority("LOW").slaDeadline(now.plusHours(20)).build();
-        Ticket paused   = Ticket.builder().id(2L).status("WAITING_FOR_CUSTOMER").priority("LOW").slaElapsedMs(22L * 3_600_000L).build(); // 72h - 22h = 50h
-        Ticket soon     = Ticket.builder().id(3L).status("IN_PROGRESS").priority("LOW").slaDeadline(now.plusHours(1)).build();
-        Ticket breached = Ticket.builder().id(4L).status("IN_PROGRESS").priority("LOW").slaBreached(true).build();
-        Ticket closed   = Ticket.builder().id(5L).status("CLOSED").priority("LOW").build();
+        Ticket far      = Ticket.builder().id(1L).status(TicketStatus.IN_PROGRESS).priority(Priority.LOW).slaDeadline(now.plusHours(20)).build();
+        Ticket paused   = Ticket.builder().id(2L).status(TicketStatus.WAITING_FOR_CUSTOMER).priority(Priority.LOW).slaElapsedMs(22L * 3_600_000L).build(); // 72h - 22h = 50h
+        Ticket soon     = Ticket.builder().id(3L).status(TicketStatus.IN_PROGRESS).priority(Priority.LOW).slaDeadline(now.plusHours(1)).build();
+        Ticket breached = Ticket.builder().id(4L).status(TicketStatus.IN_PROGRESS).priority(Priority.LOW).slaBreached(true).build();
+        Ticket closed   = Ticket.builder().id(5L).status(TicketStatus.CLOSED).priority(Priority.LOW).build();
 
-        when(slaPolicyService.getSlaDurationMs("LOW")).thenReturn(72L * 3_600_000L);
+        when(slaPolicyService.getSlaDurationMs(Priority.LOW)).thenReturn(72L * 3_600_000L);
         when(ticketRepository.findByCustomerIdFiltered(any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(far, paused, soon, breached, closed)));
 
@@ -2158,7 +2161,7 @@ class TicketServiceTest {
         return Ticket.builder()
                 .id(950L)
                 .title("t").description("d")
-                .priority("LOW").status("IN_PROGRESS")
+                .priority(Priority.LOW).status(TicketStatus.IN_PROGRESS)
                 .productId(10L).customerId("customer-1")
                 .slaBreached(false).slaElapsedMs(0L)
                 .createdAt(ZonedDateTime.now())
@@ -2181,7 +2184,7 @@ class TicketServiceTest {
 
         Ticket result = ticketCommandService.updateTicketPriority(950L, "LOW", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
-        assertEquals("LOW", result.getPriority());
+        assertEquals(Priority.LOW, result.getPriority());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
@@ -2191,12 +2194,12 @@ class TicketServiceTest {
         Ticket existing = inProgressTicketForPriority();
         when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
         Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
-        assertEquals("HIGH", result.getPriority());
+        assertEquals(Priority.HIGH, result.getPriority());
         verify(workflowService).pauseSla(existing);
         verify(workflowService).resumeSla(existing);
     }
@@ -2205,15 +2208,15 @@ class TicketServiceTest {
     @DisplayName("updateTicketPriority → WAITING_FOR_CUSTOMER → pauseSla atlanır, deadline yeniden hesaplanır")
     void updateTicketPriority_waitingForCustomer_pausedPath() {
         Ticket existing = inProgressTicketForPriority();
-        existing.setStatus("WAITING_FOR_CUSTOMER");
+        existing.setStatus(TicketStatus.WAITING_FOR_CUSTOMER);
         when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(7_200_000L);
+        when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(7_200_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
         Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
-        assertEquals("HIGH", result.getPriority());
+        assertEquals(Priority.HIGH, result.getPriority());
         verify(workflowService, never()).pauseSla(any());
         verify(workflowService, never()).resumeSla(any());
         assertNotNull(result.getSlaDeadline());
@@ -2223,14 +2226,14 @@ class TicketServiceTest {
     @DisplayName("updateTicketPriority → CLOSED → SLA hesabı yapılmaz")
     void updateTicketPriority_closed_noSlaWork() {
         Ticket existing = inProgressTicketForPriority();
-        existing.setStatus("CLOSED");
+        existing.setStatus(TicketStatus.CLOSED);
         when(ticketRepository.findById(950L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
         Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
-        assertEquals("HIGH", result.getPriority());
+        assertEquals(Priority.HIGH, result.getPriority());
         verify(workflowService, never()).pauseSla(any());
     }
 
@@ -2245,7 +2248,7 @@ class TicketServiceTest {
 
         Ticket result = ticketCommandService.updateTicketPriority(950L, "HIGH", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT"));
 
-        assertEquals("HIGH", result.getPriority());
+        assertEquals(Priority.HIGH, result.getPriority());
         verify(workflowService, never()).pauseSla(any());
     }
 
@@ -2357,7 +2360,7 @@ class TicketServiceTest {
 
     @Test
     void closeTicket_otherReasonNoNote_throwsBadRequest() {
-        Ticket existing = Ticket.builder().id(1900L).status("IN_PROGRESS").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(1900L).status(TicketStatus.IN_PROGRESS).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(1900L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(1900L, "agent-1")).thenReturn(true);
 
@@ -2368,13 +2371,13 @@ class TicketServiceTest {
 
     @Test
     void closeTicket_otherReasonWithNote_proceedsToClose() {
-        Ticket existing = Ticket.builder().id(1901L).status("IN_PROGRESS").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(1901L).status(TicketStatus.IN_PROGRESS).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(1901L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(1901L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
         Ticket result = ticketCommandService.closeTicket(1901L, "OTHER", "explanation", "agent-1", List.of("AGENT"));
-        assertEquals("CLOSED", result.getStatus());
+        assertEquals(TicketStatus.CLOSED, result.getStatus());
     }
 
     // ------------------------------------------------------------------------
@@ -2383,7 +2386,7 @@ class TicketServiceTest {
 
     @Test
     void getTicketWithAuth_customerOwnsTicket_returns() {
-        Ticket existing = Ticket.builder().id(2000L).status("NEW").customerId("customer-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2000L).status(TicketStatus.NEW).customerId("customer-1").productId(10L).build();
         when(ticketRepository.findById(2000L)).thenReturn(Optional.of(existing));
 
         Ticket result = ticketService.getTicketWithAuth(2000L, "customer-1", List.of("CUSTOMER"));
@@ -2392,7 +2395,7 @@ class TicketServiceTest {
 
     @Test
     void getTicketWithAuth_anonymous_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2001L).status("NEW").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2001L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2001L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
@@ -2401,7 +2404,7 @@ class TicketServiceTest {
 
     @Test
     void validateMutationAccess_customerOwnsTicket_returns() {
-        Ticket existing = Ticket.builder().id(2100L).status("NEW").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2100L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2100L)).thenReturn(Optional.of(existing));
 
         Ticket result = ticketService.validateMutationAccess(2100L, "c-1", List.of("CUSTOMER"));
@@ -2410,7 +2413,7 @@ class TicketServiceTest {
 
     @Test
     void validateMutationAccess_otherCustomer_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2101L).status("NEW").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2101L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2101L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
@@ -2419,7 +2422,7 @@ class TicketServiceTest {
 
     @Test
     void validateMutationAccess_agentNotClaimer_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2102L).status("NEW").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2102L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2102L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(2102L, "agent-x")).thenReturn(false);
 
@@ -2433,8 +2436,8 @@ class TicketServiceTest {
 
     @Test
     void claimTicket_waitingForCustomerStatus_addsClaim() {
-        Ticket existing = Ticket.builder().id(2200L).status("WAITING_FOR_CUSTOMER")
-                .priority("HIGH").productId(10L).customerId("c-1").build();
+        Ticket existing = Ticket.builder().id(2200L).status(TicketStatus.WAITING_FOR_CUSTOMER)
+                .priority(Priority.HIGH).productId(10L).customerId("c-1").build();
         when(ticketRepository.findById(2200L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
@@ -2442,14 +2445,14 @@ class TicketServiceTest {
 
         Ticket result = ticketService.claimTicket(2200L, "agent-1");
 
-        assertEquals("WAITING_FOR_CUSTOMER", result.getStatus());
+        assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, result.getStatus());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
     @Test
     void claimTicket_alreadyClaimed_throwsConflict() {
-        Ticket existing = Ticket.builder().id(2201L).status("IN_PROGRESS")
-                .priority("HIGH").productId(10L).customerId("c-1").build();
+        Ticket existing = Ticket.builder().id(2201L).status(TicketStatus.IN_PROGRESS)
+                .priority(Priority.HIGH).productId(10L).customerId("c-1").build();
         when(ticketRepository.findById(2201L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
@@ -2462,8 +2465,8 @@ class TicketServiceTest {
 
     @Test
     void claimTicket_customLimitDisabled_usesProductLimit() {
-        Ticket existing = Ticket.builder().id(2202L).status("NEW")
-                .priority("HIGH").productId(10L).customerId("c-1").build();
+        Ticket existing = Ticket.builder().id(2202L).status(TicketStatus.NEW)
+                .priority(Priority.HIGH).productId(10L).customerId("c-1").build();
         Product productWithLimit = Product.builder().id(10L).nameEn("X").maxActiveTickets(5).build();
         when(ticketRepository.findById(2202L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -2477,13 +2480,13 @@ class TicketServiceTest {
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(i -> i.getArgument(0));
 
         Ticket result = ticketService.claimTicket(2202L, "agent-1");
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
     }
 
     @Test
     void claimTicket_workflowSyncFails_swallowsAndContinues() {
-        Ticket existing = Ticket.builder().id(2203L).status("NEW")
-                .priority("HIGH").productId(10L).customerId("c-1").processInstanceId(999L).build();
+        Ticket existing = Ticket.builder().id(2203L).status(TicketStatus.NEW)
+                .priority(Priority.HIGH).productId(10L).customerId("c-1").processInstanceId(999L).build();
         when(ticketRepository.findById(2203L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
@@ -2493,13 +2496,13 @@ class TicketServiceTest {
                 .when(workflowService).syncTicketAssignment(existing, "agent-1");
 
         Ticket result = ticketService.claimTicket(2203L, "agent-1");
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
     }
 
     @Test
     void claimTicket_productNotFound_throwsNotFound() {
-        Ticket existing = Ticket.builder().id(2204L).status("NEW")
-                .priority("HIGH").productId(99L).customerId("c-1").build();
+        Ticket existing = Ticket.builder().id(2204L).status(TicketStatus.NEW)
+                .priority(Priority.HIGH).productId(99L).customerId("c-1").build();
         when(ticketRepository.findById(2204L)).thenReturn(Optional.of(existing));
         User agentWithProduct = User.builder().id("agent-1")
                 .authorizedProducts(List.of(Product.builder().id(99L).build()))
@@ -2517,7 +2520,7 @@ class TicketServiceTest {
 
     @Test
     void updateTicketStatus_customerDisallowedTransition_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2301L).status("NEW").customerId("c-1").productId(10L).build();
+        Ticket existing = Ticket.builder().id(2301L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2301L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
@@ -2526,7 +2529,7 @@ class TicketServiceTest {
 
     @Test
     void updateTicketStatus_emptyRoles_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2302L).status("IN_PROGRESS")
+        Ticket existing = Ticket.builder().id(2302L).status(TicketStatus.IN_PROGRESS)
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2302L)).thenReturn(Optional.of(existing));
 
@@ -2536,7 +2539,7 @@ class TicketServiceTest {
 
     @Test
     void updateTicketStatus_agentWithoutClaim_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2303L).status("IN_PROGRESS")
+        Ticket existing = Ticket.builder().id(2303L).status(TicketStatus.IN_PROGRESS)
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2303L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(2303L, "agent-1")).thenReturn(false);
@@ -2548,7 +2551,7 @@ class TicketServiceTest {
 
     @Test
     void closeTicket_blankReasonCode_throwsBadRequest() {
-        Ticket existing = Ticket.builder().id(2400L).status("IN_PROGRESS")
+        Ticket existing = Ticket.builder().id(2400L).status(TicketStatus.IN_PROGRESS)
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2400L)).thenReturn(Optional.of(existing));
         when(ticketClaimRepository.existsByTicketIdAndAgentId(2400L, "agent-1")).thenReturn(true);
@@ -2560,7 +2563,7 @@ class TicketServiceTest {
 
     @Test
     void createTicket_topicIdNull_whenProductHasActiveTopics_throwsBadRequest() {
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByIdAsc(10L))
@@ -2575,12 +2578,12 @@ class TicketServiceTest {
 
     @Test
     void createTicket_topicIdNull_whenNoActiveTopics_savesTopiclessTicket() {
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findByProductIdAndIsActiveTrueOrderByIdAsc(10L))
                 .thenReturn(List.of());
-        when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
+        when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(14_400_000L);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
             Ticket toSave = invocation.getArgument(0);
             toSave.setId(123L);
@@ -2590,7 +2593,7 @@ class TicketServiceTest {
         Ticket saved = ticketService.createTicket(input, "customer-1");
 
         assertNotNull(saved.getId());
-        assertEquals("NEW", saved.getStatus());
+        assertEquals(TicketStatus.NEW, saved.getStatus());
         assertNull(saved.getTopicId());
         assertNull(saved.getTopicNameSnapshotTr());
         verify(ticketTopicRepository, never()).findById(any());
@@ -2600,7 +2603,7 @@ class TicketServiceTest {
     void updateTicketTopic_updatesTopicIdAndNameSnapshot() {
         Ticket existing = Ticket.builder()
                 .id(700L).productId(10L).customerId("customer-1")
-                .title("t").description("d").priority("HIGH").status("IN_PROGRESS")
+                .title("t").description("d").priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS)
                 .build(); // topicless ticket (topicId == null)
         when(ticketRepository.findById(700L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -2618,7 +2621,7 @@ class TicketServiceTest {
 
     @Test
     void createTicket_topicNotFound_throwsNotFound() {
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).topicId(99L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(99L)).thenReturn(Optional.empty());
@@ -2629,7 +2632,7 @@ class TicketServiceTest {
 
     @Test
     void createTicket_topicProductMismatch_throwsBadRequest() {
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).topicId(20L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
@@ -2642,7 +2645,7 @@ class TicketServiceTest {
 
     @Test
     void createTicket_topicInactive_throwsUnprocessable() {
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).topicId(20L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(ticketTopicRepository.findById(20L)).thenReturn(Optional.of(
@@ -2658,7 +2661,7 @@ class TicketServiceTest {
         Product inactive = Product.builder().id(10L).nameEn("X").isActive(false).build();
         User c = User.builder().id("customer-1")
                 .authorizedProducts(List.of(inactive)).build();
-        Ticket input = Ticket.builder().title("t").description("d").priority("HIGH")
+        Ticket input = Ticket.builder().title("t").description("d").priority(Priority.HIGH)
                 .productId(10L).topicId(20L).build();
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(c));
 
@@ -2716,7 +2719,7 @@ class TicketServiceTest {
 
     @Test
     void assignTicket_targetAlreadyClaimed_returnsWithoutChange() {
-        Ticket existing = Ticket.builder().id(2500L).status("IN_PROGRESS")
+        Ticket existing = Ticket.builder().id(2500L).status(TicketStatus.IN_PROGRESS)
                 .productId(10L).customerId("c-1").build();
         when(ticketRepository.findById(2500L)).thenReturn(Optional.of(existing));
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(agentAdmin));
@@ -2726,7 +2729,7 @@ class TicketServiceTest {
 
         Ticket result = ticketService.assignTicket(2500L, "agent-1", "admin-1", "note");
 
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
         verify(ticketClaimRepository, never()).save(any());
     }
 
@@ -2956,7 +2959,7 @@ class TicketServiceTest {
 
     private Ticket ticketWithTopic(Long topicId) {
         return Ticket.builder().id(700L).productId(10L).topicId(topicId)
-                .status("IN_PROGRESS").customerId("customer-1").priority("HIGH").build();
+                .status(TicketStatus.IN_PROGRESS).customerId("customer-1").priority(Priority.HIGH).build();
     }
 
     @Test
@@ -3056,8 +3059,8 @@ class TicketServiceTest {
 
     private Ticket statusTicket(String status) {
         // processInstanceId null → BPMN doğrulaması atlanır, izin mantığına odaklanılır.
-        return Ticket.builder().id(800L).productId(10L).status(status)
-                .customerId("customer-1").priority("HIGH").processInstanceId(null).build();
+        return Ticket.builder().id(800L).productId(10L).status(TicketStatus.valueOf(status))
+                .customerId("customer-1").priority(Priority.HIGH).processInstanceId(null).build();
     }
 
     @Test
@@ -3068,7 +3071,7 @@ class TicketServiceTest {
         when(userRepository.findById("lead-1")).thenReturn(Optional.of(lead));
 
         Ticket result = ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-1", List.of("LEAD_AGENT"));
-        assertEquals("WAITING_FOR_CUSTOMER", result.getStatus());
+        assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, result.getStatus());
     }
 
     @Test
@@ -3089,7 +3092,7 @@ class TicketServiceTest {
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Ticket result = ticketCommandService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
-        assertEquals("IN_PROGRESS", result.getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
     }
 
     @Test
@@ -3121,20 +3124,20 @@ class TicketServiceTest {
     void updateTicketPriority_samePriority_returnsUnchanged() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS"))); // priority HIGH
         Ticket result = ticketCommandService.updateTicketPriority(800L, "HIGH", null, null, "admin-1", ADMIN_LIST);
-        assertEquals("HIGH", result.getPriority());
+        assertEquals(Priority.HIGH, result.getPriority());
         verify(ticketRepository, never()).save(any());
     }
 
     @Test
     void updateTicketPriority_validChangeSlaActive_pausesAndSaves() {
-        Ticket t = Ticket.builder().id(800L).productId(10L).status("IN_PROGRESS")
-                .customerId("customer-1").priority("HIGH").slaBreached(false).build();
+        Ticket t = Ticket.builder().id(800L).productId(10L).status(TicketStatus.IN_PROGRESS)
+                .customerId("customer-1").priority(Priority.HIGH).slaBreached(false).build();
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(t));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Ticket result = ticketCommandService.updateTicketPriority(800L, "CRITICAL", null, null, "admin-1", ADMIN_LIST);
 
-        assertEquals("CRITICAL", result.getPriority());
+        assertEquals(Priority.CRITICAL, result.getPriority());
         verify(workflowService).pauseSla(t);
     }
 }

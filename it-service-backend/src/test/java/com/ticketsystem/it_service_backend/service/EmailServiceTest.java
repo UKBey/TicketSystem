@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -59,8 +61,8 @@ class EmailServiceTest {
         ticket = Ticket.builder()
                 .id(42L)
                 .title("VPN bağlanamıyorum")
-                .priority("HIGH")
-                .status("NEW")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.NEW)
                 .customerId("customer-1")
                 .build();
 
@@ -226,7 +228,7 @@ class EmailServiceTest {
     @Test
     void priorityBadge_coversAllPriorityBranches() {
         for (String priority : new String[]{"CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN", null}) {
-            Ticket t = Ticket.builder().id(7L).title("x").priority(priority).status("NEW")
+            Ticket t = Ticket.builder().id(7L).title("x").priority(Priority.fromNullable(priority)).status(TicketStatus.NEW)
                     .customerId("customer-1").build();
             emailService.sendTicketCreatedEmail(customer, t);
         }

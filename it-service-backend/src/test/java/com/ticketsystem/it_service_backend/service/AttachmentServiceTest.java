@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 
 @ExtendWith(MockitoExtension.class)
 class AttachmentServiceTest {
@@ -40,7 +41,7 @@ class AttachmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ticket = Ticket.builder().id(10L).customerId("customer-1").status("IN_PROGRESS").build();
+        ticket = Ticket.builder().id(10L).customerId("customer-1").status(TicketStatus.IN_PROGRESS).build();
     }
 
     @Test

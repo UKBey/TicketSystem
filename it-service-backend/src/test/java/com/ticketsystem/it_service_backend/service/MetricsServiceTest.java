@@ -44,6 +44,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @ExtendWith(MockitoExtension.class)
 class MetricsServiceTest {
@@ -521,7 +523,7 @@ class MetricsServiceTest {
         @DisplayName("Aşılan bilet customerId → müşteri adına map edilir")
         void breachedTicket_customerNameResolved() {
             Ticket breached = Ticket.builder()
-                    .id(1L).title("Broken login").priority("HIGH")
+                    .id(1L).title("Broken login").priority(Priority.HIGH)
                     .customerId("cust-1").slaDeadline(ZonedDateTime.now().minusHours(1)).build();
             User customer = User.builder().id("cust-1").fullName("Ahmet Yılmaz").build();
 
@@ -550,10 +552,10 @@ class MetricsServiceTest {
             ZonedDateTime now = ZonedDateTime.now();
             // Oluşturulma çok eski ama bekleme durumuna giriş (slaPausedAt) yakın → süre giriş anından sayılmalı.
             Ticket waiting = Ticket.builder()
-                    .id(10L).title("Need info").priority("MEDIUM").status("WAITING_FOR_CUSTOMER")
+                    .id(10L).title("Need info").priority(Priority.MEDIUM).status(TicketStatus.WAITING_FOR_CUSTOMER)
                     .customerId("cust-1").createdAt(now.minusDays(5)).slaPausedAt(now.minusHours(10)).build();
             Ticket resolved = Ticket.builder()
-                    .id(11L).title("Fixed?").priority("LOW").status("RESOLVED")
+                    .id(11L).title("Fixed?").priority(Priority.LOW).status(TicketStatus.RESOLVED)
                     .customerId("cust-2").createdAt(now.minusDays(8))
                     .resolvedAt(now.minusHours(20)).slaPausedAt(now.minusHours(20)).build();
 
@@ -572,9 +574,9 @@ class MetricsServiceTest {
 
             assertThat(dto.getWaitingTooLong()).hasSize(2);
             // En uzun bekleyen (RESOLVED, ~20s) başta
-            assertThat(dto.getWaitingTooLong().get(0).getStatus()).isEqualTo("RESOLVED");
+            assertThat(dto.getWaitingTooLong().get(0).getStatus()).isEqualTo(TicketStatus.RESOLVED);
             assertThat(dto.getWaitingTooLong().get(0).getHoursWaiting()).isGreaterThan(19.0).isLessThan(21.0);
-            assertThat(dto.getWaitingTooLong().get(1).getStatus()).isEqualTo("WAITING_FOR_CUSTOMER");
+            assertThat(dto.getWaitingTooLong().get(1).getStatus()).isEqualTo(TicketStatus.WAITING_FOR_CUSTOMER);
             assertThat(dto.getWaitingTooLong().get(1).getHoursWaiting()).isGreaterThan(9.0).isLessThan(11.0);
         }
     }
@@ -661,7 +663,7 @@ class MetricsServiceTest {
                     new Object[]{LocalDate.of(2026, 1, 1), 1L, 2L, 0L, 0L}
             ));
             when(ticketRepository.findRecentByCustomerId(eq(customer), any())).thenReturn(List.of(
-                    Ticket.builder().id(9L).title("VPN").status("RESOLVED").priority("HIGH")
+                    Ticket.builder().id(9L).title("VPN").status(TicketStatus.RESOLVED).priority(Priority.HIGH)
                             .createdAt(ZonedDateTime.now()).build()
             ));
 
@@ -729,7 +731,7 @@ class MetricsServiceTest {
                     new Object[]{LocalDate.of(2026, 1, 1), 1L, 1L, 0L, 0L}
             ));
             when(ticketRepository.findRecentClaimedByAgentScoped(eq(agent), anyBoolean(), anyList(), any())).thenReturn(List.of(
-                    Ticket.builder().id(3L).title("Mail").status("IN_PROGRESS").priority("MEDIUM")
+                    Ticket.builder().id(3L).title("Mail").status(TicketStatus.IN_PROGRESS).priority(Priority.MEDIUM)
                             .createdAt(ZonedDateTime.now()).build()
             ));
 

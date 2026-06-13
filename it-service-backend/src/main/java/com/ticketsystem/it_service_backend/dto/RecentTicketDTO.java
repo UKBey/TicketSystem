@@ -1,5 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,10 +28,10 @@ public class RecentTicketDTO {
     private String title;
 
     @Schema(description = "Bilet durumu", example = "IN_PROGRESS")
-    private String status;
+    private TicketStatus status;
 
     @Schema(description = "Öncelik", example = "HIGH")
-    private String priority;
+    private Priority priority;
 
     @Schema(description = "Oluşturulma zamanı")
     private ZonedDateTime createdAt;

@@ -40,7 +40,7 @@ class SlaPolicyServiceTest {
         @Test
         @DisplayName("null öncelik → MEDIUM varsayılanı (24 saat)")
         void nullPriority_returnsMediumDefault() {
-            assertThat(service.getSlaDurationMs(null)).isEqualTo(24L * 3_600_000L);
+            assertThat(service.getSlaDurationMs((String) null)).isEqualTo(24L * 3_600_000L);
         }
 
         @Test

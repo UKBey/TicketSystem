@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @ExtendWith(MockitoExtension.class)
 class WorkflowEventListenerTest {
@@ -33,8 +35,8 @@ class WorkflowEventListenerTest {
                 .id(42L)
                 .title("Printer broken")
                 .description("Printer does not start")
-                .status("NEW")
-                .priority("HIGH")
+                .status(TicketStatus.NEW)
+                .priority(Priority.HIGH)
                 .customerId("customer-1")
                 .build();
 
@@ -52,8 +54,8 @@ class WorkflowEventListenerTest {
                 .id(43L)
                 .title("VPN issue")
                 .description("Cannot connect")
-                .status("NEW")
-                .priority("MEDIUM")
+                .status(TicketStatus.NEW)
+                .priority(Priority.MEDIUM)
                 .customerId("customer-2")
                 .build();
 

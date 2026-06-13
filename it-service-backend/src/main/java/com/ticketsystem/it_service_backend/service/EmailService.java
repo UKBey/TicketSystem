@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.mail.internet.MimeMessage;
@@ -608,22 +610,25 @@ public class EmailService {
         return "dark".equalsIgnoreCase(user.getPreferredTheme()) ? Palette.DARK : Palette.LIGHT;
     }
 
-    private String priorityBadge(String priority, Palette p) {
-        String key = priority == null ? "" : priority.toUpperCase(Locale.ROOT);
+    private String priorityBadge(Priority priority, Palette p) {
         String bg;
         String fg;
-        switch (key) {
-            case "CRITICAL" -> { bg = p.badgeCriticalBg; fg = p.badgeCriticalFg; }
-            case "HIGH"     -> { bg = p.badgeHighBg;     fg = p.badgeHighFg; }
-            case "MEDIUM"   -> { bg = p.badgeMediumBg;   fg = p.badgeMediumFg; }
-            case "LOW"      -> { bg = p.badgeLowBg;      fg = p.badgeLowFg; }
-            default          -> { bg = p.badgeNeutralBg; fg = p.badgeNeutralFg; }
+        if (priority == null) {
+            bg = p.badgeNeutralBg; fg = p.badgeNeutralFg;
+        } else {
+            switch (priority) {
+                case CRITICAL -> { bg = p.badgeCriticalBg; fg = p.badgeCriticalFg; }
+                case HIGH     -> { bg = p.badgeHighBg;     fg = p.badgeHighFg; }
+                case MEDIUM   -> { bg = p.badgeMediumBg;   fg = p.badgeMediumFg; }
+                case LOW      -> { bg = p.badgeLowBg;      fg = p.badgeLowFg; }
+                default       -> { bg = p.badgeNeutralBg;  fg = p.badgeNeutralFg; }
+            }
         }
-        return badge(escapeHtml(priority == null ? "-" : priority), bg, fg);
+        return badge(escapeHtml(priority == null ? "-" : priority.name()), bg, fg);
     }
 
-    private String statusBadge(String status, Palette p) {
-        return badge(escapeHtml(status == null ? "-" : status), p.badgeNeutralBg, p.badgeNeutralFg);
+    private String statusBadge(TicketStatus status, Palette p) {
+        return badge(escapeHtml(status == null ? "-" : status.name()), p.badgeNeutralBg, p.badgeNeutralFg);
     }
 
     private String badge(String text, String bg, String fg) {

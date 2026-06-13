@@ -145,12 +145,12 @@ public class NotificationService {
             if (Boolean.TRUE.equals(pref.getNotifyOnStatusChanged())) {
                 saveNotification(customer.getId(), NotificationType.TICKET_STATUS_CHANGED,
                         "notification.ticket.status.changed",
-                        args(ticket.getId(), oldStatus, ticket.getStatus()),
+                        args(ticket.getId(), oldStatus, ticket.getStatus().name()),
                         ticket.getId());
             }
             if (Boolean.TRUE.equals(pref.getEmailOnStatusChanged())) {
                 runAfterCommit(() ->
-                        emailService.sendStatusChangedEmail(customer, ticket, oldStatus, ticket.getStatus()));
+                        emailService.sendStatusChangedEmail(customer, ticket, oldStatus, ticket.getStatus().name()));
             }
         });
     }
@@ -164,7 +164,7 @@ public class NotificationService {
      * @param comment the new comment
      */
     public void notifyCommentAdded(Ticket ticket, Comment comment) {
-        if (!"EXTERNAL".equals(comment.getType())) return;
+        if (comment.getType() != CommentType.EXTERNAL) return;
 
         boolean authorIsCustomer = comment.getAuthorId().equals(ticket.getCustomerId());
 

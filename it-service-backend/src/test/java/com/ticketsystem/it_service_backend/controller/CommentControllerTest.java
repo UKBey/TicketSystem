@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 
 /**
  * Controller-level tests. DTO assembly (author name/role resolution) now lives in
@@ -46,7 +47,7 @@ class CommentControllerTest {
                 .id(1L)
                 .authorId("customer-1")
                 .message("Need help")
-                .type("EXTERNAL")
+                .type(CommentType.EXTERNAL)
                 .createdAt(ZonedDateTime.now())
                 .build();
 
@@ -68,8 +69,8 @@ class CommentControllerTest {
 
     @Test
     void getComments_returnsMappedDtoList() {
-        Comment c1 = Comment.builder().id(1L).authorId("u1").message("msg1").type("EXTERNAL").createdAt(ZonedDateTime.now()).build();
-        Comment c2 = Comment.builder().id(2L).authorId("u2").message("msg2").type("INTERNAL").createdAt(ZonedDateTime.now()).build();
+        Comment c1 = Comment.builder().id(1L).authorId("u1").message("msg1").type(CommentType.EXTERNAL).createdAt(ZonedDateTime.now()).build();
+        Comment c2 = Comment.builder().id(2L).authorId("u2").message("msg2").type(CommentType.INTERNAL).createdAt(ZonedDateTime.now()).build();
 
         when(commentService.getCommentsByTicketId(100L, "agent-1", List.of("AGENT"))).thenReturn(List.of(c1, c2));
         when(commentService.toDtos(List.of(c1, c2))).thenReturn(List.of(

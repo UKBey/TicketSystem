@@ -16,6 +16,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 /**
  * Controller-level tests. The breach mutation (flag set + save + notify) now lives in
@@ -82,7 +84,7 @@ class WorkflowCallbackControllerTest {
 
     @Test
     void handleWorkflowCallback_slaBreached_delegatesToServiceMark() {
-        Ticket ticket = Ticket.builder().id(1L).title("Test").description("d").status("IN_PROGRESS").priority("HIGH").customerId("c1").build();
+        Ticket ticket = Ticket.builder().id(1L).title("Test").description("d").status(TicketStatus.IN_PROGRESS).priority(Priority.HIGH).customerId("c1").build();
         WorkflowCallbackDTO dto = buildDto(1L, "SLA_BREACHED");
         when(ticketService.findById(1L)).thenReturn(Optional.of(ticket));
 
@@ -97,7 +99,7 @@ class WorkflowCallbackControllerTest {
 
     @Test
     void handleWorkflowCallback_processCompleted_returnsOkWithoutMark() {
-        Ticket ticket = Ticket.builder().id(2L).title("Test2").description("d").status("CLOSED").priority("LOW").customerId("c2").build();
+        Ticket ticket = Ticket.builder().id(2L).title("Test2").description("d").status(TicketStatus.CLOSED).priority(Priority.LOW).customerId("c2").build();
         WorkflowCallbackDTO dto = buildDto(2L, "PROCESS_COMPLETED");
         when(ticketService.findById(2L)).thenReturn(Optional.of(ticket));
 
@@ -113,7 +115,7 @@ class WorkflowCallbackControllerTest {
 
     @Test
     void handleWorkflowCallback_unknownEventType_returns400() {
-        Ticket ticket = Ticket.builder().id(3L).title("Test3").description("d").status("NEW").priority("MEDIUM").customerId("c3").build();
+        Ticket ticket = Ticket.builder().id(3L).title("Test3").description("d").status(TicketStatus.NEW).priority(Priority.MEDIUM).customerId("c3").build();
         WorkflowCallbackDTO dto = buildDto(3L, "UNKNOWN_EVENT");
         when(ticketService.findById(3L)).thenReturn(Optional.of(ticket));
 

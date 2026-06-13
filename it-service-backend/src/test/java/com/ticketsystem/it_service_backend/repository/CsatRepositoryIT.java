@@ -15,6 +15,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @Transactional
 class CsatRepositoryIT extends RepositoryIntegrationTestBase {
@@ -57,8 +59,8 @@ class CsatRepositoryIT extends RepositoryIntegrationTestBase {
         Ticket ticket = ticketRepository.save(Ticket.builder()
             .title("CSAT ticket")
             .description("desc")
-            .status("RESOLVED")
-            .priority("HIGH")
+            .status(TicketStatus.RESOLVED)
+            .priority(Priority.HIGH)
             .productId(product.getId())
             .topicId(topic.getId())
             .customerId("customer-1")

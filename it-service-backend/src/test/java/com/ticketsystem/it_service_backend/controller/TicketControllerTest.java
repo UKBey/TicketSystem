@@ -34,6 +34,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 /**
  * Controller-level tests focused on the controller's own responsibilities: role-based
@@ -74,8 +76,8 @@ class TicketControllerTest {
                 .title("Printer error").description("Paper jam").priority("MEDIUM").productId(10L).build();
 
         Ticket saved = Ticket.builder().id(1001L).title(request.getTitle())
-                .description(request.getDescription()).priority(request.getPriority())
-                .status("NEW").productId(10L).customerId("customer-1").build();
+                .description(request.getDescription()).priority(Priority.fromNullable(request.getPriority()))
+                .status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
 
         when(ticketService.createTicket(any(Ticket.class), eq("customer-1"))).thenReturn(saved);
 
@@ -94,7 +96,7 @@ class TicketControllerTest {
     @Test
     void getTickets_withCustomerRole_returnsOnlyCustomerTickets() {
         Ticket t = Ticket.builder().id(2001L).title("VPN issue").description("Cannot connect")
-                .priority("HIGH").status("NEW").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
         when(ticketQueryService.getCustomerTicketsFiltered(eq("customer-1"), any(TicketFilterDTO.class), any(Pageable.class)))
@@ -113,7 +115,7 @@ class TicketControllerTest {
     @Test
     void getTickets_withAdminRole_returnsAllTickets() {
         Ticket t1 = Ticket.builder().id(8001L).title("T1").description("D1")
-                .priority("LOW").status("NEW").customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.NEW).customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t1));
         // ADMIN is global: it goes through the team/all-products listing path.
         when(ticketQueryService.getTeamTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
@@ -152,7 +154,7 @@ class TicketControllerTest {
     @Test
     void getPoolTickets_withAgentRole_returnsOk() {
         Ticket t = Ticket.builder().id(3001L).title("Email issue").description("Bounce back")
-                .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
         when(ticketQueryService.getPoolTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
@@ -171,7 +173,7 @@ class TicketControllerTest {
     @Test
     void getPoolTickets_withAgentAdminRole_returnsOk() {
         Ticket t = Ticket.builder().id(3002L).title("Server issue").description("CPU high")
-                .priority("MEDIUM").status("NEW").productId(10L).customerId("customer-1").build();
+                .priority(Priority.MEDIUM).status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
 
         Page<Ticket> page = new PageImpl<>(List.of(t));
         when(ticketQueryService.getPoolTicketsFiltered(eq("admin-1"), eq(List.of("ADMIN")),
@@ -194,7 +196,7 @@ class TicketControllerTest {
     @Test
     void getMyAssignedTickets_returnsAgentTickets() {
         Ticket t1 = Ticket.builder().id(9001L).title("T1").description("D1")
-                .priority("LOW").status("IN_PROGRESS").customerId("c1").build();
+                .priority(Priority.LOW).status(TicketStatus.IN_PROGRESS).customerId("c1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t1));
         when(ticketQueryService.getAgentClaimedTicketsFiltered(eq("agent-1"),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
@@ -216,7 +218,7 @@ class TicketControllerTest {
     @Test
     void claimTicket_withAgentRole_returnsClaimedTicket() {
         Ticket claimed = Ticket.builder().id(9001L).title("Claim me").description("desc")
-                .priority("LOW").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketService.claimTicket(9001L, "agent-1")).thenReturn(claimed);
 
@@ -224,13 +226,13 @@ class TicketControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(9001L, response.getBody().getId());
-        assertEquals("IN_PROGRESS", response.getBody().getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 
     @Test
     void claimTicket_withAgentAdminRole_returnsClaimedTicket() {
         Ticket claimed = Ticket.builder().id(9002L).title("Claim me").description("desc")
-                .priority("LOW").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketService.claimTicket(9002L, "admin-1")).thenReturn(claimed);
 
@@ -238,7 +240,7 @@ class TicketControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(9002L, response.getBody().getId());
-        assertEquals("IN_PROGRESS", response.getBody().getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 
     // -----------------------------------------------------------------------
@@ -248,7 +250,7 @@ class TicketControllerTest {
     @Test
     void updateStatus_withAgentRole_returnsOk() {
         Ticket updated = Ticket.builder().id(4001L).title("Network issue").description("Packet loss")
-                .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketCommandService.updateTicketStatus(4001L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
 
@@ -258,13 +260,13 @@ class TicketControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4001L, response.getBody().getId());
-        assertEquals("IN_PROGRESS", response.getBody().getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 
     @Test
     void updateStatus_withAgentAdminRole_returnsOk() {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
-                .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("ADMIN"))).thenReturn(updated);
 
@@ -274,13 +276,13 @@ class TicketControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4002L, response.getBody().getId());
-        assertEquals("IN_PROGRESS", response.getBody().getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 
     @Test
     void updateStatus_withEmptyRoles() {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
-                .priority("HIGH").status("IN_PROGRESS").build();
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).build();
 
         when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "c1", List.of())).thenReturn(updated);
 
@@ -291,7 +293,7 @@ class TicketControllerTest {
         StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
         ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(4002L, body, jwt);
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("IN_PROGRESS", response.getBody().getStatus());
+        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 
     // -----------------------------------------------------------------------
@@ -308,7 +310,7 @@ class TicketControllerTest {
     @Test
     void getSlaTimer_withAgentAdminRole_returnsTimerPayload() {
         Ticket ticket = Ticket.builder().id(7001L).title("SLA ticket").description("desc")
-                .priority("MEDIUM").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.MEDIUM).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketService.getTicketWithAuth(7001L, "admin-1", List.of("ADMIN"))).thenReturn(ticket);
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.<String, Object>of("deadlineTs", 555L));
@@ -322,7 +324,7 @@ class TicketControllerTest {
     @Test
     void getSlaTimer_withManagerRole_returnsTimerPayload() {
         Ticket ticket = Ticket.builder().id(7002L).title("SLA ticket").description("desc")
-                .priority("MEDIUM").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.MEDIUM).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
         when(ticketService.getTicketWithAuth(7002L, "manager-1", List.of("MANAGER"))).thenReturn(ticket);
         when(ticketService.getSlaTimerInfo(ticket)).thenReturn(Map.<String, Object>of("deadlineTs", 556L));
@@ -336,7 +338,7 @@ class TicketControllerTest {
     @Test
     void getTicket_returnsTicketDetail() {
         Ticket t1 = Ticket.builder().id(10001L).title("T1").description("D1")
-                .priority("LOW").status("NEW").productId(1L).customerId("c1").build();
+                .priority(Priority.LOW).status(TicketStatus.NEW).productId(1L).customerId("c1").build();
         when(ticketService.getTicketWithAuth(10001L, "customer-1", List.of("CUSTOMER"))).thenReturn(t1);
 
         ResponseEntity<TicketResponseDTO> response = ticketController.getTicket(10001L, jwtWithRole("customer-1", "CUSTOMER"));
@@ -352,7 +354,7 @@ class TicketControllerTest {
     @Test
     void getTeamTickets_withAgentRole_returnsOk() {
         Ticket t = Ticket.builder().id(6001L).title("Team ticket").description("desc")
-                .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t));
         when(ticketQueryService.getTeamTicketsFiltered(eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
@@ -389,7 +391,7 @@ class TicketControllerTest {
     @Test
     void getTicketsByProduct_withAgentRole_returnsOk() {
         Ticket t = Ticket.builder().id(7001L).title("Product ticket").description("desc")
-                .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
         Page<Ticket> page = new PageImpl<>(List.of(t));
         when(ticketQueryService.getTicketsByProductFiltered(eq(10L), eq("agent-1"), eq(List.of("AGENT")),
                 any(TicketFilterDTO.class), any(Pageable.class))).thenReturn(page);
@@ -412,7 +414,7 @@ class TicketControllerTest {
     @Test
     void assignTicket_withAgentAdminRole_returnsOk() {
         Ticket assigned = Ticket.builder().id(8001L).title("Assign me").description("desc")
-                .priority("HIGH").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
         AssignTicketRequestDTO request = AssignTicketRequestDTO.builder()
                 .targetAgentId("agent-1").note("Admin assigned").build();
 
@@ -431,7 +433,7 @@ class TicketControllerTest {
     @Test
     void unclaimTicket_withAgentRole_returnsOk() {
         Ticket unclaimed = Ticket.builder().id(9003L).title("Unclaim me").description("desc")
-                .priority("LOW").status("NEW").productId(10L).customerId("customer-1").build();
+                .priority(Priority.LOW).status(TicketStatus.NEW).productId(10L).customerId("customer-1").build();
         UnclaimRequestDTO dto = new UnclaimRequestDTO();
         dto.setReasonCode("WORKLOAD");
         dto.setNote("dropping this ticket");
@@ -540,7 +542,7 @@ class TicketControllerTest {
     @Test
     void closeTicket_returnsDto() {
         Ticket closed = Ticket.builder().id(7000L).title("t").description("d")
-                .priority("HIGH").status("CLOSED").productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.CLOSED).productId(10L).customerId("customer-1").build();
         com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO body =
                 new com.ticketsystem.it_service_backend.dto.CloseTicketRequestDTO();
         body.setReasonCode("RESOLVED_CONFIRMED");
@@ -558,7 +560,7 @@ class TicketControllerTest {
     @Test
     void updatePriority_returnsDto() {
         Ticket updated = Ticket.builder().id(7100L).title("t").description("d")
-                .priority("CRITICAL").status("IN_PROGRESS").productId(10L).customerId("customer-1").build();
+                .priority(Priority.CRITICAL).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
         when(ticketCommandService.updateTicketPriority(7100L, "CRITICAL", "CUSTOMER_IMPACT", null, "agent-1", List.of("AGENT")))
                 .thenReturn(updated);
 
@@ -569,7 +571,7 @@ class TicketControllerTest {
                 ticketController.updatePriority(7100L, dto, jwtWithRole("agent-1", "AGENT"));
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("CRITICAL", response.getBody().getPriority());
+        assertEquals(Priority.CRITICAL, response.getBody().getPriority());
     }
 
     @Test

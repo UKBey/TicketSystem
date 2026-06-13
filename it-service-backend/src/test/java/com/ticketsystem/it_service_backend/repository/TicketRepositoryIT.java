@@ -17,6 +17,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @Transactional
 class TicketRepositoryIT extends RepositoryIntegrationTestBase {
@@ -63,8 +65,8 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         ticketRepository.save(Ticket.builder()
                 .title("Customer ticket")
                 .description("desc 1")
-                .status("NEW")
-                .priority("HIGH")
+                .status(TicketStatus.NEW)
+                .priority(Priority.HIGH)
                 .productId(productId1)
                 .topicId(topicId1)
                 .customerId("customer-1")
@@ -73,8 +75,8 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         ticketRepository.save(Ticket.builder()
                 .title("Pool ticket")
                 .description("desc 2")
-                .status("NEW")
-                .priority("LOW")
+                .status(TicketStatus.NEW)
+                .priority(Priority.LOW)
                 .productId(productId2)
                 .topicId(topicId2)
                 .customerId("customer-2")
@@ -83,8 +85,8 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
         ticketRepository.save(Ticket.builder()
                 .title("In progress")
                 .description("desc 3")
-                .status("IN_PROGRESS")
-                .priority("MEDIUM")
+                .status(TicketStatus.IN_PROGRESS)
+                .priority(Priority.MEDIUM)
                 .productId(productId1)
                 .topicId(topicId1)
                 .customerId("customer-3")
@@ -101,7 +103,7 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
 
     @Test
     void findByStatusAndProductIdIn_filtersByStatusAndProductScope() {
-        List<Ticket> result = ticketRepository.findByStatusAndProductIdIn("NEW", List.of(productId1));
+        List<Ticket> result = ticketRepository.findByStatusAndProductIdIn(TicketStatus.NEW, List.of(productId1));
 
         assertEquals(1, result.size());
         assertEquals("Customer ticket", result.get(0).getTitle());
@@ -217,7 +219,7 @@ class TicketRepositoryIT extends RepositoryIntegrationTestBase {
 
     private Long saveStatus(String customerId, String status) {
         return ticketRepository.save(Ticket.builder()
-                .title(status).description("d").status(status).priority("MEDIUM")
+                .title(status).description("d").status(TicketStatus.valueOf(status)).priority(Priority.MEDIUM)
                 .productId(productId1).topicId(topicId1).customerId(customerId).build()).getId();
     }
 }

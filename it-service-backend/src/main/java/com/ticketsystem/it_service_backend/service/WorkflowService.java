@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +45,7 @@ public class WorkflowService {
     @Value("${jbpm.kie-server.callback-token}")
     private String callbackToken;
 
-    private long getSlaDurationMs(String priority) {
+    private long getSlaDurationMs(Priority priority) {
         return slaPolicyService.getSlaDurationMs(priority);
     }
 
@@ -63,9 +65,9 @@ public class WorkflowService {
 
         Map<String, Object> processVariables = new HashMap<>();
         processVariables.put("ticketId", String.valueOf(ticket.getId()));
-        processVariables.put("priority", ticket.getPriority());
+        processVariables.put("priority", ticket.getPriority() == null ? null : ticket.getPriority().name());
         processVariables.put("customerId", ticket.getCustomerId());
-        processVariables.put("status", ticket.getStatus());
+        processVariables.put("status", ticket.getStatus() == null ? null : ticket.getStatus().name());
 
         // SLA suresi, jBPM timer'inin bekledigi ISO-8601 formatinda gonderilir.
         processVariables.put("slaDuration", msToIsoDuration(getSlaDurationMs(ticket.getPriority())));
@@ -259,15 +261,15 @@ public class WorkflowService {
      * @param ticket the ticket whose state is changing
      * @param targetStatus the desired new status
      */
-    public void requestStatusTransition(Ticket ticket, String targetStatus) {
+    public void requestStatusTransition(Ticket ticket, TicketStatus targetStatus) {
         if (ticket.getProcessInstanceId() == null) {
             log.debug("processInstanceId yok, transition sinyali atlanıyor. TicketId={}, Target={}",
                     ticket.getId(), targetStatus);
             return;
         }
-        if (targetStatus == null || targetStatus.isBlank()) return;
+        if (targetStatus == null) return;
 
-        String signal = "transition_" + targetStatus;
+        String signal = "transition_" + targetStatus.name();
         log.info("State transition sinyali gönderiliyor. TicketId={}, ProcessInstanceId={}, Signal={}",
                 ticket.getId(), ticket.getProcessInstanceId(), signal);
         try {
@@ -309,13 +311,13 @@ public class WorkflowService {
         return kieServerAdapter.isProcessInstanceMissing(ticket.getProcessInstanceId());
     }
 
-    public boolean verifyTransitionApplied(Ticket ticket, String expectedStatus) {
+    public boolean verifyTransitionApplied(Ticket ticket, TicketStatus expectedStatus) {
         if (ticket.getProcessInstanceId() == null || expectedStatus == null) return false;
 
         Object raw = kieServerAdapter.getProcessVariable(ticket.getProcessInstanceId(), "status");
         String actual = raw == null ? null : raw.toString();
 
-        if (expectedStatus.equals(actual)) {
+        if (expectedStatus.name().equals(actual)) {
             log.debug("BPMN state confirmed. TicketId={}, Status={}", ticket.getId(), actual);
             return true;
         }
@@ -325,7 +327,7 @@ public class WorkflowService {
         // longer readable (null). That is the success outcome, not a dropped signal —
         // confirm it via the process instance state instead of the now-gone variable,
         // otherwise CSAT-driven (and manual) closes would be falsely rejected with 400.
-        if ("CLOSED".equals(expectedStatus) && actual == null
+        if (expectedStatus == TicketStatus.CLOSED && actual == null
                 && kieServerAdapter.isProcessFinished(ticket.getProcessInstanceId())) {
             log.debug("BPMN terminal transition (CLOSED) confirmed via process completion. TicketId={}",
                     ticket.getId());
@@ -422,10 +424,10 @@ public class WorkflowService {
      */
     public java.util.Map<String, Object> getSlaTimerInfo(com.ticketsystem.it_service_backend.entity.Ticket ticket) {
         java.util.Map<String, Object> result = new java.util.HashMap<>();
-        String status = ticket.getStatus() != null ? ticket.getStatus() : "";
+        TicketStatus status = ticket.getStatus();
 
         // CLOSED: süreç bitti — ihlal durumundan bağımsız olarak "completed"
-        if ("CLOSED".equals(status)) {
+        if (status == TicketStatus.CLOSED) {
             result.put(K_DEADLINE_TS, -1L);
             result.put(K_REMAINING_MS, 0L);
             result.put(K_SLA_STATE, "completed");
@@ -443,8 +445,8 @@ public class WorkflowService {
         long elapsedMs = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
 
         boolean isPaused = ticket.getSlaPausedAt() != null
-                || "RESOLVED".equals(status)
-                || "WAITING_FOR_CUSTOMER".equals(status);
+                || status == TicketStatus.RESOLVED
+                || status == TicketStatus.WAITING_FOR_CUSTOMER;
 
         if (isPaused) {
             // Paused kalan = (onceligin SLA butcesi) - (birikmis AKTIF sure).

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 
 @ExtendWith(MockitoExtension.class)
 class CsatServiceTest {
@@ -40,7 +41,7 @@ class CsatServiceTest {
 
     @BeforeEach
     void setUp() {
-        resolvedTicket = Ticket.builder().id(10L).customerId("customer-1").status("RESOLVED").build();
+        resolvedTicket = Ticket.builder().id(10L).customerId("customer-1").status(TicketStatus.RESOLVED).build();
     }
 
     @Test
@@ -129,7 +130,7 @@ class CsatServiceTest {
     @Test
     void submitCsat_inProgressTicket_throwsBadRequest() {
         CsatDTO dto = CsatDTO.builder().rating(4).comment("ok").build();
-        Ticket inProgressTicket = Ticket.builder().id(10L).customerId("customer-1").status("IN_PROGRESS").build();
+        Ticket inProgressTicket = Ticket.builder().id(10L).customerId("customer-1").status(TicketStatus.IN_PROGRESS).build();
         when(ticketService.getTicketById(10L)).thenReturn(inProgressTicket);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -141,7 +142,7 @@ class CsatServiceTest {
     @Test
     void submitCsat_closedTicket_savesWithoutClosingAgain() {
         CsatDTO dto = CsatDTO.builder().rating(5).comment("great").build();
-        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status("CLOSED").build();
+        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status(TicketStatus.CLOSED).build();
         when(ticketService.getTicketById(10L)).thenReturn(closedTicket);
         when(csatRepository.existsByTicketId(10L)).thenReturn(false);
         when(csatRepository.save(org.mockito.ArgumentMatchers.any(Csat.class))).thenAnswer(invocation -> {
@@ -158,7 +159,7 @@ class CsatServiceTest {
     @Test
     void submitCsat_duplicateCsat_onClosedTicket_throwsBadRequest() {
         CsatDTO dto = CsatDTO.builder().rating(3).comment("ok").build();
-        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status("CLOSED").build();
+        Ticket closedTicket = Ticket.builder().id(10L).customerId("customer-1").status(TicketStatus.CLOSED).build();
         when(ticketService.getTicketById(10L)).thenReturn(closedTicket);
         when(csatRepository.existsByTicketId(10L)).thenReturn(true);
 

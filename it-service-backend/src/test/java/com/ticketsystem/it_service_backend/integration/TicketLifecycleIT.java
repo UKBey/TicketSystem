@@ -2,7 +2,9 @@ package com.ticketsystem.it_service_backend.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.CommentRepository;
@@ -184,7 +186,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 .isPresent();
         assertThat(savedTicket.get().getStatus())
                 .as("Yeni biletin statusu NEW olmalidir")
-                .isEqualTo("NEW");
+                .isEqualTo(TicketStatus.NEW);
         assertThat(savedTicket.get().getCustomerId())
                 .as("Bilet musteri kimligine ait olmalidir")
                 .isEqualTo(CUSTOMER_ID);
@@ -205,7 +207,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 .isEqualTo("Sabahtan beri kurumsal VPN'e baglanamiyorum. Hata kodu: ERR_TIMEOUT");
         assertThat(comments.get(0).getType())
                 .as("Otomatik yorum tipi EXTERNAL olmalidir")
-                .isEqualTo("EXTERNAL");
+                .isEqualTo(CommentType.EXTERNAL);
 
         // =====================================================================
         // ADIM 2: AGENT rolundeki kullanici bileti sahiplenir (claim)
@@ -232,7 +234,7 @@ class TicketLifecycleIT extends BaseIntegrationTest {
                 .isPresent();
         assertThat(claimedTicket.get().getStatus())
                 .as("Claim sonrasi bilet statusu IN_PROGRESS olmalidir")
-                .isEqualTo("IN_PROGRESS");
+                .isEqualTo(TicketStatus.IN_PROGRESS);
         int claimCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM ticket_claims WHERE ticket_id = ? AND agent_id = ?",
                 Integer.class, ticketId, AGENT_ID);

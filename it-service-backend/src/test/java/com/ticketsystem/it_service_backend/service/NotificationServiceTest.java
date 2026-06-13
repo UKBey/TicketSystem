@@ -71,8 +71,8 @@ class NotificationServiceTest {
         ticket = Ticket.builder()
                 .id(10L)
                 .title("VPN sorunu")
-                .priority("HIGH")
-                .status("IN_PROGRESS")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.IN_PROGRESS)
                 .customerId("customer-1")
                 .build();
 
@@ -183,7 +183,7 @@ class NotificationServiceTest {
     @Test
     void notifyCommentAdded_notifiesAgent_whenCustomerComments() {
         Comment comment = Comment.builder()
-                .id(1L).authorId("customer-1").message("Sorun devam ediyor.").type("EXTERNAL").build();
+                .id(1L).authorId("customer-1").message("Sorun devam ediyor.").type(CommentType.EXTERNAL).build();
 
         TicketClaim claimByAgent = TicketClaim.builder().agentId("agent-1").build();
         when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claimByAgent));
@@ -200,7 +200,7 @@ class NotificationServiceTest {
     @Test
     void notifyCommentAdded_notifiesCustomer_whenAgentComments() {
         Comment comment = Comment.builder()
-                .id(2L).authorId("agent-1").message("İnceliyorum.").type("EXTERNAL").build();
+                .id(2L).authorId("agent-1").message("İnceliyorum.").type(CommentType.EXTERNAL).build();
 
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
@@ -215,7 +215,7 @@ class NotificationServiceTest {
     @Test
     void notifyCommentAdded_skipsNotification_whenCommentIsInternal() {
         Comment internal = Comment.builder()
-                .id(3L).authorId("agent-1").message("Dahili not.").type("INTERNAL").build();
+                .id(3L).authorId("agent-1").message("Dahili not.").type(CommentType.INTERNAL).build();
 
         notificationService.notifyCommentAdded(ticket, internal);
 
@@ -583,7 +583,7 @@ class NotificationServiceTest {
     void notifyCommentAdded_agentEmailDisabled_skipsEmail() {
         NotificationPreference pref = NotificationPreference.builder()
                 .userId("agent-1").notifyOnCommentAdded(true).emailOnCommentAdded(false).build();
-        Comment comment = Comment.builder().id(5L).authorId("customer-1").message("Help?").type("EXTERNAL").build();
+        Comment comment = Comment.builder().id(5L).authorId("customer-1").message("Help?").type(CommentType.EXTERNAL).build();
 
         TicketClaim claim = TicketClaim.builder().agentId("agent-1").build();
         when(ticketClaimRepository.findByTicketId(10L)).thenReturn(List.of(claim));
@@ -600,7 +600,7 @@ class NotificationServiceTest {
     void notifyCommentAdded_customerEmailDisabled_skipsEmail() {
         NotificationPreference pref = NotificationPreference.builder()
                 .userId("customer-1").notifyOnCommentAdded(true).emailOnCommentAdded(false).build();
-        Comment comment = Comment.builder().id(6L).authorId("agent-1").message("Working on it").type("EXTERNAL").build();
+        Comment comment = Comment.builder().id(6L).authorId("agent-1").message("Working on it").type(CommentType.EXTERNAL).build();
 
         when(userRepository.findById("customer-1")).thenReturn(Optional.of(customer));
         when(preferenceRepository.findByUserId("customer-1")).thenReturn(Optional.of(pref));

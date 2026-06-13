@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @ExtendWith(MockitoExtension.class)
 class SlaNotificationSchedulerTest {
@@ -53,7 +54,7 @@ class SlaNotificationSchedulerTest {
         @Test
         @DisplayName("Bilet varsa slaBreached=true set edilir, save ve notify çağrılır")
         void withOverdueTicket_marksBreachedAndNotifies() {
-            Ticket ticket = Ticket.builder().id(1L).priority("HIGH").build();
+            Ticket ticket = Ticket.builder().id(1L).priority(Priority.HIGH).build();
             when(ticketRepository.findOverdueUnmarkedTickets(any(), anyList()))
                     .thenReturn(List.of(ticket));
 
@@ -67,8 +68,8 @@ class SlaNotificationSchedulerTest {
         @Test
         @DisplayName("Birden fazla bilet varsa hepsi işlenir")
         void multipleOverdueTickets_processesAll() {
-            Ticket t1 = Ticket.builder().id(1L).priority("CRITICAL").build();
-            Ticket t2 = Ticket.builder().id(2L).priority("HIGH").build();
+            Ticket t1 = Ticket.builder().id(1L).priority(Priority.CRITICAL).build();
+            Ticket t2 = Ticket.builder().id(2L).priority(Priority.HIGH).build();
             when(ticketRepository.findOverdueUnmarkedTickets(any(), anyList()))
                     .thenReturn(List.of(t1, t2));
 
@@ -109,7 +110,7 @@ class SlaNotificationSchedulerTest {
         @Test
         @DisplayName("Yaklaşan bilet varsa her biri için notifySlaWarning çağrılır")
         void withWarningTickets_notifiesEach() {
-            Ticket ticket = Ticket.builder().id(10L).priority("CRITICAL")
+            Ticket ticket = Ticket.builder().id(10L).priority(Priority.CRITICAL)
                     .slaDeadline(ZonedDateTime.now().plusHours(1)).build();
 
             when(slaPolicyService.getWarningThresholdHours("CRITICAL")).thenReturn(2);
@@ -128,8 +129,8 @@ class SlaNotificationSchedulerTest {
         @Test
         @DisplayName("Birden fazla öncelik için bildirim gönderilir")
         void multiplePrioritiesWithTickets_notifiesAll() {
-            Ticket critical = Ticket.builder().id(1L).priority("CRITICAL").build();
-            Ticket high = Ticket.builder().id(2L).priority("HIGH").build();
+            Ticket critical = Ticket.builder().id(1L).priority(Priority.CRITICAL).build();
+            Ticket high = Ticket.builder().id(2L).priority(Priority.HIGH).build();
 
             when(slaPolicyService.getWarningThresholdHours("CRITICAL")).thenReturn(1);
             when(slaPolicyService.getWarningThresholdHours("HIGH")).thenReturn(2);

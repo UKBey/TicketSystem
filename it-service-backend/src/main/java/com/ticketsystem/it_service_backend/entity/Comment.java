@@ -36,8 +36,9 @@ public class Comment {
     private String message;
 
     /** INTERNAL (visible only to agents/admins) or EXTERNAL (also visible to the customer). */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private String type; // INTERNAL veya EXTERNAL
+    private CommentType type;
 
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
@@ -46,7 +47,7 @@ public class Comment {
     protected void onCreate() {
         this.createdAt = ZonedDateTime.now();
         if (this.type == null) {
-            this.type = "EXTERNAL";
+            this.type = CommentType.EXTERNAL;
         }
     }
 }

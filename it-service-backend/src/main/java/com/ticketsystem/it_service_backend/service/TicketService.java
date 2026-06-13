@@ -1,8 +1,10 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Comment;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.repository.TicketTopicRepository;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 
 import java.time.ZonedDateTime;
@@ -128,7 +131,7 @@ public class TicketService {
         }
 
         ticket.setCustomerId(customerId);
-        ticket.setStatus("NEW");
+        ticket.setStatus(TicketStatus.NEW);
 
         // SLA deadline'ı bilet oluşturulurken hemen hesaplanır.
         // Bu sayede scheduler ve getSlaTimerInfo her zaman tutarlı bir deadline'a sahip olur.
@@ -141,13 +144,13 @@ public class TicketService {
                 .ticket(savedTicket)
                 .authorId(customerId)
                 .message(savedTicket.getDescription())
-                .type("EXTERNAL")
+                .type(CommentType.EXTERNAL)
                 .build();
         commentRepository.save(firstComment);
 
         notificationService.notifyTicketCreated(savedTicket);
         eventPublisher.publishEvent(new TicketCreatedEvent(savedTicket));
-        auditHelper.record(savedTicket, customerId, "CREATE", null, null, "NEW");
+        auditHelper.record(savedTicket, customerId, AuditAction.CREATE, null, null, TicketStatus.NEW.name());
 
         return savedTicket;
     }

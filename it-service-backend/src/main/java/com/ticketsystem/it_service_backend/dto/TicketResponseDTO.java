@@ -1,7 +1,9 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,13 +32,11 @@ public class TicketResponseDTO {
     @Schema(description = "Sorunun detaylı açıklaması")
     private String description;
 
-    @Schema(description = "Biletin güncel durumu", example = "IN_PROGRESS",
-            allowableValues = {"NEW", "IN_PROGRESS", "WAITING_FOR_CUSTOMER", "RESOLVED", "CLOSED"})
-    private String status;
+    @Schema(description = "Biletin güncel durumu", example = "IN_PROGRESS")
+    private TicketStatus status;
 
-    @Schema(description = "Öncelik seviyesi", example = "HIGH",
-            allowableValues = {"LOW", "MEDIUM", "HIGH", "CRITICAL"})
-    private String priority;
+    @Schema(description = "Öncelik seviyesi", example = "HIGH")
+    private Priority priority;
 
     @Schema(description = "Ürün/kategori ID'si", example = "1")
     private Long productId;

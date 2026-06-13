@@ -27,6 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 /**
  * Unit tests for the ticket DTO assembly previously embedded in the controllers:
@@ -51,7 +53,7 @@ class TicketDtoAssemblerTest {
     private Ticket sampleTicket(Long id, Long productId, Long topicId) {
         return Ticket.builder()
                 .id(id).title("Cannot login").description("Login fails")
-                .priority("HIGH").status("IN_PROGRESS")
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS)
                 .productId(productId).topicId(topicId).customerId("customer-1")
                 .createdAt(ZonedDateTime.now())
                 .build();

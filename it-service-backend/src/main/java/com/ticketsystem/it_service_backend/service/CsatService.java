@@ -3,7 +3,9 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.dto.CsatDTO;
 import com.ticketsystem.it_service_backend.entity.Csat;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.repository.CsatRepository;
+import com.ticketsystem.it_service_backend.util.AuditAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -23,9 +25,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CsatService {
-    private static final String ST_CLOSED = "CLOSED";
-    private static final String ST_RESOLVED = "RESOLVED";
-    private static final String ACT_CSAT_SUBMITTED = "CSAT_SUBMITTED";
 
     private final CsatRepository csatRepository;
     private final TicketService ticketService;
@@ -64,7 +63,7 @@ public class CsatService {
         }
 
         // Anket yalnizca cozulmus ya da kapanmis kayitlarda kabul edilir.
-        if (!ST_CLOSED.equals(ticket.getStatus()) && !ST_RESOLVED.equals(ticket.getStatus())) {
+        if (ticket.getStatus() != TicketStatus.CLOSED && ticket.getStatus() != TicketStatus.RESOLVED) {
             log.warn("CSAT reddedildi: Bilet statüsü uygun değil (Statü: {})", ticket.getStatus());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.csat.closed.or.resolved.only");
         }
@@ -75,9 +74,9 @@ public class CsatService {
         // tamamlariz (idempotent kurtarma) — boylece musteri kalici sekilde sikismaz
         // ve verdigi geri bildirim korunur.
         if (csatRepository.existsByTicketId(ticketId)) {
-            if (ST_RESOLVED.equals(ticket.getStatus())) {
+            if (ticket.getStatus() == TicketStatus.RESOLVED) {
                 log.warn("CSAT zaten mevcut ama bilet RESOLVED — kapatma tamamlanıyor (kurtarma). Bilet ID: {}", ticketId);
-                ticketCommandService.updateTicketStatus(ticketId, ST_CLOSED, ACT_CSAT_SUBMITTED, null, userId, roles);
+                ticketCommandService.updateTicketStatus(ticketId, TicketStatus.CLOSED.name(), AuditAction.CSAT_SUBMITTED, null, userId, roles);
                 return csatRepository.findByTicketId(ticketId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.csat.not.found"));
             }
@@ -96,12 +95,12 @@ public class CsatService {
 
         // Puani tasiyan ayri bir denetim kaydi (ADMIN/MANAGER + musteriye gorunur).
         // Bilet zaten CLOSED ise asagidaki statu gecisi olusmaz; bu kayit her durumda yazilir.
-        auditHelper.record(ticket, userId, ACT_CSAT_SUBMITTED, dto.getComment(),
+        auditHelper.record(ticket, userId, AuditAction.CSAT_SUBMITTED, dto.getComment(),
                 null, String.valueOf(savedCsat.getRating()));
 
         // Musteri onayi geldiyse RESOLVED kayit CLOSED durumuna tasinir.
-        if (ST_RESOLVED.equals(ticket.getStatus())) {
-            ticketCommandService.updateTicketStatus(ticketId, ST_CLOSED, ACT_CSAT_SUBMITTED, null, userId, roles);
+        if (ticket.getStatus() == TicketStatus.RESOLVED) {
+            ticketCommandService.updateTicketStatus(ticketId, TicketStatus.CLOSED.name(), AuditAction.CSAT_SUBMITTED, null, userId, roles);
         }
 
         return savedCsat;

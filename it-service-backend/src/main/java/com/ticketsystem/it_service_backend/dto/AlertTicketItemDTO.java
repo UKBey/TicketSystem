@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.ticketsystem.it_service_backend.entity.Priority;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +31,7 @@ public class AlertTicketItemDTO {
     private String title;
 
     @Schema(description = "Öncelik seviyesi", example = "CRITICAL")
-    private String priority;
+    private Priority priority;
 
     @Schema(description = "Müşteri kimliği", example = "usr-abc123")
     private String customerId;
@@ -47,5 +49,5 @@ public class AlertTicketItemDTO {
     private Double hoursWaiting;
 
     @Schema(description = "Ticket durumu — waitingTooLong satırlarında WAITING_FOR_CUSTOMER / RESOLVED ayrımı için", example = "WAITING_FOR_CUSTOMER")
-    private String status;
+    private TicketStatus status;
 }

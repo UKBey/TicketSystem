@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -99,7 +100,7 @@ public class TicketQueryService {
     @Transactional(readOnly = true)
     public List<Ticket> getPoolTickets(String userId, List<String> roles) {
         if (AuthRoles.isGlobal(roles)) {
-            return ticketRepository.findByStatus("NEW");
+            return ticketRepository.findByStatus(TicketStatus.NEW);
         }
         if (userId == null) return new ArrayList<>();
 
@@ -111,7 +112,7 @@ public class TicketQueryService {
 
         if (productIds.isEmpty()) return new ArrayList<>();
 
-        return ticketRepository.findByStatusAndProductIdIn("NEW", productIds);
+        return ticketRepository.findByStatusAndProductIdIn(TicketStatus.NEW, productIds);
     }
 
     /**
@@ -789,12 +790,14 @@ public class TicketQueryService {
      * live {@code slaDeadline - now}. Floored at 0 so all expired tickets tie at the urgent end.
      */
     private Long slaRemainingForSort(Ticket t) {
-        String status = t.getStatus() != null ? t.getStatus() : "";
-        if (ST_CLOSED.equals(status)) return null;
+        TicketStatus status = t.getStatus();
+        if (status == TicketStatus.CLOSED) return null;
         if (Boolean.TRUE.equals(t.getSlaBreached())) return 0L;
 
         long elapsed = t.getSlaElapsedMs() != null ? t.getSlaElapsedMs() : 0L;
-        boolean paused = t.getSlaPausedAt() != null || ST_RESOLVED.equals(status) || ST_WAITING.equals(status);
+        boolean paused = t.getSlaPausedAt() != null
+                || status == TicketStatus.RESOLVED
+                || status == TicketStatus.WAITING_FOR_CUSTOMER;
         if (paused) {
             return Math.max(0L, slaPolicyService.getSlaDurationMs(t.getPriority()) - elapsed);
         }

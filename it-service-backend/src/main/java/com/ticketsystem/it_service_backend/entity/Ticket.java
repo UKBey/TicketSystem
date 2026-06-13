@@ -36,13 +36,15 @@ public class Ticket {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    /** Lifecycle status: NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED, CLOSED. */
+    /** Lifecycle status — persisted as the enum name (see {@link TicketStatus}). */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private String status;
+    private TicketStatus status;
 
-    /** Priority: LOW, MEDIUM, HIGH, CRITICAL — drives the SLA target duration. */
+    /** Priority — drives the SLA target duration; persisted as the enum name (see {@link Priority}). */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private String priority;
+    private Priority priority;
 
     @Column(name = "product_id")
     private Long productId;
@@ -119,7 +121,7 @@ public class Ticket {
     protected void onCreate() {
         this.createdAt = ZonedDateTime.now();
         if (this.status == null) {
-            this.status = "NEW";
+            this.status = TicketStatus.NEW;
         }
     }
 }

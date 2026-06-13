@@ -9,6 +9,7 @@ import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.TopicChangeRequestDTO;
 import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.service.TicketCommandService;
 import com.ticketsystem.it_service_backend.service.TicketDtoAssembler;
@@ -85,7 +86,7 @@ public class TicketController {
         Ticket ticket = Ticket.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
-                .priority(dto.getPriority())
+                .priority(Priority.fromNullable(dto.getPriority()))
                 .productId(dto.getProductId())
                 .topicId(dto.getTopicId())
                 .build();

@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.config.CacheConfig;
 import com.ticketsystem.it_service_backend.config.SlaProperties;
+import com.ticketsystem.it_service_backend.entity.Priority;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -73,6 +74,17 @@ public class SlaPolicyService {
             return (long) cfg.getResolutionHours() * 3_600_000L;
         }
         return defaultMs(priority.toUpperCase());
+    }
+
+    /**
+     * Type-safe overload of {@link #getSlaDurationMs(String)} for the {@link Priority}
+     * enum carried by tickets. A {@code null} priority falls back to the MEDIUM default.
+     *
+     * @param priority ticket priority (may be null)
+     * @return SLA duration in ms
+     */
+    public long getSlaDurationMs(Priority priority) {
+        return getSlaDurationMs(priority == null ? null : priority.name());
     }
 
     /**

@@ -6,6 +6,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 class TicketEntityTest {
 
@@ -14,7 +16,7 @@ class TicketEntityTest {
         Ticket ticket = Ticket.builder()
                 .title("Network issue")
                 .description("Internet is down")
-                .priority("HIGH")
+                .priority(Priority.HIGH)
                 .customerId("customer-1")
                 .build();
 
@@ -24,7 +26,7 @@ class TicketEntityTest {
         ReflectionTestUtils.invokeMethod(ticket, "onCreate");
 
         assertNotNull(ticket.getCreatedAt());
-        assertEquals("NEW", ticket.getStatus());
+        assertEquals(TicketStatus.NEW, ticket.getStatus());
     }
 
     @Test
@@ -32,7 +34,7 @@ class TicketEntityTest {
         Ticket ticket = Ticket.builder()
                 .title("Printer issue")
                 .description("Paper jam")
-                .priority("LOW")
+                .priority(Priority.LOW)
                 .customerId("customer-2")
                 .build();
 

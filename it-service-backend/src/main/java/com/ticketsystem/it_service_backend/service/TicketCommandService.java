@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.TicketTopic;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.util.LocalizedText;
 
@@ -35,10 +38,6 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class TicketCommandService {
-    private static final String ST_RESOLVED = "RESOLVED";
-    private static final String ST_WAITING = "WAITING_FOR_CUSTOMER";
-    private static final String ST_IN_PROGRESS = "IN_PROGRESS";
-    private static final String ST_CLOSED = "CLOSED";
 
     // Durum makinesi BPMN'de (ticket-lifecycle.bpmn2) yaşar: her statü explicit bir
     // wait node, geçişler `transition_<TARGET>` signal'leri ile tetiklenir ve geçerlilik
@@ -46,8 +45,10 @@ public class TicketCommandService {
     // valid mi olduğunu BPMN belirler. {@link #validateStateTransition} BPMN'i signal
     // edip process variable'ı geri okuyarak senkron olarak doğrular; BPMN reddederse
     // (state node signal'i dinlemiyorsa) 400 fırlatılır.
-    private static final Set<String> SLA_PAUSED_STATES = Set.of(ST_WAITING, ST_RESOLVED);
-    private static final Set<String> SLA_ACTIVE_STATES = Set.of("NEW", ST_IN_PROGRESS);
+    private static final Set<TicketStatus> SLA_PAUSED_STATES =
+            Set.of(TicketStatus.WAITING_FOR_CUSTOMER, TicketStatus.RESOLVED);
+    private static final Set<TicketStatus> SLA_ACTIVE_STATES =
+            Set.of(TicketStatus.NEW, TicketStatus.IN_PROGRESS);
 
     private final TicketRepository ticketRepository;
     private final TicketClaimRepository ticketClaimRepository;
@@ -78,21 +79,22 @@ public class TicketCommandService {
     public Ticket closeTicket(Long id, String reasonCode, String note, String userId, List<String> roles) {
         log.info("Close isteği. Bilet: {}, Kullanıcı: {}, Sebep: {}", id, userId, reasonCode);
         Ticket ticket = ticketService.getTicketById(id);
-        String oldStatus = ticket.getStatus();
+        TicketStatus oldStatus = ticket.getStatus();
 
-        validateStateTransition(ticket, oldStatus, ST_CLOSED);
-        validateStatusChangePermission(ticket, oldStatus, ST_CLOSED, userId, roles);
+        validateStateTransition(ticket, oldStatus, TicketStatus.CLOSED);
+        validateStatusChangePermission(ticket, oldStatus, TicketStatus.CLOSED, userId, roles);
         validateReasonInput(reasonCode, note);
 
-        applyStatusSpecificRules(ticket, oldStatus, ST_CLOSED, userId);
+        applyStatusSpecificRules(ticket, oldStatus, TicketStatus.CLOSED, userId);
 
-        ticket.setStatus(ST_CLOSED);
+        ticket.setStatus(TicketStatus.CLOSED);
         ticket.setClosedAt(ZonedDateTime.now());
 
         Ticket saved = ticketRepository.save(ticket);
-        handleWorkflowSignals(saved, oldStatus, ST_CLOSED);
-        notificationService.notifyStatusChanged(saved, oldStatus);
-        recordTicketAuditLog(saved, userId, "CLOSE", reasonCode, note, oldStatus, saved.getStatus());
+        handleWorkflowSignals(saved, oldStatus, TicketStatus.CLOSED);
+        notificationService.notifyStatusChanged(saved, oldStatus.name());
+        recordTicketAuditLog(saved, userId, AuditAction.CLOSE, reasonCode, note,
+                oldStatus.name(), saved.getStatus().name());
 
         return saved;
     }
@@ -123,38 +125,41 @@ public class TicketCommandService {
     public Ticket updateTicketStatus(Long id, String newStatus, String reasonCode, String note,
                                      String userId, List<String> roles) {
         log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}, Sebep: {}", id, newStatus, userId, reasonCode);
-        if (ST_CLOSED.equals(newStatus)) {
+        TicketStatus target = TicketStatus.fromNullable(newStatus);
+        if (target == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.unknown.status");
+        }
+        if (target == TicketStatus.CLOSED) {
             return closeTicket(id, reasonCode, note, userId, roles);
         }
 
         Ticket ticket = ticketService.getTicketById(id);
-        String oldStatus = ticket.getStatus();
+        TicketStatus oldStatus = ticket.getStatus();
 
-        validateStateTransition(ticket, oldStatus, newStatus);
-        validateStatusChangePermission(ticket, oldStatus, newStatus, userId, roles);
-        if (ST_RESOLVED.equals(newStatus)) {
+        validateStateTransition(ticket, oldStatus, target);
+        validateStatusChangePermission(ticket, oldStatus, target, userId, roles);
+        if (target == TicketStatus.RESOLVED) {
             validateReasonInput(reasonCode, note);
         }
 
-        applyStatusSpecificRules(ticket, oldStatus, newStatus, userId);
+        applyStatusSpecificRules(ticket, oldStatus, target, userId);
 
-        ticket.setStatus(newStatus);
-        if (ST_RESOLVED.equals(newStatus)) ticket.setResolvedAt(ZonedDateTime.now());
-        else if (ST_CLOSED.equals(newStatus))  ticket.setClosedAt(ZonedDateTime.now());
+        ticket.setStatus(target);
+        if (target == TicketStatus.RESOLVED) ticket.setResolvedAt(ZonedDateTime.now());
 
         Ticket saved = ticketRepository.save(ticket);
-        handleWorkflowSignals(saved, oldStatus, newStatus);
+        handleWorkflowSignals(saved, oldStatus, target);
 
-        if (ST_RESOLVED.equals(newStatus)) notificationService.notifyTicketResolved(saved);
-        else                               notificationService.notifyStatusChanged(saved, oldStatus);
+        if (target == TicketStatus.RESOLVED) notificationService.notifyTicketResolved(saved);
+        else                                 notificationService.notifyStatusChanged(saved, oldStatus.name());
 
         String actionType;
-        if (ST_RESOLVED.equals(newStatus)) actionType = "RESOLVE";
-        else if (ST_IN_PROGRESS.equals(newStatus) && ST_RESOLVED.equals(oldStatus)) actionType = "REOPEN";
-        else if (ST_WAITING.equals(newStatus)) actionType = "WAITING";
-        else if (ST_IN_PROGRESS.equals(newStatus) && ST_WAITING.equals(oldStatus)) actionType = "RESUME";
-        else actionType = "STATUS_CHANGE";
-        recordTicketAuditLog(saved, userId, actionType, reasonCode, note, oldStatus, newStatus);
+        if (target == TicketStatus.RESOLVED) actionType = AuditAction.RESOLVE;
+        else if (target == TicketStatus.IN_PROGRESS && oldStatus == TicketStatus.RESOLVED) actionType = AuditAction.REOPEN;
+        else if (target == TicketStatus.WAITING_FOR_CUSTOMER) actionType = AuditAction.WAITING;
+        else if (target == TicketStatus.IN_PROGRESS && oldStatus == TicketStatus.WAITING_FOR_CUSTOMER) actionType = AuditAction.RESUME;
+        else actionType = AuditAction.STATUS_CHANGE;
+        recordTicketAuditLog(saved, userId, actionType, reasonCode, note, oldStatus.name(), target.name());
 
         return saved;
     }
@@ -178,30 +183,30 @@ public class TicketCommandService {
     public Ticket updateTicketPriority(Long id, String newPriority, String reasonCode, String note,
                                        String userId, List<String> roles) {
         log.info("Öncelik güncelleme. Bilet: {}, Yeni Öncelik: {}, Kullanıcı: {}", id, newPriority, userId);
-        List<String> valid = List.of("LOW", "MEDIUM", "HIGH", "CRITICAL");
-        if (!valid.contains(newPriority)) {
+        Priority target = Priority.fromNullable(newPriority);
+        if (target == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.priority");
         }
 
         Ticket ticket = ticketService.getTicketWithAuth(id, userId, roles);
-        String oldPriority = ticket.getPriority();
-        if (oldPriority.equals(newPriority)) return ticket;
+        Priority oldPriority = ticket.getPriority();
+        if (oldPriority == target) return ticket;
 
         boolean isSlaActive = !Boolean.TRUE.equals(ticket.getSlaBreached())
-                && !ST_CLOSED.equals(ticket.getStatus());
+                && ticket.getStatus() != TicketStatus.CLOSED;
         boolean isPaused    = ticket.getSlaPausedAt() != null
-                || ST_WAITING.equals(ticket.getStatus())
-                || ST_RESOLVED.equals(ticket.getStatus());
+                || ticket.getStatus() == TicketStatus.WAITING_FOR_CUSTOMER
+                || ticket.getStatus() == TicketStatus.RESOLVED;
 
         // Aktif sayaç varsa önce dondur; elapsed süre doğru biriksin.
         if (isSlaActive && !isPaused) {
             workflowService.pauseSla(ticket);
         }
 
-        ticket.setPriority(newPriority);
+        ticket.setPriority(target);
 
         if (isSlaActive) {
-            long newDurationMs = slaPolicyService.getSlaDurationMs(newPriority);
+            long newDurationMs = slaPolicyService.getSlaDurationMs(target);
             long accumulated   = ticket.getSlaElapsedMs() != null ? ticket.getSlaElapsedMs() : 0L;
 
             if (!isPaused) {
@@ -221,7 +226,8 @@ public class TicketCommandService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
-        recordTicketAuditLog(saved, userId, "PRIORITY_CHANGE", reasonCode, note, oldPriority, newPriority);
+        recordTicketAuditLog(saved, userId, AuditAction.PRIORITY_CHANGE, reasonCode, note,
+                oldPriority.name(), target.name());
         return saved;
     }
 
@@ -275,7 +281,7 @@ public class TicketCommandService {
         ticket.setTopicNameSnapshotTr(newTopic.getNameTr());
         ticket.setTopicNameSnapshotEn(newTopic.getNameEn());
         Ticket saved = ticketRepository.save(ticket);
-        recordTicketAuditLog(saved, userId, "TOPIC_CHANGE", reasonCode, note, oldTopicName,
+        recordTicketAuditLog(saved, userId, AuditAction.TOPIC_CHANGE, reasonCode, note, oldTopicName,
                 LocalizedText.label(newTopic.getNameTr(), newTopic.getNameEn()));
         return saved;
     }
@@ -301,11 +307,8 @@ public class TicketCommandService {
      * the verify step returns false and we surface that as a 400; the caller
      * can retry once the workflow engine is healthy.
      */
-    private void validateStateTransition(Ticket ticket, String current, String next) {
-        if (next == null || next.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.unknown.status");
-        }
-        if (next.equals(current)) {
+    private void validateStateTransition(Ticket ticket, TicketStatus current, TicketStatus next) {
+        if (next == current) {
             // No-op transition; nothing to ask the BPMN.
             return;
         }
@@ -339,7 +342,7 @@ public class TicketCommandService {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
     }
 
-    private void validateStatusChangePermission(Ticket ticket, String oldStatus, String newStatus,
+    private void validateStatusChangePermission(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus,
                                                  String userId, List<String> roles) {
         // ADMIN: global — herhangi bir bilette claim olmadan statü değiştirebilir.
         if (AuthRoles.isAdmin(roles)) {
@@ -364,9 +367,9 @@ public class TicketCommandService {
                         "error.ticket.status.own.only");
             }
             boolean allowed =
-                    (ST_WAITING.equals(oldStatus) && ST_IN_PROGRESS.equals(newStatus)) ||
-                    (ST_RESOLVED.equals(oldStatus) && ST_IN_PROGRESS.equals(newStatus)) ||
-                    (ST_RESOLVED.equals(oldStatus) && ST_CLOSED.equals(newStatus));
+                    (oldStatus == TicketStatus.WAITING_FOR_CUSTOMER && newStatus == TicketStatus.IN_PROGRESS) ||
+                    (oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.IN_PROGRESS) ||
+                    (oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.CLOSED);
             if (!allowed) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "error.ticket.status.customer.transition");
@@ -391,19 +394,19 @@ public class TicketCommandService {
      * to the pool. Because this transition requires ADMIN authority, regular
      * unclaim should go through DELETE /api/v1/tickets/{id}/claim instead.
      */
-    private void applyStatusSpecificRules(Ticket ticket, String oldStatus, String newStatus, String userId) {
-        if (ST_IN_PROGRESS.equals(oldStatus) && "NEW".equals(newStatus)) {
+    private void applyStatusSpecificRules(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus, String userId) {
+        if (oldStatus == TicketStatus.IN_PROGRESS && newStatus == TicketStatus.NEW) {
             log.warn("AUDIT: Tüm claim'ler temizleniyor. Bilet: {}, İşlemi yapan: {}", ticket.getId(), userId);
             ticketClaimRepository.deleteByTicketId(ticket.getId());
         }
 
-        if (ST_IN_PROGRESS.equals(oldStatus) && ST_CLOSED.equals(newStatus)) {
+        if (oldStatus == TicketStatus.IN_PROGRESS && newStatus == TicketStatus.CLOSED) {
             log.warn("AUDIT: Ajan müşteri yanıtı beklerken bileti kapattı. Bilet: {}, Ajan: {}",
                     ticket.getId(), userId);
         }
     }
 
-    private void handleWorkflowSignals(Ticket ticket, String oldStatus, String newStatus) {
+    private void handleWorkflowSignals(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus) {
         // Statü geçişi sinyali ve doğrulaması {@link #validateStateTransition} içinde
         // zaten yapıldı — burada sadece SLA timer'ı için yan etkiler ve close
         // sürecinin sonlandırması var.
@@ -416,7 +419,7 @@ public class TicketCommandService {
                 workflowService.resumeSla(ticket);
                 ticketRepository.save(ticket);
             }
-            if (ST_CLOSED.equals(newStatus)) {
+            if (newStatus == TicketStatus.CLOSED) {
                 // Authoritative state branch'in terminate end'i tüm süreci sonlandırır;
                 // legacy SLA branch için ticket_closed sinyali de hâlâ atılır (geriye
                 // uyumlu — paralel kol bağımsız olarak biter).

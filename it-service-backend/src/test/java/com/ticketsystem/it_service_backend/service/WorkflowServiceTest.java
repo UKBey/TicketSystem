@@ -24,6 +24,8 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @ExtendWith(MockitoExtension.class)
 class WorkflowServiceTest {
@@ -43,19 +45,19 @@ class WorkflowServiceTest {
         ReflectionTestUtils.setField(workflowService, "callbackBaseUrl", "https://example.com/callback");
         ReflectionTestUtils.setField(workflowService, "callbackToken", "token-123");
 
-        lenient().when(slaPolicyService.getSlaDurationMs("CRITICAL")).thenReturn(3_600_000L);
-        lenient().when(slaPolicyService.getSlaDurationMs("HIGH")).thenReturn(14_400_000L);
-        lenient().when(slaPolicyService.getSlaDurationMs("MEDIUM")).thenReturn(43_200_000L);
-        lenient().when(slaPolicyService.getSlaDurationMs("LOW")).thenReturn(86_400_000L);
-        lenient().when(slaPolicyService.getSlaDurationMs("UNSUPPORTED")).thenReturn(43_200_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs(Priority.CRITICAL)).thenReturn(3_600_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(14_400_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs(Priority.MEDIUM)).thenReturn(43_200_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs(Priority.LOW)).thenReturn(86_400_000L);
+        lenient().when(slaPolicyService.getSlaDurationMs((Priority) null)).thenReturn(43_200_000L);
     }
 
     @Test
     void startTicketWorkflow_addsCallbackDataWithoutAssigneeId() {
         Ticket ticket = Ticket.builder()
                 .id(11L)
-                .priority("HIGH")
-                .status("NEW")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.NEW)
                 .customerId("customer-1")
                 .build();
 
@@ -79,8 +81,8 @@ class WorkflowServiceTest {
     void startTicketWorkflowOmitsAssigneeWhenMissing() {
         Ticket ticket = Ticket.builder()
                 .id(12L)
-                .priority("LOW")
-                .status("NEW")
+                .priority(Priority.LOW)
+                .status(TicketStatus.NEW)
                 .customerId("customer-2")
                 .build();
 
@@ -97,7 +99,7 @@ class WorkflowServiceTest {
 
     @Test
     void syncTicketStatusSkipsWhenProcessInstanceMissing() {
-        Ticket ticket = Ticket.builder().id(13L).status("IN_PROGRESS").build();
+        Ticket ticket = Ticket.builder().id(13L).status(TicketStatus.IN_PROGRESS).build();
 
         workflowService.syncTicketStatus(ticket);
 
@@ -108,7 +110,7 @@ class WorkflowServiceTest {
     void syncTicketStatusDrivesBpmnTransition() {
         Ticket ticket = Ticket.builder()
                 .id(14L)
-                .status("IN_PROGRESS")
+                .status(TicketStatus.IN_PROGRESS)
                 .processInstanceId(500L)
                 .build();
 
@@ -122,7 +124,7 @@ class WorkflowServiceTest {
     void syncTicketAssignmentSetsAssigneeAndDrivesBpmnTransition() {
         Ticket ticket = Ticket.builder()
                 .id(15L)
-                .status("IN_PROGRESS")
+                .status(TicketStatus.IN_PROGRESS)
                 .processInstanceId(600L)
                 .build();
 
@@ -135,7 +137,7 @@ class WorkflowServiceTest {
 
     @Test
     void syncTicketAssignmentSkipsWhenProcessInstanceMissing() {
-        Ticket ticket = Ticket.builder().id(15L).status("IN_PROGRESS").build();
+        Ticket ticket = Ticket.builder().id(15L).status(TicketStatus.IN_PROGRESS).build();
 
         workflowService.syncTicketAssignment(ticket, "agent-2");
 
@@ -146,7 +148,7 @@ class WorkflowServiceTest {
     void pauseSlaWithoutProcessInstanceUpdatesTicketOnly() {
         Ticket ticket = Ticket.builder()
                 .id(16L)
-                .priority("MEDIUM")
+                .priority(Priority.MEDIUM)
                 .createdAt(ZonedDateTime.now().minusMinutes(2))
                 .slaElapsedMs(0L)
                 .build();
@@ -162,7 +164,7 @@ class WorkflowServiceTest {
     void pauseSlaSignalsWorkflowWhenProcessExists() {
         Ticket ticket = Ticket.builder()
                 .id(17L)
-                .priority("MEDIUM")
+                .priority(Priority.MEDIUM)
                 .createdAt(ZonedDateTime.now().minusMinutes(1))
                 .processInstanceId(700L)
                 .build();
@@ -178,7 +180,7 @@ class WorkflowServiceTest {
         ZonedDateTime pausedAt = ZonedDateTime.now().minusSeconds(30);
         Ticket ticket = Ticket.builder()
                 .id(171L)
-                .priority("MEDIUM")
+                .priority(Priority.MEDIUM)
                 .createdAt(ZonedDateTime.now().minusMinutes(3))
                 .slaElapsedMs(120_000L)
                 .slaPausedAt(pausedAt)
@@ -195,7 +197,7 @@ class WorkflowServiceTest {
     void pauseSlaWhenSignalFails_doesNotThrow() {
         Ticket ticket = Ticket.builder()
                 .id(172L)
-                .priority("MEDIUM")
+                .priority(Priority.MEDIUM)
                 .createdAt(ZonedDateTime.now().minusMinutes(1))
                 .processInstanceId(701L)
                 .build();
@@ -212,7 +214,7 @@ class WorkflowServiceTest {
     void resumeSlaWithoutProcessInstanceUpdatesTicketOnly() {
         Ticket ticket = Ticket.builder()
                 .id(18L)
-                .priority("HIGH")
+                .priority(Priority.HIGH)
                 .slaElapsedMs(1000L)
                 .slaPausedAt(ZonedDateTime.now().minusMinutes(1))
                 .build();
@@ -228,7 +230,7 @@ class WorkflowServiceTest {
     void resumeSlaSignalsWorkflowWithRemainingDuration() {
         Ticket ticket = Ticket.builder()
                 .id(19L)
-                .priority("LOW")
+                .priority(Priority.LOW)
                 .slaElapsedMs(60_000L)
                 .processInstanceId(800L)
                 .build();
@@ -243,7 +245,7 @@ class WorkflowServiceTest {
     void resumeSlaWhenRemainingHasMinutesAndSeconds_usesMixedIsoFormat() {
         Ticket ticket = Ticket.builder()
                 .id(191L)
-                .priority("LOW")
+                .priority(Priority.LOW)
                 .slaElapsedMs(119_000L)
                 .processInstanceId(801L)
                 .build();
@@ -259,7 +261,7 @@ class WorkflowServiceTest {
     void resumeSlaWhenRemainingSecondsOnly_usesSecondsIsoFormat() {
         Ticket ticket = Ticket.builder()
                 .id(192L)
-                .priority("CRITICAL")
+                .priority(Priority.CRITICAL)
                 .slaElapsedMs(3_599_000L)
                 .processInstanceId(802L)
                 .build();
@@ -278,8 +280,8 @@ class WorkflowServiceTest {
         // duraklatilmis (createdAt 2 saat once — paused time'i temsil eder).
         Ticket ticket = Ticket.builder()
                 .id(50L)
-                .priority("CRITICAL")
-                .status("IN_PROGRESS")
+                .priority(Priority.CRITICAL)
+                .status(TicketStatus.IN_PROGRESS)
                 .processInstanceId(5000L)
                 .slaElapsedMs(600_000L)
                 .createdAt(ZonedDateTime.now().minusHours(2))
@@ -298,7 +300,7 @@ class WorkflowServiceTest {
     void resumeSlaWhenSignalFails_doesNotThrow() {
         Ticket ticket = Ticket.builder()
                 .id(193L)
-                .priority("LOW")
+                .priority(Priority.LOW)
                 .slaElapsedMs(60_000L)
                 .processInstanceId(803L)
                 .build();
@@ -371,7 +373,7 @@ class WorkflowServiceTest {
     @Test
     void getSlaTimerInfoReturnsPausedRemainingTime() {
         Ticket ticket = Ticket.builder()
-                .priority("CRITICAL")
+                .priority(Priority.CRITICAL)
                 .slaElapsedMs(15_000L)
                 .slaPausedAt(ZonedDateTime.now())
                 .build();
@@ -399,8 +401,8 @@ class WorkflowServiceTest {
     void startTicketWorkflowWithUnknownPriority_usesDefaultSlaDuration() {
         Ticket ticket = Ticket.builder()
                 .id(23L)
-                .priority("UNSUPPORTED")
-                .status("NEW")
+                .priority(null)
+                .status(TicketStatus.NEW)
                 .customerId("customer-9")
                 .build();
 
@@ -416,8 +418,8 @@ class WorkflowServiceTest {
     @Test
     void getSlaTimerInfoReturnsCompletedForClosedStatus() {
         Ticket ticket = Ticket.builder()
-                .priority("HIGH")
-                .status("CLOSED")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.CLOSED)
                 .slaElapsedMs(120_000L)
                 .build();
 
@@ -432,8 +434,8 @@ class WorkflowServiceTest {
     void getSlaTimerInfoClosedWithBreachedReturnsCompleted() {
         // CLOSED + slaBreached: ihlal DB'de kayıtlı ama badge "completed" gösterir
         Ticket ticket = Ticket.builder()
-                .priority("HIGH")
-                .status("CLOSED")
+                .priority(Priority.HIGH)
+                .status(TicketStatus.CLOSED)
                 .slaBreached(true)
                 .slaElapsedMs(14_400_001L)
                 .build();
@@ -447,8 +449,8 @@ class WorkflowServiceTest {
     void getSlaTimerInfoReturnsExpiredWhenElapsedExceedsDuration() {
         // slaBreached henüz set edilmemiş ama süre dolmuş → expired
         Ticket ticket = Ticket.builder()
-                .priority("CRITICAL")
-                .status("RESOLVED")
+                .priority(Priority.CRITICAL)
+                .status(TicketStatus.RESOLVED)
                 .slaBreached(false)
                 .slaElapsedMs(3_600_001L) // CRITICAL=3_600_000ms, 1ms aşım
                 .build();
@@ -463,8 +465,8 @@ class WorkflowServiceTest {
     @Test
     void getSlaTimerInfoActiveStatusComputesPositiveDeadline() {
         Ticket ticket = Ticket.builder()
-                .priority("MEDIUM")
-                .status("IN_PROGRESS")
+                .priority(Priority.MEDIUM)
+                .status(TicketStatus.IN_PROGRESS)
                 .createdAt(ZonedDateTime.now().minusMinutes(1))
                 .slaElapsedMs(30_000L)
                 .build();
@@ -481,7 +483,7 @@ class WorkflowServiceTest {
     @Test
     void pauseSla_alreadyPaused_isNoOp() {
         Ticket ticket = Ticket.builder()
-                .id(1L).priority("HIGH")
+                .id(1L).priority(Priority.HIGH)
                 .slaPausedAt(ZonedDateTime.now())
                 .processInstanceId(99L)
                 .build();
@@ -494,7 +496,7 @@ class WorkflowServiceTest {
     @Test
     void pauseSla_noProcessId_updatesDbOnly() {
         Ticket ticket = Ticket.builder()
-                .id(2L).priority("HIGH")
+                .id(2L).priority(Priority.HIGH)
                 .createdAt(ZonedDateTime.now().minusMinutes(2))
                 .slaElapsedMs(0L)
                 .build();
@@ -508,7 +510,7 @@ class WorkflowServiceTest {
     @Test
     void pauseSla_signalFailure_isSwallowed() {
         Ticket ticket = Ticket.builder()
-                .id(3L).priority("HIGH")
+                .id(3L).priority(Priority.HIGH)
                 .createdAt(ZonedDateTime.now().minusMinutes(2))
                 .processInstanceId(99L)
                 .slaElapsedMs(0L)
@@ -523,7 +525,7 @@ class WorkflowServiceTest {
 
     @Test
     void resumeSla_noProcessId_skipsKieCall() {
-        Ticket ticket = Ticket.builder().id(4L).priority("HIGH").slaElapsedMs(5_000L).build();
+        Ticket ticket = Ticket.builder().id(4L).priority(Priority.HIGH).slaElapsedMs(5_000L).build();
 
         workflowService.resumeSla(ticket);
 
@@ -533,7 +535,7 @@ class WorkflowServiceTest {
 
     @Test
     void resumeSla_signalFailure_isSwallowed() {
-        Ticket ticket = Ticket.builder().id(5L).priority("HIGH").processInstanceId(99L).slaElapsedMs(5_000L).build();
+        Ticket ticket = Ticket.builder().id(5L).priority(Priority.HIGH).processInstanceId(99L).slaElapsedMs(5_000L).build();
         doThrow(new RuntimeException("kie down")).when(kieServerAdapter)
                 .signalProcessInstance(eq(99L), eq("resume_sla"), any());
 
@@ -582,7 +584,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_sendsTransitionInProgressSignal() {
         Ticket ticket = Ticket.builder().id(30L).processInstanceId(2000L).build();
 
-        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+        workflowService.requestStatusTransition(ticket, TicketStatus.IN_PROGRESS);
 
         verify(kieServerAdapter).signalProcessInstance(2000L, "transition_IN_PROGRESS", null);
     }
@@ -591,7 +593,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_sendsTransitionNewSignal() {
         Ticket ticket = Ticket.builder().id(31L).processInstanceId(2001L).build();
 
-        workflowService.requestStatusTransition(ticket, "NEW");
+        workflowService.requestStatusTransition(ticket, TicketStatus.NEW);
 
         verify(kieServerAdapter).signalProcessInstance(2001L, "transition_NEW", null);
     }
@@ -600,7 +602,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_sendsTransitionWaitingForCustomerSignal() {
         Ticket ticket = Ticket.builder().id(32L).processInstanceId(2002L).build();
 
-        workflowService.requestStatusTransition(ticket, "WAITING_FOR_CUSTOMER");
+        workflowService.requestStatusTransition(ticket, TicketStatus.WAITING_FOR_CUSTOMER);
 
         verify(kieServerAdapter).signalProcessInstance(2002L, "transition_WAITING_FOR_CUSTOMER", null);
     }
@@ -609,7 +611,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_sendsTransitionResolvedSignal() {
         Ticket ticket = Ticket.builder().id(33L).processInstanceId(2003L).build();
 
-        workflowService.requestStatusTransition(ticket, "RESOLVED");
+        workflowService.requestStatusTransition(ticket, TicketStatus.RESOLVED);
 
         verify(kieServerAdapter).signalProcessInstance(2003L, "transition_RESOLVED", null);
     }
@@ -618,7 +620,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_sendsTransitionClosedSignal() {
         Ticket ticket = Ticket.builder().id(34L).processInstanceId(2004L).build();
 
-        workflowService.requestStatusTransition(ticket, "CLOSED");
+        workflowService.requestStatusTransition(ticket, TicketStatus.CLOSED);
 
         verify(kieServerAdapter).signalProcessInstance(2004L, "transition_CLOSED", null);
     }
@@ -627,7 +629,7 @@ class WorkflowServiceTest {
     void requestStatusTransition_skipsWhenProcessInstanceMissing() {
         Ticket ticket = Ticket.builder().id(35L).build();
 
-        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+        workflowService.requestStatusTransition(ticket, TicketStatus.IN_PROGRESS);
 
         verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
     }
@@ -636,7 +638,6 @@ class WorkflowServiceTest {
     void requestStatusTransition_skipsWhenTargetStatusBlank() {
         Ticket ticket = Ticket.builder().id(36L).processInstanceId(2005L).build();
 
-        workflowService.requestStatusTransition(ticket, "");
         workflowService.requestStatusTransition(ticket, null);
 
         verify(kieServerAdapter, never()).signalProcessInstance(any(), any(), any());
@@ -650,7 +651,7 @@ class WorkflowServiceTest {
 
         // VALID_TRANSITIONS fast-path zaten validate eder; signal hatası swallow olur
         // ki DB persistence akışı kesilmesin.
-        workflowService.requestStatusTransition(ticket, "IN_PROGRESS");
+        workflowService.requestStatusTransition(ticket, TicketStatus.IN_PROGRESS);
 
         verify(kieServerAdapter).signalProcessInstance(2006L, "transition_IN_PROGRESS", null);
     }
@@ -662,9 +663,9 @@ class WorkflowServiceTest {
     @Test
     void verifyTransitionApplied_returnsTrueWhenBpmnStatusMatches() {
         Ticket ticket = Ticket.builder().id(40L).processInstanceId(3000L).build();
-        when(kieServerAdapter.getProcessVariable(3000L, "status")).thenReturn("IN_PROGRESS");
+        when(kieServerAdapter.getProcessVariable(3000L, "status")).thenReturn(TicketStatus.IN_PROGRESS);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.IN_PROGRESS);
 
         assertTrue(ok);
     }
@@ -674,9 +675,9 @@ class WorkflowServiceTest {
         Ticket ticket = Ticket.builder().id(41L).processInstanceId(3001L).build();
         // BPMN signal dropped (kaynak state hedef transition'ı tutmuyor) — değişken
         // yine eski statüde kalmış.
-        when(kieServerAdapter.getProcessVariable(3001L, "status")).thenReturn("NEW");
+        when(kieServerAdapter.getProcessVariable(3001L, "status")).thenReturn(TicketStatus.NEW);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "RESOLVED");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.RESOLVED);
 
         assertFalse(ok);
     }
@@ -685,7 +686,7 @@ class WorkflowServiceTest {
     void verifyTransitionApplied_returnsFalseWhenProcessInstanceMissing() {
         Ticket ticket = Ticket.builder().id(42L).build();
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.IN_PROGRESS);
 
         assertFalse(ok);
         verify(kieServerAdapter, never()).getProcessVariable(any(), any());
@@ -696,7 +697,7 @@ class WorkflowServiceTest {
         Ticket ticket = Ticket.builder().id(43L).processInstanceId(3002L).build();
         when(kieServerAdapter.getProcessVariable(3002L, "status")).thenReturn(null);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "IN_PROGRESS");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.IN_PROGRESS);
 
         assertFalse(ok);
     }
@@ -710,7 +711,7 @@ class WorkflowServiceTest {
         when(kieServerAdapter.getProcessVariable(3003L, "status")).thenReturn(null);
         when(kieServerAdapter.isProcessFinished(3003L)).thenReturn(true);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.CLOSED);
 
         assertTrue(ok);
     }
@@ -723,7 +724,7 @@ class WorkflowServiceTest {
         when(kieServerAdapter.getProcessVariable(3004L, "status")).thenReturn(null);
         when(kieServerAdapter.isProcessFinished(3004L)).thenReturn(false);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.CLOSED);
 
         assertFalse(ok);
     }
@@ -733,9 +734,9 @@ class WorkflowServiceTest {
         // A non-null mismatch means the signal was genuinely dropped (process still in
         // the old state) — reject without consulting process completion.
         Ticket ticket = Ticket.builder().id(46L).processInstanceId(3005L).build();
-        when(kieServerAdapter.getProcessVariable(3005L, "status")).thenReturn("RESOLVED");
+        when(kieServerAdapter.getProcessVariable(3005L, "status")).thenReturn(TicketStatus.RESOLVED);
 
-        boolean ok = workflowService.verifyTransitionApplied(ticket, "CLOSED");
+        boolean ok = workflowService.verifyTransitionApplied(ticket, TicketStatus.CLOSED);
 
         assertFalse(ok);
         verify(kieServerAdapter, never()).isProcessFinished(any());

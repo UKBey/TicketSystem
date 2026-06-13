@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 
 @ExtendWith(MockitoExtension.class)
 class WorklogServiceTest {
@@ -42,7 +43,7 @@ class WorklogServiceTest {
 
     @BeforeEach
     void setUp() {
-        assignedTicket = Ticket.builder().id(20L).status("IN_PROGRESS").build();
+        assignedTicket = Ticket.builder().id(20L).status(TicketStatus.IN_PROGRESS).build();
     }
 
     @Test
@@ -97,7 +98,7 @@ class WorklogServiceTest {
 
     @Test
     void addWorklog_whenTicketClosed_throwsBadRequest() {
-        Ticket closedTicket = Ticket.builder().id(20L).status("CLOSED").build();
+        Ticket closedTicket = Ticket.builder().id(20L).status(TicketStatus.CLOSED).build();
         WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(30).description("investigation").build();
         when(ticketService.getTicketById(20L)).thenReturn(closedTicket);
         when(ticketClaimRepository.existsByTicketIdAndAgentId(20L, "agent-1")).thenReturn(true);
@@ -110,7 +111,7 @@ class WorklogServiceTest {
 
     @Test
     void getWorklogsByTicket_agentNotAssignee_throwsForbidden() {
-        Ticket otherAssigned = Ticket.builder().id(20L).status("IN_PROGRESS").build();
+        Ticket otherAssigned = Ticket.builder().id(20L).status(TicketStatus.IN_PROGRESS).build();
         when(ticketService.getTicketById(20L)).thenReturn(otherAssigned);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -198,7 +199,7 @@ class WorklogServiceTest {
 
     @Test
     void updateWorklog_whenTicketClosed_throwsBadRequest() {
-        Ticket closedTicket = Ticket.builder().id(20L).status("CLOSED").build();
+        Ticket closedTicket = Ticket.builder().id(20L).status(TicketStatus.CLOSED).build();
         TicketWorklog worklog = TicketWorklog.builder().id(104L).ticketId(20L).agentId("agent-1").minutes(15).build();
         when(worklogRepository.findById(104L)).thenReturn(Optional.of(worklog));
         when(ticketService.getTicketById(20L)).thenReturn(closedTicket);
@@ -281,7 +282,7 @@ class WorklogServiceTest {
 
     @Test
     void addWorklog_onClosedTicket_throwsBadRequest() {
-        Ticket closed = Ticket.builder().id(20L).status("CLOSED").build();
+        Ticket closed = Ticket.builder().id(20L).status(TicketStatus.CLOSED).build();
         when(ticketService.getTicketById(20L)).thenReturn(closed);
         when(ticketClaimRepository.existsByTicketIdAndAgentId(20L, "agent-1")).thenReturn(true);
 

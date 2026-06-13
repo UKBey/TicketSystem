@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
 
 @Transactional
 class WorklogRepositoryIT extends RepositoryIntegrationTestBase {
@@ -54,8 +56,8 @@ class WorklogRepositoryIT extends RepositoryIntegrationTestBase {
         ticketId1 = ticketRepository.save(Ticket.builder()
             .title("Ticket 1")
             .description("desc")
-            .status("IN_PROGRESS")
-            .priority("HIGH")
+            .status(TicketStatus.IN_PROGRESS)
+            .priority(Priority.HIGH)
             .productId(product.getId())
             .topicId(topic.getId())
             .customerId("customer-1")
@@ -64,8 +66,8 @@ class WorklogRepositoryIT extends RepositoryIntegrationTestBase {
         ticketId2 = ticketRepository.save(Ticket.builder()
             .title("Ticket 2")
             .description("desc")
-            .status("IN_PROGRESS")
-            .priority("MEDIUM")
+            .status(TicketStatus.IN_PROGRESS)
+            .priority(Priority.MEDIUM)
             .productId(product.getId())
             .topicId(topic.getId())
             .customerId("customer-1")

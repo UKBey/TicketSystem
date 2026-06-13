@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -24,11 +25,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     /** Returns all tickets opened by the customer. */
     List<Ticket> findByCustomerId(String customerId);
 
-    /** Returns tickets in the given status (typically "NEW" — the unclaimed pool). */
-    List<Ticket> findByStatus(String status);
+    /** Returns tickets in the given status (typically NEW — the unclaimed pool). */
+    List<Ticket> findByStatus(TicketStatus status);
 
     /** Tickets in the given status that belong to products the agent is authorized on. */
-    List<Ticket> findByStatusAndProductIdIn(String status, List<Long> productIds);
+    List<Ticket> findByStatusAndProductIdIn(TicketStatus status, List<Long> productIds);
 
     /** All tickets belonging to the given product list — regardless of status. */
     List<Ticket> findByProductIdIn(List<Long> productIds);
@@ -534,8 +535,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findByCustomerIdFiltered(
             @Param("customerId") String customerId,
@@ -546,8 +547,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -560,8 +561,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -579,8 +580,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
         """)
@@ -593,8 +594,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
         """)
@@ -609,7 +610,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
           AND t.productId IN :productIds
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findPoolTicketsFiltered(
             @Param("productIds") List<Long> productIds,
@@ -620,7 +621,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
           AND t.productId IN :productIds
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -633,7 +634,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
           AND t.productId IN :productIds
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -645,7 +646,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findAllPoolTicketsFiltered(
             @Param("priorities") List<String> priorities,
@@ -654,7 +655,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -665,7 +666,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status = 'NEW'
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -680,8 +681,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findClaimedTicketsFiltered(
             @Param("ticketIds") List<Long> ticketIds,
@@ -692,8 +693,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -706,8 +707,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -721,8 +722,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
         """)
@@ -735,8 +736,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.id IN :ticketIds
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
         """)
@@ -750,8 +751,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status IN :statuses
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND cast(t.status as String) IN :statuses
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findTeamTicketsFiltered(
             @Param("productIds") List<Long> productIds,
@@ -762,8 +763,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status IN :statuses
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND cast(t.status as String) IN :statuses
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -776,8 +777,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status IN :statuses
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND cast(t.status as String) IN :statuses
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -791,8 +792,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status IN :statuses
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND cast(t.status as String) IN :statuses
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
         """)
@@ -805,8 +806,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId IN :productIds
-          AND t.status IN :statuses
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND cast(t.status as String) IN :statuses
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
         """)
@@ -820,7 +821,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findAllTeamTicketsFiltered(
             @Param("priorities") List<String> priorities,
@@ -829,7 +830,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -840,7 +841,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.status NOT IN ('NEW', 'CLOSED')
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -852,8 +853,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findByProductIdFiltered(
             @Param("productId") Long productId,
@@ -864,8 +865,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -878,8 +879,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -893,8 +894,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
         """)
@@ -907,8 +908,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
         """)
@@ -923,8 +924,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
           AND t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         """)
     Page<Ticket> findByProductIdAndCustomerIdFiltered(
             @Param("productId") Long productId,
@@ -937,8 +938,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
           AND t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END ASC
         """)
@@ -953,8 +954,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
           AND t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END DESC
         """)
@@ -970,8 +971,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
           AND t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END ASC
         """)
@@ -986,8 +987,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         SELECT t FROM Ticket t
         WHERE t.productId = :productId
           AND t.customerId = :customerId
-          AND (:statuses IS NULL OR t.status IN :statuses)
-          AND (:priorities IS NULL OR t.priority IN :priorities)
+          AND (:statuses IS NULL OR cast(t.status as String) IN :statuses)
+          AND (:priorities IS NULL OR cast(t.priority as String) IN :priorities)
         ORDER BY
           CASE t.status WHEN 'NEW' THEN 1 WHEN 'IN_PROGRESS' THEN 2 WHEN 'WAITING_FOR_CUSTOMER' THEN 3 WHEN 'RESOLVED' THEN 4 WHEN 'CLOSED' THEN 5 ELSE 6 END DESC
         """)
@@ -1011,34 +1012,34 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                      @Param("productIds") List<Long> productIds);
 
     /** Total ticket count for the given statuses (typically the "open" status list). */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses")
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses")
     Long countByStatusIn(@Param("statuses") List<String> statuses);
 
     /** Product-scoped variant of {@link #countByStatusIn}. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses "
          + "AND (:filterByProduct = false OR t.productId IN :productIds)")
     Long countByStatusInScoped(@Param("statuses") List<String> statuses,
                                @Param("filterByProduct") boolean filterByProduct,
                                @Param("productIds") List<Long> productIds);
 
     /** Count of SLA-breached tickets among those in the given statuses. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true")
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.slaBreached = true")
     Long countSlaBreachedByStatusIn(@Param("statuses") List<String> statuses);
 
     /** Product-scoped variant of {@link #countSlaBreachedByStatusIn}. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true "
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.slaBreached = true "
          + "AND (:filterByProduct = false OR t.productId IN :productIds)")
     Long countSlaBreachedByStatusInScoped(@Param("statuses") List<String> statuses,
                                           @Param("filterByProduct") boolean filterByProduct,
                                           @Param("productIds") List<Long> productIds);
 
     /** Count of tickets created since the given date that match the status filter (for KPIs). */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since")
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.createdAt >= :since")
     Long countCreatedSinceByStatusIn(@Param("statuses") List<String> statuses,
                                       @Param("since") java.time.ZonedDateTime since);
 
     /** Product-scoped variant of {@link #countCreatedSinceByStatusIn}. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND t.createdAt >= :since "
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.createdAt >= :since "
          + "AND (:filterByProduct = false OR t.productId IN :productIds)")
     Long countCreatedSinceByStatusInScoped(@Param("statuses") List<String> statuses,
                                            @Param("since") java.time.ZonedDateTime since,
@@ -1046,11 +1047,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                            @Param("productIds") List<Long> productIds);
 
     /** Priority-based distribution of tickets in the given statuses: each row is {@code [priority, count]}. */
-    @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses GROUP BY t.priority")
+    @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses GROUP BY t.priority")
     List<Object[]> countByStatusInGroupByPriority(@Param("statuses") List<String> statuses);
 
     /** Product-scoped variant of {@link #countByStatusInGroupByPriority}. */
-    @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+    @Query("SELECT t.priority, COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses "
          + "AND (:filterByProduct = false OR t.productId IN :productIds) GROUP BY t.priority")
     List<Object[]> countByStatusInGroupByPriorityScoped(@Param("statuses") List<String> statuses,
                                                         @Param("filterByProduct") boolean filterByProduct,
@@ -1128,11 +1129,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                          @Param("productIds") List<Long> productIds);
 
     /** Open + SLA-breached tickets, sorted ascending by deadline (for the alert page and the scheduler). */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.slaBreached = true ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTickets(@Param("statuses") List<String> statuses, Pageable pageable);
 
     /** Product-scoped variant of {@link #findBreachedOpenTickets}. */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = true "
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.slaBreached = true "
          + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.slaDeadline ASC")
     List<Ticket> findBreachedOpenTicketsScoped(@Param("statuses") List<String> statuses,
                                                @Param("filterByProduct") boolean filterByProduct,
@@ -1140,15 +1141,15 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                Pageable pageable);
 
     /** Tickets with a deadline before {@code before} that have not yet breached and are not paused. */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTickets(@Param("statuses") List<String> statuses, @Param("before") ZonedDateTime before, Pageable pageable);
 
     /** Variant of {@link #findUpcomingBreachTickets} narrowed by priority filter (for the critical-priority scheduler). */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND cast(t.priority as String) IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTicketsByPriority(@Param("statuses") List<String> statuses, @Param("priorities") List<String> priorities, @Param("before") ZonedDateTime before, Pageable pageable);
 
     /** Product-scoped variant of {@link #findUpcomingBreachTicketsByPriority}. */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before "
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND cast(t.priority as String) IN :priorities AND t.slaBreached = false AND t.slaPausedAt IS NULL AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before "
          + "AND (:filterByProduct = false OR t.productId IN :productIds) ORDER BY t.slaDeadline ASC")
     List<Ticket> findUpcomingBreachTicketsByPriorityScoped(@Param("statuses") List<String> statuses,
                                                            @Param("priorities") List<String> priorities,
@@ -1163,7 +1164,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
      * sla_warning_sent_at once it sends the email — so the same ticket never receives
      * the email twice.
      */
-    @Query("SELECT t FROM Ticket t WHERE t.status IN :statuses AND t.priority IN :priorities "
+    @Query("SELECT t FROM Ticket t WHERE cast(t.status as String) IN :statuses AND cast(t.priority as String) IN :priorities "
          + "AND t.slaBreached = false AND t.slaPausedAt IS NULL "
          + "AND t.slaWarningSentAt IS NULL "
          + "AND t.slaDeadline IS NOT NULL AND t.slaDeadline <= :before "
@@ -1213,11 +1214,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
                                                   Pageable pageable);
 
     /** Count of tickets with no claims — within the given status filter (typically NEW). */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
     long countUnassignedByStatusIn(@Param("statuses") List<String> statuses);
 
     /** Product-scoped variant of {@link #countUnassignedByStatusIn}. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status IN :statuses "
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) IN :statuses "
          + "AND (:filterByProduct = false OR t.productId IN :productIds) "
          + "AND NOT EXISTS (SELECT 1 FROM TicketClaim tc WHERE tc.ticket = t)")
     long countUnassignedByStatusInScoped(@Param("statuses") List<String> statuses,
@@ -1227,7 +1228,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     long countByStatus(String status);
 
     /** Product-scoped count of tickets in the given status. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.status = :status "
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE cast(t.status as String) = :status "
          + "AND (:filterByProduct = false OR t.productId IN :productIds)")
     long countByStatusScoped(@Param("status") String status,
                              @Param("filterByProduct") boolean filterByProduct,
@@ -1238,7 +1239,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
      * {@code slaBreached=true}. The scheduler finds these, sets the breach flag and
      * dispatches notifications.
      */
-    @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline < :now AND t.status IN :statuses")
+    @Query("SELECT t FROM Ticket t WHERE t.slaBreached = false AND t.slaDeadline IS NOT NULL AND t.slaDeadline < :now AND cast(t.status as String) IN :statuses")
     List<Ticket> findOverdueUnmarkedTickets(@Param("now") ZonedDateTime now,
                                             @Param("statuses") List<String> statuses);
 
@@ -1351,7 +1352,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Object[]> countTicketsGroupedByStatusForCustomer(@Param("customerId") String customerId);
 
     /** Müşterinin açık biletlerinden SLA'sı ihlal edilmiş olanların sayısı. */
-    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.customerId = :customerId AND t.status IN :statuses AND t.slaBreached = true")
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.customerId = :customerId AND cast(t.status as String) IN :statuses AND t.slaBreached = true")
     Long countSlaBreachedByCustomerAndStatusIn(@Param("customerId") String customerId,
                                                @Param("statuses") List<String> statuses);
 

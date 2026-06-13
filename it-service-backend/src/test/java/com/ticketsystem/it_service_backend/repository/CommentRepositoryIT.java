@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.ticketsystem.it_service_backend.entity.TicketStatus;
+import com.ticketsystem.it_service_backend.entity.Priority;
+import com.ticketsystem.it_service_backend.entity.CommentType;
 
 @Transactional
 class CommentRepositoryIT extends RepositoryIntegrationTestBase {
@@ -57,8 +60,8 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
         Ticket ticket = ticketRepository.save(Ticket.builder()
                 .title("Ticket")
                 .description("desc")
-                .status("NEW")
-                .priority("HIGH")
+                .status(TicketStatus.NEW)
+                .priority(Priority.HIGH)
             .productId(product.getId())
                 .topicId(topic.getId())
                 .customerId("customer-1")
@@ -66,8 +69,8 @@ class CommentRepositoryIT extends RepositoryIntegrationTestBase {
 
         ticketId = ticket.getId();
 
-        commentRepository.save(Comment.builder().ticket(ticket).authorId("u1").message("first").type("EXTERNAL").build());
-        commentRepository.save(Comment.builder().ticket(ticket).authorId("u2").message("second").type("INTERNAL").build());
+        commentRepository.save(Comment.builder().ticket(ticket).authorId("u1").message("first").type(CommentType.EXTERNAL).build());
+        commentRepository.save(Comment.builder().ticket(ticket).authorId("u2").message("second").type(CommentType.INTERNAL).build());
     }
 
     @Test
