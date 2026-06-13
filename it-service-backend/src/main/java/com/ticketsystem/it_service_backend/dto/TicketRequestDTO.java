@@ -21,13 +21,14 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Yeni destek bileti oluşturma isteğinin veri modeli")
 public class TicketRequestDTO {
 
-    @Schema(description = "Biletin kısa başlığı", example = "VPN bağlantısı kurulamıyor", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 500)
+    @Schema(description = "Biletin kısa başlığı", example = "VPN bağlantısı kurulamıyor", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 100)
     @NotBlank(message = "{field.notblank}")
-    @Size(max = 500, message = "{validation.ticket.title.size}")
+    @Size(max = 100, message = "{validation.ticket.title.size}")
     private String title;
 
-    @Schema(description = "Sorunun detaylı açıklaması. İlk yorum (comment) olarak da kaydedilir.", example = "Sabahtan beri kurumsal VPN'e bağlanamıyorum. Hata kodu: ERR_TIMEOUT", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Sorunun detaylı açıklaması. İlk yorum (comment) olarak da kaydedilir.", example = "Sabahtan beri kurumsal VPN'e bağlanamıyorum. Hata kodu: ERR_TIMEOUT", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 500)
     @NotBlank(message = "{field.notblank}")
+    @Size(max = 500, message = "{validation.ticket.description.size}")
     private String description;
 
     @Schema(description = "Öncelik seviyesi", example = "HIGH", allowableValues = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}, requiredMode = Schema.RequiredMode.REQUIRED)

@@ -24,8 +24,9 @@ const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 // topics. Submitted to the API as topicId: null.
 const NO_TOPIC = 'NONE';
 
-// Mirrors the backend constraint (tickets.title VARCHAR(500) + @Size(max=500)).
-const TITLE_MAX = 500;
+// Mirror the backend @Size constraints on TicketRequestDTO.
+const TITLE_MAX = 100;
+const DESCRIPTION_MAX = 500;
 
 /** Yeni bilet oluşturma formu — ürün/konu seçimi + bilinen sorunlar paneli. */
 export default function CreateTicketScreen({ navigation }) {
@@ -71,8 +72,8 @@ export default function CreateTicketScreen({ navigation }) {
   }, [productId, topicId]);
 
   const submit = async () => {
-    if (!title.trim() || !productId || !topicId) {
-      setError(t('createTicket.required', 'Başlık, ürün ve konu zorunludur.'));
+    if (!title.trim() || !description.trim() || !productId || !topicId) {
+      setError(t('createTicket.required', 'Başlık, açıklama, ürün ve konu zorunludur.'));
       return;
     }
     setSubmitting(true);
@@ -124,11 +125,12 @@ export default function CreateTicketScreen({ navigation }) {
 
         <View style={styles.group}>
           <Text style={[styles.label, { color: theme.textPrimary }]}>
-            {t('createTicket.description', 'Açıklama')}
+            {t('createTicket.description', 'Açıklama')} *
           </Text>
           <TextInput
             value={description}
             onChangeText={setDescription}
+            maxLength={DESCRIPTION_MAX}
             placeholder={t('createTicket.descriptionPlaceholder', 'Sorunu açıkla')}
             placeholderTextColor={theme.textTertiary}
             multiline
@@ -138,6 +140,9 @@ export default function CreateTicketScreen({ navigation }) {
               { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary },
             ]}
           />
+          <Text style={[styles.counter, { color: description.length >= DESCRIPTION_MAX ? theme.danger : theme.textTertiary }]}>
+            {description.length}/{DESCRIPTION_MAX}
+          </Text>
         </View>
 
         <PickerField

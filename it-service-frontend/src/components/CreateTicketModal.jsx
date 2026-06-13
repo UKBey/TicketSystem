@@ -8,8 +8,9 @@ import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 // product has no active topics. Submitted to the API as topicId: null.
 const NO_TOPIC = 'NONE';
 
-// Mirrors the backend constraint (tickets.title VARCHAR(500) + @Size(max=500)).
-const TITLE_MAX = 500;
+// Mirror the backend @Size constraints on TicketRequestDTO.
+const TITLE_MAX = 100;
+const DESCRIPTION_MAX = 500;
 
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const { t } = useTranslation();
@@ -69,7 +70,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !productId || !topicId) {
+    if (!title.trim() || !description.trim() || !productId || !topicId) {
       setError(t('ticket.createModal.errorRequired'));
       return;
     }
@@ -148,15 +149,19 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelDescription')}</label>
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelDescription')} *</label>
               <textarea
                 placeholder={t('ticket.createModal.placeholderDescription')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                maxLength={DESCRIPTION_MAX}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2 resize-y min-h-[80px]"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               />
+              <p className="mt-1 text-right text-xs" style={{ color: description.length >= DESCRIPTION_MAX ? '#ef4444' : 'var(--text-tertiary)' }}>
+                {description.length}/{DESCRIPTION_MAX}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelPriority')}</label>
