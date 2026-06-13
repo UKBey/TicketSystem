@@ -90,11 +90,16 @@ export default function ProductsScreen({ navigation }) {
       return;
     }
     const maxRaw = String(productForm.maxActiveTickets ?? '').trim();
+    const maxLimit = maxRaw ? parseInt(maxRaw, 10) : null;
+    if (maxLimit !== null && (Number.isNaN(maxLimit) || maxLimit < 1 || maxLimit > 10000)) {
+      Alert.alert(t('productPanel.errorLimitRange', 'Eşzamanlı bilet limiti 1 ile 10000 arasında olmalıdır.'));
+      return;
+    }
     const body = {
       nameTr,
       nameEn,
       isActive: productForm.isActive,
-      maxActiveTickets: maxRaw ? parseInt(maxRaw, 10) : null,
+      maxActiveTickets: maxLimit,
     };
     setSaving(true);
     try {

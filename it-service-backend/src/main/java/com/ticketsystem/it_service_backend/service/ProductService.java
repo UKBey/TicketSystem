@@ -117,6 +117,7 @@ public class ProductService {
         if (product.getNameTr() == null && product.getNameEn() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.product.name.required");
         }
+        validateMaxActiveTickets(product.getMaxActiveTickets());
         log.info("Yeni ürün oluşturuluyor: {}", LocalizedText.label(product.getNameTr(), product.getNameEn()));
         if (product.getIsActive() == null) {
             product.setIsActive(true);
@@ -192,6 +193,7 @@ public class ProductService {
             existingProduct.setIsActive(updatedProduct.getIsActive());
         }
         if (updatedProduct.getMaxActiveTickets() != null) {
+            validateMaxActiveTickets(updatedProduct.getMaxActiveTickets());
             log.debug("Maksimum eşzamanlı bilet limiti güncelleniyor: {} -> {}", existingProduct.getMaxActiveTickets(), updatedProduct.getMaxActiveTickets());
             existingProduct.setMaxActiveTickets(updatedProduct.getMaxActiveTickets());
         } else if (updatedProduct.getMaxActiveTickets() == null && existingProduct.getMaxActiveTickets() != null) {
@@ -213,13 +215,30 @@ public class ProductService {
      * @throws IllegalArgumentException if limit is below 1
      * @throws ResponseStatusException 404 if the product is not found
      */
+    /**
+     * Validates the concurrent ticket limit bounds. A {@code null} limit means
+     * "unlimited" and is always allowed; otherwise it must be in {@code 1..10000}.
+     *
+     * @param limit limit to validate, or {@code null} for unlimited
+     * @throws IllegalArgumentException if the limit is below 1 or above 10000
+     */
+    private void validateMaxActiveTickets(Integer limit) {
+        if (limit == null) {
+            return;
+        }
+        if (limit < 1) {
+            throw new IllegalArgumentException("error.product.limit.minimum");
+        }
+        if (limit > 10000) {
+            throw new IllegalArgumentException("error.product.limit.maximum");
+        }
+    }
+
     @Transactional
     public Product updateMaxActiveTickets(Long productId, Integer limit) {
         log.info("Ürün eşzamanlı bilet limiti güncelleniyor. ID: {}, Yeni limit: {}", productId, limit);
 
-        if (limit != null && limit < 1) {
-            throw new IllegalArgumentException("error.product.limit.minimum");
-        }
+        validateMaxActiveTickets(limit);
 
         Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.product.not.found"));

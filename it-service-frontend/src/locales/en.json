@@ -416,6 +416,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "errorNameRequired": "At least one product name (Turkish or English) is required.",
+    "errorLimitRange": "The concurrent ticket limit must be between 1 and 10000.",
     "errorSave": "Could not save product.",
     "confirmDelete": "Are you sure you want to delete this product?",
     "errorDelete": "Could not delete product.",

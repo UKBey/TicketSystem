@@ -260,6 +260,35 @@ class ProductServiceTest {
     }
 
     @Test
+    @DisplayName("updateMaxActiveTickets → limit > 10000 → IllegalArgumentException")
+    void updateMaxActiveTickets_aboveMaximum_throwsIllegalArgument() {
+        assertThatThrownBy(() -> productService.updateMaxActiveTickets(10L, 10001))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("error.product.limit.maximum");
+    }
+
+    @Test
+    @DisplayName("createProduct → limit > 10000 → IllegalArgumentException")
+    void createProduct_aboveMaximum_throwsIllegalArgument() {
+        Product toCreate = Product.builder().nameEn("ERP").maxActiveTickets(10001).build();
+        assertThatThrownBy(() -> productService.createProduct(toCreate))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("error.product.limit.maximum");
+    }
+
+    @Test
+    @DisplayName("updateProduct → limit > 10000 → IllegalArgumentException")
+    void updateProduct_aboveMaximum_throwsIllegalArgument() {
+        Product existing = Product.builder().id(10L).nameEn("ERP").isActive(true).build();
+        when(productRepository.findById(10L)).thenReturn(Optional.of(existing));
+        Product patch = Product.builder().maxActiveTickets(10001).build();
+
+        assertThatThrownBy(() -> productService.updateProduct(10L, patch))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("error.product.limit.maximum");
+    }
+
+    @Test
     @DisplayName("getProductById → MANAGER rolü → yetki kontrolü atlanır")
     void getProductById_manager_skipsAuthCheck() {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));

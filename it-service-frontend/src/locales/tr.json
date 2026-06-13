@@ -416,6 +416,7 @@
     "save": "Kaydet",
     "cancel": "İptal",
     "errorNameRequired": "En az bir ürün adı (Türkçe veya İngilizce) girilmelidir.",
+    "errorLimitRange": "Eşzamanlı bilet limiti 1 ile 10000 arasında olmalıdır.",
     "errorSave": "Ürün kaydedilemedi.",
     "confirmDelete": "Bu ürünü silmek istediğinizden emin misiniz?",
     "errorDelete": "Ürün silinemedi.",

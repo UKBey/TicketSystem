@@ -124,9 +124,15 @@ export default function ProductPanel() {
       return;
     }
 
+    const limit = formData.maxActiveTickets === '' ? null : Number(formData.maxActiveTickets);
+    if (limit !== null && (Number.isNaN(limit) || limit < 1 || limit > 10000)) {
+      toast.error(t('productPanel.errorLimitRange'));
+      return;
+    }
+
     const payload = {
       ...formData,
-      maxActiveTickets: formData.maxActiveTickets === '' ? null : Number(formData.maxActiveTickets)
+      maxActiveTickets: limit
     };
 
     try {
@@ -519,6 +525,7 @@ export default function ProductPanel() {
                 <input
                   type="number"
                   min="1"
+                  max="10000"
                   value={formData.maxActiveTickets}
                   onChange={e => setFormData({ ...formData, maxActiveTickets: e.target.value })}
                   placeholder={t('productPanel.placeholderUnlimited')}

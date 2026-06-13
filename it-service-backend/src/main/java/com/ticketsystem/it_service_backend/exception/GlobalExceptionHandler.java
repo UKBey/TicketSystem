@@ -7,6 +7,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -81,6 +82,26 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message(message)
+                .timestamp(System.currentTimeMillis())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Returns HTTP {@code 400} when the request body cannot be parsed/bound —
+     * for example malformed JSON or a numeric value that overflows the target
+     * type (a number larger than {@code int} bound to an {@code Integer} field).
+     * Without this handler such errors fall through to the catch-all and surface
+     * as {@code 500}.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        // Bozuk gövde / tip taşması istemci kaynaklı bir hatadır; 400 döneriz.
+        log.warn("Okunamayan istek gövdesi (400 BAD_REQUEST): {}", ex.getMostSpecificCause().getMessage());
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(msg("error.request.malformed"))
                 .timestamp(System.currentTimeMillis())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
