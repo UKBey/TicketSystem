@@ -292,7 +292,7 @@
       "noTopicOption": "Konusuz",
       "creating": "Oluşturuluyor...",
       "create": "Bilet Oluştur",
-      "errorRequired": "Başlık, Ürün ve Konu alanları zorunludur.",
+      "errorRequired": "Başlık, Açıklama, Ürün ve Konu alanları zorunludur.",
       "errorCreate": "Bilet oluşturulamadı.",
       "knownIssuesHeading": "Bu Bilinen Sorunlardan Biri Yardımcı Olabilir",
       "knownIssuesSubtitle": "Bilet açmadan önce kontrol edin — sorununuz aşağıdakilerden birinde çözülmüş olabilir.",

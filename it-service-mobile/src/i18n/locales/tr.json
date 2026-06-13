@@ -255,7 +255,7 @@
       "noTopics": "Bu ürün için tanımlı konu yok",
       "creating": "Oluşturuluyor...",
       "create": "Bilet Oluştur",
-      "errorRequired": "Başlık, Ürün ve Konu alanları zorunludur.",
+      "errorRequired": "Başlık, Açıklama, Ürün ve Konu alanları zorunludur.",
       "errorCreate": "Bilet oluşturulamadı.",
       "knownIssuesHeading": "Bu Bilinen Sorunlardan Biri Yardımcı Olabilir",
       "knownIssuesSubtitle": "Bilet açmadan önce kontrol edin — sorununuz aşağıdakilerden birinde çözülmüş olabilir.",
@@ -1006,7 +1006,7 @@
     "selectProductFirst": "Önce ürün seç",
     "knownIssues": "Bilinen sorunlar",
     "create": "Bilet Oluştur",
-    "required": "Başlık, ürün ve konu zorunludur.",
+    "required": "Başlık, açıklama, ürün ve konu zorunludur.",
     "failed": "Bilet oluşturulamadı."
   },
   "cannedResponses": {

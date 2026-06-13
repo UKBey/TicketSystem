@@ -292,7 +292,7 @@
       "noTopicOption": "No Topic",
       "creating": "Creating...",
       "create": "Create Ticket",
-      "errorRequired": "Title, Product and Topic fields are required.",
+      "errorRequired": "Title, Description, Product and Topic fields are required.",
       "errorCreate": "Could not create ticket.",
       "knownIssuesHeading": "One of These Known Issues May Help",
       "knownIssuesSubtitle": "Before opening a ticket, check below — your issue may already be resolved.",
