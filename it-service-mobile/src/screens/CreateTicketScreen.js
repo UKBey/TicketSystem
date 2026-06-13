@@ -24,6 +24,9 @@ const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 // topics. Submitted to the API as topicId: null.
 const NO_TOPIC = 'NONE';
 
+// Mirrors the backend constraint (tickets.title VARCHAR(500) + @Size(max=500)).
+const TITLE_MAX = 500;
+
 /** Yeni bilet oluşturma formu — ürün/konu seçimi + bilinen sorunlar paneli. */
 export default function CreateTicketScreen({ navigation }) {
   const { theme } = useTheme();
@@ -109,10 +112,14 @@ export default function CreateTicketScreen({ navigation }) {
           <TextInput
             value={title}
             onChangeText={setTitle}
+            maxLength={TITLE_MAX}
             placeholder={t('createTicket.titlePlaceholder', 'Kısa başlık')}
             placeholderTextColor={theme.textTertiary}
             style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
           />
+          <Text style={[styles.counter, { color: title.length >= TITLE_MAX ? theme.danger : theme.textTertiary }]}>
+            {title.length}/{TITLE_MAX}
+          </Text>
         </View>
 
         <View style={styles.group}>
@@ -230,6 +237,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   textarea: { minHeight: 90, textAlignVertical: 'top' },
+  counter: { fontSize: 11, textAlign: 'right' },
   error: { fontSize: 14, fontWeight: '500' },
   kiBox: { borderWidth: 1, borderRadius: 10, padding: 12, gap: 8 },
   kiHeading: { fontSize: 14, fontWeight: '700' },

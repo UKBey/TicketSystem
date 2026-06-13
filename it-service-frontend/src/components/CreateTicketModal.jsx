@@ -8,6 +8,9 @@ import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 // product has no active topics. Submitted to the API as topicId: null.
 const NO_TOPIC = 'NONE';
 
+// Mirrors the backend constraint (tickets.title VARCHAR(500) + @Size(max=500)).
+const TITLE_MAX = 500;
+
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
@@ -136,9 +139,13 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                 placeholder={t('ticket.createModal.placeholderTitle')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                maxLength={TITLE_MAX}
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
               />
+              <p className="mt-1 text-right text-xs" style={{ color: title.length >= TITLE_MAX ? '#ef4444' : 'var(--text-tertiary)' }}>
+                {title.length}/{TITLE_MAX}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelDescription')}</label>
