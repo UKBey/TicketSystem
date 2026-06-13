@@ -6,6 +6,7 @@ import com.ticketsystem.it_service_backend.service.AgentProductLimitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -62,7 +63,7 @@ public class AgentProductLimitController {
             @PathVariable String agentId,
             @Parameter(description = "Ürün kimliği", required = true)
             @PathVariable Long productId,
-            @RequestBody AgentProductLimitRequestDTO request) {
+            @Valid @RequestBody AgentProductLimitRequestDTO request) {
         log.info("Agent limit ayarlama isteği. Agent: {}, Product: {}", agentId, productId);
         return ResponseEntity.ok(agentProductLimitService.setAgentLimit(
                 agentId,

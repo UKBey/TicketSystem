@@ -73,6 +73,10 @@ export default function AgentLimitsSheet({ visible, user, onClose }) {
       patch(pid, { error: '≥ 1' });
       return;
     }
+    if (hasValue && numVal > 10000) {
+      patch(pid, { error: '≤ 10000' });
+      return;
+    }
     patch(pid, { saving: true, error: '' });
     try {
       await setAgentLimit(user.id, pid, entry.useCustom, numVal);

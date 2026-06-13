@@ -141,6 +141,10 @@ function AgentLimitsPanel({ user, t }) {
       setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], error: '≥ 1' } }));
       return;
     }
+    if (hasValue && numVal > 10000) {
+      setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], error: '≤ 10000' } }));
+      return;
+    }
     setLimits(prev => ({ ...prev, [productId]: { ...prev[productId], saving: true, error: '' } }));
     try {
       await setAgentLimit(user.id, productId, entry.useCustom, numVal);
@@ -197,6 +201,7 @@ function AgentLimitsPanel({ user, t }) {
                 <input
                   type="number"
                   min="1"
+                  max="10000"
                   disabled={!entry.useCustom}
                   value={entry.value}
                   onChange={e => handleValue(prod.id, e.target.value)}
@@ -259,6 +264,7 @@ function AgentLimitsPanel({ user, t }) {
                     <input
                       type="number"
                       min="1"
+                      max="10000"
                       disabled={!entry.useCustom}
                       value={entry.value}
                       onChange={e => handleValue(prod.id, e.target.value)}
