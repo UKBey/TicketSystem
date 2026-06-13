@@ -34,6 +34,9 @@ public class WorklogService {
     private final TicketClaimRepository ticketClaimRepository;
     private final UserService userService;
 
+    /** Upper bound for a single worklog entry: 48 hours (in minutes). */
+    private static final int MAX_WORKLOG_MINUTES = 2880;
+
     /**
      * Lets the assigned agent record a duration + description against a ticket.
      * Minutes must be positive, the agent must have claimed the ticket, and the
@@ -52,6 +55,10 @@ public class WorklogService {
         if (dto.getMinutes() == null || dto.getMinutes() <= 0) {
             log.warn("Worklog reddedildi: Geçersiz dakika değeri ({})", dto.getMinutes());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.positive");
+        }
+        if (dto.getMinutes() > MAX_WORKLOG_MINUTES) {
+            log.warn("Worklog reddedildi: Dakika değeri üst sınırı aştı ({})", dto.getMinutes());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.max");
         }
 
         // Isleme konu biletin varligi dogrulanir.
@@ -221,10 +228,14 @@ public class WorklogService {
     public TicketWorklog updateWorklog(Long ticketId, Long worklogId, WorklogRequestDTO dto, String agentId) {
         log.info("Worklog güncelleme isteği. Worklog ID: {}, Agent: {}", worklogId, agentId);
 
-        // Dakika alani gonderildiyse pozitif deger kontrol edilir.
+        // Dakika alani gonderildiyse pozitif ve ust sinir icinde olmali.
         if (dto.getMinutes() != null && dto.getMinutes() <= 0) {
             log.warn("Worklog güncelleme reddedildi: Geçersiz dakika değeri ({})", dto.getMinutes());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.positive");
+        }
+        if (dto.getMinutes() != null && dto.getMinutes() > MAX_WORKLOG_MINUTES) {
+            log.warn("Worklog güncelleme reddedildi: Dakika değeri üst sınırı aştı ({})", dto.getMinutes());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.worklog.minutes.max");
         }
 
         // Hedef worklog kaydi bulunur.

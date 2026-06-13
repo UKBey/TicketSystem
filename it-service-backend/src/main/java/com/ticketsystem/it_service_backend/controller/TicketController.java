@@ -74,7 +74,7 @@ public class TicketController {
     @Operation(summary = "Yeni bilet oluştur")
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<TicketResponseDTO> createTicket(@RequestBody TicketRequestDTO dto,
+    public ResponseEntity<TicketResponseDTO> createTicket(@Valid @RequestBody TicketRequestDTO dto,
             @AuthenticationPrincipal Jwt jwt) {
         String customerId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);

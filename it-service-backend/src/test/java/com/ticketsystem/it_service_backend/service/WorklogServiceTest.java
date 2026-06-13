@@ -56,6 +56,17 @@ class WorklogServiceTest {
     }
 
     @Test
+    void addWorklog_minutesAboveMax_throwsBadRequest() {
+        WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(2881).description("x").build();
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> worklogService.addWorklog(20L, dto, "agent-1"));
+
+        assertEquals(400, ex.getStatusCode().value());
+        assertEquals("error.worklog.minutes.max", ex.getReason());
+    }
+
+    @Test
     void addWorklog_assigneeCanAdd_savesRecord() {
         WorklogRequestDTO dto = WorklogRequestDTO.builder().minutes(30).description("investigation").build();
         when(ticketService.getTicketById(20L)).thenReturn(assignedTicket);
