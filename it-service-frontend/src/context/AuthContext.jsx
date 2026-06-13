@@ -15,6 +15,10 @@ export function AuthProvider({ children }) {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const initCalled = useRef(false);
+  // init().then ve onAuthSuccess taze login'de IKISI de tetiklenir; tek bir /users/sync
+  // yeterli. Ucan istek varsa tekrari engelle — aksi halde yeni kullanicida iki paralel
+  // insert PK cakismasiyla 409 Conflict doner.
+  const syncInFlight = useRef(false);
   const { theme, setTheme } = useTheme();
   const { applyServerDateFormat } = useDateFormat();
   // useEffect tek-seferlik calistigi icin theme'i closure'a hapsetmek istemiyoruz —
@@ -48,6 +52,8 @@ export function AuthProvider({ children }) {
     // yazar) — uygulama bu degerlerle acilir ve bu secim DB'ye YAZILIR. DB'deki onceki
     // deger client'i ezmez; oncelik her zaman Keycloak ekranindaki secimdedir.
     const syncUserPreferences = () => {
+      if (syncInFlight.current) return;
+      syncInFlight.current = true;
       api.post('/users/sync')
         .then((res) => {
           const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
@@ -57,7 +63,8 @@ export function AuthProvider({ children }) {
           // Tarih formatinin Keycloak ekrani kaynagi yok — DB'deki deger client'i besler.
           if (res.data?.preferredDateFormat) applyServerDateFormat(res.data.preferredDateFormat);
         })
-        .catch(err => console.error('Sync error:', err));
+        .catch(err => console.error('Sync error:', err))
+        .finally(() => { syncInFlight.current = false; });
     };
 
     keycloak

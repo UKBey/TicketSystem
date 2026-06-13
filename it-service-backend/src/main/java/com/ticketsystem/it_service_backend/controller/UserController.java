@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -111,8 +112,18 @@ public class UserController {
                 .roles(appRoles)
                 .build();
         
-        User syncedUser = userService.syncUser(user);
-        
+        // syncUser bir upsert'tir (findById → yoksa insert). Ilk login'de aynı kullanıcı için
+        // gelen iki eşzamanlı /sync isteği ikisi de "yok" görüp insert deneyebilir; biri PK
+        // çakışmasıyla DataIntegrityViolationException alır. O işlemin transaction'ı geri
+        // alındıktan sonra tek seferlik retry artık update yoluna düşer (satır artık vardır).
+        User syncedUser;
+        try {
+            syncedUser = userService.syncUser(user);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Eşzamanlı /sync yarışı tespit edildi (ID: {}), update olarak yeniden deneniyor.", userId);
+            syncedUser = userService.syncUser(user);
+        }
+
         log.info("Kullanıcı başarıyla senkronize edildi. Uygulama İçi Roller: {}", syncedUser.getRole());
 
         return ResponseEntity.ok(UserDTO.fromEntity(syncedUser));
