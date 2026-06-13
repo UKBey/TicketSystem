@@ -25,7 +25,10 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
     }
   }, [ticketId]);
 
-  useEffect(() => { fetchWorklogs(); }, [fetchWorklogs]);
+  // Worklog'lar yalnizca ajanlara aciktir (backend GET /worklogs -> AGENT/LEAD/MANAGER).
+  // Bilesen !isAgent durumunda zaten null render eder; customer'da fetch'i hic atesleme,
+  // aksi halde her ticket detayinda 403 (Forbidden) gurultusu olusur.
+  useEffect(() => { if (isAgent) fetchWorklogs(); }, [isAgent, fetchWorklogs]);
 
   const handleAdd = async () => {
     const mins = parseInt(minutes, 10);
