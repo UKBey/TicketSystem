@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Priority;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -591,13 +592,16 @@ public class EmailService {
 
     /** Returns the Locale matching the user's stored language preference. */
     private Locale localeOf(User user) {
-        return supportedLocale(user.getPreferredLanguage());
+        return user.getPreferredLanguage() != null
+                ? user.getPreferredLanguage().toLocale()
+                : Locale.ENGLISH;
     }
 
     /**
-     * Maps any raw language input to a supported, fully-translated Locale (en/tr).
-     * Guards against malformed values that {@link Locale#forLanguageTag} would
-     * otherwise turn into {@code Locale.ROOT} — which renders emails as raw keys.
+     * Maps any raw language override (e.g. a PDF-export preference string) to a supported,
+     * fully-translated Locale (en/tr). Guards against malformed values that
+     * {@link Locale#forLanguageTag} would otherwise turn into {@code Locale.ROOT} — which
+     * renders emails/PDFs as raw keys.
      */
     private Locale supportedLocale(String lang) {
         if (lang == null || lang.isBlank()) return Locale.ENGLISH;
@@ -607,7 +611,7 @@ public class EmailService {
 
     /** Returns the color palette matching the user's stored theme preference. */
     private Palette paletteOf(User user) {
-        return "dark".equalsIgnoreCase(user.getPreferredTheme()) ? Palette.DARK : Palette.LIGHT;
+        return user.getPreferredTheme() == Theme.DARK ? Palette.DARK : Palette.LIGHT;
     }
 
     private String priorityBadge(Priority priority, Palette p) {

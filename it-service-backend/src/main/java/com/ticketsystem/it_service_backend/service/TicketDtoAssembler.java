@@ -11,6 +11,7 @@ import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
+import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -41,7 +42,6 @@ import java.util.Set;
 public class TicketDtoAssembler {
 
     private static final String UNKNOWN = "Unknown";
-    private static final String CSAT_SUBMITTED = "CSAT_SUBMITTED";
 
     private final TicketService ticketService;
     private final UserService userService;
@@ -144,7 +144,7 @@ public class TicketDtoAssembler {
 
         // Actor adı bulunamazsa orijinal davranış gereği actorId'ye düşülür (UNKNOWN değil).
         List<TicketAuditLogDTO> auditLogs = auditEntries.stream()
-                .filter(a -> includeCsatAudit || !CSAT_SUBMITTED.equals(a.getActionType()))
+                .filter(a -> includeCsatAudit || !AuditAction.CSAT_SUBMITTED.equals(a.getActionType()))
                 .map(a -> TicketAuditLogDTO.fromEntity(a, names.getOrDefault(a.getActorId(), a.getActorId())))
                 .toList();
 

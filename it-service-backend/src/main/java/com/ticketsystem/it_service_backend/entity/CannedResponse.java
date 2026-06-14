@@ -34,15 +34,6 @@ import java.time.OffsetDateTime;
 @Builder
 public class CannedResponse {
 
-    /** {@code PERSONAL} or {@code SHARED}. */
-    public static final String SCOPE_PERSONAL = "PERSONAL";
-    public static final String SCOPE_SHARED = "SHARED";
-
-    /** {@code EXTERNAL}, {@code INTERNAL} or {@code BOTH}. */
-    public static final String VISIBILITY_EXTERNAL = "EXTERNAL";
-    public static final String VISIBILITY_INTERNAL = "INTERNAL";
-    public static final String VISIBILITY_BOTH = "BOTH";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -60,8 +51,10 @@ public class CannedResponse {
     @Column(name = "content_en", columnDefinition = "TEXT")
     private String contentEn;
 
+    /** Ownership scope — persisted as the enum name (see {@link CannedResponseScope}). */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String scope;
+    private CannedResponseScope scope;
 
     /** Keycloak subject of the owning/creating agent. */
     @Column(name = "owner_agent_id", nullable = false, length = 50)
@@ -71,9 +64,11 @@ public class CannedResponse {
     @Column(name = "product_id")
     private Long productId;
 
+    /** Suited comment type — persisted as the enum name (see {@link CannedResponseVisibility}). */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String visibility = VISIBILITY_BOTH;
+    private CannedResponseVisibility visibility = CannedResponseVisibility.BOTH;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

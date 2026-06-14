@@ -4,6 +4,9 @@ import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
 import com.ticketsystem.it_service_backend.dto.UserCreationResponseDTO;
 import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
+import com.ticketsystem.it_service_backend.entity.DateFormat;
+import com.ticketsystem.it_service_backend.entity.Language;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.UserAlreadyExistsException;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
@@ -406,14 +409,15 @@ public class UserService {
      */
     @Transactional
     public User updatePreferredLanguage(String userId, String lang) {
-        if (!"en".equals(lang) && !"tr".equals(lang)) {
+        Language language = Language.fromCode(lang);
+        if (language == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Unsupported language code. Supported: en, tr");
         }
         User user = getUserById(userId);
-        user.setPreferredLanguage(lang);
-        log.debug("Kullanıcı dil tercihi güncellendi. ID: {}, Dil: {}", userId, lang);
+        user.setPreferredLanguage(language);
+        log.debug("Kullanıcı dil tercihi güncellendi. ID: {}, Dil: {}", userId, language.getCode());
         return userRepository.save(user);
     }
 
@@ -428,24 +432,21 @@ public class UserService {
      */
     @Transactional
     public User updatePreferredTheme(String userId, String theme) {
-        if (!"light".equals(theme) && !"dark".equals(theme)) {
+        Theme parsedTheme = Theme.fromCode(theme);
+        if (parsedTheme == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Unsupported theme. Supported: light, dark");
         }
         User user = getUserById(userId);
-        user.setPreferredTheme(theme);
-        log.debug("Kullanıcı tema tercihi güncellendi. ID: {}, Tema: {}", userId, theme);
+        user.setPreferredTheme(parsedTheme);
+        log.debug("Kullanıcı tema tercihi güncellendi. ID: {}, Tema: {}", userId, parsedTheme.getCode());
         return userRepository.save(user);
     }
 
-    /** Frontend ile aynı tarih formatı preset anahtarları. */
-    private static final java.util.Set<String> ALLOWED_DATE_FORMATS =
-            java.util.Set.of("DMY_SLASH", "MDY_SLASH", "YMD_DASH", "DMY_DOT", "MED");
-
     /**
-     * Updates the user's preferred date format. Only the known preset keys are
-     * accepted; other values are rejected with 400.
+     * Updates the user's preferred date format. Only the known preset keys
+     * ({@link DateFormat}) are accepted; other values are rejected with 400.
      *
      * @param userId target user ID
      * @param format date format preset key
@@ -454,14 +455,15 @@ public class UserService {
      */
     @Transactional
     public User updatePreferredDateFormat(String userId, String format) {
-        if (format == null || !ALLOWED_DATE_FORMATS.contains(format)) {
+        DateFormat parsedFormat = DateFormat.fromNullable(format);
+        if (parsedFormat == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Unsupported date format. Supported: " + ALLOWED_DATE_FORMATS);
+                    "Unsupported date format. Supported: " + java.util.Arrays.toString(DateFormat.values()));
         }
         User user = getUserById(userId);
-        user.setPreferredDateFormat(format);
-        log.debug("Kullanıcı tarih formatı tercihi güncellendi. ID: {}, Format: {}", userId, format);
+        user.setPreferredDateFormat(parsedFormat);
+        log.debug("Kullanıcı tarih formatı tercihi güncellendi. ID: {}, Format: {}", userId, parsedFormat);
         return userRepository.save(user);
     }
 

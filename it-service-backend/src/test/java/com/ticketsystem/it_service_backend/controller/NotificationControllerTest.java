@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.NotificationResponse;
+import com.ticketsystem.it_service_backend.entity.NotificationReferenceType;
 import com.ticketsystem.it_service_backend.entity.NotificationType;
 import com.ticketsystem.it_service_backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ class NotificationControllerTest {
         NotificationResponse item = NotificationResponse.builder()
                 .id(1L).userId("user-1").message("Bilet oluşturuldu.")
                 .isRead(false).createdAt(ZonedDateTime.now())
-                .type(NotificationType.TICKET_CREATED).referenceId(10L).referenceType("TICKET")
+                .type(NotificationType.TICKET_CREATED).referenceId(10L).referenceType(NotificationReferenceType.TICKET)
                 .build();
 
         Page<NotificationResponse> page = new PageImpl<>(List.of(item));

@@ -26,9 +26,10 @@ public class SlaPolicy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Priority level: LOW, MEDIUM, HIGH, CRITICAL. */
+    /** Priority level — persisted as the enum name (see {@link Priority}); one row per priority. */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 10)
-    private String priority;
+    private Priority priority;
 
     /** Target resolution duration (hours). */
     @Column(name = "target_resolution_hours", nullable = false)

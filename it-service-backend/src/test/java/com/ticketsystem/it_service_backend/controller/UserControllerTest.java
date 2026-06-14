@@ -2,7 +2,9 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.PdfPreferencesDTO;
 import com.ticketsystem.it_service_backend.dto.UserDTO;
+import com.ticketsystem.it_service_backend.entity.Language;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.service.EmailService;
 import com.ticketsystem.it_service_backend.service.KeycloakAdminService;
@@ -212,14 +214,14 @@ class UserControllerTest {
 
     @Test
     void updateLanguage_returnsUpdatedDto() {
-        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredLanguage("tr").build();
+        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredLanguage(Language.TR).build();
         when(userService.updatePreferredLanguage("u-1", "tr")).thenReturn(updated);
         Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
 
         ResponseEntity<UserDTO> response = userController.updateLanguage(jwt, "tr");
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("tr", response.getBody().getPreferredLanguage());
+        assertEquals(Language.TR, response.getBody().getPreferredLanguage());
     }
 
     // -------------------------------------------------------------------------
@@ -228,14 +230,14 @@ class UserControllerTest {
 
     @Test
     void updateTheme_returnsUpdatedDto() {
-        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredTheme("dark").build();
+        User updated = User.builder().id("u-1").fullName("N").role("CUSTOMER").preferredTheme(Theme.DARK).build();
         when(userService.updatePreferredTheme("u-1", "dark")).thenReturn(updated);
         Jwt jwt = jwtWithRoles("u-1", List.of("CUSTOMER"));
 
         ResponseEntity<UserDTO> response = userController.updateTheme(jwt, "dark");
 
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("dark", response.getBody().getPreferredTheme());
+        assertEquals(Theme.DARK, response.getBody().getPreferredTheme());
     }
 
     // -------------------------------------------------------------------------

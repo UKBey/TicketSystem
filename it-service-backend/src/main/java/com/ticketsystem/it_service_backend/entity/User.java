@@ -1,5 +1,7 @@
 package com.ticketsystem.it_service_backend.entity;
 
+import com.ticketsystem.it_service_backend.converter.LanguageConverter;
+import com.ticketsystem.it_service_backend.converter.ThemeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.ZonedDateTime;
@@ -57,29 +59,31 @@ public class User {
     private Boolean isActive = true;
 
     /**
-     * The user's preferred language code (ISO 639-1).
-     * Supported values: "en" (default), "tr".
+     * The user's preferred language (ISO 639-1). Persisted as its lower-case code
+     * ({@code en}/{@code tr}) via {@link LanguageConverter}.
      */
+    @Convert(converter = LanguageConverter.class)
     @Column(name = "preferred_language", length = 5, nullable = false)
     @Builder.Default
-    private String preferredLanguage = "en";
+    private Language preferredLanguage = Language.DEFAULT;
 
     /**
-     * The user's preferred theme. Supported values: "light" (default), "dark".
-     * Email templates pick a light or dark color palette based on this value.
+     * The user's preferred theme. Persisted as its lower-case token ({@code light}/{@code dark})
+     * via {@link ThemeConverter}. Email templates pick a light or dark palette from this value.
      */
+    @Convert(converter = ThemeConverter.class)
     @Column(name = "preferred_theme", length = 10, nullable = false)
     @Builder.Default
-    private String preferredTheme = "light";
+    private Theme preferredTheme = Theme.DEFAULT;
 
     /**
-     * The user's preferred date display format (a preset key the frontend understands):
-     * {@code DMY_SLASH}, {@code MDY_SLASH}, {@code YMD_DASH}, {@code DMY_DOT}, {@code MED}.
-     * Drives every date shown in the UI.
+     * The user's preferred date display format (a preset key the frontend understands).
+     * Drives every date shown in the UI; persisted as the enum name (see {@link DateFormat}).
      */
+    @Enumerated(EnumType.STRING)
     @Column(name = "preferred_date_format", length = 20, nullable = false)
     @Builder.Default
-    private String preferredDateFormat = "DMY_SLASH";
+    private DateFormat preferredDateFormat = DateFormat.DEFAULT;
 
     /**
      * Last-used selections in the PDF export modal (which sections, PDF language, PDF

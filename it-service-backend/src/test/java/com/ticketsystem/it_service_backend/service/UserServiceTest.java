@@ -2,7 +2,9 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.entity.AgentProductLimit;
+import com.ticketsystem.it_service_backend.entity.Language;
 import com.ticketsystem.it_service_backend.entity.Product;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -532,7 +534,7 @@ class UserServiceTest {
 
         User result = userService.updatePreferredLanguage("agent-1", "en");
 
-        assertThat(result.getPreferredLanguage()).isEqualTo("en");
+        assertThat(result.getPreferredLanguage()).isEqualTo(Language.EN);
     }
 
     @Test
@@ -543,7 +545,7 @@ class UserServiceTest {
 
         User result = userService.updatePreferredLanguage("agent-1", "tr");
 
-        assertThat(result.getPreferredLanguage()).isEqualTo("tr");
+        assertThat(result.getPreferredLanguage()).isEqualTo(Language.TR);
     }
 
     @Test
@@ -566,7 +568,7 @@ class UserServiceTest {
 
         User result = userService.updatePreferredTheme("agent-1", "dark");
 
-        assertThat(result.getPreferredTheme()).isEqualTo("dark");
+        assertThat(result.getPreferredTheme()).isEqualTo(Theme.DARK);
     }
 
     @Test
@@ -577,7 +579,7 @@ class UserServiceTest {
 
         User result = userService.updatePreferredTheme("agent-1", "light");
 
-        assertThat(result.getPreferredTheme()).isEqualTo("light");
+        assertThat(result.getPreferredTheme()).isEqualTo(Theme.LIGHT);
     }
 
     @Test

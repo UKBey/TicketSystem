@@ -12,7 +12,7 @@ package com.ticketsystem.it_service_backend.websocket;
  * @param type    event kind — the frontend dispatches this with a switch
  * @param payload event-specific DTO, or {@code null}
  */
-public record TicketWebSocketEvent(String type, Object payload) {
+public record TicketWebSocketEvent(TicketEventType type, Object payload) {
 
     /**
      * Published when a new comment is added.
@@ -20,7 +20,7 @@ public record TicketWebSocketEvent(String type, Object payload) {
      * @param commentDto DTO representation of the newly added comment
      */
     public static TicketWebSocketEvent commentAdded(Object commentDto) {
-        return new TicketWebSocketEvent("COMMENT_ADDED", commentDto);
+        return new TicketWebSocketEvent(TicketEventType.COMMENT_ADDED, commentDto);
     }
 
     /**
@@ -29,7 +29,7 @@ public record TicketWebSocketEvent(String type, Object payload) {
      * @param attachmentDto DTO representation of the newly added attachment
      */
     public static TicketWebSocketEvent attachmentAdded(Object attachmentDto) {
-        return new TicketWebSocketEvent("ATTACHMENT_ADDED", attachmentDto);
+        return new TicketWebSocketEvent(TicketEventType.ATTACHMENT_ADDED, attachmentDto);
     }
 
     /**
@@ -37,6 +37,6 @@ public record TicketWebSocketEvent(String type, Object payload) {
      * carries no payload and the frontend re-fetches for fresh data.
      */
     public static TicketWebSocketEvent ticketUpdated() {
-        return new TicketWebSocketEvent("TICKET_UPDATED", null);
+        return new TicketWebSocketEvent(TicketEventType.TICKET_UPDATED, null);
     }
 }

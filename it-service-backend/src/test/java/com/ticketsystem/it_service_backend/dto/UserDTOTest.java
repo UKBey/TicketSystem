@@ -1,5 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.Language;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.User;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +16,7 @@ class UserDTOTest {
         return User.builder()
                 .id("kc-1").email("a@b.com").fullName("Ali Yılmaz")
                 .role("AGENT").isActive(true)
-                .preferredLanguage("tr").preferredTheme("dark");
+                .preferredLanguage(Language.TR).preferredTheme(Theme.DARK);
     }
 
     @Test
@@ -26,8 +28,8 @@ class UserDTOTest {
         assertThat(dto.getFullName()).isEqualTo("Ali Yılmaz");
         assertThat(dto.getRole()).isEqualTo("AGENT");
         assertThat(dto.getIsActive()).isTrue();
-        assertThat(dto.getPreferredLanguage()).isEqualTo("tr");
-        assertThat(dto.getPreferredTheme()).isEqualTo("dark");
+        assertThat(dto.getPreferredLanguage()).isEqualTo(Language.TR);
+        assertThat(dto.getPreferredTheme()).isEqualTo(Theme.DARK);
         // default authorizedProducts is an empty (non-null) list → maps to empty list
         assertThat(dto.getAuthorizedProducts()).isEmpty();
     }

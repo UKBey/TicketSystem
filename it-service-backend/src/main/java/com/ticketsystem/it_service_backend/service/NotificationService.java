@@ -495,13 +495,10 @@ public class NotificationService {
      * Safe mapping: blank → English; starts with "tr" → Turkish; otherwise English.
      */
     private Locale resolveUserLocale(String userId) {
-        String lang = userRepository.findById(userId)
+        return userRepository.findById(userId)
                 .map(User::getPreferredLanguage)
-                .orElse(null);
-        if (lang == null || lang.isBlank()) {
-            return Locale.ENGLISH;
-        }
-        return lang.toLowerCase(Locale.ROOT).startsWith("tr") ? Locale.forLanguageTag("tr") : Locale.ENGLISH;
+                .map(Language::toLocale)
+                .orElse(Locale.ENGLISH);
     }
 
     /**
@@ -533,7 +530,7 @@ public class NotificationService {
                 .messageKey(messageKey)
                 .messageArgs(args)
                 .referenceId(referenceId)
-                .referenceType("TICKET")
+                .referenceType(NotificationReferenceType.TICKET)
                 .isRead(false)
                 .emailSent(false)
                 .build();

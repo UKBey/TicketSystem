@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.service;
 
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
+import com.ticketsystem.it_service_backend.entity.TicketReasonCode;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.websocket.TicketWebSocketEvent;
 import lombok.RequiredArgsConstructor;
@@ -80,7 +81,7 @@ public class TicketAuditHelper {
         if (reasonCode == null || reasonCode.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.required");
         }
-        if ("OTHER".equals(reasonCode) && (note == null || note.isBlank())) {
+        if (TicketReasonCode.isOther(reasonCode) && (note == null || note.isBlank())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.reason.note.required");
         }
     }

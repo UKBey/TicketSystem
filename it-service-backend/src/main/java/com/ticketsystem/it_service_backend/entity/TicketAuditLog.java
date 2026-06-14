@@ -37,7 +37,11 @@ public class TicketAuditLog {
     @Column(name = "action_type", nullable = false, length = 30)
     private String actionType;
 
-    /** Reason code for the action (e.g. WAITING_FOR_CUSTOMER) — optional, used in reporting. */
+    /**
+     * Canonical reason for the action (optional, used in reporting). The closed set is
+     * {@link TicketReasonCode}; stored as a plain {@code String} — like {@link #actionType} —
+     * because this table is append-only and reads must never fail on a retired code.
+     */
     @Column(name = "reason_code", length = 50)
     private String reasonCode;
 

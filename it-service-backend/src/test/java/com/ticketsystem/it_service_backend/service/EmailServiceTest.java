@@ -1,5 +1,7 @@
 package com.ticketsystem.it_service_backend.service;
 
+import com.ticketsystem.it_service_backend.entity.Language;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -132,7 +134,7 @@ class EmailServiceTest {
                 .id("dark-1")
                 .email("dark@example.com")
                 .fullName("Dark Mode User")
-                .preferredTheme("dark")
+                .preferredTheme(Theme.DARK)
                 .build();
 
         emailService.sendTicketCreatedEmail(darkUser, ticket);
@@ -169,7 +171,7 @@ class EmailServiceTest {
     @Test
     void sendPasswordResetEmail_nullOverrides_fallsBackToUserPreference() {
         User trUser = User.builder().id("tr-1").email("tr@example.com").fullName("Türk Kullanıcı")
-                .preferredLanguage("tr").preferredTheme("light").build();
+                .preferredLanguage(Language.TR).preferredTheme(Theme.LIGHT).build();
         emailService.sendPasswordResetEmail(trUser, "https://app/reset?token=xyz", 30, null, null);
         verify(mailSender).send(any(MimeMessage.class));
     }

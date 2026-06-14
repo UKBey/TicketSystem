@@ -3,6 +3,8 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.dto.CannedResponseDTO;
 import com.ticketsystem.it_service_backend.entity.CannedResponse;
 import com.ticketsystem.it_service_backend.entity.CannedResponseFavorite;
+import com.ticketsystem.it_service_backend.entity.CannedResponseScope;
+import com.ticketsystem.it_service_backend.entity.CannedResponseVisibility;
 import com.ticketsystem.it_service_backend.repository.CannedResponseFavoriteRepository;
 import com.ticketsystem.it_service_backend.repository.CannedResponseRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -17,8 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static com.ticketsystem.it_service_backend.entity.CannedResponse.*;
 
 /**
  * Business logic for canned responses (quick replies).
@@ -68,8 +68,8 @@ public class CannedResponseService {
     public List<CannedResponseDTO> listVisible(String userId, Long productId,
                                                String scope, String visibility, String q) {
         // Validate optional filters up front so a bad value yields 400, not a silent empty list.
-        String scopeFilter = validateScopeFilter(scope);
-        String visFilter = validateVisibilityFilter(visibility);
+        CannedResponseScope scopeFilter = validateScopeFilter(scope);
+        CannedResponseVisibility visFilter = validateVisibilityFilter(visibility);
         String needle = (q == null || q.isBlank()) ? null : q.trim().toLowerCase();
 
         List<CannedResponse> base = (productId != null)
@@ -79,7 +79,7 @@ public class CannedResponseService {
         Set<Long> favoriteIds = new HashSet<>(favoriteRepository.findFavoriteIdsByUser(userId));
 
         return base.stream()
-                .filter(c -> scopeFilter == null || scopeFilter.equals(c.getScope()))
+                .filter(c -> scopeFilter == null || scopeFilter == c.getScope())
                 .filter(c -> matchesVisibility(c, visFilter))
                 .filter(c -> matchesSearch(c, needle))
                 .map(c -> CannedResponseDTO.fromEntity(c, favoriteIds.contains(c.getId())))
@@ -99,8 +99,8 @@ public class CannedResponseService {
      */
     @Transactional
     public CannedResponseDTO create(CannedResponseDTO dto, String userId, List<String> roles) {
-        String scope = normalizeScope(dto.getScope());
-        if (SCOPE_SHARED.equals(scope)) {
+        CannedResponseScope scope = normalizeScope(dto.getScope());
+        if (scope == CannedResponseScope.SHARED) {
             requireAdmin(roles);
         }
 
@@ -109,7 +109,7 @@ public class CannedResponseService {
         String en = blankToNull(dto.getContentEn());
         requireAtLeastOneContent(tr, en);
         validateContentLengths(tr, en);
-        String visibility = normalizeVisibility(dto.getVisibility());
+        CannedResponseVisibility visibility = normalizeVisibility(dto.getVisibility());
 
         // Both PERSONAL and SHARED templates may be tied to a product (or left global/null).
         Long productId = dto.getProductId();
@@ -143,8 +143,8 @@ public class CannedResponseService {
         CannedResponse existing = findOrThrow(id);
         ensureCanManage(existing, userId, roles);
 
-        String targetScope = normalizeScope(dto.getScope());
-        if (SCOPE_SHARED.equals(targetScope) || SCOPE_SHARED.equals(existing.getScope())) {
+        CannedResponseScope targetScope = normalizeScope(dto.getScope());
+        if (targetScope == CannedResponseScope.SHARED || existing.getScope() == CannedResponseScope.SHARED) {
             requireAdmin(roles);
         }
 
@@ -226,10 +226,10 @@ public class CannedResponseService {
     }
 
     /** Whether a {@code visibility} filter keeps the template ({@code BOTH} always suits). */
-    private boolean matchesVisibility(CannedResponse c, String requested) {
+    private boolean matchesVisibility(CannedResponse c, CannedResponseVisibility requested) {
         if (requested == null) return true;
-        if (VISIBILITY_BOTH.equals(c.getVisibility())) return true;
-        return requested.equals(c.getVisibility());
+        if (c.getVisibility() == CannedResponseVisibility.BOTH) return true;
+        return requested == c.getVisibility();
     }
 
     private boolean matchesSearch(CannedResponse c, String needle) {
@@ -246,7 +246,7 @@ public class CannedResponseService {
 
     /** Personal: only the owner manages. Shared: only admin/manager manages. */
     private void ensureCanManage(CannedResponse c, String userId, List<String> roles) {
-        if (SCOPE_SHARED.equals(c.getScope())) {
+        if (c.getScope() == CannedResponseScope.SHARED) {
             requireAdmin(roles);
             return;
         }
@@ -257,8 +257,8 @@ public class CannedResponseService {
 
     /** A user may see their own personal templates and all shared templates. */
     private void ensureVisible(CannedResponse c, String userId) {
-        boolean visible = SCOPE_SHARED.equals(c.getScope())
-                || (SCOPE_PERSONAL.equals(c.getScope()) && c.getOwnerAgentId().equals(userId));
+        boolean visible = c.getScope() == CannedResponseScope.SHARED
+                || (c.getScope() == CannedResponseScope.PERSONAL && c.getOwnerAgentId().equals(userId));
         if (!visible) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.cannedResponse.forbidden");
         }
@@ -272,42 +272,44 @@ public class CannedResponseService {
         }
     }
 
-    private String normalizeScope(String scope) {
-        if (scope == null || scope.isBlank()) return SCOPE_PERSONAL;
-        String upper = scope.trim().toUpperCase();
-        if (!SCOPE_PERSONAL.equals(upper) && !SCOPE_SHARED.equals(upper)) {
+    /** Parses a body scope, defaulting blank to {@link CannedResponseScope#PERSONAL}; unknown → 400. */
+    private CannedResponseScope normalizeScope(String scope) {
+        if (scope == null || scope.isBlank()) return CannedResponseScope.PERSONAL;
+        CannedResponseScope parsed = CannedResponseScope.fromNullable(scope);
+        if (parsed == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.scope.invalid");
         }
-        return upper;
+        return parsed;
     }
 
     /** Optional scope filter for listing: blank/null → no filter; an unknown value → 400. */
-    private String validateScopeFilter(String scope) {
+    private CannedResponseScope validateScopeFilter(String scope) {
         if (scope == null || scope.isBlank()) return null;
-        String upper = scope.trim().toUpperCase();
-        if (!SCOPE_PERSONAL.equals(upper) && !SCOPE_SHARED.equals(upper)) {
+        CannedResponseScope parsed = CannedResponseScope.fromNullable(scope);
+        if (parsed == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.scope.invalid");
         }
-        return upper;
+        return parsed;
     }
 
     /** Optional visibility filter for listing: blank/null → no filter; an unknown value → 400. */
-    private String validateVisibilityFilter(String visibility) {
+    private CannedResponseVisibility validateVisibilityFilter(String visibility) {
         if (visibility == null || visibility.isBlank()) return null;
-        String upper = visibility.trim().toUpperCase();
-        if (!VISIBILITY_EXTERNAL.equals(upper) && !VISIBILITY_INTERNAL.equals(upper) && !VISIBILITY_BOTH.equals(upper)) {
+        CannedResponseVisibility parsed = CannedResponseVisibility.fromNullable(visibility);
+        if (parsed == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.visibility.invalid");
         }
-        return upper;
+        return parsed;
     }
 
-    private String normalizeVisibility(String visibility) {
-        if (visibility == null || visibility.isBlank()) return VISIBILITY_BOTH;
-        String upper = visibility.trim().toUpperCase();
-        if (!VISIBILITY_EXTERNAL.equals(upper) && !VISIBILITY_INTERNAL.equals(upper) && !VISIBILITY_BOTH.equals(upper)) {
+    /** Parses a body visibility, defaulting blank to {@link CannedResponseVisibility#BOTH}; unknown → 400. */
+    private CannedResponseVisibility normalizeVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) return CannedResponseVisibility.BOTH;
+        CannedResponseVisibility parsed = CannedResponseVisibility.fromNullable(visibility);
+        if (parsed == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.cannedResponse.visibility.invalid");
         }
-        return upper;
+        return parsed;
     }
 
     /** Trim, drop leading slashes and lower-case the shortcut; blank becomes {@code null}. */

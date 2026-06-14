@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
 import com.ticketsystem.it_service_backend.entity.Notification;
+import com.ticketsystem.it_service_backend.entity.NotificationReferenceType;
 import com.ticketsystem.it_service_backend.entity.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -43,7 +44,7 @@ public class NotificationResponse {
     private Long referenceId;
 
     @Schema(description = "İlgili kayıt tipi", example = "TICKET")
-    private String referenceType;
+    private NotificationReferenceType referenceType;
 
     /**
      * Maps a notification using its legacy stored {@code message} text as-is.

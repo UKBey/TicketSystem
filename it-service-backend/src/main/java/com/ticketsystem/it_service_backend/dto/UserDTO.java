@@ -1,5 +1,8 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.DateFormat;
+import com.ticketsystem.it_service_backend.entity.Language;
+import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -45,14 +48,14 @@ public class UserDTO {
     private Boolean isActive;
 
     @Schema(description = "Kullanıcının tercih ettiği dil kodu (ISO 639-1)", example = "tr", allowableValues = {"en", "tr"})
-    private String preferredLanguage;
+    private Language preferredLanguage;
 
     @Schema(description = "Kullanıcının tercih ettiği tema", example = "dark", allowableValues = {"light", "dark"})
-    private String preferredTheme;
+    private Theme preferredTheme;
 
     @Schema(description = "Kullanıcının tercih ettiği tarih formatı (preset anahtarı)", example = "DMY_SLASH",
             allowableValues = {"DMY_SLASH", "MDY_SLASH", "YMD_DASH", "DMY_DOT", "MED"})
-    private String preferredDateFormat;
+    private DateFormat preferredDateFormat;
 
     @Schema(description = "Kullanıcının sisteme ilk kaydedildiği tarih", example = "2026-01-15T09:00:00+03:00")
     private ZonedDateTime createdAt;

@@ -3,6 +3,8 @@ package com.ticketsystem.it_service_backend.service;
 import com.ticketsystem.it_service_backend.dto.CannedResponseDTO;
 import com.ticketsystem.it_service_backend.entity.CannedResponse;
 import com.ticketsystem.it_service_backend.entity.CannedResponseFavorite;
+import com.ticketsystem.it_service_backend.entity.CannedResponseScope;
+import com.ticketsystem.it_service_backend.entity.CannedResponseVisibility;
 import com.ticketsystem.it_service_backend.repository.CannedResponseFavoriteRepository;
 import com.ticketsystem.it_service_backend.repository.CannedResponseRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
@@ -43,16 +45,16 @@ class CannedResponseServiceTest {
         return CannedResponse.builder()
                 .id(1L).title("Greeting").shortcut("hi")
                 .contentTr("Merhaba").contentEn("Hello")
-                .scope(CannedResponse.SCOPE_PERSONAL).ownerAgentId(owner)
-                .visibility(CannedResponse.VISIBILITY_BOTH).build();
+                .scope(CannedResponseScope.PERSONAL).ownerAgentId(owner)
+                .visibility(CannedResponseVisibility.BOTH).build();
     }
 
     private CannedResponse shared(Long productId) {
         return CannedResponse.builder()
                 .id(2L).title("VPN steps").shortcut("vpn")
                 .contentTr("VPN adımları").contentEn("VPN steps")
-                .scope(CannedResponse.SCOPE_SHARED).ownerAgentId("admin-1")
-                .productId(productId).visibility(CannedResponse.VISIBILITY_EXTERNAL).build();
+                .scope(CannedResponseScope.SHARED).ownerAgentId("admin-1")
+                .productId(productId).visibility(CannedResponseVisibility.EXTERNAL).build();
     }
 
     private CannedResponseDTO dto(String scope, String tr, String en) {
@@ -483,8 +485,8 @@ class CannedResponseServiceTest {
         verify(repository).save(captor.capture());
         assertThat(captor.getValue().getTitle()).isEqualTo("Hello");
         assertThat(captor.getValue().getShortcut()).isEqualTo("hi");
-        assertThat(captor.getValue().getScope()).isEqualTo(CannedResponse.SCOPE_PERSONAL);
-        assertThat(captor.getValue().getVisibility()).isEqualTo(CannedResponse.VISIBILITY_BOTH);
+        assertThat(captor.getValue().getScope()).isEqualTo(CannedResponseScope.PERSONAL);
+        assertThat(captor.getValue().getVisibility()).isEqualTo(CannedResponseVisibility.BOTH);
         assertThat(result).isNotNull();
     }
 

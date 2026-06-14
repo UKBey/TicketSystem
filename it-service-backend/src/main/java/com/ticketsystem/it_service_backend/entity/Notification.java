@@ -68,9 +68,10 @@ public class Notification {
     @Column(name = "reference_id")
     private Long referenceId;
 
-    /** Reference type tag: "ticket", "comment", "csat", etc. — used for UI navigation. */
+    /** Reference type tag (TICKET/COMMENT/CSAT) — used for UI navigation; persisted as the enum name. */
+    @Enumerated(EnumType.STRING)
     @Column(name = "reference_type", length = 50)
-    private String referenceType;
+    private NotificationReferenceType referenceType;
 
     @Column(name = "email_sent")
     @Builder.Default

@@ -1,5 +1,6 @@
 package com.ticketsystem.it_service_backend.dto;
 
+import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.SlaPolicy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -18,7 +19,7 @@ public class SlaPolicyResponseDTO {
     private Long id;
 
     @Schema(description = "Öncelik seviyesi", example = "HIGH")
-    private String priority;
+    private Priority priority;
 
     @Schema(description = "Hedef çözüm süresi (saat)", example = "4")
     private Integer targetResolutionHours;
