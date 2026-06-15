@@ -6,6 +6,7 @@ import api from '../services/api';
 import MultiSelectFilter from './filters/MultiSelectFilter';
 import FilterSearchInput from './filters/FilterSearchInput';
 import FilterChip from './filters/FilterChip';
+import FloatingPanel from './filters/FloatingPanel';
 import { formatDate } from '../utils/dateFormat';
 import { useDateFormat } from '../context/DateFormatContext';
 import ClearFiltersButton from './filters/ClearFiltersButton';
@@ -237,18 +238,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
   const ref = useRef(null);
   const hasDate = dateFrom || dateTo;
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        setActiveCalendar(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  useEffect(() => { if (!open) setActiveCalendar(null); }, [open]);
+  const closePanel = () => { setOpen(false); setActiveCalendar(null); };
 
   const applyPreset = (days) => {
     let from, to;
@@ -265,15 +255,13 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
     }
     if (onDateRange) onDateRange(from, to);
     else { onDateFrom(from); onDateTo(to); }
-    setActiveCalendar(null);
-    setOpen(false);
+    closePanel();
   };
 
   const clearDates = () => {
     if (onDateRange) onDateRange('', '');
     else { onDateFrom(''); onDateTo(''); }
-    setActiveCalendar(null);
-    setOpen(false);
+    closePanel();
   };
 
   const isPresetActive = (days) => {
@@ -303,7 +291,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
     <div className="relative w-full sm:w-auto" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => { if (open) closePanel(); else setOpen(true); }}
         className="w-full sm:w-auto inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all"
         style={{
           backgroundColor: hasDate ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
@@ -318,10 +306,13 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
         <ChevronDown className="h-3 w-3 shrink-0" />
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg w-72"
-          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-
+      <FloatingPanel
+        anchorRef={ref}
+        open={open}
+        onClose={closePanel}
+        className="rounded-xl border shadow-lg w-72"
+        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      >
           {/* Quick presets */}
           <div className="p-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
@@ -403,8 +394,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
               </button>
             )}
           </div>
-        </div>
-      )}
+      </FloatingPanel>
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronDown, Check, X, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import FloatingPanel from './FloatingPanel';
 
 // Seçenek sayısı bunu aşınca dropdown içine arama kutusu eklenir (100 ürün/agent gibi
 // uzun listelerde scroll'la aramak yerine yazarak filtrelemek için).
@@ -29,47 +30,14 @@ export default function MultiSelectFilter({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [alignRight, setAlignRight] = useState(false);
   const [query, setQuery] = useState('');
   const ref = useRef(null);
-  const dropdownRef = useRef(null);
   const hasValue = values.length > 0;
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   const showSearch = options.length > SEARCH_THRESHOLD;
   const visibleOptions = query.trim()
     ? options.filter((o) => String(o.label).toLowerCase().includes(query.trim().toLowerCase()))
     : options;
-
-  // Açıldıktan sonra gerçek dropdown genişliğini ölç: sola hizalı hâli en yakın
-  // yatay-kırpan ata kutusunu (örn. overflow-hidden kart) ya da ekranı taşıyorsa
-  // sağa hizala — böylece liste/kartın sağ kenarından dışarı taşmaz/kırpılmaz.
-  useEffect(() => {
-    if (!open) return;
-    const dd = dropdownRef.current;
-    if (!dd) return;
-    const rect = dd.getBoundingClientRect();
-    let limit = window.innerWidth - 8;
-    let p = ref.current?.parentElement;
-    while (p && p !== document.body) {
-      const ox = getComputedStyle(p).overflowX;
-      if (ox === 'hidden' || ox === 'auto' || ox === 'scroll') {
-        limit = Math.min(limit, p.getBoundingClientRect().right - 8);
-        break;
-      }
-      p = p.parentElement;
-    }
-    // Açılışta handler alignRight'ı false'a çeker; burada sola hizalı ölçüme göre
-    // gerekirse sağa çevrilir (alignRight dep listesinde değil → cascade yok).
-    setAlignRight(rect.right > limit);
-  }, [open]);
 
   const toggle = (val) => {
     if (values.includes(val)) {
@@ -88,7 +56,7 @@ export default function MultiSelectFilter({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => { if (disabled) return; if (!open) { setQuery(''); setAlignRight(false); } setOpen((v) => !v); }}
+        onClick={() => { if (disabled) return; if (!open) setQuery(''); setOpen((v) => !v); }}
         className="w-full sm:w-auto sm:min-w-[10rem] sm:max-w-[var(--msf-max-w)] inline-flex items-center justify-between sm:justify-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs cursor-pointer transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         style={{
           backgroundColor: hasValue ? 'rgba(59,130,246,0.08)' : 'var(--bg-input)',
@@ -101,12 +69,13 @@ export default function MultiSelectFilter({
         <ChevronDown className="h-3 w-3 flex-shrink-0" />
       </button>
 
-      {open && !disabled && (
-        <div
-          ref={dropdownRef}
-          className={`absolute ${alignRight ? 'right-0' : 'left-0'} top-full mt-1 z-50 rounded-xl border shadow-lg py-1 min-w-[200px] flex flex-col max-h-[320px]`}
-          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-        >
+      <FloatingPanel
+        anchorRef={ref}
+        open={open && !disabled}
+        onClose={() => setOpen(false)}
+        className="rounded-xl border shadow-lg py-1 min-w-[200px] flex flex-col max-h-[320px]"
+        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      >
           {showSearch && (
             <div className="px-2 pb-1.5 pt-0.5">
               <div className="relative">
@@ -166,8 +135,7 @@ export default function MultiSelectFilter({
               {t('filters.clear')}
             </button>
           )}
-        </div>
-      )}
+      </FloatingPanel>
     </div>
   );
 }
