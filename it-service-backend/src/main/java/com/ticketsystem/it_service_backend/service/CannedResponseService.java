@@ -11,6 +11,8 @@ import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +86,50 @@ public class CannedResponseService {
                 .filter(c -> matchesSearch(c, needle))
                 .map(c -> CannedResponseDTO.fromEntity(c, favoriteIds.contains(c.getId())))
                 .toList();
+    }
+
+    /**
+     * Paginated + filtered variant of {@link #listVisible} for the management screen.
+     * All filters are applied in SQL with exact-match semantics (the page no longer
+     * fetches everything and filters in memory). Each DTO carries the caller's favorite flag.
+     *
+     * @param userId requesting agent's Keycloak subject
+     * @param productId specific product filter (used only when {@code globalOnly} is false)
+     * @param globalOnly when {@code true}, only global (productless) templates
+     * @param scope optional exact scope filter ({@code PERSONAL}/{@code SHARED})
+     * @param visibility optional exact visibility filter ({@code EXTERNAL}/{@code INTERNAL}/{@code BOTH})
+     * @param lang optional language filter ({@code tr}/{@code en}) — keeps rows with that content variant
+     * @param q optional case-insensitive search over title, shortcut and both content variants
+     * @param pageable page/size/sort
+     * @return matching templates as a page
+     */
+    @Transactional(readOnly = true)
+    public Page<CannedResponseDTO> listVisiblePaged(String userId, Long productId, boolean globalOnly,
+                                                    String scope, String visibility, String lang,
+                                                    String q, Pageable pageable) {
+        // validate* yine 400 fırlatsın diye çağrılır; sorguya String (enum adı) ya da null geçilir
+        // (kod tabanı gotcha'sı: Hibernate 7 enum alanı için cast(... as String) + String param ister).
+        CannedResponseScope scopeFilter = validateScopeFilter(scope);
+        CannedResponseVisibility visFilter = validateVisibilityFilter(visibility);
+        String scopeParam = scopeFilter == null ? null : scopeFilter.name();
+        String visParam = visFilter == null ? null : visFilter.name();
+        String needle = (q == null || q.isBlank()) ? null : "%" + q.trim().toLowerCase() + "%";
+        String langFilter = normalizeLangFilter(lang);
+        String productMode = globalOnly ? "GLOBAL" : (productId != null ? "PRODUCT" : "ALL");
+        Long pid = "PRODUCT".equals(productMode) ? productId : null;
+
+        Page<CannedResponse> page = repository.findVisiblePaged(
+                userId, scopeParam, visParam, productMode, pid, langFilter, needle, pageable);
+
+        Set<Long> favoriteIds = new HashSet<>(favoriteRepository.findFavoriteIdsByUser(userId));
+        return page.map(c -> CannedResponseDTO.fromEntity(c, favoriteIds.contains(c.getId())));
+    }
+
+    /** Listing language filter: {@code tr}/{@code en} (case-insensitive); anything else → no filter. */
+    private String normalizeLangFilter(String lang) {
+        if (lang == null) return null;
+        String v = lang.trim().toLowerCase();
+        return (v.equals("tr") || v.equals("en")) ? v : null;
     }
 
     // --------------------------------------------------------------------

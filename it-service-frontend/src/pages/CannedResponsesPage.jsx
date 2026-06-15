@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Zap, Plus, Pencil, Trash2, X, Search, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api, {
-  listCannedResponses,
   createCannedResponse,
   updateCannedResponse,
   deleteCannedResponse,
@@ -15,7 +14,9 @@ import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } fro
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import { formatDate } from '../utils/dateFormat';
 import PaginationBar from '../components/PaginationBar';
+import ListLoadingOverlay from '../components/ListLoadingOverlay';
 import { useUrlState } from '../hooks/useUrlState';
+import { usePagedFetch } from '../hooks/usePagedFetch';
 
 const EMPTY_FORM = {
   title: '',
@@ -41,11 +42,11 @@ export default function CannedResponsesPage() {
   // Paylaşılan (SHARED) şablonları yönetme yetkisi — lead agent veya admin.
   const canManageShared = isLeadAgent || isAdmin;
 
-  const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // Favori değişimleri yerel olarak override edilir (her yıldız tıklamasında refetch/dim olmasın).
+  const [favOverrides, setFavOverrides] = useState({});
   // Arama + filtreler + sayfalama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
+  // Filtreleme + sayfalama sunucu taraflıdır (her değişimde backend'den yeni sayfa çekilir).
   const { str, num, setParams } = useUrlState();
   const search           = str('search');
   const scopeFilter      = str('scope', 'ALL');
@@ -94,53 +95,31 @@ export default function CannedResponsesPage() {
     api.get('/products').then((res) => setProducts(res.data || [])).catch(() => setProducts([]));
   }, []);
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await listCannedResponses();
-      setItems(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setError(t('cannedResponses.errorLoad'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  // Sunucu taraflı filtreleme + sayfalama. product filtresi 3 modlu: ALL / GLOBAL / belirli ürün.
+  const {
+    items: pageItems, totalItems, totalPages,
+    loading, initialLoading, error: fetchError, refetch,
+  } = usePagedFetch('/canned-responses/paged', {
+    q: search.trim() || undefined,
+    scope: scopeFilter === 'ALL' ? undefined : scopeFilter,
+    visibility: visibilityFilter === 'ALL' ? undefined : visibilityFilter,
+    lang: langFilter === 'ALL' ? undefined : langFilter,
+    global: productFilter === 'GLOBAL' ? true : undefined,
+    productId: (productFilter !== 'ALL' && productFilter !== 'GLOBAL') ? productFilter : undefined,
+    page, size,
+  });
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
+  // Aralık dışı sayfa (örn. eski ?page= linki) son geçerli sayfaya çekilir.
+  useEffect(() => {
+    if (page > 0 && totalPages > 0 && page >= totalPages) setPage(totalPages - 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, totalPages]);
 
   const canManageItem = (item) =>
     (item.scope === 'PERSONAL' && item.ownerAgentId === user?.id)
     || (item.scope === 'SHARED' && canManageShared);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((it) => {
-      if (scopeFilter !== 'ALL' && it.scope !== scopeFilter) return false;
-      if (productFilter === 'GLOBAL' && it.productId) return false;
-      if (productFilter !== 'ALL' && productFilter !== 'GLOBAL' && it.productId !== Number(productFilter)) return false;
-      if (langFilter === 'tr' && !(it.contentTr && it.contentTr.trim())) return false;
-      if (langFilter === 'en' && !(it.contentEn && it.contentEn.trim())) return false;
-      if (visibilityFilter !== 'ALL' && it.visibility !== visibilityFilter) return false;
-      if (!q) return true;
-      return [it.title, it.shortcut, it.contentTr, it.contentEn]
-        .some((f) => f && f.toLowerCase().includes(q));
-    });
-  }, [items, search, scopeFilter, productFilter, langFilter, visibilityFilter]);
-
-  // ---- pagination (client-side over the filtered list) --------------------
-  const totalItems = filtered.length;
-  const totalPages = Math.ceil(totalItems / size);
-  const safePage = Math.min(page, Math.max(0, totalPages - 1));
-  const pageItems = useMemo(
-    () => filtered.slice(safePage * size, safePage * size + size),
-    [filtered, safePage, size],
-  );
-
-  // Silme sonrası mevcut sayfa taşarsa son geçerli sayfaya kıs (filtre değişiminde
-  // page sıfırlaması zaten setter'larda — setParams resetPage ile — yapılıyor).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (page !== safePage) setPage(safePage); }, [page, safePage]);
+  const isFavorite = (item) => (item.id in favOverrides ? favOverrides[item.id] : item.favorite);
 
   // ---- modal ---------------------------------------------------------------
   const openCreate = () => {
@@ -206,13 +185,12 @@ export default function CannedResponsesPage() {
     try {
       setSaving(true);
       if (editing) {
-        const res = await updateCannedResponse(editing.id, payload);
-        setItems((prev) => prev.map((it) => (it.id === editing.id ? res.data : it)));
+        await updateCannedResponse(editing.id, payload);
       } else {
-        const res = await createCannedResponse(payload);
-        setItems((prev) => [res.data, ...prev]);
+        await createCannedResponse(payload);
       }
       closeModal();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('cannedResponses.errorSave'));
     } finally {
@@ -224,22 +202,24 @@ export default function CannedResponsesPage() {
     if (!window.confirm(t('cannedResponses.confirmDelete', { title: item.title }))) return;
     try {
       await deleteCannedResponse(item.id);
-      setItems((prev) => prev.filter((it) => it.id !== item.id));
+      // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
+      if (pageItems.length === 1 && page > 0) setPage(page - 1);
+      else refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('cannedResponses.errorDelete'));
     }
   };
 
-  // Favorilere ekle/çıkar — iyimser güncelleme, hatada geri al. Favori kişiseldir:
-  // kullanıcı yönetemediği (paylaşılan) şablonları da favoriye alabilir.
+  // Favorilere ekle/çıkar — iyimser yerel override (refetch/dim olmadan), hatada geri al.
+  // Favori kişiseldir: kullanıcı yönetemediği (paylaşılan) şablonları da favoriye alabilir.
   const handleToggleFavorite = async (item) => {
-    const next = !item.favorite;
-    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, favorite: next } : it)));
+    const next = !isFavorite(item);
+    setFavOverrides((prev) => ({ ...prev, [item.id]: next }));
     try {
       if (next) await favoriteCannedResponse(item.id);
       else await unfavoriteCannedResponse(item.id);
     } catch (err) {
-      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, favorite: !next } : it)));
+      setFavOverrides((prev) => ({ ...prev, [item.id]: !next }));
       toast.error(err.response?.data?.message || t('cannedResponses.errorFavorite'));
     }
   };
@@ -259,9 +239,9 @@ export default function CannedResponsesPage() {
         </p>
       </div>
 
-      {error && (
+      {fetchError && (
         <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
+          {fetchError}
         </div>
       )}
 
@@ -360,11 +340,8 @@ export default function CannedResponsesPage() {
       </div>
 
       {/* List */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-        </div>
-      ) : filtered.length === 0 ? (
+      <ListLoadingOverlay initial={initialLoading} loading={loading}>
+      {totalItems === 0 ? (
         <div
           className="rounded-xl border py-12 text-center text-sm"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
@@ -415,12 +392,12 @@ export default function CannedResponsesPage() {
                       style={{ borderColor: 'var(--border-color)' }}
                       title={t('cannedResponses.toggleFavorite')}
                       aria-label={t('cannedResponses.toggleFavorite')}
-                      aria-pressed={!!item.favorite}
+                      aria-pressed={isFavorite(item)}
                     >
                       <Star
                         className="h-3.5 w-3.5"
-                        fill={item.favorite ? '#f59e0b' : 'none'}
-                        style={{ color: item.favorite ? '#f59e0b' : 'var(--text-tertiary)' }}
+                        fill={isFavorite(item) ? '#f59e0b' : 'none'}
+                        style={{ color: isFavorite(item) ? '#f59e0b' : 'var(--text-tertiary)' }}
                       />
                     </button>
                     {canManageItem(item) && (
@@ -456,7 +433,7 @@ export default function CannedResponsesPage() {
 
         <div className="mt-3">
           <PaginationBar
-            page={safePage}
+            page={page}
             totalPages={totalPages}
             totalItems={totalItems}
             size={size}
@@ -466,6 +443,7 @@ export default function CannedResponsesPage() {
         </div>
         </>
       )}
+      </ListLoadingOverlay>
 
       {/* Create / Edit modal */}
       {isModalOpen && (

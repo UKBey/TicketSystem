@@ -1,6 +1,8 @@
 package com.ticketsystem.it_service_backend.repository;
 
 import com.ticketsystem.it_service_backend.entity.CannedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -41,4 +43,43 @@ public interface CannedResponseRepository extends JpaRepository<CannedResponse, 
             ORDER BY c.updatedAt DESC
             """)
     List<CannedResponse> findVisibleToUser(@Param("userId") String userId);
+
+    /**
+     * Paginated + filtered listing for the management screen. Pushes every filter that the
+     * page previously applied client-side into SQL (exact-match semantics, not the composer's
+     * "BOTH always matches"):
+     * <ul>
+     *   <li>{@code scope} / {@code visibility}: exact when non-null.</li>
+     *   <li>{@code productMode}: {@code ALL} (any), {@code GLOBAL} (productId IS NULL),
+     *       {@code PRODUCT} (productId = :productId).</li>
+     *   <li>{@code lang}: {@code tr}/{@code en} keeps rows that have that content variant.</li>
+     *   <li>{@code q}: already lower-cased {@code %needle%} matched against title/shortcut/contents.</li>
+     * </ul>
+     * Visibility base is unchanged: the user's own PERSONAL plus all SHARED.
+     */
+    @Query("""
+            SELECT c FROM CannedResponse c
+            WHERE ((c.scope = 'PERSONAL' AND c.ownerAgentId = :userId) OR c.scope = 'SHARED')
+              AND (:scope IS NULL OR cast(c.scope as String) = :scope)
+              AND (:visibility IS NULL OR cast(c.visibility as String) = :visibility)
+              AND ( :productMode = 'ALL'
+                    OR (:productMode = 'GLOBAL' AND c.productId IS NULL)
+                    OR (:productMode = 'PRODUCT' AND c.productId = :productId) )
+              AND ( :lang IS NULL
+                    OR (:lang = 'tr' AND c.contentTr IS NOT NULL AND c.contentTr <> '')
+                    OR (:lang = 'en' AND c.contentEn IS NOT NULL AND c.contentEn <> '') )
+              AND ( :q IS NULL
+                    OR LOWER(c.title) LIKE :q
+                    OR LOWER(c.shortcut) LIKE :q
+                    OR LOWER(c.contentTr) LIKE :q
+                    OR LOWER(c.contentEn) LIKE :q )
+            """)
+    Page<CannedResponse> findVisiblePaged(@Param("userId") String userId,
+                                          @Param("scope") String scope,
+                                          @Param("visibility") String visibility,
+                                          @Param("productMode") String productMode,
+                                          @Param("productId") Long productId,
+                                          @Param("lang") String lang,
+                                          @Param("q") String q,
+                                          Pageable pageable);
 }
