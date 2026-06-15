@@ -3,6 +3,7 @@ import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
+import { useToast } from '../context/ToastContext';
 
 // Sentinel value for the "No Topic" choice — only offered when the selected
 // product has no active topics. Submitted to the API as topicId: null.
@@ -14,6 +15,7 @@ const DESCRIPTION_MAX = 500;
 
 export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const { t } = useTranslation();
+  const toast = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
@@ -23,7 +25,6 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const [topics, setTopics] = useState([]);
   const [topicsLoading, setTopicsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   // Known issues for the selected topic — informational, doesn't block submit.
   const [knownIssues, setKnownIssues] = useState([]);
@@ -71,12 +72,11 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !productId || !topicId) {
-      setError(t('ticket.createModal.errorRequired'));
+      toast.error(t('ticket.createModal.errorRequired'));
       return;
     }
 
     setLoading(true);
-    setError('');
 
     try {
       const res = await api.post('/tickets', {
@@ -90,7 +90,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
       resetForm();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || t('ticket.createModal.errorCreate'));
+      toast.error(err.response?.data?.message || t('ticket.createModal.errorCreate'));
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,6 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
     setTopics([]);
     setKnownIssues([]);
     setExpandedIssueId(null);
-    setError('');
   };
 
   if (!isOpen) return null;
@@ -128,11 +127,6 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
           {/* Body */}
           <div className="px-4 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
-            {error && (
-              <div className="rounded-lg px-3 py-2 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-                {error}
-              </div>
-            )}
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelTitle')} *</label>
               <input

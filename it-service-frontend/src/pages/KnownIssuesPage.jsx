@@ -33,7 +33,6 @@ export default function KnownIssuesPage() {
 
   const [products, setProducts]                 = useState([]);
   const [topics, setTopics]                     = useState([]);
-  const [error, setError]                       = useState('');
 
   // Ürün / konu filtresi + sayfalama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
   // Filtreleme + sayfalama sunucu taraflıdır (her değişimde backend'den yeni sayfa çekilir).
@@ -79,7 +78,7 @@ export default function KnownIssuesPage() {
           if (!valid) setParams({ product: String(res.data[0].id), topic: '' });
         }
       })
-      .catch(() => setError(t('knownIssues.errorLoadProducts')));
+      .catch(() => toast.error(t('knownIssues.errorLoadProducts')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -211,9 +210,9 @@ export default function KnownIssuesPage() {
         </p>
       </div>
 
-      {(error || fetchError) && (
+      {fetchError && (
         <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error || fetchError}
+          {fetchError}
         </div>
       )}
 

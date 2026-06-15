@@ -3,6 +3,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Headset, Lock, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { resetPassword, validateResetToken } from '../services/authApi';
 
@@ -20,6 +21,7 @@ export default function ResetPasswordPage() {
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const toast = useToast();
   const isDark = theme === 'dark';
 
   const [searchParams] = useSearchParams();
@@ -28,7 +30,6 @@ export default function ResetPasswordPage() {
   const [status, setStatus] = useState(() => (token ? STATUS.CHECKING : STATUS.INVALID));
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!token) return undefined;
@@ -48,14 +49,13 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError('');
 
     if (password.length < 8) {
-      setError(t('resetPassword.errors.tooShort'));
+      toast.error(t('resetPassword.errors.tooShort'));
       return;
     }
     if (password !== confirmPassword) {
-      setError(t('resetPassword.errors.mismatch'));
+      toast.error(t('resetPassword.errors.mismatch'));
       return;
     }
 
@@ -71,10 +71,10 @@ export default function ResetPasswordPage() {
       if (code === 'INVALID_OR_EXPIRED_TOKEN') {
         setStatus(STATUS.INVALID);
       } else if (code === 'PASSWORD_POLICY_VIOLATION') {
-        setError(t('resetPassword.errors.policyViolation'));
+        toast.error(t('resetPassword.errors.policyViolation'));
         setStatus(STATUS.READY);
       } else {
-        setError(t('resetPassword.errors.unknown'));
+        toast.error(t('resetPassword.errors.unknown'));
         setStatus(STATUS.READY);
       }
     }
@@ -215,19 +215,6 @@ export default function ResetPasswordPage() {
                     />
                   </div>
                 </label>
-
-                {error && (
-                  <div
-                    className="rounded-lg border px-3 py-2 text-xs"
-                    style={{
-                      backgroundColor: isDark ? 'rgba(239,68,68,0.10)' : 'rgba(239,68,68,0.06)',
-                      borderColor:     isDark ? 'rgba(239,68,68,0.30)' : 'rgba(239,68,68,0.25)',
-                      color:           isDark ? '#fca5a5' : '#b91c1c',
-                    }}
-                  >
-                    {error}
-                  </div>
-                )}
 
                 <button
                   type="submit"

@@ -11,6 +11,7 @@ import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Reveal from '../../components/Reveal';
 import { localizedName } from '../../utils/localizedName';
+import { useToast } from '../../context/ToastContext';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
@@ -38,28 +39,27 @@ export default function ProductDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [dateRange, setDateRange] = useState(DEFAULT_DATE_RANGE);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
 
   const load = useCallback(async ({ silent = false } = {}) => {
     try {
       if (silent) setRefreshing(true); else setLoading(true);
-      setError('');
       // null (All time) → 0: backend pencereyi ilk veri tarihinden başlatır.
       const res = await metricService.getProductDashboard(productId, dateRange ?? 0);
       setData(res);
     } catch (err) {
       console.error('Product dashboard could not be loaded:', err);
-      setError(err.response?.data?.message || t('productDashboard.loadError'));
+      toast.error(err.response?.data?.message || t('productDashboard.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [productId, dateRange, t]);
+  }, [productId, dateRange, t, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -164,12 +164,6 @@ export default function ProductDashboard() {
           </div>
         </div>
       </section>
-
-      {error && (
-        <div className="rounded-2xl border px-4 py-3 text-sm font-medium" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger-600)' }}>
-          {error}
-        </div>
-      )}
 
       <ErrorBoundary>
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">

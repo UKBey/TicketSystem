@@ -18,6 +18,7 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import Reveal from '../../components/Reveal';
 import { usePolling } from '../../hooks/usePolling';
+import { useToast } from '../../context/ToastContext';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
@@ -54,6 +55,7 @@ const DEFAULT_DATE_RANGE = 30;
 export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Leaderboard'da bir ajana tıklayınca o ajanın performans chart'larına git.
   const handleAgentClick = useCallback((agent) => {
@@ -75,7 +77,6 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(DEFAULT_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [statusDistribution, setStatusDistribution] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -102,7 +103,6 @@ export default function Dashboard() {
         setLoading(true);
       }
 
-      setError('');
       // null (All time) → 0: backend pencereyi ilk veri tarihinden başlatır.
       const timelineDays = dateRange ?? 0;
       const worklogDays = dateRange ?? 0;
@@ -119,7 +119,7 @@ export default function Dashboard() {
         ]);
 
       if (summaryRes.status === 'fulfilled') setSummary({ ...DEFAULT_SUMMARY, ...summaryRes.value });
-      else setError(summaryRes.reason?.response?.data?.message || t('dashboard.loadError'));
+      else toast.error(summaryRes.reason?.response?.data?.message || t('dashboard.loadError'));
 
       if (statusRes.status     === 'fulfilled') setStatusDistribution(statusRes.value);
       if (agentRes.status      === 'fulfilled') setAgentPerformance(agentRes.value);
@@ -132,7 +132,7 @@ export default function Dashboard() {
       setLastUpdated(new Date());
     } catch (requestError) {
       console.error('Dashboard summary could not be loaded:', requestError);
-      setError(requestError.response?.data?.message || t('dashboard.loadError'));
+      toast.error(requestError.response?.data?.message || t('dashboard.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -144,7 +144,7 @@ export default function Dashboard() {
       setCsatLoading(false);
       setWorklogLoading(false);
     }
-  }, [t, dateRange]);
+  }, [t, dateRange, toast]);
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -279,12 +279,6 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
-
-      {error && (
-        <div className="rounded-2xl border px-4 py-3 text-sm font-medium" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'rgba(239, 68, 68, 0.25)', color: 'var(--color-danger-600)' }}>
-          {error}
-        </div>
-      )}
 
       <AlertBanner data={alertsData} loading={alertsLoading} />
 

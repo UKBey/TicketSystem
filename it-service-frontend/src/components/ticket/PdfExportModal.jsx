@@ -4,6 +4,7 @@ import { FileDown, X, Languages, Sun, Moon } from 'lucide-react';
 import api, { getPdfPreferences, savePdfPreferences } from '../../services/api';
 import i18n from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
 import { buildTicketPdfHtml } from '../../utils/buildTicketPdfHtml';
 
 const modalStyles = `
@@ -64,19 +65,18 @@ function printViaIframe(html, fileName) {
 export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, isAgent, isCustomer }) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
+  const toast = useToast();
   const available = SECTIONS.filter((s) => !s.staff || isAgent);
 
   const [sel, setSel] = useState(() => sectionDefaults(isAgent));
   const [language, setLanguage] = useState(uiLang);
   const [theme, setTheme] = useState(appTheme === 'dark' ? 'dark' : 'light');
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState(null);
 
   // Açılışta DB'deki son tercihleri yükle; yoksa varsayılanlar (hepsi seçili,
   // arayüz dili + arayüz teması). Sadece kullanıcının yetkisi olan bölümler uygulanır.
   useEffect(() => {
     if (!isOpen) return;
-    setError(null);
     setSel(sectionDefaults(isAgent));
     setLanguage(uiLang());
     setTheme(appTheme === 'dark' ? 'dark' : 'light');
@@ -122,11 +122,10 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
 
   const handleGenerate = async () => {
     if (!anySelected) {
-      setError(t('ticketDetail.pdfNoSelection'));
+      toast.error(t('ticketDetail.pdfNoSelection'));
       return;
     }
     setGenerating(true);
-    setError(null);
     try {
       let comments = [];
       let worklogs = [];
@@ -150,7 +149,7 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
       printViaIframe(html, fileName);
       onClose(); // seçimler zaten her değişimde DB'ye kaydedildi
     } catch {
-      setError(t('ticketDetail.pdfError'));
+      toast.error(t('ticketDetail.pdfError'));
     } finally {
       setGenerating(false);
     }
@@ -216,12 +215,6 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
                 ]}
               />
             </div>
-
-            {error && (
-              <div className="rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                {error}
-              </div>
-            )}
           </div>
 
           <div className="border-t px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>

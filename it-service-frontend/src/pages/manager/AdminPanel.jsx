@@ -316,7 +316,6 @@ export default function AdminPanel() {
   const [loadedOnce, setLoadedOnce]     = useState(false);
   const initialLoading = loading && !loadedOnce;
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [error, setError]               = useState('');
 
   // Arama + rol/ürün filtresi + sayfalama + sıralama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
   const { str, num, arr, setParams, searchParams } = useUrlState();
@@ -361,7 +360,7 @@ export default function AdminPanel() {
       setTotalItems(res.data.totalElements);
     } catch (err) {
       console.error('Could not load users:', err);
-      setError(t('admin.panel.errorLoad'));
+      toast.error(t('admin.panel.errorLoad'));
     } finally {
       setLoading(false);
       setLoadedOnce(true);
@@ -409,12 +408,6 @@ export default function AdminPanel() {
         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('admin.panel.title')}</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('admin.panel.subtitle')}</p>
       </div>
-
-      {error && (
-        <div className="rounded-lg px-4 py-3 mb-5 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
-        </div>
-      )}
 
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
 

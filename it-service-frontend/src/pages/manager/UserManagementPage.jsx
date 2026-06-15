@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { UserPlus, ShieldCheck, UserCheck, UserX, BarChart3 } from 'lucide-react';
 import api, { updateUserStatus } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
@@ -28,6 +29,7 @@ export default function UserManagementPage() {
   const navigate = useNavigate();
   const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER, 'colw:users');
   const { user: currentUser, isAdmin, isManager } = useAuth();
+  const toast = useToast();
 
   // Rol düzenleme ve aktif/pasif alma yalnızca ADMIN yetkisidir. MANAGER bu sayfayı
   // salt-okunur görür (oversight rolü — yazma yetkisi yok).
@@ -58,7 +60,6 @@ export default function UserManagementPage() {
   // filtre/sıralama/sayfa değişimlerinde liste ekranda kalır (ListLoadingOverlay).
   const [loadedOnce, setLoadedOnce]   = useState(false);
   const initialLoading = loading && !loadedOnce;
-  const [error, setError]             = useState('');
 
   // Arama + rol filtresi + sayfalama + sıralama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
   const { str, num, arr, setParams, searchParams } = useUrlState();
@@ -77,7 +78,6 @@ export default function UserManagementPage() {
   const [totalItems, setTotalItems]   = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [successMsg, setSuccessMsg]   = useState('');
 
   // Edit Role modal state
   const [editRoleUser, setEditRoleUser]               = useState(null);
@@ -98,7 +98,6 @@ export default function UserManagementPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      setError('');
       const params = new URLSearchParams({ page, size, sortBy, sortDir });
       if (search) params.set('search', search);
       roleFilter.forEach((r) => params.append('role', r));
@@ -108,7 +107,7 @@ export default function UserManagementPage() {
       setTotalPages(res.data.totalPages);
       setTotalItems(res.data.totalElements);
     } catch {
-      setError(t('userManagement.errorLoad'));
+      toast.error(t('userManagement.errorLoad'));
     } finally {
       setLoading(false);
       setLoadedOnce(true);
@@ -123,8 +122,7 @@ export default function UserManagementPage() {
   // Handlers
   // -------------------------------------------------------------------------
   const handleUserCreated = (_newUser) => {
-    setSuccessMsg(t('userManagement.success'));
-    setTimeout(() => setSuccessMsg(''), 4000);
+    toast.success(t('userManagement.success'));
     // Listeyi yenile — yeni kullanıcı ilk sayfada görünsün
     setPage(0);
     fetchUsers();
@@ -136,8 +134,7 @@ export default function UserManagementPage() {
   };
 
   const handleRoleUpdated = (updatedUser) => {
-    setSuccessMsg(t('userManagement.editRole.successMsg'));
-    setTimeout(() => setSuccessMsg(''), 4000);
+    toast.success(t('userManagement.editRole.successMsg'));
     setUsers((prev) =>
       prev.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role, roles: updatedUser.roles } : u))
     );
@@ -156,14 +153,12 @@ export default function UserManagementPage() {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, isActive: res.data.isActive } : u))
       );
-      setSuccessMsg(t(newActive
+      toast.success(t(newActive
         ? 'userManagement.status.successActivate'
         : 'userManagement.status.successDeactivate'));
-      setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       const msg = err.response?.data?.message;
-      setError(msg || t('userManagement.status.error'));
-      setTimeout(() => setError(''), 4000);
+      toast.error(msg || t('userManagement.status.error'));
     } finally {
       setStatusLoadingId(null);
     }
@@ -212,20 +207,6 @@ export default function UserManagementPage() {
           </button>
         )}
       </div>
-
-      {/* Başarı mesajı */}
-      {successMsg && (
-        <div className="mb-4 rounded-lg px-4 py-3 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400">
-          {successMsg}
-        </div>
-      )}
-
-      {/* Hata mesajı */}
-      {error && (
-        <div className="mb-4 rounded-lg px-4 py-3 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
-        </div>
-      )}
 
       {/* Tablo kartı */}
       <div

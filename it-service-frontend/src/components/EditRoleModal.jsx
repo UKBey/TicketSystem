@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react';
+import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAssignableRoles, updateUserRoles } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 /**
@@ -16,20 +17,19 @@ import { useEscapeToClose } from '../hooks/useEscapeToClose';
  */
 export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [availableRoles, setAvailableRoles] = useState([]);
   const [rolesLoading, setRolesLoading]     = useState(false);
   const [rolesError, setRolesError]         = useState('');
   const [loading, setLoading]               = useState(false);
-  const [error, setError]                   = useState('');
   const [validationError, setValidationError] = useState('');
 
   // Modal açıldığında rolleri çek ve mevcut rolü seç
   useEffect(() => {
     if (!isOpen || !user) return;
 
-    setError('');
     setValidationError('');
     // Mevcut rolleri başlangıç seçimi olarak ayarla (çoklu rol veya tekil rol destekli).
     const existing = Array.isArray(user.roles)
@@ -65,7 +65,6 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (selectedRoles.length === 0) {
       setValidationError(t('userManagement.validation.rolesRequired'));
@@ -79,7 +78,7 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
       onClose();
     } catch (err) {
       const msg = err.response?.data?.message;
-      setError(msg || t('userManagement.editRole.errorGeneral'));
+      toast.error(msg || t('userManagement.editRole.errorGeneral'));
     } finally {
       setLoading(false);
     }
@@ -133,14 +132,6 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
 
         <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-
-            {/* Genel hata */}
-            {error && (
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                {error}
-              </div>
-            )}
 
             {/* Rol seçimi */}
             <div>

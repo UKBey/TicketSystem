@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, UserPlus, Loader2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { X, UserPlus, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createUser, getAssignableRoles } from '../services/api';
+import { useToast } from '../context/ToastContext';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 // F-4 — form validation accessibility:
@@ -20,6 +21,7 @@ const FIELD_FOCUS_ORDER = ['firstName', 'lastName', 'username', 'email', 'passwo
  */
 export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated }) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const initialForm = {
     username: '',
@@ -32,7 +34,6 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
   const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors]     = useState({});
-  const [serverError, setServerError] = useState(null); // { field?, message }
   const [loading, setLoading]   = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -58,7 +59,6 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
     setFormData(initialForm);
     setErrors({});
-    setServerError(null);
     setShowPassword(false);
     setRolesError('');
 
@@ -119,9 +119,8 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Alan değişince o alanın hatasını ve server hatasını temizle
+    // Alan değişince o alanın hatasını temizle
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
-    if (serverError?.field === name) setServerError(null);
   };
 
   const handleRoleToggle = (roleName) => {
@@ -143,7 +142,6 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setServerError(null);
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -178,10 +176,8 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
         // Bean Validation hatası
         setErrors(data.fieldErrors);
       } else {
-        // Genel hata banner'ı
-        setServerError({
-          message: data?.message || t('userManagement.form.errorGeneral'),
-        });
+        // Genel hata
+        toast.error(data?.message || t('userManagement.form.errorGeneral'));
       }
     } finally {
       setLoading(false);
@@ -251,14 +247,6 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
 
         <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-
-            {/* Genel sunucu hatası */}
-            {serverError && !serverError.field && (
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                {serverError.message}
-              </div>
-            )}
 
             {/* Ad — Soyad (mobilde alt alta, sm ve uzeri yan yana) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

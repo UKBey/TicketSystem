@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
 import { Sparkles, X } from 'lucide-react';
 import { generateAiSummary, getLatestAiSummary } from '../../services/api';
 import { formatShortDate } from '../../utils/ticketFormatters';
@@ -39,11 +40,11 @@ const modalStyles = `
 export default function AiSummaryModal({ isOpen, onClose, ticketId, isAgent }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const toast = useToast();
   const isDark = theme === 'dark';
 
   const [summary, setSummary]     = useState(null);
   const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState(null);
 
   const fetchLatest = useCallback(async () => {
     try {
@@ -62,7 +63,6 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, isAgent }) {
 
   const handleGenerate = async () => {
     setLoading(true);
-    setError(null);
     try {
       const lang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
       const res = await generateAiSummary(ticketId, lang);
@@ -77,9 +77,9 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, isAgent }) {
         const key = data?.error === 'RATE_LIMIT_EXCEEDED'
           ? 'ticketDetail.aiSummaryThrottle'
           : 'ticketDetail.aiSummaryRateLimit';
-        setError(t(key, { seconds }));
+        toast.error(t(key, { seconds }));
       } else {
-        setError(data?.detail || t('ticketDetail.aiSummaryError'));
+        toast.error(data?.detail || t('ticketDetail.aiSummaryError'));
       }
     } finally {
       setLoading(false);
@@ -126,12 +126,7 @@ export default function AiSummaryModal({ isOpen, onClose, ticketId, isAgent }) {
                 <span>{formatShortDate(summary.createdAt)}</span>
               </div>
             )}
-            {error && (
-              <div className="rounded-lg px-4 py-3 text-xs" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2', color: isDark ? '#fca5a5' : '#991b1b' }}>
-                {error}
-              </div>
-            )}
-            {!summary && !loading && !error && (
+            {!summary && !loading && (
               <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                 {t('ticketDetail.aiSummaryEmpty')}
               </div>

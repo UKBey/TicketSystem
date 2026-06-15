@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Eye, EyeOff, Lock, Check } from 'lucide-react';
 import userService from '../services/userService';
+import { useToast } from '../context/ToastContext';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
@@ -45,6 +46,7 @@ function PasswordInput({ id, value, onChange, placeholder, disabled, error, auto
 
 export default function ChangePasswordModal({ open, onClose, onSuccess }) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword,     setNewPassword]     = useState('');
@@ -52,7 +54,6 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting,   setSubmitting] = useState(false);
-  const [generalError, setGeneralError] = useState('');
   const [success,      setSuccess]    = useState(false);
 
   // Reset form whenever the modal is re-opened.
@@ -62,7 +63,6 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
       setNewPassword('');
       setConfirmPassword('');
       setFieldErrors({});
-      setGeneralError('');
       setSuccess(false);
     }
   }, [open]);
@@ -86,11 +86,9 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      setGeneralError('');
       return;
     }
     setFieldErrors({});
-    setGeneralError('');
     setSubmitting(true);
     try {
       await userService.changePassword({ currentPassword, newPassword });
@@ -110,7 +108,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
       } else if (data?.fieldErrors) {
         setFieldErrors(data.fieldErrors);
       } else {
-        setGeneralError(t('profile.passwordModal.genericError'));
+        toast.error(t('profile.passwordModal.genericError'));
       }
     } finally {
       setSubmitting(false);
@@ -222,15 +220,6 @@ export default function ChangePasswordModal({ open, onClose, onSuccess }) {
               </p>
             )}
           </div>
-
-          {generalError && (
-            <div
-              className="rounded-md border px-3 py-2 text-xs font-medium"
-              style={{ backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.3)', color: '#ef4444' }}
-            >
-              {generalError}
-            </div>
-          )}
 
           {success && (
             <div

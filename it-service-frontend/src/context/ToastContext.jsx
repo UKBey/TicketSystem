@@ -1,15 +1,20 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import i18n from '../i18n';
 
 const ToastContext = createContext(null);
 
 const DEFAULT_TTL = 5000;
-const ICONS  = { success: CheckCircle2, error: AlertCircle, info: Info };
+// Rate-limit uyarısı için TTL üst sınırı — retryAfter çok uzun olsa bile toast ekranı
+// kilitlemesin; yine de çarpı ile erkenden kapatılabilir.
+const MAX_TTL = 10000;
+const ICONS  = { success: CheckCircle2, error: AlertCircle, warning: AlertTriangle, info: Info };
 const COLORS = {
   success: { border: 'rgba(16,185,129,0.25)', icon: '#10b981' },
   error:   { border: 'rgba(239,68,68,0.25)',  icon: '#ef4444' },
+  warning: { border: 'rgba(245,158,11,0.25)', icon: '#f59e0b' },
   info:    { border: 'rgba(59,130,246,0.25)', icon: '#3b82f6' },
 };
 
@@ -37,9 +42,33 @@ export function ToastProvider({ children }) {
   const api = useMemo(() => ({
     success: (msg, opts) => push('success', msg, opts),
     error:   (msg, opts) => push('error',   msg, opts),
+    warning: (msg, opts) => push('warning', msg, opts),
     info:    (msg, opts) => push('info',    msg, opts),
     dismiss,
   }), [push, dismiss]);
+
+  // Tüm bildirimler tek noktadan aksın diye React dışı kaynaklar (örn. axios
+  // interceptor'ı) de window event'i üzerinden bu sisteme toast düşürebilir.
+  useEffect(() => {
+    // Rate-limit (429): eski ayrı RateLimitToast bileşeninin yerini alır.
+    const onRateLimit = (event) => {
+      const retryAfter = event.detail?.retryAfter || 60;
+      push('warning', i18n.t('rateLimit.message', { seconds: retryAfter }), {
+        ttl: Math.min(retryAfter * 1000, MAX_TTL),
+      });
+    };
+    // Genel amaçlı köprü: { type, message, ttl }
+    const onAppToast = (event) => {
+      const { type = 'info', message, ttl } = event.detail || {};
+      push(type, message, { ttl });
+    };
+    window.addEventListener('rate-limit-exceeded', onRateLimit);
+    window.addEventListener('app:toast', onAppToast);
+    return () => {
+      window.removeEventListener('rate-limit-exceeded', onRateLimit);
+      window.removeEventListener('app:toast', onAppToast);
+    };
+  }, [push]);
 
   return (
     <ToastContext.Provider value={api}>

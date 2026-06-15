@@ -3,9 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '../../context/ToastContext';
 
 // Dashboard, leaderboard satırlarından navigasyon için useNavigate kullanır → Router gerekir.
-const renderDashboard = () => render(<MemoryRouter><Dashboard /></MemoryRouter>);
+// Hata mesajları artık global toast'tan aktığı için ToastProvider da sarmalanır.
+const renderDashboard = () =>
+  render(
+    <ToastProvider>
+      <MemoryRouter><Dashboard /></MemoryRouter>
+    </ToastProvider>
+  );
 
 // Mock metricService before importing Dashboard
 vi.mock('../../services/metricService', () => ({
@@ -116,7 +123,7 @@ describe('Dashboard — Integration', () => {
     });
   });
 
-  it('shows error banner when API call fails', async () => {
+  it('shows error toast when API call fails', async () => {
     metricService.getDashboardSummary.mockRejectedValue(new Error('Network error'));
     metricService.getStatusDistribution.mockRejectedValue(new Error('Network error'));
     metricService.getAgentPerformance.mockRejectedValue(new Error('Network error'));

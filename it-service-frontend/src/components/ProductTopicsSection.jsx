@@ -12,7 +12,6 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
   const toast = useToast();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -29,11 +28,11 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
       setTopics(sortByLocalizedName(res.data));
     } catch (err) {
       console.error('Could not load topics:', err);
-      setError(t('topic.errorLoad'));
+      toast.error(t('topic.errorLoad'));
     } finally {
       setLoading(false);
     }
-  }, [productId, isAdmin, t]);
+  }, [productId, isAdmin, t, toast]);
 
   useEffect(() => {
     fetchTopics();
@@ -119,12 +118,6 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
           </button>
         )}
       </div>
-
-      {error && (
-        <div className="px-6 py-3 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
-        </div>
-      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-10">

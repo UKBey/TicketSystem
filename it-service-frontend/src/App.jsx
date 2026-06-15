@@ -5,7 +5,6 @@ import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageTransition from './components/PageTransition';
-import RateLimitToast from './components/RateLimitToast';
 import CommandPalette from './components/CommandPalette';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
@@ -90,7 +89,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <RateLimitToast />
       <Routes>
         {/* Oturum gerektirmeyen giris rotasi. */}
         <Route
