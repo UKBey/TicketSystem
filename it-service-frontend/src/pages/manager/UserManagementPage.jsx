@@ -8,6 +8,7 @@ import AdminCreateUserModal from '../../components/AdminCreateUserModal';
 import EditRoleModal from '../../components/EditRoleModal';
 import PaginationBar from '../../components/PaginationBar';
 import SortableTh from '../../components/SortableTh';
+import ListLoadingOverlay from '../../components/ListLoadingOverlay';
 import { useColumnResize } from '../../hooks/useColumnResize';
 import { useUrlState } from '../../hooks/useUrlState';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
@@ -53,6 +54,10 @@ export default function UserManagementPage() {
   // -------------------------------------------------------------------------
   const [users, setUsers]             = useState([]);
   const [loading, setLoading]         = useState(true);
+  // İlk yükleme ile sonraki refetch'leri ayırır: ilk açılışta ortalı spinner, sonraki
+  // filtre/sıralama/sayfa değişimlerinde liste ekranda kalır (ListLoadingOverlay).
+  const [loadedOnce, setLoadedOnce]   = useState(false);
+  const initialLoading = loading && !loadedOnce;
   const [error, setError]             = useState('');
 
   // Arama + rol filtresi + sayfalama + sıralama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
@@ -106,6 +111,7 @@ export default function UserManagementPage() {
       setError(t('userManagement.errorLoad'));
     } finally {
       setLoading(false);
+      setLoadedOnce(true);
     }
     // searchParams tüm filtre/sayfa/sıralama paramlarını kapsar — kimliği yalnızca URL değişince değişir.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,15 +271,7 @@ export default function UserManagementPage() {
         </div>
 
         {/* Tablo */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div
-              className="h-7 w-7 rounded-full border-[3px] animate-spin"
-              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }}
-            />
-          </div>
-        ) : (
-          <>
+        <ListLoadingOverlay initial={initialLoading} loading={loading}>
             <ul className="lg:hidden space-y-3 p-4">
               {users.map((user) => {
                 const isInactive = user.isActive === false;
@@ -566,8 +564,7 @@ export default function UserManagementPage() {
               </tbody>
             </table>
             </div>
-          </>
-        )}
+        </ListLoadingOverlay>
 
         {/* Sayfalama */}
         <PaginationBar

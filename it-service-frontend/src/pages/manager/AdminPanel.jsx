@@ -5,6 +5,7 @@ import api, { getAgentLimits, setAgentLimit } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import SortableTh from '../../components/SortableTh';
+import ListLoadingOverlay from '../../components/ListLoadingOverlay';
 import { useColumnResize } from '../../hooks/useColumnResize';
 import MultiSelectFilter from '../../components/filters/MultiSelectFilter';
 import FilterSearchInput from '../../components/filters/FilterSearchInput';
@@ -310,6 +311,10 @@ export default function AdminPanel() {
   const [users, setUsers]               = useState([]);
   const [products, setProducts]         = useState([]);
   const [loading, setLoading]           = useState(true);
+  // İlk yükleme ile sonraki refetch'leri ayırır (ListLoadingOverlay): ilk açılışta ortalı
+  // spinner, sonraki filtre/sıralama/sayfa değişimlerinde liste ekranda kalır.
+  const [loadedOnce, setLoadedOnce]     = useState(false);
+  const initialLoading = loading && !loadedOnce;
   const [selectedProductId, setSelectedProductId] = useState('');
   const [error, setError]               = useState('');
 
@@ -359,6 +364,7 @@ export default function AdminPanel() {
       setError(t('admin.panel.errorLoad'));
     } finally {
       setLoading(false);
+      setLoadedOnce(true);
     }
     // searchParams tüm filtre/sayfa/sıralama paramlarını kapsar — kimliği yalnızca URL değişince değişir.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -451,13 +457,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Loading state shared by both layouts */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-7 w-7 rounded-full border-[3px] animate-spin"
-              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-          </div>
-        ) : (
-          <>
+        <ListLoadingOverlay initial={initialLoading} loading={loading}>
             {/* Mobile: card list */}
             <ul className="lg:hidden p-4 space-y-3">
               {users.map(user => {
@@ -718,8 +718,7 @@ export default function AdminPanel() {
               </tbody>
             </table>
             </div>
-          </>
-        )}
+        </ListLoadingOverlay>
 
         {/* Pagination */}
         <PaginationBar
