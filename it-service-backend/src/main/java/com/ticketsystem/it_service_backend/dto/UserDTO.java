@@ -57,6 +57,10 @@ public class UserDTO {
             allowableValues = {"DMY_SLASH", "MDY_SLASH", "YMD_DASH", "DMY_DOT", "MED"})
     private DateFormat preferredDateFormat;
 
+    @Schema(description = "Agent/lead sidebar ticket-panel görünürlük tercihleri (opak JSON string); null ise tümü görünür",
+            nullable = true)
+    private String panelPreferences;
+
     @Schema(description = "Kullanıcının sisteme ilk kaydedildiği tarih", example = "2026-01-15T09:00:00+03:00")
     private ZonedDateTime createdAt;
 
@@ -107,6 +111,7 @@ public class UserDTO {
                 .preferredLanguage(user.getPreferredLanguage())
                 .preferredTheme(user.getPreferredTheme())
                 .preferredDateFormat(user.getPreferredDateFormat())
+                .panelPreferences(user.getPanelPreferences())
                 .authorizedProducts(user.getAuthorizedProducts() != null ? 
                     user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).toList() : null)
                 .build();

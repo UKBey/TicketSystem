@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
   User, Shield, ShieldCheck, ShieldAlert, Globe, ExternalLink, Settings,
-  Pencil, Check, X, Lock, CalendarDays,
+  Pencil, Check, X, Lock, CalendarDays, LayoutPanelLeft,
 } from 'lucide-react';
 import api from '../services/api';
 import userService from '../services/userService';
@@ -15,6 +15,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 import TwoFactorModal from '../components/TwoFactorModal';
 import NotificationPreferencesModal from '../components/NotificationPreferencesModal';
 import DateFormatModal from '../components/DateFormatModal';
+import PanelPreferencesModal from '../components/PanelPreferencesModal';
 
 /* ── Role meta ─────────────────────────────────────────────── */
 const ROLE_META = {
@@ -204,7 +205,7 @@ function ActionCard({ icon: Icon, iconColor, iconBg, title, description, onClick
 export default function ProfilePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, getPrimaryRole, roles, refreshUser } = useAuth();
+  const { user, getPrimaryRole, roles, refreshUser, isAgent } = useAuth();
   const primaryRole = getPrimaryRole();
   const avatarGradient = ROLE_GRADIENT[primaryRole] ?? ROLE_GRADIENT.default;
 
@@ -338,6 +339,7 @@ export default function ProfilePage() {
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
   const [notifPrefsModalOpen, setNotifPrefsModalOpen] = useState(false);
   const [dateFormatModalOpen, setDateFormatModalOpen] = useState(false);
+  const [panelPrefsModalOpen, setPanelPrefsModalOpen] = useState(false);
 
   const { firstName: currentFirstName, lastName: currentLastName } = splitFullName(user?.name);
 
@@ -516,6 +518,16 @@ export default function ProfilePage() {
                 description={t('preferences.dateFormat.desc')}
                 onClick={() => setDateFormatModalOpen(true)}
               />
+              {isAgent && (
+                <ActionCard
+                  icon={LayoutPanelLeft}
+                  iconColor="#6366f1"
+                  iconBg="rgba(99,102,241,0.12)"
+                  title={t('panelPrefs.title')}
+                  description={t('panelPrefs.cardDesc')}
+                  onClick={() => setPanelPrefsModalOpen(true)}
+                />
+              )}
               <ActionCard
                 icon={Lock}
                 iconColor="#f59e0b"
@@ -645,6 +657,12 @@ export default function ProfilePage() {
         open={dateFormatModalOpen}
         onClose={() => setDateFormatModalOpen(false)}
       />
+      {isAgent && (
+        <PanelPreferencesModal
+          open={panelPrefsModalOpen}
+          onClose={() => setPanelPrefsModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

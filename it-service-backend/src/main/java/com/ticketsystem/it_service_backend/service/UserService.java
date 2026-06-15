@@ -503,6 +503,29 @@ public class UserService {
     }
 
     /**
+     * Persists the user's sidebar ticket-panel visibility preferences. The backend treats
+     * the value as an opaque blob (the frontend owns its shape); only the length is bounded
+     * by the column ({@code VARCHAR(500)}), enforced again here.
+     *
+     * @param userId target user ID
+     * @param preferences JSON string from the panel-preferences modal (max 500 chars)
+     * @return the updated user
+     * @throws ResponseStatusException 400 when the payload exceeds the length cap
+     */
+    @Transactional
+    public User updatePanelPreferences(String userId, String preferences) {
+        if (preferences != null && preferences.length() > 500) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Panel preferences payload too large (max 500 characters)");
+        }
+        User user = getUserById(userId);
+        user.setPanelPreferences(preferences);
+        log.debug("Kullanıcı panel tercihleri güncellendi. ID: {}", userId);
+        return userRepository.save(user);
+    }
+
+    /**
      * Removes a product from the user's authorized list. Idempotent — does
      * nothing if the product is not in the list.
      *

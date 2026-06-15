@@ -93,6 +93,14 @@ public class User {
     @Column(name = "pdf_export_preferences", length = 2000)
     private String pdfExportPreferences;
 
+    /**
+     * Agent/lead sidebar ticket-panel visibility selections (workspace, pool, history,
+     * team, all-tickets), stored as an opaque JSON string defined by the frontend. Null
+     * until the user toggles a panel, after which all panels default to visible client-side.
+     */
+    @Column(name = "panel_preferences", length = 500)
+    private String panelPreferences;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

@@ -2,6 +2,7 @@ package com.ticketsystem.it_service_backend.controller;
 
 import com.ticketsystem.it_service_backend.dto.AgentCapacityDTO;
 import com.ticketsystem.it_service_backend.dto.ChangePasswordRequest;
+import com.ticketsystem.it_service_backend.dto.PanelPreferencesDTO;
 import com.ticketsystem.it_service_backend.dto.PdfPreferencesDTO;
 import com.ticketsystem.it_service_backend.dto.CreateUserRequest;
 import com.ticketsystem.it_service_backend.dto.TotpCredentialDTO;
@@ -538,6 +539,26 @@ public class UserController {
             @AuthenticationPrincipal Jwt jwt,
             @Valid @org.springframework.web.bind.annotation.RequestBody PdfPreferencesDTO body) {
         userService.updatePdfExportPreferences(jwt.getSubject(), body.getPreferences());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Persists the caller's sidebar ticket-panel visibility selections (workspace, pool,
+     * history, team, all-tickets). The value is stored verbatim as an opaque JSON string
+     * (the frontend owns its shape); only the length is validated. Hydrated back to the
+     * client via {@code /users/sync} ({@link UserDTO#getPanelPreferences()}).
+     *
+     * @param body wrapper carrying the preferences JSON string (max 500 chars)
+     * @return {@code 204 No Content}
+     */
+    @Operation(summary = "Ticket panel görünürlük tercihlerini güncelle",
+            description = "Agent/lead kullanıcının sol menüdeki ticket panellerinin görünürlüğünü saklar. "
+                    + "Değer opak bir JSON string olarak tutulur.")
+    @PutMapping("/me/panel-preferences")
+    public ResponseEntity<Void> updatePanelPreferences(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @org.springframework.web.bind.annotation.RequestBody PanelPreferencesDTO body) {
+        userService.updatePanelPreferences(jwt.getSubject(), body.getPreferences());
         return ResponseEntity.noContent().build();
     }
 

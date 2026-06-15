@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePanelPrefs } from '../context/PanelPrefsContext';
 import { useTranslation } from 'react-i18next';
 import {
   TicketCheck,
@@ -26,6 +27,7 @@ const navLinkBase =
 
 export default function Sidebar({ collapsed = false, onToggle, mobileOpen = false, onMobileClose }) {
   const { logout, isCustomer, isAgent, isLeadAgent, isAdmin, isManager } = useAuth();
+  const { isPanelVisible } = usePanelPrefs();
   const { t } = useTranslation();
 
   // Navigasyon = kullanıcının rollerinin verdiği yetkilerin BİRLEŞİMİ.
@@ -142,27 +144,37 @@ export default function Sidebar({ collapsed = false, onToggle, mobileOpen = fals
               <Gauge className="h-[18px] w-[18px] flex-shrink-0" />
               <span className={labelClass}>{t('sidebar.myPerformance')}</span>
             </NavLink>
-            <NavLink to="/workspace" className={linkClassName} onClick={handleNavClick}>
-              <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={labelClass}>{t('sidebar.workspace')}</span>
-            </NavLink>
-            <NavLink to="/pool" className={linkClassName} onClick={handleNavClick}>
-              <Inbox className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={labelClass}>{t('sidebar.pool')}</span>
-            </NavLink>
-            <NavLink to="/history" className={linkClassName} onClick={handleNavClick}>
-              <History className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={labelClass}>{t('sidebar.history')}</span>
-            </NavLink>
-            <NavLink to="/team" className={linkClassName} onClick={handleNavClick}>
-              <Users className="h-[18px] w-[18px] flex-shrink-0" />
-              <span className={labelClass}>{t('sidebar.teamTickets')}</span>
-            </NavLink>
+            {isPanelVisible('workspace') && (
+              <NavLink to="/workspace" className={linkClassName} onClick={handleNavClick}>
+                <Briefcase className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={labelClass}>{t('sidebar.workspace')}</span>
+              </NavLink>
+            )}
+            {isPanelVisible('pool') && (
+              <NavLink to="/pool" className={linkClassName} onClick={handleNavClick}>
+                <Inbox className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={labelClass}>{t('sidebar.pool')}</span>
+              </NavLink>
+            )}
+            {isPanelVisible('history') && (
+              <NavLink to="/history" className={linkClassName} onClick={handleNavClick}>
+                <History className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={labelClass}>{t('sidebar.history')}</span>
+              </NavLink>
+            )}
+            {isPanelVisible('team') && (
+              <NavLink to="/team" className={linkClassName} onClick={handleNavClick}>
+                <Users className="h-[18px] w-[18px] flex-shrink-0" />
+                <span className={labelClass}>{t('sidebar.teamTickets')}</span>
+              </NavLink>
+            )}
           </>
         )}
 
-        {/* Tüm biletler — personel (agent/lead) + yönetici/admin */}
-        {isStaff && (
+        {/* Tüm biletler — personel (agent/lead) + yönetici/admin.
+            Agent/lead panel tercihinde gizleyebilir; yönetici/admin için tercih
+            varsayılan görünür olduğundan etkilenmez. */}
+        {isStaff && isPanelVisible('allTickets') && (
           <NavLink to="/all-tickets" className={linkClassName} onClick={handleNavClick}>
             <Layers className="h-[18px] w-[18px] flex-shrink-0" />
             <span className={labelClass}>{t('sidebar.allTickets')}</span>

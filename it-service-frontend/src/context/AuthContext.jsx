@@ -5,6 +5,7 @@ import api from '../services/api';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
 import { useDateFormat } from './DateFormatContext';
+import { usePanelPrefs } from './PanelPrefsContext';
 
 const AuthContext = createContext(null);
 
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
   const syncInFlight = useRef(false);
   const { theme, setTheme } = useTheme();
   const { applyServerDateFormat } = useDateFormat();
+  const { applyServerPanelPrefs } = usePanelPrefs();
   // useEffect tek-seferlik calistigi icin theme'i closure'a hapsetmek istemiyoruz —
   // sync sirasinda guncel degeri okuyabilelim diye ref'te tutuyoruz.
   const themeRef = useRef(theme);
@@ -62,6 +64,8 @@ export function AuthProvider({ children }) {
           setTheme(themeRef.current);
           // Tarih formatinin Keycloak ekrani kaynagi yok — DB'deki deger client'i besler.
           if (res.data?.preferredDateFormat) applyServerDateFormat(res.data.preferredDateFormat);
+          // Panel gorunurluk tercihleri de yalnizca DB'de — client'i besler.
+          if (res.data?.panelPreferences) applyServerPanelPrefs(res.data.panelPreferences);
         })
         .catch(err => console.error('Sync error:', err))
         .finally(() => { syncInFlight.current = false; });
@@ -107,7 +111,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       setRoles([]);
     };
-  }, [extractUserInfo, setTheme, applyServerDateFormat]);
+  }, [extractUserInfo, setTheme, applyServerDateFormat, applyServerPanelPrefs]);
 
   const refreshUser = useCallback(async () => {
     // Force-refresh token so updated claims (name/email) reach the client,

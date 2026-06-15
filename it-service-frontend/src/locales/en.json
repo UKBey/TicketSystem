@@ -993,6 +993,12 @@
       "title": "Notifications"
     }
   },
+  "panelPrefs": {
+    "title": "Ticket Panels",
+    "subtitle": "Choose which ticket panels appear in your sidebar.",
+    "cardDesc": "Show or hide ticket panels in the sidebar.",
+    "note": "Hidden panels are removed from your sidebar only — they stay accessible to other users."
+  },
   "notificationPrefs": {
     "title": "Notification Preferences",
     "subtitle": "Choose which events you want to receive email and in-app notifications for.",

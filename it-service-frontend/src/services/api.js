@@ -188,6 +188,14 @@ export const savePdfPreferences = (preferences) =>
   api.put('/users/me/pdf-preferences', { preferences });
 
 // ============================================================
+// Ticket panel görünürlük tercihleri (agent/lead sidebar — DB'de saklı)
+// ============================================================
+
+// Sidebar ticket-panel görünürlük seçimlerini kaydet (opak JSON string)
+export const savePanelPreferences = (preferences) =>
+  api.put('/users/me/panel-preferences', { preferences });
+
+// ============================================================
 // Known Issues (Sıkça Karşılaşılan Sorunlar) API
 // ============================================================
 

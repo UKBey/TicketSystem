@@ -993,6 +993,12 @@
       "title": "Bildirimler"
     }
   },
+  "panelPrefs": {
+    "title": "Ticket Panelleri",
+    "subtitle": "Sol menüde hangi ticket panellerinin görüneceğini seçin.",
+    "cardDesc": "Sol menüdeki ticket panellerini gösterin veya gizleyin.",
+    "note": "Gizlenen paneller yalnızca sizin menünüzden kaldırılır — diğer kullanıcılar erişmeye devam eder."
+  },
   "notificationPrefs": {
     "title": "Bildirim Tercihleri",
     "subtitle": "Hangi olaylar için e-posta ve uygulama içi bildirim almak istediğinizi seçin.",
