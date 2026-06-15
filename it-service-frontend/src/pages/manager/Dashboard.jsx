@@ -16,6 +16,7 @@ import TopAgentsBar from '../../components/dashboard/TopAgentsBar';
 import AlertBanner from '../../components/dashboard/AlertBanner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import Reveal from '../../components/Reveal';
 import { usePolling } from '../../hooks/usePolling';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
@@ -320,43 +321,43 @@ export default function Dashboard() {
         </section>
       </ErrorBoundary>
 
-      <section>
+      <Reveal as="section">
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
-      </section>
+      </Reveal>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="w-full min-w-0">
+        <Reveal className="w-full min-w-0">
           <Suspense fallback={<SkeletonLoader lines={6} />}>
             <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
           </Suspense>
-        </div>
-        <div className="w-full min-w-0">
+        </Reveal>
+        <Reveal className="w-full min-w-0" delay={80}>
           <PrioritySLAChart data={prioritySlaMetrics} loading={prioritySlaLoading} />
-        </div>
+        </Reveal>
       </section>
 
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
-        <div className="w-full min-w-0">
+        <Reveal className="w-full min-w-0">
           <AgentPerformanceTable data={agentPerformance} loading={agentLoading} onAgentClick={handleAgentClick} />
-        </div>
-        <div className="w-full min-w-0">
+        </Reveal>
+        <Reveal className="w-full min-w-0" delay={80}>
           <ProductMetricsChart data={productMetrics} loading={productLoading} onProductClick={handleProductClick} />
-        </div>
+        </Reveal>
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="w-full min-w-0">
+        <Reveal className="w-full min-w-0">
           <WorklogCompletionChart data={worklogCompletion} loading={worklogLoading} />
-        </div>
-        <div className="flex flex-col gap-4">
+        </Reveal>
+        <Reveal className="flex flex-col gap-4" delay={80}>
           <CompletionMeters data={worklogCompletion} loading={worklogLoading} />
           <TopAgentsBar data={worklogCompletion} loading={worklogLoading} onAgentClick={handleAgentClick} />
-        </div>
+        </Reveal>
       </section>
 
-      <section>
+      <Reveal as="section">
         <CSATGaugeChart data={csatMetrics} loading={csatLoading} />
-      </section>
+      </Reveal>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import AgentPerformanceTable from '../../components/dashboard/AgentPerformanceTa
 import RecentTicketsList from '../../components/dashboard/RecentTicketsList';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import Reveal from '../../components/Reveal';
 import { localizedName } from '../../utils/localizedName';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
@@ -202,11 +203,11 @@ export default function ProductDashboard() {
         </div>
       </section>
 
-      <section>
+      <Reveal as="section">
         <StatusDistributionChart data={data?.statusDistribution} loading={loading} />
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <Suspense fallback={<SkeletonLoader lines={6} />}>
           <TicketTimelineChart
             data={data?.timeline}
@@ -216,20 +217,20 @@ export default function ProductDashboard() {
             subtitle={t('productDashboard.trendSubtitle')}
           />
         </Suspense>
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <AgentPerformanceTable data={data?.topAgents} loading={loading} onAgentClick={handleAgentClick} />
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <RecentTicketsList
           tickets={data?.recentTickets}
           loading={loading}
           title={t('productDashboard.recentTitle')}
           emptyText={t('productDashboard.recentEmpty')}
         />
-      </section>
+      </Reveal>
     </div>
   );
 }

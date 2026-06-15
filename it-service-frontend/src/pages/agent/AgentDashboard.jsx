@@ -7,6 +7,7 @@ import StatusDistributionChart from '../../components/dashboard/StatusDistributi
 import RecentTicketsList from '../../components/dashboard/RecentTicketsList';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import Reveal from '../../components/Reveal';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 const WorklogTrendChart = lazy(() => import('../../components/dashboard/WorklogTrendChart'));
@@ -154,11 +155,11 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
         </section>
       </ErrorBoundary>
 
-      <section>
+      <Reveal as="section">
         <StatusDistributionChart data={data?.statusDistribution} loading={loading} />
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <Suspense fallback={<SkeletonLoader lines={6} />}>
           <TicketTimelineChart
             data={data?.timeline}
@@ -169,9 +170,9 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
             seriesLabels={{ created: t('agentDashboard.seriesClaimed') }}
           />
         </Suspense>
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <Suspense fallback={<SkeletonLoader lines={6} />}>
           <WorklogTrendChart
             data={data?.worklogTimeline}
@@ -183,9 +184,9 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
             hoursLabel={t('agentDashboard.worklogChartHours')}
           />
         </Suspense>
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <Suspense fallback={<SkeletonLoader lines={6} />}>
           <AgentCsatChart
             data={data?.csat}
@@ -199,16 +200,16 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
             trendLabel={t('agentDashboard.csatChartTrend')}
           />
         </Suspense>
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <RecentTicketsList
           tickets={data?.recentTickets}
           loading={loading}
           title={t('agentDashboard.recentTitle')}
           emptyText={t('agentDashboard.recentEmpty')}
         />
-      </section>
+      </Reveal>
     </div>
   );
 }

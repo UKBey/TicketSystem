@@ -7,6 +7,7 @@ import StatusDistributionChart from '../../components/dashboard/StatusDistributi
 import RecentTicketsList from '../../components/dashboard/RecentTicketsList';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import ErrorBoundary from '../../components/ErrorBoundary';
+import Reveal from '../../components/Reveal';
 
 const TicketTimelineChart = lazy(() => import('../../components/dashboard/TicketTimelineChart'));
 
@@ -150,11 +151,11 @@ export default function CustomerDashboard({ viewUserId = null, viewUserName = nu
         </section>
       </ErrorBoundary>
 
-      <section>
+      <Reveal as="section">
         <StatusDistributionChart data={data?.statusDistribution} loading={loading} />
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <Suspense fallback={<SkeletonLoader lines={6} />}>
           <TicketTimelineChart
             data={data?.timeline}
@@ -165,16 +166,16 @@ export default function CustomerDashboard({ viewUserId = null, viewUserName = nu
             seriesLabels={{ created: t('customerDashboard.seriesOpened') }}
           />
         </Suspense>
-      </section>
+      </Reveal>
 
-      <section>
+      <Reveal as="section">
         <RecentTicketsList
           tickets={data?.recentTickets}
           loading={loading}
           title={t('customerDashboard.recentTitle')}
           emptyText={t('customerDashboard.recentEmpty')}
         />
-      </section>
+      </Reveal>
     </div>
   );
 }
