@@ -12,6 +12,13 @@ export default function Navbar({ onMenuClick }) {
   const { user, getPrimaryRole } = useAuth();
   const { t } = useTranslation();
   const primaryRole = getPrimaryRole();
+
+  // Dairesel reveal animasyonu butonun merkezinden yayilsin (fare + klavye).
+  const handleThemeToggle = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  };
+
   const initials = (user?.name || user?.username || 'U')
     .split(' ')
     .map((part) => part[0])
@@ -46,10 +53,11 @@ export default function Navbar({ onMenuClick }) {
         {/* Language switcher */}
         <LanguageSwitcher />
 
-        {/* Theme toggle */}
+        {/* Theme toggle — ikonlar donerek/olceklenerek gecis yapar; tema
+            degisiminin kendisi ThemeContext'te dairesel reveal ile animasyonlu. */}
         <button
-          onClick={toggleTheme}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 hover:scale-105 cursor-pointer"
+          onClick={handleThemeToggle}
+          className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
           style={{
             backgroundColor: 'var(--bg-surface-secondary)',
             color: 'var(--text-secondary)',
@@ -57,11 +65,23 @@ export default function Navbar({ onMenuClick }) {
           aria-label={theme === 'light' ? t('nav.theme.toDark') : t('nav.theme.toLight')}
           title={theme === 'light' ? t('nav.theme.toDark') : t('nav.theme.toLight')}
         >
-          {theme === 'light' ? (
-            <Moon className="h-[18px] w-[18px]" />
-          ) : (
-            <Sun className="h-[18px] w-[18px]" />
-          )}
+          <span className="relative h-[18px] w-[18px]">
+            {/* Light temadayken Moon (karanliga gec); dark'tayken Sun (aydinliga gec). */}
+            <Moon
+              className={`absolute inset-0 h-[18px] w-[18px] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                theme === 'light'
+                  ? 'rotate-0 scale-100 opacity-100'
+                  : '-rotate-90 scale-0 opacity-0'
+              }`}
+            />
+            <Sun
+              className={`absolute inset-0 h-[18px] w-[18px] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                theme === 'dark'
+                  ? 'rotate-0 scale-100 opacity-100'
+                  : 'rotate-90 scale-0 opacity-0'
+              }`}
+            />
+          </span>
         </button>
 
         {/* Notifications */}

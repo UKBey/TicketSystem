@@ -59,7 +59,10 @@ export default function ForgotPasswordPage() {
         <LanguageSwitcher />
         <button
           type="button"
-          onClick={toggleTheme}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            toggleTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+          }}
           aria-label={t('login.toggleTheme')}
           className="flex h-10 w-10 items-center justify-center rounded-xl border backdrop-blur-sm transition-all duration-200 hover:scale-105"
           style={{

@@ -150,6 +150,35 @@
 }
 
 /* ============================================================ */
+/* Theme Switch — View Transition (dairesel reveal)            */
+/* ============================================================ */
+/* Tema degisiminde yeni tema, tetikleyen butondan acilan bir daire ile
+   eski temanin uzerine yayilir. Animasyonu JS surer (ThemeContext); burada
+   yalnizca tarayicinin varsayilan cross-fade'ini kapatip katman sirasini
+   ayarliyoruz: eski tema altta sabit kalir, yeni tema ustte dairesel acilir.
+   View Transitions desteklemeyen tarayicilar bu kurallari yok sayar ve
+   ThemeContext aninda gecise duser. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ============================================================ */
 /* Utility Animations                                           */
 /* ============================================================ */
 @keyframes fade-in {
