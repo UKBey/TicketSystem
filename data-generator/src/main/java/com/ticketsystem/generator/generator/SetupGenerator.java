@@ -409,7 +409,11 @@ public class SetupGenerator {
                         adminAgent.getToken());
                 if (resp.isArray()) {
                     for (JsonNode item : resp) {
-                        existingTitles.add(item.path("title").asText());
+                        // Başlık iki dilli (titleTr/titleEn); idempotency için ikisini de topla.
+                        String tTr = item.path("titleTr").asText("");
+                        String tEn = item.path("titleEn").asText("");
+                        if (!tTr.isBlank()) existingTitles.add(tTr);
+                        if (!tEn.isBlank()) existingTitles.add(tEn);
                     }
                 }
             } catch (Exception e) {
@@ -427,9 +431,14 @@ public class SetupGenerator {
                     if (existingTitles.contains(title)) continue;
 
                     try {
+                        // setup.json tek dilli; metni her iki dile de yazarız (migration'ın
+                        // mevcut veriyi iki kolona kopyalamasıyla aynı mantık).
+                        String content = issue.path("content").asText();
                         api.post("/products/" + productId + "/known-issues",
-                                Map.of("title",   title,
-                                       "content", issue.path("content").asText(),
+                                Map.of("titleTr",   title,
+                                       "titleEn",   title,
+                                       "contentTr", content,
+                                       "contentEn", content,
                                        "topicId", topicId,
                                        "isActive", true),
                                 adminAgent.getToken());

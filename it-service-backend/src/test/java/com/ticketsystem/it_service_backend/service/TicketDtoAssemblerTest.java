@@ -194,7 +194,7 @@ class TicketDtoAssemblerTest {
         when(commentService.getAllCommentDtos(ticketId)).thenReturn(List.of());
         when(worklogService.getAllWorklogDtosByTicket(ticketId)).thenReturn(List.of());
         when(knownIssueService.getActiveForTicket(10L, 5L))
-                .thenReturn(List.of(KnownIssueDTO.builder().id(1L).title("Auth token expires").build()));
+                .thenReturn(List.of(KnownIssueDTO.builder().id(1L).titleEn("Auth token expires").build()));
 
         Map<String, Object> body = assembler.buildFullTicketData(ticketId);
 

@@ -174,8 +174,10 @@ public class TicketDataFetcher {
             TicketDataDTO.KnownIssueInfo ki = new TicketDataDTO.KnownIssueInfo();
             ki.setId(longVal(k, "id"));
             ki.setTopicId(longVal(k, "topicId"));
-            ki.setTitle(strVal(k, "title"));
-            ki.setContent(strVal(k, "content"));
+            ki.setTitleTr(strVal(k, "titleTr"));
+            ki.setTitleEn(strVal(k, "titleEn"));
+            ki.setContentTr(strVal(k, "contentTr"));
+            ki.setContentEn(strVal(k, "contentEn"));
             list.add(ki);
         }
         return list;
