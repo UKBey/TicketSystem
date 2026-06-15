@@ -125,6 +125,9 @@ export function useTicketList(endpoint, opts = {}) {
     totalPages: data?.totalPages ?? 0,
     totalItems: data?.totalElements ?? 0,
     loading,
+    // İlk yükleme (henüz hiç veri yok) — sonraki filtre/sıralama refetch'lerinde
+    // false kalır, böylece önceki liste ekranda tutulup boş-liste/scroll zıplaması önlenir.
+    initialLoading: loading && data === null,
     error,
     refetch: fetch,
 

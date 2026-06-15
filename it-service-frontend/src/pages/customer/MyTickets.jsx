@@ -7,6 +7,7 @@ import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 import CreateTicketModal from '../../components/CreateTicketModal';
+import ListLoadingOverlay from '../../components/ListLoadingOverlay';
 
 const ACTIVE_STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
 const CLOSED_STATUSES = ['CLOSED'];
@@ -31,7 +32,7 @@ export default function MyTickets() {
   );
 
   const {
-    tickets, totalPages, totalItems, loading, error,
+    tickets, totalPages, totalItems, loading, initialLoading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     status, setStatus,
@@ -115,17 +116,13 @@ export default function MyTickets() {
           hideAgent
         />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-          </div>
-        ) : (
+        <ListLoadingOverlay initial={initialLoading} loading={loading}>
           <TicketTable
             tickets={tickets}
             showSla={tab === 'active'}
             sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
           />
-        )}
+        </ListLoadingOverlay>
 
         <PaginationBar
           page={page} totalPages={totalPages} totalItems={totalItems}

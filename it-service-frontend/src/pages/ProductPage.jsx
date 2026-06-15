@@ -8,6 +8,7 @@ import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
 import PaginationBar from '../components/PaginationBar';
 import ProductTopicsSection from '../components/ProductTopicsSection';
+import ListLoadingOverlay from '../components/ListLoadingOverlay';
 import { localizedName } from '../utils/localizedName';
 import { ArrowLeft, Package, AlertTriangle, Ticket, Activity, CheckCircle, Settings } from 'lucide-react';
 
@@ -25,7 +26,7 @@ export default function ProductPage() {
   const [productLoading, setProductLoading] = useState(true);
 
   const {
-    tickets, totalPages, totalItems, loading: ticketsLoading, error,
+    tickets, totalPages, totalItems, loading: ticketsLoading, initialLoading: ticketsInitialLoading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     status, setStatus,
@@ -147,12 +148,7 @@ export default function ProductPage() {
           scopedProductId={Number(id)}
         />
 
-        {ticketsLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-8 w-8 rounded-full border-[3px] animate-spin"
-              style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-          </div>
-        ) : (
+        <ListLoadingOverlay initial={ticketsInitialLoading} loading={ticketsLoading}>
           <TicketTable
             tickets={tickets}
             showSla
@@ -164,7 +160,7 @@ export default function ProductPage() {
             emptyTitle="product.noTickets"
             emptySubtitle="ticket.empty.subtitle"
           />
-        )}
+        </ListLoadingOverlay>
 
         <PaginationBar
           page={page} totalPages={totalPages} totalItems={totalItems}

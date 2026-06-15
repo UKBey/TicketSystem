@@ -7,6 +7,7 @@ import { useTicketList } from '../../hooks/useTicketList';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
+import ListLoadingOverlay from '../../components/ListLoadingOverlay';
 
 export default function Workspace() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ export default function Workspace() {
   const WORKSPACE_STATUSES = ['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
 
   const {
-    tickets, totalPages, totalItems, loading, error,
+    tickets, totalPages, totalItems, loading, initialLoading, error,
     page, setPage, size, setSize,
     sortBy, sortDir, toggleSort,
     status, setStatus,
@@ -103,18 +104,14 @@ export default function Workspace() {
           hideAgent
         />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-          </div>
-        ) : (
+        <ListLoadingOverlay initial={initialLoading} loading={loading}>
           <TicketTable
             tickets={tickets}
             showSla
             currentUserId={currentUserId}
             sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}
           />
-        )}
+        </ListLoadingOverlay>
 
         <PaginationBar
           page={page} totalPages={totalPages} totalItems={totalItems}
