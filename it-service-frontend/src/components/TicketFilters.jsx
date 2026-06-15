@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, Check, ChevronDown } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import api from '../services/api';
 import MultiSelectFilter from './filters/MultiSelectFilter';
 import FilterSearchInput from './filters/FilterSearchInput';
@@ -230,25 +231,24 @@ export default function TicketFilters({
   );
 }
 
-// ── Tarih aralığı yerel kalır; başka bir yerde kullanılmıyor ──────────────────
-
 function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, datePresets, t }) {
   const [open, setOpen] = useState(false);
+  const [activeCalendar, setActiveCalendar] = useState(null); // 'from' | 'to' | null
   const ref = useRef(null);
-  const fromPickerRef = useRef(null);
-  const toPickerRef = useRef(null);
   const hasDate = dateFrom || dateTo;
 
-  const openPicker = (pickerRef) => {
-    try { pickerRef.current?.showPicker(); }
-    catch { pickerRef.current?.focus(); pickerRef.current?.click(); }
-  };
-
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setActiveCalendar(null);
+      }
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => { if (!open) setActiveCalendar(null); }, [open]);
 
   const applyPreset = (days) => {
     let from, to;
@@ -265,39 +265,38 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
     }
     if (onDateRange) onDateRange(from, to);
     else { onDateFrom(from); onDateTo(to); }
+    setActiveCalendar(null);
     setOpen(false);
   };
 
   const clearDates = () => {
     if (onDateRange) onDateRange('', '');
     else { onDateFrom(''); onDateTo(''); }
+    setActiveCalendar(null);
     setOpen(false);
   };
 
   const isPresetActive = (days) => {
     if (!dateFrom || !dateTo) return false;
     const from = new Date(dateFrom);
-    const to = new Date(dateTo);
     const today = new Date();
     if (days === 0) {
-      return from.toDateString() === today.toDateString() && to.toDateString() === today.toDateString();
+      return from.toDateString() === today.toDateString() && new Date(dateTo).toDateString() === today.toDateString();
     }
     const expectedStart = new Date();
     expectedStart.setDate(expectedStart.getDate() - days);
     return from.toDateString() === expectedStart.toDateString();
   };
 
-  // Use local date components (not UTC slice) to avoid off-by-one on timezones ahead of UTC.
-  const toISODate = (iso) => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const handleFromSelect = (isoStr) => {
+    onDateFrom(isoStr);
+    if (!dateTo) setActiveCalendar('to');
+    else setActiveCalendar(null);
   };
-  const fromInput = (dateStr, isEnd) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isEnd) d.setHours(23, 59, 59, 999); else d.setHours(0, 0, 0, 0);
-    return d.toISOString();
+
+  const handleToSelect = (isoStr) => {
+    onDateTo(isoStr);
+    setActiveCalendar(null);
   };
 
   return (
@@ -320,7 +319,7 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg overflow-hidden w-72"
+        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg w-72"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
 
           {/* Quick presets */}
@@ -354,39 +353,49 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
             </p>
             <div className="flex items-end gap-2">
               <div className="flex-1">
-                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
-                <div className="relative">
-                  <div
-                    className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none"
-                    onClick={() => openPicker(fromPickerRef)}
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateFrom ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                    {dateFrom ? formatDate(dateFrom) : '–'}
-                  </div>
-                  <input ref={fromPickerRef} type="date" value={toISODate(dateFrom)}
-                    onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
-                    tabIndex={-1}
-                    style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '1px', opacity: 0, pointerEvents: 'none' }} />
+                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>
+                  {t('ticket.filters.from')}
+                </label>
+                <div
+                  className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none transition-colors"
+                  onClick={() => setActiveCalendar(ac => ac === 'from' ? null : 'from')}
+                  style={{
+                    backgroundColor: 'var(--bg-input)',
+                    borderColor: activeCalendar === 'from' ? '#3b82f6' : 'var(--border-color)',
+                    color: dateFrom ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  }}>
+                  {dateFrom ? formatDate(dateFrom) : '–'}
                 </div>
               </div>
               <span className="pb-2 text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>→</span>
               <div className="flex-1">
-                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
-                <div className="relative">
-                  <div
-                    className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none"
-                    onClick={() => openPicker(toPickerRef)}
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateTo ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                    {dateTo ? formatDate(dateTo) : '–'}
-                  </div>
-                  <input ref={toPickerRef} type="date" value={toISODate(dateTo)}
-                    onChange={(e) => onDateTo(fromInput(e.target.value, true))}
-                    tabIndex={-1}
-                    style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '1px', opacity: 0, pointerEvents: 'none' }} />
+                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>
+                  {t('ticket.filters.to')}
+                </label>
+                <div
+                  className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none transition-colors"
+                  onClick={() => setActiveCalendar(ac => ac === 'to' ? null : 'to')}
+                  style={{
+                    backgroundColor: 'var(--bg-input)',
+                    borderColor: activeCalendar === 'to' ? '#3b82f6' : 'var(--border-color)',
+                    color: dateTo ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  }}>
+                  {dateTo ? formatDate(dateTo) : '–'}
                 </div>
               </div>
             </div>
 
-            {(dateFrom || dateTo) && (
+            {activeCalendar && (
+              <MiniCalendar
+                value={activeCalendar === 'from' ? dateFrom : dateTo}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                pickingFrom={activeCalendar === 'from'}
+                onChange={activeCalendar === 'from' ? handleFromSelect : handleToSelect}
+              />
+            )}
+
+            {hasDate && (
               <button type="button" onClick={clearDates}
                 className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
                 style={{ border: '1px solid var(--border-color)', color: 'var(--text-tertiary)' }}>
@@ -396,6 +405,124 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MiniCalendar({ value, dateFrom, dateTo, pickingFrom, onChange }) {
+  const locale = i18n.language?.startsWith('tr') ? 'tr-TR' : 'en-US';
+
+  const initial = value ? new Date(value) : (dateFrom ? new Date(dateFrom) : new Date());
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const monthLabel = new Date(viewYear, viewMonth, 1)
+    .toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+
+  // Monday-first day headers: Jan 1 2024 is a Monday, so i=0→Mon … i=6→Sun
+  const dayHeaders = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' })
+  );
+
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const startOffset = (firstDow + 6) % 7; // Mon=0 … Sun=6
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const cells = [
+    ...Array(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  const today = new Date();
+  const dayMs = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const todayMs = dayMs(today);
+  const fromMs = dateFrom ? dayMs(new Date(dateFrom)) : null;
+  const toMs   = dateTo   ? dayMs(new Date(dateTo))   : null;
+  const sameFromTo = fromMs !== null && fromMs === toMs;
+
+  return (
+    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-2">
+        <button type="button" onClick={prevMonth}
+          className="flex h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-xs font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
+          {monthLabel}
+        </span>
+        <button type="button" onClick={nextMonth}
+          className="flex h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 mb-0.5">
+        {dayHeaders.map((d, i) => (
+          <div key={i} className="flex items-center justify-center h-6 text-[10px] font-semibold"
+            style={{ color: 'var(--text-tertiary)' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} className="h-8" />;
+
+          const cellMs  = new Date(viewYear, viewMonth, day).getTime();
+          const isToday = todayMs === cellMs;
+          const isFrom  = fromMs !== null && fromMs === cellMs;
+          const isTo    = toMs   !== null && toMs   === cellMs;
+          const inRange = fromMs !== null && toMs !== null && cellMs > fromMs && cellMs < toMs;
+          const highlighted = isFrom || isTo;
+
+          // Half-cell backgrounds create a continuous range bar
+          const leftBg  = (inRange || (isTo   && fromMs !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
+          const rightBg = (inRange || (isFrom && toMs   !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
+
+          return (
+            <div key={i} className="relative flex h-8 items-center justify-center">
+              <div className="absolute inset-y-0 left-0 right-1/2" style={{ backgroundColor: leftBg }} />
+              <div className="absolute inset-y-0 left-1/2 right-0" style={{ backgroundColor: rightBg }} />
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date(viewYear, viewMonth, day);
+                  d.setHours(pickingFrom ? 0 : 23, pickingFrom ? 0 : 59, pickingFrom ? 0 : 59, pickingFrom ? 0 : 999);
+                  onChange(d.toISOString());
+                }}
+                className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs cursor-pointer transition-colors"
+                style={{
+                  backgroundColor: highlighted ? '#3b82f6' : 'transparent',
+                  color: highlighted ? '#fff' : isToday ? '#3b82f6' : 'var(--text-primary)',
+                  fontWeight: highlighted || isToday ? '600' : undefined,
+                  outline: isToday && !highlighted ? '2px solid rgba(59,130,246,0.35)' : undefined,
+                  outlineOffset: '1px',
+                }}
+                onMouseEnter={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
+                onMouseLeave={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                {day}
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
