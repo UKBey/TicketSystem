@@ -217,7 +217,9 @@
       "actions": "İşlemler",
       "claimers": "Üstlenenler",
       "unassigned": "Atanmamış",
-      "you": "sen"
+      "you": "sen",
+      "moreClaimers": "+{{count}} daha",
+      "showLess": "Daha az göster"
     },
     "filters": {
       "search": "Bilet ara...",

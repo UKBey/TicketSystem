@@ -217,7 +217,9 @@
       "actions": "Actions",
       "claimers": "Claimers",
       "unassigned": "Unassigned",
-      "you": "you"
+      "you": "you",
+      "moreClaimers": "+{{count}} more",
+      "showLess": "Show less"
     },
     "filters": {
       "search": "Search tickets...",

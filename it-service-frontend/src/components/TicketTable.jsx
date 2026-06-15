@@ -7,7 +7,7 @@ import SortableTh from './SortableTh';
 import { useColumnResize } from '../hooks/useColumnResize';
 import { formatDateTime } from '../utils/dateFormat';
 import { localizedName } from '../utils/localizedName';
-import { AlertTriangle, Inbox, Star } from 'lucide-react';
+import { AlertTriangle, Inbox, Star, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function TicketTable({
   tickets,
@@ -293,13 +293,25 @@ function CsatStars({ rating, t }) {
   );
 }
 
+// Üstlenen ajan sayısı arttıkça sütun şişmesin: 3'e kadar hepsi gösterilir,
+// 4+ olunca kapalıyken yalnız ilk 2 isim + "+N more" (açılıp kapanabilir).
+const CLAIMERS_SHOW_ALL_MAX = 3;  // bu sayıya kadar hepsini göster
+const CLAIMERS_COLLAPSED = 2;     // fazlaysa kapalıyken kaç isim görünsün
+
 function ClaimerPills({ claimers, currentUserId, t }) {
+  const [expanded, setExpanded] = useState(false);
+
   if (!claimers || claimers.length === 0) {
     return <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.table.unassigned')}</span>;
   }
+
+  const collapsible = claimers.length > CLAIMERS_SHOW_ALL_MAX;
+  const visible = collapsible && !expanded ? claimers.slice(0, CLAIMERS_COLLAPSED) : claimers;
+  const hiddenCount = claimers.length - CLAIMERS_COLLAPSED;
+
   return (
-    <div className="flex flex-wrap gap-1">
-      {claimers.map((c) => (
+    <div className="flex flex-wrap gap-1 items-center">
+      {visible.map((c) => (
         <span
           key={c.agentId}
           title={c.agentName}
@@ -314,6 +326,28 @@ function ClaimerPills({ claimers, currentUserId, t }) {
           {c.agentId === currentUserId && ` (${t('ticket.table.you')})`}
         </span>
       ))}
+
+      {collapsible && !expanded && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer"
+          style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}
+        >
+          {t('ticket.table.moreClaimers', { count: hiddenCount })}
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      )}
+
+      {collapsible && expanded && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
+          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer"
+          style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}
+        >
+          {t('ticket.table.showLess')}
+          <ChevronUp className="h-3 w-3" />
+        </button>
+      )}
     </div>
   );
 }
