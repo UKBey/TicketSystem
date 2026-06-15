@@ -235,7 +235,14 @@ export default function TicketFilters({
 function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, datePresets, t }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const fromPickerRef = useRef(null);
+  const toPickerRef = useRef(null);
   const hasDate = dateFrom || dateTo;
+
+  const openPicker = (pickerRef) => {
+    try { pickerRef.current?.showPicker(); }
+    catch { pickerRef.current?.focus(); pickerRef.current?.click(); }
+  };
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -349,28 +356,32 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
               <div className="flex-1">
                 <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
                 <div className="relative">
-                  <div className="w-full rounded-lg border px-2 py-1.5 text-xs" aria-hidden="true"
+                  <div
+                    className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none"
+                    onClick={() => openPicker(fromPickerRef)}
                     style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateFrom ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                     {dateFrom ? formatDate(dateFrom) : '–'}
                   </div>
-                  <input type="date" value={toISODate(dateFrom)}
+                  <input ref={fromPickerRef} type="date" value={toISODate(dateFrom)}
                     onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    aria-label={t('ticket.filters.from')} />
+                    tabIndex={-1}
+                    style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '1px', opacity: 0, pointerEvents: 'none' }} />
                 </div>
               </div>
               <span className="pb-2 text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>→</span>
               <div className="flex-1">
                 <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
                 <div className="relative">
-                  <div className="w-full rounded-lg border px-2 py-1.5 text-xs" aria-hidden="true"
+                  <div
+                    className="w-full rounded-lg border px-2 py-1.5 text-xs cursor-pointer select-none"
+                    onClick={() => openPicker(toPickerRef)}
                     style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateTo ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                     {dateTo ? formatDate(dateTo) : '–'}
                   </div>
-                  <input type="date" value={toISODate(dateTo)}
+                  <input ref={toPickerRef} type="date" value={toISODate(dateTo)}
                     onChange={(e) => onDateTo(fromInput(e.target.value, true))}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    aria-label={t('ticket.filters.to')} />
+                    tabIndex={-1}
+                    style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '1px', opacity: 0, pointerEvents: 'none' }} />
                 </div>
               </div>
             </div>
