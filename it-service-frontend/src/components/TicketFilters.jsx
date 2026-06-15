@@ -280,7 +280,12 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
     return from.toDateString() === expectedStart.toDateString();
   };
 
-  const toInputValue = (iso) => (iso ? iso.slice(0, 10) : '');
+  // Use local date components (not UTC slice) to avoid off-by-one on timezones ahead of UTC.
+  const toISODate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   const fromInput = (dateStr, isEnd) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -343,18 +348,30 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
             <div className="flex items-end gap-2">
               <div className="flex-1">
                 <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
-                <input type="date" value={toInputValue(dateFrom)}
-                  onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
-                  className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
-                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+                <div className="relative">
+                  <div className="w-full rounded-lg border px-2 py-1.5 text-xs" aria-hidden="true"
+                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateFrom ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                    {dateFrom ? formatDate(dateFrom) : '–'}
+                  </div>
+                  <input type="date" value={toISODate(dateFrom)}
+                    onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label={t('ticket.filters.from')} />
+                </div>
               </div>
               <span className="pb-2 text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>→</span>
               <div className="flex-1">
                 <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
-                <input type="date" value={toInputValue(dateTo)}
-                  onChange={(e) => onDateTo(fromInput(e.target.value, true))}
-                  className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
-                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+                <div className="relative">
+                  <div className="w-full rounded-lg border px-2 py-1.5 text-xs" aria-hidden="true"
+                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: dateTo ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                    {dateTo ? formatDate(dateTo) : '–'}
+                  </div>
+                  <input type="date" value={toISODate(dateTo)}
+                    onChange={(e) => onDateTo(fromInput(e.target.value, true))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    aria-label={t('ticket.filters.to')} />
+                </div>
               </div>
             </div>
 
