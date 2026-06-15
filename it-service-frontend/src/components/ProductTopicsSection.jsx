@@ -187,7 +187,9 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
           </ul>
 
           <div className="hidden lg:block">
-            <table className="w-full">
+            {/* table-fixed: uzun topic ismi kendi sütununda sarılsın; aksiyon/durum sütunları
+                sabit genişlikle her zaman görünür kalsın (auto-layout uzun ismi taşırıyordu). */}
+            <table className="w-full table-fixed">
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
                   <th
@@ -198,7 +200,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
                   </th>
                   <th
                     className="text-left px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b"
-                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)' }}
+                    style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', width: '140px' }}
                   >
                     {t('topic.colStatus')}
                   </th>
