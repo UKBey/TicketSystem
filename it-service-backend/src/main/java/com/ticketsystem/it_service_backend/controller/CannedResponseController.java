@@ -3,13 +3,13 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.dto.CannedResponseDTO;
 import com.ticketsystem.it_service_backend.service.CannedResponseService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
-import com.ticketsystem.it_service_backend.util.Pageables;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -72,9 +72,11 @@ public class CannedResponseController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
         String userId = jwt.getSubject();
+        // Sıralama tamamen sorguda: favoriler üstte, sonra updatedAt DESC — bu yüzden
+        // sıralamasız bir Pageable geçilir (aksi halde Spring Data sort'u ORDER BY'a eklerdi).
         Page<CannedResponseDTO> result = service.listVisiblePaged(
                 userId, productId, global, scope, visibility, lang, q,
-                Pageables.of(page, size, "updatedAt", "desc"));
+                PageRequest.of(page, size));
         return ResponseEntity.ok(result);
     }
 

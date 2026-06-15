@@ -121,6 +121,16 @@ export default function CannedResponsesPage() {
 
   const isFavorite = (item) => (item.id in favOverrides ? favOverrides[item.id] : item.favorite);
 
+  // Favoriler üstte gösterilir (bilet ekranındaki picker gibi). Sunucu da favori-önce sıralar,
+  // ama yıldıza basınca refetch yapmadığımız için görünen sayfayı burada da sıralarız: öğe
+  // anında yukarı kayar. Sıralama kararlıdır — aynı grup içinde sunucudan gelen sıra korunur.
+  const displayedItems = useMemo(
+    () => [...pageItems].sort((a, b) => (isFavorite(b) ? 1 : 0) - (isFavorite(a) ? 1 : 0)),
+    // isFavorite favOverrides'ı okur; iki bağımlılık da listelendi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pageItems, favOverrides],
+  );
+
   // ---- modal ---------------------------------------------------------------
   const openCreate = () => {
     setEditing(null);
@@ -351,7 +361,7 @@ export default function CannedResponsesPage() {
       ) : (
         <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {pageItems.map((item) => {
+          {displayedItems.map((item) => {
             const langs = availableLangs(item);
             // Seçili UI dilinde göster; o dil yoksa pickContent diğer varyanta düşer.
             const { content } = pickContent(item, i18n.language?.startsWith('tr') ? 'tr' : 'en');

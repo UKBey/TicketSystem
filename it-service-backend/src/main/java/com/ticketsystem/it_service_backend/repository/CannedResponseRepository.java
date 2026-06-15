@@ -56,6 +56,12 @@ public interface CannedResponseRepository extends JpaRepository<CannedResponse, 
      *   <li>{@code q}: already lower-cased {@code %needle%} matched against title/shortcut/contents.</li>
      * </ul>
      * Visibility base is unchanged: the user's own PERSONAL plus all SHARED.
+     *
+     * <p>Ordering is owned entirely by this query (callers must pass an <em>unsorted</em>
+     * {@link Pageable}): the user's favorites float to the top, then newest-updated first within
+     * each group. Favorite state is per-user, so it's an {@code EXISTS} subquery on the
+     * {@code canned_response_favorites} table (avoids the row multiplication a {@code LEFT JOIN}
+     * would cause in the paged count query).
      */
     @Query("""
             SELECT c FROM CannedResponse c
@@ -73,6 +79,11 @@ public interface CannedResponseRepository extends JpaRepository<CannedResponse, 
                     OR LOWER(c.shortcut) LIKE :q
                     OR LOWER(c.contentTr) LIKE :q
                     OR LOWER(c.contentEn) LIKE :q )
+            ORDER BY CASE WHEN EXISTS (
+                         SELECT 1 FROM CannedResponseFavorite f
+                         WHERE f.cannedResponseId = c.id AND f.userId = :userId
+                     ) THEN 0 ELSE 1 END,
+                     c.updatedAt DESC
             """)
     Page<CannedResponse> findVisiblePaged(@Param("userId") String userId,
                                           @Param("scope") String scope,
