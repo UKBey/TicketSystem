@@ -176,6 +176,13 @@
   to { transform: rotate(360deg); }
 }
 
+/* Liste refetch (filtre/sıralama) sırasında üstte kayan indeterminate ilerleme çubuğu */
+@keyframes indeterminate {
+  0%   { left: -45%; width: 45%; }
+  50%  { left: 25%;  width: 55%; }
+  100% { left: 100%; width: 45%; }
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
@@ -190,6 +197,14 @@
 
 .animate-spin {
   animation: spin 0.8s linear infinite;
+}
+
+.animate-indeterminate {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 9999px;
+  animation: indeterminate 1.15s ease-in-out infinite;
 }
 
 /* Sürüklenebilir sütunlu liste tabloları (TicketTable + admin/kullanıcı/ürün panelleri):

@@ -3,9 +3,9 @@
  *
  * - İlk yüklemede (`initial`) ortalı bir spinner gösterir.
  * - Sonraki refetch'lerde (filtre/sıralama/sayfa değişimi) önceki içeriği ekranda
- *   TUTAR; hafifçe soluklaştırıp üstte küçük bir spinner gösterir. Böylece tablo
- *   DOM'dan sökülmediği için sayfa çökmez, scroll yukarı zıplamaz ve boş liste
- *   anlık olarak görünmez — refetch sırasındaki "çirkin" titreme ortadan kalkar.
+ *   TUTAR; hafifçe soluklaştırıp üstte ince bir kayan ilerleme çubuğu gösterir.
+ *   Böylece tablo DOM'dan sökülmediği için sayfa çökmez, scroll yukarı zıplamaz ve
+ *   boş liste anlık olarak görünmez — refetch sırasındaki "çirkin" titreme biter.
  *
  * @param {boolean} initial  henüz hiç veri yokken (ilk yükleme) true
  * @param {boolean} loading  herhangi bir istek uçuşurken true
@@ -23,21 +23,22 @@ export default function ListLoadingOverlay({ initial, loading, children }) {
 
   return (
     <div className="relative">
+      {/* Üstte ince kayan ilerleme çubuğu (refetch sürerken) */}
+      {loading && (
+        <div className="absolute inset-x-0 top-0 z-10 h-[3px] overflow-hidden pointer-events-none"
+          style={{ backgroundColor: 'rgba(59,130,246,0.15)' }}>
+          <div className="animate-indeterminate" style={{ backgroundColor: '#3b82f6' }} />
+        </div>
+      )}
       <div
         style={{
-          opacity: loading ? 0.45 : 1,
-          transition: 'opacity 150ms ease',
+          opacity: loading ? 0.6 : 1,
+          transition: 'opacity 200ms ease',
           pointerEvents: loading ? 'none' : 'auto',
         }}
       >
         {children}
       </div>
-      {loading && (
-        <div className="absolute inset-x-0 top-0 flex justify-center pt-6 pointer-events-none">
-          <div className="h-7 w-7 rounded-full border-[3px] animate-spin"
-            style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-        </div>
-      )}
     </div>
   );
 }
