@@ -126,7 +126,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -139,7 +142,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -169,7 +175,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND t.product_id IN :productIds
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -197,7 +206,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.status = 'NEW'
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -229,7 +241,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -265,7 +280,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -302,7 +320,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -343,7 +364,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -379,7 +403,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -416,7 +443,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -452,7 +482,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.status NOT IN ('NEW', 'CLOSED')
           AND (t.priority IN (:priorities))
           AND (t.product_id IN (:filterProductIds))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -479,7 +512,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         WHERE t.product_id = CAST(:productId AS bigint)
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))
@@ -508,7 +544,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
           AND t.customer_id = CAST(:customerId AS text)
           AND (t.status IN (:statuses))
           AND (t.priority IN (:priorities))
-          AND (CAST(:searchPattern AS text) IS NULL OR LOWER(t.title) LIKE CAST(:searchPattern AS text))
+          AND (CAST(:searchPattern AS text) IS NULL
+               OR LOWER(t.title) LIKE CAST(:searchPattern AS text)
+               OR (regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') ~ '^[0-9]{1,18}$'
+                   AND t.id = CAST(regexp_replace(CAST(:searchPattern AS text), '[^0-9]', '', 'g') AS bigint)))
           AND (CAST(:dateFrom AS timestamptz) IS NULL OR t.created_at >= CAST(:dateFrom AS timestamptz))
           AND (CAST(:dateTo AS timestamptz) IS NULL OR t.created_at <= CAST(:dateTo AS timestamptz))
           AND (('BREACHED' IN (:slaStatuses) AND t.sla_breached = true OR 'ACTIVE' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NULL OR 'PAUSED' IN (:slaStatuses) AND t.sla_breached = false AND t.sla_paused_at IS NOT NULL))

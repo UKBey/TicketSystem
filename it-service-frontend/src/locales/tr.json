@@ -227,7 +227,7 @@
       "priority": "Öncelik",
       "product": "Ürün",
       "all": "Tümü",
-      "searchPlaceholder": "Başlık ara…",
+      "searchPlaceholder": "Başlık veya ID ara…",
       "allStatuses": "Tüm durumlar",
       "allPriorities": "Tüm öncelikler",
       "allSla": "Tüm SLA",
@@ -1002,7 +1002,7 @@
   "commandPalette": {
     "open": "Komut paletini aç",
     "searchPlaceholder": "Ara…",
-    "placeholder": "Sayfa ve bilet ara…",
+    "placeholder": "Sayfa, bilet veya bilet ID ara…",
     "recent": "Son Kullanılanlar",
     "navigate": "Git",
     "tickets": "Biletler",

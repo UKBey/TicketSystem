@@ -227,7 +227,7 @@
       "priority": "Priority",
       "product": "Product",
       "all": "All",
-      "searchPlaceholder": "Search title…",
+      "searchPlaceholder": "Search title or ID…",
       "allStatuses": "All statuses",
       "allPriorities": "All priorities",
       "allSla": "All SLA",
@@ -1002,7 +1002,7 @@
   "commandPalette": {
     "open": "Open command palette",
     "searchPlaceholder": "Search…",
-    "placeholder": "Search pages and tickets…",
+    "placeholder": "Search pages, tickets, or ticket ID…",
     "recent": "Recent",
     "navigate": "Navigate",
     "tickets": "Tickets",

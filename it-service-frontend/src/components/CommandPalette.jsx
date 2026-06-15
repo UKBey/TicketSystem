@@ -22,6 +22,11 @@ function ticketCode(id) {
   return `TCK-${String(id).padStart(3, '0')}`;
 }
 
+// Aramayı tetikle: en az 2 karakter VEYA tamamen rakam (kısa bilet ID'leri için, örn. "7").
+function shouldSearch(q) {
+  return q.length >= SEARCH_MIN_CHARS || /^\d+$/.test(q);
+}
+
 /**
  * Ctrl/Cmd+K ile açılan komut paleti. Açıldığında {@link PaletteInner} taze mount edilir —
  * böylece state her açılışta sıfırlanır (reset için effect'e gerek kalmaz).
@@ -86,7 +91,7 @@ function PaletteInner() {
   // ── Bilet arama — setState'ler bir fonksiyon içinde (effect gövdesinde değil) ──
   const runSearch = useCallback((raw) => {
     const q = raw.trim();
-    if (q.length < SEARCH_MIN_CHARS) {
+    if (!shouldSearch(q)) {
       setResults([]);
       setSearching(false);
       return;
@@ -186,7 +191,7 @@ function PaletteInner() {
   };
 
   const q = query.trim();
-  const showEmpty = q.length >= SEARCH_MIN_CHARS && !searching && flatItems.length === 0;
+  const showEmpty = q !== '' && !searching && flatItems.length === 0;
   let runningIndex = -1;
 
   return (
