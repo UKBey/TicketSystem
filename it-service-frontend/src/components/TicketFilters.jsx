@@ -415,6 +415,11 @@ function MiniCalendar({ value, dateFrom, dateTo, pickingFrom, onChange }) {
   const initial = value ? new Date(value) : (dateFrom ? new Date(dateFrom) : new Date());
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
+  const [view, setView] = useState('day'); // 'day' | 'month' | 'year'
+  const [yearRangeStart, setYearRangeStart] = useState(() => {
+    const y = initial.getFullYear();
+    return y - (y % 12);
+  });
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
@@ -428,19 +433,14 @@ function MiniCalendar({ value, dateFrom, dateTo, pickingFrom, onChange }) {
   const monthLabel = new Date(viewYear, viewMonth, 1)
     .toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
-  // Monday-first day headers: Jan 1 2024 is a Monday, so i=0→Mon … i=6→Sun
   const dayHeaders = Array.from({ length: 7 }, (_, i) =>
     new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' })
   );
 
-  const firstDow = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
-  const startOffset = (firstDow + 6) % 7; // Mon=0 … Sun=6
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+  const startOffset = (firstDow + 6) % 7;
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-  const cells = [
-    ...Array(startOffset).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
+  const cells = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
   const today = new Date();
   const dayMs = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -449,80 +449,166 @@ function MiniCalendar({ value, dateFrom, dateTo, pickingFrom, onChange }) {
   const toMs   = dateTo   ? dayMs(new Date(dateTo))   : null;
   const sameFromTo = fromMs !== null && fromMs === toMs;
 
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    new Date(2024, i, 1).toLocaleDateString(locale, { month: 'short' })
+  );
+  const years = Array.from({ length: 12 }, (_, i) => yearRangeStart + i);
+
+  const navBtn = 'flex h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors';
+  const hoverBg = {
+    onMouseEnter: e => { e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; },
+    onMouseLeave: e => { e.currentTarget.style.backgroundColor = 'transparent'; },
+  };
+  const gridItemBase = 'rounded-lg py-1.5 text-xs font-medium cursor-pointer transition-colors';
+
   return (
     <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
-      {/* Month navigation */}
-      <div className="flex items-center justify-between mb-2">
-        <button type="button" onClick={prevMonth}
-          className="flex h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-          <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
-        <span className="text-xs font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
-          {monthLabel}
-        </span>
-        <button type="button" onClick={nextMonth}
-          className="flex h-6 w-6 items-center justify-center rounded-md cursor-pointer transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
 
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 mb-0.5">
-        {dayHeaders.map((d, i) => (
-          <div key={i} className="flex items-center justify-center h-6 text-[10px] font-semibold"
-            style={{ color: 'var(--text-tertiary)' }}>{d}</div>
-        ))}
-      </div>
+      {/* ── YEAR VIEW ── */}
+      {view === 'year' && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={() => setYearRangeStart(s => s - 12)}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {yearRangeStart} – {yearRangeStart + 11}
+            </span>
+            <button type="button" onClick={() => setYearRangeStart(s => s + 12)}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {years.map(y => {
+              const sel = y === viewYear;
+              return (
+                <button key={y} type="button"
+                  onClick={() => { setViewYear(y); setView('month'); }}
+                  className={gridItemBase}
+                  style={{
+                    backgroundColor: sel ? '#3b82f6' : 'transparent',
+                    color: sel ? '#fff' : 'var(--text-primary)',
+                    border: `1px solid ${sel ? '#3b82f6' : 'transparent'}`,
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                  {y}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-      {/* Day cells */}
-      <div className="grid grid-cols-7">
-        {cells.map((day, i) => {
-          if (!day) return <div key={i} className="h-8" />;
+      {/* ── MONTH VIEW ── */}
+      {view === 'month' && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={() => setViewYear(y => y - 1)}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button type="button"
+              onClick={() => { setYearRangeStart(viewYear - (viewYear % 12)); setView('year'); }}
+              className="text-xs font-semibold rounded-md px-2 py-0.5 cursor-pointer transition-colors"
+              style={{ color: 'var(--text-primary)' }} {...hoverBg}>
+              {viewYear}
+            </button>
+            <button type="button" onClick={() => setViewYear(y => y + 1)}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {monthNames.map((name, idx) => {
+              const sel = idx === viewMonth;
+              return (
+                <button key={idx} type="button"
+                  onClick={() => { setViewMonth(idx); setView('day'); }}
+                  className={`${gridItemBase} capitalize`}
+                  style={{
+                    backgroundColor: sel ? '#3b82f6' : 'transparent',
+                    color: sel ? '#fff' : 'var(--text-primary)',
+                    border: `1px solid ${sel ? '#3b82f6' : 'transparent'}`,
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                  {name}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-          const cellMs  = new Date(viewYear, viewMonth, day).getTime();
-          const isToday = todayMs === cellMs;
-          const isFrom  = fromMs !== null && fromMs === cellMs;
-          const isTo    = toMs   !== null && toMs   === cellMs;
-          const inRange = fromMs !== null && toMs !== null && cellMs > fromMs && cellMs < toMs;
-          const highlighted = isFrom || isTo;
+      {/* ── DAY VIEW ── */}
+      {view === 'day' && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={prevMonth}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" onClick={() => setView('month')}
+              className="text-xs font-semibold rounded-md px-2 py-0.5 cursor-pointer capitalize transition-colors"
+              style={{ color: 'var(--text-primary)' }} {...hoverBg}>
+              {monthLabel}
+            </button>
+            <button type="button" onClick={nextMonth}
+              className={navBtn} style={{ color: 'var(--text-secondary)' }} {...hoverBg}>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
 
-          // Half-cell backgrounds create a continuous range bar
-          const leftBg  = (inRange || (isTo   && fromMs !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
-          const rightBg = (inRange || (isFrom && toMs   !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
+          <div className="grid grid-cols-7 mb-0.5">
+            {dayHeaders.map((d, i) => (
+              <div key={i} className="flex items-center justify-center h-6 text-[10px] font-semibold"
+                style={{ color: 'var(--text-tertiary)' }}>{d}</div>
+            ))}
+          </div>
 
-          return (
-            <div key={i} className="relative flex h-8 items-center justify-center">
-              <div className="absolute inset-y-0 left-0 right-1/2" style={{ backgroundColor: leftBg }} />
-              <div className="absolute inset-y-0 left-1/2 right-0" style={{ backgroundColor: rightBg }} />
-              <button
-                type="button"
-                onClick={() => {
-                  const d = new Date(viewYear, viewMonth, day);
-                  d.setHours(pickingFrom ? 0 : 23, pickingFrom ? 0 : 59, pickingFrom ? 0 : 59, pickingFrom ? 0 : 999);
-                  onChange(d.toISOString());
-                }}
-                className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs cursor-pointer transition-colors"
-                style={{
-                  backgroundColor: highlighted ? '#3b82f6' : 'transparent',
-                  color: highlighted ? '#fff' : isToday ? '#3b82f6' : 'var(--text-primary)',
-                  fontWeight: highlighted || isToday ? '600' : undefined,
-                  outline: isToday && !highlighted ? '2px solid rgba(59,130,246,0.35)' : undefined,
-                  outlineOffset: '1px',
-                }}
-                onMouseEnter={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
-                onMouseLeave={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                {day}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-7">
+            {cells.map((day, i) => {
+              if (!day) return <div key={i} className="h-8" />;
+              const cellMs  = new Date(viewYear, viewMonth, day).getTime();
+              const isToday = todayMs === cellMs;
+              const isFrom  = fromMs !== null && fromMs === cellMs;
+              const isTo    = toMs   !== null && toMs   === cellMs;
+              const inRange = fromMs !== null && toMs !== null && cellMs > fromMs && cellMs < toMs;
+              const highlighted = isFrom || isTo;
+              const leftBg  = (inRange || (isTo   && fromMs !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
+              const rightBg = (inRange || (isFrom && toMs   !== null && !sameFromTo)) ? 'rgba(59,130,246,0.12)' : 'transparent';
+              return (
+                <div key={i} className="relative flex h-8 items-center justify-center">
+                  <div className="absolute inset-y-0 left-0 right-1/2" style={{ backgroundColor: leftBg }} />
+                  <div className="absolute inset-y-0 left-1/2 right-0" style={{ backgroundColor: rightBg }} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(viewYear, viewMonth, day);
+                      d.setHours(pickingFrom ? 0 : 23, pickingFrom ? 0 : 59, pickingFrom ? 0 : 59, pickingFrom ? 0 : 999);
+                      onChange(d.toISOString());
+                    }}
+                    className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-xs cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: highlighted ? '#3b82f6' : 'transparent',
+                      color: highlighted ? '#fff' : isToday ? '#3b82f6' : 'var(--text-primary)',
+                      fontWeight: highlighted || isToday ? '600' : undefined,
+                      outline: isToday && !highlighted ? '2px solid rgba(59,130,246,0.35)' : undefined,
+                      outlineOffset: '1px',
+                    }}
+                    onMouseEnter={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
+                    onMouseLeave={e => { if (!highlighted) e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                    {day}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
