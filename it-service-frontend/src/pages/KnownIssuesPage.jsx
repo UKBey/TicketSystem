@@ -283,89 +283,115 @@ export default function KnownIssuesPage() {
           {selectedProductId ? t('knownIssues.empty') : t('knownIssues.noProducts')}
         </div>
       ) : (
-        <div
-          className="rounded-xl border overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
-        >
-          {paginated.map((item, idx) => {
-            const isOpen = expandedIds.has(item.id);
-            return (
-              <div
-                key={item.id}
-                className={idx > 0 ? 'border-t' : ''}
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                {/* Header — tiklanabilir, accordion'i acar/kapar */}
-                <button
-                  type="button"
-                  onClick={() => toggleExpanded(item.id)}
-                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left transition-colors cursor-pointer hover:bg-[color:var(--bg-surface-hover)]"
-                  aria-expanded={isOpen}
+        <>
+          {/* Ayrık genişleyen kartlar — her kayıt kendi kartı; sol durum şeridi +
+              baştan ikon rozeti, içerik kart içinde yumuşakça açılır. */}
+          <div className="space-y-3">
+            {paginated.map((item) => {
+              const isOpen = expandedIds.has(item.id);
+              // Durum vurgusu: aktif kayıt primary, pasif kayıt nötr gri (tema-duyarlı).
+              const accent = item.isActive ? 'var(--color-primary-500)' : 'var(--text-tertiary)';
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-xl border overflow-hidden transition-shadow duration-200"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-color)',
+                    borderLeft: `3px solid ${accent}`,
+                    boxShadow: isOpen ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+                  }}
                 >
-                  <ChevronDown
-                    className="h-4 w-4 shrink-0 transition-transform duration-200"
-                    style={{
-                      color: 'var(--text-tertiary)',
-                      transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-                    }}
-                  />
+                  {/* Header — tiklanabilir, kayit icerigini acar/kapar */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(item.id)}
+                    className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 text-left transition-colors cursor-pointer hover:bg-[color:var(--bg-surface-hover)]"
+                    aria-expanded={isOpen}
+                  >
+                    {/* Bastaki ikon rozeti — aktif/pasif duruma gore renklenir */}
+                    <span
+                      className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg"
+                      style={
+                        item.isActive
+                          ? { backgroundColor: 'rgba(59, 130, 246, 0.12)', color: 'var(--color-primary-500)' }
+                          : { backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)' }
+                      }
+                    >
+                      <LifeBuoy className="h-5 w-5" />
+                    </span>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
-                        {localizedName(item, 'title')}
-                      </h3>
-                      {!item.isActive && (
-                        <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
-                          {t('knownIssues.statusInactive')}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
+                          {localizedName(item, 'title')}
+                        </h3>
+                        {!item.isActive && (
+                          <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
+                            {t('knownIssues.statusInactive')}
+                          </span>
+                        )}
+                      </div>
+                      {item.topicId && topicLookup[item.topicId] && (
+                        <span
+                          className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                          style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}
+                        >
+                          <Tag className="h-3 w-3" />
+                          {topicLookup[item.topicId]}
                         </span>
                       )}
                     </div>
-                    {item.topicId && topicLookup[item.topicId] && (
-                      <div className="mt-0.5 inline-flex items-center gap-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                        <Tag className="h-3 w-3" />
-                        {topicLookup[item.topicId]}
-                      </div>
-                    )}
-                  </div>
-                </button>
 
-                {/* Body — sadece acikken render edilir; uzun icerik diger satirlari etkilemez */}
-                {isOpen && (
-                  <div className="px-4 sm:px-5 pb-4 pl-11 sm:pl-12">
-                    <p
-                      className="text-sm whitespace-pre-wrap leading-relaxed break-words"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {pickLocalized(item.contentTr, item.contentEn)}
-                    </p>
-                    {canManage && (
+                    <ChevronDown
+                      className="h-4 w-4 shrink-0 transition-transform duration-200"
+                      style={{
+                        color: 'var(--text-tertiary)',
+                        transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                      }}
+                    />
+                  </button>
+
+                  {/* Body — sadece acikken render edilir; gomulu panelde icerik */}
+                  {isOpen && (
+                    <div className="px-4 sm:px-5 pb-4 animate-slide-up">
                       <div
-                        className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3"
-                        style={{ borderColor: 'var(--border-color)' }}
+                        className="rounded-lg border p-3.5"
+                        style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)' }}
                       >
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
-                          style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                        <p
+                          className="text-sm whitespace-pre-wrap leading-relaxed break-words"
+                          style={{ color: 'var(--text-secondary)' }}
                         >
-                          <Pencil className="h-3 w-3" />
-                          {t('knownIssues.edit')}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          {t('knownIssues.delete')}
-                        </button>
+                          {pickLocalized(item.contentTr, item.contentEn)}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      {canManage && (
+                        <div className="mt-3 flex flex-wrap justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(item)}
+                            className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer"
+                            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            {t('knownIssues.edit')}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            {t('knownIssues.delete')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           <PaginationBar
             page={page}
             totalPages={totalPages}
@@ -374,7 +400,7 @@ export default function KnownIssuesPage() {
             onPageChange={setPage}
             onSizeChange={setSize}
           />
-        </div>
+        </>
       )}
       </ListLoadingOverlay>
 
