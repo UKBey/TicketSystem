@@ -1,17 +1,18 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LifeBuoy, Plus, Pencil, Trash2, X, Tag, Package, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import {
-  listKnownIssues,
   createKnownIssue,
   updateKnownIssue,
   deleteKnownIssue,
 } from '../services/api';
 import PaginationBar from '../components/PaginationBar';
+import ListLoadingOverlay from '../components/ListLoadingOverlay';
 import { useUrlState } from '../hooks/useUrlState';
+import { usePagedFetch } from '../hooks/usePagedFetch';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 
 /**
@@ -31,12 +32,10 @@ export default function KnownIssuesPage() {
 
   const [products, setProducts]                 = useState([]);
   const [topics, setTopics]                     = useState([]);
-  const [items, setItems]                       = useState([]);
-  const [loading, setLoading]                   = useState(false);
   const [error, setError]                       = useState('');
 
   // Ürün / konu filtresi + sayfalama URL'de tutulur (F5 / yer imi / link paylaşımı korur).
-  // Liste tek seferde çekilir; sayfalama istemci tarafında dilimlenir.
+  // Filtreleme + sayfalama sunucu taraflıdır (her değişimde backend'den yeni sayfa çekilir).
   const { str, num, setParams, searchParams } = useUrlState();
   const productParam = str('product');
   const selectedProductId = productParam ? Number(productParam) : null;
@@ -96,37 +95,19 @@ export default function KnownIssuesPage() {
   }, [selectedProductId]);
 
   // ---------------------------------------------------------------
-  // Listeleme
+  // Listeleme — sunucu taraflı sayfalama/filtreleme
   // ---------------------------------------------------------------
-  const fetchItems = useCallback(async () => {
-    if (!selectedProductId) return;
-    try {
-      setLoading(true);
-      setError('');
-      const res = await listKnownIssues(selectedProductId, {
-        topicId: topicFilter || undefined,
-        includeInactive: canManage,
-      });
-      setItems(res.data);
-    } catch (err) {
-      console.error('Known issues yüklenemedi:', err);
-      setError(t('knownIssues.errorLoad'));
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedProductId, topicFilter, canManage, t]);
+  const {
+    items: paginated, totalPages, totalItems,
+    loading, initialLoading, error: fetchError, refetch,
+  } = usePagedFetch(
+    selectedProductId ? `/products/${selectedProductId}/known-issues/paged` : null,
+    { topicId: topicFilter || undefined, includeInactive: canManage, page, size },
+  );
 
-  useEffect(() => { fetchItems(); }, [fetchItems]);
-
-  // ---------------------------------------------------------------
-  // Sayfalama hesapları
-  // ---------------------------------------------------------------
-  const totalPages = Math.ceil(items.length / size);
-  const paginated  = items.slice(page * size, page * size + size);
-
-  // Silme/azalma sonrası mevcut sayfa aralık dışında kalırsa son geçerli sayfaya çek.
+  // Aralık dışı sayfa (örn. eski ?page= linki) son geçerli sayfaya çekilir.
   useEffect(() => {
-    if (page > 0 && page >= totalPages) setPage(Math.max(0, totalPages - 1));
+    if (page > 0 && totalPages > 0 && page >= totalPages) setPage(totalPages - 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, totalPages]);
 
@@ -176,13 +157,12 @@ export default function KnownIssuesPage() {
     try {
       setSaving(true);
       if (editing) {
-        const res = await updateKnownIssue(editing.id, payload);
-        setItems((prev) => prev.map((it) => (it.id === editing.id ? res.data : it)));
+        await updateKnownIssue(editing.id, payload);
       } else {
-        const res = await createKnownIssue(selectedProductId, payload);
-        setItems((prev) => [res.data, ...prev]);
+        await createKnownIssue(selectedProductId, payload);
       }
       closeModal();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('knownIssues.errorSave'));
     } finally {
@@ -194,7 +174,9 @@ export default function KnownIssuesPage() {
     if (!window.confirm(t('knownIssues.confirmDelete', { title: localizedName(item, 'title') }))) return;
     try {
       await deleteKnownIssue(item.id);
-      setItems((prev) => prev.filter((it) => it.id !== item.id));
+      // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
+      if (paginated.length === 1 && page > 0) setPage(page - 1);
+      else refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('knownIssues.errorDelete'));
     }
@@ -224,9 +206,9 @@ export default function KnownIssuesPage() {
         </p>
       </div>
 
-      {error && (
+      {(error || fetchError) && (
         <div className="rounded-lg px-4 py-3 mb-4 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
+          {error || fetchError}
         </div>
       )}
 
@@ -287,11 +269,8 @@ export default function KnownIssuesPage() {
       </div>
 
       {/* Card grid */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-        </div>
-      ) : items.length === 0 ? (
+      <ListLoadingOverlay initial={initialLoading} loading={loading}>
+      {totalItems === 0 ? (
         <div
           className="rounded-xl border py-12 text-center text-sm"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}
@@ -385,13 +364,14 @@ export default function KnownIssuesPage() {
           <PaginationBar
             page={page}
             totalPages={totalPages}
-            totalItems={items.length}
+            totalItems={totalItems}
             size={size}
             onPageChange={setPage}
             onSizeChange={setSize}
           />
         </div>
       )}
+      </ListLoadingOverlay>
 
       {/* Add / Edit modal */}
       {isModalOpen && (

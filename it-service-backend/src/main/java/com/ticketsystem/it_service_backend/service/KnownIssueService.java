@@ -10,6 +10,8 @@ import com.ticketsystem.it_service_backend.repository.UserRepository;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +67,35 @@ public class KnownIssueService {
         return activeOnly
                 ? knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(productId)
                 : knownIssueRepository.findByProductIdOrderByCreatedAtDesc(productId);
+    }
+
+    /**
+     * Paginated variant of {@link #listByProduct} for the management screen.
+     * Same product/topic/active filtering and access checks; results come back as a
+     * {@link Page} so the client can render server-side pagination.
+     *
+     * @param productId target product ID
+     * @param topicId optional topic filter
+     * @param activeOnly when {@code true}, returns only active records
+     * @param userId user whose access is being checked (ignored for admin/manager)
+     * @param roles role list of the user
+     * @param pageable page/size/sort
+     * @return page of known issues
+     */
+    @Transactional(readOnly = true)
+    public Page<KnownIssue> listByProductPaged(Long productId, Long topicId, boolean activeOnly,
+                                               String userId, List<String> roles, Pageable pageable) {
+        ensureProductExists(productId);
+        ensureProductAccess(productId, userId, roles);
+
+        if (topicId != null) {
+            return activeOnly
+                    ? knownIssueRepository.findByProductIdAndTopicIdAndIsActiveTrue(productId, topicId, pageable)
+                    : knownIssueRepository.findByProductIdAndTopicId(productId, topicId, pageable);
+        }
+        return activeOnly
+                ? knownIssueRepository.findByProductIdAndIsActiveTrue(productId, pageable)
+                : knownIssueRepository.findByProductId(productId, pageable);
     }
 
     /**

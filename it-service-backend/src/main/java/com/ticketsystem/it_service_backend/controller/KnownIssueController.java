@@ -4,11 +4,13 @@ import com.ticketsystem.it_service_backend.dto.KnownIssueDTO;
 import com.ticketsystem.it_service_backend.entity.KnownIssue;
 import com.ticketsystem.it_service_backend.service.KnownIssueService;
 import com.ticketsystem.it_service_backend.util.JwtUtils;
+import com.ticketsystem.it_service_backend.util.Pageables;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -53,6 +55,33 @@ public class KnownIssueController {
         List<String> roles = JwtUtils.extractRoles(jwt);
         List<KnownIssue> items = knownIssueService.listByProduct(productId, topicId, !includeInactive, userId, roles);
         return ResponseEntity.ok(items.stream().map(KnownIssueDTO::fromEntity).toList());
+    }
+
+    /**
+     * Paginated variant of {@link #listByProduct} for the management screen.
+     *
+     * @param productId product identifier
+     * @param topicId optional topic filter
+     * @param includeInactive when {@code true}, inactive records are also included
+     * @param page zero-based page index
+     * @param size page size
+     * @return a page of DTOs filtered by role-based authorization
+     */
+    @Operation(summary = "Bir ürünün sıkça karşılaşılan sorunlarını sayfalı listele")
+    @GetMapping("/api/v1/products/{productId}/known-issues/paged")
+    public ResponseEntity<Page<KnownIssueDTO>> listByProductPaged(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long productId,
+            @RequestParam(name = "topicId", required = false) Long topicId,
+            @RequestParam(name = "includeInactive", defaultValue = "false") boolean includeInactive,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        Page<KnownIssue> items = knownIssueService.listByProductPaged(
+                productId, topicId, !includeInactive, userId, roles,
+                Pageables.of(page, size, "createdAt", "desc"));
+        return ResponseEntity.ok(items.map(KnownIssueDTO::fromEntity));
     }
 
     /**
