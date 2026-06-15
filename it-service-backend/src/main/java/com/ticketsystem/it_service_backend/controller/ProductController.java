@@ -3,6 +3,7 @@ package com.ticketsystem.it_service_backend.controller;
 import com.ticketsystem.it_service_backend.entity.Product;
 import com.ticketsystem.it_service_backend.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -89,6 +90,35 @@ public class ProductController {
         return ResponseEntity.ok(products.stream()
                 .map(ProductDTO::fromEntity)
                 .toList());
+    }
+
+    /**
+     * Paginated + filtered + sorted product list for the management panel. Same role-based
+     * visibility as {@link #getAllProducts}; filtering/sorting/paging happen server-side.
+     *
+     * @param search optional name filter (matches either language)
+     * @param sortBy {@code id} | {@code name} | {@code status} | {@code maxActiveTickets}
+     * @param sortDir {@code asc} | {@code desc}
+     * @param lang active UI language ({@code tr}/{@code en}) for the localized-name sort
+     * @param page zero-based page index
+     * @param size page size
+     * @return one page of product DTOs
+     */
+    @Operation(summary = "Ürünleri sayfalı + filtreli listele (yönetim paneli)")
+    @GetMapping("/paged")
+    public ResponseEntity<Page<ProductDTO>> getAllProductsPaged(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "search", required = false) String search,
+            @RequestParam(name = "sortBy", defaultValue = "id") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "asc") String sortDir,
+            @RequestParam(name = "lang", required = false) String lang,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        String userId = jwt != null ? jwt.getSubject() : null;
+        List<String> roles = jwt != null ? JwtUtils.extractRoles(jwt) : List.of();
+        Page<Product> products = productService.getAllProductsPaged(
+                userId, roles, search, sortBy, sortDir, lang, page, size);
+        return ResponseEntity.ok(products.map(ProductDTO::fromEntity));
     }
 
     /**

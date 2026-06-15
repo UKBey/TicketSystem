@@ -9,12 +9,16 @@ import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.util.LocalizedText;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import lombok.extern.log4j.Log4j2;
@@ -101,6 +105,64 @@ public class ProductService {
         List<Product> authProducts = user.getAuthorizedProducts();
         log.debug("Kullanıcı (ID: {}) için {} adet yetkili ürün bulundu.", userId, authProducts.size());
         return authProducts;
+    }
+
+    /**
+     * Paginated + filtered + sorted variant of {@link #getAllProducts} for the management
+     * panel. Filtering/sorting/paging run server-side over the role-scoped product set so the
+     * client only receives one page. The localized-name sort matches the previous client-side
+     * behavior (active language with fallback); {@code maxActiveTickets == null} (unlimited)
+     * sorts last on ascending. The product catalogue is small, so doing this in memory is fine.
+     *
+     * @param userId requesting user (may be null)
+     * @param roles role list of the user
+     * @param search optional case-insensitive name filter (matches either language variant)
+     * @param sortBy {@code id} | {@code name} | {@code status} | {@code maxActiveTickets}
+     * @param sortDir {@code asc} | {@code desc}
+     * @param lang active UI language ({@code tr}/{@code en}) for the localized-name sort
+     * @param page zero-based page index
+     * @param size page size
+     * @return one page of visible products
+     */
+    @Transactional(readOnly = true)
+    public Page<Product> getAllProductsPaged(String userId, List<String> roles, String search,
+                                             String sortBy, String sortDir, String lang, int page, int size) {
+        String q = (search == null || search.isBlank()) ? null : search.trim().toLowerCase();
+        boolean tr = !"en".equalsIgnoreCase(lang);
+        boolean asc = !"desc".equalsIgnoreCase(sortDir);
+
+        List<Product> filtered = getAllProducts(userId, roles).stream()
+                .filter(p -> q == null
+                        || (p.getNameTr() != null && p.getNameTr().toLowerCase().contains(q))
+                        || (p.getNameEn() != null && p.getNameEn().toLowerCase().contains(q)))
+                .sorted(productComparator(sortBy, asc, tr))
+                .toList();
+
+        int total = filtered.size();
+        int from = Math.min(Math.max(page, 0) * size, total);
+        int to = Math.min(from + size, total);
+        return new PageImpl<>(filtered.subList(from, to), PageRequest.of(page, size), total);
+    }
+
+    /** Builds the product comparator mirroring the panel's previous client-side sort. */
+    private Comparator<Product> productComparator(String sortBy, boolean asc, boolean tr) {
+        Comparator<Product> cmp = switch (sortBy == null ? "id" : sortBy) {
+            case "name" -> Comparator.comparing(p -> localizedNameFor(p, tr), String.CASE_INSENSITIVE_ORDER);
+            case "status" -> Comparator.comparing(p -> Boolean.TRUE.equals(p.getIsActive()));
+            // null (unlimited) sorts last on ascending, like Infinity in the old client logic
+            case "maxActiveTickets" -> Comparator.comparing(
+                    p -> p.getMaxActiveTickets() == null ? Integer.MAX_VALUE : p.getMaxActiveTickets());
+            default -> Comparator.comparing(Product::getId);
+        };
+        return asc ? cmp : cmp.reversed();
+    }
+
+    /** Active-language name with fallback to the other variant (empty string if neither). */
+    private String localizedNameFor(Product p, boolean tr) {
+        String primary = tr ? p.getNameTr() : p.getNameEn();
+        String fallback = tr ? p.getNameEn() : p.getNameTr();
+        String name = (primary != null && !primary.isBlank()) ? primary : fallback;
+        return name == null ? "" : name;
     }
 
     /**

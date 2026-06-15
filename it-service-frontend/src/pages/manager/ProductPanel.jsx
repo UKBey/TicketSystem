@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2, X, Eye, Search, Tag, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
@@ -8,8 +8,10 @@ import { useToast } from '../../context/ToastContext';
 import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 import SortableTh from '../../components/SortableTh';
+import ListLoadingOverlay from '../../components/ListLoadingOverlay';
 import { useColumnResize } from '../../hooks/useColumnResize';
 import { useUrlState } from '../../hooks/useUrlState';
+import { usePagedFetch } from '../../hooks/usePagedFetch';
 import { localizedName } from '../../utils/localizedName';
 
 const PAGE_SIZE = 10;
@@ -19,7 +21,7 @@ const COL_WIDTHS = { id: 90, name: 280, status: 130, maxActiveTickets: 350, acti
 const COL_ORDER = ['id', 'name', 'status', 'maxActiveTickets', 'actions'];
 
 export default function ProductPanel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
   const { tableWidth, handleFor, renderColgroup } = useColumnResize(COL_WIDTHS, COL_ORDER, 'colw:products');
@@ -30,10 +32,6 @@ export default function ProductPanel() {
   const canManageTopics = isLeadAgent || isAdmin;
   // Ürün dashboard'u oversight'tir — admin/manager/lead (lead yalnızca yetkili ürünleri).
   const canViewDashboard = isAdmin || isManager || isLeadAgent;
-
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   // Filtre / sayfa / sıralama state'i URL'de tutulur (F5 / yer imi / link paylaşımı korur).
   const { str, num, setParams } = useUrlState();
@@ -51,45 +49,23 @@ export default function ProductPanel() {
   const [formData, setFormData] = useState({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' });
   const [expandedTopicsProductId, setExpandedTopicsProductId] = useState(null);
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/products');
-      setProducts(res.data);
-    } catch (err) {
-      console.error('Could not load products:', err);
-      setError(t('productPanel.errorLoad'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  // Arama her iki dil varyantında da eşleşir.
-  const filtered = products.filter(p =>
-    !search
-    || (p.nameTr ?? '').toLowerCase().includes(search.toLowerCase())
-    || (p.nameEn ?? '').toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Sıralama istemci tarafında — ürün listesi tek seferde (sayfalamasız) çekildiği için.
-  const sorted = [...filtered].sort((a, b) => {
-    let av, bv;
-    switch (sortBy) {
-      case 'name':             av = localizedName(a).toLowerCase(); bv = localizedName(b).toLowerCase(); break;
-      case 'status':           av = a.isActive ? 1 : 0;           bv = b.isActive ? 1 : 0;           break;
-      case 'maxActiveTickets': av = a.maxActiveTickets ?? Infinity; bv = b.maxActiveTickets ?? Infinity; break; // sınırsız → en sona
-      default:                 av = a.id;                          bv = b.id; // 'id'
-    }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-    if (av > bv) return sortDir === 'asc' ? 1 : -1;
-    return 0;
+  // Sunucu taraflı filtreleme + sıralama + sayfalama. Lokalize ad sıralaması için aktif dil
+  // backend'e iletilir (name → nameTr/nameEn). Ürün kataloğu küçük; backend tek sayfa döner.
+  const {
+    items: paginated, totalItems, totalPages,
+    loading, initialLoading, error: fetchError, refetch,
+  } = usePagedFetch('/products/paged', {
+    search: search || undefined,
+    sortBy, sortDir,
+    lang: i18n.language?.startsWith('tr') ? 'tr' : 'en',
+    page, size,
   });
-  const totalPages = Math.ceil(sorted.length / size);
-  const paginated  = sorted.slice(page * size, page * size + size);
+
+  // Aralık dışı sayfa (örn. eski ?page= linki) son geçerli sayfaya çekilir.
+  useEffect(() => {
+    if (page > 0 && totalPages > 0 && page >= totalPages) setPage(totalPages - 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, totalPages]);
 
   const toggleSort = (field) => {
     const nextDir = sortBy === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
@@ -137,13 +113,12 @@ export default function ProductPanel() {
 
     try {
       if (currentProduct) {
-        const res = await api.put(`/products/${currentProduct.id}`, payload);
-        setProducts(products.map(p => p.id === currentProduct.id ? res.data : p));
+        await api.put(`/products/${currentProduct.id}`, payload);
       } else {
-        const res = await api.post('/products', payload);
-        setProducts([...products, res.data]);
+        await api.post('/products', payload);
       }
       closeModal();
+      refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('productPanel.errorSave'));
     }
@@ -153,19 +128,13 @@ export default function ProductPanel() {
     if (!window.confirm(t('productPanel.confirmDelete'))) return;
     try {
       await api.delete(`/products/${id}`);
-      setProducts(products.filter(p => p.id !== id));
+      // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
+      if (paginated.length === 1 && page > 0) setPage(page - 1);
+      else refetch();
     } catch (err) {
       toast.error(err.response?.data?.message || t('productPanel.errorDelete'));
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-40">
-        <div className="h-8 w-8 rounded-full border-[3px] animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -187,9 +156,9 @@ export default function ProductPanel() {
         )}
       </div>
 
-      {error && (
+      {fetchError && (
         <div className="rounded-lg px-4 py-3 mb-5 text-sm font-medium bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
-          {error}
+          {fetchError}
         </div>
       )}
 
@@ -200,7 +169,7 @@ export default function ProductPanel() {
           <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
             {t('productPanel.systemProducts')}
             <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
-              {t('productPanel.totalCount', { count: filtered.length })}
+              {t('productPanel.totalCount', { count: totalItems })}
             </span>
           </span>
           <div className="relative w-full sm:w-auto">
@@ -224,6 +193,7 @@ export default function ProductPanel() {
           </div>
         </div>
 
+        <ListLoadingOverlay initial={initialLoading} loading={loading}>
         <ul className="lg:hidden space-y-3 p-4">
           {paginated.map(product => {
             const topicsOpen = expandedTopicsProductId === product.id;
@@ -474,11 +444,12 @@ export default function ProductPanel() {
         <PaginationBar
           page={page}
           totalPages={totalPages}
-          totalItems={filtered.length}
+          totalItems={totalItems}
           size={size}
           onPageChange={setPage}
           onSizeChange={setSize}
         />
+        </ListLoadingOverlay>
       </div>
 
       {isModalOpen && (
