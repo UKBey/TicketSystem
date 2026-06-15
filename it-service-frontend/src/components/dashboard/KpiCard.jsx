@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Skeleton from '../Skeleton';
+import AnimatedNumber from '../AnimatedNumber';
 
 export default function KpiCard({ title, value, detail, icon, accent, loading }) {
   const { t } = useTranslation();
@@ -10,7 +11,7 @@ export default function KpiCard({ title, value, detail, icon, accent, loading })
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-xs sm:tracking-[0.2em]" style={{ color: 'var(--text-tertiary)' }}>{title}</p>
           <div className="mt-2 text-2xl font-black tracking-tight sm:mt-3 sm:text-3xl" style={{ color: 'var(--text-primary)' }}>
-            {loading ? <Skeleton as="span" className="inline-block h-8 w-20 rounded-lg sm:h-9 sm:w-28" /> : value}
+            {loading ? <Skeleton as="span" className="inline-block h-8 w-20 rounded-lg sm:h-9 sm:w-28" /> : <AnimatedNumber value={value} />}
           </div>
         </div>
 
