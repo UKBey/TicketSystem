@@ -30,9 +30,13 @@ export function useTicketList(endpoint, opts = {}) {
     extraParams = {},
   } = opts;
 
-  // Stable reference for extraParams to avoid infinite re-fetch loops
+  // Ref keeps the latest extraParams without closing over a stale value.
+  // extraParamsKey is a serialized snapshot used solely as a fetch dependency —
+  // it changes only when content changes, avoiding the infinite-loop that a raw
+  // object reference would cause while still re-triggering fetch on tab switches.
   const extraParamsRef = useRef(extraParams);
   useEffect(() => { extraParamsRef.current = extraParams; }, [extraParams]);
+  const extraParamsKey = JSON.stringify(extraParams);
 
   // ── URL'den oku (varsayılanlar URL'e yazılmaz, böylece adres temiz kalır) ──
   const { searchParams, str, num, arr, setParams } = useUrlState();
@@ -93,8 +97,8 @@ export function useTicketList(endpoint, opts = {}) {
     } finally {
       setLoading(false);
     }
-    // searchParams değişince (herhangi bir filtre/sayfa/sıralama) yeniden çek.
-  }, [endpoint, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+    // searchParams ya da extraParams içeriği değişince yeniden çek.
+  }, [endpoint, searchParams, extraParamsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetch(); }, [fetch]);
 
