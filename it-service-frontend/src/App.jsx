@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import PageTransition from './components/PageTransition';
 import RateLimitToast from './components/RateLimitToast';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
@@ -53,7 +54,9 @@ function AppLayout({ children }) {
           wrapper'i kendisi geniyleyip body-level scroll yaratiyor. */}
       <div className={`flex flex-1 flex-col min-w-0 transition-[margin] duration-300 ${desktopMarginClass}`}>
         <Navbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
     </div>
   );
