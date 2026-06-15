@@ -9,6 +9,7 @@ import PaginationBar from '../../components/PaginationBar';
 import ProductTopicsSection from '../../components/ProductTopicsSection';
 import SortableTh from '../../components/SortableTh';
 import ListLoadingOverlay from '../../components/ListLoadingOverlay';
+import BilingualField from '../../components/BilingualField';
 import { useColumnResize } from '../../hooks/useColumnResize';
 import { useUrlState } from '../../hooks/useUrlState';
 import { usePagedFetch } from '../../hooks/usePagedFetch';
@@ -47,6 +48,7 @@ export default function ProductPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [formData, setFormData] = useState({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' });
+  const [activeLang, setActiveLang] = useState('tr'); // modal'daki çift dilli ad sekmesi
   const [expandedTopicsProductId, setExpandedTopicsProductId] = useState(null);
 
   // Sunucu taraflı filtreleme + sıralama + sayfalama. Lokalize ad sıralaması için aktif dil
@@ -81,9 +83,12 @@ export default function ProductPanel() {
         isActive: product.isActive,
         maxActiveTickets: product.maxActiveTickets ?? ''
       });
+      // Düzenlemede dolu olan dil sekmesini aç (yoksa diğeri).
+      setActiveLang(product.nameTr ? 'tr' : (product.nameEn ? 'en' : 'tr'));
     } else {
       setCurrentProduct(null);
       setFormData({ nameTr: '', nameEn: '', isActive: true, maxActiveTickets: '' });
+      setActiveLang(i18n.language?.startsWith('tr') ? 'tr' : 'en');
     }
     setIsModalOpen(true);
   };
@@ -468,29 +473,19 @@ export default function ProductPanel() {
               </button>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelNameTr')}</label>
-                <input
-                  type="text"
-                  value={formData.nameTr}
-                  onChange={e => setFormData({ ...formData, nameTr: e.target.value })}
-                  placeholder="örn. E-Ticaret Modülü"
-                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelNameEn')}</label>
-                <input
-                  type="text"
-                  value={formData.nameEn}
-                  onChange={e => setFormData({ ...formData, nameEn: e.target.value })}
-                  placeholder="e.g. E-Commerce Module"
-                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
-                />
-                <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('productPanel.nameHint')}</p>
-              </div>
+              <BilingualField
+                label={t('productPanel.labelName')}
+                required
+                hint={t('productPanel.nameHint')}
+                lang={activeLang}
+                onLang={setActiveLang}
+                valueTr={formData.nameTr}
+                valueEn={formData.nameEn}
+                onChangeTr={(v) => setFormData({ ...formData, nameTr: v })}
+                onChangeEn={(v) => setFormData({ ...formData, nameEn: v })}
+                placeholderTr="örn. E-Ticaret Modülü"
+                placeholderEn="e.g. E-Commerce Module"
+              />
               <div>
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('productPanel.labelMaxTickets')}</label>
                 <input

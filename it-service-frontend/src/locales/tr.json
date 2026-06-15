@@ -55,6 +55,8 @@
     "cancel": "İptal",
     "modalNewTitle": "Yeni Sıkça Karşılaşılan Sorun",
     "modalEditTitle": "Kaydı Düzenle",
+    "labelTitle": "Başlık",
+    "labelContent": "Açıklama ve Çözüm",
     "labelTitleTr": "Başlık (Türkçe)",
     "labelTitleEn": "Başlık (İngilizce)",
     "labelContentTr": "Açıklama ve Çözüm (Türkçe)",

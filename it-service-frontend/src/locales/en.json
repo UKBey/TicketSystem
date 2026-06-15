@@ -55,6 +55,8 @@
     "cancel": "Cancel",
     "modalNewTitle": "New Known Issue",
     "modalEditTitle": "Edit Known Issue",
+    "labelTitle": "Title",
+    "labelContent": "Description & Resolution",
     "labelTitleTr": "Title (Turkish)",
     "labelTitleEn": "Title (English)",
     "labelContentTr": "Description & Resolution (Turkish)",

@@ -11,6 +11,7 @@ import {
 } from '../services/api';
 import PaginationBar from '../components/PaginationBar';
 import ListLoadingOverlay from '../components/ListLoadingOverlay';
+import BilingualField from '../components/BilingualField';
 import { useUrlState } from '../hooks/useUrlState';
 import { usePagedFetch } from '../hooks/usePagedFetch';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
@@ -50,6 +51,7 @@ export default function KnownIssuesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing]         = useState(null);
   const [form, setForm]               = useState({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: '', isActive: true });
+  const [activeLang, setActiveLang]   = useState('tr'); // modal'daki çift dilli sekme (başlık + içerik ortak)
   const [saving, setSaving]           = useState(false);
 
   // Akordiyon — birden fazla kayıt aynı anda açık kalabilir.
@@ -117,6 +119,7 @@ export default function KnownIssuesPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: '', isActive: true });
+    setActiveLang(i18n.language?.startsWith('tr') ? 'tr' : 'en');
     setIsModalOpen(true);
   };
 
@@ -130,6 +133,8 @@ export default function KnownIssuesPage() {
       topicId: item.topicId ? String(item.topicId) : '',
       isActive: item.isActive ?? true,
     });
+    // Düzenlemede dolu olan dil sekmesini aç (yoksa diğeri).
+    setActiveLang(item.titleTr ? 'tr' : (item.titleEn ? 'en' : 'tr'));
     setIsModalOpen(true);
   };
 
@@ -400,69 +405,36 @@ export default function KnownIssuesPage() {
 
             <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-                {/* Başlık — iki dilli (en az biri zorunlu) */}
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelTitleTr')}
-                  </label>
-                  <input
-                    type="text"
-                    value={form.titleTr}
-                    onChange={(e) => setForm((prev) => ({ ...prev, titleTr: e.target.value }))}
-                    maxLength={255}
-                    placeholder={t('knownIssues.placeholderTitle')}
-                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  />
-                </div>
+                {/* Başlık + İçerik — iki dilli (tek TR/EN sekmesiyle, en az biri zorunlu) */}
+                <BilingualField
+                  label={t('knownIssues.labelTitle')}
+                  required
+                  lang={activeLang}
+                  onLang={setActiveLang}
+                  valueTr={form.titleTr}
+                  valueEn={form.titleEn}
+                  onChangeTr={(v) => setForm((prev) => ({ ...prev, titleTr: v }))}
+                  onChangeEn={(v) => setForm((prev) => ({ ...prev, titleEn: v }))}
+                  maxLength={255}
+                  placeholder={t('knownIssues.placeholderTitle')}
+                />
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelTitleEn')}
-                  </label>
-                  <input
-                    type="text"
-                    value={form.titleEn}
-                    onChange={(e) => setForm((prev) => ({ ...prev, titleEn: e.target.value }))}
-                    maxLength={255}
-                    placeholder={t('knownIssues.placeholderTitle')}
-                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  />
-                  <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('knownIssues.langHint')}</p>
-                </div>
-
-                {/* İçerik — iki dilli (en az biri zorunlu) */}
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelContentTr')}
-                  </label>
-                  <textarea
-                    value={form.contentTr}
-                    onChange={(e) => setForm((prev) => ({ ...prev, contentTr: e.target.value }))}
-                    maxLength={10000}
-                    rows={5}
-                    placeholder={t('knownIssues.placeholderContent')}
-                    className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelContentEn')}
-                  </label>
-                  <textarea
-                    value={form.contentEn}
-                    onChange={(e) => setForm((prev) => ({ ...prev, contentEn: e.target.value }))}
-                    maxLength={10000}
-                    rows={5}
-                    placeholder={t('knownIssues.placeholderContent')}
-                    className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
-                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  />
-                  <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('knownIssues.langHint')}</p>
-                </div>
+                <BilingualField
+                  label={t('knownIssues.labelContent')}
+                  required
+                  hint={t('knownIssues.langHint')}
+                  lang={activeLang}
+                  onLang={setActiveLang}
+                  showToggle={false}
+                  as="textarea"
+                  rows={5}
+                  valueTr={form.contentTr}
+                  valueEn={form.contentEn}
+                  onChangeTr={(v) => setForm((prev) => ({ ...prev, contentTr: v }))}
+                  onChangeEn={(v) => setForm((prev) => ({ ...prev, contentEn: v }))}
+                  maxLength={10000}
+                  placeholder={t('knownIssues.placeholderContent')}
+                />
 
                 <div>
                   <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
