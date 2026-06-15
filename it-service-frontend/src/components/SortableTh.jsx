@@ -31,7 +31,7 @@ export default function SortableTh({ field, label, sortBy, sortDir, onSort, inve
   const alignClass = align === 'right' ? 'text-right' : 'text-left';
   const baseClass = `${alignClass} px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b ${className}`.trim();
   // position: relative — resizeHandle (absolute) bu th'e göre konumlanır.
-  const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', position: 'relative' };
+  const baseStyle = { color: 'var(--text-tertiary)', borderColor: 'var(--border-color)', position: 'relative', backgroundColor: 'inherit' };
 
   if (typeof onSort !== 'function') {
     return <th className={baseClass} style={baseStyle}>{label}{resizeHandle}</th>;
