@@ -427,25 +427,30 @@ public class SetupGenerator {
                 if (topicId == null) continue;
 
                 for (JsonNode issue : topic.path("knownIssues")) {
-                    String title = issue.path("title").asText();
-                    if (existingTitles.contains(title)) continue;
+                    // Başlık/içerik iki dilli (titleTr/titleEn, contentTr/contentEn); en az biri dolu olmalı.
+                    String titleTr = issue.path("titleTr").asText("");
+                    String titleEn = issue.path("titleEn").asText("");
+                    String contentTr = issue.path("contentTr").asText("");
+                    String contentEn = issue.path("contentEn").asText("");
+                    // idempotency: başlığın herhangi bir dili zaten varsa atla.
+                    if ((!titleTr.isBlank() && existingTitles.contains(titleTr)) ||
+                        (!titleEn.isBlank() && existingTitles.contains(titleEn))) continue;
+                    if (titleTr.isBlank() && titleEn.isBlank()) continue;
 
+                    String logTitle = !titleTr.isBlank() ? titleTr : titleEn;
                     try {
-                        // setup.json tek dilli; metni her iki dile de yazarız (migration'ın
-                        // mevcut veriyi iki kolona kopyalamasıyla aynı mantık).
-                        String content = issue.path("content").asText();
-                        api.post("/products/" + productId + "/known-issues",
-                                Map.of("titleTr",   title,
-                                       "titleEn",   title,
-                                       "contentTr", content,
-                                       "contentEn", content,
-                                       "topicId", topicId,
-                                       "isActive", true),
-                                adminAgent.getToken());
+                        Map<String, Object> body = new HashMap<>();
+                        if (!titleTr.isBlank())   body.put("titleTr", titleTr);
+                        if (!titleEn.isBlank())   body.put("titleEn", titleEn);
+                        if (!contentTr.isBlank()) body.put("contentTr", contentTr);
+                        if (!contentEn.isBlank()) body.put("contentEn", contentEn);
+                        body.put("topicId", topicId);
+                        body.put("isActive", true);
+                        api.post("/products/" + productId + "/known-issues", body, adminAgent.getToken());
                         created++;
                         Thread.sleep(GeneratorConfig.DELAY_MS);
                     } catch (Exception e) {
-                        log.warn("Failed to create known issue ({} / {}): {}", productName, title, e.getMessage());
+                        log.warn("Failed to create known issue ({} / {}): {}", productName, logTitle, e.getMessage());
                     }
                 }
             }
