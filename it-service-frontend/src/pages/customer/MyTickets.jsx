@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTicketList } from '../../hooks/useTicketList';
+import { useUrlState } from '../../hooks/useUrlState';
 import TicketTable from '../../components/TicketTable';
 import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
@@ -13,7 +14,8 @@ const CLOSED_STATUSES = ['CLOSED'];
 export default function MyTickets() {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
-  const [tab, setTab] = useState('active');
+  const { str, setParams: setUrlParams } = useUrlState();
+  const tab = str('tab', 'active');
 
   const TABS = [
     { key: 'active', label: t('ticket.myTickets.tabActive') },
@@ -45,9 +47,8 @@ export default function MyTickets() {
   } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc', extraParams });
 
   const handleTabChange = (tabKey) => {
-    setTab(tabKey);
-    // Drop any user-selected status filter — the new tab's scope takes over.
-    setStatus([]);
+    // Write tab + clear status in one atomic URL update.
+    setUrlParams({ tab: tabKey === 'active' ? '' : tabKey, status: [] });
   };
 
   return (
