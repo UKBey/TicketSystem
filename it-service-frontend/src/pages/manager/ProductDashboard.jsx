@@ -168,7 +168,7 @@ export default function ProductDashboard() {
       <ErrorBoundary>
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i}><SkeletonLoader lines={3} /></div>)
+            ? Array.from({ length: 4 }).map((_, i) => <KpiCard key={i} loading />)
             : kpis.map((item) => (
                 <KpiCard key={item.title} title={item.title} value={item.value} detail={item.detail} icon={item.icon} accent={item.accent} loading={loading} />
               ))}

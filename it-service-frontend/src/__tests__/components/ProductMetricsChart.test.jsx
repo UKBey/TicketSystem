@@ -14,7 +14,7 @@ const SAMPLE_DATA = {
 describe('ProductMetricsChart', () => {
   it('renders loading skeleton when loading=true', () => {
     const { container } = render(<ProductMetricsChart data={null} loading={true} />);
-    expect(container.querySelector('.animate-pulse')).toBeTruthy();
+    expect(container.querySelector('.skeleton-shimmer')).toBeTruthy();
   });
 
   it('shows empty state when productMetrics is empty', () => {

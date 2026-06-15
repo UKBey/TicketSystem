@@ -285,20 +285,7 @@ export default function Dashboard() {
       <ErrorBoundary>
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading ? (
-            <>
-              <div>
-                <SkeletonLoader lines={3} />
-              </div>
-              <div>
-                <SkeletonLoader lines={3} />
-              </div>
-              <div>
-                <SkeletonLoader lines={3} />
-              </div>
-              <div>
-                <SkeletonLoader lines={3} />
-              </div>
-            </>
+            Array.from({ length: 4 }).map((_, i) => <KpiCard key={i} loading />)
           ) : (
             kpis.map((item) => (
               <KpiCard
