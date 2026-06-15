@@ -999,6 +999,18 @@
     "cardDesc": "Show or hide ticket panels in the sidebar.",
     "note": "Hidden panels are removed from your sidebar only — they stay accessible to other users."
   },
+  "commandPalette": {
+    "open": "Open command palette",
+    "searchPlaceholder": "Search…",
+    "placeholder": "Search pages and tickets…",
+    "recent": "Recent",
+    "navigate": "Navigate",
+    "tickets": "Tickets",
+    "noResults": "No results found.",
+    "hintNavigate": "to navigate",
+    "hintSelect": "to select",
+    "hintClose": "to close"
+  },
   "notificationPrefs": {
     "title": "Notification Preferences",
     "subtitle": "Choose which events you want to receive email and in-app notifications for.",

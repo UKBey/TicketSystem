@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { DateFormatProvider } from './context/DateFormatContext'
 import { PanelPrefsProvider } from './context/PanelPrefsContext'
+import { CommandPaletteProvider } from './context/CommandPaletteContext'
 import { ToastProvider } from './context/ToastContext'
 import App from './App.jsx'
 import './index.css'
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')).render(
         <DateFormatProvider>
           <PanelPrefsProvider>
             <AuthProvider>
-              <App />
+              <CommandPaletteProvider>
+                <App />
+              </CommandPaletteProvider>
             </AuthProvider>
           </PanelPrefsProvider>
         </DateFormatProvider>

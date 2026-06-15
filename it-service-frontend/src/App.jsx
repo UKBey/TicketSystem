@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageTransition from './components/PageTransition';
 import RateLimitToast from './components/RateLimitToast';
+import CommandPalette from './components/CommandPalette';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
 import LoginPage from './pages/LoginPage';
@@ -58,6 +59,7 @@ function AppLayout({ children }) {
           <PageTransition>{children}</PageTransition>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

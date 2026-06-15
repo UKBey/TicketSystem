@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, Menu } from 'lucide-react';
+import { Sun, Moon, Menu, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useCommandPalette } from '../context/CommandPaletteContext';
 import { useTranslation } from 'react-i18next';
+import { MOD_KEY_LABEL } from '../utils/platform';
 import NotificationBell from './notifications/NotificationBell';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -10,6 +12,7 @@ export default function Navbar({ onMenuClick }) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { user, getPrimaryRole } = useAuth();
+  const { openPalette } = useCommandPalette();
   const { t } = useTranslation();
   const primaryRole = getPrimaryRole();
 
@@ -46,6 +49,34 @@ export default function Navbar({ onMenuClick }) {
         aria-label={t('sidebar.expand')}
       >
         <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Command palette tetikleyici — masaüstünde arama-çubuğu görünümü + OS'e göre
+          kısayol ipucu (⌘K / Ctrl K); mobilde yalnızca ikon. */}
+      <button
+        type="button"
+        onClick={openPalette}
+        title={t('commandPalette.open')}
+        aria-label={t('commandPalette.open')}
+        className="flex items-center gap-2 rounded-lg transition-all duration-200 cursor-pointer h-9 px-2.5 sm:w-64 sm:justify-start hover:opacity-90"
+        style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)' }}
+      >
+        <Search className="h-4 w-4 flex-shrink-0" />
+        <span className="hidden sm:block flex-1 text-left text-sm truncate">{t('commandPalette.searchPlaceholder')}</span>
+        <span className="hidden sm:flex items-center gap-1">
+          <kbd
+            className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border px-1 font-sans text-[11px] font-semibold leading-none"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            {MOD_KEY_LABEL}
+          </kbd>
+          <kbd
+            className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border px-1 font-sans text-[11px] font-semibold leading-none"
+            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          >
+            K
+          </kbd>
+        </span>
       </button>
 
       {/* Right: Actions */}

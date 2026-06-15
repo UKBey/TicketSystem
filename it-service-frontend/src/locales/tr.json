@@ -999,6 +999,18 @@
     "cardDesc": "Sol menüdeki ticket panellerini gösterin veya gizleyin.",
     "note": "Gizlenen paneller yalnızca sizin menünüzden kaldırılır — diğer kullanıcılar erişmeye devam eder."
   },
+  "commandPalette": {
+    "open": "Komut paletini aç",
+    "searchPlaceholder": "Ara…",
+    "placeholder": "Sayfa ve bilet ara…",
+    "recent": "Son Kullanılanlar",
+    "navigate": "Git",
+    "tickets": "Biletler",
+    "noResults": "Sonuç bulunamadı.",
+    "hintNavigate": "gezinmek için",
+    "hintSelect": "seçmek için",
+    "hintClose": "kapatmak için"
+  },
   "notificationPrefs": {
     "title": "Bildirim Tercihleri",
     "subtitle": "Hangi olaylar için e-posta ve uygulama içi bildirim almak istediğinizi seçin.",
