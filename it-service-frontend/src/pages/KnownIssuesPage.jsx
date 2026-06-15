@@ -70,9 +70,12 @@ export default function KnownIssuesPage() {
     api.get('/products')
       .then((res) => {
         setProducts(res.data);
-        // URL'de ürün yoksa ilk ürüne varsayılan olarak geç.
-        if (res.data.length > 0 && !searchParams.get('product')) {
-          setParams({ product: String(res.data[0].id) });
+        // URL'deki ürün id'si geçersizse (yok ya da listede değil — örn. yeniden
+        // seed sonrası id kaymış, eski link/yer imi) ilk ürüne düş; topic'i de sıfırla.
+        if (res.data.length > 0) {
+          const current = searchParams.get('product');
+          const valid = current && res.data.some((p) => String(p.id) === String(current));
+          if (!valid) setParams({ product: String(res.data[0].id), topic: '' });
         }
       })
       .catch(() => setError(t('knownIssues.errorLoadProducts')));
