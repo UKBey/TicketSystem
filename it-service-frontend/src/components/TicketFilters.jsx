@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import MultiSelectFilter from './filters/MultiSelectFilter';
 import FilterSearchInput from './filters/FilterSearchInput';
 import FilterChip from './filters/FilterChip';
 import { formatDate } from '../utils/dateFormat';
+import { useDateFormat } from '../context/DateFormatContext';
 import ClearFiltersButton from './filters/ClearFiltersButton';
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
@@ -33,6 +34,7 @@ export default function TicketFilters({
   scopedProductId,
 }) {
   const { t } = useTranslation();
+  useDateFormat(); // re-render when user's date format preference changes
   const [products, setProducts] = useState([]);
   const [agents,   setAgents]   = useState([]);
   const [topics,   setTopics]   = useState([]);
@@ -298,10 +300,11 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
           color:           hasDate ? '#2563eb'               : 'var(--text-secondary)',
         }}
       >
+        <CalendarDays className="h-3.5 w-3.5 shrink-0" />
         {hasDate
           ? `${dateFrom ? formatDate(dateFrom) : '…'} → ${dateTo ? formatDate(dateTo) : '…'}`
           : t('ticket.filters.dateRange')}
-        <ChevronDown className="h-3 w-3" />
+        <ChevronDown className="h-3 w-3 shrink-0" />
       </button>
 
       {open && (
@@ -318,12 +321,13 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, 
                 const active = isPresetActive(p.days);
                 return (
                   <button key={p.label} type="button" onClick={() => applyPreset(p.days)}
-                    className="rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-all text-left font-medium"
+                    className="rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-all text-left font-medium inline-flex items-center gap-1"
                     style={{
                       backgroundColor: active ? 'rgba(59,130,246,0.1)' : 'transparent',
                       color:           active ? '#2563eb'               : 'var(--text-secondary)',
                       border:          `1px solid ${active ? '#3b82f6' : 'var(--border-color)'}`,
                     }}>
+                    {active && <Check className="h-3 w-3 shrink-0" />}
                     {p.label}
                   </button>
                 );
