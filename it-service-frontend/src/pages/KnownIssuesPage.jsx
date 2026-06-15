@@ -12,7 +12,7 @@ import {
 } from '../services/api';
 import PaginationBar from '../components/PaginationBar';
 import { useUrlState } from '../hooks/useUrlState';
-import { localizedName, sortByLocalizedName } from '../utils/localizedName';
+import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 
 /**
  * Sıkça Karşılaşılan Sorunlar sayfası.
@@ -50,7 +50,7 @@ export default function KnownIssuesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing]         = useState(null);
-  const [form, setForm]               = useState({ title: '', content: '', topicId: '', isActive: true });
+  const [form, setForm]               = useState({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: '', isActive: true });
   const [saving, setSaving]           = useState(false);
 
   // Akordiyon — birden fazla kayıt aynı anda açık kalabilir.
@@ -132,15 +132,17 @@ export default function KnownIssuesPage() {
   // ---------------------------------------------------------------
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: '', content: '', topicId: '', isActive: true });
+    setForm({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: '', isActive: true });
     setIsModalOpen(true);
   };
 
   const openEdit = (item) => {
     setEditing(item);
     setForm({
-      title: item.title ?? '',
-      content: item.content ?? '',
+      titleTr: item.titleTr ?? '',
+      titleEn: item.titleEn ?? '',
+      contentTr: item.contentTr ?? '',
+      contentEn: item.contentEn ?? '',
       topicId: item.topicId ? String(item.topicId) : '',
       isActive: item.isActive ?? true,
     });
@@ -154,13 +156,17 @@ export default function KnownIssuesPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) {
+    // Her alan için en az bir dil zorunlu; ikinci dil opsiyonel (boşsa okuma anında diğerine düşer).
+    if ((!form.titleTr.trim() && !form.titleEn.trim()) ||
+        (!form.contentTr.trim() && !form.contentEn.trim())) {
       toast.error(t('knownIssues.errorRequired'));
       return;
     }
     const payload = {
-      title: form.title.trim(),
-      content: form.content.trim(),
+      titleTr: form.titleTr.trim() || null,
+      titleEn: form.titleEn.trim() || null,
+      contentTr: form.contentTr.trim() || null,
+      contentEn: form.contentEn.trim() || null,
       topicId: form.topicId ? Number(form.topicId) : null,
       isActive: form.isActive,
     };
@@ -182,7 +188,7 @@ export default function KnownIssuesPage() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(t('knownIssues.confirmDelete', { title: item.title }))) return;
+    if (!window.confirm(t('knownIssues.confirmDelete', { title: localizedName(item, 'title') }))) return;
     try {
       await deleteKnownIssue(item.id);
       setItems((prev) => prev.filter((it) => it.id !== item.id));
@@ -320,7 +326,7 @@ export default function KnownIssuesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm font-semibold break-words min-w-0" style={{ color: 'var(--text-primary)' }}>
-                        {item.title}
+                        {localizedName(item, 'title')}
                       </h3>
                       {!item.isActive && (
                         <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
@@ -344,7 +350,7 @@ export default function KnownIssuesPage() {
                       className="text-sm whitespace-pre-wrap leading-relaxed break-words"
                       style={{ color: 'var(--text-secondary)' }}
                     >
-                      {item.content}
+                      {pickLocalized(item.contentTr, item.contentEn)}
                     </p>
                     {canManage && (
                       <div
@@ -411,14 +417,15 @@ export default function KnownIssuesPage() {
 
             <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {/* Başlık — iki dilli (en az biri zorunlu) */}
                 <div>
                   <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelTitle')} *
+                    {t('knownIssues.labelTitleTr')}
                   </label>
                   <input
                     type="text"
-                    value={form.title}
-                    onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                    value={form.titleTr}
+                    onChange={(e) => setForm((prev) => ({ ...prev, titleTr: e.target.value }))}
                     maxLength={255}
                     placeholder={t('knownIssues.placeholderTitle')}
                     className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
@@ -428,17 +435,50 @@ export default function KnownIssuesPage() {
 
                 <div>
                   <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                    {t('knownIssues.labelContent')} *
+                    {t('knownIssues.labelTitleEn')}
+                  </label>
+                  <input
+                    type="text"
+                    value={form.titleEn}
+                    onChange={(e) => setForm((prev) => ({ ...prev, titleEn: e.target.value }))}
+                    maxLength={255}
+                    placeholder={t('knownIssues.placeholderTitle')}
+                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  />
+                  <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('knownIssues.langHint')}</p>
+                </div>
+
+                {/* İçerik — iki dilli (en az biri zorunlu) */}
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    {t('knownIssues.labelContentTr')}
                   </label>
                   <textarea
-                    value={form.content}
-                    onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
+                    value={form.contentTr}
+                    onChange={(e) => setForm((prev) => ({ ...prev, contentTr: e.target.value }))}
                     maxLength={10000}
-                    rows={6}
+                    rows={5}
                     placeholder={t('knownIssues.placeholderContent')}
                     className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
                     style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
+                    {t('knownIssues.labelContentEn')}
+                  </label>
+                  <textarea
+                    value={form.contentEn}
+                    onChange={(e) => setForm((prev) => ({ ...prev, contentEn: e.target.value }))}
+                    maxLength={10000}
+                    rows={5}
+                    placeholder={t('knownIssues.placeholderContent')}
+                    className="w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none transition-all focus:ring-2"
+                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  />
+                  <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('knownIssues.langHint')}</p>
                 </div>
 
                 <div>

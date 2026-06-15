@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
-import { localizedName, sortByLocalizedName } from '../utils/localizedName';
+import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 
 // Sentinel value for the "No Topic" choice — only offered when the selected
 // product has no active topics. Submitted to the API as topicId: null.
@@ -271,13 +271,13 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                             className="flex-1 min-w-0 text-sm font-semibold break-words"
                             style={{ color: 'var(--text-primary)' }}
                           >
-                            {ki.title}
+                            {localizedName(ki, 'title')}
                           </span>
                           {isOpen
                             ? <ChevronUp   className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                             : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
                         </button>
-                        {isOpen && ki.content && (
+                        {isOpen && pickLocalized(ki.contentTr, ki.contentEn) && (
                           <div
                             className="px-3 pb-3 pt-0 text-sm whitespace-pre-wrap leading-relaxed border-t break-words"
                             style={{
@@ -286,7 +286,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                               paddingTop: '0.5rem',
                             }}
                           >
-                            {ki.content}
+                            {pickLocalized(ki.contentTr, ki.contentEn)}
                           </div>
                         )}
                       </li>
