@@ -165,6 +165,7 @@ export default function KnownIssuesPage() {
       } else {
         await createKnownIssue(selectedProductId, payload);
       }
+      toast.success(t('knownIssues.saveSuccess'));
       closeModal();
       refetch();
     } catch (err) {
@@ -178,6 +179,7 @@ export default function KnownIssuesPage() {
     if (!window.confirm(t('knownIssues.confirmDelete', { title: localizedName(item, 'title') }))) return;
     try {
       await deleteKnownIssue(item.id);
+      toast.success(t('knownIssues.deleteSuccess'));
       // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
       if (paginated.length === 1 && page > 0) setPage(page - 1);
       else refetch();

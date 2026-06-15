@@ -199,6 +199,7 @@ export default function CannedResponsesPage() {
       } else {
         await createCannedResponse(payload);
       }
+      toast.success(t('cannedResponses.saveSuccess'));
       closeModal();
       refetch();
     } catch (err) {
@@ -212,6 +213,7 @@ export default function CannedResponsesPage() {
     if (!window.confirm(t('cannedResponses.confirmDelete', { title: item.title }))) return;
     try {
       await deleteCannedResponse(item.id);
+      toast.success(t('cannedResponses.deleteSuccess'));
       // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
       if (pageItems.length === 1 && page > 0) setPage(page - 1);
       else refetch();

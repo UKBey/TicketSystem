@@ -122,6 +122,7 @@ export default function ProductPanel() {
       } else {
         await api.post('/products', payload);
       }
+      toast.success(t('productPanel.saveSuccess'));
       closeModal();
       refetch();
     } catch (err) {
@@ -133,6 +134,7 @@ export default function ProductPanel() {
     if (!window.confirm(t('productPanel.confirmDelete'))) return;
     try {
       await api.delete(`/products/${id}`);
+      toast.success(t('productPanel.deleteSuccess'));
       // Sayfadaki son kayıt silindiyse önceki sayfaya düş, yoksa mevcut sayfayı tazele.
       if (paginated.length === 1 && page > 0) setPage(page - 1);
       else refetch();

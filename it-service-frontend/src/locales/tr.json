@@ -73,7 +73,9 @@
     "errorLoadProducts": "Ürün listesi yüklenemedi.",
     "errorRequired": "Başlık ve açıklama zorunludur (her biri için en az bir dil).",
     "errorSave": "Kayıt başarısız oldu.",
-    "errorDelete": "Silme işlemi başarısız oldu."
+    "errorDelete": "Silme işlemi başarısız oldu.",
+    "saveSuccess": "Bilinen sorun kaydedildi.",
+    "deleteSuccess": "Bilinen sorun silindi."
   },
   "cannedResponses": {
     "button": "Hazır yanıtlar",
@@ -138,6 +140,8 @@
     "errorSave": "Kayıt başarısız oldu.",
     "errorDelete": "Silme işlemi başarısız oldu.",
     "errorFavorite": "Favori güncellenemedi.",
+    "saveSuccess": "Hazır yanıt kaydedildi.",
+    "deleteSuccess": "Hazır yanıt silindi.",
     "emptyManage": "Henüz hazır yanıt yok. Yanıtları hızlandırmak için bir tane oluşturun.",
     "langTr": "Türkçe",
     "langEn": "İngilizce",
@@ -301,6 +305,7 @@
       "create": "Bilet Oluştur",
       "errorRequired": "Başlık, Açıklama, Ürün ve Konu alanları zorunludur.",
       "errorCreate": "Bilet oluşturulamadı.",
+      "createSuccess": "Bilet oluşturuldu.",
       "knownIssuesHeading": "Bu Bilinen Sorunlardan Biri Yardımcı Olabilir",
       "knownIssuesSubtitle": "Bilet açmadan önce kontrol edin — sorununuz aşağıdakilerden birinde çözülmüş olabilir.",
       "knownIssuesCount_one": "{{count}} ilgili sorun",
@@ -427,7 +432,9 @@
     "errorSave": "Ürün kaydedilemedi.",
     "confirmDelete": "Bu ürünü silmek istediğinizden emin misiniz?",
     "errorDelete": "Ürün silinemedi.",
-    "errorLoad": "Ürünler yüklenirken bir hata oluştu."
+    "errorLoad": "Ürünler yüklenirken bir hata oluştu.",
+    "saveSuccess": "Ürün kaydedildi.",
+    "deleteSuccess": "Ürün silindi."
   },
   "topic": {
     "sectionTitle": "Talep Konuları",
@@ -456,6 +463,8 @@
     "errorNameRequired": "En az bir konu adı (Türkçe veya İngilizce) girilmelidir.",
     "errorSave": "Talep konusu kaydedilemedi.",
     "errorDelete": "Talep konusu silinemedi.",
+    "saveSuccess": "Konu kaydedildi.",
+    "deleteSuccess": "Konu silindi.",
     "confirmDelete": "\"{{name}}\" konusunu silmek istediğinize emin misiniz?"
   },
   "reasonCode": {
@@ -580,6 +589,14 @@
     "claimFailed": "Bilet üstlenilemedi.",
     "releaseFailed": "Bilet bırakılamadı.",
     "closeFailed": "Bilet kapatılamadı.",
+    "claimSuccess": "Bilet üstlenildi.",
+    "releaseSuccess": "Bilet bırakıldı.",
+    "closeSuccess": "Bilet kapatıldı.",
+    "resolveSuccess": "Bilet çözüldü olarak işaretlendi.",
+    "statusUpdateSuccess": "Durum güncellendi.",
+    "priorityChangeSuccess": "Öncelik güncellendi.",
+    "topicChangeSuccess": "Konu güncellendi.",
+    "assignSuccess": "Bilet atandı.",
     "limitExceeded": "Limit aşıldı: {{message}}",
     "statusNew": "Yeni",
     "statusInProgress": "İşlemde",
@@ -754,6 +771,8 @@
       "errorAssign": "Ürün atanamadı.",
       "confirmRemove": "Bu ürün yetkisini kaldırmak istediğinizden emin misiniz?",
       "errorRemove": "Ürün yetkisi kaldırılamadı.",
+      "assignSuccess": "Ürün erişimi verildi.",
+      "removeSuccess": "Ürün erişimi kaldırıldı.",
       "errorLoad": "Kullanıcılar yüklenirken bir hata oluştu.",
       "agentLimits": "Bilet Limitleri",
       "agentLimitsTitle": "Ürün Bazlı Bilet Limitleri — {{name}}",
@@ -957,6 +976,7 @@
       "deleteCancel": "Vazgeç",
       "loadError": "Cihazlar yüklenemedi.",
       "deleteError": "Cihaz silinemedi.",
+      "deviceRemoved": "Cihaz kaldırıldı.",
       "deleting": "Siliniyor…"
     },
     "passwordModal": {

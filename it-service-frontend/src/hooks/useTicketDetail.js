@@ -216,6 +216,7 @@ export function useTicketDetail(id, isAgent) {
     try {
       const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
       setTicket(res.data);
+      toast.success(t('ticketDetail.statusUpdateSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.statusUpdateFailed'));
     }
@@ -225,6 +226,7 @@ export function useTicketDetail(id, isAgent) {
     try {
       const res = await api.put(`/tickets/${id}/claim`);
       setTicket(res.data);
+      toast.success(t('ticketDetail.claimSuccess'));
     } catch (err) {
       if (err.response?.status === 409 && err.response?.data?.error === 'TICKET_LIMIT_EXCEEDED') {
         toast.error(t('ticketDetail.limitExceeded', { message: err.response.data.message }));
@@ -238,6 +240,7 @@ export function useTicketDetail(id, isAgent) {
     try {
       const res = await unclaimTicketWithNote(id, payload);
       setTicket(res.data);
+      toast.success(t('ticketDetail.releaseSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.releaseFailed'));
     }
@@ -247,6 +250,7 @@ export function useTicketDetail(id, isAgent) {
     try {
       const res = await closeTicketWithNote(id, payload);
       setTicket(res.data);
+      toast.success(t('ticketDetail.closeSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.closeFailed'));
     }
@@ -257,6 +261,7 @@ export function useTicketDetail(id, isAgent) {
     const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED', reasonCode, note });
     setTicket(res.data);
     setResolveModalOpen(false);
+    toast.success(t('ticketDetail.resolveSuccess'));
   };
 
   const handleResolveClick = () => setResolveModalOpen(true);
@@ -268,12 +273,16 @@ export function useTicketDetail(id, isAgent) {
     fetchTicket();
   };
 
-  const handleAssignSuccess = () => fetchTicket();
+  const handleAssignSuccess = () => {
+    toast.success(t('ticketDetail.assignSuccess'));
+    fetchTicket();
+  };
 
   const handlePriorityChange = async ({ value, reasonCode, note }) => {
     try {
       const res = await updateTicketPriorityApi(id, { priority: value, reasonCode, note });
       setTicket(res.data);
+      toast.success(t('ticketDetail.priorityChangeSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.priorityChangeFailed'));
       throw err;
@@ -299,6 +308,7 @@ export function useTicketDetail(id, isAgent) {
     try {
       const res = await updateTicketTopicApi(id, { topicId: Number(value), reasonCode, note });
       setTicket(res.data);
+      toast.success(t('ticketDetail.topicChangeSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.topicChangeFailed'));
       throw err;

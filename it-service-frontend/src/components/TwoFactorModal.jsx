@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Smartphone, Plus, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import userService from '../services/userService';
+import { useToast } from '../context/ToastContext';
 import { redirectToKeycloakLogin } from '../keycloak';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
 import { formatDateTime } from '../utils/dateFormat';
@@ -88,6 +89,7 @@ function DeviceRow({ device, lang, onDelete, deletingId, t }) {
 
 export default function TwoFactorModal({ open, onClose, lang }) {
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [devices, setDevices]   = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -121,6 +123,7 @@ export default function TwoFactorModal({ open, onClose, lang }) {
     try {
       await userService.deleteTotpDevice(id);
       setDevices((d) => d.filter((x) => x.id !== id));
+      toast.success(t('profile.twoFactorModal.deviceRemoved'));
     } catch {
       setError(t('profile.twoFactorModal.deleteError'));
     } finally {

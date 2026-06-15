@@ -86,6 +86,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         productId: Number(productId),
         topicId: topicId === NO_TOPIC ? null : Number(topicId),
       });
+      toast.success(t('ticket.createModal.createSuccess'));
       onCreated(res.data);
       resetForm();
       onClose();

@@ -72,6 +72,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
         const res = await api.post(`/products/${productId}/topics`, formData);
         setTopics((prev) => sortByLocalizedName([...prev, res.data]));
       }
+      toast.success(t('topic.saveSuccess'));
       closeModal();
     } catch (err) {
       toast.error(err.response?.data?.message || t('topic.errorSave'));
@@ -85,6 +86,7 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
     try {
       await api.delete(`/topics/${topic.id}`);
       setTopics((prev) => prev.filter((tp) => tp.id !== topic.id));
+      toast.success(t('topic.deleteSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('topic.errorDelete'));
     }

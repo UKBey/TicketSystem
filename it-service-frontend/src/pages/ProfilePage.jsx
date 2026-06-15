@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import {
   Mail, Key, IdCard, Package, Bell, ChevronRight,
   User, Shield, ShieldCheck, ShieldAlert, Globe, ExternalLink, Settings,
@@ -204,6 +205,7 @@ function ActionCard({ icon: Icon, iconColor, iconBg, title, description, onClick
 /* ── Main page ──────────────────────────────────────────────── */
 export default function ProfilePage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const navigate = useNavigate();
   const { user, getPrimaryRole, roles, refreshUser, isAgent } = useAuth();
   const primaryRole = getPrimaryRole();
@@ -299,6 +301,7 @@ export default function ProfilePage() {
     try {
       await userService.updateProfile({ firstName, lastName, email });
       await refreshUser();
+      toast.success(t('profile.saved'));
       setEditing(null);
     } catch (err) {
       const status = err?.response?.status;

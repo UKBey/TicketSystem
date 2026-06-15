@@ -387,6 +387,7 @@ export default function AdminPanel() {
     try {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
+      toast.success(t('admin.panel.assignSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('admin.panel.errorAssign'));
     }
@@ -397,6 +398,7 @@ export default function AdminPanel() {
     try {
       const res = await api.delete(`/users/${userId}/products/${productId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
+      toast.success(t('admin.panel.removeSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('admin.panel.errorRemove'));
     }
