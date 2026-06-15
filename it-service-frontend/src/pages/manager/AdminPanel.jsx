@@ -388,6 +388,9 @@ export default function AdminPanel() {
       const res = await api.post(`/users/${userId}/products/${selectedProductId}`);
       setUsers(users.map(u => u.id === userId ? res.data : u));
       toast.success(t('admin.panel.assignSuccess'));
+      // Seçim tüm satırlarda paylaşılan tek state; başarılı atamadan sonra sıfırla ki
+      // sonraki "Ekle" tıklaması bayat değerle tekrar atama yapıp yanlış başarı göstermesin.
+      setSelectedProductId('');
     } catch (err) {
       toast.error(err.response?.data?.message || t('admin.panel.errorAssign'));
     }
