@@ -23,7 +23,7 @@ export default function TicketFilters({
   status = [], priority = [], search, productIds = [], agentIds = [],
   topicIds = [], slaStatuses = [], csatRatings = [], dateFrom, dateTo,
   onStatus, onPriority, onSearch, onProductIds, onAgentIds, onTopicIds,
-  onSlaStatuses, onCsatRatings, onDateFrom, onDateTo,
+  onSlaStatuses, onCsatRatings, onDateFrom, onDateTo, onDateRange,
   onClear,
   hideStatus    = false,
   hideAgent     = false,
@@ -176,6 +176,7 @@ export default function TicketFilters({
         <DateRangePicker
           dateFrom={dateFrom} dateTo={dateTo}
           onDateFrom={onDateFrom} onDateTo={onDateTo}
+          onDateRange={onDateRange}
           datePresets={DATE_PRESETS}
           t={t}
         />
@@ -218,7 +219,7 @@ export default function TicketFilters({
           {(dateFrom || dateTo) && (
             <FilterChip
               label={`${t('ticket.filters.from')}: ${dateFrom ? formatDate(dateFrom) : '…'} → ${dateTo ? formatDate(dateTo) : '…'}`}
-              onRemove={() => { onDateFrom(''); onDateTo(''); }}
+              onRemove={() => { if (onDateRange) onDateRange('', ''); else { onDateFrom(''); onDateTo(''); } }}
             />
           )}
         </div>
@@ -229,7 +230,7 @@ export default function TicketFilters({
 
 // ── Tarih aralığı yerel kalır; başka bir yerde kullanılmıyor ──────────────────
 
-function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, t }) {
+function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, onDateRange, datePresets, t }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const hasDate = dateFrom || dateTo;
@@ -241,18 +242,40 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
   }, []);
 
   const applyPreset = (days) => {
+    let from, to;
     if (days === 0) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const end = new Date();   end.setHours(23, 59, 59, 999);
-      onDateFrom(today.toISOString()); onDateTo(end.toISOString());
+      from = today.toISOString(); to = end.toISOString();
     } else {
       const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - days);
       start.setHours(0, 0, 0, 0);
-      onDateFrom(start.toISOString()); onDateTo(end.toISOString());
+      from = start.toISOString(); to = end.toISOString();
     }
+    if (onDateRange) onDateRange(from, to);
+    else { onDateFrom(from); onDateTo(to); }
     setOpen(false);
+  };
+
+  const clearDates = () => {
+    if (onDateRange) onDateRange('', '');
+    else { onDateFrom(''); onDateTo(''); }
+    setOpen(false);
+  };
+
+  const isPresetActive = (days) => {
+    if (!dateFrom || !dateTo) return false;
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
+    const today = new Date();
+    if (days === 0) {
+      return from.toDateString() === today.toDateString() && to.toDateString() === today.toDateString();
+    }
+    const expectedStart = new Date();
+    expectedStart.setDate(expectedStart.getDate() - days);
+    return from.toDateString() === expectedStart.toDateString();
   };
 
   const toInputValue = (iso) => (iso ? iso.slice(0, 10) : '');
@@ -282,44 +305,63 @@ function DateRangePicker({ dateFrom, dateTo, onDateFrom, onDateTo, datePresets, 
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg p-3 w-64"
+        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border shadow-lg overflow-hidden w-72"
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.quickSelect')}</p>
-          <div className="grid grid-cols-2 gap-1 mb-3">
-            {datePresets.map((p) => (
-              <button key={p.label} type="button" onClick={() => applyPreset(p.days)}
-                className="rounded-lg border px-2 py-1 text-xs cursor-pointer transition-colors hover:bg-primary-50 dark:hover:bg-primary-500/10 text-left"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-                {p.label}
+
+          {/* Quick presets */}
+          <div className="p-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+              {t('ticket.filters.quickSelect')}
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {datePresets.map((p) => {
+                const active = isPresetActive(p.days);
+                return (
+                  <button key={p.label} type="button" onClick={() => applyPreset(p.days)}
+                    className="rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-all text-left font-medium"
+                    style={{
+                      backgroundColor: active ? 'rgba(59,130,246,0.1)' : 'transparent',
+                      color:           active ? '#2563eb'               : 'var(--text-secondary)',
+                      border:          `1px solid ${active ? '#3b82f6' : 'var(--border-color)'}`,
+                    }}>
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom range */}
+          <div className="p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+              {t('ticket.filters.customRange')}
+            </p>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
+                <input type="date" value={toInputValue(dateFrom)}
+                  onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
+                  className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+              </div>
+              <span className="pb-2 text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>→</span>
+              <div className="flex-1">
+                <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
+                <input type="date" value={toInputValue(dateTo)}
+                  onChange={(e) => onDateTo(fromInput(e.target.value, true))}
+                  className="w-full rounded-lg border px-2 py-1.5 text-xs outline-none"
+                  style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+              </div>
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <button type="button" onClick={clearDates}
+                className="mt-2 w-full rounded-lg px-2 py-1.5 text-xs cursor-pointer transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
+                style={{ border: '1px solid var(--border-color)', color: 'var(--text-tertiary)' }}>
+                {t('ticket.filters.clearDates')}
               </button>
-            ))}
+            )}
           </div>
-
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.customRange')}</p>
-          <div className="space-y-1.5">
-            <div>
-              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.from')}</label>
-              <input type="date" value={toInputValue(dateFrom)}
-                onChange={(e) => onDateFrom(fromInput(e.target.value, false))}
-                className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
-                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
-            </div>
-            <div>
-              <label className="text-[10px] mb-0.5 block" style={{ color: 'var(--text-tertiary)' }}>{t('ticket.filters.to')}</label>
-              <input type="date" value={toInputValue(dateTo)}
-                onChange={(e) => onDateTo(fromInput(e.target.value, true))}
-                className="w-full rounded-lg border px-2 py-1 text-xs outline-none"
-                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
-            </div>
-          </div>
-
-          {(dateFrom || dateTo) && (
-            <button type="button" onClick={() => { onDateFrom(''); onDateTo(''); setOpen(false); }}
-              className="mt-2 w-full rounded-lg border px-2 py-1 text-xs cursor-pointer transition-colors hover:bg-danger-50 dark:hover:bg-danger-500/10"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-tertiary)' }}>
-              {t('ticket.filters.clearDates')}
-            </button>
-          )}
         </div>
       )}
     </div>

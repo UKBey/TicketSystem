@@ -147,6 +147,7 @@ export function useTicketList(endpoint, opts = {}) {
     csatRatings, setCsatRatings: (v) => setParams({ csatRating: v }),
     dateFrom,  setDateFrom:  (v) => setParams({ dateFrom: v }),
     dateTo,    setDateTo:    (v) => setParams({ dateTo: v }),
+    setDateRange: (from, to) => setParams({ dateFrom: from, dateTo: to }),
     clearFilters,
   };
 }

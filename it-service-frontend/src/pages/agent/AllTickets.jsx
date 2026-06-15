@@ -25,6 +25,7 @@ export default function AllTickets() {
     csatRatings, setCsatRatings,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
   } = useTicketList('/tickets/all', { sortBy: 'createdAt', sortDir: 'desc' });
 
@@ -57,6 +58,7 @@ export default function AllTickets() {
           csatRatings={csatRatings} onCsatRatings={setCsatRatings}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           showCsat={canSeeCsat}
           statusOptions={['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED']}

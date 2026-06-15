@@ -36,6 +36,7 @@ export default function ProductPage() {
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
   } = useTicketList(`/tickets/by-product/${id}`, { sortBy: 'createdAt', sortDir: 'desc' });
 
@@ -140,6 +141,7 @@ export default function ProductPage() {
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           hideProduct
           scopedProductId={Number(id)}

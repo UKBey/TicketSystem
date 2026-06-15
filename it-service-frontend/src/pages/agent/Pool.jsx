@@ -31,6 +31,7 @@ export default function Pool() {
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
     refetch,
   } = useTicketList('/tickets/pool', { sortBy: 'createdAt', sortDir: 'desc' });
@@ -80,6 +81,7 @@ export default function Pool() {
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           hideStatus
           hideAgent

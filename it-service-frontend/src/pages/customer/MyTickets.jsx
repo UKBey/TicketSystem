@@ -42,6 +42,7 @@ export default function MyTickets() {
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
     refetch,
   } = useTicketList('/tickets', { sortBy: 'createdAt', sortDir: 'desc', extraParams });
@@ -107,6 +108,7 @@ export default function MyTickets() {
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           hideStatus={tab === 'closed'}
           statusOptions={ACTIVE_STATUSES}

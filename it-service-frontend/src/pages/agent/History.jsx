@@ -22,6 +22,7 @@ export default function History() {
     csatRatings, setCsatRatings,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
   } = useTicketList('/tickets/my-assigned', {
     sortBy: 'createdAt',
@@ -52,6 +53,7 @@ export default function History() {
           csatRatings={csatRatings} onCsatRatings={setCsatRatings}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           showCsat={canSeeCsat}
           hideStatus

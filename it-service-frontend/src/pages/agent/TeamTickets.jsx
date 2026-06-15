@@ -36,6 +36,7 @@ export default function TeamTickets() {
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
     refetch,
   } = useTicketList('/tickets/team', { sortBy: 'createdAt', sortDir: 'desc' });
@@ -116,6 +117,7 @@ export default function TeamTickets() {
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           statusOptions={['IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED']}
         />

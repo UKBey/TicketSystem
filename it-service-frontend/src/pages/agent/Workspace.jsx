@@ -31,6 +31,7 @@ export default function Workspace() {
     slaStatuses, setSlaStatuses,
     dateFrom, setDateFrom,
     dateTo, setDateTo,
+    setDateRange,
     clearFilters,
   } = useTicketList('/tickets/my-assigned', {
     sortBy: 'createdAt',
@@ -96,6 +97,7 @@ export default function Workspace() {
           slaStatuses={slaStatuses} onSlaStatuses={setSlaStatuses}
           dateFrom={dateFrom}   onDateFrom={setDateFrom}
           dateTo={dateTo}       onDateTo={setDateTo}
+          onDateRange={setDateRange}
           onClear={clearFilters}
           statusOptions={WORKSPACE_STATUSES}
           hideAgent
