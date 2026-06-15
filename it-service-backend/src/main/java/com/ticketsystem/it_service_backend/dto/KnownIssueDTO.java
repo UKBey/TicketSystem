@@ -2,7 +2,6 @@ package com.ticketsystem.it_service_backend.dto;
 
 import com.ticketsystem.it_service_backend.entity.KnownIssue;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,15 +30,21 @@ public class KnownIssueDTO {
     @Schema(description = "Opsiyonel: bağlı olduğu talep konusu ID'si", example = "12")
     private Long topicId;
 
-    @NotBlank(message = "{validation.known-issue.title.notblank}")
     @Size(max = 255, message = "{validation.known-issue.title.size}")
-    @Schema(description = "Sorunun başlığı", example = "VPN bağlantısı kopuyor")
-    private String title;
+    @Schema(description = "Sorunun başlığı (Türkçe). titleEn ile en az biri dolu olmalı.", example = "VPN bağlantısı kopuyor", nullable = true)
+    private String titleTr;
 
-    @NotBlank(message = "{validation.known-issue.content.notblank}")
+    @Size(max = 255, message = "{validation.known-issue.title.size}")
+    @Schema(description = "Sorunun başlığı (İngilizce). titleTr ile en az biri dolu olmalı.", example = "VPN connection drops", nullable = true)
+    private String titleEn;
+
     @Size(max = 10000, message = "{validation.known-issue.content.size}")
-    @Schema(description = "Sorunun ayrıntıları ve çözüm önerisi", example = "Ağ ayarlarınızı kontrol edip ...")
-    private String content;
+    @Schema(description = "Sorunun ayrıntıları (Türkçe). contentEn ile en az biri dolu olmalı.", example = "Ağ ayarlarınızı kontrol edip ...", nullable = true)
+    private String contentTr;
+
+    @Size(max = 10000, message = "{validation.known-issue.content.size}")
+    @Schema(description = "Sorunun ayrıntıları (İngilizce). contentTr ile en az biri dolu olmalı.", example = "Check your network settings ...", nullable = true)
+    private String contentEn;
 
     @Schema(description = "Aktif mi (kullanıcılara gösterilir mi)", example = "true")
     private Boolean isActive;
@@ -58,8 +63,10 @@ public class KnownIssueDTO {
                 .id(entity.getId())
                 .productId(entity.getProductId())
                 .topicId(entity.getTopicId())
-                .title(entity.getTitle())
-                .content(entity.getContent())
+                .titleTr(entity.getTitleTr())
+                .titleEn(entity.getTitleEn())
+                .contentTr(entity.getContentTr())
+                .contentEn(entity.getContentEn())
                 .isActive(entity.getIsActive())
                 .createdBy(entity.getCreatedBy())
                 .createdAt(entity.getCreatedAt())

@@ -30,11 +30,17 @@ public class KnownIssue {
     @Column(name = "topic_id")
     private Long topicId;
 
-    @Column(nullable = false, length = 255)
-    private String title;
+    @Column(name = "title_tr", length = 255)
+    private String titleTr;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "title_en", length = 255)
+    private String titleEn;
+
+    @Column(name = "content_tr", columnDefinition = "TEXT")
+    private String contentTr;
+
+    @Column(name = "content_en", columnDefinition = "TEXT")
+    private String contentEn;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default

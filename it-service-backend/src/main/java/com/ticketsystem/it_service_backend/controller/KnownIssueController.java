@@ -87,10 +87,10 @@ public class KnownIssueController {
             @PathVariable Long productId,
             @Valid @RequestBody KnownIssueDTO body) {
         String createdBy = jwt.getSubject();
-        log.info("Sıkça karşılaşılan sorun oluşturma isteği. Ürün: {}, Başlık: {}", productId, body.getTitle());
+        log.info("Sıkça karşılaşılan sorun oluşturma isteği. Ürün: {}", productId);
         KnownIssue created = knownIssueService.create(
-                productId, body.getTopicId(), body.getTitle(), body.getContent(),
-                body.getIsActive(), createdBy);
+                productId, body.getTopicId(), body.getTitleTr(), body.getTitleEn(),
+                body.getContentTr(), body.getContentEn(), body.getIsActive(), createdBy);
         return ResponseEntity.ok(KnownIssueDTO.fromEntity(created));
     }
 
@@ -108,7 +108,8 @@ public class KnownIssueController {
             @PathVariable Long id,
             @Valid @RequestBody KnownIssueDTO body) {
         log.info("Sıkça karşılaşılan sorun güncelleme isteği. ID: {}", id);
-        KnownIssue updated = knownIssueService.update(id, body.getTopicId(), body.getTitle(), body.getContent(), body.getIsActive());
+        KnownIssue updated = knownIssueService.update(id, body.getTopicId(),
+                body.getTitleTr(), body.getTitleEn(), body.getContentTr(), body.getContentEn(), body.getIsActive());
         return ResponseEntity.ok(KnownIssueDTO.fromEntity(updated));
     }
 

@@ -109,31 +109,41 @@ public class KnownIssueService {
     /**
      * Creates a new known issue record.
      *
-     * <p>When a topic is supplied, it must belong to the same product. Title and
-     * content are trimmed, and length limits (title 255, content 10,000) are enforced.
+     * <p>Title and content are bilingual (tr/en); at least one language must be
+     * provided for each. When a topic is supplied, it must belong to the same
+     * product. Values are trimmed (blank collapses to {@code null}) and length
+     * limits (title 255, content 10,000) are enforced per language.
      *
      * @param productId ID of the owning product
      * @param topicId optional topic ID (must belong to the product when set)
-     * @param title title (non-blank, max 255 chars)
-     * @param content content (non-blank, max 10,000 chars)
+     * @param titleTr title (Turkish, optional if titleEn present)
+     * @param titleEn title (English, optional if titleTr present)
+     * @param contentTr content (Turkish, optional if contentEn present)
+     * @param contentEn content (English, optional if contentTr present)
      * @param isActive active flag (defaults to {@code true} when {@code null})
      * @param createdBy ID of the creating user (for audit)
      * @return the persisted record
      * @throws ResponseStatusException 404 if product/topic missing, 400 on validation errors
      */
     @Transactional
-    public KnownIssue create(Long productId, Long topicId, String title, String content,
-                             Boolean isActive, String createdBy) {
+    public KnownIssue create(Long productId, Long topicId, String titleTr, String titleEn,
+                             String contentTr, String contentEn, Boolean isActive, String createdBy) {
         ensureProductExists(productId);
         validateTopicBelongsToProduct(productId, topicId);
-        validateTitle(title);
-        validateContent(content);
+        String tTr = normalize(titleTr);
+        String tEn = normalize(titleEn);
+        String cTr = normalize(contentTr);
+        String cEn = normalize(contentEn);
+        validateTitle(tTr, tEn);
+        validateContent(cTr, cEn);
 
         KnownIssue issue = KnownIssue.builder()
                 .productId(productId)
                 .topicId(topicId)
-                .title(title.trim())
-                .content(content.trim())
+                .titleTr(tTr)
+                .titleEn(tEn)
+                .contentTr(cTr)
+                .contentEn(cEn)
                 .isActive(isActive == null ? Boolean.TRUE : isActive)
                 .createdBy(createdBy)
                 .build();
@@ -143,31 +153,41 @@ public class KnownIssueService {
     }
 
     /**
-     * Partial update; only non-{@code null} fields are modified.
-     * If the topic changes, it must belong to the same product.
+     * Partial update; the title or content is only touched when at least one of its
+     * language variants is supplied (and the "at least one language" rule still holds
+     * after the change). If the topic changes, it must belong to the same product.
      *
      * @param id record ID to update
      * @param topicId new topic (optional)
-     * @param title new title (optional)
-     * @param content new content (optional)
+     * @param titleTr new Turkish title (optional)
+     * @param titleEn new English title (optional)
+     * @param contentTr new Turkish content (optional)
+     * @param contentEn new English content (optional)
      * @param isActive new active flag (optional)
      * @return the updated record
      * @throws ResponseStatusException 404 if record/topic missing, 400 on validation errors
      */
     @Transactional
-    public KnownIssue update(Long id, Long topicId, String title, String content, Boolean isActive) {
+    public KnownIssue update(Long id, Long topicId, String titleTr, String titleEn,
+                             String contentTr, String contentEn, Boolean isActive) {
         KnownIssue existing = findOrThrow(id);
         if (topicId != null) {
             validateTopicBelongsToProduct(existing.getProductId(), topicId);
             existing.setTopicId(topicId);
         }
-        if (title != null) {
-            validateTitle(title);
-            existing.setTitle(title.trim());
+        if (titleTr != null || titleEn != null) {
+            String tTr = normalize(titleTr);
+            String tEn = normalize(titleEn);
+            validateTitle(tTr, tEn);
+            existing.setTitleTr(tTr);
+            existing.setTitleEn(tEn);
         }
-        if (content != null) {
-            validateContent(content);
-            existing.setContent(content.trim());
+        if (contentTr != null || contentEn != null) {
+            String cTr = normalize(contentTr);
+            String cEn = normalize(contentEn);
+            validateContent(cTr, cEn);
+            existing.setContentTr(cTr);
+            existing.setContentEn(cEn);
         }
         if (isActive != null) {
             existing.setIsActive(isActive);
@@ -235,20 +255,28 @@ public class KnownIssueService {
         );
     }
 
-    private void validateTitle(String title) {
-        if (title == null || title.trim().isEmpty()) {
+    /** Trims and converts blank to {@code null} so "cleared" and "absent" collapse to one state. */
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /** At least one language variant must be present; each variant must respect the length limit. */
+    private void validateTitle(String titleTr, String titleEn) {
+        if (titleTr == null && titleEn == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.known-issue.title.empty");
         }
-        if (title.trim().length() > 255) {
+        if ((titleTr != null && titleTr.length() > 255) || (titleEn != null && titleEn.length() > 255)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.known-issue.title.too-long");
         }
     }
 
-    private void validateContent(String content) {
-        if (content == null || content.trim().isEmpty()) {
+    private void validateContent(String contentTr, String contentEn) {
+        if (contentTr == null && contentEn == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.known-issue.content.empty");
         }
-        if (content.trim().length() > 10000) {
+        if ((contentTr != null && contentTr.length() > 10000) || (contentEn != null && contentEn.length() > 10000)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.known-issue.content.too-long");
         }
     }

@@ -46,8 +46,10 @@ class KnownIssueServiceTest {
                 .id(1L)
                 .productId(10L)
                 .topicId(20L)
-                .title("VPN bağlantısı kopuyor")
-                .content("Ağ ayarlarınızı kontrol edin")
+                .titleTr("VPN bağlantısı kopuyor")
+                .titleEn("VPN connection drops")
+                .contentTr("Ağ ayarlarınızı kontrol edin")
+                .contentEn("Check your network settings")
                 .isActive(true)
                 .build();
     }
@@ -153,19 +155,20 @@ class KnownIssueServiceTest {
                     TicketTopic.builder().id(20L).productId(10L).nameTr("Şifre").isActive(true).build()));
             when(knownIssueRepository.save(any(KnownIssue.class))).thenAnswer(i -> i.getArgument(0));
 
-            KnownIssue saved = service.create(10L, 20L, " Başlık ", " İçerik ", null, "admin-1");
+            KnownIssue saved = service.create(10L, 20L, " Başlık ", null, " İçerik ", null, null, "admin-1");
 
-            assertThat(saved.getTitle()).isEqualTo("Başlık");
-            assertThat(saved.getContent()).isEqualTo("İçerik");
+            assertThat(saved.getTitleTr()).isEqualTo("Başlık");
+            assertThat(saved.getTitleEn()).isNull();
+            assertThat(saved.getContentTr()).isEqualTo("İçerik");
             assertThat(saved.getIsActive()).isTrue();
             assertThat(saved.getCreatedBy()).isEqualTo("admin-1");
         }
 
         @Test
-        @DisplayName("Bos baslik 400 firlatir")
+        @DisplayName("Hicbir dilde baslik yoksa 400 firlatir")
         void blankTitle_throwsBadRequest() {
             when(productRepository.existsById(10L)).thenReturn(true);
-            assertThatThrownBy(() -> service.create(10L, null, "   ", "İçerik", true, "admin-1"))
+            assertThatThrownBy(() -> service.create(10L, null, "   ", "  ", "İçerik", null, true, "admin-1"))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
         }
@@ -177,7 +180,7 @@ class KnownIssueServiceTest {
             when(topicRepository.findById(20L)).thenReturn(Optional.of(
                     TicketTopic.builder().id(20L).productId(999L).nameTr("X").isActive(true).build()));
 
-            assertThatThrownBy(() -> service.create(10L, 20L, "T", "C", true, "admin-1"))
+            assertThatThrownBy(() -> service.create(10L, 20L, "T", null, "C", null, true, "admin-1"))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
         }
@@ -193,10 +196,10 @@ class KnownIssueServiceTest {
         when(knownIssueRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(knownIssueRepository.save(any(KnownIssue.class))).thenAnswer(i -> i.getArgument(0));
 
-        KnownIssue saved = service.update(1L, null, "Yeni Başlık", "Yeni İçerik", null);
+        KnownIssue saved = service.update(1L, null, "Yeni Başlık", null, "Yeni İçerik", null, null);
 
-        assertThat(saved.getTitle()).isEqualTo("Yeni Başlık");
-        assertThat(saved.getContent()).isEqualTo("Yeni İçerik");
+        assertThat(saved.getTitleTr()).isEqualTo("Yeni Başlık");
+        assertThat(saved.getContentTr()).isEqualTo("Yeni İçerik");
         assertThat(saved.getIsActive()).isTrue();
     }
 
@@ -226,13 +229,15 @@ class KnownIssueServiceTest {
 
     private KnownIssue existingIssue() {
         return KnownIssue.builder()
-                .id(5L).productId(10L).topicId(50L).title("Eski").content("Eski içerik").isActive(true).build();
+                .id(5L).productId(10L).topicId(50L)
+                .titleTr("Eski").titleEn("Old")
+                .contentTr("Eski içerik").contentEn("Old content").isActive(true).build();
     }
 
     @Test
     void update_blankTitle_throwsBadRequest() {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
-        assertThatThrownBy(() -> service.update(5L, null, "   ", null, null))
+        assertThatThrownBy(() -> service.update(5L, null, "   ", "  ", null, null, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode").isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -240,21 +245,21 @@ class KnownIssueServiceTest {
     @Test
     void update_titleTooLong_throwsBadRequest() {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
-        assertThatThrownBy(() -> service.update(5L, null, "t".repeat(256), null, null))
+        assertThatThrownBy(() -> service.update(5L, null, "t".repeat(256), null, null, null, null))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
     void update_blankContent_throwsBadRequest() {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
-        assertThatThrownBy(() -> service.update(5L, null, null, "  ", null))
+        assertThatThrownBy(() -> service.update(5L, null, null, null, "  ", "  ", null))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
     @Test
     void update_contentTooLong_throwsBadRequest() {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
-        assertThatThrownBy(() -> service.update(5L, null, null, "c".repeat(10001), null))
+        assertThatThrownBy(() -> service.update(5L, null, null, null, "c".repeat(10001), null, null))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
@@ -263,10 +268,10 @@ class KnownIssueServiceTest {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(existingIssue()));
         when(knownIssueRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        KnownIssue result = service.update(5L, null, "  Yeni Başlık  ", "  Yeni içerik  ", false);
+        KnownIssue result = service.update(5L, null, "  Yeni Başlık  ", null, "  Yeni içerik  ", null, false);
 
-        assertThat(result.getTitle()).isEqualTo("Yeni Başlık");
-        assertThat(result.getContent()).isEqualTo("Yeni içerik");
+        assertThat(result.getTitleTr()).isEqualTo("Yeni Başlık");
+        assertThat(result.getContentTr()).isEqualTo("Yeni içerik");
         assertThat(result.getIsActive()).isFalse();
     }
 
@@ -276,10 +281,10 @@ class KnownIssueServiceTest {
         when(knownIssueRepository.findById(5L)).thenReturn(Optional.of(issue));
         when(knownIssueRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        KnownIssue result = service.update(5L, null, null, null, null);
+        KnownIssue result = service.update(5L, null, null, null, null, null, null);
 
-        assertThat(result.getTitle()).isEqualTo("Eski");
-        assertThat(result.getContent()).isEqualTo("Eski içerik");
+        assertThat(result.getTitleTr()).isEqualTo("Eski");
+        assertThat(result.getContentTr()).isEqualTo("Eski içerik");
         assertThat(result.getIsActive()).isTrue();
     }
 
@@ -295,14 +300,14 @@ class KnownIssueServiceTest {
         @DisplayName("Ürün geneli (topic'siz) + bilet topic'ine ait kayıtlar döner; başka topic elenir")
         void includesTopicAndProductWide_excludesOtherTopic() {
             KnownIssue topicIssue = KnownIssue.builder()
-                    .id(1L).productId(10L).topicId(5L).title("Auth token expires")
-                    .content("Re-issue").isActive(true).build();
+                    .id(1L).productId(10L).topicId(5L).titleEn("Auth token expires")
+                    .contentEn("Re-issue").isActive(true).build();
             KnownIssue productWide = KnownIssue.builder()
-                    .id(2L).productId(10L).topicId(null).title("CRM slow")
-                    .content("Clear cache").isActive(true).build();
+                    .id(2L).productId(10L).topicId(null).titleEn("CRM slow")
+                    .contentEn("Clear cache").isActive(true).build();
             KnownIssue otherTopic = KnownIssue.builder()
-                    .id(3L).productId(10L).topicId(999L).title("Unrelated")
-                    .content("n/a").isActive(true).build();
+                    .id(3L).productId(10L).topicId(999L).titleEn("Unrelated")
+                    .contentEn("n/a").isActive(true).build();
             when(knownIssueRepository.findByProductIdAndIsActiveTrueOrderByCreatedAtDesc(10L))
                     .thenReturn(List.of(topicIssue, productWide, otherTopic));
 

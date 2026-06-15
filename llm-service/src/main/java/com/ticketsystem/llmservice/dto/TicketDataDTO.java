@@ -102,7 +102,21 @@ public class TicketDataDTO {
     public static class KnownIssueInfo {
         private Long id;
         private Long topicId;
-        private String title;
-        private String content;
+        // Bilingual (tr/en); at least one is present. The prompt reads whichever exists,
+        // preferring Turkish (the backend's default locale) and falling back to the other.
+        private String titleTr;
+        private String titleEn;
+        private String contentTr;
+        private String contentEn;
+
+        /** Title in the preferred language (tr first), falling back to the other variant. */
+        public String getTitle() {
+            return titleTr != null && !titleTr.isBlank() ? titleTr : titleEn;
+        }
+
+        /** Content in the preferred language (tr first), falling back to the other variant. */
+        public String getContent() {
+            return contentTr != null && !contentTr.isBlank() ? contentTr : contentEn;
+        }
     }
 }

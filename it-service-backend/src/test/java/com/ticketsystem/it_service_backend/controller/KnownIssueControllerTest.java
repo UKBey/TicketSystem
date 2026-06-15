@@ -44,7 +44,8 @@ class KnownIssueControllerTest {
     private KnownIssue entity(long id) {
         return KnownIssue.builder()
                 .id(id).productId(10L).topicId(5L)
-                .title("VPN kopuyor").content("Ağ ayarlarını kontrol edin")
+                .titleTr("VPN kopuyor").titleEn("VPN drops")
+                .contentTr("Ağ ayarlarını kontrol edin").contentEn("Check network settings")
                 .isActive(true).createdBy("lead-1").build();
     }
 
@@ -58,7 +59,7 @@ class KnownIssueControllerTest {
 
         assertThat(res.getStatusCode().value()).isEqualTo(200);
         assertThat(res.getBody()).hasSize(1);
-        assertThat(res.getBody().get(0).getTitle()).isEqualTo("VPN kopuyor");
+        assertThat(res.getBody().get(0).getTitleTr()).isEqualTo("VPN kopuyor");
     }
 
     @Test
@@ -91,28 +92,31 @@ class KnownIssueControllerTest {
     @Test
     void create_forwardsFieldsAndCreatedBy() {
         KnownIssueDTO body = KnownIssueDTO.builder()
-                .topicId(5L).title("Yeni").content("İçerik").isActive(true).build();
-        when(knownIssueService.create(10L, 5L, "Yeni", "İçerik", true, "lead-1"))
+                .topicId(5L).titleTr("Yeni").titleEn("New")
+                .contentTr("İçerik").contentEn("Content").isActive(true).build();
+        when(knownIssueService.create(10L, 5L, "Yeni", "New", "İçerik", "Content", true, "lead-1"))
                 .thenReturn(entity(7L));
 
         ResponseEntity<KnownIssueDTO> res = controller.create(jwt("lead-1", "lead_agent"), 10L, body);
 
         assertThat(res.getStatusCode().value()).isEqualTo(200);
         assertThat(res.getBody().getId()).isEqualTo(7L);
-        verify(knownIssueService).create(10L, 5L, "Yeni", "İçerik", true, "lead-1");
+        verify(knownIssueService).create(10L, 5L, "Yeni", "New", "İçerik", "Content", true, "lead-1");
     }
 
     @Test
     void update_passesArgsAndReturnsDto() {
         KnownIssueDTO body = KnownIssueDTO.builder()
-                .topicId(9L).title("Düzenli").content("Güncel").isActive(false).build();
-        when(knownIssueService.update(5L, 9L, "Düzenli", "Güncel", false)).thenReturn(entity(5L));
+                .topicId(9L).titleTr("Düzenli").titleEn("Edited")
+                .contentTr("Güncel").contentEn("Updated").isActive(false).build();
+        when(knownIssueService.update(5L, 9L, "Düzenli", "Edited", "Güncel", "Updated", false))
+                .thenReturn(entity(5L));
 
         ResponseEntity<KnownIssueDTO> res = controller.update(5L, body);
 
         assertThat(res.getStatusCode().value()).isEqualTo(200);
         assertThat(res.getBody().getId()).isEqualTo(5L);
-        verify(knownIssueService).update(5L, 9L, "Düzenli", "Güncel", false);
+        verify(knownIssueService).update(5L, 9L, "Düzenli", "Edited", "Güncel", "Updated", false);
     }
 
     @Test
