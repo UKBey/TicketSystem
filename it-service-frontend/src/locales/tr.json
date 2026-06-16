@@ -1073,6 +1073,7 @@
       "username": "Kullanıcı Adı",
       "email": "E-posta",
       "password": "Şifre",
+      "passwordPlaceholder": "Min. 8 karakter, 1 büyük harf, 1 rakam",
       "passwordHint": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
       "roles": "Roller",
       "rolesHint": "En az bir rol seçilmelidir.",

@@ -355,7 +355,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   autoComplete="new-password"
                   className={inputClass('password')}
                   style={{ ...inputStyle('password'), paddingRight: '2.5rem' }}
-                  placeholder="Min. 8 karakter, 1 büyük harf, 1 rakam"
+                  placeholder={t('userManagement.form.passwordPlaceholder')}
                   aria-invalid={!!errors.password}
                   aria-describedby={errors.password ? 'password-error' : 'password-hint'}
                 />
