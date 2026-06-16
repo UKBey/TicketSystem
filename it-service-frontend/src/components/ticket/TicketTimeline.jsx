@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
-  Send, Paperclip, File, FileText, FileArchive, Image, Download, Zap, Star, AlertTriangle,
+  Send, Paperclip, File, FileText, FileArchive, Image, Download, Zap, Star, AlertTriangle, X,
 } from 'lucide-react';
 import { formatShortDate } from '../../utils/ticketFormatters';
 import { useTicketDetailContext } from './TicketDetailContext';
@@ -22,6 +22,13 @@ function getFileIcon(fileType) {
   if (fileType.includes('word') || fileType.includes('document')) return <FileText className="h-5 w-5 text-primary-500" />;
   if (fileType.includes('sheet') || fileType.includes('excel')) return <FileText className="h-5 w-5 text-accent-500" />;
   return <File className="h-5 w-5" />;
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // Finds a clean `/token` immediately before the caret (at line start or after whitespace).
@@ -44,7 +51,7 @@ export default function TicketTimeline() {
     message, setMessage,
     commentType, setCommentType,
     sending, cooldown,
-    uploading, fileInputRef,
+    uploading, fileInputRef, pendingFile, selectFile, cancelPendingFile,
     handleSendComment, handleFileUpload, handleDownloadAttachment,
   } = useTicketDetailContext();
   const COMMENT_MESSAGE_MAX_LENGTH = 500;
@@ -401,7 +408,7 @@ export default function TicketTimeline() {
           )}
 
           <div className="relative flex items-end gap-2">
-            {isAgent && slashOpen && (
+            {isAgent && slashOpen && !pendingFile && (
               <SlashAutocomplete
                 matches={slashMatches}
                 activeIndex={Math.min(slashIndex, Math.max(0, slashMatches.length - 1))}
@@ -412,46 +419,80 @@ export default function TicketTimeline() {
                 anchorRef={slashAnchorRef}
               />
             )}
-            <textarea
-              ref={textareaRef}
-              placeholder={isAgent ? t('cannedResponses.composerHint') : t('ticketDetail.messagePlaceholder')}
-              value={message}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              onKeyUp={syncCaret}
-              onClick={syncCaret}
-              onSelect={syncCaret}
-              disabled={sending || cooldown > 0}
-              rows={2}
-              maxLength={COMMENT_MESSAGE_MAX_LENGTH}
-              className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
-              style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
-            />
             <input
               ref={fileInputRef}
               type="file"
               style={{ display: 'none' }}
-              onChange={(e) => handleFileUpload(e.target.files?.[0])}
+              onChange={(e) => selectFile(e.target.files?.[0])}
             />
-            <button
-              className="flex h-10 w-10 items-center justify-center rounded-lg border transition-colors cursor-pointer"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-              title="Attach File"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              type="button"
-            >
-              {uploading
-                ? <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--border-color)', borderTopColor: '#3b82f6' }} />
-                : <Paperclip className="h-4 w-4" />}
-            </button>
+            {pendingFile ? (
+              /* Seçilen dosya, yazma alanının aynı boyutunda/yerinde önizlenir. */
+              <div
+                className="flex flex-1 items-center gap-3 rounded-lg border px-3 py-2.5 animate-fade-in"
+                style={{ minHeight: '60px', backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}
+              >
+                <span className="flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{getFileIcon(pendingFile.type)}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }} title={pendingFile.name}>
+                    {pendingFile.name}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    {formatFileSize(pendingFile.size)}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                placeholder={isAgent ? t('cannedResponses.composerHint') : t('ticketDetail.messagePlaceholder')}
+                value={message}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                onKeyUp={syncCaret}
+                onClick={syncCaret}
+                onSelect={syncCaret}
+                disabled={sending || cooldown > 0}
+                rows={2}
+                maxLength={COMMENT_MESSAGE_MAX_LENGTH}
+                className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-sm outline-none transition-all focus:ring-2"
+                style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}
+              />
+            )}
+            {pendingFile ? (
+              /* Çarpı, ataç butonunun yerinde ve boyutunda — dosyayı iptal eder. */
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-lg border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:text-danger-500"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                title={t('ticketDetail.cancelAttachment')}
+                aria-label={t('ticketDetail.cancelAttachment')}
+                onClick={cancelPendingFile}
+                disabled={uploading}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-lg border transition-colors cursor-pointer"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                title="Attach File"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+            )}
             <button
               className="flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              onClick={handleSendComment}
-              disabled={sending || !message.trim() || message.length > COMMENT_MESSAGE_MAX_LENGTH || cooldown > 0}
+              onClick={pendingFile ? handleFileUpload : handleSendComment}
+              disabled={pendingFile
+                ? uploading
+                : (sending || !message.trim() || message.length > COMMENT_MESSAGE_MAX_LENGTH || cooldown > 0)}
             >
-              <Send className="h-4 w-4" />
-              {cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}
+              {pendingFile && uploading
+                ? <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                : <Send className="h-4 w-4" />}
+              {!pendingFile && cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}
             </button>
           </div>
 

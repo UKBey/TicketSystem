@@ -527,6 +527,7 @@
     "roleAgent": "Agent",
     "roleCustomer": "Customer",
     "send": "Send",
+    "cancelAttachment": "Cancel attachment",
     "statusActions": "Status Actions",
     "resume": "Resume",
     "waiting": "Waiting",

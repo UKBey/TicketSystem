@@ -29,6 +29,9 @@ export function useTicketDetail(id, isAgent) {
   const [loading, setLoading]     = useState(true);
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  // Dosya seçilince hemen yüklemek yerine önce composer'da önizlenir; kullanıcı
+  // gönder ile onaylar veya çarpı ile iptal eder.
+  const [pendingFile, setPendingFile] = useState(null);
 
   const [message, setMessage]         = useState('');
   const [commentType, setCommentType] = useState('EXTERNAL');
@@ -159,21 +162,34 @@ export function useTicketDetail(id, isAgent) {
 
   // ---- handlers -------------------------------------------------------------
 
-  const handleFileUpload = async (file) => {
+  // Dosyayı yüklemeden önce composer'da önizleme için sahneye al. Input value'yu
+  // sıfırlıyoruz ki iptal sonrası aynı dosya yeniden seçilebilsin.
+  const selectFile = (file) => {
     if (!file) return;
+    setPendingFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const cancelPendingFile = () => {
+    setPendingFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileUpload = async () => {
+    if (!pendingFile || uploading) return;
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', pendingFile);
       const res = await api.post(`/tickets/${id}/attachments`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setAttachments((prev) => (prev.some((a) => a.id === res.data.id) ? prev : [...prev, res.data]));
+      setPendingFile(null);
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.uploadFileFailed'));
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -389,7 +405,7 @@ export function useTicketDetail(id, isAgent) {
     // comment form
     message, setMessage, commentType, setCommentType, sending, cooldown,
     // file
-    uploading, fileInputRef, chatEndRef,
+    uploading, fileInputRef, chatEndRef, pendingFile, selectFile, cancelPendingFile,
     // modals
     resolveModalOpen, setResolveModalOpen,
     csatModalOpen, setCsatModalOpen,

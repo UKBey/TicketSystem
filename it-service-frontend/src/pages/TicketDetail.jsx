@@ -40,7 +40,7 @@ export default function TicketDetail() {
   const {
     ticket, loading, timeline, slaInfo, currentDate,
     message, setMessage, commentType, setCommentType, sending, cooldown,
-    uploading, fileInputRef, chatEndRef,
+    uploading, fileInputRef, chatEndRef, pendingFile, selectFile, cancelPendingFile,
     resolveModalOpen, setResolveModalOpen,
     csatModalOpen, setCsatModalOpen,
     extraActionsOpen, setExtraActionsOpen,
@@ -85,7 +85,7 @@ export default function TicketDetail() {
     ticket, user, isAgent, isCustomer, isDark,
     timeline, chatEndRef,
     message, setMessage, commentType, setCommentType, sending, cooldown,
-    uploading, fileInputRef,
+    uploading, fileInputRef, pendingFile, selectFile, cancelPendingFile,
     handleSendComment, handleFileUpload, handleDownloadAttachment,
   };
 
