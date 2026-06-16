@@ -430,12 +430,13 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 </div>
               )}
 
-              {errors.roles && (
+              {errors.roles ? (
                 <p id="roles-error" role="alert" className="mt-1.5 text-xs text-red-400">{errors.roles}</p>
+              ) : (
+                <p id="roles-hint" className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  {t('userManagement.form.rolesHint')}
+                </p>
               )}
-              <p id="roles-hint" className="mt-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {t('userManagement.form.rolesHint')}
-              </p>
             </div>
 
             {/* Geçici şifre uyarısı */}
