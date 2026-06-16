@@ -48,7 +48,7 @@ export default function TicketDetail() {
     reasonModal, reasonModalConfig,
     assignModal, setAssignModal,
     handleFileUpload, handleDownloadAttachment,
-    handleSendComment, handleStatusChange, handleClaim,
+    handleSendComment, handleWaiting, handleResume, handleReopen, handleClaim,
     handleResolveClick, handleSubmitResolve,
     handleSubmitCsat, handleAssignSuccess,
     handlePriorityChange, handleTopicChange,
@@ -168,7 +168,9 @@ export default function TicketDetail() {
           isAgent={isAgent}
           canAssign={canAssign}
           canDelete={canDelete}
-          onStatusChange={handleStatusChange}
+          onWaiting={handleWaiting}
+          onResume={handleResume}
+          onReopen={handleReopen}
           onClaim={handleClaim}
           onResolveClick={handleResolveClick}
           onSetAssignModal={setAssignModal}
@@ -210,7 +212,7 @@ export default function TicketDetail() {
                 </button>
                 <button
                   className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
-                  onClick={() => handleStatusChange('IN_PROGRESS')}
+                  onClick={handleReopen}
                 >
                   {t('ticketDetail.noResolved')}
                 </button>

@@ -4,7 +4,7 @@ import { Settings2 } from 'lucide-react';
 export default function StatusActionsCard({
   ticket, user, allowedStatuses,
   isAgent, canAssign, canDelete,
-  onStatusChange, onClaim, onResolveClick,
+  onWaiting, onResume, onReopen, onClaim, onResolveClick,
   onSetAssignModal, onExtraActionsOpen,
 }) {
   const { t } = useTranslation();
@@ -45,7 +45,7 @@ export default function StatusActionsCard({
                   ticket.status === 'WAITING_FOR_CUSTOMER' ? 'bg-primary-500 text-white' : 'border'
                 }`}
                 style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
-                onClick={() => onStatusChange(ticket.status === 'WAITING_FOR_CUSTOMER' ? 'IN_PROGRESS' : 'WAITING_FOR_CUSTOMER')}
+                onClick={() => ticket.status === 'WAITING_FOR_CUSTOMER' ? onResume() : onWaiting()}
               >
                 {ticket.status === 'WAITING_FOR_CUSTOMER' ? t('ticketDetail.resume') : t('ticketDetail.waiting')}
               </button>
@@ -57,7 +57,7 @@ export default function StatusActionsCard({
                     ? 'bg-danger-500 text-white hover:bg-danger-600'
                     : 'bg-accent-500 text-white hover:bg-accent-600'
                 }`}
-                onClick={() => ticket.status === 'RESOLVED' ? onStatusChange('IN_PROGRESS') : onResolveClick()}
+                onClick={() => ticket.status === 'RESOLVED' ? onReopen() : onResolveClick()}
               >
                 {ticket.status === 'RESOLVED' ? t('ticketDetail.reopen') : t('ticketDetail.resolve')}
               </button>

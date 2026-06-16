@@ -88,7 +88,7 @@ public class WorkflowService {
     /**
      * Advances the BPMN state machine to the ticket's current status. Used by
      * side-effect transitions (e.g. unclaim IN_PROGRESS→NEW) that change the
-     * status outside of {@link TicketService#updateTicketStatus}. Silently
+     * status outside of the {@link TicketCommandService} lifecycle actions. Silently
      * skipped when {@code processInstanceId} is missing. KIE Server failures are
      * only logged.
      *

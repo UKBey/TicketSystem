@@ -76,7 +76,7 @@ public class CsatService {
         if (csatRepository.existsByTicketId(ticketId)) {
             if (ticket.getStatus() == TicketStatus.RESOLVED) {
                 log.warn("CSAT zaten mevcut ama bilet RESOLVED — kapatma tamamlanıyor (kurtarma). Bilet ID: {}", ticketId);
-                ticketCommandService.updateTicketStatus(ticketId, TicketStatus.CLOSED.name(), AuditAction.CSAT_SUBMITTED, null, userId, roles);
+                ticketCommandService.closeTicket(ticketId, AuditAction.CSAT_SUBMITTED, null, userId, roles);
                 return csatRepository.findByTicketId(ticketId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "error.csat.not.found"));
             }
@@ -100,7 +100,7 @@ public class CsatService {
 
         // Musteri onayi geldiyse RESOLVED kayit CLOSED durumuna tasinir.
         if (ticket.getStatus() == TicketStatus.RESOLVED) {
-            ticketCommandService.updateTicketStatus(ticketId, TicketStatus.CLOSED.name(), AuditAction.CSAT_SUBMITTED, null, userId, roles);
+            ticketCommandService.closeTicket(ticketId, AuditAction.CSAT_SUBMITTED, null, userId, roles);
         }
 
         return savedCsat;

@@ -506,7 +506,7 @@ class TicketServiceTest {
         }
 
         @Test
-        void updateTicketStatus_whenResolved_setsResolvedAtAndPausesSla() {
+        void resolve_setsResolvedAtAndPausesSla() {
                 Ticket existing = Ticket.builder()
                                 .id(304L)
                                 .title("Ticket")
@@ -522,7 +522,7 @@ class TicketServiceTest {
                 when(ticketClaimRepository.existsByTicketIdAndAgentId(304L, "agent-1")).thenReturn(true);
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketCommandService.updateTicketStatus(304L, "RESOLVED", "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
+                Ticket updated = ticketCommandService.resolve(304L, "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
 
                 assertEquals(TicketStatus.RESOLVED, updated.getStatus());
                 assertNotNull(updated.getResolvedAt());
@@ -531,7 +531,7 @@ class TicketServiceTest {
         }
 
         @Test
-        void updateTicketStatus_whenWaitingForCustomer_resumesLaterOnInProgress() {
+        void resume_fromWaitingForCustomer_resumesSla() {
                 Ticket waiting = Ticket.builder()
                                 .id(305L)
                                 .title("Ticket")
@@ -544,7 +544,7 @@ class TicketServiceTest {
                 when(ticketRepository.findById(305L)).thenReturn(Optional.of(waiting));
                 when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-                Ticket updated = ticketCommandService.updateTicketStatus(305L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+                Ticket updated = ticketCommandService.resume(305L, null, null, "customer-1", List.of("CUSTOMER"));
 
                 assertEquals(TicketStatus.IN_PROGRESS, updated.getStatus());
                 verify(workflowService).resumeSla(updated);
@@ -604,7 +604,7 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_whenInvalidTransition_throwsBadRequest() {
+    void closeTicket_whenInvalidTransition_throwsBadRequest() {
         // BPMN state machine NEW → CLOSED'a izin vermez (NEW yalnız IN_PROGRESS ve
         // CLOSED'ı (terminate) tutar; bu test agent rolünden CLOSE girişimi yapıyor
         // ki bu hem permission hem state perspektifinden geçersiz). BPMN signal
@@ -624,14 +624,14 @@ class TicketServiceTest {
         when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.CLOSED))).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(301L, "CLOSED", "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.closeTicket(301L, "RESOLVED_CONFIRMED", null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
 
     @Test
-    void updateTicketStatus_whenProcessInstanceMissing_acceptsTransition() {
+    void closeTicket_whenProcessInstanceMissing_acceptsTransition() {
         // Stale processInstanceId: the BPMN instance was pruned/reset (e.g. jBPM
         // history store wiped) but the ticket survived in ticketdb. The transition
         // can't be confirmed (verifyTransitionApplied=false), yet the instance is
@@ -653,20 +653,23 @@ class TicketServiceTest {
         when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.CLOSED))).thenReturn(false);
         when(workflowService.isProcessInstanceMissing(any())).thenReturn(true);
 
-        Ticket updated = ticketCommandService.updateTicketStatus(310L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
+        Ticket updated = ticketCommandService.closeTicket(310L, "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(TicketStatus.CLOSED, updated.getStatus());
         assertNotNull(updated.getClosedAt());
     }
 
     @Test
-    void updateTicketStatus_whenCustomerMakesForbiddenTransition_throwsForbidden() {
+    void resolve_whenCustomerAttempts_throwsForbidden() {
+        // A customer may resume/reopen/close their own ticket but never resolve it —
+        // resolve (IN_PROGRESS → RESOLVED) is not in the customer's permitted set,
+        // so validateStatusChangePermission rejects it with 403.
         Ticket existing = Ticket.builder()
                 .id(302L)
                 .title("Ticket")
                 .description("desc")
                 .priority(Priority.HIGH)
-                .status(TicketStatus.NEW)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(10L)
                 .customerId("customer-1")
                 .build();
@@ -674,7 +677,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(302L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(302L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.resolve(302L, "SOLUTION_PROVIDED", null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         verify(ticketRepository, never()).save(any(Ticket.class));
@@ -716,13 +719,15 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_agentAuthorized_canMoveNewToInProgress() {
+    void resolve_whenInProgressToResolved_confirmsBpmnTransition() {
+        // resolve drives IN_PROGRESS → RESOLVED; the backend treats BPMN as the
+        // authoritative validator via requestStatusTransition + verifyTransitionApplied.
         Ticket existing = Ticket.builder()
                 .id(601L)
                 .title("Ticket")
                 .description("desc")
                 .priority(Priority.HIGH)
-                .status(TicketStatus.NEW)
+                .status(TicketStatus.IN_PROGRESS)
                 .productId(10L)
                 .customerId("customer-1")
                 .processInstanceId(7601L)
@@ -732,45 +737,15 @@ class TicketServiceTest {
         when(ticketClaimRepository.existsByTicketIdAndAgentId(601L, "agent-1")).thenReturn(true);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketCommandService.updateTicketStatus(601L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketCommandService.resolve(601L, "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"));
 
-        assertEquals(TicketStatus.IN_PROGRESS, updated.getStatus());
-        assertNull(updated.getResolvedAt());
-        // BPMN state branch'i status değişkenini kendi script task'ında günceller;
-        // backend artık ayrıca syncTicketStatus çağırmıyor — onun yerine
-        // requestStatusTransition + verifyTransitionApplied ile BPMN'i otoriter
-        // validator olarak konuşuyor.
-        verify(workflowService).requestStatusTransition(updated, TicketStatus.IN_PROGRESS);
-        verify(workflowService).verifyTransitionApplied(updated, TicketStatus.IN_PROGRESS);
+        assertEquals(TicketStatus.RESOLVED, updated.getStatus());
+        verify(workflowService).requestStatusTransition(updated, TicketStatus.RESOLVED);
+        verify(workflowService).verifyTransitionApplied(updated, TicketStatus.RESOLVED);
     }
 
     @Test
-    void updateTicketStatus_whenCurrentStatusUnknown_throwsBadRequest() {
-        // BPMN UNKNOWN_STATE adında bir state node tanımlamadığı için hiçbir
-        // transition signal'i kabul edilmez → verifyTransitionApplied=false → 400.
-        Ticket existing = Ticket.builder()
-                .id(603L)
-                .title("Ticket")
-                .description("desc")
-                .priority(Priority.HIGH)
-                .status(TicketStatus.IN_PROGRESS)
-                .productId(10L)
-                .customerId("customer-1")
-                .processInstanceId(7603L)
-                .build();
-
-        when(ticketRepository.findById(603L)).thenReturn(Optional.of(existing));
-        when(workflowService.verifyTransitionApplied(any(), eq(TicketStatus.NEW))).thenReturn(false);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(603L, "NEW", null, null, "agent-1", List.of("AGENT")));
-
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        verify(ticketRepository, never()).save(any(Ticket.class));
-    }
-
-    @Test
-    void updateTicketStatus_whenCustomerNotOwner_throwsForbidden() {
+    void closeTicket_whenCustomerNotOwner_throwsForbidden() {
         Ticket existing = Ticket.builder()
                 .id(604L)
                 .title("Ticket")
@@ -784,13 +759,15 @@ class TicketServiceTest {
         when(ticketRepository.findById(604L)).thenReturn(Optional.of(existing));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(604L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.closeTicket(604L, "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
     @Test
-    void updateTicketStatus_whenAgentUnauthorizedForProduct_throwsForbidden() {
+    void wait_whenAgentHasNoClaim_throwsForbidden() {
+        // An agent must hold a claim to drive status actions; without one,
+        // validateStatusChangePermission rejects the wait action with 403.
         Ticket existing = Ticket.builder()
                 .id(605L)
                 .title("Ticket")
@@ -802,39 +779,16 @@ class TicketServiceTest {
                 .build();
 
         when(ticketRepository.findById(605L)).thenReturn(Optional.of(existing));
+        when(ticketClaimRepository.existsByTicketIdAndAgentId(605L, "agent-1")).thenReturn(false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(605L, "NEW", null, null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.markWaitingForCustomer(605L, null, null, "agent-1", List.of("AGENT")));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
     @Test
-    void updateTicketStatus_whenInProgressToNew_clearsAssigneeAndSyncsStatus() {
-        Ticket existing = Ticket.builder()
-                .id(606L)
-                .title("Ticket")
-                .description("desc")
-                .priority(Priority.HIGH)
-                .status(TicketStatus.IN_PROGRESS)
-                .productId(10L)
-                .customerId("customer-1")
-                .processInstanceId(7606L)
-                .build();
-
-        when(ticketRepository.findById(606L)).thenReturn(Optional.of(existing));
-        when(ticketClaimRepository.existsByTicketIdAndAgentId(606L, "agent-1")).thenReturn(true);
-        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Ticket updated = ticketCommandService.updateTicketStatus(606L, "NEW", null, null, "agent-1", List.of("AGENT"));
-
-        assertEquals(TicketStatus.NEW, updated.getStatus());
-        verify(ticketClaimRepository).deleteByTicketId(606L);
-        verify(workflowService).requestStatusTransition(updated, TicketStatus.NEW);
-    }
-
-    @Test
-    void updateTicketStatus_whenClosed_setsClosedAtAndClosesWorkflow() {
+    void closeTicket_whenClosed_setsClosedAtAndClosesWorkflow() {
         Ticket existing = Ticket.builder()
                 .id(607L)
                 .title("Ticket")
@@ -848,7 +802,7 @@ class TicketServiceTest {
         when(ticketRepository.findById(607L)).thenReturn(Optional.of(existing));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Ticket updated = ticketCommandService.updateTicketStatus(607L, "CLOSED", "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
+        Ticket updated = ticketCommandService.closeTicket(607L, "RESOLVED_CONFIRMED", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(TicketStatus.CLOSED, updated.getStatus());
         assertNotNull(updated.getClosedAt());
@@ -856,7 +810,7 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_whenWorkflowSlaSignalFails_stillUpdatesTicket() {
+    void wait_whenWorkflowSlaSignalFails_stillUpdatesTicket() {
         // Statü geçişi doğrulaması başarılı (BPMN kabul etti) ama legacy SLA pause/
         // resume sinyali hata verdiğinde DB güncellemesi geri sarılmaz — SLA yan
         // etkileri best-effort olarak handleWorkflowSignals içinde try/catch ile
@@ -878,7 +832,7 @@ class TicketServiceTest {
         doThrow(new RuntimeException("workflow unavailable"))
                 .when(workflowService).pauseSla(any(Ticket.class));
 
-        Ticket updated = ticketCommandService.updateTicketStatus(608L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT"));
+        Ticket updated = ticketCommandService.markWaitingForCustomer(608L, null, null, "agent-1", List.of("AGENT"));
 
         assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, updated.getStatus());
         verify(ticketRepository, times(1)).save(any(Ticket.class));
@@ -2515,30 +2469,32 @@ class TicketServiceTest {
     }
 
     // ------------------------------------------------------------------------
-    // validateStatusChangePermission via updateTicketStatus
+    // validateStatusChangePermission via lifecycle actions
     // ------------------------------------------------------------------------
 
     @Test
-    void updateTicketStatus_customerDisallowedTransition_throwsForbidden() {
-        Ticket existing = Ticket.builder().id(2301L).status(TicketStatus.NEW).customerId("c-1").productId(10L).build();
+    void wait_customerDisallowedAction_throwsForbidden() {
+        // A customer may not put their own ticket on hold; wait is agent-only at the
+        // permission layer (IN_PROGRESS → WAITING is not in the customer's allowed set).
+        Ticket existing = Ticket.builder().id(2301L).status(TicketStatus.IN_PROGRESS).customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2301L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(2301L, "IN_PROGRESS", null, null, "c-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.markWaitingForCustomer(2301L, null, null, "c-1", List.of("CUSTOMER")));
     }
 
     @Test
-    void updateTicketStatus_emptyRoles_throwsForbidden() {
+    void wait_emptyRoles_throwsForbidden() {
         Ticket existing = Ticket.builder().id(2302L).status(TicketStatus.IN_PROGRESS)
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2302L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(2302L, "NEW", null, null, "ghost", List.of()));
+                () -> ticketCommandService.markWaitingForCustomer(2302L, null, null, "ghost", List.of()));
     }
 
     @Test
-    void updateTicketStatus_agentWithoutClaim_throwsForbidden() {
+    void wait_agentWithoutClaim_throwsForbidden() {
         Ticket existing = Ticket.builder().id(2303L).status(TicketStatus.IN_PROGRESS)
                 .customerId("c-1").productId(10L).build();
         when(ticketRepository.findById(2303L)).thenReturn(Optional.of(existing));
@@ -2546,7 +2502,7 @@ class TicketServiceTest {
 
         // A plain AGENT must hold a claim to change status; without one it is forbidden.
         assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(2303L, "WAITING_FOR_CUSTOMER", null, null, "agent-1", List.of("AGENT")));
+                () -> ticketCommandService.markWaitingForCustomer(2303L, null, null, "agent-1", List.of("AGENT")));
     }
 
     @Test
@@ -3055,7 +3011,7 @@ class TicketServiceTest {
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
-    // ---- updateTicketStatus: validateStatusChangePermission lead/customer dalları ----
+    // ---- lifecycle actions: validateStatusChangePermission lead/customer dalları ----
 
     private Ticket statusTicket(String status) {
         // processInstanceId null → BPMN doğrulaması atlanır, izin mantığına odaklanılır.
@@ -3064,50 +3020,50 @@ class TicketServiceTest {
     }
 
     @Test
-    void updateTicketStatus_leadAuthorized_succeeds() {
+    void wait_leadAuthorized_succeeds() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         User lead = User.builder().id("lead-1").role("LEAD_AGENT").authorizedProducts(List.of(product)).build();
         when(userRepository.findById("lead-1")).thenReturn(Optional.of(lead));
 
-        Ticket result = ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-1", List.of("LEAD_AGENT"));
+        Ticket result = ticketCommandService.markWaitingForCustomer(800L, null, null, "lead-1", List.of("LEAD_AGENT"));
         assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, result.getStatus());
     }
 
     @Test
-    void updateTicketStatus_leadUnauthorizedProduct_forbidden() {
+    void wait_leadUnauthorizedProduct_forbidden() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
         User lead = User.builder().id("lead-2").role("LEAD_AGENT")
                 .authorizedProducts(List.of(Product.builder().id(99L).build())).build();
         when(userRepository.findById("lead-2")).thenReturn(Optional.of(lead));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "lead-2", List.of("LEAD_AGENT")));
+                () -> ticketCommandService.markWaitingForCustomer(800L, null, null, "lead-2", List.of("LEAD_AGENT")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
     @Test
-    void updateTicketStatus_customerAllowedTransition_succeeds() {
+    void resume_customerAllowedTransition_succeeds() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
         when(ticketRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Ticket result = ticketCommandService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        Ticket result = ticketCommandService.resume(800L, null, null, "customer-1", List.of("CUSTOMER"));
         assertEquals(TicketStatus.IN_PROGRESS, result.getStatus());
     }
 
     @Test
-    void updateTicketStatus_customerDisallowedTransition_forbidden() {
+    void wait_customerDisallowedTransition_forbidden() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("IN_PROGRESS")));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(800L, "WAITING_FOR_CUSTOMER", null, null, "customer-1", List.of("CUSTOMER")));
+                () -> ticketCommandService.markWaitingForCustomer(800L, null, null, "customer-1", List.of("CUSTOMER")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
     @Test
-    void updateTicketStatus_customerOtherTicket_forbidden() {
+    void resume_customerOtherTicket_forbidden() {
         when(ticketRepository.findById(800L)).thenReturn(Optional.of(statusTicket("WAITING_FOR_CUSTOMER")));
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> ticketCommandService.updateTicketStatus(800L, "IN_PROGRESS", null, null, "other-cust", List.of("CUSTOMER")));
+                () -> ticketCommandService.resume(800L, null, null, "other-cust", List.of("CUSTOMER")));
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 

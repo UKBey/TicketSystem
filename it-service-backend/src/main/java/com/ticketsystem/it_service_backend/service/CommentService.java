@@ -127,7 +127,7 @@ public class CommentService {
         // Musteri yaniti bekleme durumunu bozdugunda bilet tekrar calisma durumuna cekilir.
         if (ticket.getStatus() == TicketStatus.WAITING_FOR_CUSTOMER && ticket.getCustomerId().equals(userId)) {
             log.info("Müşteri yanıtı algılandı. Bilet statüsü WAITING_FOR_CUSTOMER'dan IN_PROGRESS'e çekiliyor.");
-            ticketCommandService.updateTicketStatus(ticketId, TicketStatus.IN_PROGRESS.name(), null, null, userId, roles);
+            ticketCommandService.resume(ticketId, null, null, userId, roles);
         }
 
         return savedComment;

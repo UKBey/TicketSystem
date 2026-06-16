@@ -4,7 +4,7 @@ import com.ticketsystem.it_service_backend.dto.AssignTicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
-import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
+import com.ticketsystem.it_service_backend.dto.TicketActionRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.service.TicketCommandService;
@@ -244,35 +244,33 @@ class TicketControllerTest {
     }
 
     // -----------------------------------------------------------------------
-    // updateStatus
+    // Lifecycle actions: wait / resume / resolve / reopen
     // -----------------------------------------------------------------------
 
     @Test
-    void updateStatus_withAgentRole_returnsOk() {
+    void waitForCustomer_withAgentRole_returnsOk() {
         Ticket updated = Ticket.builder().id(4001L).title("Network issue").description("Packet loss")
-                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
+                .priority(Priority.HIGH).status(TicketStatus.WAITING_FOR_CUSTOMER).productId(10L).customerId("customer-1").build();
 
-        when(ticketCommandService.updateTicketStatus(4001L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
+        when(ticketCommandService.markWaitingForCustomer(4001L, null, null, "agent-1", List.of("AGENT"))).thenReturn(updated);
 
-        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
-        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
-                4001L, body, jwtWithRole("agent-1", "AGENT"));
+        ResponseEntity<TicketResponseDTO> response = ticketController.waitForCustomer(
+                4001L, null, jwtWithRole("agent-1", "AGENT"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4001L, response.getBody().getId());
-        assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
+        assertEquals(TicketStatus.WAITING_FOR_CUSTOMER, response.getBody().getStatus());
     }
 
     @Test
-    void updateStatus_withAgentAdminRole_returnsOk() {
+    void resumeTicket_withCustomerRole_returnsOk() {
         Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
                 .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
 
-        when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "admin-1", List.of("ADMIN"))).thenReturn(updated);
+        when(ticketCommandService.resume(4002L, null, null, "customer-1", List.of("CUSTOMER"))).thenReturn(updated);
 
-        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
-        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(
-                4002L, body, jwtWithRole("admin-1", "ADMIN"));
+        ResponseEntity<TicketResponseDTO> response = ticketController.resumeTicket(
+                4002L, null, jwtWithRole("customer-1", "CUSTOMER"));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(4002L, response.getBody().getId());
@@ -280,19 +278,33 @@ class TicketControllerTest {
     }
 
     @Test
-    void updateStatus_withEmptyRoles() {
-        Ticket updated = Ticket.builder().id(4002L).title("Network issue").description("Packet loss")
-                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).build();
+    void resolveTicket_withAgentRole_returnsOk() {
+        Ticket updated = Ticket.builder().id(4003L).title("Network issue").description("Packet loss")
+                .priority(Priority.HIGH).status(TicketStatus.RESOLVED).productId(10L).customerId("customer-1").build();
 
-        when(ticketCommandService.updateTicketStatus(4002L, "IN_PROGRESS", null, null, "c1", List.of())).thenReturn(updated);
+        when(ticketCommandService.resolve(4003L, "SOLUTION_PROVIDED", null, "agent-1", List.of("AGENT"))).thenReturn(updated);
 
-        Jwt jwt = org.mockito.Mockito.mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("c1");
-        lenient().when(jwt.getClaimAsMap("realm_access")).thenReturn(null);
+        TicketActionRequestDTO body = TicketActionRequestDTO.builder().reasonCode("SOLUTION_PROVIDED").build();
+        ResponseEntity<TicketResponseDTO> response = ticketController.resolveTicket(
+                4003L, body, jwtWithRole("agent-1", "AGENT"));
 
-        StatusUpdateRequestDTO body = StatusUpdateRequestDTO.builder().status("IN_PROGRESS").build();
-        ResponseEntity<TicketResponseDTO> response = ticketController.updateStatus(4002L, body, jwt);
         assertEquals(200, response.getStatusCode().value());
+        assertEquals(4003L, response.getBody().getId());
+        assertEquals(TicketStatus.RESOLVED, response.getBody().getStatus());
+    }
+
+    @Test
+    void reopenTicket_withCustomerRole_returnsOk() {
+        Ticket updated = Ticket.builder().id(4004L).title("Network issue").description("Packet loss")
+                .priority(Priority.HIGH).status(TicketStatus.IN_PROGRESS).productId(10L).customerId("customer-1").build();
+
+        when(ticketCommandService.reopen(4004L, null, null, "customer-1", List.of("CUSTOMER"))).thenReturn(updated);
+
+        ResponseEntity<TicketResponseDTO> response = ticketController.reopenTicket(
+                4004L, null, jwtWithRole("customer-1", "CUSTOMER"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(4004L, response.getBody().getId());
         assertEquals(TicketStatus.IN_PROGRESS, response.getBody().getStatus());
     }
 

@@ -24,7 +24,10 @@ import {
   getComments,
   postComment,
   claimTicket,
-  changeStatus,
+  waitForCustomer,
+  resumeTicket,
+  resolveTicket,
+  reopenTicket,
   closeTicket,
   unclaimTicket,
   changePriority,
@@ -291,13 +294,18 @@ export default function TicketDetailScreen({ route, navigation }) {
 
   const doClaim = () =>
     runAction(() => claimTicket(id), t('ticketDetail.claimFailed', 'Üstlenilemedi.'));
-  const doStatus = (status) =>
-    runAction(() => changeStatus(id, { status }), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
+  // Yaşam döngüsü eylemleri — her biri ayrı komut ucu; hedef statüyü istemci belirlemez.
+  const doWait = () =>
+    runAction(() => waitForCustomer(id), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
+  const doResume = () =>
+    runAction(() => resumeTicket(id), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
+  const doReopen = () =>
+    runAction(() => reopenTicket(id), t('ticketDetail.statusFailed', 'Durum güncellenemedi.'));
 
   const onReasonConfirm = async ({ reasonCode, note }) => {
     let fn;
     if (reasonMode === 'RESOLVE') {
-      fn = () => changeStatus(id, { status: 'RESOLVED', reasonCode, note });
+      fn = () => resolveTicket(id, { reasonCode, note });
     } else if (reasonMode === 'CLOSE') {
       fn = () => closeTicket(id, { reasonCode, note });
     } else {
@@ -477,20 +485,20 @@ export default function TicketDetailScreen({ route, navigation }) {
               <>
                 <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('UNCLAIM')}
                   label={t('ticketDetail.unclaim', 'Bırak')} color={theme.textSecondary} />
-                {(status === 'NEW' || status === 'WAITING_FOR_CUSTOMER') && (
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                {status === 'WAITING_FOR_CUSTOMER' && (
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={doResume}
                     label={t('ticketDetail.takeInProgress', 'İşleme Al')} />
                 )}
                 {status === 'IN_PROGRESS' && (
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('WAITING_FOR_CUSTOMER')}
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={doWait}
                     label={t('ticketDetail.waitCustomer', 'Müşteri Bekleniyor')} />
                 )}
-                {status !== 'RESOLVED' && (
+                {status === 'IN_PROGRESS' && (
                   <ActionBtn theme={theme} busy={actionBusy} onPress={() => setReasonMode('RESOLVE')}
                     label={t('ticketDetail.resolve', 'Çöz')} color={theme.success} />
                 )}
                 {status === 'RESOLVED' && (
-                  <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+                  <ActionBtn theme={theme} busy={actionBusy} onPress={doReopen}
                     label={t('ticketDetail.reopen', 'Yeniden Aç')} />
                 )}
                 {status === 'RESOLVED' && (
@@ -551,7 +559,7 @@ export default function TicketDetailScreen({ route, navigation }) {
           <View style={styles.actionRow}>
             <ActionBtn theme={theme} busy={actionBusy} onPress={() => setCsatOpen(true)}
               label={t('ticketDetail.yesResolved', 'Evet, çözüldü')} color={theme.success} />
-            <ActionBtn theme={theme} busy={actionBusy} onPress={() => doStatus('IN_PROGRESS')}
+            <ActionBtn theme={theme} busy={actionBusy} onPress={doReopen}
               label={t('ticketDetail.noResolved', 'Hayır, yeniden aç')} color={theme.danger} />
           </View>
         </View>

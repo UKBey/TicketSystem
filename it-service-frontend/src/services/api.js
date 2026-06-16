@@ -98,6 +98,20 @@ export const unclaimTicket = (ticketId, payload) =>
 export const closeTicket = (ticketId, payload) =>
   api.put(`/tickets/${ticketId}/close`, payload);
 
+// Yaşam döngüsü eylemleri — kullanıcı ham statü SEÇMEZ; bir eylem çalıştırır,
+// statü backend'de o eylemin guard'ı içinde değişir (kaynak statü sunucuda denetlenir).
+export const waitForCustomer = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/wait`, payload);
+
+export const resumeTicket = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/resume`, payload);
+
+export const resolveTicket = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/resolve`, payload);
+
+export const reopenTicket = (ticketId, payload) =>
+  api.put(`/tickets/${ticketId}/reopen`, payload);
+
 export const updateTicketPriority = (ticketId, payload) =>
   api.put(`/tickets/${ticketId}/priority`, payload);
 

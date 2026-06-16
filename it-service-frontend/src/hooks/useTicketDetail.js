@@ -5,6 +5,10 @@ import api, {
   unclaimTicket as unclaimTicketWithNote,
   updateTicketPriority as updateTicketPriorityApi,
   updateTicketTopic as updateTicketTopicApi,
+  waitForCustomer as waitForCustomerApi,
+  resumeTicket as resumeTicketApi,
+  resolveTicket as resolveTicketApi,
+  reopenTicket as reopenTicketApi,
   listProductTopics,
   getCommentConfig,
 } from '../services/api';
@@ -212,15 +216,21 @@ export function useTicketDetail(id, isAgent) {
     }
   };
 
-  const handleStatusChange = async (newStatus) => {
+  // Yaşam döngüsü eylemleri — her biri ayrı bir komut ucu çağırır; hedef statüyü
+  // istemci belirlemez, backend eylemin guard'ı içinde uygular.
+  const runAction = async (actionFn) => {
     try {
-      const res = await api.put(`/tickets/${id}/status`, { status: newStatus });
+      const res = await actionFn();
       setTicket(res.data);
       toast.success(t('ticketDetail.statusUpdateSuccess'));
     } catch (err) {
       toast.error(err.response?.data?.message || t('ticketDetail.statusUpdateFailed'));
     }
   };
+
+  const handleWaiting = () => runAction(() => waitForCustomerApi(id));
+  const handleResume  = () => runAction(() => resumeTicketApi(id));
+  const handleReopen  = () => runAction(() => reopenTicketApi(id));
 
   const handleClaim = async () => {
     try {
@@ -258,7 +268,7 @@ export function useTicketDetail(id, isAgent) {
 
   const handleSubmitResolve = async ({ reasonCode, note }) => {
     if (!reasonCode) return;
-    const res = await api.put(`/tickets/${id}/status`, { status: 'RESOLVED', reasonCode, note });
+    const res = await resolveTicketApi(id, { reasonCode, note });
     setTicket(res.data);
     setResolveModalOpen(false);
     toast.success(t('ticketDetail.resolveSuccess'));
@@ -392,7 +402,7 @@ export function useTicketDetail(id, isAgent) {
     topicsList, topicsLoading,
     // handlers
     handleFileUpload, handleDownloadAttachment,
-    handleSendComment, handleStatusChange, handleClaim,
+    handleSendComment, handleWaiting, handleResume, handleReopen, handleClaim,
     handleResolveClick, handleSubmitResolve,
     handleSubmitCsat, handleAssignSuccess,
     handlePriorityChange, handleTopicChange,

@@ -7,7 +7,7 @@ import com.ticketsystem.it_service_backend.dto.TicketFilterDTO;
 import com.ticketsystem.it_service_backend.dto.TicketRequestDTO;
 import com.ticketsystem.it_service_backend.dto.TicketResponseDTO;
 import com.ticketsystem.it_service_backend.dto.TopicChangeRequestDTO;
-import com.ticketsystem.it_service_backend.dto.StatusUpdateRequestDTO;
+import com.ticketsystem.it_service_backend.dto.TicketActionRequestDTO;
 import com.ticketsystem.it_service_backend.dto.UnclaimRequestDTO;
 import com.ticketsystem.it_service_backend.entity.Priority;
 import com.ticketsystem.it_service_backend.entity.Ticket;
@@ -411,7 +411,7 @@ public class TicketController {
      * @return DTO of the closed ticket
      */
         @Operation(summary = "Bileti kapat (not zorunlu)")
-        @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
+        @PutMapping("/{id}/close")        @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT')")
         public ResponseEntity<TicketResponseDTO> closeTicket(
                         @PathVariable Long id,
                         @RequestBody @Valid CloseTicketRequestDTO dto,
@@ -425,25 +425,87 @@ public class TicketController {
     }
 
     /**
-     * Updates the ticket's status; a reason code is required when transitioning to {@code RESOLVED}.
+     * Action: put the ticket on hold awaiting the customer (IN_PROGRESS → WAITING_FOR_CUSTOMER).
+     * The user runs an action, not a raw status pick — the source state is guarded server-side.
      *
      * @param id ticket identifier
-     * @param body new status, reason code and optional note
+     * @param body optional reason code and note
      * @return DTO of the updated ticket
      */
-    @Operation(summary = "Bilet statüsü güncelle (RESOLVED'a geçişte reasonCode zorunlu)")
-    @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT')")
-    public ResponseEntity<TicketResponseDTO> updateStatus(
+    @Operation(summary = "Bileti müşteri yanıtı beklemeye al (IN_PROGRESS → WAITING_FOR_CUSTOMER)")
+    @PutMapping("/{id}/wait")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
+    public ResponseEntity<TicketResponseDTO> waitForCustomer(
             @PathVariable Long id,
-            @RequestBody @Valid StatusUpdateRequestDTO body,
+            @RequestBody(required = false) @Valid TicketActionRequestDTO body,
             @AuthenticationPrincipal Jwt jwt) {
-        String newStatus = body.getStatus();
         String userId = jwt.getSubject();
         List<String> roles = JwtUtils.extractRoles(jwt);
-        log.info("Bilet statüsü güncelleme isteği. Bilet ID: {}, Yeni Statü: {}, Kullanıcı: {}", id, newStatus, userId);
-        Ticket ticket = ticketCommandService.updateTicketStatus(id, newStatus, body.getReasonCode(), body.getNote(), userId, roles);
-        log.info("Bilet statüsü güncellendi. Bilet ID: {}, Statü: {}", id, newStatus);
+        log.info("Beklet eylemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
+        Ticket ticket = ticketCommandService.markWaitingForCustomer(id, reasonOf(body), noteOf(body), userId, roles);
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
+    /**
+     * Action: resume work after a customer hold (WAITING_FOR_CUSTOMER → IN_PROGRESS).
+     *
+     * @param id ticket identifier
+     * @param body optional reason code and note
+     * @return DTO of the updated ticket
+     */
+    @Operation(summary = "Bekleyen bilete devam et (WAITING_FOR_CUSTOMER → IN_PROGRESS)")
+    @PutMapping("/{id}/resume")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT')")
+    public ResponseEntity<TicketResponseDTO> resumeTicket(
+            @PathVariable Long id,
+            @RequestBody(required = false) @Valid TicketActionRequestDTO body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Devam eylemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
+        Ticket ticket = ticketCommandService.resume(id, reasonOf(body), noteOf(body), userId, roles);
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
+    /**
+     * Action: mark the ticket resolved (IN_PROGRESS → RESOLVED). A reason code is required.
+     *
+     * @param id ticket identifier
+     * @param body reason code (required) and optional note
+     * @return DTO of the updated ticket
+     */
+    @Operation(summary = "Bileti çöz (IN_PROGRESS → RESOLVED, reasonCode zorunlu)")
+    @PutMapping("/{id}/resolve")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT')")
+    public ResponseEntity<TicketResponseDTO> resolveTicket(
+            @PathVariable Long id,
+            @RequestBody @Valid TicketActionRequestDTO body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Çöz eylemi. Bilet ID: {}, Kullanıcı: {}, Sebep: {}", id, userId, body.getReasonCode());
+        Ticket ticket = ticketCommandService.resolve(id, body.getReasonCode(), body.getNote(), userId, roles);
+        return ResponseEntity.ok(convertToDto(ticket, false, roles));
+    }
+
+    /**
+     * Action: reopen a resolved ticket (RESOLVED → IN_PROGRESS).
+     *
+     * @param id ticket identifier
+     * @param body optional reason code and note
+     * @return DTO of the updated ticket
+     */
+    @Operation(summary = "Çözülmüş bileti yeniden aç (RESOLVED → IN_PROGRESS)")
+    @PutMapping("/{id}/reopen")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT')")
+    public ResponseEntity<TicketResponseDTO> reopenTicket(
+            @PathVariable Long id,
+            @RequestBody(required = false) @Valid TicketActionRequestDTO body,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<String> roles = JwtUtils.extractRoles(jwt);
+        log.info("Yeniden aç eylemi. Bilet ID: {}, Kullanıcı: {}", id, userId);
+        Ticket ticket = ticketCommandService.reopen(id, reasonOf(body), noteOf(body), userId, roles);
         return ResponseEntity.ok(convertToDto(ticket, false, roles));
     }
 
@@ -574,5 +636,14 @@ public class TicketController {
 
     private TicketResponseDTO convertToDto(Ticket ticket, boolean hasCsat, List<String> roles) {
         return ticketDtoAssembler.toDto(ticket, hasCsat, roles);
+    }
+
+    // Eylem gövdesi opsiyonel (@RequestBody(required = false)) — null-güvenli okuma.
+    private static String reasonOf(TicketActionRequestDTO body) {
+        return body == null ? null : body.getReasonCode();
+    }
+
+    private static String noteOf(TicketActionRequestDTO body) {
+        return body == null ? null : body.getNote();
     }
 }

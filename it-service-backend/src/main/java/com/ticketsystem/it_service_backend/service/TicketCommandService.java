@@ -100,45 +100,87 @@ public class TicketCommandService {
     }
 
     // -----------------------------------------------------------------
-    // Durum güncellemesi
+    // Yaşam döngüsü eylemleri (komut tabanlı statü geçişleri)
+    //
+    // Kullanıcı ham bir hedef statü SEÇMEZ; bir EYLEM çalıştırır (beklet/devam/çöz/
+    // yeniden-aç) ve statü o eylemin guard'ı içinde değişir. Her eylem yalnızca
+    // izin verilen kaynak statülerden tetiklenir; bilet zaten hedefteyse no-op,
+    // uyumsuz bir kaynaktaysa 400. NEW ↔ IN_PROGRESS yapısal geçişleri buraya
+    // dahil DEĞİLDİR — onlar yalnızca claim/unclaim/assign üzerinden olur, böylece
+    // claim ↔ status invariant'ı korunur.
     // -----------------------------------------------------------------
 
     /**
-     * Updates the ticket status. CLOSED targets are delegated to {@link #closeTicket};
-     * RESOLVED requires a reason input.
+     * Action: put the ticket on hold awaiting the customer (IN_PROGRESS → WAITING_FOR_CUSTOMER).
+     */
+    @Transactional
+    public Ticket markWaitingForCustomer(Long id, String reasonCode, String note, String userId, List<String> roles) {
+        return transition(id, TicketStatus.WAITING_FOR_CUSTOMER, Set.of(TicketStatus.IN_PROGRESS),
+                false, AuditAction.WAITING, reasonCode, note, userId, roles);
+    }
+
+    /**
+     * Action: resume work after a customer hold (WAITING_FOR_CUSTOMER → IN_PROGRESS).
+     */
+    @Transactional
+    public Ticket resume(Long id, String reasonCode, String note, String userId, List<String> roles) {
+        return transition(id, TicketStatus.IN_PROGRESS, Set.of(TicketStatus.WAITING_FOR_CUSTOMER),
+                false, AuditAction.RESUME, reasonCode, note, userId, roles);
+    }
+
+    /**
+     * Action: mark the ticket resolved (IN_PROGRESS → RESOLVED). A reason code is required.
+     */
+    @Transactional
+    public Ticket resolve(Long id, String reasonCode, String note, String userId, List<String> roles) {
+        return transition(id, TicketStatus.RESOLVED, Set.of(TicketStatus.IN_PROGRESS),
+                true, AuditAction.RESOLVE, reasonCode, note, userId, roles);
+    }
+
+    /**
+     * Action: reopen a resolved ticket (RESOLVED → IN_PROGRESS).
+     */
+    @Transactional
+    public Ticket reopen(Long id, String reasonCode, String note, String userId, List<String> roles) {
+        return transition(id, TicketStatus.IN_PROGRESS, Set.of(TicketStatus.RESOLVED),
+                false, AuditAction.REOPEN, reasonCode, note, userId, roles);
+    }
+
+    /**
+     * Shared engine behind every lifecycle action. CLOSED has its own entry point
+     * ({@link #closeTicket}) because it carries extra side effects.
      *
      * <p>State-machine validation, role/ownership checks, SLA pause/resume
      * orchestration, notifications and audit recording all run inside a single
-     * transaction. The audit action type (RESOLVE, REOPEN, WAITING, RESUME,
-     * STATUS_CHANGE) is determined automatically.
+     * transaction.
      *
-     * @param id ticket ID
-     * @param newStatus new status
-     * @param reasonCode reason code (required for RESOLVED)
-     * @param note additional note (required when reason is OTHER)
-     * @param userId acting user
-     * @param roles role list of the user
-     * @return the updated ticket
-     * @throws ResponseStatusException 400 on status/reason, 403 on authorization
+     * @param target         the status this action drives toward
+     * @param allowedSources source states from which this action is valid
+     * @param requireReason  whether a reason code/note is mandatory (e.g. resolve)
+     * @param auditAction    the audit action type to record
+     * @throws ResponseStatusException 400 when the source state is incompatible
+     *         (use the action that matches the current state instead) or on reason;
+     *         403 on authorization
      */
-    @Transactional
-    public Ticket updateTicketStatus(Long id, String newStatus, String reasonCode, String note,
-                                     String userId, List<String> roles) {
-        log.info("Statü güncelleme. Bilet: {}, Yeni: {}, Kullanıcı: {}, Sebep: {}", id, newStatus, userId, reasonCode);
-        TicketStatus target = TicketStatus.fromNullable(newStatus);
-        if (target == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.unknown.status");
-        }
-        if (target == TicketStatus.CLOSED) {
-            return closeTicket(id, reasonCode, note, userId, roles);
-        }
-
+    private Ticket transition(Long id, TicketStatus target, Set<TicketStatus> allowedSources,
+                              boolean requireReason, String auditAction,
+                              String reasonCode, String note, String userId, List<String> roles) {
+        log.info("Eylem geçişi. Bilet: {}, Hedef: {}, Kullanıcı: {}, Sebep: {}", id, target, userId, reasonCode);
         Ticket ticket = ticketService.getTicketById(id);
         TicketStatus oldStatus = ticket.getStatus();
 
+        // Idempotent: bilet zaten hedef statüdeyse sessizce mevcut hali döner.
+        if (oldStatus == target) {
+            return ticket;
+        }
+        // Eylem bu kaynak statüden geçerli değilse — uygun eylemi kullan.
+        if (!allowedSources.contains(oldStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error.ticket.invalid.status.transition");
+        }
+
         validateStateTransition(ticket, oldStatus, target);
         validateStatusChangePermission(ticket, oldStatus, target, userId, roles);
-        if (target == TicketStatus.RESOLVED) {
+        if (requireReason) {
             validateReasonInput(reasonCode, note);
         }
 
@@ -153,13 +195,7 @@ public class TicketCommandService {
         if (target == TicketStatus.RESOLVED) notificationService.notifyTicketResolved(saved);
         else                                 notificationService.notifyStatusChanged(saved, oldStatus.name());
 
-        String actionType;
-        if (target == TicketStatus.RESOLVED) actionType = AuditAction.RESOLVE;
-        else if (target == TicketStatus.IN_PROGRESS && oldStatus == TicketStatus.RESOLVED) actionType = AuditAction.REOPEN;
-        else if (target == TicketStatus.WAITING_FOR_CUSTOMER) actionType = AuditAction.WAITING;
-        else if (target == TicketStatus.IN_PROGRESS && oldStatus == TicketStatus.WAITING_FOR_CUSTOMER) actionType = AuditAction.RESUME;
-        else actionType = AuditAction.STATUS_CHANGE;
-        recordTicketAuditLog(saved, userId, actionType, reasonCode, note, oldStatus.name(), target.name());
+        recordTicketAuditLog(saved, userId, auditAction, reasonCode, note, oldStatus.name(), target.name());
 
         return saved;
     }
@@ -390,16 +426,11 @@ public class TicketCommandService {
     }
 
     /**
-     * IN_PROGRESS → NEW transition: every claim is cleared and the ticket returns
-     * to the pool. Because this transition requires ADMIN authority, regular
-     * unclaim should go through DELETE /api/v1/tickets/{id}/claim instead.
+     * Side effects tied to a specific transition. Returning a ticket to the pool
+     * (IN_PROGRESS → NEW) is no longer an action target — it happens only via
+     * unclaim (DELETE /api/v1/tickets/{id}/claim), which clears claims itself.
      */
     private void applyStatusSpecificRules(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus, String userId) {
-        if (oldStatus == TicketStatus.IN_PROGRESS && newStatus == TicketStatus.NEW) {
-            log.warn("AUDIT: Tüm claim'ler temizleniyor. Bilet: {}, İşlemi yapan: {}", ticket.getId(), userId);
-            ticketClaimRepository.deleteByTicketId(ticket.getId());
-        }
-
         if (oldStatus == TicketStatus.IN_PROGRESS && newStatus == TicketStatus.CLOSED) {
             log.warn("AUDIT: Ajan müşteri yanıtı beklerken bileti kapattı. Bilet: {}, Ajan: {}",
                     ticket.getId(), userId);

@@ -55,8 +55,16 @@ export const postComment = (id, body) => api.post(`/tickets/${id}/comments`, bod
 /** Bileti üstlenir (claim). */
 export const claimTicket = (id) => api.put(`/tickets/${id}/claim`);
 
-/** Durum değiştirir. body: { status } veya { status:'RESOLVED', reasonCode, note }. */
-export const changeStatus = (id, body) => api.put(`/tickets/${id}/status`, body);
+// Yaşam döngüsü eylemleri — kullanıcı ham statü SEÇMEZ; bir eylem çalıştırır,
+// statü backend'de o eylemin guard'ı içinde değişir (kaynak statü sunucuda denetlenir).
+/** Müşteri yanıtı beklemeye alır (IN_PROGRESS → WAITING_FOR_CUSTOMER). */
+export const waitForCustomer = (id, body) => api.put(`/tickets/${id}/wait`, body);
+/** Bekleyen bilete devam eder (WAITING_FOR_CUSTOMER → IN_PROGRESS). */
+export const resumeTicket = (id, body) => api.put(`/tickets/${id}/resume`, body);
+/** Bileti çözer (IN_PROGRESS → RESOLVED). body: { reasonCode, note }. */
+export const resolveTicket = (id, body) => api.put(`/tickets/${id}/resolve`, body);
+/** Çözülmüş bileti yeniden açar (RESOLVED → IN_PROGRESS). */
+export const reopenTicket = (id, body) => api.put(`/tickets/${id}/reopen`, body);
 
 /** Bileti kapatır. body: { reasonCode, note }. */
 export const closeTicket = (id, body) => api.put(`/tickets/${id}/close`, body);

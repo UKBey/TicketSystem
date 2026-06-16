@@ -89,7 +89,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(100L, "I replied", "EXTERNAL", "customer-1", List.of("CUSTOMER"));
 
         assertEquals(1L, saved.getId());
-        verify(ticketCommandService).updateTicketStatus(100L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        verify(ticketCommandService).resume(100L, null, null, "customer-1", List.of("CUSTOMER"));
     }
 
     @Test
@@ -159,7 +159,7 @@ class CommentServiceTest {
 
         assertEquals(8L, saved.getId());
         assertEquals(CommentType.INTERNAL, saved.getType());
-        verify(ticketCommandService, never()).updateTicketStatus(102L, "IN_PROGRESS", null, null, "agent-1", List.of("AGENT"));
+        verify(ticketCommandService, never()).resume(102L, null, null, "agent-1", List.of("AGENT"));
     }
 
     @Test
@@ -180,7 +180,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(103L, "ping", "EXTERNAL", "agent-1", List.of("AGENT"));
 
         assertNotNull(saved);
-        verify(ticketCommandService, never()).updateTicketStatus(any(), any(), any(), any(), any(), any());
+        verify(ticketCommandService, never()).resume(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -234,7 +234,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(120L, "answer", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(CommentType.EXTERNAL, saved.getType());
-        verify(ticketCommandService).updateTicketStatus(120L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        verify(ticketCommandService).resume(120L, null, null, "customer-1", List.of("CUSTOMER"));
     }
 
     @Test
@@ -282,7 +282,7 @@ class CommentServiceTest {
         Comment saved = commentService.addComment(100L, "cevap", null, "customer-1", List.of("CUSTOMER"));
 
         assertEquals(CommentType.EXTERNAL, saved.getType()); // type null → EXTERNAL default
-        verify(ticketCommandService).updateTicketStatus(100L, "IN_PROGRESS", null, null, "customer-1", List.of("CUSTOMER"));
+        verify(ticketCommandService).resume(100L, null, null, "customer-1", List.of("CUSTOMER"));
         verify(messagingTemplate).convertAndSend(eqDest("/topic/tickets/100"), any(Object.class));
     }
 
@@ -299,7 +299,7 @@ class CommentServiceTest {
         commentService.addComment(100L, "iç not", "INTERNAL", "agent-1", List.of("AGENT"));
 
         verify(messagingTemplate).convertAndSend(eqDest("/topic/tickets/100/internal"), any(Object.class));
-        verify(ticketCommandService, never()).updateTicketStatus(any(), any(), any(), any(), any(), any());
+        verify(ticketCommandService, never()).resume(any(), any(), any(), any(), any());
     }
 
     private static String eqDest(String d) { return org.mockito.ArgumentMatchers.eq(d); }
