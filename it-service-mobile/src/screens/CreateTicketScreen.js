@@ -15,7 +15,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getProducts, getProductTopics, getKnownIssues } from '../api/products';
 import { createTicket } from '../api/tickets';
 import { priorityLabel } from '../utils/format';
-import { localizedName, sortByLocalizedName } from '../utils/localizedName';
+import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 import PickerField from '../components/PickerField';
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
@@ -197,10 +197,12 @@ export default function CreateTicketScreen({ navigation }) {
                   >
                     <Text style={[styles.kiTitle, { color: theme.textPrimary }]}>
                       {open ? '▾ ' : '▸ '}
-                      {ki.title}
+                      {localizedName(ki, 'title')}
                     </Text>
-                    {open && !!ki.content && (
-                      <Text style={[styles.kiContent, { color: theme.textSecondary }]}>{ki.content}</Text>
+                    {open && !!pickLocalized(ki.contentTr, ki.contentEn) && (
+                      <Text style={[styles.kiContent, { color: theme.textSecondary }]}>
+                        {pickLocalized(ki.contentTr, ki.contentEn)}
+                      </Text>
                     )}
                   </Pressable>
                 );

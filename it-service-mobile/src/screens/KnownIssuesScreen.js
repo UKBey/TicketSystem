@@ -22,7 +22,7 @@ import {
 } from '../api/products';
 import PickerField from '../components/PickerField';
 import SheetBackdrop from '../components/SheetBackdrop';
-import { localizedName, sortByLocalizedName } from '../utils/localizedName';
+import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 
 /** Bilinen sorunlar bilgi tabanı — ürün seç, akordeon liste; admin ekler/siler. */
 export default function KnownIssuesScreen() {
@@ -40,7 +40,8 @@ export default function KnownIssuesScreen() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [topics, setTopics] = useState([]);
-  const [form, setForm] = useState({ title: '', content: '', topicId: null });
+  // İki dilli (tr/en): her alan için en az bir dil zorunlu, diğeri okuma anında düşer (web ile aynı).
+  const [form, setForm] = useState({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: null });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function KnownIssuesScreen() {
   }, [loadIssues]);
 
   const openCreate = () => {
-    setForm({ title: '', content: '', topicId: null });
+    setForm({ titleTr: '', titleEn: '', contentTr: '', contentEn: '', topicId: null });
     setTopics([]);
     getProductTopics(productId)
       .then((res) => setTopics(res.data ?? []))
@@ -75,13 +76,18 @@ export default function KnownIssuesScreen() {
     setCreateOpen(true);
   };
 
+  const titleOk = form.titleTr.trim() || form.titleEn.trim();
+  const contentOk = form.contentTr.trim() || form.contentEn.trim();
+
   const submitCreate = async () => {
-    if (!form.title.trim() || !form.content.trim()) return;
+    if (!titleOk || !contentOk) return;
     setSaving(true);
     try {
       await createKnownIssue(productId, {
-        title: form.title.trim(),
-        content: form.content.trim(),
+        titleTr: form.titleTr.trim() || null,
+        titleEn: form.titleEn.trim() || null,
+        contentTr: form.contentTr.trim() || null,
+        contentEn: form.contentEn.trim() || null,
         topicId: form.topicId,
         isActive: true,
       });
@@ -95,7 +101,7 @@ export default function KnownIssuesScreen() {
   };
 
   const onDelete = (ki) => {
-    Alert.alert(t('knownIssues.deleteTitle', 'Kaydı sil'), ki.title, [
+    Alert.alert(t('knownIssues.deleteTitle', 'Kaydı sil'), localizedName(ki, 'title'), [
       { text: t('common.cancel', 'İptal'), style: 'cancel' },
       {
         text: t('common.delete', 'Sil'),
@@ -155,10 +161,12 @@ export default function KnownIssuesScreen() {
               >
                 <Text style={[styles.itemTitle, { color: theme.textPrimary }]}>
                   {open ? '▾ ' : '▸ '}
-                  {ki.title}
+                  {localizedName(ki, 'title')}
                 </Text>
-                {open && !!ki.content && (
-                  <Text style={[styles.itemContent, { color: theme.textSecondary }]}>{ki.content}</Text>
+                {open && !!pickLocalized(ki.contentTr, ki.contentEn) && (
+                  <Text style={[styles.itemContent, { color: theme.textSecondary }]}>
+                    {pickLocalized(ki.contentTr, ki.contentEn)}
+                  </Text>
                 )}
               </Pressable>
             );
@@ -172,24 +180,67 @@ export default function KnownIssuesScreen() {
             <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>
               {t('knownIssues.add', 'Yeni Sorun Ekle')}
             </Text>
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+            <Text style={[styles.fieldLabel, { color: theme.textPrimary }]}>
+              {t('knownIssues.labelTitleTr', 'Başlık (Türkçe)')}
+            </Text>
             <TextInput
-              value={form.title}
-              onChangeText={(v) => setForm((f) => ({ ...f, title: v }))}
+              value={form.titleTr}
+              onChangeText={(v) => setForm((f) => ({ ...f, titleTr: v }))}
               placeholder={t('knownIssues.titlePlaceholder', 'Başlık')}
               placeholderTextColor={theme.textTertiary}
+              maxLength={255}
               style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
             />
+            <Text style={[styles.fieldLabel, { color: theme.textPrimary }]}>
+              {t('knownIssues.labelTitleEn', 'Başlık (İngilizce)')}
+            </Text>
             <TextInput
-              value={form.content}
-              onChangeText={(v) => setForm((f) => ({ ...f, content: v }))}
+              value={form.titleEn}
+              onChangeText={(v) => setForm((f) => ({ ...f, titleEn: v }))}
+              placeholder={t('knownIssues.titlePlaceholder', 'Başlık')}
+              placeholderTextColor={theme.textTertiary}
+              maxLength={255}
+              style={[styles.input, { backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary }]}
+            />
+            <Text style={[styles.fieldLabel, { color: theme.textPrimary }]}>
+              {t('knownIssues.labelContentTr', 'Açıklama ve Çözüm (Türkçe)')}
+            </Text>
+            <TextInput
+              value={form.contentTr}
+              onChangeText={(v) => setForm((f) => ({ ...f, contentTr: v }))}
               placeholder={t('knownIssues.contentPlaceholder', 'Çözüm / açıklama')}
               placeholderTextColor={theme.textTertiary}
               multiline
+              maxLength={10000}
               style={[
                 styles.input,
                 { minHeight: 100, textAlignVertical: 'top', backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary },
               ]}
             />
+            <Text style={[styles.fieldLabel, { color: theme.textPrimary }]}>
+              {t('knownIssues.labelContentEn', 'Açıklama ve Çözüm (İngilizce)')}
+            </Text>
+            <TextInput
+              value={form.contentEn}
+              onChangeText={(v) => setForm((f) => ({ ...f, contentEn: v }))}
+              placeholder={t('knownIssues.contentPlaceholder', 'Çözüm / açıklama')}
+              placeholderTextColor={theme.textTertiary}
+              multiline
+              maxLength={10000}
+              style={[
+                styles.input,
+                { minHeight: 100, textAlignVertical: 'top', backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textPrimary },
+              ]}
+            />
+            <Text style={[styles.langHint, { color: theme.textTertiary }]}>
+              {t('knownIssues.langHint', 'En az bir dil zorunludur. Biri boş bırakılırsa diğeri her iki dilde de gösterilir.')}
+            </Text>
             <PickerField
               label={t('knownIssues.topic', 'Konu (opsiyonel)')}
               placeholder={t('knownIssues.noTopic', 'Konu yok')}
@@ -200,6 +251,7 @@ export default function KnownIssuesScreen() {
                 ...sortByLocalizedName(topics).map((tp) => ({ label: localizedName(tp), value: tp.id })),
               ]}
             />
+            </ScrollView>
             <View style={styles.sheetActions}>
               <Pressable
                 onPress={() => setCreateOpen(false)}
@@ -211,12 +263,12 @@ export default function KnownIssuesScreen() {
               </Pressable>
               <Pressable
                 onPress={submitCreate}
-                disabled={!form.title.trim() || !form.content.trim() || saving}
+                disabled={!titleOk || !contentOk || saving}
                 style={[
                   styles.sheetBtn,
                   {
                     backgroundColor: theme.primary,
-                    opacity: !form.title.trim() || !form.content.trim() || saving ? 0.5 : 1,
+                    opacity: !titleOk || !contentOk || saving ? 0.5 : 1,
                   },
                 ]}
               >
@@ -245,9 +297,13 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 14, fontWeight: '600' },
   itemContent: { fontSize: 13, lineHeight: 19 },
   backdrop: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12 },
+  sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 12, maxHeight: '88%' },
+  sheetScroll: { flexShrink: 1 },
+  sheetScrollContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 17, fontWeight: '700' },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: -4 },
+  langHint: { fontSize: 12, lineHeight: 16 },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   sheetBtn: { flex: 1, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
 });
