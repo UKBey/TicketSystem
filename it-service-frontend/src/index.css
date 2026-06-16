@@ -70,6 +70,10 @@
   --ring-color: rgba(59, 130, 246, 0.3);
   --skeleton-base: #e5e7eb;
   --skeleton-highlight: #f3f4f6;
+  /* Keyboard-shortcut badges (e.g. Ctrl K hint) — fixed contrast vs. the search bar. */
+  --kbd-bg: #e2e8f0;
+  --kbd-border: #cbd5e1;
+  --kbd-text: #475569;
 }
 
 /* ============================================================ */
@@ -97,6 +101,10 @@
   --ring-color: rgba(59, 130, 246, 0.4);
   --skeleton-base: #1f2937;
   --skeleton-highlight: #374151;
+  /* Keyboard-shortcut badges (e.g. Ctrl K hint) — fixed contrast vs. the search bar. */
+  --kbd-bg: #334155;
+  --kbd-border: #64748b;
+  --kbd-text: #e2e8f0;
 }
 
 /* ============================================================ */

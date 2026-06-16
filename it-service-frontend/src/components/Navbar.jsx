@@ -66,13 +66,13 @@ export default function Navbar({ onMenuClick }) {
         <span className="hidden sm:flex items-center gap-1">
           <kbd
             className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border px-1 font-sans text-[11px] font-semibold leading-none"
-            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            style={{ backgroundColor: 'var(--kbd-bg)', borderColor: 'var(--kbd-border)', color: 'var(--kbd-text)', boxShadow: 'var(--shadow-sm)' }}
           >
             {MOD_KEY_LABEL}
           </kbd>
           <kbd
             className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border px-1 font-sans text-[11px] font-semibold leading-none"
-            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            style={{ backgroundColor: 'var(--kbd-bg)', borderColor: 'var(--kbd-border)', color: 'var(--kbd-text)', boxShadow: 'var(--shadow-sm)' }}
           >
             K
           </kbd>
