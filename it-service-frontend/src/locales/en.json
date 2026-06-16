@@ -311,7 +311,12 @@
       "knownIssuesCount_one": "{{count}} related issue",
       "knownIssuesCount_other": "{{count}} related issues",
       "knownIssuesExpand": "Show details",
-      "knownIssuesCollapse": "Collapse"
+      "knownIssuesCollapse": "Collapse",
+      "priorityInfoTitle": "Which priority should I choose?",
+      "priorityInfoLow": "Minor inconvenience, no rush — a question or cosmetic issue.",
+      "priorityInfoMedium": "Affects your work but you can keep going — a workaround exists.",
+      "priorityInfoHigh": "Significantly blocks your work with no workaround.",
+      "priorityInfoCritical": "Service down or business-critical — needs immediate attention."
     },
     "actionModal": {
       "labelReason": "Reason",

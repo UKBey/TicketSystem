@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Lightbulb, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
@@ -18,7 +18,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const toast = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('MEDIUM');
+  const [priority, setPriority] = useState('LOW');
   const [productId, setProductId] = useState('');
   const [products, setProducts] = useState([]);
   const [topicId, setTopicId] = useState('');
@@ -30,6 +30,9 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const [knownIssues, setKnownIssues] = useState([]);
   const [knownIssuesLoading, setKnownIssuesLoading] = useState(false);
   const [expandedIssueId, setExpandedIssueId] = useState(null);
+
+  // Bilgi kartı görünürlüğü — öncelik seçiminde kullanıcıya rehberlik eder.
+  const [showPriorityInfo, setShowPriorityInfo] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -100,12 +103,13 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setPriority('MEDIUM');
+    setPriority('LOW');
     setProductId('');
     setTopicId('');
     setTopics([]);
     setKnownIssues([]);
     setExpandedIssueId(null);
+    setShowPriorityInfo(false);
   };
 
   if (!isOpen) return null;
@@ -159,7 +163,20 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelPriority')}</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelPriority')}</label>
+                <button
+                  type="button"
+                  onClick={() => setShowPriorityInfo((v) => !v)}
+                  className="flex items-center gap-1 text-xs font-medium transition-colors cursor-pointer hover:text-primary-500"
+                  style={{ color: showPriorityInfo ? 'var(--color-primary-500, #6366f1)' : 'var(--text-tertiary)' }}
+                  aria-expanded={showPriorityInfo}
+                  title={t('ticket.createModal.priorityInfoTitle')}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                  {t('ticket.createModal.priorityInfoTitle')}
+                </button>
+              </div>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
@@ -171,6 +188,40 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
                 <option value="HIGH">{t('ticket.priority.high')}</option>
                 <option value="CRITICAL">{t('ticket.priority.critical')}</option>
               </select>
+
+              {/* Öncelik seviyelerini açıklayan bilgi kartı. */}
+              {showPriorityInfo && (
+                <div
+                  className="mt-2 rounded-lg border p-3 animate-fade-in"
+                  style={{
+                    backgroundColor: 'rgba(99, 102, 241, 0.06)',
+                    borderColor: 'rgba(99, 102, 241, 0.3)',
+                  }}
+                >
+                  <ul className="space-y-1.5">
+                    {[
+                      { key: 'low', dotColor: '#22c55e', text: 'priorityInfoLow' },
+                      { key: 'medium', dotColor: '#eab308', text: 'priorityInfoMedium' },
+                      { key: 'high', dotColor: '#f97316', text: 'priorityInfoHigh' },
+                      { key: 'critical', dotColor: '#ef4444', text: 'priorityInfoCritical' },
+                    ].map((p) => (
+                      <li key={p.key} className="flex items-start gap-2 text-xs">
+                        <span
+                          className="mt-1 h-2 w-2 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: p.dotColor }}
+                        />
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {t(`ticket.priority.${p.key}`)}
+                          </span>
+                          {' — '}
+                          {t(`ticket.createModal.${p.text}`)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{t('ticket.createModal.labelProduct')} *</label>

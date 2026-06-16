@@ -311,7 +311,12 @@
       "knownIssuesCount_one": "{{count}} ilgili sorun",
       "knownIssuesCount_other": "{{count}} ilgili sorun",
       "knownIssuesExpand": "Detayı göster",
-      "knownIssuesCollapse": "Kapat"
+      "knownIssuesCollapse": "Kapat",
+      "priorityInfoTitle": "Hangi önceliği seçmeliyim?",
+      "priorityInfoLow": "Küçük bir rahatsızlık, acil değil — bir soru veya görsel bir sorun.",
+      "priorityInfoMedium": "İşinizi etkiliyor ama devam edebiliyorsunuz — geçici bir çözüm var.",
+      "priorityInfoHigh": "İşinizi ciddi şekilde engelliyor, geçici çözüm yok.",
+      "priorityInfoCritical": "Hizmet çalışmıyor veya iş açısından kritik — acil müdahale gerekiyor."
     },
     "actionModal": {
       "labelReason": "Neden",
