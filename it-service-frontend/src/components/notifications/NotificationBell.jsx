@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNotifications } from '../../hooks/useNotifications';
+import { NotificationContext } from './NotificationContext';
 import NotificationList from './NotificationList';
 
 export default function NotificationBell() {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const { unreadCount, markAllAsRead } = useNotifications();
+  // Tek useNotifications() örneği; NotificationList aynı state'i context'ten
+  // tüketir, böylece listede okundu/sil işlemleri rozeti anında günceller.
+  const notifications = useNotifications();
+  const { unreadCount, markAllAsRead } = notifications;
   const containerRef = useRef(null);
 
   // Dışarı tıklayınca kapat.
@@ -51,7 +55,9 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <NotificationList onMarkAllRead={handleMarkAllRead} onClose={() => setIsOpen(false)} />
+        <NotificationContext.Provider value={notifications}>
+          <NotificationList onMarkAllRead={handleMarkAllRead} onClose={() => setIsOpen(false)} />
+        </NotificationContext.Provider>
       )}
     </div>
   );

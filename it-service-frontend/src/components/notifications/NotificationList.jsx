@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, Trash2 } from 'lucide-react';
 import { getNotifications } from '../../services/notificationApi';
-import { useNotifications } from '../../hooks/useNotifications';
+import { useNotificationContext } from './NotificationContext';
 import { formatDate } from '../../utils/dateFormat';
 
 function timeAgo(dateStr, t) {
@@ -21,7 +21,7 @@ export default function NotificationList({ onMarkAllRead, onClose }) {
   const [loading, setLoading] = useState(true);
   const [deletingAll, setDeletingAll] = useState(false);
   const navigate = useNavigate();
-  const { markAsRead, deleteNotification, deleteAllNotifications } = useNotifications();
+  const { markAsRead, deleteNotification, deleteAllNotifications } = useNotificationContext();
 
   const load = useCallback(() => {
     setLoading(true);
