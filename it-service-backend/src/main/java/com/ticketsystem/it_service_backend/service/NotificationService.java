@@ -76,28 +76,6 @@ public class NotificationService {
     }
 
     /**
-     * Records an in-app notification for the agent who claimed the ticket. No email
-     * is fired in the self-claim flow — the agent is acting themselves, so there is
-     * no third party, and extra mail would just be spam. The in-app feed entry is
-     * enough.
-     *
-     * @param ticket the claimed ticket
-     * @param agentId ID of the claiming agent
-     */
-    public void notifyTicketClaimed(Ticket ticket, String agentId) {
-        userRepository.findById(agentId).ifPresent(agent -> {
-            NotificationPreference pref = getOrDefaultPreference(agent.getId());
-            if (Boolean.TRUE.equals(pref.getNotifyOnTicketAssigned())) {
-                saveNotification(agent.getId(), NotificationType.TICKET_ASSIGNED,
-                        "notification.ticket.assigned.agent", args(ticket.getId(), ticket.getTitle()),
-                        ticket.getId());
-            }
-            // NOT: email tetiği kasıtlı olarak yok — self-claim'de ajan zaten action
-            // yapıyor, kendi kendine mail göndermek gereksiz.
-        });
-    }
-
-    /**
      * Called when an Agent Admin manually assigns a ticket.
      * Sends separate notifications to the target agent and the customer.
      *

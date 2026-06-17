@@ -119,7 +119,8 @@ public class TicketClaimService {
             }
         }
 
-        notificationService.notifyTicketClaimed(ticket, agentId);
+        // Self-claim: ajan eylemi kendisi yapıyor — ne bildirim ne mail gönderilir.
+        // (Bildirim/mail yalnızca manuel atamada, alıcının tercihine göre gider.)
         auditHelper.record(ticket, agentId, AuditAction.CLAIM, null, currentStatus.name(), ticket.getStatus().name());
         return ticket;
     }

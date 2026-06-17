@@ -153,30 +153,6 @@ class NotificationServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // notifyTicketClaimed
-    // -------------------------------------------------------------------------
-
-    @Test
-    void notifyTicketClaimed_savesNotificationButNoEmail_selfClaimDoesNotEmailSelf() {
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.empty());
-
-        notificationService.notifyTicketClaimed(ticket, "agent-1");
-
-        verify(notificationRepository).save(any(Notification.class));
-        verify(emailService, never()).sendTicketAssignedEmail(any(), any());
-    }
-
-    @Test
-    void notifyTicketClaimed_doesNothing_whenAgentNotFound() {
-        when(userRepository.findById("unknown-agent")).thenReturn(Optional.empty());
-
-        notificationService.notifyTicketClaimed(ticket, "unknown-agent");
-
-        verify(notificationRepository, never()).save(any());
-    }
-
-    // -------------------------------------------------------------------------
     // notifyCommentAdded
     // -------------------------------------------------------------------------
 
@@ -554,25 +530,6 @@ class NotificationServiceTest {
 
         verify(notificationRepository, never()).save(any(Notification.class));
         verify(emailService).sendTicketResolvedEmail(customer, ticket);
-    }
-
-    // -------------------------------------------------------------------------
-    // notifyTicketClaimed — email disabled branch
-    // -------------------------------------------------------------------------
-
-    @Test
-    void notifyTicketClaimed_notifyDisabled_skipsAllChannels() {
-        // Self-claim akışında email hiçbir koşulda gitmez; in-app notification
-        // tercihi false ise saveNotification de atlanır → çağrı no-op olur.
-        NotificationPreference pref = NotificationPreference.builder()
-                .userId("agent-1").notifyOnTicketAssigned(false).emailOnTicketAssigned(true).build();
-        when(userRepository.findById("agent-1")).thenReturn(Optional.of(agent));
-        when(preferenceRepository.findByUserId("agent-1")).thenReturn(Optional.of(pref));
-
-        notificationService.notifyTicketClaimed(ticket, "agent-1");
-
-        verify(notificationRepository, never()).save(any(Notification.class));
-        verify(emailService, never()).sendTicketAssignedEmail(any(), any());
     }
 
     // -------------------------------------------------------------------------
