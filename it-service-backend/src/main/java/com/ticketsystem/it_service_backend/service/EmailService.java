@@ -61,6 +61,7 @@ public class EmailService {
         static final String PASSWORD_CHANGED    = "password_changed";
         static final String TWOFA_DEVICE_ADDED  = "twofa_device_added";
         static final String TWOFA_DEVICE_REMOVED = "twofa_device_removed";
+        static final String TEST                = "test";
 
         private Category() {}
     }
@@ -453,16 +454,10 @@ public class EmailService {
             return;
         }
 
-        Exception lastError = null;
+        String lastError = null;
         for (int attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
-            try {
-                MimeMessage msg = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(msg, "UTF-8");
-                helper.setFrom(fromAddress);
-                helper.setTo(to);
-                helper.setSubject(subject);
-                helper.setText(htmlBody, true);
-                mailSender.send(msg);
+            lastError = trySendOnce(to, subject, htmlBody);
+            if (lastError == null) {
                 if (attempt > 1) {
                     log.info("Mail sent on retry attempt {}/{}: to={}, subject={}",
                             attempt, MAX_SEND_ATTEMPTS, to, subject);
@@ -471,24 +466,77 @@ public class EmailService {
                 }
                 recordMetric(category, STATUS_SUCCESS);
                 return;
-            } catch (Exception e) {
-                lastError = e;
-                if (attempt < MAX_SEND_ATTEMPTS) {
-                    log.warn("Mail attempt {}/{} failed (will retry): to={}, subject={}, error={}",
-                            attempt, MAX_SEND_ATTEMPTS, to, subject, e.getMessage());
-                    try {
-                        Thread.sleep(SEND_RETRY_DELAY_MS * attempt);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+            }
+            if (attempt < MAX_SEND_ATTEMPTS) {
+                log.warn("Mail attempt {}/{} failed (will retry): to={}, subject={}, error={}",
+                        attempt, MAX_SEND_ATTEMPTS, to, subject, lastError);
+                try {
+                    Thread.sleep(SEND_RETRY_DELAY_MS * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
         log.error("Mail could not be sent after {} attempts: to={}, subject={}, error={}",
-                MAX_SEND_ATTEMPTS, to, subject,
-                lastError == null ? "unknown" : lastError.getMessage());
+                MAX_SEND_ATTEMPTS, to, subject, lastError == null ? "unknown" : lastError);
         recordMetric(category, STATUS_FAILURE);
+    }
+
+    /**
+     * Sends a single MIME message. Returns {@code null} on success or the error
+     * message on failure — no exception escapes, so callers decide how to react
+     * (the async path retries, the sync test path reports the reason).
+     */
+    private String trySendOnce(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+            mailSender.send(msg);
+            return null;
+        } catch (Exception e) {
+            return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+        }
+    }
+
+    /**
+     * Sends a diagnostic test email SYNCHRONOUSLY (single attempt) to verify that
+     * the configured SMTP server actually delivers — useful right after switching
+     * from Mailpit to a real provider (e.g. Gmail). Unlike the {@code @Async}
+     * notification mails this does not retry and does not swallow the outcome: it
+     * returns {@code null} on success or the SMTP error message on failure, so an
+     * admin gets immediate feedback on their mail configuration.
+     *
+     * @param recipient the user to send the test to (their email/language/theme are used)
+     * @return {@code null} on success; otherwise the failure reason
+     */
+    public String sendTestEmail(User recipient) {
+        String to = recipient.getEmail();
+        if (to == null || to.isBlank()) {
+            log.warn("Test maili atlandı (boş alıcı): user={}", recipient.getId());
+            recordMetric(Category.TEST, STATUS_SKIPPED);
+            return "no-recipient";
+        }
+        Locale locale = localeOf(recipient);
+        Palette palette = paletteOf(recipient);
+        String subject = msg(locale, "email.subject.test");
+        String html = buildSecurityNotificationHtml(locale, palette, recipient,
+                msg(locale, "email.title.test"),
+                msg(locale, "email.body.test"),
+                msg(locale, "email.warning.test"));
+
+        String error = trySendOnce(to, subject, html);
+        recordMetric(Category.TEST, error == null ? STATUS_SUCCESS : STATUS_FAILURE);
+        if (error == null) {
+            log.info("Test maili gönderildi: to={}", to);
+        } else {
+            log.error("Test maili gönderilemedi: to={}, error={}", to, error);
+        }
+        return error;
     }
 
     private void recordMetric(String category, String status) {

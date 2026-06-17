@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -245,5 +246,45 @@ class EmailServiceTest {
                 .customerId("customer-1").build();
         assertDoesNotThrow(() -> emailService.sendTicketCreatedEmail(customer, t));
         verify(mailSender).send(any(MimeMessage.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // sendTestEmail — senkron admin SMTP testi
+    // -------------------------------------------------------------------------
+
+    @Test
+    void sendTestEmail_success_returnsNullAndRecordsSuccess() {
+        String result = emailService.sendTestEmail(customer);
+
+        assertNull(result); // null = başarı
+        verify(mailSender).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "test", "status", "success").count());
+    }
+
+    @Test
+    void sendTestEmail_whenSmtpFails_returnsErrorMessageAndRecordsFailure() {
+        doThrow(new MailSendException("SMTP connection refused"))
+                .when(mailSender).send(any(MimeMessage.class));
+
+        String result = emailService.sendTestEmail(customer);
+
+        assertEquals("SMTP connection refused", result);
+        // Test gönderimi tek denemedir — retry yok.
+        verify(mailSender, times(1)).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "test", "status", "failure").count());
+    }
+
+    @Test
+    void sendTestEmail_blankRecipient_skipsAndReturnsMarker() {
+        User noEmail = User.builder().id("ne-1").email("  ").fullName("No Email").build();
+
+        String result = emailService.sendTestEmail(noEmail);
+
+        assertEquals("no-recipient", result);
+        verify(mailSender, never()).send(any(MimeMessage.class));
+        assertEquals(1.0, meterRegistry.counter(
+                "mail_send_total", "category", "test", "status", "skipped").count());
     }
 }
