@@ -1167,6 +1167,12 @@
       "bodyCustomer": "Gerçek portalınızın örnek verilerle kısa turu. İlerlemek için İleri/Geri, istediğinizde Atla.",
       "bodyStaff": "Gerçek çalışma alanınızın örnek verilerle kısa turu. İlerlemek için İleri/Geri, istediğinizde Atla."
     },
+    "prefs": {
+      "langLabel": "Dil",
+      "themeLabel": "Görünüm",
+      "light": "Açık",
+      "dark": "Koyu"
+    },
     "nav": {
       "title": "Gezinme",
       "dashboard": "Menüden Gösterge Paneli'ni açın.",

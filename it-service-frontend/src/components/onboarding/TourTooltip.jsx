@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, X, MousePointerClick } from 'lucide-react';
+import TourPrefs from './TourPrefs';
 
 /**
  * Joyride özel tooltip bileşeni. Akış kontrolü (Skip/Back/Next/Finish) tamamen buradan
@@ -15,7 +16,7 @@ import { ChevronLeft, ChevronRight, X, MousePointerClick } from 'lucide-react';
 export default function TourTooltip({ step, tooltipProps }) {
   const { t } = useTranslation();
   const d = step.data || {};
-  const { onSkip, onBack, onNext, isFirst, isLast, index, total, clickHint } = d;
+  const { onSkip, onBack, onNext, isFirst, isLast, index, total, clickHint, prefs } = d;
 
   return (
     <div
@@ -24,23 +25,45 @@ export default function TourTooltip({ step, tooltipProps }) {
       style={{ backgroundColor: 'var(--bg-surface)', boxShadow: '0 20px 50px rgba(0,0,0,0.35)' }}
     >
       {/* Header: adım sayacı + skip */}
-      <div className="flex items-center justify-between px-4 pt-3.5">
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: total }).map((_, i) => (
+      <div className="flex items-center justify-between gap-3 px-4 pt-3.5">
+        {/* Az adımda noktalar; çok adımda (örn. super admin ~30 adım) noktalar
+            taşmasın diye ince bir ilerleme çubuğu + "x / toplam" sayacı. */}
+        {total > 8 ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <div
-              key={i}
-              className="rounded-full transition-all duration-300"
-              style={{
-                height: '5px',
-                width: i === index ? '18px' : '5px',
-                backgroundColor: i === index ? '#6366f1' : i < index ? '#a5b4fc' : 'var(--border-color)',
-              }}
-            />
-          ))}
-        </div>
+              className="h-[5px] flex-1 overflow-hidden rounded-full"
+              style={{ backgroundColor: 'var(--border-color)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${((index + 1) / total) * 100}%`,
+                  background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)',
+                }}
+              />
+            </div>
+            <span className="shrink-0 text-[11px] font-semibold tabular-nums" style={{ color: 'var(--text-tertiary)' }}>
+              {index + 1}/{total}
+            </span>
+          </div>
+        ) : (
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {Array.from({ length: total }).map((_, i) => (
+              <div
+                key={i}
+                className="shrink-0 rounded-full transition-all duration-300"
+                style={{
+                  height: '5px',
+                  width: i === index ? '18px' : '5px',
+                  backgroundColor: i === index ? '#6366f1' : i < index ? '#a5b4fc' : 'var(--border-color)',
+                }}
+              />
+            ))}
+          </div>
+        )}
         <button
           onClick={onSkip}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-opacity hover:opacity-80"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80"
           style={{ color: 'var(--text-tertiary)' }}
         >
           <X className="h-3 w-3" />
@@ -65,6 +88,7 @@ export default function TourTooltip({ step, tooltipProps }) {
         {d.body && (
           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{d.body}</p>
         )}
+        {prefs && <TourPrefs />}
       </div>
 
       {/* Footer */}

@@ -1167,6 +1167,12 @@
       "bodyCustomer": "A quick tour of your real portal, shown with sample data. Next/Back to move, Skip anytime.",
       "bodyStaff": "A quick tour of your real workspace, shown with sample data. Next/Back to move, Skip anytime."
     },
+    "prefs": {
+      "langLabel": "Language",
+      "themeLabel": "Appearance",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "nav": {
       "title": "Navigation",
       "dashboard": "Open the Dashboard from the menu.",

@@ -94,6 +94,7 @@ export function buildTourSteps(roles) {
     id: 'welcome',
     route: firstRoute,
     target: 'center',
+    prefs: true, // karşılama adımında dil + tema seçici göster
     titleKey: 'onboarding.welcome.title',
     bodyKey: onlyCustomer ? 'onboarding.welcome.bodyCustomer' : 'onboarding.welcome.bodyStaff',
   });

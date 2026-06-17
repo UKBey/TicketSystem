@@ -155,6 +155,7 @@ export default function OnboardingTour() {
         title: t(s.titleKey),
         body: t(s.bodyKey),
         clickHint: !!s.clickHint,
+        prefs: !!s.prefs,
         index: i,
         total,
         isFirst: i === 0,
