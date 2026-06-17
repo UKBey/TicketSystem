@@ -24,6 +24,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # actions/checkout, tag push'unda annotated tag'i lightweight tag'e (mesajsız, commit'e
+      # işaret eden ref) çevirir; bu yüzden --notes-from-tag commit başlığına düşer. Gerçek
+      # annotated tag objesini remote'tan zorla geri çekerek mesajı geri kazanırız.
+      - name: Restore annotated tag
+        run: git fetch origin --force "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+
       # Release yoksa oluştur, varsa (tag yeniden konumlandırıldıysa) notlarını güncelle —
       # böylece retag idempotent çalışır, "already exists" hatası vermez.
       - name: Create or update release from tag
