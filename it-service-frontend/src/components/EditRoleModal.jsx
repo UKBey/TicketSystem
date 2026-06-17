@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getAssignableRoles, updateUserRoles } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
+import Button from './Button';
 
 /**
  * EditRoleModal — ADMIN'in mevcut bir kullanıcının rollerini düzenlemesi için modal.
@@ -190,23 +191,20 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
             className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-6 py-4 border-t flex-shrink-0"
             style={{ borderColor: 'var(--border-color)' }}
           >
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 w-full sm:w-auto"
-              style={{
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-secondary)',
-                backgroundColor: 'transparent',
-              }}
+              fullWidth
+              className="sm:w-auto"
             >
               {t('form.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading || rolesLoading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors focus:outline-none focus:ring-4 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+              fullWidth
+              className="sm:w-auto"
             >
               {loading ? (
                 <>
@@ -219,7 +217,7 @@ export default function EditRoleModal({ isOpen, onClose, user, onRoleUpdated }) 
                   {t('userManagement.editRole.save')}
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

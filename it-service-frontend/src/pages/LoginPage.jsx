@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Headset, ArrowRight, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Button from '../components/Button';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -78,13 +79,14 @@ export default function LoginPage() {
             {t('login.subtitle')}
           </p>
 
-          <button
+          <Button
             onClick={login}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-500 px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-600 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary-500/25 active:scale-[0.98] cursor-pointer"
+            fullWidth
+            className="rounded-xl px-6 py-3.5 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary-500/25 active:scale-[0.98]"
           >
             {t('login.signIn')}
             <ArrowRight className="h-4 w-4" />
-          </button>
+          </Button>
 
           <Link
             to="/forgot-password"

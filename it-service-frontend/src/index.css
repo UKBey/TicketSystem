@@ -258,6 +258,27 @@
   }
 }
 
+/* Buton ripple — tiklamada dalga efekti (Button bileşeni JS'te span enjekte eder).
+   Renk currentColor: dolgulu butonlarda metin beyaz oldugu icin beyaz dalga,
+   secondary/ghost'ta tema metin rengine uyum saglar. */
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+
+.btn-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.3;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-ripple { animation: none; display: none; }
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }

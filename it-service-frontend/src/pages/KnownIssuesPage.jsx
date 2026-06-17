@@ -12,6 +12,7 @@ import {
 import PaginationBar from '../components/PaginationBar';
 import ListLoadingOverlay from '../components/ListLoadingOverlay';
 import BilingualField from '../components/BilingualField';
+import Button from '../components/Button';
 import { useUrlState } from '../hooks/useUrlState';
 import { usePagedFetch } from '../hooks/usePagedFetch';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
@@ -264,13 +265,10 @@ export default function KnownIssuesPage() {
         </div>
 
         {canManage && selectedProductId && (
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer w-full sm:w-auto"
-          >
+          <Button onClick={openCreate} fullWidth className="sm:w-auto">
             <Plus className="h-4 w-4" />
             {t('knownIssues.add')}
-          </button>
+          </Button>
         )}
       </div>
 

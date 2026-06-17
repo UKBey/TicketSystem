@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api, { listKnownIssues } from '../services/api';
 import { localizedName, sortByLocalizedName, pickLocalized } from '../utils/localizedName';
 import { useToast } from '../context/ToastContext';
+import Button from './Button';
 
 // Sentinel value for the "No Topic" choice — only offered when the selected
 // product has no active topics. Submitted to the API as topicId: null.
@@ -345,21 +346,12 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
 
           {/* Footer */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer w-full sm:w-auto"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-            >
+            <Button variant="secondary" onClick={onClose} fullWidth className="sm:w-auto">
               {t('form.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
-            >
+            </Button>
+            <Button type="submit" disabled={loading} fullWidth className="sm:w-auto">
               {loading ? t('ticket.createModal.creating') : t('ticket.createModal.create')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

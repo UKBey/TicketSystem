@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
+import Button from '../Button';
 
 /**
  * Bilet kalıcı silme onay modalı — yalnızca ADMIN için ExtraActionsModal
@@ -60,21 +61,12 @@ export default function DeleteTicketModal({ isOpen, onClose, onConfirm, deleting
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
-          <button
-            disabled={deleting}
-            onClick={onClose}
-            className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-          >
+          <Button variant="secondary" disabled={deleting} onClick={onClose}>
             {t('form.cancel')}
-          </button>
-          <button
-            disabled={deleting}
-            onClick={onConfirm}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors disabled:opacity-50 cursor-pointer"
-          >
+          </Button>
+          <Button variant="danger" disabled={deleting} onClick={onConfirm}>
             {deleting ? t('ticketDetail.deleteTicketSaving') : t('ticketDetail.deleteTicketConfirm')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

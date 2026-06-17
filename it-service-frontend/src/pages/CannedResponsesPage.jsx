@@ -12,6 +12,7 @@ import api, {
 } from '../services/api';
 import { PLACEHOLDER_TOKENS, fillPlaceholders, availableLangs, pickContent } from '../utils/cannedResponses';
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
+import Button from '../components/Button';
 import { formatDate } from '../utils/dateFormat';
 import PaginationBar from '../components/PaginationBar';
 import ListLoadingOverlay from '../components/ListLoadingOverlay';
@@ -343,13 +344,10 @@ export default function CannedResponsesPage() {
           </div>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer w-full sm:w-auto"
-        >
+        <Button onClick={openCreate} fullWidth className="sm:w-auto">
           <Plus className="h-4 w-4" />
           {t('cannedResponses.add')}
-        </button>
+        </Button>
       </div>
 
       {/* List */}

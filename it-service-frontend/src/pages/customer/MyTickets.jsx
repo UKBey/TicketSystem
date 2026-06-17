@@ -8,6 +8,7 @@ import TicketFilters from '../../components/TicketFilters';
 import PaginationBar from '../../components/PaginationBar';
 import CreateTicketModal from '../../components/CreateTicketModal';
 import ListLoadingOverlay from '../../components/ListLoadingOverlay';
+import Button from '../../components/Button';
 
 const ACTIVE_STATUSES = ['NEW', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED'];
 const CLOSED_STATUSES = ['CLOSED'];
@@ -60,14 +61,15 @@ export default function MyTickets() {
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('ticket.myTickets.title')}</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{t('ticket.myTickets.subtitle')}</p>
         </div>
-        <button
+        <Button
           onClick={() => setModalOpen(true)}
           data-tour="mytickets-new"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
+          fullWidth
+          className="sm:w-auto py-2.5 hover:shadow-lg hover:shadow-primary-500/25"
         >
           <Plus className="h-4 w-4" />
           {t('ticket.myTickets.newTicket')}
-        </button>
+        </Button>
       </div>
 
       {/* Tabs */}
