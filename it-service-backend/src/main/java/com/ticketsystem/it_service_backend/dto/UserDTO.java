@@ -61,6 +61,9 @@ public class UserDTO {
             nullable = true)
     private String panelPreferences;
 
+    @Schema(description = "Kullanıcı onboarding akışını tamamladı mı?", example = "false")
+    private Boolean onboardingCompleted;
+
     @Schema(description = "Kullanıcının sisteme ilk kaydedildiği tarih", example = "2026-01-15T09:00:00+03:00")
     private ZonedDateTime createdAt;
 
@@ -112,7 +115,8 @@ public class UserDTO {
                 .preferredTheme(user.getPreferredTheme())
                 .preferredDateFormat(user.getPreferredDateFormat())
                 .panelPreferences(user.getPanelPreferences())
-                .authorizedProducts(user.getAuthorizedProducts() != null ? 
+                .onboardingCompleted(user.getOnboardingCompleted())
+                .authorizedProducts(user.getAuthorizedProducts() != null ?
                     user.getAuthorizedProducts().stream().map(ProductDTO::fromEntity).toList() : null)
                 .build();
     }

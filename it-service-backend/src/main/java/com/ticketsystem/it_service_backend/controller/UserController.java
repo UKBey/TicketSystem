@@ -563,6 +563,19 @@ public class UserController {
     }
 
     /**
+     * Marks the authenticated user's onboarding as completed. Idempotent.
+     *
+     * @return {@code 204 No Content}
+     */
+    @Operation(summary = "Onboarding'i tamamla",
+            description = "Kullanıcının onboarding akışını gördüğünü ve tamamladığını işaretler. İdempotent.")
+    @PutMapping("/me/onboarding-complete")
+    public ResponseEntity<Void> completeOnboarding(@AuthenticationPrincipal Jwt jwt) {
+        userService.completeOnboarding(jwt.getSubject());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Grants the agent support authorization for the specified product (the {@code authorizedProducts} list is updated).
      *
      * @param userId Keycloak identifier of the target agent

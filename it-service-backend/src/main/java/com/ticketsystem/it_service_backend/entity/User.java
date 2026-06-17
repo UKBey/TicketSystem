@@ -101,6 +101,10 @@ public class User {
     @Column(name = "panel_preferences", length = 500)
     private String panelPreferences;
 
+    @Column(name = "onboarding_completed", nullable = false)
+    @Builder.Default
+    private Boolean onboardingCompleted = false;
+
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 

@@ -526,6 +526,20 @@ public class UserService {
     }
 
     /**
+     * Marks the user's onboarding as completed. Idempotent — safe to call multiple times.
+     *
+     * @param userId target user ID
+     * @return the updated user
+     */
+    @Transactional
+    public User completeOnboarding(String userId) {
+        User user = getUserById(userId);
+        user.setOnboardingCompleted(true);
+        log.debug("Kullanıcı onboarding tamamlandı olarak işaretlendi. ID: {}", userId);
+        return userRepository.save(user);
+    }
+
+    /**
      * Removes a product from the user's authorized list. Idempotent — does
      * nothing if the product is not in the list.
      *
