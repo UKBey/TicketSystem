@@ -17,6 +17,7 @@ import FilterSearchInput from '../../components/filters/FilterSearchInput';
 import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
 import { formatDate } from '../../utils/dateFormat';
+import Button from '../../components/Button';
 
 const ROLES = ['CUSTOMER', 'AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER'];
 
@@ -198,14 +199,15 @@ export default function UserManagementPage() {
         </div>
 
         {canManageUsers && (
-          <button
+          <Button
             onClick={() => setIsModalOpen(true)}
             data-tour="users-create"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer sm:w-auto"
+            fullWidth
+            className="sm:w-auto"
           >
             <UserPlus className="h-4 w-4" />
             {t('userManagement.createUser')}
-          </button>
+          </Button>
         )}
       </div>
 

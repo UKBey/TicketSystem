@@ -21,6 +21,8 @@ const VARIANTS = {
   primary: 'text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:ring-primary-500/30',
   danger: 'text-white bg-danger-500 hover:bg-danger-600 focus:ring-4 focus:ring-danger-500/30',
   success: 'text-white bg-emerald-600 hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-500/30',
+  accent: 'text-white bg-accent-500 hover:bg-accent-600 focus:ring-4 focus:ring-accent-500/30',
+  warning: 'text-white bg-amber-500 hover:bg-amber-600 focus:ring-4 focus:ring-amber-500/30',
   secondary: 'border hover:bg-black/5 dark:hover:bg-white/5 focus:ring-4 focus:ring-primary-500/20',
 };
 

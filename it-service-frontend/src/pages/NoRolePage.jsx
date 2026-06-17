@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Button from '../components/Button';
 
 export default function NoRolePage() {
   const { user, logout, getPrimaryRole } = useAuth();
@@ -56,12 +57,13 @@ export default function NoRolePage() {
             </div>
           )}
 
-          <button
+          <Button
             onClick={logout}
-            className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+            fullWidth
+            className="py-2.5"
           >
             {t('noRole.signOut')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

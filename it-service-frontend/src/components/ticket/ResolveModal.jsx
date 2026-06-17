@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OTHER_REASON_CODE, REASON_CODES } from '../../utils/reasonCodes';
 import { useToast } from '../../context/ToastContext';
+import Button from '../Button';
 
 export default function ResolveModal({ isOpen, onClose, onSave }) {
   const { t } = useTranslation();
@@ -103,21 +104,20 @@ export default function ResolveModal({ isOpen, onClose, onSave }) {
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-          <button
+          <Button
+            variant="secondary"
             disabled={saving}
             onClick={() => onClose()}
-            className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
           >
             {t('form.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="accent"
             disabled={isSubmitDisabled}
             onClick={handleSave}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors disabled:opacity-50 cursor-pointer"
           >
             {saving ? t('ticketDetail.resolveModalSaving') : t('ticketDetail.resolveModalSave')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

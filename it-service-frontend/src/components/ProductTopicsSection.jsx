@@ -6,6 +6,7 @@ import api from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 import BilingualField from './BilingualField';
+import Button from './Button';
 
 export default function ProductTopicsSection({ productId, isAdmin }) {
   const { t, i18n } = useTranslation();
@@ -111,13 +112,14 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
           </span>
         </div>
         {isAdmin && (
-          <button
+          <Button
             onClick={openCreate}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer self-start sm:self-auto"
+            size="sm"
+            className="self-start sm:self-auto"
           >
             <Plus className="h-3.5 w-3.5" />
             {t('topic.add')}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -168,13 +170,15 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
                       <Pencil className="h-3 w-3" />
                       {t('topic.edit')}
                     </button>
-                    <button
-                      className="w-full inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      fullWidth
                       onClick={() => handleDelete(topic)}
                     >
                       <Trash2 className="h-3 w-3" />
                       {t('topic.delete')}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </li>
@@ -237,13 +241,14 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
                             <Pencil className="h-3 w-3" />
                             {t('topic.edit')}
                           </button>
-                          <button
-                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                          <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => handleDelete(topic)}
                           >
                             <Trash2 className="h-3 w-3" />
                             {t('topic.delete')}
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     )}
@@ -308,21 +313,19 @@ export default function ProductTopicsSection({ productId, isAdmin }) {
                 </label>
               </div>
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={closeModal}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
                 >
                   {t('topic.cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? t('topic.saving') : t('topic.save')}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
+import Button from '../Button';
 
 export default function StatusActionsCard({
   ticket, user, allowedStatuses,
@@ -40,60 +41,65 @@ export default function StatusActionsCard({
         {canDoStatusActions && (
           <div className="flex flex-col sm:flex-row gap-2">
             {(allowedStatuses.includes('WAITING_FOR_CUSTOMER') || ticket.status === 'WAITING_FOR_CUSTOMER') && (
-              <button
-                className={`w-full sm:flex-1 rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold transition-colors cursor-pointer ${
-                  ticket.status === 'WAITING_FOR_CUSTOMER' ? 'bg-primary-500 text-white' : 'border'
-                }`}
-                style={ticket.status !== 'WAITING_FOR_CUSTOMER' ? { borderColor: 'var(--border-color)', color: 'var(--text-secondary)' } : {}}
+              <Button
+                variant={ticket.status === 'WAITING_FOR_CUSTOMER' ? 'primary' : 'secondary'}
+                size="sm"
+                fullWidth
+                className="sm:flex-1 min-h-[40px]"
                 onClick={() => ticket.status === 'WAITING_FOR_CUSTOMER' ? onResume() : onWaiting()}
               >
                 {ticket.status === 'WAITING_FOR_CUSTOMER' ? t('ticketDetail.resume') : t('ticketDetail.waiting')}
-              </button>
+              </Button>
             )}
             {(allowedStatuses.includes('RESOLVED') || ticket.status === 'RESOLVED') && (
-              <button
-                className={`w-full sm:flex-1 rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold transition-colors cursor-pointer ${
-                  ticket.status === 'RESOLVED'
-                    ? 'bg-danger-500 text-white hover:bg-danger-600'
-                    : 'bg-accent-500 text-white hover:bg-accent-600'
-                }`}
+              <Button
+                variant={ticket.status === 'RESOLVED' ? 'danger' : 'accent'}
+                size="sm"
+                fullWidth
+                className="sm:flex-1 min-h-[40px]"
                 onClick={() => ticket.status === 'RESOLVED' ? onReopen() : onResolveClick()}
               >
                 {ticket.status === 'RESOLVED' ? t('ticketDetail.reopen') : t('ticketDetail.resolve')}
-              </button>
+              </Button>
             )}
           </div>
         )}
 
         {isAgent && !hasClaimed && ticket?.status !== 'CLOSED' && (
-          <button
-            className={`w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white transition-colors cursor-pointer ${
-              noClaimer ? 'bg-primary-500 hover:bg-primary-600' : 'bg-accent-500 hover:bg-accent-600'
-            }`}
+          <Button
+            variant={noClaimer ? 'primary' : 'accent'}
+            size="sm"
+            fullWidth
+            className="min-h-[40px]"
             onClick={onClaim}
           >
             {noClaimer ? t('ticketDetail.claim') : t('ticketDetail.join')}
-          </button>
+          </Button>
         )}
 
         {canAssign && ticket.status !== 'CLOSED' && (
-          <button
-            className="w-full rounded-lg px-3 py-2 min-h-[40px] text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+          <Button
+            variant="warning"
+            size="sm"
+            fullWidth
+            className="min-h-[40px]"
             onClick={() => onSetAssignModal(true)}
           >
             {t('ticketDetail.assignToAgent')}
-          </button>
+          </Button>
         )}
 
         {hasExtraActions && (
-          <button
-            className="w-full rounded-lg border px-3 py-2 min-h-[40px] text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            className="min-h-[40px]"
             onClick={() => onExtraActionsOpen(true)}
           >
             <Settings2 className="h-3.5 w-3.5" />
             {t('ticketDetail.extraActions')}
-          </button>
+          </Button>
         )}
       </div>
     </div>

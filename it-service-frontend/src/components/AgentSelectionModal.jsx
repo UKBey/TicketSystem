@@ -3,6 +3,7 @@ import { X, UserCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getAgentsWithCapacity, assignTicket } from '../services/api';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
+import Button from './Button';
 
 /**
  * AgentSelectionModal — Agent Admin'in bir bileti belirli bir agent'a ataması için
@@ -246,22 +247,17 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
             className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0"
             style={{ borderColor: 'var(--border-color)' }}
           >
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-              style={{
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-secondary)',
-                backgroundColor: 'transparent',
-              }}
             >
               {t('form.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!selectedAgentId || submitting}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors focus:outline-none focus:ring-4 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="focus:outline-none focus:ring-4 focus:ring-primary-500/30"
             >
               {submitting ? (
                 <span className="flex items-center gap-2">
@@ -271,7 +267,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
               ) : (
                 t('ticket.agentModal.assign')
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { Clock, Plus, Trash2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { formatMinutes, formatShortDate } from '../../utils/ticketFormatters';
+import Button from '../Button';
 
 export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
   const { t } = useTranslation();
@@ -160,20 +161,21 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
                 />
               </div>
               <div className="flex gap-2">
-                <button
-                  className="flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
+                <Button
+                  size="sm"
+                  className="flex-1"
                   onClick={handleAdd}
                   disabled={adding || !minutes || parseInt(minutes, 10) <= 0}
                 >
                   {adding ? t('ticketDetail.worklogSaving') : t('ticketDetail.worklogSave')}
-                </button>
-                <button
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer"
-                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => { setFormOpen(false); setMinutes(''); setDescription(''); }}
                 >
                   {t('form.cancel')}
-                </button>
+                </Button>
               </div>
             </div>
           )

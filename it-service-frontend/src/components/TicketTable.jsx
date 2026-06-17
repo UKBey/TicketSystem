@@ -8,6 +8,7 @@ import { useColumnResize } from '../hooks/useColumnResize';
 import { formatDateTime } from '../utils/dateFormat';
 import { localizedName } from '../utils/localizedName';
 import { AlertTriangle, Inbox, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import Button from './Button';
 
 export default function TicketTable({
   tickets,
@@ -122,19 +123,23 @@ export default function TicketTable({
                   renderActions(ticket)
                 ) : (
                   <>
-                    <button
-                      className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      fullWidth
                       onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
                     >
                       {t('ticket.actions.claim')}
-                    </button>
+                    </Button>
                     {showAssignButton && (
-                      <button
-                        className="w-full inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        fullWidth
                         onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
                       >
                         {t('ticket.actions.assign')}
-                      </button>
+                      </Button>
                     )}
                   </>
                 )}
@@ -233,19 +238,21 @@ export default function TicketTable({
                       renderActions(ticket)
                     ) : (
                       <>
-                        <button
-                          className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                        <Button
+                          variant="primary"
+                          size="sm"
                           onClick={(e) => { e.stopPropagation(); onClaim(ticket.id); }}
                         >
                           {t('ticket.actions.claim')}
-                        </button>
+                        </Button>
                         {showAssignButton && (
-                          <button
-                            className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors cursor-pointer"
+                          <Button
+                            variant="warning"
+                            size="sm"
                             onClick={(e) => { e.stopPropagation(); onAssign(ticket); }}
                           >
                             {t('ticket.actions.assign')}
-                          </button>
+                          </Button>
                         )}
                       </>
                     )}

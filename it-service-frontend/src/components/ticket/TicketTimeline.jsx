@@ -13,6 +13,7 @@ import {
 } from '../../utils/cannedResponses';
 import CannedResponsePicker from './CannedResponsePicker';
 import SlashAutocomplete from './SlashAutocomplete';
+import Button from '../Button';
 
 function getFileIcon(fileType) {
   if (!fileType) return <File className="h-5 w-5" />;
@@ -482,8 +483,8 @@ export default function TicketTimeline() {
                 <Paperclip className="h-4 w-4" />
               </button>
             )}
-            <button
-              className="flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            <Button
+              className="h-10 px-4"
               onClick={pendingFile ? handleFileUpload : handleSendComment}
               disabled={pendingFile
                 ? uploading
@@ -493,7 +494,7 @@ export default function TicketTimeline() {
                 ? <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                 : <Send className="h-4 w-4" />}
               {!pendingFile && cooldown > 0 ? `${cooldown}s` : t('ticketDetail.send')}
-            </button>
+            </Button>
           </div>
 
           {/* Unfilled placeholder warning */}

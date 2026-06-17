@@ -375,13 +375,15 @@ export default function KnownIssuesPage() {
                             <Pencil className="h-3 w-3" />
                             {t('knownIssues.edit')}
                           </button>
-                          <button
+                          <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => handleDelete(item)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                            className="gap-1 px-2.5 py-1 font-medium"
                           >
                             <Trash2 className="h-3 w-3" />
                             {t('knownIssues.delete')}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -492,21 +494,19 @@ export default function KnownIssuesPage() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={closeModal}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
                 >
                   {t('knownIssues.cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? t('knownIssues.saving') : t('knownIssues.save')}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Star } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import Button from '../Button';
 
 export default function CsatModal({ isOpen, onClose, onSubmit }) {
   const { t } = useTranslation();
@@ -67,21 +68,19 @@ export default function CsatModal({ isOpen, onClose, onSubmit }) {
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-          <button
+          <Button
+            variant="secondary"
             disabled={submitting}
             onClick={() => onClose()}
-            className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
           >
             {t('form.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={submitting}
             onClick={handleSubmit}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
           >
             {t('ticketDetail.csatSubmit')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

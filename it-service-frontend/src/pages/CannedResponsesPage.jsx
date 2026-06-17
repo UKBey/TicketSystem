@@ -639,21 +639,19 @@ export default function CannedResponsesPage() {
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-5 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={closeModal}
-                  className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
                 >
                   {t('cannedResponses.cancel')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? t('cannedResponses.saving') : t('cannedResponses.save')}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

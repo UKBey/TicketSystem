@@ -13,6 +13,7 @@ import ClearFiltersButton from '../../components/filters/ClearFiltersButton';
 import { useUrlState } from '../../hooks/useUrlState';
 import { rolesOf, roleBadgeStyle } from '../../utils/userRoles';
 import { localizedName } from '../../utils/localizedName';
+import Button from '../../components/Button';
 
 const VISIBLE_LIMIT = 3;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -514,13 +515,14 @@ export default function AdminPanel() {
                             ))
                           }
                         </select>
-                        <button
-                          className="inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                        <Button
+                          size="sm"
+                          fullWidth
                           onClick={() => handleAssignProduct(user.id)}
                         >
                           <Plus className="h-3 w-3" />
                           {t('admin.panel.addProduct')}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -644,13 +646,13 @@ export default function AdminPanel() {
                                 ))
                               }
                             </select>
-                            <button
-                              className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
+                            <Button
+                              size="sm"
                               onClick={() => handleAssignProduct(user.id)}
                             >
                               <Plus className="h-3 w-3" />
                               {t('admin.panel.addProduct')}
-                            </button>
+                            </Button>
                           </div>
                         </td>
                         {/* Limit butonu — sadece agent rolleri için. Sağa yaslı,

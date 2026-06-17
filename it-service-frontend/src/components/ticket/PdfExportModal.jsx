@@ -6,6 +6,7 @@ import i18n from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { buildTicketPdfHtml } from '../../utils/buildTicketPdfHtml';
+import Button from '../Button';
 
 const modalStyles = `
   @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -218,8 +219,8 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
           </div>
 
           <div className="border-t px-4 sm:px-6 py-4 flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-            <button
-              className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 text-white bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            <Button
+              fullWidth
               onClick={handleGenerate}
               disabled={generating || !anySelected}
             >
@@ -234,7 +235,7 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
                   {t('ticketDetail.pdfGenerate')}
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

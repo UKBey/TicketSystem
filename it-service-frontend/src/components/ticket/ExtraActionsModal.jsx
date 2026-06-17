@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import Button from '../Button';
 
 export default function ExtraActionsModal({
   isOpen, onClose,
@@ -50,12 +51,13 @@ export default function ExtraActionsModal({
             </button>
           )}
           {showClose && (
-            <button
-              className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+            <Button
+              variant="danger"
+              fullWidth
               onClick={() => openReasonModal('CLOSE')}
             >
               {t('ticketDetail.closeTicket')}
-            </button>
+            </Button>
           )}
           {showDelete && (
             <button

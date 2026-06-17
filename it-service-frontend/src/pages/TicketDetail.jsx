@@ -23,6 +23,7 @@ import ExtraActionsModal from '../components/ticket/ExtraActionsModal';
 import DeleteTicketModal from '../components/ticket/DeleteTicketModal';
 import AuditTimeline from '../components/ticket/AuditTimeline';
 import ChangeFieldModal from '../components/ticket/ChangeFieldModal';
+import Button from '../components/Button';
 import { REASON_CODES } from '../utils/reasonCodes';
 import { localizedName, sortByLocalizedName } from '../utils/localizedName';
 
@@ -204,18 +205,22 @@ export default function TicketDetail() {
                 {t('ticketDetail.resolvedDesc')}
               </p>
               <div className="flex gap-2">
-                <button
-                  className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-accent-500 hover:bg-accent-600 transition-colors cursor-pointer"
+                <Button
+                  variant="accent"
+                  size="sm"
+                  className="flex-1"
                   onClick={() => setCsatModalOpen(true)}
                 >
                   {t('ticketDetail.yesResolved')}
-                </button>
-                <button
-                  className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white bg-danger-500 hover:bg-danger-600 transition-colors cursor-pointer"
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="flex-1"
                   onClick={handleReopen}
                 >
                   {t('ticketDetail.noResolved')}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

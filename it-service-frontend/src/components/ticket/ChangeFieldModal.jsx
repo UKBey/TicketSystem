@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OTHER_REASON_CODE } from '../../utils/reasonCodes';
 import { useEscapeToClose } from '../../hooks/useEscapeToClose';
+import Button from '../Button';
 
 export default function ChangeFieldModal({
   isOpen,
@@ -169,21 +170,19 @@ export default function ChangeFieldModal({
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
             >
               {t('form.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={disabled}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {saving ? t('form.saving') : t('form.save')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

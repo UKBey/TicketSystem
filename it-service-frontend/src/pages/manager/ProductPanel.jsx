@@ -14,6 +14,7 @@ import { useColumnResize } from '../../hooks/useColumnResize';
 import { useUrlState } from '../../hooks/useUrlState';
 import { usePagedFetch } from '../../hooks/usePagedFetch';
 import { localizedName } from '../../utils/localizedName';
+import Button from '../../components/Button';
 
 const PAGE_SIZE = 10;
 
@@ -153,14 +154,15 @@ export default function ProductPanel() {
           </p>
         </div>
         {canManageProducts && (
-          <button
+          <Button
             onClick={() => openModal()}
             data-tour="products-create"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer sm:w-auto"
+            fullWidth
+            className="sm:w-auto hover:shadow-lg hover:shadow-primary-500/25"
           >
             <Plus className="h-4 w-4" />
             {t('productPanel.newProduct')}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -514,19 +516,17 @@ export default function ProductPanel() {
               </label>
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
-              <button
+              <Button
+                variant="secondary"
                 onClick={closeModal}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
               >
                 {t('productPanel.cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSave}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer"
               >
                 {t('productPanel.save')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
