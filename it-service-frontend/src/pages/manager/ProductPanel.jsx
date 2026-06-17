@@ -155,6 +155,7 @@ export default function ProductPanel() {
         {canManageProducts && (
           <button
             onClick={() => openModal()}
+            data-tour="products-create"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer sm:w-auto"
           >
             <Plus className="h-4 w-4" />
@@ -169,7 +170,7 @@ export default function ProductPanel() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+      <div data-tour="products-table" className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         {/* Header + search */}
         <div className="px-4 py-4 border-b flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:px-6"
           style={{ borderColor: 'var(--border-color)' }}>

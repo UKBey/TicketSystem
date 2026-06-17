@@ -88,7 +88,7 @@ export default function Workspace() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+      <div data-tour="ws-list" className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
           status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}

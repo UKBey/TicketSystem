@@ -1,7 +1,14 @@
 {
   "nav": {
-    "theme": { "toDark": "Karanlık moda geç", "toLight": "Aydınlık moda geç" },
-    "language": { "label": "Dil", "en": "İngilizce", "tr": "Türkçe" }
+    "theme": {
+      "toDark": "Karanlık moda geç",
+      "toLight": "Aydınlık moda geç"
+    },
+    "language": {
+      "label": "Dil",
+      "en": "İngilizce",
+      "tr": "Türkçe"
+    }
   },
   "filters": {
     "clear": "Temizle",
@@ -1146,5 +1153,183 @@
     "perPage": "{{count}} / sayfa",
     "previousPage": "Önceki sayfa",
     "nextPage": "Sonraki sayfa"
+  },
+  "onboarding": {
+    "controls": {
+      "skip": "Atla",
+      "back": "Geri",
+      "next": "İleri",
+      "finish": "Başlayalım!",
+      "clickHint": "Buraya tıklayın"
+    },
+    "welcome": {
+      "title": "Aramıza hoş geldiniz!",
+      "bodyCustomer": "Gerçek portalınızın örnek verilerle kısa turu. İlerlemek için İleri/Geri, istediğinizde Atla.",
+      "bodyStaff": "Gerçek çalışma alanınızın örnek verilerle kısa turu. İlerlemek için İleri/Geri, istediğinizde Atla."
+    },
+    "nav": {
+      "title": "Gezinme",
+      "dashboard": "Menüden Gösterge Paneli'ni açın.",
+      "admin": "Yönetim Paneli'ni açın.",
+      "users": "Kullanıcı Yönetimi'ni açın.",
+      "products": "Ürün Yönetimi'ni açın.",
+      "team": "Ekip Biletleri'ni açın.",
+      "performance": "Performansım'ı açın.",
+      "workspace": "Çalışma Alanım'ı açın.",
+      "pool": "Havuz'u açın.",
+      "canned": "Hazır Yanıtlar'ı açın.",
+      "overview": "Genel Bakış'ı açın.",
+      "mytickets": "Biletlerim'i açın.",
+      "profile": "Navbar'dan profilinizi açın."
+    },
+    "parts": {
+      "dashKpis": {
+        "title": "Önemli metrikler",
+        "body": "Açık bilet, SLA ihlali, yanıt süresi ve CSAT bir bakışta."
+      },
+      "adminAccess": {
+        "title": "Erişim & limitler",
+        "body": "Her kullanıcının ürün erişimini verin/kaldırın ve ajan başına bilet limiti belirleyin."
+      },
+      "dashCharts": {
+        "title": "Trend & SLA",
+        "body": "Zaman içindeki bilet akışı ve önceliğe göre SLA uyumu."
+      },
+      "dashAgents": {
+        "title": "Ajanlar & ürünler",
+        "body": "Ajan ve ürün bazlı kırılım — detay için tıklayın."
+      },
+      "usersCreate": {
+        "title": "Kullanıcı oluştur",
+        "body": "Hesap ekleyin, geçici şifre verin ve rol eşleyin."
+      },
+      "usersTable": {
+        "title": "Tüm kullanıcılar",
+        "body": "Arayın, sıralayın, rol düzenleyin, hesabı aktif/pasif yapın."
+      },
+      "productsCreate": {
+        "title": "Yeni ürün",
+        "body": "Destek kategorisi oluşturun ve bilet limitini ayarlayın."
+      },
+      "productsTable": {
+        "title": "Ürünler",
+        "body": "İki dilli ad, durum, limit ve konular — ara & sırala."
+      },
+      "teamList": {
+        "title": "Ekip kuyruğu",
+        "body": "Meslektaşların sahiplendiği biletler — katılın veya atayın."
+      },
+      "perfKpis": {
+        "title": "Metrikleriniz",
+        "body": "Aralık için aktif, çözülen, çözüm süresi ve CSAT."
+      },
+      "perfCharts": {
+        "title": "Trendleriniz",
+        "body": "Durum dağılımı, bilet ve worklog trendi, CSAT kırılımı."
+      },
+      "wsList": {
+        "title": "Biletleriniz",
+        "body": "Filtreleyin, sıralayın ve yaşam döngüsünü yürütün."
+      },
+      "poolList": {
+        "title": "Sahipsiz havuz",
+        "body": "Bir bileti sahiplenin veya atayın — SLA rozetleri aciliyeti gösterir."
+      },
+      "cannedToolbar": {
+        "title": "Filtre & oluştur",
+        "body": "Kapsam, ürün veya dile göre filtreleyin; yeni şablon ekleyin."
+      },
+      "cannedGrid": {
+        "title": "Şablonlar",
+        "body": "Canlı önizlemeli yanıtlar — favorileyin ve hızlı uygulayın."
+      },
+      "overviewKpis": {
+        "title": "Özetiniz",
+        "body": "Açık/çözülen bilet, çözüm süresi ve CSAT puanınız."
+      },
+      "overviewCharts": {
+        "title": "Aktiviteniz",
+        "body": "Seçili aralıkta durum dağılımı ve bilet zaman çizelgesi."
+      },
+      "myticketsNew": {
+        "title": "Yeni bilet",
+        "body": "Birkaç adımda destek talebi açın."
+      },
+      "myticketsTabs": {
+        "title": "Aktif / Kapalı",
+        "body": "Devam eden ve kapalı biletler arasında geçin."
+      },
+      "myticketsList": {
+        "title": "Biletleriniz",
+        "body": "Filtreleyin, sıralayın ve takip için bir bilete tıklayın."
+      },
+      "profileHero": {
+        "title": "Profiliniz",
+        "body": "Adınız, e-postanız ve rolleriniz bir bakışta."
+      },
+      "profileDetails": {
+        "title": "Hesap bilgileri",
+        "body": "Ad ve e-postanızı görüntüleyip düzenleyin."
+      },
+      "profilePrefs": {
+        "title": "Tercihler & güvenlik",
+        "body": "Bildirimler, tarih formatı, şifre ve 2FA."
+      }
+    },
+    "steps": {
+      "settingsLang": {
+        "title": "Dil",
+        "body": "İstediğiniz an Türkçe/İngilizce geçişi."
+      },
+      "settingsTheme": {
+        "title": "Tema",
+        "body": "Aydınlık ve karanlık mod geçişi."
+      },
+      "tipsPalette": {
+        "title": "Komut paleti",
+        "body": "Ctrl/Cmd + K her yere atlar."
+      },
+      "tipsBell": {
+        "title": "Bildirimler",
+        "body": "Biletlerinizde anlık güncellemeler."
+      }
+    },
+    "ready": {
+      "title": "Her şey hazır!",
+      "bodyCustomer": "Tur tamamlandı — ilk biletinizi açmaya hazırsınız. İyi kullanımlar!",
+      "bodyStaff": "Tur tamamlandı — sistemde çalışmaya hazırsınız. Başarılar!"
+    },
+    "mock": {
+      "tkAppCrash": "Uygulama açılışta çöküyor",
+      "tkLogin": "Web platformuna giriş yapılamıyor",
+      "tkInvoice": "Fatura ulaşmadı",
+      "tkApiTimeout": "API istekleri zaman aşımına uğruyor",
+      "tkPassword": "Şifre sıfırlama çalışmıyor",
+      "tkSlowReport": "Raporlar yavaş yükleniyor",
+      "topic11": "Çökme / Donma",
+      "topic12": "Performans",
+      "topic21": "Kimlik Doğrulama",
+      "topic22": "Hesap",
+      "topic31": "Entegrasyon",
+      "topic41": "Faturalandırma",
+      "comment1": "Çok hızlı ve yardımcı bir destek, teşekkürler!",
+      "comment2": "Sorunum ilk yanıtta çözüldü.",
+      "comment3": "Güler yüzlü ve bilgili bir ekip.",
+      "custAcme": "Acme A.Ş.",
+      "custTechno": "Techno Ltd.",
+      "custGlobex": "Globex A.Ş.",
+      "canned1Title": "Karşılama",
+      "canned1Tr": "Merhaba, talebiniz alındı. En kısa sürede inceleyip size döneceğiz.",
+      "canned1En": "Hello, your request has been received. We'll review it and get back to you shortly.",
+      "canned2Title": "Çözüldü",
+      "canned2Tr": "Sorununuz çözüme kavuşturuldu. Başka bir konuda yardımcı olabilir miyiz?",
+      "canned2En": "Your issue has been resolved. Is there anything else we can help with?",
+      "canned3Title": "Ek bilgi gerekli",
+      "canned3Tr": "İlerleyebilmek için biraz daha bilgiye ihtiyacımız var. Ekran görüntüsü paylaşabilir misiniz?",
+      "canned3En": "We need a little more information to proceed. Could you share a screenshot?",
+      "canned4Title": "Eskalasyon (iç)",
+      "canned4Tr": "Bu kayıt ikinci seviye ekibe yönlendirildi.",
+      "canned4En": "This ticket has been escalated to the second-level team."
+    }
   }
 }

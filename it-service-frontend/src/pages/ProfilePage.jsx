@@ -350,6 +350,7 @@ export default function ProfilePage() {
     <div className="animate-fade-in">
       {/* ── Hero banner ─────────────────────────────────────── */}
       <div
+        data-tour="profile-hero"
         className="relative rounded-2xl overflow-hidden mb-6"
         style={{
           background: 'linear-gradient(135deg, #1e3a5f 0%, #1e1b4b 50%, #0f172a 100%)',
@@ -431,6 +432,7 @@ export default function ProfilePage() {
         {/* Left column — account details */}
         <div className="lg:col-span-1 space-y-5">
           <div
+            data-tour="profile-details"
             className="rounded-xl border overflow-hidden"
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
           >
@@ -492,6 +494,7 @@ export default function ProfilePage() {
 
           {/* Quick actions */}
           <div
+            data-tour="profile-prefs"
             className="rounded-xl border overflow-hidden"
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
           >

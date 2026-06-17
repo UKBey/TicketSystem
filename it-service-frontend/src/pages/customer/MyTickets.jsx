@@ -62,6 +62,7 @@ export default function MyTickets() {
         </div>
         <button
           onClick={() => setModalOpen(true)}
+          data-tour="mytickets-new"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25 cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -70,7 +71,7 @@ export default function MyTickets() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 mb-5 overflow-x-auto">
+      <div data-tour="mytickets-tabs" className="flex gap-0 mb-5 overflow-x-auto">
         {TABS.map((tabItem, i) => {
           const active = tab === tabItem.key;
           return (
@@ -99,7 +100,7 @@ export default function MyTickets() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+      <div data-tour="mytickets-list" className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
           status={status}       onStatus={setStatus}
           priority={priority}   onPriority={setPriority}

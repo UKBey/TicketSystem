@@ -136,7 +136,7 @@ export default function CustomerDashboard({ viewUserId = null, viewUserName = nu
       </section>
 
       <ErrorBoundary>
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <section data-tour="overview-kpis" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <KpiCard key={i} loading />)
             : kpis.map((item) => (
@@ -145,7 +145,7 @@ export default function CustomerDashboard({ viewUserId = null, viewUserName = nu
         </section>
       </ErrorBoundary>
 
-      <Reveal as="section">
+      <Reveal as="section" data-tour="overview-charts">
         <StatusDistributionChart data={data?.statusDistribution} loading={loading} />
       </Reveal>
 

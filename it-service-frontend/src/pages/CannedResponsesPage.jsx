@@ -259,6 +259,7 @@ export default function CannedResponsesPage() {
 
       {/* Toolbar */}
       <div
+        data-tour="canned-toolbar"
         className="rounded-xl border p-4 mb-5 flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-end sm:justify-between"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}
       >
@@ -362,7 +363,7 @@ export default function CannedResponsesPage() {
         </div>
       ) : (
         <>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div data-tour="canned-grid" className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {displayedItems.map((item) => {
             const langs = availableLangs(item);
             // Seçili UI dilinde göster; o dil yoksa pickContent diğer varyanta düşer.

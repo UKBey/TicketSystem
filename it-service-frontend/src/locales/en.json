@@ -13,8 +13,15 @@
     "close": "Dismiss"
   },
   "nav": {
-    "theme": { "toDark": "Switch to dark mode", "toLight": "Switch to light mode" },
-    "language": { "label": "Language", "en": "English", "tr": "Turkish" }
+    "theme": {
+      "toDark": "Switch to dark mode",
+      "toLight": "Switch to light mode"
+    },
+    "language": {
+      "label": "Language",
+      "en": "English",
+      "tr": "Turkish"
+    }
   },
   "sidebar": {
     "overview": "Overview",
@@ -1146,5 +1153,183 @@
     "perPage": "{{count}} / page",
     "previousPage": "Previous page",
     "nextPage": "Next page"
+  },
+  "onboarding": {
+    "controls": {
+      "skip": "Skip",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Let's go!",
+      "clickHint": "Click here"
+    },
+    "welcome": {
+      "title": "Welcome aboard!",
+      "bodyCustomer": "A quick tour of your real portal, shown with sample data. Next/Back to move, Skip anytime.",
+      "bodyStaff": "A quick tour of your real workspace, shown with sample data. Next/Back to move, Skip anytime."
+    },
+    "nav": {
+      "title": "Navigation",
+      "dashboard": "Open the Dashboard from the menu.",
+      "admin": "Open the Admin Panel.",
+      "users": "Open User Management.",
+      "products": "Open Product Management.",
+      "team": "Open Team Tickets.",
+      "performance": "Open My Performance.",
+      "workspace": "Open your Workspace.",
+      "pool": "Open the Pool.",
+      "canned": "Open Canned Responses.",
+      "overview": "Open your Overview.",
+      "mytickets": "Open My Tickets.",
+      "profile": "Open your profile from the navbar."
+    },
+    "parts": {
+      "dashKpis": {
+        "title": "Key metrics",
+        "body": "Open tickets, SLA breaches, response time and CSAT at a glance."
+      },
+      "adminAccess": {
+        "title": "Access & limits",
+        "body": "Grant or revoke each user's product access and set per-agent ticket limits."
+      },
+      "dashCharts": {
+        "title": "Trends & SLA",
+        "body": "Ticket flow over time and SLA compliance by priority."
+      },
+      "dashAgents": {
+        "title": "Agents & products",
+        "body": "Per-agent and per-product breakdowns — click to drill in."
+      },
+      "usersCreate": {
+        "title": "Create user",
+        "body": "Add accounts, set a temp password and map roles."
+      },
+      "usersTable": {
+        "title": "All users",
+        "body": "Search, sort, edit roles and enable/disable accounts."
+      },
+      "productsCreate": {
+        "title": "New product",
+        "body": "Create a support category and set its ticket limit."
+      },
+      "productsTable": {
+        "title": "Products",
+        "body": "Bilingual names, status, limits and topics — search & sort."
+      },
+      "teamList": {
+        "title": "Team queue",
+        "body": "Tickets your colleagues claimed — join or reassign them."
+      },
+      "perfKpis": {
+        "title": "Your metrics",
+        "body": "Active, resolved, resolution time and CSAT for the range."
+      },
+      "perfCharts": {
+        "title": "Your trends",
+        "body": "Status mix, ticket and worklog trends, CSAT breakdown."
+      },
+      "wsList": {
+        "title": "Your tickets",
+        "body": "Filter, sort and open tickets to drive their lifecycle."
+      },
+      "poolList": {
+        "title": "Unclaimed pool",
+        "body": "Claim a ticket or assign it — SLA badges show urgency."
+      },
+      "cannedToolbar": {
+        "title": "Filters & create",
+        "body": "Filter by scope, product or language; add new templates."
+      },
+      "cannedGrid": {
+        "title": "Templates",
+        "body": "Reusable replies with live preview — favorite & apply fast."
+      },
+      "overviewKpis": {
+        "title": "Your summary",
+        "body": "Open/resolved tickets, resolution time and your CSAT."
+      },
+      "overviewCharts": {
+        "title": "Your activity",
+        "body": "Status mix and ticket timeline over the selected range."
+      },
+      "myticketsNew": {
+        "title": "New ticket",
+        "body": "Open a support request in a few steps."
+      },
+      "myticketsTabs": {
+        "title": "Active / Closed",
+        "body": "Switch between ongoing and closed tickets."
+      },
+      "myticketsList": {
+        "title": "Your tickets",
+        "body": "Filter, sort and open any ticket to track it."
+      },
+      "profileHero": {
+        "title": "Your profile",
+        "body": "Your name, email and roles at a glance."
+      },
+      "profileDetails": {
+        "title": "Account details",
+        "body": "View and edit your name and email."
+      },
+      "profilePrefs": {
+        "title": "Preferences & security",
+        "body": "Notifications, date format, password and 2FA."
+      }
+    },
+    "steps": {
+      "settingsLang": {
+        "title": "Language",
+        "body": "Switch English/Turkish anytime."
+      },
+      "settingsTheme": {
+        "title": "Theme",
+        "body": "Toggle light and dark mode."
+      },
+      "tipsPalette": {
+        "title": "Command palette",
+        "body": "Ctrl/Cmd + K jumps anywhere."
+      },
+      "tipsBell": {
+        "title": "Notifications",
+        "body": "Live updates on your tickets."
+      }
+    },
+    "ready": {
+      "title": "You're all set!",
+      "bodyCustomer": "That's the tour — you're ready to open your first ticket. Enjoy!",
+      "bodyStaff": "That's the tour — you're ready to start working in the system. Good luck!"
+    },
+    "mock": {
+      "tkAppCrash": "App crashes on launch",
+      "tkLogin": "Cannot log in to web platform",
+      "tkInvoice": "Invoice not received",
+      "tkApiTimeout": "API requests timing out",
+      "tkPassword": "Password reset not working",
+      "tkSlowReport": "Reports load slowly",
+      "topic11": "Crash / Freeze",
+      "topic12": "Performance",
+      "topic21": "Authentication",
+      "topic22": "Account",
+      "topic31": "Integration",
+      "topic41": "Billing",
+      "comment1": "Very fast and helpful support, thank you!",
+      "comment2": "My issue was resolved on the first reply.",
+      "comment3": "Friendly and knowledgeable team.",
+      "custAcme": "Acme Inc.",
+      "custTechno": "Techno Ltd.",
+      "custGlobex": "Globex Corp.",
+      "canned1Title": "Greeting",
+      "canned1Tr": "Merhaba, talebiniz alındı. En kısa sürede inceleyip size döneceğiz.",
+      "canned1En": "Hello, your request has been received. We'll review it and get back to you shortly.",
+      "canned2Title": "Resolved",
+      "canned2Tr": "Sorununuz çözüme kavuşturuldu. Başka bir konuda yardımcı olabilir miyiz?",
+      "canned2En": "Your issue has been resolved. Is there anything else we can help with?",
+      "canned3Title": "More info needed",
+      "canned3Tr": "İlerleyebilmek için biraz daha bilgiye ihtiyacımız var. Ekran görüntüsü paylaşabilir misiniz?",
+      "canned3En": "We need a little more information to proceed. Could you share a screenshot?",
+      "canned4Title": "Escalation (internal)",
+      "canned4Tr": "Bu kayıt ikinci seviye ekibe yönlendirildi.",
+      "canned4En": "This ticket has been escalated to the second-level team."
+    }
   }
 }

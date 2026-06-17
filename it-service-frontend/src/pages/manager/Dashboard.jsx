@@ -283,7 +283,7 @@ export default function Dashboard() {
       <AlertBanner data={alertsData} loading={alertsLoading} />
 
       <ErrorBoundary>
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <section data-tour="dash-kpis" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <KpiCard key={i} loading />)
           ) : (
@@ -306,7 +306,7 @@ export default function Dashboard() {
         <StatusDistributionChart data={statusDistribution} loading={statusLoading} />
       </Reveal>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section data-tour="dash-charts" className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Reveal className="w-full min-w-0">
           <Suspense fallback={<SkeletonLoader lines={6} />}>
             <TicketTimelineChart data={ticketTimeline} loading={timelineLoading} />
@@ -317,7 +317,7 @@ export default function Dashboard() {
         </Reveal>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
+      <section data-tour="dash-agents" className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
         <Reveal className="w-full min-w-0">
           <AgentPerformanceTable data={agentPerformance} loading={agentLoading} onAgentClick={handleAgentClick} />
         </Reveal>

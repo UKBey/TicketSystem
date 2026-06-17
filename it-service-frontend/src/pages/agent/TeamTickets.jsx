@@ -105,7 +105,7 @@ export default function TeamTickets() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden"
+      <div data-tour="team-list" className="rounded-xl border overflow-hidden"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
 
         <TicketFilters

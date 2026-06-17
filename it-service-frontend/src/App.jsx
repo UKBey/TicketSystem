@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import PageTransition from './components/PageTransition';
 import CommandPalette from './components/CommandPalette';
+import OnboardingTour from './components/onboarding/OnboardingTour';
 
 // Uygulama rotalarinda kullanilan sayfa bilesenleri.
 import LoginPage from './pages/LoginPage';
@@ -85,10 +86,19 @@ function HomeRedirect() {
 }
 
 export default function App() {
-  const { authenticated } = useAuth();
+  const { authenticated, onboardingCompleted, roles } = useAuth();
+
+  // Kimliği doğrulanmış, en az bir role sahip ama onboarding'i tamamlamamış kullanıcı için
+  // tur tüm uygulamayı devralır — kullanıcının GERÇEK sayfalarını (mock veriyle) gezdirir,
+  // biten kullanıcı normal uygulamaya döner (markOnboardingDone → onboardingCompleted=true).
+  // Rolsüz kullanıcı onboarding görmez; NoRolePage'e yönlenir.
+  const showOnboarding = authenticated && !onboardingCompleted && roles.length > 0;
 
   return (
     <BrowserRouter>
+      {showOnboarding ? (
+        <OnboardingTour />
+      ) : (
       <Routes>
         {/* Oturum gerektirmeyen giris rotasi. */}
         <Route
@@ -281,6 +291,7 @@ export default function App() {
         {/* Eslesmeyen tum yollari ana rotaya yonlendirir. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      )}
     </BrowserRouter>
   );
 }

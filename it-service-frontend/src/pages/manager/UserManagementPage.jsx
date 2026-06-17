@@ -200,6 +200,7 @@ export default function UserManagementPage() {
         {canManageUsers && (
           <button
             onClick={() => setIsModalOpen(true)}
+            data-tour="users-create"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors cursor-pointer sm:w-auto"
           >
             <UserPlus className="h-4 w-4" />
@@ -210,6 +211,7 @@ export default function UserManagementPage() {
 
       {/* Tablo kartı */}
       <div
+        data-tour="users-table"
         className="rounded-xl border overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',

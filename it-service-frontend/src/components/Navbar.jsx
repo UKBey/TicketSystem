@@ -58,6 +58,7 @@ export default function Navbar({ onMenuClick }) {
         onClick={openPalette}
         title={t('commandPalette.open')}
         aria-label={t('commandPalette.open')}
+        data-tour="cmd-palette"
         className="flex items-center gap-2 rounded-lg transition-all duration-200 cursor-pointer h-9 px-2.5 sm:w-64 sm:justify-start hover:opacity-90"
         style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-tertiary)' }}
       >
@@ -82,12 +83,15 @@ export default function Navbar({ onMenuClick }) {
       {/* Right: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2 ml-auto min-w-0">
         {/* Language switcher */}
-        <LanguageSwitcher />
+        <span data-tour="lang-switch" className="inline-flex items-center">
+          <LanguageSwitcher />
+        </span>
 
         {/* Theme toggle — ikonlar donerek/olceklenerek gecis yapar; tema
             degisiminin kendisi ThemeContext'te dairesel reveal ile animasyonlu. */}
         <button
           onClick={handleThemeToggle}
+          data-tour="theme-toggle"
           className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
           style={{
             backgroundColor: 'var(--bg-surface-secondary)',
@@ -116,7 +120,9 @@ export default function Navbar({ onMenuClick }) {
         </button>
 
         {/* Notifications */}
-        <NotificationBell />
+        <span data-tour="notif-bell" className="inline-flex items-center">
+          <NotificationBell />
+        </span>
 
         {/* Divider */}
         <div className="hidden sm:block mx-2 h-8 w-px" style={{ backgroundColor: 'var(--border-color)' }} />
@@ -124,6 +130,7 @@ export default function Navbar({ onMenuClick }) {
         {/* User info — clickable, navigates to profile */}
         <button
           onClick={() => navigate('/profile')}
+          data-tour="profile-menu"
           className="flex items-center gap-2 sm:gap-3 rounded-lg px-1 sm:px-2 py-1.5 transition-colors cursor-pointer hover:opacity-80 min-w-0"
           style={{ background: 'none', border: 'none' }}
         >

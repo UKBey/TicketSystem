@@ -140,7 +140,7 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
       </section>
 
       <ErrorBoundary>
-        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <section data-tour="perf-kpis" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <KpiCard key={i} loading />)
             : kpis.map((item) => (
@@ -149,7 +149,7 @@ export default function AgentDashboard({ viewUserId = null, viewUserName = null 
         </section>
       </ErrorBoundary>
 
-      <Reveal as="section">
+      <Reveal as="section" data-tour="perf-charts">
         <StatusDistributionChart data={data?.statusDistribution} loading={loading} />
       </Reveal>
 

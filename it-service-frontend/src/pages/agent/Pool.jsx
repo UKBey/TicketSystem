@@ -73,7 +73,7 @@ export default function Pool() {
         </div>
       )}
 
-      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+      <div data-tour="pool-list" className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
         <TicketFilters
           priority={priority}   onPriority={setPriority}
           search={search}       onSearch={setSearch}

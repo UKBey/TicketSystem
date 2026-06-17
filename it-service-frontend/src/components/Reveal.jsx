@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
  *
  * `delay` ile pespese kartlara kademeli (stagger) giris verilebilir.
  */
-export default function Reveal({ children, delay = 0, className = '', style, as: Tag = 'div' }) {
+export default function Reveal({ children, delay = 0, className = '', style, as: Tag = 'div', ...rest }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(() => {
     if (typeof IntersectionObserver === 'undefined') return true;
@@ -48,6 +48,7 @@ export default function Reveal({ children, delay = 0, className = '', style, as:
       ref={ref}
       className={`${visible ? 'reveal-in' : 'reveal-pending'}${className ? ` ${className}` : ''}`}
       style={mergedStyle}
+      {...rest}
     >
       {children}
     </Tag>

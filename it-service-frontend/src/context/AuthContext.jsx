@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import keycloak, { redirectToKeycloakLogin, redirectToKeycloakLogout } from '../keycloak';
-import api from '../services/api';
+import api, { completeOnboarding } from '../services/api';
 import i18n from '../i18n';
 import { useTheme } from './ThemeContext';
 import { useDateFormat } from './DateFormatContext';
@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true);
   const initCalled = useRef(false);
   // init().then ve onAuthSuccess taze login'de IKISI de tetiklenir; tek bir /users/sync
   // yeterli. Ucan istek varsa tekrari engelle — aksi halde yeni kullanicida iki paralel
@@ -66,6 +67,8 @@ export function AuthProvider({ children }) {
           if (res.data?.preferredDateFormat) applyServerDateFormat(res.data.preferredDateFormat);
           // Panel gorunurluk tercihleri de yalnizca DB'de — client'i besler.
           if (res.data?.panelPreferences) applyServerPanelPrefs(res.data.panelPreferences);
+          // Onboarding durumunu DB'den al.
+          setOnboardingCompleted(res.data?.onboardingCompleted ?? true);
         })
         .catch(err => console.error('Sync error:', err))
         .finally(() => { syncInFlight.current = false; });
@@ -112,6 +115,15 @@ export function AuthProvider({ children }) {
       setRoles([]);
     };
   }, [extractUserInfo, setTheme, applyServerDateFormat, applyServerPanelPrefs]);
+
+  const markOnboardingDone = useCallback(async () => {
+    setOnboardingCompleted(true);
+    try {
+      await completeOnboarding();
+    } catch (e) {
+      console.warn('Onboarding complete request failed', e);
+    }
+  }, []);
 
   const refreshUser = useCallback(async () => {
     // Force-refresh token so updated claims (name/email) reach the client,
@@ -190,6 +202,8 @@ export function AuthProvider({ children }) {
         getPrimaryRole,
         refreshUser,
         keycloak,
+        onboardingCompleted,
+        markOnboardingDone,
       }}
     >
       {children}

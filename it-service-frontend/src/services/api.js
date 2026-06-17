@@ -209,6 +209,10 @@ export const savePdfPreferences = (preferences) =>
 export const savePanelPreferences = (preferences) =>
   api.put('/users/me/panel-preferences', { preferences });
 
+// Kullanıcının onboarding akışını tamamlandı olarak işaretle
+export const completeOnboarding = () =>
+  api.put('/users/me/onboarding-complete');
+
 // ============================================================
 // Known Issues (Sıkça Karşılaşılan Sorunlar) API
 // ============================================================
