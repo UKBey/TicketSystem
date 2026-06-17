@@ -1,15 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { OTHER_REASON_CODE } from '../utils/reasonCodes';
 import { useEscapeToClose } from '../hooks/useEscapeToClose';
-
-const VARIANT_STYLES = {
-  primary: 'bg-primary-500 hover:bg-primary-600 focus:ring-primary-500/30',
-  danger: 'bg-danger-500 hover:bg-danger-600 focus:ring-danger-500/30',
-  success: 'bg-green-600 hover:bg-green-700 focus:ring-green-500/30',
-  warning: 'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500/30',
-};
+import Button from './Button';
 
 export default function ActionReasonModal({
   isOpen,
@@ -37,10 +31,6 @@ export default function ActionReasonModal({
   const isOther = reasonCode === OTHER_REASON_CODE;
   const trimmedNote = noteText.trim();
   const isSubmitDisabled = !reasonCode || (isOther && trimmedNote.length === 0);
-  const actionButtonClass = useMemo(
-    () => VARIANT_STYLES[confirmVariant] ?? VARIANT_STYLES.primary,
-    [confirmVariant],
-  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -128,21 +118,12 @@ export default function ActionReasonModal({
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-            <button
-              type="button"
-              onClick={resetAndClose}
-              className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
-              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-            >
+            <Button type="button" variant="secondary" onClick={resetAndClose}>
               {t('form.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitDisabled}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${actionButtonClass}`}
-            >
+            </Button>
+            <Button type="submit" variant={confirmVariant ?? 'primary'} disabled={isSubmitDisabled}>
               {confirmLabel}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

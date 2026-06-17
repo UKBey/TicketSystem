@@ -5,6 +5,7 @@ import { ArrowLeft, Headset, Lock, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Button from '../components/Button';
 import { resetPassword, validateResetToken } from '../services/authApi';
 
 const STATUS = {
@@ -216,13 +217,15 @@ export default function ResetPasswordPage() {
                   </div>
                 </label>
 
-                <button
+                <Button
                   type="submit"
+                  size="lg"
+                  fullWidth
                   disabled={status === STATUS.SUBMITTING}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-500 px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl disabled:opacity-60"
                 >
                   {status === STATUS.SUBMITTING ? t('resetPassword.submitting') : t('resetPassword.submit')}
-                </button>
+                </Button>
               </form>
             </>
           )}

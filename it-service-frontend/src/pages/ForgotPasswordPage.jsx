@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Headset, Mail, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import Button from '../components/Button';
 import { requestPasswordReset } from '../services/authApi';
 
 const SUPPORTED_LANGS = ['en', 'tr'];
@@ -148,13 +149,15 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
+                size="lg"
+                fullWidth
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-500 px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl disabled:opacity-60"
               >
                 {submitting ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
-              </button>
+              </Button>
             </form>
           )}
 
