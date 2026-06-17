@@ -75,11 +75,13 @@ const Button = forwardRef(function Button(
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  const handleClick = (event) => {
-    if (ripple && !disabled && !reducedMotion) {
+  // Ripple basma aninda (pointerdown) cikar — onClick degil; cunku onClick'teki
+  // yan etki (modal acma / yonlendirme / modal kapama) cogu CTA'da dalgayi
+  // gorunmeden ortuyor. Basinca tetiklemek dalganin hep gorunmesini saglar.
+  const handlePointerDown = (event) => {
+    if (ripple && !disabled && !reducedMotion && event.button === 0) {
       spawnRipple(event);
     }
-    onClick?.(event);
   };
 
   return (
@@ -87,7 +89,8 @@ const Button = forwardRef(function Button(
       ref={ref}
       type={type}
       disabled={disabled}
-      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onClick={onClick}
       style={mergedStyle}
       className={`${BASE} ${variantClass} ${sizeClass} ${widthClass} ${className}`.trim()}
       {...props}
