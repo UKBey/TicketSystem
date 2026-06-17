@@ -10,6 +10,9 @@ const DEFAULT_TTL = 5000;
 // Rate-limit uyarısı için TTL üst sınırı — retryAfter çok uzun olsa bile toast ekranı
 // kilitlemesin; yine de çarpı ile erkenden kapatılabilir.
 const MAX_TTL = 10000;
+// Çıkış animasyonu süresi (index.css .toast-out ile eşleşir) — toast bu süre
+// boyunca ekranda kalıp animasyonunu tamamladıktan sonra DOM'dan kaldırılır.
+const EXIT_MS = 200;
 const ICONS  = { success: CheckCircle2, error: AlertCircle, warning: AlertTriangle, info: Info };
 const COLORS = {
   success: { border: 'rgba(16,185,129,0.25)', icon: '#10b981' },
@@ -22,8 +25,17 @@ export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
 
+  // Çıkış animasyonunu tetikle: önce toast'ı "exiting" işaretle (.toast-out devreye
+  // girer), animasyon bitince DOM'dan kaldır.
   const dismiss = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => {
+      // Zaten kapanıyorsa tekrar zamanlayıcı kurma (TTL + manuel kapatma yarışı).
+      if (!prev.some((t) => t.id === id && !t.exiting)) return prev;
+      return prev.map((t) => (t.id === id ? { ...t, exiting: true } : t));
+    });
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, EXIT_MS);
   }, []);
 
   const push = useCallback((type, message, options = {}) => {
@@ -32,12 +44,10 @@ export function ToastProvider({ children }) {
     const ttl = options.ttl ?? DEFAULT_TTL;
     setToasts((prev) => [...prev, { id, type, message }]);
     if (ttl > 0) {
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, ttl);
+      setTimeout(() => dismiss(id), ttl);
     }
     return id;
-  }, []);
+  }, [dismiss]);
 
   const api = useMemo(() => ({
     success: (msg, opts) => push('success', msg, opts),
@@ -90,7 +100,7 @@ function ToastViewport({ toasts, onDismiss }) {
           <div
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : 'status'}
-            className="flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg pointer-events-auto sm:min-w-[320px]"
+            className={`flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg pointer-events-auto sm:min-w-[320px] ${toast.exiting ? 'toast-out' : 'toast-in'}`}
             style={{ backgroundColor: 'var(--bg-surface)', borderColor: color.border }}
           >
             <Icon className="h-5 w-5 shrink-0 mt-0.5" style={{ color: color.icon }} />

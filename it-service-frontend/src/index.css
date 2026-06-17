@@ -318,6 +318,34 @@
   }
 }
 
+/* Toast bildirimleri — sagdan kayarak girer (toast-in), kapanirken saga kayip
+   solar (toast-out). Mobilde (inset-x) viewport tam genislikte oldugu icin yatay
+   kayma yerine yumusak fade + hafif yukari kayma daha dogal durur. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(16px) scale(0.98); }
+}
+
+.toast-in {
+  animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.toast-out {
+  animation: toast-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-in,
+  .toast-out {
+    animation: none;
+  }
+}
+
 .animate-spin {
   animation: spin 0.8s linear infinite;
 }
