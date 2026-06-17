@@ -6,8 +6,10 @@
 # production deployment:
 #   • host-published ports (DB, Redis, Keycloak-direct, Kafka, OpenSearch, …)
 #   • build-from-source (`build:`) instead of pulling pinned images
-#   • the dev-only tools: mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube
-#   • dev app settings (Swagger on, Hibernate SQL logging, mailpit SMTP, dev OTEL env)
+#   • host ports for the base-defined mailpit (UI 8025 / SMTP 1025) — the service
+#     itself + its Gmail relay live in the base file and run in prod too (unexposed)
+#   • the dev-only tools: phpldapadmin, OpenSearch Dashboards, SonarQube
+#   • dev app settings (Swagger on, Hibernate SQL logging, dev OTEL env)
 #
 # Because Compose auto-loads `docker-compose.override.yaml`, every existing
 # workflow (`make up`, `make infra`, `make logs`, …) keeps working unchanged.
@@ -61,13 +63,9 @@ services:
       HIBERNATE_FORMAT_SQL: "true"
       HIBERNATE_SQL_LOG_LEVEL: "DEBUG"
       HIBERNATE_BIND_LOG_LEVEL: "TRACE"
-      # Giden mailler mailpit ile yakalanir (http://localhost:8025).
-      MAIL_HOST: mailpit
-      MAIL_PORT: "1025"
+      # MAIL_HOST/PORT (mailpit:1025) ve mailpit depends_on artik base'de — backend
+      # her ortamda Mailpit'e gonderir. Giden/yakalanan mailler: http://localhost:8025
       OTEL_RESOURCE_ATTRIBUTES: "service.name=it-service-backend,service.version=0.0.1,deployment.environment=development"
-    depends_on:
-      mailpit:
-        condition: service_healthy
 
   llm-service:
     build: ./llm-service
@@ -116,22 +114,12 @@ services:
     networks:
       - it-service-net
 
-  # Gelistirme ortami mail sunucusu (giden mailler http://localhost:8025 adresinden izlenir).
+  # Mailpit servis tanimi + relay base'de; dev burada yalnizca host portlarini acar.
+  # SMTP: localhost:1025  ·  Web UI (yakalanan + relay'lenen mailler): http://localhost:8025
   mailpit:
-    image: axllent/mailpit:v1.20
-    container_name: mailpit
     ports:
       - "1025:1025"
       - "8025:8025"
-    networks:
-      - it-service-net
-    healthcheck:
-      # 1F59 = port 8025 hex; wget yerine /proc/net/tcp ile container-agnostic check.
-      test: ["CMD-SHELL", "grep -q '00000000:1F59' /proc/net/tcp || grep -q '00000000:1F59' /proc/net/tcp6"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   # OpenSearch verisini gorsellestirme arayuzu.
   opensearch-dashboards:

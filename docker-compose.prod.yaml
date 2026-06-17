@@ -6,11 +6,15 @@
 # given, so this run gets the base + these production settings only:
 #   • pinned images, pulled — no build-from-source (set DOCKERHUB_USERNAME / IMAGE_TAG)
 #   • NO host-published internal ports — only nginx is exposed (80 + 443/TLS)
-#   • NO dev tools (mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube)
-#   • Keycloak in production mode; real SMTP; restart policies for resilience
+#   • NO dev tools (phpldapadmin, OpenSearch Dashboards, SonarQube). Mailpit DOES
+#     run (mail relay/smart-host, defined in the base file) but its ports are NOT
+#     published — inspect captured/relayed mail via port-forward only.
+#   • Keycloak in production mode; mail delivered through the Mailpit relay; restart
+#     policies for resilience
 #
 # Operator must provide via the prod `.env` (and a TLS-enabled nginx.conf):
-#   KC_HOSTNAME_URL, SMTP_* (MAIL_HOST/MAIL_PORT), strong secrets, and TLS certs.
+#   KC_HOSTNAME_URL, MAIL_RELAY_* (real SMTP for the Mailpit relay), strong secrets,
+#   and TLS certs.
 # Production-grade autoscaling/secrets/cert-manager live in the k8s prod overlay
 # (k8s/overlays/prod) — this file is for a single-host compose deployment.
 # ============================================================================
@@ -59,10 +63,16 @@ services:
 
   it-service-backend:
     restart: unless-stopped
-    environment:
-      # Gercek SMTP — prod .env'den. (DEV'deki mailpit yok.)
-      MAIL_HOST: ${MAIL_HOST:-}
-      MAIL_PORT: ${MAIL_PORT:-587}
+    # Mail: backend base'de Mailpit'e gonderir; gercek gonderim Mailpit relay'i
+    # (MP_SMTP_RELAY_*, .env'deki MAIL_RELAY_*) ile yapilir — direkt SMTP yok.
+
+  # Mailpit prod'da da calisir (relay/smart-host) ama UI/SMTP portlari YAYINLANMAZ —
+  # yalnizca port-forward ile goruntulenir:
+  #   ssh -L 8025:127.0.0.1:8025 <prod-host>   (once host'ta: docker compose port mailpit 8025
+  #   ile container portunu host loopback'ine baglayin ya da gecici `ports` ekleyin)
+  # veya tek seferlik:  docker compose exec mailpit wget -qO- localhost:8025 ...
+  mailpit:
+    restart: unless-stopped
 
   llm-service:
     restart: unless-stopped

@@ -20,6 +20,8 @@ volumes:
     # SonarQube veritabani verileri.
   redis_data:
     # Rate-limit bucket'lari ve gelecekte eklenecek cache/queue verisi.
+  mailpit_data:
+    # Yakalanan + relay'lenen maillerin kalici depolanmasi (MP_DATABASE) — restart/recreate'te korunur.
 
 services:
   # Uygulama veritabani servisi.
@@ -137,7 +139,43 @@ services:
       timeout: 3s
       retries: 10
 
-  # (mailpit DEV-only — bkz. docker-compose.override.yaml; prod gercek SMTP kullanir)
+  # Mail relay / yakalama sunucusu (smart-host). Backend buraya gonderir; Mailpit
+  # geleni saklar (UI) ve MP_SMTP_RELAY_* doluysa gercek SMTP'ye (Gmail vb.) iletir.
+  # Host portlari (1025/8025) YALNIZCA dev overlay'de yayinlanir; prod'da port-forward.
+  mailpit:
+    image: axllent/mailpit:v1.20
+    container_name: mailpit
+    environment:
+      # Relay (gercek gonderim). MAIL_RELAY_HOST bossa relay kapali -> mail yalnizca
+      # yakalanir, disari gitmez. Gmail: host=smtp.gmail.com port=587 starttls=true auth=plain.
+      MP_SMTP_RELAY_HOST: ${MAIL_RELAY_HOST:-}
+      MP_SMTP_RELAY_PORT: ${MAIL_RELAY_PORT:-587}
+      MP_SMTP_RELAY_STARTTLS: ${MAIL_RELAY_STARTTLS:-true}
+      MP_SMTP_RELAY_AUTH: ${MAIL_RELAY_AUTH:-plain}
+      MP_SMTP_RELAY_USERNAME: ${MAIL_RELAY_USERNAME:-}
+      MP_SMTP_RELAY_PASSWORD: ${MAIL_RELAY_PASSWORD:-}
+      # ALL=true: gelen HER maili otomatik ilet (caching proxy). Alternatif: MATCHING
+      # regex'i ile yalnizca eslesen alicilara ilet (dev'de sahte seed adreslerine
+      # gercek mail gitmesini onlemek icin kullanisli).
+      MP_SMTP_RELAY_ALL: ${MAIL_RELAY_ALL:-false}
+      MP_SMTP_RELAY_MATCHING: ${MAIL_RELAY_MATCHING:-}
+      # Kalici depolama: yakalanan+relay'lenen mailler restart/recreate sonrasi durur
+      # (mailpit_data volume).
+      MP_DATABASE: /data/mailpit.db
+      # Saklanan en fazla mesaj sayisi; asilinca en eskiler budanir (disk sinirli kalir).
+      # 0 = sinirsiz (dikkatli: disk kontrolsuz buyur). Varsayilan 500.
+      MP_MAX_MESSAGES: ${MAIL_MAX_MESSAGES:-500}
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - it-service-net
+    healthcheck:
+      # 1F59 = port 8025 hex; wget yerine /proc/net/tcp ile container-agnostic check.
+      test: ["CMD-SHELL", "grep -q '00000000:1F59' /proc/net/tcp || grep -q '00000000:1F59' /proc/net/tcp6"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Gozlemlenebilirlik katmani servisleri.
 
@@ -200,7 +238,7 @@ services:
 
   # Backend API servisi.
   it-service-backend:
-    # `build:` ve dev-only env (Swagger, Hibernate SQL log, mailpit SMTP) DEV overlay'de.
+    # `build:` ve dev-only env (Swagger, Hibernate SQL log) DEV overlay'de.
     image: ${DOCKERHUB_USERNAME:-local}/it-service-backend:${IMAGE_TAG:-latest}
     container_name: it-service-backend
     # Backend portu disariya kapali — nginx uzerinden /api/v1/ path'i ile erisim.
@@ -226,9 +264,19 @@ services:
       JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
       JBPM_KIE_SERVER_CALLBACK_BASE_URL: "${JBPM_KIE_SERVER_CALLBACK_BASE_URL}"
 
-      # Mail ayarlari. MAIL_HOST/PORT ortama gore overlay'de gelir
-      # (DEV=mailpit:1025, PROD=gercek SMTP). MAIL_FROM env-bagimsiz.
+      # Mail: backend HER ZAMAN Mailpit'e gonderir (relay / smart-host modeli; hem
+      # DEV hem PROD). Mailpit geleni hem saklar (UI) hem de gercek SMTP'ye (Gmail
+      # vb.) iletir — bkz. mailpit servisi MP_SMTP_RELAY_*. Backend->Mailpit ic
+      # hop'tur: auth/TLS yok. Gercek gonderim kimligi Mailpit'te (relay) tutulur.
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
       MAIL_FROM: ${MAIL_FROM:-noreply@ticketsystem.local}
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
+      # SMTP timeoutlari (ms) — Mailpit yanit vermezse thread'in sonsuza bloke olmasini onler.
+      MAIL_SMTP_CONNECTION_TIMEOUT: ${MAIL_SMTP_CONNECTION_TIMEOUT:-5000}
+      MAIL_SMTP_TIMEOUT: ${MAIL_SMTP_TIMEOUT:-5000}
+      MAIL_SMTP_WRITE_TIMEOUT: ${MAIL_SMTP_WRITE_TIMEOUT:-5000}
 
       # OpenTelemetry ayarlari.
       # Not: OTEL_TRACES_EXPORTER ve OTEL_METRICS_EXPORTER kasitli olarak tanimlanmadi.
@@ -299,7 +347,9 @@ services:
       # hatasi alir cunku KIE Server icinde container henuz kayitli olmaz.
       kjar-deploy:
         condition: service_completed_successfully
-      # mailpit dependency DEV overlay'de (prod'da mailpit yok, gercek SMTP kullanilir).
+      # Mailpit relay/yakalama sunucusu — hem dev hem prod base'de calisir.
+      mailpit:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       otel-collector:
