@@ -119,7 +119,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # KIE Server image — Dockerfile-kie: ticket-workflow kjar'i KIE'nin Maven repo'suna gomer
+      # KIE Server image — Dockerfile-kie: ticket-workflow kjar'ini (repo'daki
+      # ticket-workflow-kjar/ kaynagi) imajin Maven repo'suna gomer.
       - name: Build & push kie-server image
         uses: docker/build-push-action@v6
         with:
