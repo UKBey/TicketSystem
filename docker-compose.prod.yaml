@@ -96,8 +96,5 @@ services:
   logstash:
     restart: unless-stopped
 
-  jbpm-db:
-    restart: unless-stopped
-
   kie-server:
     restart: unless-stopped

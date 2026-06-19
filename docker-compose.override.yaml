@@ -83,10 +83,6 @@ services:
     ports:
       - "9092:9092"
 
-  jbpm-db:
-    ports:
-      - "5433:5432"
-
   kie-server:
     build:
       context: .

@@ -8,8 +8,10 @@ volumes:
   ldap_config:
   opensearch_data:
     # OpenSearch indekslerinin konteyner yeniden baslasa da korunmasini saglar.
-  jbpm_postgres_data:
-    # jBPM surec verilerinin kalici depoda tutulmasini saglar.
+  jbpm_niogit:
+    # Business Central git repo'su (BC projeleri) + KIE controller container state'i.
+  jbpm_data:
+    # KIE Server runtime state (H2 dahil) — surec/task verileri restart'ta korunur.
   sonarqube_data:
     # SonarQube analiz verileri.
   sonarqube_extensions:
@@ -515,76 +517,48 @@ services:
       retries: 10
       start_period: 60s
 
-  # jBPM/KIE Server katmani.
-
-  # KIE Server surec kaliciligi icin ayri veritabani.
-  jbpm-db:
-    image: postgres:15-alpine
-    container_name: jbpm-db
-    # Host port yayini DEV overlay'de (5433→5432).
-    environment:
-      POSTGRES_USER: ${JBPM_DB_USER}
-      POSTGRES_PASSWORD: ${JBPM_DB_PASSWORD}
-      POSTGRES_DB: ${JBPM_DB_NAME}
-    volumes:
-      - jbpm_postgres_data:/var/lib/postgresql/data
-    networks:
-      - it-service-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${JBPM_DB_USER} -d ${JBPM_DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  # Standalone KIE Server servisi (unmanaged mod).
-  # Custom image (Dockerfile-kie): base showcase image'a ticket-workflow kjar'i
-  # Java 8 maven container'inda derlenip gömülü olarak gelir. Boylece host'taki
-  # ~/.m2 mount'una bagimli kalmadan, `docker compose up` ilk seferden itibaren
-  # kjar'i KIE Server'in local repo'sunda hazir bulur.
-  # Varsayilan kullanici: kieserver / kieserver1!
-  # Swagger UI: http://localhost:8180/kie-server/docs
-  # Versiyon backend'in kullandigi kie-server-client (7.61.0.Final) ile aligne tutuluyor.
+  # jBPM — KIE Server + Business Central + Workbench (jbpm-server-full).
+  # ticket-workflow kjar'i Dockerfile-kie ile imajin Maven repo'suna gomulu gelir (build
+  # DEV overlay'de). `kjar-deploy` job'u acilista container'i controller'a register eder ->
+  # taze `docker compose up` ilk seferden itibaren workflow hazir (volume'a bagimli degil).
+  #
+  #   Business Central : http://localhost:8180/business-central   (wbadmin / wbadmin)
+  #   KIE Server REST  : http://localhost:8180/kie-server/services/rest/server  (kieserver / kieserver1!)
+  #
+  # Kalicilik: niogit (BC projeleri + controller container state) + data (H2 runtime).
+  # kjar imajda GOMULU oldugu icin .m2 volume'u YOK — bos volume mount baked kjar'i golgelerdi.
+  # niogit/data mount noktalari Dockerfile-kie'de jboss sahipligiyle ONCEDEN olusturuldu;
+  # bos named volume bunlardan jboss-owned initialize olur -> ayri chown-init servisi GEREKMEZ.
   kie-server:
     # `build:` (Dockerfile-kie) ve host port (8180) DEV overlay'de; prod imaji ceker.
     image: ${DOCKERHUB_USERNAME:-local}/kie-server:${IMAGE_TAG:-latest}
     container_name: kie-server
     environment:
+      # KIE Server kimligi controller/registration icin sabit tutulur.
       KIE_SERVER_ID: "ticket-kie-server"
-      KIE_SERVER_LOCATION: "http://kie-server:8080/kie-server/services/rest/server"
-      # jbpmDS datasource (Dockerfile-kie ile gomulu) bu degiskenlerden cozulur.
-      # KIE Server surec instance'larini in-memory H2 yerine kalici jbpm-db
-      # Postgres'e yazar -> restart/rebuild'de in-flight workflow'lar kaybolmaz.
-      JBPM_DB_HOST: "jbpm-db"
-      JBPM_DB_PORT: "5432"
-      JBPM_DB_NAME: ${JBPM_DB_NAME}
-      JBPM_DB_USER: ${JBPM_DB_USER}
-      JBPM_DB_PASSWORD: ${JBPM_DB_PASSWORD}
-      JAVA_OPTS: >-
-        -Xms512m -Xmx1024m
-        -Djava.net.preferIPv4Stack=true
-        -Dorg.kie.server.id=ticket-kie-server
-        -Dorg.kie.server.location=http://kie-server:8080/kie-server/services/rest/server
-        -Dorg.kie.server.persistence.ds=java:jboss/datasources/jbpmDS
-        -Dorg.kie.server.persistence.dialect=org.hibernate.dialect.PostgreSQLDialect
-    depends_on:
-      jbpm-db:
-        condition: service_healthy
+      # DIKKAT: config dosyasini override ETME. Varsayilan standalone.xml demo
+      # kullanicilari Elytron filesystem-realm ile getirir (wbadmin/wbadmin,
+      # kieserver/kieserver1!). `-c standalone-full.xml` kullanicisiz profile gecirir -> 401.
+      EXTRA_OPTS: "-Dorg.jbpm.ht.admin.group=admin -Dorg.uberfire.nio.git.ssh.host=0.0.0.0"
+    volumes:
+      - jbpm_niogit:/opt/jboss/.niogit
+      - jbpm_data:/opt/jboss/wildfly/standalone/data
     networks:
       - it-service-net
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      # 1F90 = port 8080 hex (Wildfly KIE Server'i burada listen ediyor).
+      # 1F90 = port 8080 hex (Wildfly KIE Server/Business Central burada listen eder).
       test: ["CMD-SHELL", "grep -q '00000000:1F90' /proc/net/tcp || grep -q '00000000:1F90' /proc/net/tcp6"]
       interval: 15s
       timeout: 5s
-      retries: 12
-      start_period: 90s
+      retries: 20
+      start_period: 120s
 
-  # Kjar deploy job (compose karsiligi k8s/base/workflow/kjar-deploy-job.yaml).
-  # KIE Server REST hazir olunca container 'ticket-workflow'u PUT ile kaydeder.
-  # Idempotent: tekrar calistirilirsa ayni container'i overwrite eder.
-  # Image'da gomulu olan ticket-workflow-kjar:1.0.5 artifact'i Maven repo'dan cozulur.
+  # Kjar deploy job — KIE/BC hazir olunca container'i KIE controller'a (Business Central)
+  # register eder. Idempotent: container zaten varsa sadece STARTED oldugundan emin olur.
+  # Imajda gomulu ticket-workflow-kjar:1.0.5 artifact'i GAV ile cozulur. Boylece taze
+  # `docker compose up` ilk seferden itibaren backend icin container hazir olur.
   kjar-deploy:
     image: curlimages/curl:8.10.1
     container_name: kjar-deploy
@@ -594,47 +568,58 @@ services:
     networks:
       - it-service-net
     restart: "no"
+    environment:
+      KIE_BC_ADMIN_USER: ${KIE_BC_ADMIN_USER:-wbadmin}
+      KIE_BC_ADMIN_PWD: ${KIE_BC_ADMIN_PWD:-wbadmin}
+      KIE_SERVER_ID: ticket-kie-server
+      JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME:-kieserver}
+      JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}
+      JBPM_KIE_SERVER_CONTAINER_ID: ${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}
     entrypoint:
       - sh
       - -c
       - |
         set -eu
+        BC_USER="$${KIE_BC_ADMIN_USER:-wbadmin}"
+        BC_PASS="$${KIE_BC_ADMIN_PWD:-wbadmin}"
+        TPL="$${KIE_SERVER_ID:-ticket-kie-server}"
+        CID="$${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}"
         KIE_USER="$${JBPM_KIE_SERVER_USERNAME:-kieserver}"
         KIE_PASS="$${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}"
-        KIE_CONTAINER_ID="$${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}"
+        BC="http://kie-server:8080/business-central/rest/controller/management/servers/$$TPL"
+        KIEC="http://kie-server:8080/kie-server/services/rest/server/containers/$$CID"
 
-        echo "[kjar-deploy] KIE Server REST hazir mi?"
-        until curl -fsS -u "$$KIE_USER:$$KIE_PASS" -H 'Accept: application/json' \
-          http://kie-server:8080/kie-server/services/rest/server >/dev/null; do
-          echo "[kjar-deploy] henuz hazir degil, 5sn sonra tekrar..."
-          sleep 5
+        echo "[kjar-deploy] Controller server template '$$TPL' hazir mi?"
+        until curl -fsS -u "$$BC_USER:$$BC_PASS" -H 'Accept: application/json' "$$BC" >/dev/null 2>&1; do
+          echo "[kjar-deploy] henuz hazir degil, 5sn..."; sleep 5
         done
 
-        echo "[kjar-deploy] Container '$$KIE_CONTAINER_ID' kaydediliyor (idempotent)..."
-        # -f YOK: container zaten kayitliysa KIE 400 + "already exists" doner; bunu basari
-        # sayabilmek icin govdeyi okuyoruz. Gercek hatalar farkli mesaj dondurur -> exit 1.
-        resp=$$(curl -sS -X PUT -u "$$KIE_USER:$$KIE_PASS" \
-          -H 'Content-Type: application/json' \
-          -H 'Accept: application/json' \
-          "http://kie-server:8080/kie-server/services/rest/server/containers/$$KIE_CONTAINER_ID" \
-          -d '{
-            "container-id": "'$$KIE_CONTAINER_ID'",
-            "release-id": {
-              "group-id": "com.ticketsystem",
-              "artifact-id": "ticket-workflow-kjar",
-              "version": "1.0.5"
-            }
-          }')
-        echo "$$resp"
-        case "$$resp" in
-          *'"type" : "SUCCESS"'*|*'already exists'*) echo "[kjar-deploy] Tamam." ;;
-          *) echo "[kjar-deploy] Kayit BASARISIZ." >&2; exit 1 ;;
-        esac
-    environment:
-      JBPM_KIE_SERVER_USERNAME: ${JBPM_KIE_SERVER_USERNAME:-kieserver}
-      JBPM_KIE_SERVER_PASSWORD: ${JBPM_KIE_SERVER_PASSWORD:-kieserver1!}
-      JBPM_KIE_SERVER_CONTAINER_ID: ${JBPM_KIE_SERVER_CONTAINER_ID:-ticket-workflow}
-  # jBPM/KIE Server katmani sonu.
+        if curl -fsS -u "$$BC_USER:$$BC_PASS" -H 'Accept: application/json' "$$BC/containers/$$CID" >/dev/null 2>&1; then
+          echo "[kjar-deploy] container '$$CID' zaten kayitli; STARTED'a zorlaniyor."
+          curl -sS -X POST -u "$$BC_USER:$$BC_PASS" "$$BC/containers/$$CID/status/started" >/dev/null 2>&1 || true
+        else
+          echo "[kjar-deploy] container '$$CID' controller'a register ediliyor..."
+          curl -fsS -X PUT -u "$$BC_USER:$$BC_PASS" -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            "$$BC/containers/$$CID" -d '{
+              "container-id": "'"$$CID"'",
+              "container-name": "'"$$CID"'",
+              "server-template-key": {"server-id":"'"$$TPL"'","server-name":"'"$$TPL"'"},
+              "release-id": {"group-id":"com.ticketsystem","artifact-id":"ticket-workflow-kjar","version":"1.0.5"},
+              "configuration": {
+                "PROCESS": {"org.kie.server.controller.api.model.spec.ProcessConfig":{"runtimeStrategy":"SINGLETON","kbase":"","ksession":"","mergeMode":"MERGE_COLLECTIONS"}},
+                "RULE": {"org.kie.server.controller.api.model.spec.RuleConfig":{"pollInterval":null,"scannerStatus":"STOPPED"}}
+              },
+              "status": "STARTED"
+            }'
+        fi
+
+        echo "[kjar-deploy] KIE Server'da container STARTED olmasi bekleniyor..."
+        i=0
+        until curl -fsS -u "$$KIE_USER:$$KIE_PASS" -H 'Accept: application/json' "$$KIEC" 2>/dev/null | grep -q '"status" : "STARTED"'; do
+          i=$$((i+1)); [ $$i -gt 36 ] && { echo "[kjar-deploy] container STARTED olmadi!" >&2; exit 1; }
+          echo "[kjar-deploy] henuz STARTED degil, 5sn..."; sleep 5
+        done
+        echo "[kjar-deploy] Container '$$CID' STARTED. Tamam."
 
   # (sonarqube-db + sonarqube DEV-only — bkz. docker-compose.override.yaml)
 

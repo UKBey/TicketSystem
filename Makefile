@@ -42,7 +42,7 @@ endif
 # Sadece altyapi servisleri (backend/frontend haric) -- local dev icin
 INFRA_SERVICES := it-service-db openldap-server phpldapadmin keycloak-iam \
                   mailpit opensearch opensearch-dashboards otel-collector \
-                  data-prepper kafka logstash jbpm-db kie-server redis
+                  data-prepper kafka logstash kie-server redis
 
 # NOT: Bu help metni hem cmd hem sh tarafindan echo edilir; o yuzden ( ) ' " ; & gibi
 # kabukta ozel anlami olan karakterler kullanilmaz (sh bunlarda patlar). Windows'ta

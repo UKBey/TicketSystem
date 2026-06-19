@@ -1,35 +1,23 @@
 # syntax=docker/dockerfile:1.7
 #
-# Custom KIE Server image — ticket-workflow kjar'ini Maven repository'sine gomer.
-#
-# Docker compose'da host'un ~/.m2/repository klasoru KIE container'ina mount
-# ediliyordu; k8s'te bu mount yok, dolayisiyla `com.ticketsystem:ticket-workflow-
-# kjar:1.0.5` artifact'i bulunamiyor ve kjar-deploy job'u HTTP 400 ile fail
-# oluyordu. Image'a gomerek workflow registration'i k8s'te de calisir hale getirir.
+# Custom KIE Server image — ticket-workflow kjar'ini (repo'daki ticket-workflow-kjar/
+# kaynagi) imajin Maven repository'sine gomer. Boylece taze `docker compose up` ilk
+# seferden itibaren kjar'i hazir bulur; `kjar-deploy` job'u container'i register eder.
+# (Volume'a bagimli degil -> ekip/temiz makine senaryosunda da calisir.)
 #
 # kie-maven-plugin 7.61.0.Final java.lang.Compiler (Java 9'da kaldirildi) referans
-# ettigi icin kjar'i Java 8 ile derlemek gerek. Multi-stage build host'un Java
-# versiyonundan bagimsiz tutar.
+# ettigi icin kjar'i Java 8 ile derlemek gerek. Multi-stage build host Java'sindan bagimsiz.
 
 # --- Build stage: kjar'i Java 8 maven ile derle ---
 FROM maven:3.8.7-eclipse-temurin-8 AS kjar-build
 WORKDIR /build
 COPY ticket-workflow-kjar/pom.xml .
 COPY ticket-workflow-kjar/src ./src
-# BuildKit cache mount: Maven .m2 cache'i layer'lar arasinda korunur, ikinci
-# build'den itibaren dependency download cok hizli.
-RUN --mount=type=cache,target=/root/.m2 mvn -q package -DskipTests
+# BuildKit cache mount: .m2 cache layer'lar arasi korunur -> ikinci build hizli.
+RUN --mount=type=cache,target=/root/.m2 mvn -q -B package -DskipTests
 
-# KIE Server'in jbpm-db Postgres'ine baglanmasi icin PostgreSQL JDBC surucusunu
-# de bu Maven container'inda cek (curl'e bagimli kalmadan). stripVersion ile
-# cikti dosyasi sabit "postgresql.jar" olur -> module.xml versiyon-bagimsiz kalir.
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -q org.apache.maven.plugins:maven-dependency-plugin:3.6.1:copy \
-      -Dartifact=org.postgresql:postgresql:42.7.4 \
-      -DoutputDirectory=/drivers -Dmdep.stripVersion=true
-
-# --- Runtime stage: showcase image + kjar Maven repo'ya gomulu ---
-FROM jboss/kie-server-showcase:7.61.0.Final
+# --- Runtime stage: stok jbpm-server-full + kjar gomulu ---
+FROM jboss/jbpm-server-full:7.61.0.Final
 USER root
 
 ARG KJAR_GROUP=com/ticketsystem
@@ -44,23 +32,11 @@ COPY --from=kjar-build /build/target/${KJAR_ARTIFACT}-${KJAR_VERSION}.jar \
 COPY ticket-workflow-kjar/pom.xml \
      /opt/jboss/.m2/repository/${KJAR_GROUP}/${KJAR_ARTIFACT}/${KJAR_VERSION}/${KJAR_ARTIFACT}-${KJAR_VERSION}.pom
 
-RUN chown -R jboss:jboss /opt/jboss/.m2
-
-# --- PostgreSQL persistence: surec instance'lari restart'larda hayatta kalsin ---
-# 1) JDBC surucusunu WildFly modulu olarak yerlestir.
-# 2) jboss-cli (offline embed-server) ile jbpmDS datasource'unu ve driver'i
-#    standalone-full-kie-server.xml'e ekle. Baglanti bilgileri ${env.*}
-#    expression'lari olarak yazilir, runtime'da kie-server env'inden cozulur.
-ARG WILDFLY_MODULES=/opt/jboss/wildfly/modules/system/layers/base
-COPY --from=kjar-build /drivers/postgresql.jar ${WILDFLY_MODULES}/org/postgresql/main/postgresql.jar
-COPY kie/modules/org/postgresql/main/module.xml ${WILDFLY_MODULES}/org/postgresql/main/module.xml
-COPY kie/jbpm-postgres-ds.cli /tmp/jbpm-postgres-ds.cli
-RUN /opt/jboss/wildfly/bin/jboss-cli.sh --file=/tmp/jbpm-postgres-ds.cli \
-    && rm -f /tmp/jbpm-postgres-ds.cli \
-    && rm -rf /opt/jboss/wildfly/standalone/configuration/standalone_xml_history \
-       /opt/jboss/wildfly/standalone/data /opt/jboss/wildfly/standalone/log \
-       /opt/jboss/wildfly/standalone/tmp \
-    && chown -R jboss:jboss /opt/jboss/wildfly/modules/system/layers/base/org/postgresql \
-       /opt/jboss/wildfly/standalone
+# Named volume mount noktalarini (.niogit, standalone/data) imajda ONCEDEN jboss
+# sahipligiyle olustur. Bos named volume bu dizinlerden initialize olur (jboss-owned)
+# -> jboss (uid 1000) yazabilir, WildFly cokmesi onlenir, ayri bir chown-init servisine
+# gerek KALMAZ. (.m2'de gomulu kjar zaten var.)
+RUN mkdir -p /opt/jboss/.niogit /opt/jboss/wildfly/standalone/data \
+ && chown -R jboss:jboss /opt/jboss/.m2 /opt/jboss/.niogit /opt/jboss/wildfly/standalone/data
 
 USER jboss
