@@ -202,7 +202,7 @@ public class TicketGenerator {
             }
             case "RESOLVED" -> {
                 // Backend RESOLVED'e geçişte reasonCode zorunlu kılıyor; resolutionNote artık
-                // ayrı bir endpoint değil, status update body'sinde 'note' alanı olarak gider.
+                // ayrı bir endpoint değil, /resolve eylem body'sinde 'note' alanı olarak gider.
                 String reasonCode = pt.spec.path("reasonCode").asText("SOLUTION_PROVIDED");
                 String note       = noteOrNull(pt.spec.path("resolutionNote"));
                 updateStatus(pt.ticketId, "RESOLVED", pt.agent, reasonCode, note);
@@ -318,18 +318,26 @@ public class TicketGenerator {
     }
 
     /**
-     * Updates the ticket status. The backend requires reasonCode on the transition to
-     * RESOLVED, and there is a separate endpoint for CLOSED (since CLOSED is auto-applied
-     * by the CSAT flow, we never send CLOSED directly here).
+     * Advances the ticket to the target status via the dedicated action endpoint
+     * ({@code /wait}, {@code /resolve}). The backend requires reasonCode on the transition
+     * to RESOLVED. CLOSED is auto-applied by the CSAT flow, so we never send it directly here.
      */
     private boolean updateStatus(Long ticketId, String status, UserSession user,
                                   String reasonCode, String note) {
+        String action = switch (status) {
+            case "WAITING_FOR_CUSTOMER" -> "wait";
+            case "RESOLVED"             -> "resolve";
+            default -> {
+                log.warn("No action endpoint for status {} (#{}), skipping", status, ticketId);
+                yield null;
+            }
+        };
+        if (action == null) return false;
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("status", status);
         if (reasonCode != null) body.put("reasonCode", reasonCode);
         if (note != null)       body.put("note",       note);
         try {
-            api.put("/tickets/" + ticketId + "/status", body, user.getToken());
+            api.put("/tickets/" + ticketId + "/" + action, body, user.getToken());
             return true;
         } catch (Exception e) {
             log.warn("Failed to update status #{} ({}): {}", ticketId, status, e.getMessage());
