@@ -111,7 +111,7 @@ function WorklogCompletionChart({ data, loading }) {
         {/* Donut */}
         <div ref={donutRef} className="relative shrink-0">
           <svg width="160" height="160" viewBox="0 0 160 160"
-            aria-label={`Completion rate: ${completionRate.toFixed(1)}%`}>
+            aria-label={t('dashboard.worklogChart.ariaCompletion', { rate: completionRate.toFixed(1) })}>
 
             {/* Track */}
             <circle cx={CX} cy={CY} r={R} fill="none" strokeWidth={STROKE_W}
@@ -133,7 +133,7 @@ function WorklogCompletionChart({ data, loading }) {
                     opacity={dimmed('incomplete') ? 0.4 : 1}
                     style={{ cursor: 'pointer', transition: 'stroke-width .15s ease, opacity .15s ease' }}
                     role="button" tabIndex={0}
-                    aria-label={`Incomplete: ${eksikRate.toFixed(1)} percent, ${incompleteCount} of ${createdCount} tickets`}
+                    aria-label={t('dashboard.worklogChart.ariaIncomplete', { rate: eksikRate.toFixed(1), count: incompleteCount, total: createdCount })}
                     onMouseEnter={point('incomplete')} onMouseMove={point('incomplete')} onMouseLeave={clear}
                     onFocus={focusSeg('incomplete')} onBlur={clear} />
                 )}
@@ -145,7 +145,7 @@ function WorklogCompletionChart({ data, loading }) {
                   opacity={dimmed('completed') ? 0.4 : 1}
                   style={{ cursor: 'pointer', transition: 'stroke-width .15s ease, opacity .15s ease' }}
                   role="button" tabIndex={0}
-                  aria-label={`Completed: ${completionRate.toFixed(1)} percent, ${completedCount} of ${createdCount} tickets`}
+                  aria-label={t('dashboard.worklogChart.ariaCompleted', { rate: completionRate.toFixed(1), count: completedCount, total: createdCount })}
                   onMouseEnter={point('completed')} onMouseMove={point('completed')} onMouseLeave={clear}
                   onFocus={focusSeg('completed')} onBlur={clear} />
               </>

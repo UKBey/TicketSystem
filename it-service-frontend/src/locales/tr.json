@@ -1018,7 +1018,8 @@
       "topComments": "Son yüksek puanlı yorumlar",
       "trendUp": "yükseliyor",
       "trendDown": "düşüyor",
-      "trendStable": "sabit"
+      "trendStable": "sabit",
+      "ariaScore": "CSAT puanı: {{score}} / 5"
     },
     "worklogChart": {
       "badge": "Worklog Özeti",
@@ -1030,7 +1031,10 @@
       "entries": "{{count}} kayıt",
       "totalEntries": "Toplam kayıt",
       "totalHours": "Toplam saat",
-      "tickets": "{{count}} / {{total}} bilet"
+      "tickets": "{{count}} / {{total}} bilet",
+      "ariaCompletion": "Tamamlanma oranı: %{{rate}}",
+      "ariaIncomplete": "Tamamlanmayan: %{{rate}}, {{total}} biletten {{count}}",
+      "ariaCompleted": "Tamamlanan: %{{rate}}, {{total}} biletten {{count}}"
     },
     "completionMeters": {
       "title": "Tamamlanma Ölçerleri",
@@ -1046,7 +1050,9 @@
       "rowMetSla": "SLA karşılandı",
       "rowBreached": "İhlal edildi",
       "across": "Kapsam",
-      "acrossResolved": "{{count}} çözülen"
+      "acrossResolved": "{{count}} çözülen",
+      "ariaMeter": "{{label}}: %{{rate}}. {{detail}}",
+      "ariaAvg": "Ortalama çözüm süresi: {{count}} çözülen bilet üzerinden {{hours}} saat"
     },
     "topAgents": {
       "title": "En Aktif Ajanlar",
@@ -1272,6 +1278,7 @@
     "loading": "Yükleniyor...",
     "loadingData": "Veri yükleniyor",
     "resizeColumn": "Sürükleyerek sütun genişliğini ayarla",
+    "remove": "Kaldır",
     "error": "Bir hata oluştu.",
     "retry": "Tekrar Dene",
     "noResults": "Sonuç bulunamadı.",

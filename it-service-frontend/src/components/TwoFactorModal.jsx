@@ -185,7 +185,7 @@ export default function TwoFactorModal({ open, onClose, lang }) {
             disabled={!!deletingId}
             className="flex h-8 w-8 items-center justify-center rounded-md disabled:opacity-50"
             style={{ color: 'var(--text-tertiary)' }}
-            aria-label="close"
+            aria-label={t('common.close')}
           >
             <X className="h-4 w-4" />
           </button>

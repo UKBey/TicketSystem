@@ -114,7 +114,7 @@ function CSATGaugeChart({ data, loading }) {
 
         {/* Gauge SVG */}
         <div className="flex justify-center">
-          <svg viewBox="0 0 220 122" className="w-full max-w-[260px]" aria-label={`CSAT score: ${avgRating.toFixed(1)} / 5`}>
+          <svg viewBox="0 0 220 122" className="w-full max-w-[260px]" aria-label={t('dashboard.csatGauge.ariaScore', { score: avgRating.toFixed(1) })}>
 
             {/* Background arc */}
             <path

@@ -46,6 +46,7 @@ const ROLE_GRADIENT = {
 
 /* ── Small info row ─────────────────────────────────────────── */
 function InfoRow({ icon: Icon, label, value, mono = false, onEdit }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 py-3 group" style={{ borderBottom: '1px solid var(--border-color)' }}>
       <div
@@ -72,7 +73,7 @@ function InfoRow({ icon: Icon, label, value, mono = false, onEdit }) {
           onClick={onEdit}
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ color: 'var(--text-tertiary)' }}
-          aria-label="edit"
+          aria-label={t('form.edit')}
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>

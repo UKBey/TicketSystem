@@ -113,7 +113,7 @@ function CompletionMeters({ data, loading }) {
                 onBlur={clear}
                 tabIndex={loading ? undefined : 0}
                 role="button"
-                aria-label={`${label}: ${rate.toFixed(1)} percent. ${detail(rates, t)}`}
+                aria-label={t('dashboard.completionMeters.ariaMeter', { label, rate: rate.toFixed(1), detail: detail(rates, t) })}
                 className="-mx-2 rounded-lg px-2 py-1.5 transition-all"
                 style={{
                   backgroundColor: isOn ? 'var(--bg-surface-hover)' : 'transparent',
@@ -166,7 +166,7 @@ function CompletionMeters({ data, loading }) {
           onBlur={clear}
           tabIndex={loading ? undefined : 0}
           role="button"
-          aria-label={`Average resolution time: ${avgResolutionHours.toFixed(1)} hours across ${resolvedInPeriod} resolved tickets`}
+          aria-label={t('dashboard.completionMeters.ariaAvg', { hours: avgResolutionHours.toFixed(1), count: resolvedInPeriod })}
           className="mt-4 flex items-center justify-between rounded-xl border px-4 py-2.5 transition-all"
           style={{
             backgroundColor: active?.key === 'avg' ? 'var(--bg-surface-hover)' : 'var(--bg-surface-secondary)',

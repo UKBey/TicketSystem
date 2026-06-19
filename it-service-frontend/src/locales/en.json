@@ -1018,7 +1018,8 @@
       "topComments": "Recent high-rated comments",
       "trendUp": "rising",
       "trendDown": "falling",
-      "trendStable": "stable"
+      "trendStable": "stable",
+      "ariaScore": "CSAT score: {{score}} / 5"
     },
     "worklogChart": {
       "badge": "Worklog Summary",
@@ -1030,7 +1031,10 @@
       "entries": "{{count}} entries",
       "totalEntries": "Total entries",
       "totalHours": "Total hours",
-      "tickets": "{{count}} / {{total}} tickets"
+      "tickets": "{{count}} / {{total}} tickets",
+      "ariaCompletion": "Completion rate: {{rate}}%",
+      "ariaIncomplete": "Incomplete: {{rate}}%, {{count}} of {{total}} tickets",
+      "ariaCompleted": "Completed: {{rate}}%, {{count}} of {{total}} tickets"
     },
     "completionMeters": {
       "title": "Completion Meters",
@@ -1046,7 +1050,9 @@
       "rowMetSla": "Met SLA",
       "rowBreached": "Breached",
       "across": "Across",
-      "acrossResolved": "{{count}} resolved"
+      "acrossResolved": "{{count}} resolved",
+      "ariaMeter": "{{label}}: {{rate}}%. {{detail}}",
+      "ariaAvg": "Average resolution time: {{hours}} hours across {{count}} resolved tickets"
     },
     "topAgents": {
       "title": "Most Active Agents",
@@ -1272,6 +1278,7 @@
     "loading": "Loading...",
     "loadingData": "Loading data",
     "resizeColumn": "Drag to resize column",
+    "remove": "Remove",
     "error": "An error occurred.",
     "retry": "Retry",
     "noResults": "No results found.",
