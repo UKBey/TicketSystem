@@ -1,4 +1,5 @@
 import { memo, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { getCompletionColor } from './ChartColors';
@@ -39,6 +40,8 @@ function StatCard({ label, value }) {
 }
 
 function WorklogCompletionChart({ data, loading }) {
+  const { t } = useTranslation();
+  const hourUnit = t('dashboard.units.hour');
   const periodDays      = data?.periodDays ?? 30;
   const agentWorklogs   = data?.agentWorklogs ?? [];
   const completionRates = data?.completionRates ?? {};
@@ -82,8 +85,8 @@ function WorklogCompletionChart({ data, loading }) {
   const focusSeg = (seg) => () => { if (!loading) setActive({ seg, x: CX, y: 40 }); };
 
   const SEGMENTS = {
-    completed:  { title: 'Completed',  pct: completionRate, count: completedCount,  accent: color },
-    incomplete: { title: 'Incomplete', pct: eksikRate,      count: incompleteCount, accent: '#ef4444' },
+    completed:  { title: t('dashboard.worklogChart.completed'),  pct: completionRate, count: completedCount,  accent: color },
+    incomplete: { title: t('dashboard.worklogChart.incomplete'), pct: eksikRate,      count: incompleteCount, accent: '#ef4444' },
   };
   const tip = active ? SEGMENTS[active.seg] : null;
 
@@ -93,13 +96,13 @@ function WorklogCompletionChart({ data, loading }) {
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
           <Clock className="h-3.5 w-3.5" />
-          Worklog Summary
+          {t('dashboard.worklogChart.badge')}
         </div>
         <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-          Working hours & completion
+          {t('dashboard.worklogChart.title')}
         </h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Logged worklog and ticket completion analysis for the last {periodDays} days.
+          {t('dashboard.worklogChart.subtitle', { days: periodDays })}
         </p>
       </div>
 
@@ -156,15 +159,15 @@ function WorklogCompletionChart({ data, loading }) {
               <>
                 <text x={CX} y={CY - 8} textAnchor="middle" fontSize="20" fontWeight="900"
                   style={{ fill: color }}>
-                  {totalHours.toFixed(0)}h
+                  {totalHours.toFixed(0)}{hourUnit}
                 </text>
                 <text x={CX} y={CY + 8} textAnchor="middle" fontSize="10"
                   style={{ fill: 'var(--text-tertiary)' }}>
-                  in {periodDays} days
+                  {t('dashboard.worklogChart.inDays', { days: periodDays })}
                 </text>
                 <text x={CX} y={CY + 24} textAnchor="middle" fontSize="10"
                   style={{ fill: 'var(--text-tertiary)' }}>
-                  {totalEntries} entries
+                  {t('dashboard.worklogChart.entries', { count: totalEntries })}
                 </text>
               </>
             )}
@@ -188,7 +191,7 @@ function WorklogCompletionChart({ data, loading }) {
               </div>
               <div className="mt-0.5 text-lg font-black" style={{ color: tip.accent }}>{tip.pct.toFixed(1)}%</div>
               <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                {tip.count} / {createdCount} tickets
+                {t('dashboard.worklogChart.tickets', { count: tip.count, total: createdCount })}
               </div>
             </div>
           )}
@@ -198,7 +201,7 @@ function WorklogCompletionChart({ data, loading }) {
         <div className="w-full flex-1 space-y-2">
           <LegendRow
             color={color}
-            label="Completed"
+            label={t('dashboard.worklogChart.completed')}
             value={loading ? '…' : `${completionRate.toFixed(1)}%`}
             active={isActive('completed')}
             dimmed={dimmed('completed')}
@@ -207,7 +210,7 @@ function WorklogCompletionChart({ data, loading }) {
           />
           <LegendRow
             color="rgba(239,68,68,0.45)"
-            label="Incomplete"
+            label={t('dashboard.worklogChart.incomplete')}
             value={loading ? '…' : `${eksikRate.toFixed(1)}%`}
             active={isActive('incomplete')}
             dimmed={dimmed('incomplete')}
@@ -215,8 +218,8 @@ function WorklogCompletionChart({ data, loading }) {
             onLeave={clear}
           />
           <div className="mt-1 grid grid-cols-2 gap-2">
-            <StatCard label="Total entries" value={loading ? null : totalEntries} />
-            <StatCard label="Total hours"   value={loading ? null : `${totalHours.toFixed(1)}h`} />
+            <StatCard label={t('dashboard.worklogChart.totalEntries')} value={loading ? null : totalEntries} />
+            <StatCard label={t('dashboard.worklogChart.totalHours')}   value={loading ? null : `${totalHours.toFixed(1)}${hourUnit}`} />
           </div>
         </div>
       </div>

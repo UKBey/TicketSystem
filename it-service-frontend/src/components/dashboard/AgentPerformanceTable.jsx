@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Award, Clock3, Flame, Star, Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 
@@ -11,20 +12,20 @@ function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(value ?? 0);
 }
 
-function formatHours(value) {
+function formatHours(value, unit) {
   if (value === null || value === undefined) {
-    return '0.0h';
+    return `0.0${unit}`;
   }
 
-  return `${Number(value).toFixed(1)}h`;
+  return `${Number(value).toFixed(1)}${unit}`;
 }
 
-function formatMinutes(value) {
+function formatMinutes(value, unit) {
   if (value === null || value === undefined) {
-    return '0 min';
+    return `0 ${unit}`;
   }
 
-  return `${formatNumber(value)} min`;
+  return `${formatNumber(value)} ${unit}`;
 }
 
 function getRankBadge(index) {
@@ -52,6 +53,9 @@ function createPlaceholderRows() {
 }
 
 function AgentPerformanceTable({ data, loading, onAgentClick }) {
+  const { t } = useTranslation();
+  const hourUnit = t('dashboard.units.hour');
+  const minuteUnit = t('dashboard.units.minute');
   const agents = data?.agents ?? [];
   const totalAgents = data?.totalAgents ?? 0;
   const totalActiveTickets = data?.totalActiveTickets ?? 0;
@@ -66,29 +70,29 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <Users className="h-3.5 w-3.5" />
-            Agent leaderboard
+            {t('dashboard.agentTable.badge')}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Performance ranking</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('dashboard.agentTable.title')}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Active workload, resolutions in the last 24h, avg. resolution time and CSAT in one table.
+            {t('dashboard.agentTable.subtitle')}
           </p>
         </div>
 
         <div className="grid w-full grid-cols-2 gap-2 text-left text-xs sm:w-auto sm:grid-cols-2 lg:text-left">
           <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Agents</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.statAgents')}</div>
             <div className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(totalAgents)}</div>
           </div>
           <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Active</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.statActive')}</div>
             <div className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(totalActiveTickets)}</div>
           </div>
           <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Resolved 24h</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.statResolved24h')}</div>
             <div className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(totalResolvedLast24Hours)}</div>
           </div>
           <div className="rounded-2xl px-3 py-2" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Avg CSAT</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.statAvgCsat')}</div>
             <div className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{Number(averageCsat).toFixed(1)}</div>
           </div>
         </div>
@@ -123,7 +127,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
                     {!loading && isLeadOrAdmin(agent.role) && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
                         <Award className="h-3 w-3" />
-                        Lead
+                        {t('dashboard.agentTable.lead')}
                       </span>
                     )}
                   </div>
@@ -135,40 +139,40 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Active</div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.colActive')}</div>
                   <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {loading ? <Skeleton as="span" className="inline-block h-4 w-12" /> : formatNumber(agent.activeTickets)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Resolved</div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.colResolved')}</div>
                   <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {loading ? <Skeleton as="span" className="inline-block h-4 w-12" /> : formatNumber(agent.resolvedLast24Hours)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Avg. resolution</div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.colAvgResolution')}</div>
                   <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                     <Clock3 className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-                    {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours)}
+                    {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours, hourUnit)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>CSAT</div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.colCsat')}</div>
                   <div className={`flex items-center gap-1.5 text-sm font-bold ${csatTone}`}>
                     <Star className="h-4 w-4" />
                     {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : Number(agent.csatAverage ?? 0).toFixed(1)}
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>SLA / Worklog</div>
+                  <div className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.agentTable.colSlaWorklog')}</div>
                   <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
                     <Flame className="h-4 w-4" style={{ color: 'var(--color-danger-500)' }} />
                     {loading ? (
                       <Skeleton as="span" className="inline-block h-4 w-20" />
                     ) : (
                       <span>
-                        {formatNumber(agent.slaBreachedCount)} SLA <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days)}
+                        {t('dashboard.agentTable.slaCount', { count: formatNumber(agent.slaBreachedCount) })} <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days, minuteUnit)}
                       </span>
                     )}
                   </div>
@@ -182,13 +186,13 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
       <div className="hidden overflow-hidden rounded-2xl border lg:block" style={{ borderColor: 'var(--border-color-light)' }}>
         <div className="max-h-[30rem] overflow-y-auto">
         <div className="sticky top-0 z-10 grid grid-cols-[72px_minmax(180px,1.5fr)_110px_110px_120px_100px_120px] gap-0 border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)', color: 'var(--text-tertiary)' }}>
-          <div>Rank</div>
-          <div>Agent</div>
-          <div className="text-right">Active</div>
-          <div className="text-right">Resolved</div>
-          <div className="text-right">Avg. resolution</div>
-          <div className="text-right">CSAT</div>
-          <div className="text-right">SLA / Worklog</div>
+          <div>{t('dashboard.agentTable.colRank')}</div>
+          <div>{t('dashboard.agentTable.colAgent')}</div>
+          <div className="text-right">{t('dashboard.agentTable.colActive')}</div>
+          <div className="text-right">{t('dashboard.agentTable.colResolved')}</div>
+          <div className="text-right">{t('dashboard.agentTable.colAvgResolution')}</div>
+          <div className="text-right">{t('dashboard.agentTable.colCsat')}</div>
+          <div className="text-right">{t('dashboard.agentTable.colSlaWorklog')}</div>
         </div>
 
         <div className="divide-y" style={{ borderColor: 'var(--border-color-light)' }}>
@@ -221,7 +225,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
                     {!loading && isLeadOrAdmin(agent.role) && (
                       <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ backgroundColor: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.18)', color: 'var(--color-primary-700)' }}>
                         <Award className="h-3 w-3" />
-                        Lead
+                        {t('dashboard.agentTable.lead')}
                       </span>
                     )}
                   </div>
@@ -240,7 +244,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
 
                 <div className="flex items-center justify-end gap-2 text-right text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   <Clock3 className="h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
-                  {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours)}
+                  {loading ? <Skeleton as="span" className="inline-block h-4 w-14" /> : formatHours(agent.avgResolutionHours, hourUnit)}
                 </div>
 
                 <div className={`flex items-center justify-end gap-2 text-right text-sm font-bold ${csatTone}`}>
@@ -254,7 +258,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
                     <Skeleton as="span" className="inline-block h-4 w-20" />
                   ) : (
                     <span>
-                      {formatNumber(agent.slaBreachedCount)} SLA <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days)}
+                      {t('dashboard.agentTable.slaCount', { count: formatNumber(agent.slaBreachedCount) })} <span aria-hidden="true">•</span> {formatMinutes(agent.worklogMinutesLast7Days, minuteUnit)}
                     </span>
                   )}
                 </div>
@@ -267,7 +271,7 @@ function AgentPerformanceTable({ data, loading, onAgentClick }) {
 
       {!loading && agents.length === 0 && (
         <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          No agent performance records to display.
+          {t('dashboard.agentTable.empty')}
         </div>
       )}
     </section>

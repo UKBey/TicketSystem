@@ -1,4 +1,5 @@
 import { memo, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { getCompletionColor } from './ChartColors';
@@ -6,20 +7,25 @@ import { getCompletionColor } from './ChartColors';
 const METERS = [
   {
     key: 'completionRate',
-    label: 'Ticket Completion',
+    labelKey: 'ticketCompletion',
     icon: CheckCircle2,
-    detail: (r) =>
-      `${(r.totalResolved ?? 0) + (r.totalClosed ?? 0)} / ${r.totalCreated ?? 0} tickets`,
+    detail: (r, t) =>
+      t('dashboard.completionMeters.completionDetail', {
+        completed: (r.totalResolved ?? 0) + (r.totalClosed ?? 0),
+        created: r.totalCreated ?? 0,
+      }),
   },
   {
     key: 'slaComplianceRate',
-    label: 'SLA Compliance',
+    labelKey: 'slaCompliance',
     icon: ShieldCheck,
-    detail: (r) => `across ${r.resolvedInPeriod ?? r.totalResolved ?? 0} resolved tickets`,
+    detail: (r, t) =>
+      t('dashboard.completionMeters.slaDetail', { count: r.resolvedInPeriod ?? r.totalResolved ?? 0 }),
   },
 ];
 
 function CompletionMeters({ data, loading }) {
+  const { t } = useTranslation();
   const rates              = data?.completionRates ?? {};
   const avgResolutionHours = rates.avgResolutionHours ?? 0;
 
@@ -53,31 +59,31 @@ function CompletionMeters({ data, loading }) {
 
   const TIP = {
     completionRate: {
-      title: 'Ticket Completion',
+      title: t('dashboard.completionMeters.ticketCompletion'),
       big: `${(rates.completionRate ?? 0).toFixed(1)}%`,
       accent: getCompletionColor(rates.completionRate ?? 0),
       rows: [
-        { label: 'Resolved', value: totalResolved },
-        { label: 'Closed', value: totalClosed },
-        { label: 'Still open', value: stillOpen },
-        { label: 'Created', value: totalCreated },
+        { label: t('dashboard.completionMeters.rowResolved'), value: totalResolved },
+        { label: t('dashboard.completionMeters.rowClosed'), value: totalClosed },
+        { label: t('dashboard.completionMeters.rowStillOpen'), value: stillOpen },
+        { label: t('dashboard.completionMeters.rowCreated'), value: totalCreated },
       ],
     },
     slaComplianceRate: {
-      title: 'SLA Compliance',
+      title: t('dashboard.completionMeters.slaCompliance'),
       big: `${slaRate.toFixed(1)}%`,
       accent: getCompletionColor(slaRate),
       rows: [
-        { label: 'Met SLA', value: slaMet },
-        { label: 'Breached', value: slaBreached },
-        { label: 'Resolved', value: resolvedInPeriod },
+        { label: t('dashboard.completionMeters.rowMetSla'), value: slaMet },
+        { label: t('dashboard.completionMeters.rowBreached'), value: slaBreached },
+        { label: t('dashboard.completionMeters.rowResolved'), value: resolvedInPeriod },
       ],
     },
     avg: {
-      title: 'Avg. resolution time',
-      big: `${avgResolutionHours.toFixed(1)} sa`,
+      title: t('dashboard.completionMeters.avgResolution'),
+      big: `${avgResolutionHours.toFixed(1)}${t('dashboard.units.hour')}`,
       accent: 'var(--text-primary)',
-      rows: [{ label: 'Across', value: `${resolvedInPeriod} resolved` }],
+      rows: [{ label: t('dashboard.completionMeters.across'), value: t('dashboard.completionMeters.acrossResolved', { count: resolvedInPeriod }) }],
     },
   };
   const tip = active ? TIP[active.key] : null;
@@ -87,14 +93,15 @@ function CompletionMeters({ data, loading }) {
 
       <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.18em]"
         style={{ color: 'var(--text-secondary)' }}>
-        Completion Meters
+        {t('dashboard.completionMeters.title')}
       </h2>
 
       <div ref={wrapRef} className="relative">
         <div className="space-y-4">
-          {METERS.map(({ key, label, icon: Icon, detail }) => {
+          {METERS.map(({ key, labelKey, icon: Icon, detail }) => {
             const rate  = rates[key] ?? 0;
             const color = getCompletionColor(rate);
+            const label = t('dashboard.completionMeters.' + labelKey);
             const isOn  = active?.key === key;
             const isDim = !!active && active.key !== key;
             return (
@@ -106,7 +113,7 @@ function CompletionMeters({ data, loading }) {
                 onBlur={clear}
                 tabIndex={loading ? undefined : 0}
                 role="button"
-                aria-label={`${label}: ${rate.toFixed(1)} percent. ${detail(rates)}`}
+                aria-label={`${label}: ${rate.toFixed(1)} percent. ${detail(rates, t)}`}
                 className="-mx-2 rounded-lg px-2 py-1.5 transition-all"
                 style={{
                   backgroundColor: isOn ? 'var(--bg-surface-hover)' : 'transparent',
@@ -143,7 +150,7 @@ function CompletionMeters({ data, loading }) {
 
                 {!loading && (
                   <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    {detail(rates)}
+                    {detail(rates, t)}
                   </p>
                 )}
               </div>
@@ -170,10 +177,10 @@ function CompletionMeters({ data, loading }) {
           }}
         >
           <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            Avg. resolution time
+            {t('dashboard.completionMeters.avgResolution')}
           </span>
           <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            {loading ? '…' : `${avgResolutionHours.toFixed(1)} sa`}
+            {loading ? '…' : `${avgResolutionHours.toFixed(1)}${t('dashboard.units.hour')}`}
           </span>
         </div>
 

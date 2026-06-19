@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Clock3 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CHART_COLORS } from './ChartColors';
@@ -20,14 +21,14 @@ function normalize(data) {
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 }
 
-function TooltipBox({ active, payload, label, hoursLabel }) {
+function TooltipBox({ active, payload, label, hoursLabel, hourUnit }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border px-3 py-2 text-xs shadow-lg" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
       <p className="mb-1 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{label}</p>
       <div className="flex items-center justify-between gap-4">
         <span style={{ color: 'var(--text-secondary)' }}>{hoursLabel}</span>
-        <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{payload[0].value}h</span>
+        <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{payload[0].value}{hourUnit}</span>
       </div>
     </div>
   );
@@ -42,6 +43,8 @@ function WorklogTrendChart({
   emptyText = 'No worklog logged in this period.',
   hoursLabel = 'Hours',
 }) {
+  const { t } = useTranslation();
+  const hourUnit = t('dashboard.units.hour');
   const chartData = useMemo(() => normalize(data), [data]);
   const hasData = chartData.some((d) => d.hours > 0);
 
@@ -72,7 +75,7 @@ function WorklogTrendChart({
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                 <XAxis dataKey="dateLabel" tick={{ fill: CHART_COLORS.axis, fontSize: 12 }} tickLine={false} axisLine={{ stroke: CHART_COLORS.grid }} interval="preserveStartEnd" minTickGap={16} />
                 <YAxis allowDecimals tick={{ fill: CHART_COLORS.axis, fontSize: 12 }} tickLine={false} axisLine={{ stroke: CHART_COLORS.grid }} domain={[0, 'auto']} />
-                <Tooltip cursor={{ fill: 'var(--bg-surface-secondary)' }} content={<TooltipBox hoursLabel={hoursLabel} />} />
+                <Tooltip cursor={{ fill: 'var(--bg-surface-secondary)' }} content={<TooltipBox hoursLabel={hoursLabel} hourUnit={hourUnit} />} />
                 <Bar dataKey="hours" fill={CHART_COLORS.created} radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>

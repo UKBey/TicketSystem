@@ -13,7 +13,7 @@ function fmt1(v) {
 }
 
 function ProductMetricsChart({ data, loading, onProductClick }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const { rows, otherRow, maxTotal } = useMemo(() => {
@@ -29,7 +29,7 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
       const otherTotal = rest.reduce((s, p) => s + (p.totalTickets ?? 0), 0);
       const otherOpen  = rest.reduce((s, p) => s + (p.openTickets ?? 0), 0);
       otherRow = {
-        productName: `Other (${rest.length} products)`,
+        productName: t('dashboard.productChart.other', { count: rest.length }),
         totalTickets: otherTotal,
         openTickets: otherOpen,
         avgResolutionHours: null,
@@ -67,7 +67,7 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
     return (
       <div className="rounded-2xl border p-8 flex flex-col items-center justify-center gap-2 text-center" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
         <Package className="h-8 w-8" style={{ color: 'var(--text-tertiary)' }} />
-        <p className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>No product data found</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.productChart.empty')}</p>
       </div>
     );
   }
@@ -80,17 +80,17 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
       <div className="flex flex-wrap items-start justify-between gap-2 mb-5">
         <div className="min-w-0">
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Ticket Distribution by Product
+            {t('dashboard.productChart.title')}
           </h3>
           <p className="mt-0.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            {totalTickets.toLocaleString('en-US')} total tickets · Top {Math.min(TOP_N, rows.length)} products
+            {t('dashboard.productChart.subtitle', { count: totalTickets.toLocaleString('en-US'), top: Math.min(TOP_N, rows.length) })}
           </p>
         </div>
         <span
           className="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: 'rgba(59,130,246,0.10)', color: '#1d4ed8' }}
         >
-          {(data?.productMetrics ?? []).length} products
+          {t('dashboard.productChart.productsCount', { count: (data?.productMetrics ?? []).length })}
         </span>
       </div>
 
@@ -127,7 +127,7 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
                 </span>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {openPct}% open
+                    {t('dashboard.productChart.openPct', { pct: openPct })}
                   </span>
                   <span
                     className="text-xs font-bold tabular-nums"
@@ -154,31 +154,31 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
                   </p>
                   <div className="space-y-1" style={{ color: 'var(--text-secondary)' }}>
                     <div className="flex justify-between gap-4">
-                      <span>Total Tickets</span>
+                      <span>{t('dashboard.productChart.tipTotal')}</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {(product.totalTickets ?? 0).toLocaleString('en-US')}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Open Tickets</span>
+                      <span>{t('dashboard.productChart.tipOpen')}</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {(product.openTickets ?? 0).toLocaleString('en-US')}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Avg. Resolution</span>
+                      <span>{t('dashboard.productChart.tipResolution')}</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {product.avgResolutionHours != null ? `${fmt1(product.avgResolutionHours)}h` : '—'}
+                        {product.avgResolutionHours != null ? `${fmt1(product.avgResolutionHours)}${t('dashboard.units.hour')}` : '—'}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>Avg. CSAT</span>
+                      <span>{t('dashboard.productChart.tipCsat')}</span>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {product.csatAverage != null && product.csatAverage > 0 ? `${fmt1(product.csatAverage)} / 5` : '—'}
                       </span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span>SLA Breach</span>
+                      <span>{t('dashboard.productChart.tipSla')}</span>
                       <span
                         className="font-semibold"
                         style={{
@@ -214,7 +214,7 @@ function ProductMetricsChart({ data, loading, onProductClick }) {
         {otherRow && (
           <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: PRODUCT_COLORS[PRODUCT_COLORS.length - 1].bar }} />
-            Other
+            {t('dashboard.productChart.otherShort')}
           </span>
         )}
       </div>

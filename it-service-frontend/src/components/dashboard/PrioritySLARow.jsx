@@ -1,9 +1,11 @@
-function formatHours(value) {
+import { useTranslation } from 'react-i18next';
+
+function formatHours(value, unit) {
   if (value === null || value === undefined) {
-    return '0.0h';
+    return `0.0${unit}`;
   }
 
-  return `${Number(value).toFixed(1)}h`;
+  return `${Number(value).toFixed(1)}${unit}`;
 }
 
 function formatNumber(value) {
@@ -23,6 +25,8 @@ function getStatusTone(onTimePercentage) {
 }
 
 export default function PrioritySLARow({ item, maxScaleHours }) {
+  const { t } = useTranslation();
+  const hourUnit = t('dashboard.units.hour');
   const progressWidth = Math.min((Number(item.avgResolutionHours ?? 0) / Math.max(maxScaleHours, 1)) * 100, 100);
   const targetPosition = Math.min((Number(item.slaTargetHours ?? 0) / Math.max(maxScaleHours, 1)) * 100, 100);
   const tone = getStatusTone(Number(item.onTimePercentage ?? 0));
@@ -34,20 +38,23 @@ export default function PrioritySLARow({ item, maxScaleHours }) {
           <div className="flex items-center gap-2">
             <span className={`priority-sla-badge priority-sla-badge--${tone}`} />
             <h3 className="truncate text-sm font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
-              {item.priority}
+              {t(`ticket.priority.${String(item.priority).toLowerCase()}`, { defaultValue: item.priority })}
             </h3>
           </div>
           <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {formatNumber(item.ticketCount)} tickets · SLA target {formatHours(item.slaTargetHours)}
+            {t('dashboard.prioritySla.rowSummary', {
+              count: formatNumber(item.ticketCount),
+              target: formatHours(item.slaTargetHours, hourUnit),
+            })}
           </p>
         </div>
 
         <div className="text-right">
           <div className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
-            {formatHours(item.avgResolutionHours)}
+            {formatHours(item.avgResolutionHours, hourUnit)}
           </div>
           <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-            / {formatHours(item.slaTargetHours)}
+            / {formatHours(item.slaTargetHours, hourUnit)}
           </div>
         </div>
       </div>
@@ -59,13 +66,13 @@ export default function PrioritySLARow({ item, maxScaleHours }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          Breach: {formatNumber(item.breachCount)}
+          {t('dashboard.prioritySla.breach', { count: formatNumber(item.breachCount) })}
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          On-time: {Number(item.onTimePercentage ?? 0).toFixed(0)}%
+          {t('dashboard.prioritySla.onTime', { pct: Number(item.onTimePercentage ?? 0).toFixed(0) })}
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          Target: {formatHours(item.slaTargetHours)}
+          {t('dashboard.prioritySla.target', { target: formatHours(item.slaTargetHours, hourUnit) })}
         </span>
       </div>
     </div>

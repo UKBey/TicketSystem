@@ -1,9 +1,11 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { PRODUCT_COLORS } from './ChartColors';
 
 function TopAgentsBar({ data, loading, onAgentClick }) {
+  const { t } = useTranslation();
   const agentWorklogs = data?.agentWorklogs ?? [];
   const top5          = agentWorklogs.slice(0, 5);
   const maxMinutes    = top5.length > 0 ? top5[0].totalMinutes : 1;
@@ -15,7 +17,7 @@ function TopAgentsBar({ data, loading, onAgentClick }) {
         <Users className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
         <h2 className="text-sm font-bold uppercase tracking-[0.18em]"
           style={{ color: 'var(--text-secondary)' }}>
-          Most Active Agents
+          {t('dashboard.topAgents.title')}
         </h2>
       </div>
 
@@ -31,7 +33,7 @@ function TopAgentsBar({ data, loading, onAgentClick }) {
         </div>
       ) : top5.length === 0 ? (
         <p className="py-4 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-          No worklog entries found for this period.
+          {t('dashboard.topAgents.empty')}
         </p>
       ) : (
         <div className="space-y-3">
@@ -64,7 +66,7 @@ function TopAgentsBar({ data, loading, onAgentClick }) {
                 </div>
                 <div className="w-16 shrink-0 text-right">
                   <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {hours}h
+                    {hours}{t('dashboard.units.hour')}
                   </span>
                   <span className="ml-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     ({agent.totalEntries})

@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, Star } from 'lucide-react';
 import Skeleton from '../Skeleton';
 import { PRIORITY_COLORS } from '../../constants/ticketColors';
@@ -26,9 +27,9 @@ const ZONES = [
 const PRIORITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 
 const TREND_CONFIG = {
-  UP:     { icon: '↑', label: 'rising',  bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#15803d' },
-  DOWN:   { icon: '↓', label: 'falling', bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.30)',  color: '#b91c1c' },
-  STABLE: { icon: '→', label: 'stable',  bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.3)', color: '#64748b' },
+  UP:     { icon: '↑', labelKey: 'trendUp',     bg: 'rgba(34,197,94,0.10)',  border: 'rgba(34,197,94,0.30)',  color: '#15803d' },
+  DOWN:   { icon: '↓', labelKey: 'trendDown',   bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.30)',  color: '#b91c1c' },
+  STABLE: { icon: '→', labelKey: 'trendStable', bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.3)', color: '#64748b' },
 };
 
 // Convention: 0 = top, clockwise positive (matches StatusDistributionChart)
@@ -61,6 +62,7 @@ function getScoreColor(score) {
 }
 
 function CSATGaugeChart({ data, loading }) {
+  const { t } = useTranslation();
   const avgRating = data?.averageRating ?? 0;
   const totalResponses = data?.totalResponses ?? 0;
   const distribution = data?.ratingDistribution ?? {};
@@ -84,22 +86,22 @@ function CSATGaugeChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <Star className="h-3.5 w-3.5" />
-            CSAT Analytics
+            {t('dashboard.csatGauge.badge')}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Customer satisfaction score</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('dashboard.csatGauge.title')}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Rating distribution, monthly trend and priority-based CSAT analysis.
+            {t('dashboard.csatGauge.subtitle')}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           {!loading && (
             <span className="inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold break-words" style={{ backgroundColor: trendConf.bg, borderColor: trendConf.border, color: trendConf.color }}>
-              {trendConf.icon} {trend.thisMonth.toFixed(2)} this month · {trendConf.label}
+              {trendConf.icon} {t('dashboard.csatGauge.thisMonthSummary', { value: trend.thisMonth.toFixed(2), trend: t(`dashboard.csatGauge.${trendConf.labelKey}`) })}
             </span>
           )}
           <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Responses</div>
+            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.csatGauge.responses')}</div>
             <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
               {loading ? '…' : totalResponses.toLocaleString('en-US')}
             </div>
@@ -201,9 +203,9 @@ function CSATGaugeChart({ data, loading }) {
           {/* Month comparison */}
           {!loading && trend.lastMonth > 0 && (
             <div className="mt-1 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color-light)' }}>
-              <span style={{ color: 'var(--text-tertiary)' }}>Last month</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.csatGauge.lastMonth')}</span>
               <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{trend.lastMonth.toFixed(2)}</span>
-              <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>This month</span>
+              <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.csatGauge.thisMonth')}</span>
               <span className="font-bold" style={{ color: trendConf.color }}>{trend.thisMonth.toFixed(2)}</span>
             </div>
           )}
@@ -214,7 +216,7 @@ function CSATGaugeChart({ data, loading }) {
       {!loading && Object.keys(byPriority).length > 0 && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>
-            CSAT by priority
+            {t('dashboard.csatGauge.byPriority')}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PRIORITY_ORDER.filter((p) => byPriority[p]).map((priority) => {
@@ -223,13 +225,13 @@ function CSATGaugeChart({ data, loading }) {
               return (
                 <div key={priority} className="rounded-xl border px-3 py-2.5 text-center" style={{ backgroundColor: c.bg, borderColor: c.border }}>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.15em]" style={{ color: c.text }}>
-                    {priority}
+                    {t(`ticket.priority.${priority.toLowerCase()}`)}
                   </div>
                   <div className="mt-1 text-xl font-black" style={{ color: 'var(--text-primary)' }}>
                     {Number(item.avg).toFixed(1)}
                   </div>
                   <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {item.responses} responses
+                    {t('dashboard.csatGauge.priorityResponses', { count: item.responses })}
                   </div>
                 </div>
               );
@@ -243,7 +245,7 @@ function CSATGaugeChart({ data, loading }) {
         <div className="mt-6">
           <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>
             <MessageSquare className="h-3.5 w-3.5" />
-            Recent high-rated comments
+            {t('dashboard.csatGauge.topComments')}
           </p>
           <div className="flex flex-wrap gap-2">
             {topComments.map((comment, i) => (

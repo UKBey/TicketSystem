@@ -929,6 +929,123 @@
       "unassigned": "Unassigned",
       "newWaiting": "New Waiting",
       "avgWait": "Avg. Wait"
+    },
+    "units": {
+      "hour": "h",
+      "minute": "min"
+    },
+    "statusChart": {
+      "badge": "Status Distribution",
+      "title": "Ticket status at a glance",
+      "subtitle": "Counts for New, In Progress, Waiting for Customer, Resolved and Closed.",
+      "total": "Total",
+      "ticket": "ticket",
+      "descNew": "Awaiting assignment",
+      "descInProgress": "Currently being worked on",
+      "descWaiting": "Awaiting customer response",
+      "descResolved": "Successfully resolved",
+      "descClosed": "Closed tickets"
+    },
+    "timelineChart": {
+      "badge": "Trend Chart",
+      "title": "Created, Resolved, Closed & SLA Breach",
+      "subtitle": "Toggle series from the legend. Use the bar below to adjust the date range.",
+      "empty": "No timeline data available."
+    },
+    "prioritySla": {
+      "badge": "Priority SLA Comparison",
+      "title": "SLA target vs. avg. resolution time",
+      "subtitle": "SLA target and average resolution time compared on the same scale.",
+      "avgOnTime": "Avg on-time",
+      "legendGood": "90%+ on target",
+      "legendWarning": "80–90% warning",
+      "legendDanger": "< 80% at risk",
+      "maxScale": "Max scale: {{hours}}",
+      "empty": "No priority SLA metrics found.",
+      "rowSummary": "{{count}} tickets · SLA target {{target}}",
+      "breach": "Breach: {{count}}",
+      "onTime": "On-time: {{pct}}%",
+      "target": "Target: {{target}}"
+    },
+    "agentTable": {
+      "badge": "Agent leaderboard",
+      "title": "Performance ranking",
+      "subtitle": "Active workload, resolutions in the last 24h, avg. resolution time and CSAT in one table.",
+      "statAgents": "Agents",
+      "statActive": "Active",
+      "statResolved24h": "Resolved 24h",
+      "statAvgCsat": "Avg CSAT",
+      "colRank": "Rank",
+      "colAgent": "Agent",
+      "colActive": "Active",
+      "colResolved": "Resolved",
+      "colAvgResolution": "Avg. resolution",
+      "colCsat": "CSAT",
+      "colSlaWorklog": "SLA / Worklog",
+      "lead": "Lead",
+      "slaCount": "{{count}} SLA",
+      "empty": "No agent performance records to display."
+    },
+    "productChart": {
+      "title": "Ticket Distribution by Product",
+      "subtitle": "{{count}} total tickets · Top {{top}} products",
+      "productsCount": "{{count}} products",
+      "other": "Other ({{count}} products)",
+      "otherShort": "Other",
+      "openPct": "{{pct}}% open",
+      "empty": "No product data found",
+      "tipTotal": "Total Tickets",
+      "tipOpen": "Open Tickets",
+      "tipResolution": "Avg. Resolution",
+      "tipCsat": "Avg. CSAT",
+      "tipSla": "SLA Breach"
+    },
+    "csatGauge": {
+      "badge": "CSAT Analytics",
+      "title": "Customer satisfaction score",
+      "subtitle": "Rating distribution, monthly trend and priority-based CSAT analysis.",
+      "thisMonthSummary": "{{value}} this month · {{trend}}",
+      "responses": "Responses",
+      "lastMonth": "Last month",
+      "thisMonth": "This month",
+      "byPriority": "CSAT by priority",
+      "priorityResponses": "{{count}} responses",
+      "topComments": "Recent high-rated comments",
+      "trendUp": "rising",
+      "trendDown": "falling",
+      "trendStable": "stable"
+    },
+    "worklogChart": {
+      "badge": "Worklog Summary",
+      "title": "Working hours & completion",
+      "subtitle": "Logged worklog and ticket completion analysis for the last {{days}} days.",
+      "completed": "Completed",
+      "incomplete": "Incomplete",
+      "inDays": "in {{days}} days",
+      "entries": "{{count}} entries",
+      "totalEntries": "Total entries",
+      "totalHours": "Total hours",
+      "tickets": "{{count}} / {{total}} tickets"
+    },
+    "completionMeters": {
+      "title": "Completion Meters",
+      "ticketCompletion": "Ticket Completion",
+      "slaCompliance": "SLA Compliance",
+      "completionDetail": "{{completed}} / {{created}} tickets",
+      "slaDetail": "across {{count}} resolved tickets",
+      "avgResolution": "Avg. resolution time",
+      "rowResolved": "Resolved",
+      "rowClosed": "Closed",
+      "rowStillOpen": "Still open",
+      "rowCreated": "Created",
+      "rowMetSla": "Met SLA",
+      "rowBreached": "Breached",
+      "across": "Across",
+      "acrossResolved": "{{count}} resolved"
+    },
+    "topAgents": {
+      "title": "Most Active Agents",
+      "empty": "No worklog entries found for this period."
     }
   },
   "notification": {

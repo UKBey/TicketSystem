@@ -929,6 +929,123 @@
       "unassigned": "Atanmamış",
       "newWaiting": "Bekleyen Yeni",
       "avgWait": "Ort. Bekleme"
+    },
+    "units": {
+      "hour": "sa",
+      "minute": "dk"
+    },
+    "statusChart": {
+      "badge": "Durum Dağılımı",
+      "title": "Bilet durumuna tek bakış",
+      "subtitle": "Yeni, İşlemde, Müşteri Bekleniyor, Çözüldü ve Kapatıldı sayıları.",
+      "total": "Toplam",
+      "ticket": "bilet",
+      "descNew": "Atama bekliyor",
+      "descInProgress": "Üzerinde çalışılıyor",
+      "descWaiting": "Müşteri yanıtı bekleniyor",
+      "descResolved": "Başarıyla çözüldü",
+      "descClosed": "Kapatılan biletler"
+    },
+    "timelineChart": {
+      "badge": "Trend Grafiği",
+      "title": "Oluşturulan, Çözülen, Kapanan & SLA İhlali",
+      "subtitle": "Serileri açıklamadan aç/kapat. Tarih aralığını alttaki çubukla ayarla.",
+      "empty": "Zaman çizelgesi verisi yok."
+    },
+    "prioritySla": {
+      "badge": "Öncelik SLA Karşılaştırması",
+      "title": "SLA hedefi vs. ort. çözüm süresi",
+      "subtitle": "SLA hedefi ve ortalama çözüm süresi aynı ölçekte karşılaştırılır.",
+      "avgOnTime": "Ort. zamanında",
+      "legendGood": "%90+ hedefte",
+      "legendWarning": "%80–90 uyarı",
+      "legendDanger": "%80 altı riskli",
+      "maxScale": "Maks ölçek: {{hours}}",
+      "empty": "Öncelik SLA metriği bulunamadı.",
+      "rowSummary": "{{count}} bilet · SLA hedefi {{target}}",
+      "breach": "İhlal: {{count}}",
+      "onTime": "Zamanında: %{{pct}}",
+      "target": "Hedef: {{target}}"
+    },
+    "agentTable": {
+      "badge": "Ajan sıralaması",
+      "title": "Performans sıralaması",
+      "subtitle": "Aktif iş yükü, son 24 saatteki çözümler, ort. çözüm süresi ve CSAT tek tabloda.",
+      "statAgents": "Ajanlar",
+      "statActive": "Aktif",
+      "statResolved24h": "24s Çözülen",
+      "statAvgCsat": "Ort. CSAT",
+      "colRank": "Sıra",
+      "colAgent": "Ajan",
+      "colActive": "Aktif",
+      "colResolved": "Çözülen",
+      "colAvgResolution": "Ort. çözüm",
+      "colCsat": "CSAT",
+      "colSlaWorklog": "SLA / Worklog",
+      "lead": "Lider",
+      "slaCount": "{{count}} SLA",
+      "empty": "Gösterilecek ajan performans kaydı yok."
+    },
+    "productChart": {
+      "title": "Ürüne Göre Bilet Dağılımı",
+      "subtitle": "Toplam {{count}} bilet · İlk {{top}} ürün",
+      "productsCount": "{{count}} ürün",
+      "other": "Diğer ({{count}} ürün)",
+      "otherShort": "Diğer",
+      "openPct": "%{{pct}} açık",
+      "empty": "Ürün verisi bulunamadı",
+      "tipTotal": "Toplam Bilet",
+      "tipOpen": "Açık Bilet",
+      "tipResolution": "Ort. Çözüm",
+      "tipCsat": "Ort. CSAT",
+      "tipSla": "SLA İhlali"
+    },
+    "csatGauge": {
+      "badge": "CSAT Analizi",
+      "title": "Müşteri memnuniyet puanı",
+      "subtitle": "Puan dağılımı, aylık trend ve önceliğe göre CSAT analizi.",
+      "thisMonthSummary": "bu ay {{value}} · {{trend}}",
+      "responses": "Yanıt",
+      "lastMonth": "Geçen ay",
+      "thisMonth": "Bu ay",
+      "byPriority": "Önceliğe göre CSAT",
+      "priorityResponses": "{{count}} yanıt",
+      "topComments": "Son yüksek puanlı yorumlar",
+      "trendUp": "yükseliyor",
+      "trendDown": "düşüyor",
+      "trendStable": "sabit"
+    },
+    "worklogChart": {
+      "badge": "Worklog Özeti",
+      "title": "Çalışma saatleri & tamamlanma",
+      "subtitle": "Son {{days}} gün için kaydedilen worklog ve bilet tamamlanma analizi.",
+      "completed": "Tamamlanan",
+      "incomplete": "Tamamlanmayan",
+      "inDays": "{{days}} günde",
+      "entries": "{{count}} kayıt",
+      "totalEntries": "Toplam kayıt",
+      "totalHours": "Toplam saat",
+      "tickets": "{{count}} / {{total}} bilet"
+    },
+    "completionMeters": {
+      "title": "Tamamlanma Ölçerleri",
+      "ticketCompletion": "Bilet Tamamlanma",
+      "slaCompliance": "SLA Uyumu",
+      "completionDetail": "{{completed}} / {{created}} bilet",
+      "slaDetail": "{{count}} çözülen bilet üzerinden",
+      "avgResolution": "Ort. çözüm süresi",
+      "rowResolved": "Çözülen",
+      "rowClosed": "Kapatılan",
+      "rowStillOpen": "Hâlâ açık",
+      "rowCreated": "Oluşturulan",
+      "rowMetSla": "SLA karşılandı",
+      "rowBreached": "İhlal edildi",
+      "across": "Kapsam",
+      "acrossResolved": "{{count}} çözülen"
+    },
+    "topAgents": {
+      "title": "En Aktif Ajanlar",
+      "empty": "Bu dönem için worklog kaydı bulunamadı."
     }
   },
   "notification": {

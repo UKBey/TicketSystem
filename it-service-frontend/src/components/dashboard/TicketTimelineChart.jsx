@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LineChart as LineChartIcon } from 'lucide-react';
 import {
   Brush,
@@ -63,12 +64,17 @@ function CustomTooltip({ active, payload, label }) {
 function TicketTimelineChart({
   data,
   loading,
-  title = 'Created, Resolved, Closed & SLA Breach',
-  subtitle = 'Toggle series from the legend. Use the bar below to adjust the date range.',
-  badgeLabel = 'Trend Chart',
+  title,
+  subtitle,
+  badgeLabel,
   // Per-series label overrides (e.g. { created: 'Claimed' } for the agent dashboard).
   seriesLabels = null,
 }) {
+  const { t } = useTranslation();
+  // Callers (per-dashboard) override these; manager dashboard falls back to the shared defaults.
+  const resolvedTitle = title ?? t('dashboard.timelineChart.title');
+  const resolvedSubtitle = subtitle ?? t('dashboard.timelineChart.subtitle');
+  const resolvedBadge = badgeLabel ?? t('dashboard.timelineChart.badge');
   const chartData = useMemo(() => normalizeTimeline(data), [data]);
   const [visibleSeries, setVisibleSeries] = useState(() => ({
     created: true,
@@ -96,18 +102,18 @@ function TicketTimelineChart({
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <LineChartIcon className="h-3.5 w-3.5" />
-            {badgeLabel}
+            {resolvedBadge}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{resolvedTitle}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {subtitle}
+            {resolvedSubtitle}
           </p>
         </div>
       </div>
 
       {!loading && !hasData ? (
         <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          No timeline data available.
+          {t('dashboard.timelineChart.empty')}
         </div>
       ) : (
         <div className="timeline-chart-scroll">

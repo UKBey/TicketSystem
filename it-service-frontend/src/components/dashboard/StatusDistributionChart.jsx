@@ -1,13 +1,14 @@
 import { memo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PieChart } from 'lucide-react';
 import { STATUS_COLORS } from '../../constants/ticketColors';
 
 const STATUS_CONFIG = [
-  { key: 'newCount', label: 'NEW', color: STATUS_COLORS.NEW.solid, description: 'Awaiting assignment' },
-  { key: 'inProgressCount', label: 'IN_PROGRESS', color: STATUS_COLORS.IN_PROGRESS.solid, description: 'Currently being worked on' },
-  { key: 'waitingForCustomerCount', label: 'WAITING_FOR_CUSTOMER', color: STATUS_COLORS.WAITING_FOR_CUSTOMER.solid, description: 'Awaiting customer response' },
-  { key: 'resolvedCount', label: 'RESOLVED', color: STATUS_COLORS.RESOLVED.solid, description: 'Successfully resolved' },
-  { key: 'closedCount', label: 'CLOSED', color: STATUS_COLORS.CLOSED.solid, description: 'Closed tickets' },
+  { key: 'newCount', statusKey: 'new', color: STATUS_COLORS.NEW.solid, descKey: 'descNew' },
+  { key: 'inProgressCount', statusKey: 'in_progress', color: STATUS_COLORS.IN_PROGRESS.solid, descKey: 'descInProgress' },
+  { key: 'waitingForCustomerCount', statusKey: 'waiting_for_customer', color: STATUS_COLORS.WAITING_FOR_CUSTOMER.solid, descKey: 'descWaiting' },
+  { key: 'resolvedCount', statusKey: 'resolved', color: STATUS_COLORS.RESOLVED.solid, descKey: 'descResolved' },
+  { key: 'closedCount', statusKey: 'closed', color: STATUS_COLORS.CLOSED.solid, descKey: 'descClosed' },
 ];
 
 function formatNumber(value) {
@@ -39,6 +40,7 @@ function polarToCartesian(cx, cy, radius, angleInDegrees) {
 }
 
 function StatusDistributionChart({ data, loading }) {
+  const { t } = useTranslation();
   // hoveredKey: active on hover, activeKey: pinned by click
   const [hoveredKey, setHoveredKey] = useState(null);
   const [activeKey, setActiveKey] = useState(null);
@@ -48,6 +50,8 @@ function StatusDistributionChart({ data, loading }) {
 
   const entries = STATUS_CONFIG.map((item) => ({
     ...item,
+    label: t(`ticket.status.${item.statusKey}`),
+    description: t(`dashboard.statusChart.${item.descKey}`),
     value: Number(data?.[item.key] ?? 0),
   }));
 
@@ -64,7 +68,7 @@ function StatusDistributionChart({ data, loading }) {
   }, []);
 
   const activeSegment = segments.find((s) => s.key === displayKey);
-  const centerLabel = activeSegment ? activeSegment.label : 'Total';
+  const centerLabel = activeSegment ? activeSegment.label : t('dashboard.statusChart.total');
   const centerValue = activeSegment ? activeSegment.value : total;
 
   const handleSegmentClick = (key) => {
@@ -77,15 +81,15 @@ function StatusDistributionChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <PieChart className="h-3.5 w-3.5" />
-            Status Distribution
+            {t('dashboard.statusChart.badge')}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Ticket status at a glance</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('dashboard.statusChart.title')}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Counts for NEW, IN_PROGRESS, WAITING_FOR_CUSTOMER, RESOLVED and CLOSED.
+            {t('dashboard.statusChart.subtitle')}
           </p>
         </div>
         <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Total</div>
+          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.statusChart.total')}</div>
           <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{formatNumber(total)}</div>
         </div>
       </div>
@@ -154,7 +158,7 @@ function StatusDistributionChart({ data, loading }) {
               <span className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {activeSegment
                   ? `%${total > 0 ? Math.round((activeSegment.value / total) * 100) : 0}`
-                  : 'ticket'}
+                  : t('dashboard.statusChart.ticket')}
               </span>
             </div>
           </div>

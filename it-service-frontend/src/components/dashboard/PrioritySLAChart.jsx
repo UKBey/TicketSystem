@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BarChart3 } from 'lucide-react';
 import { SLA_TONE_COLORS } from './ChartColors';
 import PrioritySLARow from './PrioritySLARow';
@@ -32,6 +33,7 @@ function normalizePriorityMetrics(data) {
 }
 
 function PrioritySLAChart({ data, loading }) {
+  const { t } = useTranslation();
   const items = useMemo(() => normalizePriorityMetrics(data), [data]);
 
   const maxScaleHours = Math.max(48, ...items.map((item) => item.slaTargetHours || 0), ...items.map((item) => item.avgResolutionHours || 0));
@@ -54,38 +56,38 @@ function PrioritySLAChart({ data, loading }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
             <BarChart3 className="h-3.5 w-3.5" />
-            Priority SLA Comparison
+            {t('dashboard.prioritySla.badge')}
           </div>
-          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>SLA target vs. avg. resolution time</h2>
+          <h2 className="mt-3 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('dashboard.prioritySla.title')}</h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            SLA target and average resolution time compared on the same scale.
+            {t('dashboard.prioritySla.subtitle')}
           </p>
         </div>
 
         <div className="rounded-2xl px-3 py-2 text-right" style={{ backgroundColor: 'var(--bg-surface-secondary)' }}>
-          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>Avg on-time</div>
+          <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: 'var(--text-tertiary)' }}>{t('dashboard.prioritySla.avgOnTime')}</div>
           <div className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{averageOnTime.toFixed(0)}%</div>
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium">
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.goodBg, color: SLA_TONE_COLORS.goodText }}>
-          90%+ on target
+          {t('dashboard.prioritySla.legendGood')}
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.warningBg, color: SLA_TONE_COLORS.warningText }}>
-          80–90% warning
+          {t('dashboard.prioritySla.legendWarning')}
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: SLA_TONE_COLORS.dangerBg, color: SLA_TONE_COLORS.dangerText }}>
-          &lt; 80% at risk
+          {t('dashboard.prioritySla.legendDanger')}
         </span>
         <span className="priority-sla-chip" style={{ backgroundColor: 'var(--bg-surface-secondary)', color: 'var(--text-secondary)' }}>
-          Max scale: {formatNumber(maxScaleHours)}h
+          {t('dashboard.prioritySla.maxScale', { hours: `${formatNumber(maxScaleHours)}${t('dashboard.units.hour')}` })}
         </span>
       </div>
 
       {!loading && items.length === 0 ? (
         <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm" style={{ backgroundColor: 'var(--bg-surface-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-          No priority SLA metrics found.
+          {t('dashboard.prioritySla.empty')}
         </div>
       ) : (
         <div className="space-y-3">

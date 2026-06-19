@@ -26,10 +26,11 @@ describe('PrioritySLAChart', () => {
 
   it('renders a row for each priority level', () => {
     render(<PrioritySLAChart data={SAMPLE_DATA} loading={false} />);
-    expect(screen.getByText('CRITICAL')).toBeInTheDocument();
-    expect(screen.getByText('HIGH')).toBeInTheDocument();
-    expect(screen.getByText('MEDIUM')).toBeInTheDocument();
-    expect(screen.getByText('LOW')).toBeInTheDocument();
+    // Priority labels are localized via the shared ticket.priority.* keys.
+    expect(screen.getByText('Critical')).toBeInTheDocument();
+    expect(screen.getByText('High')).toBeInTheDocument();
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+    expect(screen.getByText('Low')).toBeInTheDocument();
   });
 
   it('displays average on-time percentage in header', () => {
@@ -54,6 +55,6 @@ describe('PrioritySLAChart', () => {
 
     const headings = screen.getAllByRole('heading', { level: 3 });
     const labels = headings.map((h) => h.textContent);
-    expect(labels).toEqual(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
+    expect(labels).toEqual(['Critical', 'High', 'Medium', 'Low']);
   });
 });
