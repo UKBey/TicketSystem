@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../../context/ToastContext';
 
@@ -142,11 +141,12 @@ describe('Dashboard — Integration', () => {
 
   it('refresh button triggers data reload', async () => {
     setupHappyPath();
-    const user = userEvent.setup();
     renderDashboard();
 
-    await waitFor(() => screen.getByText('Refresh data'));
-    await user.click(screen.getByText('Refresh data'));
+    // İlk yükün tamamlanmasını bekle
+    await waitFor(() => screen.getByText('Open Tickets'));
+
+    fireEvent.click(screen.getByRole('button', { name: /refresh data/i }));
 
     await waitFor(() => {
       expect(metricService.getDashboardSummary).toHaveBeenCalledTimes(2);
