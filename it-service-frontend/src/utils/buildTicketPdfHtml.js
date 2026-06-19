@@ -120,7 +120,7 @@ function conversationChatSection(items, viewerIsCustomer, ticket, t) {
   const customerId = ticket.customerId;
   const bubbles = chatItems.map((c) => {
     const name = c.authorName || c.authorId || '';
-    const when = `<span class="when">${esc(formatShortDate(c.createdAt))}</span>`;
+    const when = `<span class="when">${esc(formatDate(c.createdAt))}</span>`;
     if (c.type === 'INTERNAL') {
       // Dahili not: sarı, sağ tarafta (ajan tarafı), "INTERNAL" rozeti — TicketTimeline ile aynı.
       return `

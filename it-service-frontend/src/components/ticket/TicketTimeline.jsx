@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Send, Paperclip, File, FileText, FileArchive, Image, Download, Zap, Star, AlertTriangle, X,
 } from 'lucide-react';
-import { formatShortDate } from '../../utils/ticketFormatters';
+import { formatDate } from '../../utils/ticketFormatters';
 import { useTicketDetailContext } from './TicketDetailContext';
 import { useCannedResponses } from '../../hooks/useCannedResponses';
 import { useAnchoredPosition } from '../../hooks/useAnchoredPosition';
@@ -315,7 +315,7 @@ export default function TicketTimeline() {
                 className={`text-[11px] mt-1 ${isRight && !isInternal ? 'text-white/60' : ''}`}
                 style={!isRight || isInternal ? { color: 'var(--text-tertiary)' } : {}}
               >
-                {formatShortDate(item.createdAt)}
+                {formatDate(item.createdAt)}
               </div>
             </div>
           );
