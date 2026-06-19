@@ -10,7 +10,7 @@ const LANGUAGES = [
 ];
 
 export default function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -63,7 +63,7 @@ export default function LanguageSwitcher() {
         }}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Select language"
+        aria-label={t('nav.language.select')}
       >
         <span className="text-sm leading-none">{current.flag}</span>
         <span className="hidden sm:inline">{current.label}</span>
@@ -83,7 +83,7 @@ export default function LanguageSwitcher() {
             boxShadow: 'var(--shadow-xl, 0 10px 40px rgba(0,0,0,0.15))',
           }}
           role="listbox"
-          aria-label="Language options"
+          aria-label={t('nav.language.options')}
         >
           {LANGUAGES.map((lang) => {
             const isSelected = lang.code === currentLang;

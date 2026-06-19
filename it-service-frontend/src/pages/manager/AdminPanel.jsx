@@ -47,7 +47,7 @@ function ProductChips({ products, onRemove, t }) {
           {localizedName(prod)}
           <button
             onClick={() => onRemove(prod.id)}
-            title="Remove"
+            title={t('admin.panel.remove')}
             className="ml-0.5 rounded hover:text-danger-500 transition-colors cursor-pointer"
             style={{ color: 'var(--text-tertiary)' }}
           >

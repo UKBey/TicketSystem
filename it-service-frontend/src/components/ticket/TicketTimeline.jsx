@@ -286,7 +286,7 @@ export default function TicketTimeline() {
 
               {item._type === 'attachment' ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleDownloadAttachment(item)} title="Click to download">
+                  <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleDownloadAttachment(item)} title={t('ticketDetail.clickToDownload')}>
                     {getFileIcon(item.fileType)}
                     <span className="font-semibold text-sm">{item.fileName}</span>
                   </div>
@@ -476,7 +476,7 @@ export default function TicketTimeline() {
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-lg border transition-colors cursor-pointer"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                title="Attach File"
+                title={t('ticketDetail.attachFile')}
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >

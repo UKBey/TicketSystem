@@ -264,7 +264,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   autoComplete="given-name"
                   className={inputClass('firstName')}
                   style={inputStyle('firstName')}
-                  placeholder="John"
+                  placeholder={t('userManagement.form.firstNamePlaceholder')}
                   aria-invalid={!!errors.firstName}
                   aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                 />
@@ -285,7 +285,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   autoComplete="family-name"
                   className={inputClass('lastName')}
                   style={inputStyle('lastName')}
-                  placeholder="Doe"
+                  placeholder={t('userManagement.form.lastNamePlaceholder')}
                   aria-invalid={!!errors.lastName}
                   aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                 />
@@ -309,7 +309,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 autoComplete="username"
                 className={inputClass('username')}
                 style={inputStyle('username')}
-                placeholder="john.doe"
+                placeholder={t('userManagement.form.usernamePlaceholder')}
                 aria-invalid={!!errors.username}
                 aria-describedby={errors.username ? 'username-error' : undefined}
               />
@@ -332,7 +332,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                 autoComplete="email"
                 className={inputClass('email')}
                 style={inputStyle('email')}
-                placeholder="john.doe@example.com"
+                placeholder={t('userManagement.form.emailPlaceholder')}
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? 'email-error' : undefined}
               />
@@ -366,7 +366,7 @@ export default function AdminCreateUserModal({ isOpen, onClose, onUserCreated })
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
                   style={{ color: 'var(--text-tertiary)' }}
                   tabIndex={-1}
-                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  aria-label={showPassword ? t('userManagement.form.hidePassword') : t('userManagement.form.showPassword')}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

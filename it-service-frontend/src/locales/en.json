@@ -20,7 +20,9 @@
     "language": {
       "label": "Language",
       "en": "English",
-      "tr": "Turkish"
+      "tr": "Turkish",
+      "select": "Select language",
+      "options": "Language options"
     }
   },
   "sidebar": {
@@ -527,6 +529,8 @@
     "noTopic": "No topic",
     "noComments": "No comments or attachments yet.",
     "download": "Download",
+    "clickToDownload": "Click to download",
+    "attachFile": "Attach File",
     "replyToCustomer": "Reply to Customer",
     "internalNote": "Internal Note",
     "messagePlaceholder": "Type your message...",
@@ -782,6 +786,7 @@
       "noUsers": "No users found.",
       "alertAssign": "Please select a product to assign.",
       "errorAssign": "Could not assign product.",
+      "remove": "Remove",
       "confirmRemove": "Are you sure you want to remove this product authorization?",
       "errorRemove": "Could not remove product authorization.",
       "assignSuccess": "Product access granted.",
@@ -1199,6 +1204,12 @@
       "password": "Password",
       "passwordPlaceholder": "Min. 8 chars, 1 uppercase, 1 digit",
       "passwordHint": "Must be at least 8 characters, include 1 uppercase letter and 1 number.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "firstNamePlaceholder": "John",
+      "lastNamePlaceholder": "Doe",
+      "usernamePlaceholder": "john.doe",
+      "emailPlaceholder": "john.doe@example.com",
       "roles": "Roles",
       "rolesHint": "At least one role must be selected.",
       "rolesLoadError": "Could not load roles. Please try again.",
@@ -1260,6 +1271,7 @@
     "close": "Close",
     "loading": "Loading...",
     "loadingData": "Loading data",
+    "resizeColumn": "Drag to resize column",
     "error": "An error occurred.",
     "retry": "Retry",
     "noResults": "No results found.",

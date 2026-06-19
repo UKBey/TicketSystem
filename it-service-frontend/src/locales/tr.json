@@ -7,7 +7,9 @@
     "language": {
       "label": "Dil",
       "en": "İngilizce",
-      "tr": "Türkçe"
+      "tr": "Türkçe",
+      "select": "Dil seç",
+      "options": "Dil seçenekleri"
     }
   },
   "filters": {
@@ -527,6 +529,8 @@
     "noTopic": "Konu yok",
     "noComments": "Henüz yorum veya dosya eki yok.",
     "download": "İndir",
+    "clickToDownload": "İndirmek için tıklayın",
+    "attachFile": "Dosya Ekle",
     "replyToCustomer": "Müşteriye Yanıt Ver",
     "internalNote": "Dahili Not",
     "messagePlaceholder": "Mesajınızı yazın...",
@@ -782,6 +786,7 @@
       "noUsers": "Kullanıcı bulunamadı.",
       "alertAssign": "Lütfen atanacak bir ürün seçin.",
       "errorAssign": "Ürün atanamadı.",
+      "remove": "Kaldır",
       "confirmRemove": "Bu ürün yetkisini kaldırmak istediğinizden emin misiniz?",
       "errorRemove": "Ürün yetkisi kaldırılamadı.",
       "assignSuccess": "Ürün erişimi verildi.",
@@ -1199,6 +1204,12 @@
       "password": "Şifre",
       "passwordPlaceholder": "Min. 8 karakter, 1 büyük harf, 1 rakam",
       "passwordHint": "En az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.",
+      "showPassword": "Şifreyi göster",
+      "hidePassword": "Şifreyi gizle",
+      "firstNamePlaceholder": "Ahmet",
+      "lastNamePlaceholder": "Yılmaz",
+      "usernamePlaceholder": "ahmet.yilmaz",
+      "emailPlaceholder": "ahmet.yilmaz@ornek.com",
       "roles": "Roller",
       "rolesHint": "En az bir rol seçilmelidir.",
       "rolesLoadError": "Roller yüklenemedi. Lütfen tekrar deneyin.",
@@ -1260,6 +1271,7 @@
     "close": "Kapat",
     "loading": "Yükleniyor...",
     "loadingData": "Veri yükleniyor",
+    "resizeColumn": "Sürükleyerek sütun genişliğini ayarla",
     "error": "Bir hata oluştu.",
     "retry": "Tekrar Dene",
     "noResults": "Sonuç bulunamadı.",
