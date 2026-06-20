@@ -235,8 +235,10 @@ public class TicketService {
 
         // AGENT / LEAD_AGENT: yalnızca yetkili oldukları ürünlerin biletlerini görür.
         if (AuthRoles.isAgentLevel(roles)) {
-            User staff = userRepository.findById(userId).orElseThrow();
-            boolean authorized = staff.getAuthorizedProducts().stream()
+            // Henüz /users/sync yapmamış (yerel users satırı olmayan) geçerli bir JWT
+            // sahibi → yetkili ürün yok say; ham 500 yerine aşağıdaki temiz 403'e düşer.
+            User staff = userRepository.findById(userId).orElse(null);
+            boolean authorized = staff != null && staff.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
             if (authorized) return ticket;
         }
@@ -264,8 +266,9 @@ public class TicketService {
 
         // LEAD_AGENT: yetkili ürünlerinde claim ALMADAN işlem yapabilir (takım lideri).
         if (AuthRoles.isLeadAgent(roles)) {
-            User lead = userRepository.findById(userId).orElseThrow();
-            boolean productAuthorized = lead.getAuthorizedProducts().stream()
+            // Un-synced kullanıcı → yetkili ürün yok say; zaten aşağıdaki 403'e düşer.
+            User lead = userRepository.findById(userId).orElse(null);
+            boolean productAuthorized = lead != null && lead.getAuthorizedProducts().stream()
                     .anyMatch(p -> p.getId().equals(ticket.getProductId()));
             if (productAuthorized) return ticket;
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.ticket.view.forbidden");

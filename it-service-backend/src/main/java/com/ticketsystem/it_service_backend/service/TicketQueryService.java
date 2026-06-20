@@ -513,8 +513,9 @@ public class TicketQueryService {
             // ADMIN / MANAGER global: ürün kapsamını atlar. AGENT / LEAD_AGENT
             // yalnızca yetkili oldukları ürünün biletlerini görebilir.
             if (!AuthRoles.isGlobal(roles)) {
-                User agent = userRepository.findById(userId).orElseThrow();
-                boolean authorized = agent.getAuthorizedProducts().stream()
+                // Un-synced kullanıcı → yetkili ürün yok say; 500 yerine boş sayfa döner.
+                User agent = userRepository.findById(userId).orElse(null);
+                boolean authorized = agent != null && agent.getAuthorizedProducts().stream()
                         .anyMatch(p -> p.getId().equals(productId));
                 if (!authorized) return Page.empty(pageable);
             }
