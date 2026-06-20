@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
 
 /**
@@ -20,6 +20,9 @@ export function usePagedFetch(path, params) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Monotonic istek kimliği — bayat yanıtların yeni sonucu ezmesini engeller.
+  const reqRef = useRef(0);
+
   const fetch = useCallback(async () => {
     // path falsy ise (örn. henüz ürün seçilmedi) istek atma.
     if (!path) {
@@ -27,6 +30,7 @@ export function usePagedFetch(path, params) {
       setLoading(false);
       return;
     }
+    const reqId = ++reqRef.current;
     setLoading(true);
     setError('');
     try {
@@ -37,12 +41,14 @@ export function usePagedFetch(path, params) {
         else qs.append(k, v);
       });
       const res = await api.get(`${path}?${qs.toString()}`);
+      if (reqId !== reqRef.current) return; // bayat yanıt — yoksay
       setData(res.data);
     } catch (err) {
+      if (reqId !== reqRef.current) return;
       console.error(`usePagedFetch error [${path}]:`, err);
       setError(err.response?.data?.message || 'Could not load data.');
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
     // params içeriği (key) değişince yeniden çek.
   }, [path, key]); // eslint-disable-line react-hooks/exhaustive-deps

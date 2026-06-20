@@ -61,7 +61,13 @@ export function useTicketList(endpoint, opts = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState('');
 
+  // Monotonic istek kimliği — hızlı filtre/sayfa değişiminde birden çok istek
+  // uçuştayken, yalnızca en son başlatılan istek state'i yazsın. Daha yavaş biten
+  // eski bir istek yeni sonucu ezmesin (stale-response race).
+  const reqRef = useRef(0);
+
   const fetch = useCallback(async () => {
+    const reqId = ++reqRef.current;
     setLoading(true);
     setError('');
     try {
@@ -90,12 +96,14 @@ export function useTicketList(endpoint, opts = {}) {
         else qs.set(k, v);
       });
       const res = await api.get(`${endpoint}?${qs.toString()}`);
+      if (reqId !== reqRef.current) return; // bayat yanıt — yoksay
       setData(res.data);
     } catch (err) {
+      if (reqId !== reqRef.current) return;
       console.error(`useTicketList fetch error [${endpoint}]:`, err);
       setError(err.response?.data?.message || 'Could not load tickets.');
     } finally {
-      setLoading(false);
+      if (reqId === reqRef.current) setLoading(false);
     }
     // searchParams ya da extraParams içeriği değişince yeniden çek.
   }, [endpoint, searchParams, extraParamsKey]); // eslint-disable-line react-hooks/exhaustive-deps

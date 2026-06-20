@@ -59,6 +59,8 @@ function PaletteInner() {
 
   const inputRef = useRef(null);
   const itemRefs = useRef([]);
+  // Monotonic arama kimliği — hızlı yazımda bayat yanıt yenisini ezmesin.
+  const searchReqRef = useRef(0);
 
   // ── Rol + panel tercihlerine göre komut listesi (Sidebar mantığının aynısı) ──
   const commands = useMemo(() => {
@@ -96,14 +98,18 @@ function PaletteInner() {
       setSearching(false);
       return;
     }
+    const reqId = ++searchReqRef.current;
     setSearching(true);
     const endpoint = isStaff ? '/tickets/all' : '/tickets';
     api.get(endpoint, {
       params: { search: q, size: SEARCH_LIMIT, page: 0, sortBy: 'createdAt', sortDir: 'desc' },
     })
-      .then((res) => { setResults(res.data?.content ?? []); setActiveIndex(0); })
-      .catch(() => setResults([]))
-      .finally(() => setSearching(false));
+      .then((res) => {
+        if (reqId !== searchReqRef.current) return; // bayat yanıt — yoksay
+        setResults(res.data?.content ?? []); setActiveIndex(0);
+      })
+      .catch(() => { if (reqId === searchReqRef.current) setResults([]); })
+      .finally(() => { if (reqId === searchReqRef.current) setSearching(false); });
   }, [isStaff]);
 
   useEffect(() => {

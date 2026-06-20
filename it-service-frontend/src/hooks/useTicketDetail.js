@@ -63,6 +63,11 @@ export function useTicketDetail(id, isAgent) {
   const fileInputRef = useRef(null);
   const chatEndRef   = useRef(null);
 
+  // Monotonic istek kimlikleri — bilet ID değişince (başka bilete geçiş) ya da
+  // hızlı ardışık yenilemelerde uçuştaki eski yanıt yeni state'i ezmesin.
+  const ticketReqRef   = useRef(0);
+  const commentsReqRef = useRef(0);
+
   // Yorum cooldown'ını backend'den çek (oturum başına bir kez cache'lenir).
   useEffect(() => {
     let active = true;
@@ -77,19 +82,23 @@ export function useTicketDetail(id, isAgent) {
   // ---- fetch ----------------------------------------------------------------
 
   const fetchTicket = useCallback(async () => {
+    const reqId = ++ticketReqRef.current;
     try {
       const res = await api.get(`/tickets/${id}`);
+      if (reqId !== ticketReqRef.current) return; // bayat yanıt — yoksay
       setTicket(res.data);
     } catch (err) {
       console.error('Could not load ticket:', err);
     } finally {
-      setLoading(false);
+      if (reqId === ticketReqRef.current) setLoading(false);
     }
   }, [id]);
 
   const fetchComments = useCallback(async () => {
+    const reqId = ++commentsReqRef.current;
     try {
       const res = await api.get(`/tickets/${id}/comments`);
+      if (reqId !== commentsReqRef.current) return; // bayat yanıt — yoksay
       setComments(res.data);
     } catch (err) {
       console.error('Could not load comments:', err);
