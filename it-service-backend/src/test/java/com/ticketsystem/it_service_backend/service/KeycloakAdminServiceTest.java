@@ -48,7 +48,13 @@ class KeycloakAdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new KeycloakAdminService(keycloakAdminClient);
+        PasswordPolicyValidator passwordPolicyValidator = new PasswordPolicyValidator();
+        ReflectionTestUtils.setField(passwordPolicyValidator, "minLength", 8);
+        ReflectionTestUtils.setField(passwordPolicyValidator, "minLowercase", 1);
+        ReflectionTestUtils.setField(passwordPolicyValidator, "minUppercase", 1);
+        ReflectionTestUtils.setField(passwordPolicyValidator, "minDigits", 1);
+        ReflectionTestUtils.setField(passwordPolicyValidator, "notUsername", true);
+        service = new KeycloakAdminService(keycloakAdminClient, passwordPolicyValidator);
         ReflectionTestUtils.setField(service, "realm", "TicketSystemRealm");
     }
 
@@ -402,6 +408,19 @@ class KeycloakAdminServiceTest {
     }
 
     @Test
+    void changeUserPassword_weakPassword_rejectedBeforeKeycloak() {
+        // Keycloak Admin API politikayi uygulamaz; zayif sifre Keycloak'a hic gitmemeli.
+        when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.get("kc-1")).thenReturn(userResource);
+
+        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "weak"))
+                .isInstanceOf(com.ticketsystem.it_service_backend.exception.InvalidPasswordException.class);
+
+        verify(userResource, never()).resetPassword(any(CredentialRepresentation.class));
+    }
+
+    @Test
     void changeUserPassword_policyViolation400_throwsInvalidPassword() {
         when(keycloakAdminClient.realm("TicketSystemRealm")).thenReturn(realmResource);
         when(realmResource.users()).thenReturn(usersResource);
@@ -410,7 +429,8 @@ class KeycloakAdminServiceTest {
                 new jakarta.ws.rs.WebApplicationException(Response.status(400).entity("too weak").build());
         org.mockito.Mockito.doThrow(ex).when(userResource).resetPassword(any(CredentialRepresentation.class));
 
-        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "weak"))
+        // Sifre yerel politikayi gecer ama Keycloak yine de 400 donerse (defense-in-depth).
+        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "ValidPass1"))
                 .isInstanceOf(com.ticketsystem.it_service_backend.exception.InvalidPasswordException.class);
     }
 
@@ -423,7 +443,7 @@ class KeycloakAdminServiceTest {
                 new jakarta.ws.rs.WebApplicationException(Response.status(500).entity("boom").build());
         org.mockito.Mockito.doThrow(ex).when(userResource).resetPassword(any(CredentialRepresentation.class));
 
-        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "x"))
+        assertThatThrownBy(() -> service.changeUserPassword("kc-1", "ValidPass1"))
                 .isInstanceOf(jakarta.ws.rs.WebApplicationException.class);
     }
 

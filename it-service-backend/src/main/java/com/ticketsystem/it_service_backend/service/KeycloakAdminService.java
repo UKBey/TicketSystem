@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -38,6 +39,7 @@ import java.util.Set;
 public class KeycloakAdminService {
 
     private final Keycloak keycloakAdminClient;
+    private final PasswordPolicyValidator passwordPolicyValidator;
 
     @Value("${keycloak.admin.realm}")
     private String realm;
@@ -340,12 +342,29 @@ public class KeycloakAdminService {
      */
     public void changeUserPassword(String keycloakId, String newPassword) {
         log.info("Şifre güncelleniyor. ID: {}", keycloakId);
+
+        UserResource userResource = keycloakAdminClient.realm(realm).users().get(keycloakId);
+
+        // Keycloak Admin API'nin resetPassword'ü realm şifre politikasını UYGULAMAZ
+        // (politika yalnızca kayıt/hesap konsolu gibi kullanıcıya dönük akışlarda zorlanır).
+        // Bu yüzden politikayı Keycloak'a göndermeden önce burada doğruluyoruz.
+        String username = null;
+        try {
+            UserRepresentation user = userResource.toRepresentation();
+            if (user != null) {
+                username = user.getUsername();
+            }
+        } catch (RuntimeException e) {
+            log.warn("Şifre politikası için kullanıcı adı alınamadı (notUsername atlandı). ID: {}", keycloakId);
+        }
+        passwordPolicyValidator.validate(newPassword, username);
+
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(newPassword);
         credential.setTemporary(false);
         try {
-            keycloakAdminClient.realm(realm).users().get(keycloakId).resetPassword(credential);
+            userResource.resetPassword(credential);
             log.info("Şifre başarıyla güncellendi. ID: {}", keycloakId);
         } catch (WebApplicationException e) {
             Response r = e.getResponse();

@@ -83,6 +83,16 @@ app:
     # sabit; max-length'i bunun uzerine cikartmayin, asagi cekmek guvenli.
     cooldown-seconds: ${COMMENT_COOLDOWN_SECONDS:3}
     max-length: ${COMMENT_MAX_LENGTH:500}
+  # Keycloak Admin API'nin resetPassword'u realm sifre politikasini UYGULAMAZ;
+  # bu degerler PasswordPolicyValidator'da backend tarafinda zorlanir ve
+  # keycloak-init/realm-export.json'daki passwordPolicy ile BIREBIR ayni tutulmalidir
+  # (length(8) and lowerCase(1) and upperCase(1) and digits(1) and notUsername).
+  password-policy:
+    min-length: ${PASSWORD_POLICY_MIN_LENGTH:8}
+    min-lowercase: ${PASSWORD_POLICY_MIN_LOWERCASE:1}
+    min-uppercase: ${PASSWORD_POLICY_MIN_UPPERCASE:1}
+    min-digits: ${PASSWORD_POLICY_MIN_DIGITS:1}
+    not-username: ${PASSWORD_POLICY_NOT_USERNAME:true}
   password-reset:
     token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:60}
     frontend-base-url: ${PASSWORD_RESET_FRONTEND_BASE_URL:http://localhost}
