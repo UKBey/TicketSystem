@@ -21,8 +21,8 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
     try {
       const res = await api.get(`/tickets/${ticketId}/worklogs`);
       setWorklogs(res.data);
-    } catch (err) {
-      console.debug('Could not load worklogs:', err);
+    } catch {
+      // Silent: non-agents (and pre-sync states) get an expected 403 here — see note below.
     }
   }, [ticketId]);
 
@@ -145,7 +145,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('ticketDetail.worklogDuration')}</label>
                 <input
-                  type="number" min="1" placeholder="e.g. 30"
+                  type="number" min="1" placeholder={t('ticketDetail.worklogDurationPlaceholder')}
                   value={minutes} onChange={(e) => setMinutes(e.target.value)}
                   className="w-full rounded-lg border px-3 py-1.5 text-sm outline-none transition-all focus:ring-2"
                   style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--ring-color)' }}

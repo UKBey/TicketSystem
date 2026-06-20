@@ -629,6 +629,7 @@
     "worklogSaving": "Saving...",
     "worklogSave": "Save",
     "worklogPlaceholder": "Brief description of work done...",
+    "worklogDurationPlaceholder": "e.g. 30",
     "confirmDeleteWorklog": "Are you sure you want to delete this work log?",
     "addWorklogFailed": "Could not add work log.",
     "deleteWorklogFailed": "Could not delete work log.",
@@ -706,6 +707,7 @@
     "submit": "Submit",
     "edit": "Edit",
     "add": "Add",
+    "close": "Close",
     "required": "This field is required.",
     "placeholders": {
       "title": "Ticket title...",

@@ -629,6 +629,7 @@
     "worklogSaving": "Kaydediliyor...",
     "worklogSave": "Kaydet",
     "worklogPlaceholder": "Yapılan çalışmanın kısa açıklaması...",
+    "worklogDurationPlaceholder": "örn. 30",
     "confirmDeleteWorklog": "Bu iş kaydını silmek istediğinizden emin misiniz?",
     "addWorklogFailed": "İş kaydı eklenemedi.",
     "deleteWorklogFailed": "İş kaydı silinemedi.",
@@ -706,6 +707,7 @@
     "submit": "Gönder",
     "edit": "Düzenle",
     "add": "Ekle",
+    "close": "Kapat",
     "required": "Bu alan zorunludur.",
     "placeholders": {
       "title": "Bilet başlığı...",
