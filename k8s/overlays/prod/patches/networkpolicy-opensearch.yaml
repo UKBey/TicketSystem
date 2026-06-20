@@ -1,0 +1,37 @@
+# OpenSearch prod izolasyonu — guvenlik plugin'i base'de kapali
+# (DISABLE_SECURITY_PLUGIN=true; authn/authz/TLS yok). Plugin'i prod'da acmak
+# her client'in (otel-collector, data-prepper, logstash, dashboards) kimlik
+# bilgisi + TLS guvenini birden degistirmeyi gerektirir; bunun yerine veri
+# deposunu AG katmaninda izole ediyoruz: opensearch pod'una YALNIZ bilinen
+# observability client'lari erisebilir, diger her sey reddedilir.
+#
+# Bu policy opensearch pod'unu sectigi an, eslesmehen TUM ingress kapanir
+# (namespace genelinde default-deny'a gerek yok). Enforce icin NetworkPolicy
+# destekleyen bir CNI (Calico/Cilium vb.) gerekir.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opensearch-isolation
+  labels:
+    app.kubernetes.io/name: opensearch
+    app.kubernetes.io/component: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: opensearch
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - otel-collector
+                  - data-prepper
+                  - logstash
+                  - opensearch-dashboards
+      ports:
+        - protocol: TCP
+          port: 9200

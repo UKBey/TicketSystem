@@ -6,6 +6,9 @@ namespace: ticketsystem
 resources:
   - ../../base
   - hpa-backend.yaml
+  # OpenSearch'u AG katmaninda izole et (guvenlik plugin'i base'de kapali) —
+  # yalniz observability client'lari :9200'e erisebilir.
+  - patches/networkpolicy-opensearch.yaml
 
 # Production secrets are committed as SealedSecret manifests sealed against the
 # cluster's bitnami-labs/sealed-secrets controller. The unsealed Secret keeps
@@ -35,6 +38,21 @@ patches:
       - op: replace
         path: /spec/rules/0/host
         value: ticketsystem.example.com
+      # Dev/observability yuzeyleri prod'da ingress'ten KALDIRILIR — Swagger,
+      # OpenAPI spec, Mailpit ve OpenSearch Dashboards public host'tan auth'suz
+      # erisilebilir olmasin (base'de dev icin tanimli). Index'ler yuksekten
+      # alcaga silinir; aksi halde her remove sonraki index'leri kaydirir.
+      # Base path sirasi: 0 /api/v1/ai · 1 /api/v1 · 2 /auth/realms ·
+      # 3 /auth/resources · 4 /swagger-ui · 5 /v3/api-docs · 6 /mailpit ·
+      # 7 /opensearch · 8 /
+      - op: remove
+        path: /spec/rules/0/http/paths/7
+      - op: remove
+        path: /spec/rules/0/http/paths/6
+      - op: remove
+        path: /spec/rules/0/http/paths/5
+      - op: remove
+        path: /spec/rules/0/http/paths/4
   # WebSocket ingress ayni host'u kullanmali — TLS sertifikasi ana ingress'in
   # tls bloğundan gelir, ayrica tanimlamaya gerek yok.
   - target:
