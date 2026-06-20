@@ -57,7 +57,6 @@ public class EmailService {
         static final String COMMENT_ADDED       = "comment_added";
         static final String SLA_WARNING         = "sla_warning";
         static final String SLA_BREACHED        = "sla_breached";
-        static final String PASSWORD_RESET      = "password_reset";
         static final String PASSWORD_CHANGED    = "password_changed";
         static final String TWOFA_DEVICE_ADDED  = "twofa_device_added";
         static final String TWOFA_DEVICE_REMOVED = "twofa_device_removed";
@@ -201,34 +200,9 @@ public class EmailService {
     }
 
     /**
-     * Password-reset email containing the reset link. Unlike the other ticket-scoped
-     * emails there is no ticket reference, so this uses a separate, simpler HTML template.
-     *
-     * <p>If {@code languageOverride} / {@code themeOverride} is supplied, the email is
-     * rendered using whichever language/theme the user is currently running in their
-     * browser session. When null/blank, the user's stored DB preference is used.
-     *
-     * @param recipient recipient user
-     * @param resetUrl reset link (with the token query parameter)
-     * @param ttlMinutes link validity period (minutes), displayed in the body
-     * @param languageOverride the client's current language (en/tr), or {@code null}
-     * @param themeOverride the client's current theme (light/dark), or {@code null}
-     */
-    @Async
-    public void sendPasswordResetEmail(User recipient, String resetUrl, int ttlMinutes,
-                                       String languageOverride, String themeOverride) {
-        Locale locale = resolveLocale(recipient, languageOverride);
-        Palette palette = resolvePalette(recipient, themeOverride);
-        String subject = msg(locale, "email.subject.password.reset");
-        String body = buildPasswordResetHtml(locale, palette, recipient, resetUrl, ttlMinutes);
-        send(recipient.getEmail(), subject, body, Category.PASSWORD_RESET);
-    }
-
-    /**
      * Security notification sent when the password has been successfully changed.
-     * Triggered at the end of both the profile-page "change password" and the
-     * forgot-password reset flows. Lets the user spot unauthorized changes — prevents
-     * silent password changes.
+     * Triggered at the end of the profile-page "change password" flow. Lets the user
+     * spot unauthorized changes — prevents silent password changes.
      *
      * @param recipient recipient user
      * @param languageOverride client's current language, or {@code null} (DB preference)
@@ -365,78 +339,6 @@ public class EmailService {
             return "dark".equalsIgnoreCase(override) ? Palette.DARK : Palette.LIGHT;
         }
         return paletteOf(user);
-    }
-
-    private String buildPasswordResetHtml(Locale locale, Palette p, User recipient, String resetUrl, int ttlMinutes) {
-        String title    = msg(locale, "email.title.password.reset");
-        String greeting = msg(locale, I18N_GREETING, recipient.getFullName());
-        String body     = msg(locale, "email.body.password.reset", ttlMinutes);
-        String cta      = msg(locale, "email.cta.password.reset");
-        String fallback = msg(locale, "email.fallback.password.reset");
-        String ignore   = msg(locale, "email.ignore.password.reset");
-        String footer   = msg(locale, I18N_FOOTER);
-
-        String safeUrl = escapeHtml(resetUrl);
-
-        return """
-                <!DOCTYPE html>
-                <html lang="%s">
-                <head>
-                  <meta charset="UTF-8">
-                  <meta name="viewport" content="width=device-width,initial-scale=1">
-                  <meta name="color-scheme" content="%s">
-                </head>
-                <body style="margin:0;padding:0;background:%s;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:%s;">
-                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:%s;padding:32px 16px;">
-                    <tr><td align="center">
-                      <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:600px;background:%s;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                        <tr><td style="background:linear-gradient(135deg,%s 0%%,%s 100%%);padding:32px;">
-                          <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td style="vertical-align:middle;">
-                                <div style="display:inline-block;width:44px;height:44px;line-height:44px;text-align:center;background:rgba(255,255,255,0.18);border-radius:12px;font-size:22px;color:#fff;font-weight:700;">IT</div>
-                              </td>
-                              <td style="vertical-align:middle;padding-left:14px;">
-                                <div style="color:rgba(255,255,255,0.75);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;">IT Service Desk</div>
-                                <div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:2px;">%s</div>
-                              </td>
-                            </tr>
-                          </table>
-                        </td></tr>
-                        <tr><td style="padding:32px;">
-                          <p style="margin:0 0 12px 0;font-size:15px;color:%s;">%s</p>
-                          <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:%s;">%s</p>
-                          <p style="margin:0 0 24px 0;text-align:center;">
-                            <a href="%s" style="display:inline-block;padding:14px 28px;background:%s;color:#ffffff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;">%s</a>
-                          </p>
-                          <p style="margin:0 0 8px 0;font-size:13px;color:%s;">%s</p>
-                          <p style="margin:0 0 24px 0;font-size:12px;color:%s;word-break:break-all;">%s</p>
-                          <p style="margin:0;font-size:13px;color:%s;line-height:1.5;">%s</p>
-                        </td></tr>
-                        <tr><td style="padding:0 32px 28px 32px;">
-                          <div style="border-top:1px solid %s;padding-top:18px;font-size:12px;color:%s;text-align:center;line-height:1.5;">%s</div>
-                        </td></tr>
-                      </table>
-                    </td></tr>
-                  </table>
-                </body>
-                </html>
-                """.formatted(
-                locale.getLanguage(),
-                p.colorScheme,
-                p.bgBody, p.textPrimary,
-                p.bgBody,
-                p.bgCard,
-                p.headerStart, p.headerEnd,
-                title,
-                p.textPrimary, greeting,
-                p.textSecondary, body,
-                safeUrl, p.headerStart, cta,
-                p.textMuted, fallback,
-                p.textMuted, safeUrl,
-                p.textMuted, ignore,
-                p.border, p.textMuted, footer
-        );
     }
 
     // -------------------------------------------------------------------------

@@ -4,7 +4,6 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import LoginScreen from '../screens/LoginScreen';
-import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AppNavigator from './AppNavigator';
 
 const AuthStack = createNativeStackNavigator();
@@ -29,7 +28,6 @@ export default function RootNavigator() {
       ) : (
         <AuthStack.Navigator screenOptions={{ headerShown: false }}>
           <AuthStack.Screen name="Login" component={LoginScreen} />
-          <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </AuthStack.Navigator>
       )}
     </NavigationContainer>

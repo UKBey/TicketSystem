@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * ({@code PUT .../users/{id}/reset-password}) does <em>not</em> validate the new
  * password against the realm password policy — that check only runs in
  * user-facing flows (registration, account console, Keycloak's own reset
- * screen). Both the forgot-password and change-password flows in this backend
- * set the password through the Admin API, so a weak password would be accepted
+ * screen). The self-service change-password flow in this backend sets the
+ * password through the Admin API, so a weak password would be accepted
  * silently. This validator re-enforces the policy before the Admin call,
  * mirroring the realm config in {@code keycloak-init/realm-export.json}:
  * {@code length(8) and lowerCase(1) and upperCase(1) and digits(1) and notUsername}.

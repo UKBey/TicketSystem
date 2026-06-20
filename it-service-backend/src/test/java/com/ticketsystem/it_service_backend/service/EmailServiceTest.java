@@ -1,6 +1,5 @@
 package com.ticketsystem.it_service_backend.service;
 
-import com.ticketsystem.it_service_backend.entity.Language;
 import com.ticketsystem.it_service_backend.entity.Theme;
 import com.ticketsystem.it_service_backend.entity.Ticket;
 import com.ticketsystem.it_service_backend.entity.User;
@@ -158,24 +157,8 @@ class EmailServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // Password reset / security notification e-postaları
+    // Security notification e-postaları
     // -------------------------------------------------------------------------
-
-    @Test
-    void sendPasswordResetEmail_withOverrides_usesOverrideLocaleAndDarkPalette() {
-        emailService.sendPasswordResetEmail(customer, "https://app/reset?token=abc&x=1", 60, "tr", "dark");
-        verify(mailSender).send(any(MimeMessage.class));
-        assertEquals(1.0, meterRegistry.counter(
-                "mail_send_total", "category", "password_reset", "status", "success").count());
-    }
-
-    @Test
-    void sendPasswordResetEmail_nullOverrides_fallsBackToUserPreference() {
-        User trUser = User.builder().id("tr-1").email("tr@example.com").fullName("Türk Kullanıcı")
-                .preferredLanguage(Language.TR).preferredTheme(Theme.LIGHT).build();
-        emailService.sendPasswordResetEmail(trUser, "https://app/reset?token=xyz", 30, null, null);
-        verify(mailSender).send(any(MimeMessage.class));
-    }
 
     @Test
     void sendPasswordChangedEmail_buildsSecurityNotificationAndSends() {

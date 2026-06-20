@@ -122,9 +122,6 @@ public class SecurityConfig {
                 "/actuator/metrics/**",
                 "/api/v1/auth/login",
                 "/api/v1/auth/register",
-                "/api/v1/auth/forgot-password",
-                "/api/v1/auth/reset-password",
-                "/api/v1/auth/reset-password/validate",
                 "/ws/**")
             .permitAll()
 
