@@ -30,9 +30,15 @@ export function useNotifications() {
   }, [fetchCount]);
 
   const markAllAsRead = useCallback(async () => {
-    await apiMarkAllAsRead();
-    setUnreadCount(0);
-  }, []);
+    try {
+      await apiMarkAllAsRead();
+      setUnreadCount(0);
+    } catch {
+      // Optimistic zero would lie on failure; reconcile the badge to the real count.
+    } finally {
+      fetchCount();
+    }
+  }, [fetchCount]);
 
   const deleteNotification = useCallback(async (id) => {
     await apiDeleteNotification(id);
@@ -40,9 +46,15 @@ export function useNotifications() {
   }, [fetchCount]);
 
   const deleteAllNotifications = useCallback(async () => {
-    await apiDeleteAll();
-    setUnreadCount(0);
-  }, []);
+    try {
+      await apiDeleteAll();
+      setUnreadCount(0);
+    } catch {
+      // Optimistic zero would lie on failure; reconcile the badge to the real count.
+    } finally {
+      fetchCount();
+    }
+  }, [fetchCount]);
 
   return {
     unreadCount,
