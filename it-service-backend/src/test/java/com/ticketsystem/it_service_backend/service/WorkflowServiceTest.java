@@ -43,7 +43,6 @@ class WorkflowServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(workflowService, "processId", "ticket-workflow");
         ReflectionTestUtils.setField(workflowService, "callbackBaseUrl", "https://example.com/callback");
-        ReflectionTestUtils.setField(workflowService, "callbackToken", "token-123");
 
         lenient().when(slaPolicyService.getSlaDurationMs(Priority.CRITICAL)).thenReturn(3_600_000L);
         lenient().when(slaPolicyService.getSlaDurationMs(Priority.HIGH)).thenReturn(14_400_000L);
@@ -72,7 +71,9 @@ class WorkflowServiceTest {
                         && "customer-1".equals(variables.get("customerId"))
                         && "NEW".equals(variables.get("status"))
                         && "PT240M".equals(variables.get("slaDuration"))
-                        && "https://example.com/callback?token=token-123".equals(variables.get("callbackUrl"))
+                        // Token artık callbackUrl'e eklenmez — BPMN script task'i KIE Server
+                        // ortamından okur (secret jbpm-db/log sızıntısı engellenir).
+                        && "https://example.com/callback".equals(variables.get("callbackUrl"))
                         && !variables.containsKey("assigneeId")
         ));
     }

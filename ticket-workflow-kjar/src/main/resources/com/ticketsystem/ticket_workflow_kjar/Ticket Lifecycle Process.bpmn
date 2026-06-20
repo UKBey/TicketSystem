@@ -114,9 +114,10 @@
       <bpmn2:incoming>_3FB24E7C-EA5D-4A83-8A21-8C38A0A578D2</bpmn2:incoming>
       <bpmn2:outgoing>_E47B86F8-2A32-4142-A8D3-2019641C59F4</bpmn2:outgoing>
       <bpmn2:script><![CDATA[try {
-    String token = "";
-    int ti = callbackUrl.indexOf("token=");
-    if (ti >= 0) { token = callbackUrl.substring(ti + 6); }
+    // Token KIE Server ortamindan okunur (JBPM_KIE_SERVER_CALLBACK_TOKEN) — callbackUrl
+    // process degiskeninde tasinmaz, boylece paylasilan secret jbpm-db'ye/loglara sizmaz.
+    String token = System.getenv("JBPM_KIE_SERVER_CALLBACK_TOKEN");
+    if (token == null) { token = ""; }
 
     java.net.URL url = new java.net.URL(callbackUrl);
     java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();

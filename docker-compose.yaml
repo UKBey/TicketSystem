@@ -536,6 +536,10 @@ services:
     environment:
       # KIE Server kimligi controller/registration icin sabit tutulur.
       KIE_SERVER_ID: "ticket-kie-server"
+      # SLA breach callback'i icin paylasilan internal token. BPMN script task'i bunu
+      # System.getenv ile okuyup X-Internal-Token header'i olarak gonderir — secret artik
+      # callbackUrl process degiskeninde tasinmaz (jbpm-db/log sizintisi engellenir).
+      JBPM_KIE_SERVER_CALLBACK_TOKEN: "${JBPM_KIE_SERVER_CALLBACK_TOKEN}"
       # DIKKAT: config dosyasini override ETME. Varsayilan standalone.xml demo
       # kullanicilari Elytron filesystem-realm ile getirir (wbadmin/wbadmin,
       # kieserver/kieserver1!). `-c standalone-full.xml` kullanicisiz profile gecirir -> 401.

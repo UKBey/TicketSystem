@@ -31,6 +31,14 @@ spec:
               value: ticket-kie-server
             - name: KIE_SERVER_LOCATION
               value: http://kie-server:8080/kie-server/services/rest/server
+            # SLA breach callback'i icin paylasilan internal token. BPMN script task'i
+            # System.getenv ile okur ve X-Internal-Token header'i olarak gonderir — secret
+            # callbackUrl process degiskeninde tasinmaz (jbpm-db/log sizintisi engellenir).
+            - name: JBPM_KIE_SERVER_CALLBACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JBPM_KIE_SERVER_CALLBACK_TOKEN
             - name: JAVA_OPTS
               value: >-
                 -Xms512m -Xmx1024m

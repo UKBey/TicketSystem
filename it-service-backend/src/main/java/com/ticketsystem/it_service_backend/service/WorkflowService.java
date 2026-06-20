@@ -34,16 +34,14 @@ public class WorkflowService {
     private final SlaPolicyService slaPolicyService;
 
     // process-id ve callback-base-url icin inline default'lar application.yml ile aynidir;
-    // application.yml'in bozulmasi durumunda ikincil korumadir. Token bilinen bir secret oldugu
-    // icin default yoktur — eksikse Spring boot'ta fail-fast yapar (guvenli davranis).
+    // application.yml'in bozulmasi durumunda ikincil korumadir. Callback token'i artik
+    // burada tutulmaz: BPMN REST task'i token'i KIE Server ortamindan okur; backend tarafinda
+    // secret'in fail-fast dogrulamasi SecurityConfig + WorkflowCallbackController'da yapilir.
     @Value("${jbpm.kie-server.process-id:com.ticketsystem.workflow.ticket-lifecycle}")
     private String processId;
 
     @Value("${jbpm.kie-server.callback-base-url:http://host.docker.internal:8081/api/v1/internal/workflow/callback}")
     private String callbackBaseUrl;
-
-    @Value("${jbpm.kie-server.callback-token}")
-    private String callbackToken;
 
     private long getSlaDurationMs(Priority priority) {
         return slaPolicyService.getSlaDurationMs(priority);
@@ -73,8 +71,11 @@ public class WorkflowService {
         processVariables.put("slaDuration", msToIsoDuration(getSlaDurationMs(ticket.getPriority())));
 
         // Callback adresi ortam bazli oldugu icin surece degisken olarak verilir.
-        String fullCallbackUrl = callbackBaseUrl + "?token=" + callbackToken;
-        processVariables.put("callbackUrl", fullCallbackUrl);
+        // Token URL'e EKLENMEZ: paylasilan secret per-instance process variable olarak
+        // jbpm-db'ye ve KIE loglarina sizmasin. BPMN REST task'i token'i KIE Server
+        // ortamindan (JBPM_KIE_SERVER_CALLBACK_TOKEN) okuyup X-Internal-Token header'i
+        // olarak gonderir — auth mekanizmasi degismez, sadece secret'in yeri degisir.
+        processVariables.put("callbackUrl", callbackBaseUrl);
 
         // Yeni biletler her zaman NEW statüsünde oluşur; claim bilgisi yoktur.
 
