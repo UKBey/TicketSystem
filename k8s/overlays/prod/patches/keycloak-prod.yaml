@@ -1,0 +1,25 @@
+# Production mode (NOT start-dev). Base StatefulSet `start-dev` ile gelir (lokal
+# overlay icin); prod'da bu strategic-merge patch `start --import-realm`'e ezer.
+# `--optimized` KULLANILMAZ: o, onceden `kc.sh build` gomulu bir imaj ister; stok
+# Keycloak imaji `start` ile her acilista KC_DB'ye gore otomatik build eder
+# (docker-compose.prod.yaml ile birebir ayni gerekce).
+#
+# TLS ingress'te terminate edilir; Keycloak HTTP dinler (KC_HTTP_ENABLED=true),
+# public URL'i base configmap'teki KC_HOSTNAME_URL'den uretir ve forwarded
+# header'lara guvenir (KC_PROXY_HEADERS base'den gelir). KC_HOSTNAME_STRICT=false
+# olmadan `start` HTTPS zorlar ve admin/redirect URL'leri kirilir.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-iam
+spec:
+  template:
+    spec:
+      containers:
+        - name: keycloak
+          args: ["start", "--import-realm"]
+          env:
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HTTP_ENABLED
+              value: "true"

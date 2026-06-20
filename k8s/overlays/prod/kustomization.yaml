@@ -21,6 +21,8 @@ patches:
   - path: patches/replicas.yaml
   - path: patches/ingress-prod.yaml
   - path: patches/configmap-app-prod.yaml
+  # Keycloak'i prod modunda calistir (start-dev YERINE start --import-realm)
+  - path: patches/keycloak-prod.yaml
   # Ingress host'unu sadece tek alanda degistirmek icin JSON6902 patch
   # (local overlay'deki ile ayni teknik). Strategic merge ile rules listesine
   # dokunulsa base'deki path tanimlari komple kaybolur.
