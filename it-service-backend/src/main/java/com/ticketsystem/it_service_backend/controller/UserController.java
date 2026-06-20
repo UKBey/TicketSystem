@@ -161,6 +161,7 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
     })
     @GetMapping("/agents")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'ADMIN', 'MANAGER')")
     public ResponseEntity<List<UserDTO>> getAgents() {
         log.debug("Tüm ajanları listeleme isteği.");
 
@@ -214,6 +215,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Kullanıcı bulunamadı")
     })
     @GetMapping("/{id}")
+    @PreAuthorize("#id == authentication.name or hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<UserDTO> getUser(
             @Parameter(description = "Keycloak kullanıcı ID'si (UUID)", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890", required = true)
             @PathVariable String id) {
