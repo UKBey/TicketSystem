@@ -819,6 +819,10 @@ public class TicketQueryService {
      * Translates JPQL field names in Pageable to SQL column names for native SQL queries.
      * Spring Data JPA passes the sort field name into the native SQL verbatim, so the
      * SQL name (created_at) must be used instead of the JPQL name (createdAt).
+     *
+     * <p>Whitelist-only by design: because the property is interpolated raw into the
+     * native {@code ORDER BY}, any unmapped/crafted field falls back to a safe column
+     * instead of being passed through — this is the SQL-injection guard for {@code sortBy}.
      */
     private Pageable toNativePageable(Pageable pageable) {
         if (!pageable.getSort().isSorted()) {
@@ -827,6 +831,8 @@ public class TicketQueryService {
         List<Sort.Order> nativeOrders = pageable.getSort().stream()
                 .map(order -> {
                     String col = switch (order.getProperty()) {
+                        case "id"          -> "id";
+                        case "title"       -> "title";
                         case "createdAt"   -> "created_at";
                         case "resolvedAt"  -> "resolved_at";
                         case "closedAt"    -> "closed_at";
@@ -834,7 +840,10 @@ public class TicketQueryService {
                         case "slaBreached" -> "sla_breached";
                         case "productId"   -> "product_id";
                         case "customerId"  -> "customer_id";
-                        default            -> order.getProperty();
+                        // Whitelist-only: deger native ORDER BY'a ham interpole edildigi icin
+                        // bilinmeyen/crafted sortBy alanlari SQLi'yi onlemek adina guvenli
+                        // varsayilana (created_at) duser. Bkz. UserService.sortColumn.
+                        default            -> "created_at";
                     };
                     return order.isAscending() ? Sort.Order.asc(col) : Sort.Order.desc(col);
                 })
