@@ -68,6 +68,12 @@ export function useTicketDetail(id, isAgent) {
   const ticketReqRef   = useRef(0);
   const commentsReqRef = useRef(0);
 
+  // Yorum cooldown geri sayım interval'ı — unmount'ta temizlenebilmesi için ref'te
+  // tutulur; aksi halde sayım bitmeden sayfadan çıkınca unmounted hook'ta setState'e
+  // çalışır (uyarı + küçük sızıntı).
+  const cooldownTimerRef = useRef(null);
+  useEffect(() => () => { if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current); }, []);
+
   // Yorum cooldown'ını backend'den çek (oturum başına bir kez cache'lenir).
   useEffect(() => {
     let active = true;
@@ -145,7 +151,9 @@ export function useTicketDetail(id, isAgent) {
     api.get(`/tickets/${id}/sla-timer`)
       .then((res) => { setSlaInfo({ ...res.data, fetchTime: Date.now() }); })
       .catch((e) => console.error('SLA fetch error', e));
-  }, [ticket?.status, id, ticket]);
+    // Yalnız status değişiminde yeniden çek. Tüm `ticket` objesi bağımlılıkta olursa
+    // her yorum/aksiyon/WS güncellemesi (setTicket) bu effect'i gereksiz yere tetikler.
+  }, [ticket?.status, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(Date.now()), 1000);
@@ -226,9 +234,10 @@ export function useTicketDetail(id, isAgent) {
       setComments((prev) => (prev.some((c) => c.id === res.data.id) ? prev : [...prev, res.data]));
       setMessage('');
       setCooldown(cooldownSecondsRef.current);
-      const timer = setInterval(() => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+      cooldownTimerRef.current = setInterval(() => {
         setCooldown((prev) => {
-          if (prev <= 1) { clearInterval(timer); return 0; }
+          if (prev <= 1) { clearInterval(cooldownTimerRef.current); cooldownTimerRef.current = null; return 0; }
           return prev - 1;
         });
       }, 1000);

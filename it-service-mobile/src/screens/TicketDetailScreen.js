@@ -139,6 +139,11 @@ export default function TicketDetailScreen({ route, navigation }) {
   // İlk yüklemede en üstte (bilgi/aksiyonlar) kal; yeni mesajda sona kaydır.
   const shouldScroll = useRef(false);
 
+  // Yorum cooldown geri sayım interval'ı — unmount'ta temizlenebilmesi için ref'te
+  // tutulur; aksi halde sayım bitmeden ekrandan çıkınca unmounted hook'ta setState'e çalışır.
+  const cooldownTimerRef = useRef(null);
+  useEffect(() => () => { if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current); }, []);
+
   const load = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
@@ -264,10 +269,12 @@ export default function TicketDetailScreen({ route, navigation }) {
       shouldScroll.current = true;
       setMessage('');
       setCooldown(5);
-      const timer = setInterval(() => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+      cooldownTimerRef.current = setInterval(() => {
         setCooldown((p) => {
           if (p <= 1) {
-            clearInterval(timer);
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
             return 0;
           }
           return p - 1;
