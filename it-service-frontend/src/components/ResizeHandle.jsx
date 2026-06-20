@@ -1,9 +1,11 @@
 /**
- * Tablo başlığının (th) sağ kenarındaki sütun-genişlik sürükleme tutamacı. 10px'lik
- * tıklama alanı, üzerine gelince ince bir dikey çizgi gösterir. mousedown sıralamayı
- * tetiklemesin diye event durdurulur. {@link useColumnResize} hook'u ile birlikte
- * kullanılır; saran th `position: relative` olmalıdır (SortableTh zaten sağlar).
+ * Tablo başlığının (th) sağ kenarındaki sütun-genişlik sürükleme tutamacı. 12px'lik
+ * tıklama alanı. Keşfedilebilir olması için varsayılan durumda sönük bir dikey çizgi +
+ * tutuş noktaları (grip) gösterir; üzerine gelince primary renge belirginleşir.
+ * mousedown sıralamayı tetiklemesin diye event durdurulur. {@link useColumnResize}
+ * hook'u ile kullanılır; saran th `position: relative` olmalıdır (SortableTh sağlar).
  */
+import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function ResizeHandle({ onStart }) {
@@ -14,11 +16,20 @@ export default function ResizeHandle({ onStart }) {
       aria-orientation="vertical"
       onMouseDown={onStart}
       onClick={(e) => e.stopPropagation()}
-      className="group absolute top-0 right-0 h-full flex items-center justify-end select-none"
-      style={{ width: '10px', cursor: 'col-resize', touchAction: 'none' }}
+      className="group absolute top-0 right-0 h-full flex items-center justify-center select-none"
+      style={{ width: '12px', cursor: 'col-resize', touchAction: 'none' }}
       title={t('common.resizeColumn')}
     >
-      <span className="h-1/2 w-px bg-transparent group-hover:bg-primary-400 transition-colors" />
+      {/* Her zaman görünen sönük dikey çizgi — sütun sınırını işaret eder. */}
+      <span
+        className="absolute right-0 h-1/2 w-px transition-colors group-hover:bg-primary-500"
+        style={{ backgroundColor: 'var(--border-color)' }}
+      />
+      {/* Hover'da beliren tutuş ikonu — sürüklenebildiğini netleştirir. */}
+      <GripVertical
+        className="relative h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+        style={{ color: 'var(--text-tertiary)' }}
+      />
     </span>
   );
 }
