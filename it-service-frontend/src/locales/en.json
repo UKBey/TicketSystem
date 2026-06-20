@@ -696,7 +696,8 @@
     "pdfWorklogTotal": "Total",
     "pdfColActor": "Actor",
     "pdfColAction": "Action",
-    "pdfColChange": "Change"
+    "pdfColChange": "Change",
+    "pdfPreviewLabel": "Preview"
   },
   "form": {
     "save": "Save",

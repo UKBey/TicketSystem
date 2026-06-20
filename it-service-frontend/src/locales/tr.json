@@ -696,7 +696,8 @@
     "pdfWorklogTotal": "Toplam",
     "pdfColActor": "İşlemi Yapan",
     "pdfColAction": "İşlem",
-    "pdfColChange": "Değişiklik"
+    "pdfColChange": "Değişiklik",
+    "pdfPreviewLabel": "Önizleme"
   },
   "form": {
     "save": "Kaydet",
