@@ -1,4 +1,5 @@
 import React from 'react';
+import i18n from '../i18n';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -27,10 +28,10 @@ export default class ErrorBoundary extends React.Component {
           style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
         >
           <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            Something went wrong
+            {i18n.t('errorBoundary.title')}
           </h3>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            An error occurred while loading this section. Refresh the page or try again.
+            {i18n.t('errorBoundary.message')}
           </p>
           <button
             type="button"
@@ -38,7 +39,7 @@ export default class ErrorBoundary extends React.Component {
             className="self-start rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
             style={{ backgroundColor: 'var(--bg-sidebar)', color: 'var(--text-inverse)' }}
           >
-            Tekrar dene
+            {i18n.t('errorBoundary.retry')}
           </button>
         </div>
       );
