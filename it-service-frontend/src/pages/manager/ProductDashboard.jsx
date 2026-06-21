@@ -144,7 +144,11 @@ export default function ProductDashboard() {
                   aria-label={t('dashboard.dateRange.label')}
                 >
                   {DATE_RANGE_OPTIONS.map((opt) => (
-                    <option key={opt ?? 'all'} value={opt ?? 'all'}>
+                    <option
+                      key={opt ?? 'all'}
+                      value={opt ?? 'all'}
+                      style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                    >
                       {opt == null ? t('dashboard.dateRange.allTime') : t('dashboard.dateRange.lastDays', { count: opt })}
                     </option>
                   ))}
