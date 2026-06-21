@@ -1,3 +1,37 @@
+<#--
+  Inline SVG flags — emoji flags (🇺🇸/🇹🇷) don't render on Windows/Chrome (they
+  fall back to "US"/"TR" letters), so we draw them as SVG for a consistent look
+  across every OS/browser. These mirror the React app's LanguageSwitcher.
+-->
+<#macro flagSvg tag>
+  <#if tag == "tr">
+    <svg class="lang-flag-svg" viewBox="0 0 20 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="20" height="14" fill="#E30A17"/>
+      <circle cx="7.6" cy="7" r="3" fill="#fff"/>
+      <circle cx="8.8" cy="7" r="2.45" fill="#E30A17"/>
+      <path fill="#fff" d="M12.3 5l.47 1.353 1.432.029-1.141.865.415 1.371L12.3 7.8l-1.176.818.415-1.371-1.141-.865 1.432-.029z"/>
+    </svg>
+  <#else>
+    <svg class="lang-flag-svg" viewBox="0 0 20 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="20" height="14" fill="#fff"/>
+      <g fill="#B22234">
+        <rect y="0" width="20" height="1.077"/><rect y="2.154" width="20" height="1.077"/>
+        <rect y="4.308" width="20" height="1.077"/><rect y="6.462" width="20" height="1.077"/>
+        <rect y="8.615" width="20" height="1.077"/><rect y="10.769" width="20" height="1.077"/>
+        <rect y="12.923" width="20" height="1.077"/>
+      </g>
+      <rect width="8" height="7.54" fill="#3C3B6E"/>
+      <g fill="#fff">
+        <circle cx="1.3" cy="1.2" r="0.35"/><circle cx="2.9" cy="1.2" r="0.35"/><circle cx="4.5" cy="1.2" r="0.35"/><circle cx="6.1" cy="1.2" r="0.35"/>
+        <circle cx="2.1" cy="2.5" r="0.35"/><circle cx="3.7" cy="2.5" r="0.35"/><circle cx="5.3" cy="2.5" r="0.35"/>
+        <circle cx="1.3" cy="3.8" r="0.35"/><circle cx="2.9" cy="3.8" r="0.35"/><circle cx="4.5" cy="3.8" r="0.35"/><circle cx="6.1" cy="3.8" r="0.35"/>
+        <circle cx="2.1" cy="5.1" r="0.35"/><circle cx="3.7" cy="5.1" r="0.35"/><circle cx="5.3" cy="5.1" r="0.35"/>
+        <circle cx="1.3" cy="6.4" r="0.35"/><circle cx="2.9" cy="6.4" r="0.35"/><circle cx="4.5" cy="6.4" r="0.35"/><circle cx="6.1" cy="6.4" r="0.35"/>
+      </g>
+    </svg>
+  </#if>
+</#macro>
+
 <#macro registrationLayout bodyClass="" displayInfo=false displayMessage=true displayRequiredFields=false>
 <!DOCTYPE html>
 <html>
@@ -41,8 +75,8 @@
         var preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', saved || preferred);
 
-        // Sync Keycloak locale → React app (i18next reads localStorage key 'language')
-        // msg("langCode") returns "TR" or "EN" — reliable since it drives the button and subtitle too
+        // Sync Keycloak locale → React app (i18next reads localStorage key 'language').
+        // msg("langCode") returns "TR" or "EN" per the active theme message bundle.
         var kcLangCode = '${msg("langCode")}';
         localStorage.setItem('language', kcLangCode === 'TR' ? 'tr' : 'en');
       })();
@@ -52,11 +86,11 @@
     <!-- Controls bar: language switcher + theme toggle -->
     <div class="controls-bar">
         <#if locale?? && locale.supported?? && (locale.supported?size > 1)>
-        <#-- Use msg() for current lang display — proven reliable since msg() already drives subtitle -->
-        <#assign _msgLang = msg("langCode")>
+        <#-- Flag + full language name, matching the React app's LanguageSwitcher. -->
         <div class="lang-switcher" id="lang-switcher">
             <button class="lang-btn" id="lang-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Select language">
-                <span class="lang-label">${_msgLang}</span>
+                <span class="lang-flag"><@flagSvg locale.currentLanguageTag/></span>
+                <span class="lang-label"><#if locale.currentLanguageTag == "tr">Türkçe<#else>English</#if></span>
                 <svg class="lang-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"/>
@@ -64,12 +98,13 @@
             </button>
             <div class="lang-dropdown" id="lang-dropdown" role="listbox" aria-label="Language options">
                 <#list locale.supported as localeItem>
-                <a class="lang-option<#if localeItem.languageTag == locale.current> lang-option--active</#if>"
+                <a class="lang-option<#if localeItem.languageTag == locale.currentLanguageTag> lang-option--active</#if>"
                    href="${localeItem.url}"
                    role="option"
-                   aria-selected="${(localeItem.languageTag == locale.current)?string('true', 'false')}">
-                    <span class="lang-option-label">${localeItem.label}</span>
-                    <#if localeItem.languageTag == locale.current>
+                   aria-selected="${(localeItem.languageTag == locale.currentLanguageTag)?string('true', 'false')}">
+                    <span class="lang-flag"><@flagSvg localeItem.languageTag/></span>
+                    <span class="lang-option-label"><#if localeItem.languageTag == "tr">Türkçe<#else>English</#if></span>
+                    <#if localeItem.languageTag == locale.currentLanguageTag>
                     <svg class="lang-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
@@ -158,16 +193,53 @@
 
     <script>
       (function () {
-        // Theme toggle
+        // Theme toggle — circular View Transition reveal from the button center,
+        // matching the React app's ThemeContext (480ms, same easing). Falls back to
+        // an instant switch when View Transitions are unsupported or the user
+        // prefers reduced motion.
         var themeBtn = document.getElementById('theme-toggle');
         if (themeBtn) {
           themeBtn.addEventListener('click', function () {
             var current = document.documentElement.getAttribute('data-theme');
             var next = current === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            // Also write the 'theme' cookie so the React app picks up the change.
-            document.cookie = 'theme=' + next + '; path=/; max-age=31536000; samesite=lax';
+
+            function applyTheme() {
+              document.documentElement.setAttribute('data-theme', next);
+              localStorage.setItem('theme', next);
+              // Also write the 'theme' cookie so the React app picks up the change.
+              document.cookie = 'theme=' + next + '; path=/; max-age=31536000; samesite=lax';
+            }
+
+            var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (typeof document.startViewTransition !== 'function' || reduceMotion) {
+              applyTheme();
+              return;
+            }
+
+            var rect = themeBtn.getBoundingClientRect();
+            var x = rect.left + rect.width / 2;
+            var y = rect.top + rect.height / 2;
+            var endRadius = Math.hypot(
+              Math.max(x, window.innerWidth - x),
+              Math.max(y, window.innerHeight - y)
+            );
+
+            var transition = document.startViewTransition(applyTheme);
+            transition.ready.then(function () {
+              document.documentElement.animate(
+                {
+                  clipPath: [
+                    'circle(0px at ' + x + 'px ' + y + 'px)',
+                    'circle(' + endRadius + 'px at ' + x + 'px ' + y + 'px)'
+                  ]
+                },
+                {
+                  duration: 480,
+                  easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                  pseudoElement: '::view-transition-new(root)'
+                }
+              );
+            }).catch(function () { /* transition skipped — theme still applied */ });
           });
         }
 

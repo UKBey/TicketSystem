@@ -220,6 +220,27 @@ body {
 [data-theme="light"] .icon-moon { display: block; }
 [data-theme="light"] .icon-sun  { display: none;  }
 
+/* ── Theme transition — circular reveal (View Transitions API) ──
+   JS (template.ftl) drives the clip-path animation; here we just disable the
+   browser's default cross-fade and order the layers: old theme stays underneath,
+   new theme reveals on top. Unsupported browsers ignore these and fall back to
+   an instant switch. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2147483646; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ── Language switcher ──────────────────────────────────────── */
 .lang-switcher {
   position: relative;
@@ -249,8 +270,21 @@ body {
   background: var(--toggle-hover);
 }
 
+.lang-flag {
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-flag-svg {
+  display: block;
+  width: 1.25rem;
+  height: 0.875rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
 .lang-label {
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
 }
 
 .lang-chevron {
