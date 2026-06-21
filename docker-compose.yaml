@@ -111,11 +111,15 @@ services:
       # Nginx'in X-Forwarded-* headerlarini Keycloak'in tanimasi icin.
       KC_PROXY_HEADERS: xforwarded
       # Realm import (start-dev --import-realm) sirasinda realm-export.json icindeki
-      # ${...} placeholder'lari bu env var'lardan cozulur: LDAP bind credential ve
-      # ticket-client service-account secret'i. Boylece ilk kalkista elle Keycloak
-      # admin UI'da bu iki degeri girmeye gerek kalmaz (secret'lar git'e girmez).
+      # ${...} placeholder'lari bu env var'lardan cozulur: LDAP bind credential,
+      # ticket-client service-account secret'i ve SMTP gonderen adresi (MAIL_FROM).
+      # Boylece ilk kalkista elle Keycloak admin UI'da bu degerleri girmeye gerek
+      # kalmaz (secret'lar git'e girmez).
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
       KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      # Keycloak'in gonderdigi hesap maillerinin (sifre sifirlama) "from" adresi —
+      # backend ile ayni MAIL_FROM env'inden gelir (smtpServer.from placeholder'i).
+      MAIL_FROM: ${MAIL_FROM:-noreply@ticketsystem.local}
     volumes:
       - ./keycloak-init:/opt/keycloak/data/import
       - ./keycloak-themes/it-service-desk:/opt/keycloak/themes/it-service-desk
