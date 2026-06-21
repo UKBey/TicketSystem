@@ -5,7 +5,7 @@ import {
   FileText, UserCheck, UserMinus, UserPlus, CheckCircle2,
   RotateCcw, Clock, Play, XCircle, ArrowRight, ChevronDown, Flag, Hash, Star,
 } from 'lucide-react';
-import { formatShortDate } from '../../utils/ticketFormatters';
+import { formatDate } from '../../utils/ticketFormatters';
 import { StatusBadge, PriorityBadge } from '../Badges';
 
 // ---- per-action visual config ------------------------------------------------
@@ -133,7 +133,7 @@ export default function AuditTimeline({ auditLogs }) {
                           )}
                         </div>
                         <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                          {formatShortDate(entry.createdAt)}
+                          {formatDate(entry.createdAt)}
                         </span>
                       </div>
 
