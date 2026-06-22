@@ -279,7 +279,7 @@ const DEFAULT_COL_WIDTHS = {
   claimers: 140,
   csat: 120,
   created: 140,
-  actions: 160,
+  actions: 190,
 };
 
 /** CSAT yıldız puanı; puan yoksa nötr bir tire gösterir. */
