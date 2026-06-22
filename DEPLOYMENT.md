@@ -18,7 +18,7 @@ IT-service ticketing monorepo için prod deploy rehberi. Docker Compose, kind (l
 | kind           | 0.22+                | Local cluster                         |
 | kubeseal       | controller ile uyumlu | SealedSecrets (prod)                  |
 | Java           | 21 (Temurin)         | Backend yerel build                   |
-| Node           | 20+                  | Frontend yerel build                  |
+| Node           | 22 (CI ile aynı)     | Frontend yerel build                  |
 
 ### Zorunlu secret'lar / env
 
@@ -43,8 +43,8 @@ LDAP_ADMIN_PASSWORD (bind admin),
 LDAP_CUSTOMER_PASSWORD, LDAP_AGENT_PASSWORD, LDAP_LEAD_PASSWORD, LDAP_MANAGER_PASSWORD,
 LDAP_ADMIN_USER_PASSWORD, LDAP_ADMINMANAGER_PASSWORD, LDAP_LEADMANAGER_PASSWORD, LDAP_SUPERADMIN_PASSWORD
 
-# jBPM / KIE
-JBPM_DB_USER, JBPM_DB_PASSWORD, JBPM_DB_NAME
+# jBPM / KIE  (KIE Server süreç state'i imajın gömülü file-based H2'sinde —
+#             jbpm_data volume'da kalıcı; ayrı jbpm-db Postgres YOK)
 JBPM_KIE_SERVER_URL, JBPM_KIE_SERVER_USERNAME, JBPM_KIE_SERVER_PASSWORD
 JBPM_KIE_SERVER_CONTAINER_ID=ticket-workflow
 JBPM_KIE_SERVER_PROCESS_ID=com.ticketsystem.workflow.ticket-lifecycle
@@ -58,8 +58,16 @@ SPRING_DATA_REDIS_HOST, SPRING_DATA_REDIS_PORT, SPRING_DATA_REDIS_PASSWORD   # p
 GROQ_API_KEY, GROQ_MODEL, GROQ_MAX_TOKENS, GROQ_TIMEOUT_SECONDS
 TICKET_SERVICE_INTERNAL_TOKEN           # JBPM_KIE_SERVER_CALLBACK_TOKEN ile AYNI olmalı
 
-# Mail (prod SMTP; Mailpit yalnızca dev)
-MAIL_HOST, MAIL_PORT, MAIL_FROM, MAIL_USERNAME, MAIL_PASSWORD
+# Mail (Mailpit relay / smart-host — dev + prod AYNI akış)
+# Backend HER ZAMAN Mailpit'e gönderir (compose'da sabit MAIL_HOST=mailpit, auth/TLS yok).
+# Gerçek gönderim Mailpit'in relay'i (MAIL_RELAY_*) üzerinden yapılır; relay KAPALI iken
+# (MAIL_RELAY_HOST boş) mailler yalnızca Mailpit'te yakalanır, dışarı GİTMEZ.
+MAIL_FROM
+MAIL_RELAY_HOST, MAIL_RELAY_PORT, MAIL_RELAY_STARTTLS, MAIL_RELAY_AUTH
+MAIL_RELAY_USERNAME, MAIL_RELAY_PASSWORD
+MAIL_RELAY_MATCHING / MAIL_RELAY_ALL    # hangi alıcıların gerçekten relay'leneceği
+MAIL_MAX_MESSAGES                       # Mailpit kalıcı store budama limiti
+# (MAIL_HOST/MAIL_PORT yalnızca HİBRİT lokal `make dev-backend` host->mailpit hop'u için)
 
 # CD
 DOCKERHUB_USERNAME, IMAGE_TAG           # prod'da IMAGE_TAG commit SHA olmalı
@@ -150,6 +158,12 @@ rm /tmp/app-secrets-plain.yaml
 ```
 
 **HPA:** `hpa-backend.yaml` `it-service-backend`'i autoscale eder. Cluster'da metrics-server kurulu olmalı.
+
+**Prod hardening (overlay patch'leri):**
+- **Keycloak prod mode** (`patches/keycloak-prod.yaml`): base'in `start-dev` arg'larını ezer; `start --import-realm` + prod hostname/HTTP ayarları ile çalışır. (Base overlay'i `start-dev` çalıştırır — bu patch olmadan prod dev modda kalır.)
+- **Ingress yüzeyi daraltıldı** (`kustomization.yaml`): dev-only ingress path'leri (swagger / api-docs / mailpit / opensearch dashboards) prod'da kaldırılır.
+- **Keycloak admin ingress'ten gizli**: nginx/ingress yalnızca kullanıcıya dönük Keycloak path'lerini (`/auth/realms`, `/auth/resources`) sunar; `/auth/admin`'e yalnızca port-forward / SSH tüneli ile erişilir.
+- **OpenSearch izolasyonu** (`patches/networkpolicy-opensearch.yaml`): NetworkPolicy `:9200`'ü yalnızca observability client'larına (collector / data-prepper / dashboards) açar.
 
 Apply:
 ```bash

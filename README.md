@@ -61,6 +61,7 @@ Customers report technical problems, support agents resolve them under **SLA** r
 - **Light / dark theme** and **English / Turkish** UI, both shared with the Keycloak login screens
 - **User-selectable date format** applied to *every* date across the UI (`31/12/2026`, `12/31/2026`, `2026-12-31`, `31.12.2026`, or a localized month name) — persisted per user and synced across devices
 - Theme, language, date format and notification preferences are all set from the **profile** page
+- **Command palette** (`Ctrl`/`Cmd`+`K`) for quick navigation and ticket search, a **role-aware guided onboarding tour** for first-time users, and non-blocking **toast notifications** for action feedback
 
 ### AI Assistance
 - Dedicated `llm-service` generates **AI ticket summaries** (Groq / Llama 3.1) in Turkish or English
@@ -70,7 +71,7 @@ Customers report technical problems, support agents resolve them under **SLA** r
 - KPI summary, status distribution, ticket timeline, priority-SLA breakdown, agent performance leaderboard, product metrics, CSAT analytics (distribution / trend), daily-worklog charts and **configurable stuck-ticket alerts** — KPIs scope to a selected **date range**, all Caffeine-cached
 
 ### Security & Identity
-- **Keycloak** SSO with users federated from **OpenLDAP**, OAuth2/OIDC, JWT, **2FA (TOTP)** and "remember me"
+- **Keycloak** SSO with users federated from **OpenLDAP**, OAuth2/OIDC, JWT, **2FA (TOTP)**, "remember me" and **Keycloak-native password reset** (e-mail relayed through Mailpit)
 - **Additive multi-role** access control: a user holds a *set* of roles and their effective permissions are the **union**. Five roles — `customer`, `agent`, `lead_agent`, `admin`, `manager` — span the operational, configuration and oversight axes; `lead_agent` is a Keycloak composite of `agent`. `customer` is a **singleton** role — mutually exclusive with the staff roles — while the staff roles combine freely. Roles live in Keycloak and are cached in the `user_roles` table (Flyway V37), synced on `/users/sync`.
 - Distributed **rate limiting** (Bucket4j + Redis), method-level authorization (`@PreAuthorize` + `AuthRoles` helpers), internal service-to-service token auth
 
@@ -104,7 +105,7 @@ flowchart TB
     llm --> groq[Groq API · LLM]
     kc --> ldap[(OpenLDAP)]
     kc --> kcdb[(PostgreSQL<br/>keycloakdb)]
-    kie --> jbpmdb[(PostgreSQL<br/>jbpm-db)]
+    kie --> jbpmh2[(Embedded H2<br/>jbpm_data volume)]
     kie -. workflow callback .-> be
 
     be --> obs[Observability pipeline<br/>Kafka · OTEL Collector · Logstash<br/>Data Prepper → OpenSearch]

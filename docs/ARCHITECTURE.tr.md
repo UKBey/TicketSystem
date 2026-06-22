@@ -82,7 +82,6 @@ flowchart TB
 
     subgraph data[Veri Depoları]
         pg[(PostgreSQL 15<br/>ticketdb + keycloakdb)]
-        jpg[(PostgreSQL 15<br/>jbpm-db)]
         redis[(Redis 7)]
         ldap[(OpenLDAP)]
     end
@@ -113,7 +112,6 @@ flowchart TB
     llm --> groq
     kc --> ldap
     kc --> pg
-    kie --> jpg
     kie -. iş akışı geri çağrısı .-> be
 
     be --> kafka
@@ -143,11 +141,11 @@ flowchart TB
 | **llm-service** | Spring Boot 3 / Java 21 | Groq API aracılığıyla yapay zekâ destekli ticket özetlemesi. `ticketdb`'yi izole bir Flyway geçmiş tablosuyla paylaşır. |
 | **it-service-frontend** | React 19 + Vite | Web SPA — rol kapsamlı arayüzler; gezinme (navigation), kullanıcının rollerinin **birleşiminden** oluşturulur (customer, agent, lead_agent, admin, manager). React Native mobil istemci de aynı bileşimi yansıtır. |
 | **it-service-mobile** | React Native + Expo | Web uygulamasıyla işlevsel paritede mobil istemci. |
-| **ticket-workflow-kjar** | jBPM / BPMN 2.0 | KIE Server'a dağıtılan `ticket-lifecycle` süreç tanımı. |
+| **ticket-workflow-kjar** | jBPM / BPMN 2.0 | KIE Server imajına gömülen ve başlangıçta `kjar-deploy` ile kaydedilen `ticket-lifecycle` süreç tanımı. |
 | **Keycloak** | Keycloak 24 | Kimlik sağlayıcısı — OAuth2/OIDC, `TicketSystemRealm` realm'i, LDAP'tan federe edilen kullanıcılar. |
 | **OpenLDAP** | OpenLDAP | Dizin sunucusu — kullanıcı hesapları için tek doğruluk kaynağı. |
-| **KIE Server** | jBPM 7.61 (WildFly) | İş akışı sürecini barındırır; kendi PostgreSQL veritabanıyla desteklenir. |
-| **PostgreSQL** | PostgreSQL 15 | `ticketdb` (uygulama) ve `keycloakdb` (Keycloak); `jbpm-db` ayrı bir örnektir. |
+| **KIE Server** | jBPM 7.61 (WildFly) | İş akışı sürecini barındırır; süreç/geçmiş durumunu, bağlı bir hacimde (volume) tutulan dosya tabanlı bir H2 deposuna kalıcılaştırır. |
+| **PostgreSQL** | PostgreSQL 15 | `ticketdb` (uygulama) ve `keycloakdb` (Keycloak). |
 | **Redis** | Redis 7 | Dağıtık hız sınırı kovaları (rate-limit buckets); gelecekteki önbellek/kuyruk kullanımı için hazırlık alanı. |
 | **Kafka + Logstash** | Kafka 3.7 | OpenSearch'e log taşıma tamponu ve tüketicisi. |
 | **OTEL Collector + Data Prepper** | OpenTelemetry | Telemetri alımı; izleri/günlükleri/metrikleri OpenSearch'e dağıtır. |
@@ -262,35 +260,38 @@ Frontend, `llm-service`'i (`/api/v1/ai/` üzerinden) çağırır. Servis; ticket
 | **Kimlik doğrulama** | Keycloak (OAuth2/OIDC); resource server tarafından doğrulanan JWT (RS256) |
 | **Kullanıcı federasyonu** | OpenLDAP — Keycloak'ın kullanıcı deposu; LDAP grupları realm rollerine eşlenir |
 | **2FA** | Kullanıcı başına yapılandırılabilir TOTP (kimlik doğrulayıcı uygulama) |
+| **Parola sıfırlama** | Keycloak'ın yerel parola-unuttum akışına devredilir (e-postayla gönderilen sıfırlama bağlantısı); uygulama özel bir sıfırlama sayfası barındırmaz |
 | **Yetkilendirme — kullanıcı uç noktaları** | `realm_access.roles` → `ROLE_*` yetkileri; metot düzeyinde `@PreAuthorize` (+ servis katmanı kapsam/talep kontrolleri için `util/AuthRoles` yardımcıları) |
 | **Yetkilendirme — dahili uç noktalar** | `/api/v1/internal/**` JWT'yi atlar; paylaşılan bir `X-Internal-Token` başlığıyla korunur (yalnızca KIE Server geri çağrısı tarafından kullanılır) |
 | **Roller** | Personel için **eklemeli çok rollü** (etkin yetki = taşınan kümenin birleşimi): `agent` (ticket talep eder ve üzerinde çalışır), `lead_agent` (`agent` bileşiği; atama, talep etmeden işlem, ürün içeriği yönetimi, takım panosu), `admin` (global sistem yapılandırması), `manager` (global salt okunur gözetim). `customer` (son kullanıcı) **tekil (singleton)** bir roldür — her personel rolüyle karşılıklı olarak dışlayıcıdır; backend onu başka bir rolle birleştirmeyi reddeder. Keycloak'ta tutulur, `user_roles` tablosunda (Flyway V37) önbelleğe alınır, `/users/sync` ile senkronize edilir. Süper yönetici, `admin` + `lead_agent` + `manager` rollerinin tümünü taşıyan bir kullanıcıdır. |
 | **Oturum** | Durumsuz (`SessionCreationPolicy.STATELESS`); CSRF devre dışı (çerez yok) |
 | **Anonim izin listesi** | Kimlik doğrulama uç noktaları, WebSocket el sıkışması, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Hız sınırlama** | Bucket4j token-bucket, Redis aracılığıyla dağıtık; `application.yml` (`app.rate-limit.global-api.*`) ve `RATE_LIMIT_GLOBAL_*` ortam değişkenleriyle yapılandırılır |
-| **Girdi güvenliği** | Tüm DTO'larda Bean Validation; ek dosya türü/boyutu denetimleri ve hassas veri taraması |
-| **Veri izolasyonu** | Müşteriler yalnızca kendi ticket'larına erişebilir; temsilciler yalnızca talep ettikleri ticket'lar üzerinde işlem yapar; agent / lead_agent yetkili oldukları ürünlerle sınırlandırılır; `admin` ve `manager` globaldir |
+| **Girdi güvenliği** | Tüm DTO'larda Bean Validation; ek dosya türü/boyutu denetimleri ve hassas veri taraması; native sorgu sıralama sütunları, `ORDER BY` içine yerleştirilmeden önce bir **beyaz listeye** karşı çözümlenir (ham istek değeri SQL'e asla ulaşmaz) |
+| **Veri izolasyonu** | Müşteriler yalnızca kendi ticket'larına erişebilir; temsilciler yalnızca talep ettikleri ticket'lar üzerinde işlem yapar; agent / lead_agent yetkili oldukları ürünlerle sınırlandırılır; `admin` ve `manager` globaldir. Kullanıcı arama uç noktaları erişim denetimlidir — temsilci listesi yalnızca personele açıktır ve tekil kullanıcı okumaları kendisi-veya-yetkili ile sınırlıdır |
 
 ---
 
 ## 9. Veri Mimarisi
 
-- Tek bir PostgreSQL örneği, **`ticketdb`** (uygulama verisi) ve **`keycloakdb`** (Keycloak) veritabanlarını barındırır. jBPM motoru **ayrı** bir `jbpm-db` örneği kullanır — bu ikisi birbirine karıştırılmamalıdır.
-- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V40) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
+- Tek bir PostgreSQL örneği, **`ticketdb`** (uygulama verisi) ve **`keycloakdb`** (Keycloak) veritabanlarını barındırır. jBPM motoru durumunu **ayrı bir dosya tabanlı H2 deposunda** tutar (PostgreSQL'de değil) — bu ikisi birbirine karıştırılmamalıdır.
+- Şema değişiklikleri yalnızca **Flyway migrasyonları** (`V<n>__*.sql`, şu anda V1–V47) üzerinden yapılır. Hibernate `ddl-auto: validate` olarak çalışır — şemayı asla değiştirmez.
 - `llm-service`, `ticketdb`'yi paylaşır ancak **izole bir Flyway geçmiş tablosu** (`flyway_schema_history_llm`, 0'dan baseline'lanmış) tutar; böylece migrasyonları backend'inkilerle çakışmadan bir arada bulunur.
 - DTO'lar API sınırını oluşturur; JPA entity'leri asla doğrudan istemcilere serileştirilmez.
+- jBPM motoru **artık ayrı bir PostgreSQL örneği kullanmaz** — süreç/geçmiş durumu, bağlı bir hacimde tutulan dosya tabanlı bir H2 deposunda yer alır; böylece iki veritabanı, ikinci bir Postgres konteynerine gerek olmadan bağımsız kalır.
 
-Çekirdek tablolar arasında `tickets`, `users`, `user_roles` (önbelleğe alınan eklemeli rol kümesi, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` ve `known_issues` yer alır.
+Çekirdek tablolar arasında `tickets`, `users` (`onboarding_completed` bayrağı dahil, Flyway V46), `user_roles` (önbelleğe alınan eklemeli rol kümesi, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` ve `known_issues` yer alır.
 
 ---
 
 ## 10. İş Akışı Entegrasyonu (jBPM)
 
-Her ticket, KIE Server konteyneri `ticket-workflow`'a bir kjar olarak dağıtılan `com.ticketsystem.workflow.ticket-lifecycle` jBPM **süreç örneği** ile desteklenir. BPMN, **tüm** ticket durum değişiklikleri için yetkili (authoritative) durum makinesidir — yalnızca kullanıcı kaynaklı geçişler (`updateTicketStatus` / `closeTicket`) için değil, aynı zamanda claim / unclaim / assign kaynaklı yan-etki geçişleri için de. Bir durum değişikliği BPMN'i ancak backend `transition_<HEDEF>` sinyalini gönderdiğinde ilerletir; yalnızca `status` süreç değişkenini yazmak süreç token'ını eşleşen state node'una taşımaz.
+Her ticket, `com.ticketsystem.workflow.ticket-lifecycle` jBPM **süreç örneği** ile desteklenir. kjar, derleme zamanında **KIE Server imajına gömülür** ve başlangıçta controller aracılığıyla (`kjar-deploy`) `ticket-workflow` konteyneri olarak kaydedilir; böylece yeni bir dağıtım, ayrı bir dağıtım adımı olmadan iş akışına hazır gelir. Konteyner, eşzamanlı/yetim süreç etkinliğinin tek bir paylaşılan ksession üzerinde çekişmemesi için **`PER_PROCESS_INSTANCE`** çalışma zamanı stratejisiyle (örnek başına ayrı bir ksession) çalışır.
 
-- **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır. Durum senkronizasyonu (`syncTicketStatus` / `syncTicketAssignment`) state node'unu `transition_<DURUM>` sinyali ile ilerletir; böylece claim/unclaim/assign sonrası BPMN ile veritabanı tutarlı kalır ve sonraki geçişler başarılı olur (`syncTicketAssignment` ayrıca `assigneeId`'yi düz süreç değişkeni olarak yazar).
-- **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/v1/internal/workflow/callback` uç noktasını geri çağırır.
-- **Süreç durumu kalıcılığı:** KIE Server, süreç/geçmiş durumunu geçici bir bellek-içi H2 deposu yerine ayrılmış `jbpm-db` PostgreSQL örneğine (yapılandırılmış bir JBoss datasource aracılığıyla) kalıcılaştırır — böylece süreç örnekleri konteyner yeniden başlatmalarında korunur.
+- **Durum geçişleri komut tabanlıdır:** ticket API'si, tek bir genel `/status` uç noktası yerine korumalı eylem uç noktaları (`/wait`, `/resume`, `/resolve`, `/reopen`, `/close`) sunar. Her eylem durumu kendi koruması içinde ilerletir — hedefe zaten ulaşılmışsa idempotenttir, kaynak durum uyumsuzsa `400` döner. `NEW ↔ IN_PROGRESS` yalnızca claim / unclaim ile elde edilir; böylece claim ↔ durum değişmezi korunur.
+- **Backend → KIE:** `WorkflowService` / `KieServerAdapter`, süreçleri başlatmak, atamayı senkronize etmek ve SLA duraklat/devam et ile kapatma sinyallerini göndermek için KIE Server REST istemcisini kullanır. BPMN, **her durum değişikliği için yetkili (authoritative) durum makinesidir** — durum/atama senkronizasyonu, state node'unu eşleşen `transition_<DURUM>` sinyaliyle ilerletir (yalnızca `status` süreç değişkenini yazmak süreç token'ını taşımaz). Bu, yalnızca açık eylem geçişlerini değil, claim / unclaim / assign kaynaklı yan-etki geçişlerini de (ör. bir claim'in NEW → IN_PROGRESS'e otomatik yükseltmesi) kapsar; böylece BPMN ile veritabanı tutarlı kalır.
+- **KIE → Backend:** süreç, statik `X-Internal-Token` başlığıyla kimliği doğrulanan `/api/v1/internal/workflow/callback` uç noktasını geri çağırır. Süreç değişkeni olarak yalnızca temel geri çağrı URL'si geçirilir; BPMN script görevi, token'ı çağrı anında KIE Server ortamından okur, böylece sır asla süreç deposuna veya günlüklere düşmez.
+- **Süreç durumu kalıcılığı:** KIE Server, süreç/geçmiş durumunu **bağlı bir hacimde tutulan dosya tabanlı bir H2 deposuna** kalıcılaştırır (ayrı bir `jbpm-db` PostgreSQL örneği yoktur) — böylece süreç örnekleri konteyner yeniden başlatmalarında korunur.
 - **Dayanıklılık:** tüm KIE çağrıları bir Resilience4j **devre kesici (circuit breaker)** ile sarılır — iş akışı kesintileri zarif biçimde derecelenir ve ticket API'sini asla bloklamaz. *Bayatlamış (stale)* bir `processInstanceId` (BPMN örneği yok — ör. geçmiş deposu sıfırlanırken ticket `ticketdb` içinde hayatta kaldığı için KIE **404 "process instance not found"** döner), bir sağlık sinyali değil deterministik, örnek-bazlı bir sonuç olarak değerlendirilir: **devre kesici tarafından yok sayılır** (böylece tek bir eksik örnek, diğer her ticket için devreyi asla tetiklemez) ve backend, ticket'ı bloklamak yerine basitçe **veritabanı tarafındaki geçişi kabul eder**.
 
 ---
@@ -326,7 +327,7 @@ flowchart LR
 
 Backend, `@EnableAsync` ve `@EnableScheduling` özelliklerini etkinleştirir:
 
-- **Alan olayları (domain events)** — ticket oluşturma gibi eylemler, asenkron olarak işlenen olaylar yayınlar (`@EventListener` + `@Async`); böylece bildirim ve e-posta işleri istek iş parçacığından (thread) uzak tutulur.
+- **Alan olayları (domain events)** — ticket oluşturma gibi eylemler, asenkron olarak işlenen olaylar yayınlar (`@EventListener` + `@Async`); böylece bildirim ve e-posta işleri istek iş parçacığından (thread) uzak tutulur. `@Async`, **sınırlı bir `ThreadPoolTaskExecutor`** üzerinde çalışır (core 4 / max 16 / kuyruk 500, `CallerRunsPolicy`); böylece olay yoğunluğu patlamaları, iş parçacıklarını tüketmek yerine geri basınç (backpressure) uygular.
 - **Zamanlanmış görevler** — cron tabanlı işler, SLA izlemeyi ve bildirim bakımını (ör. süresi dolmuş bildirimlerin temizlenmesi) yürütür.
 - **Canlı güncellemeler** — STOMP/WebSocket, bağlı istemcilere ticket detayı olaylarını iletir.
 
@@ -394,7 +395,7 @@ flowchart LR
 | **Data Prepper üzerinden delta zamansallıklı metrikler** | OTEL collector'ın OpenSearch dışa aktarıcısı metrik üretemez; delta zamansallığı, OpenSearch agregasyonlarının `rate()` olmadan çalışmasını sağlar. |
 | **`ddl-auto: validate` ile Flyway** | Şema sürümlenmiş, incelenebilir ve yeniden üretilebilir; Hibernate onu asla sessizce değiştiremez. |
 | **Paylaşılan `ticketdb`, llm-service için izole Flyway geçmişi** | Yapay zekâ servisi, servisler arası bir çağrı olmadan alan verisini yeniden kullanır; migrasyonlar ise bağımsız kalır. |
-| **Ayrı `jbpm-db`** | Süreç motoru durumu, uygulama verisinden izole edilir. |
+| **İzole jBPM durum deposu** | Süreç motoru durumu, kendi dosya tabanlı H2 deposunda, uygulamanın PostgreSQL verisinden izole olarak tutulur. |
 | **Çok dilli (polyglot) monorepo** | Birçok hareketli parçası olan bir sistem için tek bir tutarlı geçmiş ve tek bir orkestrasyon giriş noktası. |
 
 ---

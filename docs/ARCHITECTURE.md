@@ -82,7 +82,6 @@ flowchart TB
 
     subgraph data[Data Stores]
         pg[(PostgreSQL 15<br/>ticketdb + keycloakdb)]
-        jpg[(PostgreSQL 15<br/>jbpm-db)]
         redis[(Redis 7)]
         ldap[(OpenLDAP)]
     end
@@ -113,7 +112,6 @@ flowchart TB
     llm --> groq
     kc --> ldap
     kc --> pg
-    kie --> jpg
     kie -. workflow callback .-> be
 
     be --> kafka
@@ -143,11 +141,11 @@ flowchart TB
 | **llm-service** | Spring Boot 3 / Java 21 | AI ticket summarisation via the Groq API. Shares `ticketdb` with an isolated Flyway history table. |
 | **it-service-frontend** | React 19 + Vite | Web SPA — role-scoped UIs; navigation is composed from the **union** of the user's roles (customer, agent, lead_agent, admin, manager). The React Native mobile client mirrors the same composition. |
 | **it-service-mobile** | React Native + Expo | Mobile client with functional parity to the web app. |
-| **ticket-workflow-kjar** | jBPM / BPMN 2.0 | The `ticket-lifecycle` process definition deployed to KIE Server. |
+| **ticket-workflow-kjar** | jBPM / BPMN 2.0 | The `ticket-lifecycle` process definition, baked into the KIE Server image and registered via `kjar-deploy` on startup. |
 | **Keycloak** | Keycloak 24 | Identity provider — OAuth2/OIDC, realm `TicketSystemRealm`, users federated from LDAP. |
 | **OpenLDAP** | OpenLDAP | Directory server — the source of truth for user accounts. |
-| **KIE Server** | jBPM 7.61 (WildFly) | Hosts the workflow process; backed by its own PostgreSQL database. |
-| **PostgreSQL** | PostgreSQL 15 | `ticketdb` (application) and `keycloakdb` (Keycloak); `jbpm-db` is a separate instance. |
+| **KIE Server** | jBPM 7.61 (WildFly) | Hosts the workflow process; persists its process/history state to a file-based H2 store on a mounted volume. |
+| **PostgreSQL** | PostgreSQL 15 | `ticketdb` (application) and `keycloakdb` (Keycloak). |
 | **Redis** | Redis 7 | Distributed rate-limit buckets; staging ground for future cache/queue use. |
 | **Kafka + Logstash** | Kafka 3.7 | Log transport buffer and consumer into OpenSearch. |
 | **OTEL Collector + Data Prepper** | OpenTelemetry | Telemetry ingestion; fans traces/logs/metrics out to OpenSearch. |
@@ -262,35 +260,38 @@ The frontend calls `llm-service` (via `/api/v1/ai/`). The service collects the t
 | **Authentication** | Keycloak (OAuth2/OIDC); JWT (RS256) verified by the resource server |
 | **User federation** | OpenLDAP — Keycloak's user storage; LDAP groups map to realm roles |
 | **2FA** | TOTP (authenticator app) configurable per user |
+| **Password reset** | Delegated to Keycloak's native forgot-password flow (e-mailed reset link); the application hosts no custom reset pages |
 | **Authorization — user endpoints** | `realm_access.roles` → `ROLE_*` authorities; method-level `@PreAuthorize` (+ `util/AuthRoles` helpers for service-layer scope/claim checks) |
 | **Authorization — internal endpoints** | `/api/v1/internal/**` bypass JWT; gated by a shared `X-Internal-Token` header (used only by the KIE Server callback) |
 | **Roles** | **Additive multi-role** for staff (effective permissions = union of the held set): `agent` (claims & works tickets), `lead_agent` (composite of `agent`; assign, act without claiming, manage product content, team dashboard), `admin` (global system config), `manager` (global read-only oversight). `customer` (end user) is a **singleton** role — mutually exclusive with every staff role; the backend rejects mixing it with any other role. Stored in Keycloak, cached in `user_roles` (Flyway V37), synced on `/users/sync`. A super-admin is a user holding all of `admin` + `lead_agent` + `manager`. |
 | **Session** | Stateless (`SessionCreationPolicy.STATELESS`); CSRF disabled (no cookies) |
 | **Anonymous allow-list** | Auth endpoints, WebSocket handshake, Swagger UI, `/actuator/health\|info\|metrics` |
 | **Rate limiting** | Bucket4j token-bucket, distributed via Redis; configured via `application.yml` (`app.rate-limit.global-api.*`) and `RATE_LIMIT_GLOBAL_*` env vars |
-| **Input safety** | Bean Validation on all DTOs; attachment type/size checks and sensitive-data scanning |
-| **Data isolation** | Customers can only access their own tickets; agents act only on claimed tickets; agent / lead_agent are scoped to their authorised products; `admin` and `manager` are global |
+| **Input safety** | Bean Validation on all DTOs; attachment type/size checks and sensitive-data scanning; native-query sort columns are resolved against a **whitelist** before interpolation into `ORDER BY` (no raw request value reaches the SQL) |
+| **Data isolation** | Customers can only access their own tickets; agents act only on claimed tickets; agent / lead_agent are scoped to their authorised products; `admin` and `manager` are global. User-lookup endpoints are access-controlled — the agent roster is staff-only and individual user reads are restricted to self-or-privileged |
 
 ---
 
 ## 9. Data Architecture
 
-- A single PostgreSQL instance hosts **`ticketdb`** (application data) and **`keycloakdb`** (Keycloak). The jBPM engine uses a **separate** `jbpm-db` instance — the two must not be conflated.
-- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V40). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
+- A single PostgreSQL instance hosts **`ticketdb`** (application data) and **`keycloakdb`** (Keycloak). The jBPM engine keeps its state in a **separate file-based H2 store** (not in PostgreSQL) — the two must not be conflated.
+- Schema changes go exclusively through **Flyway migrations** (`V<n>__*.sql`, currently V1–V47). Hibernate runs as `ddl-auto: validate` — it never alters the schema.
 - `llm-service` shares `ticketdb` but keeps an **isolated Flyway history table** (`flyway_schema_history_llm`, baselined from 0) so its migrations coexist with the backend's without collision.
 - DTOs form the API boundary; JPA entities are never serialised directly to clients.
+- The jBPM engine **no longer uses a separate PostgreSQL instance** — its process/history state lives in a file-based H2 store persisted on a mounted volume, so the two databases are independent without a second Postgres container.
 
-Core tables include `tickets`, `users`, `user_roles` (the cached additive role set, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` and `known_issues`.
+Core tables include `tickets`, `users` (including the `onboarding_completed` flag, Flyway V46), `user_roles` (the cached additive role set, Flyway V37), `products`, `ticket_comments`, `ticket_worklogs`, `attachments`, `resolution_notes`, `csat`, `notifications`, `notification_preferences`, `sla_policies`, `ticket_claims`, `agent_product_limits`, `ticket_audit_logs`, `access_requests` and `known_issues`.
 
 ---
 
 ## 10. Workflow Integration (jBPM)
 
-Every ticket is backed by a jBPM **process instance** of `com.ticketsystem.workflow.ticket-lifecycle`, deployed as a kjar to the KIE Server container `ticket-workflow`.
+Every ticket is backed by a jBPM **process instance** of `com.ticketsystem.workflow.ticket-lifecycle`. The kjar is **baked into the KIE Server image** at build time and registered as the `ticket-workflow` container through the controller (`kjar-deploy`) on startup, so a fresh deployment has the workflow ready without a separate deploy step. The container runs with the **`PER_PROCESS_INSTANCE`** runtime strategy (a dedicated ksession per instance) so concurrent/orphaned process activity does not contend on a single shared session.
 
-- **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals. The BPMN is the **authoritative state machine for every status change** — status/assignment sync drives it by sending the matching `transition_<STATUS>` signal (writing the `status` process variable alone does not move the process token). This covers not only explicit transitions (`updateTicketStatus` / `closeTicket`) but also the side-effect transitions caused by claim / unclaim / assign (e.g. a claim auto-promoting NEW → IN_PROGRESS), keeping the BPMN and the DB consistent.
-- **KIE → Backend:** the process calls back to `/api/v1/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header.
-- **Process state persistence:** the KIE Server persists its process/history state to the dedicated `jbpm-db` PostgreSQL instance (via a configured JBoss datasource), not an ephemeral in-memory H2 store — so process instances survive container restarts.
+- **Status transitions are command-based:** the ticket API exposes guarded action endpoints (`/wait`, `/resume`, `/resolve`, `/reopen`, `/close`) rather than a single generic `/status` endpoint. Each action drives the status within its own guard — idempotent if already at the target, `400` if the source state is incompatible. `NEW ↔ IN_PROGRESS` is reached through claim / unclaim only, preserving the claim ↔ status invariant.
+- **Backend → KIE:** `WorkflowService` / `KieServerAdapter` use the KIE Server REST client to start processes, sync status and assignment, and send SLA pause/resume and close signals. The BPMN is the **authoritative state machine for every status change** — status/assignment sync drives it by sending the matching `transition_<STATUS>` signal (writing the `status` process variable alone does not move the process token). This covers not only the explicit action transitions but also the side-effect transitions caused by claim / unclaim / assign (e.g. a claim auto-promoting NEW → IN_PROGRESS), keeping the BPMN and the DB consistent.
+- **KIE → Backend:** the process calls back to `/api/v1/internal/workflow/callback`, authenticated by the static `X-Internal-Token` header. Only the base callback URL is passed as a process variable; the BPMN script task reads the token from the KIE Server environment at call time, so the secret never lands in the process store or logs.
+- **Process state persistence:** the KIE Server persists its process/history state to a **file-based H2 store on a mounted volume** (no separate `jbpm-db` PostgreSQL instance) — so process instances survive container restarts.
 - **Resilience:** all KIE calls are wrapped in a Resilience4j **circuit breaker** — workflow outages degrade gracefully and never block the ticket API. A *stale* `processInstanceId` (the BPMN instance is gone — e.g. KIE returns **404 "process instance not found"** because the history store was reset while the ticket survived in `ticketdb`) is treated as a deterministic, per-instance outcome rather than a health signal: it is **ignored by the circuit breaker** (so one missing instance never trips it for every other ticket) and the backend simply **accepts the DB-side transition** instead of blocking the ticket.
 
 ---
@@ -326,7 +327,7 @@ flowchart LR
 
 The backend enables `@EnableAsync` and `@EnableScheduling`:
 
-- **Domain events** — actions such as ticket creation publish events handled asynchronously (`@EventListener` + `@Async`), keeping notification and e-mail work off the request thread.
+- **Domain events** — actions such as ticket creation publish events handled asynchronously (`@EventListener` + `@Async`), keeping notification and e-mail work off the request thread. `@Async` runs on a **bounded `ThreadPoolTaskExecutor`** (core 4 / max 16 / queue 500, `CallerRunsPolicy`) so bursts of event activity apply backpressure rather than exhausting threads.
 - **Scheduled tasks** — cron-driven jobs handle SLA monitoring and notification housekeeping (e.g. purging expired notifications).
 - **Live updates** — STOMP/WebSocket pushes ticket-detail events to connected clients.
 
@@ -394,7 +395,7 @@ flowchart LR
 | **Delta-temporality metrics via Data Prepper** | The OTEL collector's OpenSearch exporter cannot emit metrics; delta temporality makes OpenSearch aggregations work without `rate()`. |
 | **Flyway with `ddl-auto: validate`** | Schema is versioned, reviewable and reproducible; Hibernate can never silently change it. |
 | **Shared `ticketdb`, isolated Flyway history for llm-service** | The AI service reuses domain data without a cross-service call, while migrations stay independent. |
-| **Separate `jbpm-db`** | Process-engine state is isolated from application data. |
+| **Isolated jBPM state store** | Process-engine state lives in its own file-based H2 store, isolated from the application's PostgreSQL data. |
 | **Polyglot monorepo** | One coherent history and one orchestration entry point for a system with many moving parts. |
 
 ---

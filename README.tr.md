@@ -61,6 +61,7 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 - **Açık / koyu tema** ve **İngilizce / Türkçe** arayüz; ikisi de Keycloak giriş ekranlarıyla paylaşılır
 - **Kullanıcının seçtiği tarih formatı** arayüzdeki *her* tarihe uygulanır (`31/12/2026`, `12/31/2026`, `2026-12-31`, `31.12.2026` veya yerel ay-adlı biçim) — kullanıcı başına kalıcı, cihazlar arası senkron
 - Tema, dil, tarih formatı ve bildirim tercihlerinin tümü **profil** sayfasından ayarlanır
+- Hızlı gezinme ve ticket arama için **komut paleti** (`Ctrl`/`Cmd`+`K`), yeni kullanıcılar için **role duyarlı rehberli tanıtım turu** ve eylem geri bildirimi için bloklamayan **toast bildirimleri**
 
 ### Yapay Zekâ Desteği
 - Özel `llm-service`, Türkçe veya İngilizce **yapay zekâ destekli ticket özetleri** üretir (Groq / Llama 3.1)
@@ -70,7 +71,7 @@ Müşteriler teknik sorunları bildirir, destek temsilcileri (agent) bunları **
 - KPI özeti, durum dağılımı, ticket zaman çizelgesi, öncelik-SLA kırılımı, temsilci performans sıralaması, ürün metrikleri, CSAT analitiği (dağılım / eğilim), günlük çalışma kaydı (worklog) grafikleri ve **yapılandırılabilir takılı-ticket uyarıları** — KPI'lar seçilen bir **tarih aralığına** göre kapsamlanır, tümü Caffeine ile önbelleğe alınmış
 
 ### Güvenlik ve Kimlik
-- **OpenLDAP**'tan federe edilen kullanıcılarla **Keycloak** SSO, OAuth2/OIDC, JWT, **2FA (TOTP)** ve "beni hatırla"
+- **OpenLDAP**'tan federe edilen kullanıcılarla **Keycloak** SSO, OAuth2/OIDC, JWT, **2FA (TOTP)**, "beni hatırla" ve **Keycloak yerel parola sıfırlama** (e-posta Mailpit üzerinden iletilir)
 - **Eklemeli çok rollü (additive multi-role)** erişim denetimi: bir kullanıcı bir rol *kümesi* taşır ve etkin yetkileri bunların **birleşimidir**. Beş rol — `customer`, `agent`, `lead_agent`, `admin`, `manager` — operasyonel, yapılandırma ve gözetim eksenlerini kapsar; `lead_agent`, `agent`'ın bir Keycloak bileşik (composite) rolüdür. `customer` bir **tekil (singleton)** roldür — personel rolleriyle birlikte taşınamaz — personel rolleri ise serbestçe birleşebilir. Roller Keycloak'ta tutulur ve `user_roles` tablosunda (Flyway V37) önbelleğe alınır; `/users/sync` ile senkronize edilir.
 - Dağıtık **hız sınırlama (rate limiting)** (Bucket4j + Redis), metot düzeyinde yetkilendirme (`@PreAuthorize` + `AuthRoles` yardımcıları), servisten servise dahili token kimlik doğrulaması
 
@@ -104,7 +105,7 @@ flowchart TB
     llm --> groq[Groq API · LLM]
     kc --> ldap[(OpenLDAP)]
     kc --> kcdb[(PostgreSQL<br/>keycloakdb)]
-    kie --> jbpmdb[(PostgreSQL<br/>jbpm-db)]
+    kie --> jbpmh2[(Gömülü H2<br/>jbpm_data volume)]
     kie -. iş akışı geri çağrısı .-> be
 
     be --> obs[Gözlemlenebilirlik hattı<br/>Kafka · OTEL Collector · Logstash<br/>Data Prepper → OpenSearch]
@@ -152,7 +153,7 @@ flowchart TB
 cp .env.example .env
 ```
 
-`.env` dosyasındaki yer tutucu değerleri doldurun (veritabanı parolaları, LDAP/Keycloak parolaları, `GROQ_API_KEY` vb.). Her değişken, `.env.example` içinde satır içinde belgelenmiştir.
+Geliştirme için bu kadarı yeterli — örnek dosya **çalışan dev varsayılanlarıyla** gelir (paylaşılan dev parolası `321654`, eşleşen dahili token'lar, KIE server imajının yerleşik kimlik bilgileri). Tek isteğe bağlı boş değer, yalnızca yapay zekâ özet özelliği için gereken `GROQ_API_KEY`'dir. Her değişken `.env.example` içinde satır içinde belgelenmiştir; herhangi bir üretim kullanımından önce tüm parolaları/secret'ları değiştirin.
 
 ### 2. Tüm yığını başlatın
 
@@ -163,6 +164,11 @@ make logs s=it-service-backend   # tek bir servisin günlüklerini izler
 ```
 
 İlk başlatma; imajları çeker, Flyway migrasyonlarını çalıştırır ve Keycloak realm'ini içe aktarır — birkaç dakika tanıyın. Uygulama kodunu değiştirdikten sonra `make rebuild`, durdurmak için `make down` kullanın.
+
+> **Dev ve prod compose.** Compose, standart override desenine göre üç dosyaya ayrılmıştır:
+> - `docker-compose.yaml` — ortamdan bağımsız **temel (base)** katman (sabitlenmiş imajlar, çekirdek yapılandırma).
+> - `docker-compose.override.yaml` — `make up` / `docker compose up` tarafından *otomatik yüklenen* **dev** katmanı: host'a yayınlanan portlar, kaynaktan derleme, dev araçları (mailpit, phpldapadmin, OpenSearch Dashboards, SonarQube) ve dev ayarları (Swagger, SQL loglama). Yani `make up` saf dev kalır — hiçbir şey değişmez.
+> - `docker-compose.prod.yaml` — `make up-prod` ile açıkça uygulanan **prod** katmanı (`-f docker-compose.yaml -f docker-compose.prod.yaml`): sabitlenmiş imajları çeker, **yalnızca** nginx'i (80 + 443/TLS) açar, tüm dev araçlarını kaldırır, Keycloak'ı üretim modunda çalıştırır ve `restart` politikaları ekler. İmajların önce bir kayıt defterinde (registry) olması (CD hattı `main`'de Docker Hub'a iter) ve bir prod `.env`'in hazırlanması gerekir. Tam üretim (otomatik ölçekleme, secret'lar, cert-manager) için **[k8s prod overlay](k8s/README.md)**'ini kullanın.
 
 ### 3. Tohum kullanıcılarına realm rollerini atayın (ilk `make up` sonrası bir defalık)
 
@@ -208,6 +214,11 @@ Artık http://localhost adresinden giriş yapabilirsiniz.
 ```bash
 make gen       # veri üreticisini derler + çalıştırır (ürünler, ticket'lar, geçmiş)
 ```
+
+> **İpucu:** üretici, backend global hız sınırı kapalıyken en hızlı çalışır (istekleri
+> hiç beklemeden gönderir). `make gen` öncesi `.env` içinde `RATE_LIMIT_GLOBAL_MAX_REQUESTS=10000000`
+> (veya `RATE_LIMIT_GLOBAL_ENABLED=false`) ayarlayıp backend'i yeniden başlatın. Sınır açıkken de
+> çalışır — 429'lar otomatik yeniden denenir — sadece daha yavaştır. Bkz. [data-generator/README.md](data-generator/README.md#requirements).
 
 ### 6. Demo kullanıcıları
 
@@ -262,7 +273,9 @@ TicketSystemProject/
 ├── k8s/                     # Kubernetes manifestoları (Kustomize base + overlays)
 ├── dev_plans/               # Tasarım ve planlama dokümanları
 ├── docs/                    # Mimari ve teknik dokümantasyon
-├── docker-compose.yaml      # Tam yığın orkestrasyonu
+├── docker-compose.yaml      # Tam yığın orkestrasyonu (temel/base)
+├── docker-compose.override.yaml  # Dev overlay (otomatik yüklenir: portlar, build, dev araçları)
+├── docker-compose.prod.yaml      # Prod overlay (make up-prod: sabit imajlar, yalnız nginx)
 ├── Makefile                 # Kanonik komut giriş noktası
 └── RUNBOOK.md               # Operasyon ve olay müdahale kılavuzları
 ```
@@ -289,7 +302,8 @@ make sonar-up        # SonarQube'u başlatır, ardından: make sonar
 
 | Yol | Komut | Notlar |
 |------|---------|-------|
-| **Docker Compose** | `make up` / `make rebuild` | Tek ana makine, varsayılan geliştirme ve demo yolu |
+| **Docker Compose (dev)** | `make up` / `make rebuild` | Tek ana makine geliştirme/demo; `docker-compose.override.yaml`'ı otomatik yükler (portlar, build, dev araçları) |
+| **Docker Compose (prod)** | `make up-prod` | base + `docker-compose.prod.yaml`: sabit imajlar, yalnız nginx açık (80/443), dev araçları yok, Keycloak prod modu, `restart` politikaları |
 | **Kubernetes** | `make k8s-up` | kind kümesi + Kustomize (`k8s/overlays/local`); `prod` overlay'i HPA, cert-manager ve SealedSecrets ekler |
 | **CI/CD** | GitHub Actions | Her PR'da CI; `main` üzerinde CD, Docker Hub imajlarını derleyip yayınlar |
 

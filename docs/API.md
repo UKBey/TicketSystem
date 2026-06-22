@@ -11,7 +11,7 @@ The system is made of two HTTP services:
 
 | Service | Default port | Documented here |
 |---|---|---|
-| `it-service-backend` — main API | `8081` | Authentication, Tickets, Comments, Attachments, Worklogs, CSAT, Users, Notifications, Notification Preferences, Products, Topics, Known Issues, Agent-Product Limits, Dashboard Metrics, Config, Internal/Workflow |
+| `it-service-backend` — main API | `8081` | Tickets, Comments, Attachments, Worklogs, CSAT, Users, Notifications, Notification Preferences, Products, Topics, Known Issues, Canned Responses, Agent-Product Limits, Dashboard Metrics, Admin Mail, Config, Internal/Workflow |
 | `llm-service` — AI summaries | `8082` | AI Summaries |
 
 ---
@@ -43,8 +43,10 @@ Authorization: Bearer <JWT>
 Tokens are obtained from Keycloak directly (realm `TicketSystemRealm`); the frontend uses
 `keycloak-js`. There is **no** username/password login endpoint on this API — `/api/v1/auth/login`
 and `/api/v1/auth/register` are reserved/permit-listed paths handled by the Keycloak login flow,
-not by a backend controller. The only backend `/api/v1/auth/**` endpoints are the anonymous
-password-reset flow documented under [Authentication](#authentication-password-reset).
+not by a backend controller. **Password reset is handled entirely by Keycloak's native
+reset-credentials flow** — the backend has no `/api/v1/auth/**` controller of its own (the former
+custom forgot/reset-password endpoints were removed). Self-service *change* password (with the
+current password) is still a backend endpoint: `POST /api/v1/users/me/password`.
 
 **Roles.** The JWT's `realm_access.roles` are mapped to Spring authorities `ROLE_<NAME>`.
 Authorization is **additive multi-role**: a user holds a *set* of roles and the effective
@@ -80,8 +82,9 @@ In this document the `Role` column lists who may call an endpoint:
 shared secret in the `X-Internal-Token` header (matching `jbpm.kie-server.callback-token`).
 Used only for service-to-service calls (jBPM KIE Server, llm-service).
 
-**Public (anonymous) endpoints.** `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password`,
-`/api/v1/auth/reset-password/validate`, Swagger, and `/actuator/health|info|metrics`.
+**Public (anonymous) endpoints.** `/api/v1/auth/login`, `/api/v1/auth/register` (reserved
+permit-listed paths, no backend controller), `/ws/**` (WebSocket handshake), Swagger, and
+`/actuator/health|info|metrics`.
 
 > The `llm-service` does not run Spring Security. Its `/api/v1/ai/**` endpoints are reached only
 > over the internal Docker/K8s network and are not exposed through nginx to end users.
@@ -148,56 +151,6 @@ Most paginated endpoints return a Spring `Page` envelope:
 
 ---
 
-## Authentication (password reset)
-
-`AuthController` — base path `/api/v1/auth`. All three endpoints are anonymous and rate-limited
-per client IP (5 requests/hour for `forgot-password`).
-
-| Method | Endpoint | Role | Description |
-|---|---|---|---|
-| POST | `/api/v1/auth/forgot-password` | Public | Request a password-reset link by email. |
-| GET | `/api/v1/auth/reset-password/validate` | Public | Check whether a reset token is still valid. |
-| POST | `/api/v1/auth/reset-password` | Public | Set a new password using a valid reset token. |
-
-**POST `/api/v1/auth/forgot-password`** — Body `ForgotPasswordRequest`:
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `email` | string | yes | Max 255 chars, valid email. |
-| `language` | string | no | `en` or `tr` — overrides email language. |
-| `theme` | string | no | `light` or `dark` — overrides email theme. |
-
-Always returns `200 {"status":"ok"}` even if the email is not registered (anti-enumeration).
-Returns `429 {"error":"RATE_LIMIT_EXCEEDED"}` when the IP quota is exhausted.
-
-**GET `/api/v1/auth/reset-password/validate`** — Query `token` (string, required). Returns
-`{"valid": true|false}`.
-
-**POST `/api/v1/auth/reset-password`** — Body `ResetPasswordRequest`:
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `token` | string | yes | One-time token from the email (16–512 chars). |
-| `newPassword` | string | yes | 8–128 chars. Must satisfy the Keycloak realm policy. |
-| `language` | string | no | `en` or `tr` for the confirmation email. |
-| `theme` | string | no | `light` or `dark` for the confirmation email. |
-
-Returns `200 {"status":"ok"}` on success; `400 {"error":"INVALID_OR_EXPIRED_TOKEN"}` or
-`400 {"error":"PASSWORD_POLICY_VIOLATION","detail":"..."}` on failure.
-
-Example request:
-
-```json
-POST /api/v1/auth/forgot-password
-{
-  "email": "user@example.com",
-  "language": "en",
-  "theme": "dark"
-}
-```
-
----
-
 ## Tickets
 
 `TicketController` — base path `/api/v1/tickets`.
@@ -212,14 +165,17 @@ POST /api/v1/auth/forgot-password
 | GET | `/api/v1/tickets/all` | agent, lead_agent, manager, admin | All tickets (all statuses) in authorized products. |
 | GET | `/api/v1/tickets/by-product/{productId}` | Authenticated | Tickets for one product (role-scoped). |
 | GET | `/api/v1/tickets/{id}` | Authenticated | Get one ticket with full detail. |
-| GET | `/api/v1/tickets/{id}/sla-timer` | customer, agent, lead_agent, manager | Live SLA timer info for a ticket. |
+| GET | `/api/v1/tickets/{id}/sla-timer` | customer, agent, lead_agent, manager, admin | Live SLA timer info for a ticket. |
 | PUT | `/api/v1/tickets/{id}/claim` | agent, lead_agent | Claim a ticket in any status except `CLOSED`. |
 | DELETE | `/api/v1/tickets/{id}/claim` | agent, lead_agent | Release the caller's own claim. |
 | PUT | `/api/v1/tickets/{id}/assign` | lead_agent, admin | Manually assign a ticket to a target agent. |
-| PUT | `/api/v1/tickets/{id}/status` | customer, agent, lead_agent | Change ticket status (agents on claimed tickets; lead_agent without claiming). |
+| PUT | `/api/v1/tickets/{id}/wait` | agent, lead_agent | Action: put on hold (`IN_PROGRESS` → `WAITING_FOR_CUSTOMER`). |
+| PUT | `/api/v1/tickets/{id}/resume` | customer, agent, lead_agent | Action: resume after a hold (`WAITING_FOR_CUSTOMER` → `IN_PROGRESS`). |
+| PUT | `/api/v1/tickets/{id}/resolve` | agent, lead_agent | Action: resolve (`IN_PROGRESS` → `RESOLVED`; reason code required). |
+| PUT | `/api/v1/tickets/{id}/reopen` | customer, agent, lead_agent | Action: reopen (`RESOLVED` → `IN_PROGRESS`). |
 | PUT | `/api/v1/tickets/{id}/priority` | agent, lead_agent | Change ticket priority. |
 | PUT | `/api/v1/tickets/{id}/topic` | agent, lead_agent | Change ticket topic. |
-| PUT | `/api/v1/tickets/{id}/close` | agent, lead_agent | Close a ticket (note + reason code). |
+| PUT | `/api/v1/tickets/{id}/close` | customer, agent, lead_agent | Close a ticket (note + reason code). |
 | DELETE | `/api/v1/tickets/{id}` | admin | Permanently delete a ticket. |
 
 ### Filtering query parameters
@@ -250,8 +206,8 @@ Body `TicketRequestDTO`:
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `title` | string | yes | Max 255 chars. |
-| `description` | string | yes | Detailed description; also stored as the first comment. |
+| `title` | string | yes | Not blank, max 100 chars. |
+| `description` | string | yes | Not blank, max 500 chars. Also stored as the first comment. |
 | `priority` | string | yes | `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`. |
 | `productId` | long | yes | Product/category the ticket belongs to. |
 | `topicId` | long | conditional | Topic ID; must be an active topic of `productId`. May be omitted/`null` only when the product has no active topics (a topicless ticket); otherwise required. |
@@ -280,9 +236,11 @@ Response `200 OK` (`TicketResponseDTO`):
   "status": "NEW",
   "priority": "HIGH",
   "productId": 1,
-  "productName": "CRM",
+  "productNameTr": "Müşteri Yönetimi",
+  "productNameEn": "CRM",
   "topicId": 12,
-  "topicName": "Password reset",
+  "topicNameTr": "Şifre sıfırlama",
+  "topicNameEn": "Password reset",
   "customerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "customerName": "Ali Yilmaz",
   "claimers": [],
@@ -346,14 +304,32 @@ Releasing the last claim moves the ticket `IN_PROGRESS` → `NEW`, also driven t
 target agent is checked; returns `400`/`409` if the agent's limit is full. Like claim, assigning
 a `NEW` ticket advances it to `IN_PROGRESS` through the BPMN state machine.
 
-**PUT `/api/v1/tickets/{id}/status`** — Body `StatusUpdateRequestDTO`:
-`status` (string, required), `reasonCode` (string — required when transitioning to `RESOLVED`),
-`note` (string — required when `reasonCode` is `OTHER`). The BPMN process is the authoritative
-state machine: a transition the BPMN does not accept is rejected with `400`.
+**Status action endpoints** — `PUT /api/v1/tickets/{id}/wait`, `/resume`, `/resolve`, `/reopen`.
+There is no generic status-change endpoint anymore (the former `PUT /api/v1/tickets/{id}/status`
+was removed). The caller runs an *action*, not a free-form target status — each action drives the
+status within its own guard: it is idempotent if already at the target, and returns `400` if the
+source state is incompatible. The `NEW` ↔ `IN_PROGRESS` transition is driven by claim/unclaim only,
+keeping the claim/status invariant intact. Each action takes an optional `TicketActionRequestDTO`
+body (`resolve` requires it because the reason code is mandatory):
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `reasonCode` | string | conditional | Required for `resolve`; optional for `wait`/`resume`/`reopen`. |
+| `note` | string | conditional | Required when `reasonCode` is `OTHER`. |
+
+| Action | Transition | Roles |
+|---|---|---|
+| `PUT .../wait` | `IN_PROGRESS` → `WAITING_FOR_CUSTOMER` | agent, lead_agent |
+| `PUT .../resume` | `WAITING_FOR_CUSTOMER` → `IN_PROGRESS` | customer, agent, lead_agent |
+| `PUT .../resolve` | `IN_PROGRESS` → `RESOLVED` | agent, lead_agent |
+| `PUT .../reopen` | `RESOLVED` → `IN_PROGRESS` | customer, agent, lead_agent |
+
+The BPMN process is the authoritative state machine: a transition the BPMN does not accept is
+rejected with `400`.
 
 ```json
-PUT /api/v1/tickets/42/status
-{ "status": "RESOLVED", "reasonCode": "SOLUTION_PROVIDED", "note": "Fix sent by email." }
+PUT /api/v1/tickets/42/resolve
+{ "reasonCode": "SOLUTION_PROVIDED", "note": "Fix sent by email." }
 ```
 
 **PUT `/api/v1/tickets/{id}/priority`** — Body `PriorityChangeRequestDTO`:
@@ -364,12 +340,14 @@ PUT /api/v1/tickets/42/status
 `topicId` (long, required — an active topic of the same product), `reasonCode` (string,
 required), `note` (string — required when `reasonCode` is `OTHER`).
 
-**PUT `/api/v1/tickets/{id}/close`** — Body `CloseTicketRequestDTO`:
-`reasonCode` (string, required), `note` (string — required when `reasonCode` is `OTHER`).
+**PUT `/api/v1/tickets/{id}/close`** — `customer`, `agent`, `lead_agent`. Body
+`CloseTicketRequestDTO`: `reasonCode` (string, required), `note` (string — required when
+`reasonCode` is `OTHER`).
 
 **DELETE `/api/v1/tickets/{id}`** — `admin` only; no body; returns `204 No Content`.
 
-**GET `/api/v1/tickets/{id}/sla-timer`** — returns a JSON object describing the live SLA timer,
+**GET `/api/v1/tickets/{id}/sla-timer`** — `customer`, `agent`, `lead_agent`, `manager`, `admin`.
+Returns a JSON object describing the live SLA timer,
 e.g. `{ "slaState": "active", "remainingMs": 27000000, "deadlineTimestamp": 1780346400000 }`
 (`deadlineTimestamp` is epoch-ms, and is `-1` while paused/closed). `slaState` is
 one of `active`, `paused`, `expired`, `completed`. The SLA counts only *active* time: while
@@ -391,7 +369,11 @@ authenticated user; role-based filtering is applied in the service layer.
 
 Comment types: `EXTERNAL` (visible to the customer), `INTERNAL` (operational staff — agent /
 lead_agent — only, hidden from customers). Customers may only add `EXTERNAL` comments to their
-own tickets.
+own tickets. **Posting is restricted to operational roles plus the owning customer:** only an
+`agent`/`lead_agent` (or the ticket's own `customer`) may add a comment. A pure `admin` or
+`manager` is rejected server-side (`error.comment.role.forbidden`) — to comment they must also hold
+`lead_agent`, aligning comments with the worklog/attachment model. (Reading still follows the
+role-based visibility filter.)
 
 A per-user posting **cooldown** (default 3s, `COMMENT_COOLDOWN_SECONDS`) and the max message
 length (`COMMENT_MAX_LENGTH`, default 500) are enforced server-side; clients read the current
@@ -453,6 +435,27 @@ These mirror the `COMMENT_COOLDOWN_SECONDS` and `COMMENT_MAX_LENGTH` (default 50
 
 ---
 
+## Admin Mail
+
+`AdminMailController` — base path `/api/v1/admin/mail`. Admin-only SMTP diagnostics, so the
+configured mail server can be validated end-to-end without triggering a full ticket flow.
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| POST | `/api/v1/admin/mail/test` | admin | Send a test email to the calling admin's own address (synchronously) and report the outcome. |
+
+**POST `/api/v1/admin/mail/test`** — no body. The mail is sent only to the calling admin's own
+address (not an arbitrary recipient), so the endpoint cannot be abused as an open relay. Returns
+`200 OK`:
+
+```json
+{ "success": true, "recipient": "admin@example.com", "error": "" }
+```
+
+On failure `success` is `false` and `error` carries the reason.
+
+---
+
 ## Attachments
 
 `AttachmentController` — base path `/api/v1`. File content is stored in the database as `BYTEA`.
@@ -461,8 +464,8 @@ Max file size 10 MB; text-based files are scanned for secret-like patterns.
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
 | POST | `/api/v1/tickets/{ticketId}/attachments` | customer, agent, lead_agent | Upload a file to a ticket. |
-| GET | `/api/v1/tickets/{ticketId}/attachments` | customer, agent, lead_agent | List a ticket's attachment metadata. |
-| GET | `/api/v1/attachments/{id}` | customer, agent, lead_agent | Download a file's content. |
+| GET | `/api/v1/tickets/{ticketId}/attachments` | customer, agent, lead_agent, manager, admin | List a ticket's attachment metadata. |
+| GET | `/api/v1/attachments/{id}` | customer, agent, lead_agent, manager, admin | Download a file's content. |
 | DELETE | `/api/v1/attachments/{id}` | customer, agent, lead_agent | Delete a file. |
 
 **POST `/api/v1/tickets/{ticketId}/attachments`** — `multipart/form-data` with a single part
@@ -496,10 +499,10 @@ their own uploads; agents only on their claimed tickets; lead_agent any (within 
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
 | POST | `/api/v1/tickets/{id}/worklogs` | agent, lead_agent | Add a worklog entry. |
-| GET | `/api/v1/tickets/{id}/worklogs` | agent, lead_agent | List a ticket's worklogs. |
+| GET | `/api/v1/tickets/{id}/worklogs` | agent, lead_agent, manager, admin | List a ticket's worklogs (manager/admin read-only). |
 | PUT | `/api/v1/tickets/{id}/worklogs/{worklogId}` | agent, lead_agent | Update a worklog entry. |
 | DELETE | `/api/v1/tickets/{id}/worklogs/{worklogId}` | agent, lead_agent | Delete a worklog entry. |
-| GET | `/api/v1/tickets/all-worklogs` | lead_agent | List every worklog in the system. |
+| GET | `/api/v1/tickets/all-worklogs` | manager, admin | List every worklog in the system. |
 
 **POST/PUT body `WorklogRequestDTO`:** `minutes` (int, required, ≥ 1), `description`
 (string, optional, max 500 chars).
@@ -539,8 +542,8 @@ their own worklogs; lead_agent may delete any. `DELETE` returns `204 No Content`
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
 | POST | `/api/v1/tickets/{id}/csat` | customer | Submit a CSAT survey for a resolved ticket. |
-| GET | `/api/v1/tickets/{id}/csat` | lead_agent, manager | Get the CSAT result of a ticket. |
-| GET | `/api/v1/tickets/all-csats` | lead_agent, manager | List every CSAT result. |
+| GET | `/api/v1/tickets/{id}/csat` | agent, lead_agent, manager, admin | Get the CSAT result of a ticket. |
+| GET | `/api/v1/tickets/all-csats` | manager, admin | List every CSAT result. |
 
 **POST `/api/v1/tickets/{id}/csat`** — Body `CsatDTO`: `rating` (int, required, 1–5),
 `comment` (string, optional). The ticket must be in `RESOLVED` status and owned by the caller;
@@ -575,9 +578,9 @@ Response `200 OK` (`Csat` entity):
 |---|---|---|---|
 | POST | `/api/v1/users/sync` | Authenticated | Sync the logged-in user from the JWT into the local DB (also refreshes the cached `user_roles` set). |
 | GET | `/api/v1/users` | admin, manager | List users (paged, searchable, role-filterable). |
-| GET | `/api/v1/users/{id}` | Authenticated | Get a user by Keycloak ID. |
-| GET | `/api/v1/users/agents` | Authenticated | List all agent users with their authorized products. |
-| GET | `/api/v1/users/agents/capacity` | lead_agent, admin, manager | List agents with current load/limit for a product. |
+| GET | `/api/v1/users/{id}` | self, admin, manager | Get a user by Keycloak ID (callers may always read their own record). |
+| GET | `/api/v1/users/agents` | agent, lead_agent, admin, manager | List all agent users with their authorized products. |
+| GET | `/api/v1/users/agents/capacity` | lead_agent, admin | List agents with current load/limit for a product. |
 | PUT | `/api/v1/users/me` | Authenticated | Update the caller's profile (name, email). |
 | POST | `/api/v1/users/me/password` | Authenticated | Change the caller's password. |
 | PUT | `/api/v1/users/me/language` | Authenticated | Update the caller's preferred language. |
@@ -588,6 +591,8 @@ Response `200 OK` (`Csat` entity):
 | POST | `/api/v1/users/me/2fa/notify-added` | Authenticated | Trigger the "2FA device added" notification email. |
 | GET | `/api/v1/users/me/pdf-preferences` | Authenticated | Get the caller's last-used PDF export modal selections. |
 | PUT | `/api/v1/users/me/pdf-preferences` | Authenticated | Persist the caller's PDF export modal selections. |
+| PUT | `/api/v1/users/me/panel-preferences` | Authenticated | Persist the caller's sidebar ticket-panel visibility selections. |
+| PUT | `/api/v1/users/me/onboarding-complete` | Authenticated | Mark the caller's onboarding as completed (idempotent). |
 | POST | `/api/v1/users/{userId}/products/{productId}` | admin | Grant an agent access to a product. |
 | DELETE | `/api/v1/users/{userId}/products/{productId}` | admin | Revoke an agent's product access. |
 | PUT | `/api/v1/users/{userId}/status` | admin | Activate / deactivate a user. |
@@ -623,7 +628,9 @@ No body — the user is derived from the JWT. Returns a `UserDTO`:
 
 ### GET `/api/v1/users`
 
-Query params: `search` (string, optional), `role` (string[], optional), `page` (int, ≥ 0),
+Query params: `search` (string, optional), `role` (string[], optional),
+`excludeGlobalRoles` (boolean, default `false`), `productId` (long[], optional),
+`sortBy` (string, default `name`), `sortDir` (string, default `asc`), `page` (int, ≥ 0),
 `size` (int, 1–500). Returns the trimmed envelope:
 `{ "content": [UserDTO...], "totalElements", "totalPages", "page", "size" }`.
 
@@ -645,6 +652,12 @@ Query params: `search` (string, optional), `role` (string[], optional), `page` (
 - **PUT `/api/v1/users/me/pdf-preferences`** — Body `PdfPreferencesDTO`; persists the export
   modal selections verbatim. The frontend reads this back to pre-fill the modal on next open.
   Returns `204 No Content`.
+- **PUT `/api/v1/users/me/panel-preferences`** — Body `PanelPreferencesDTO`; persists the
+  agent/lead sidebar ticket-panel visibility selections (workspace, pool, history, team,
+  all-tickets) verbatim as an opaque JSON string (max 500 chars). Hydrated back to the client via
+  `/users/sync`. Returns `204 No Content`.
+- **PUT `/api/v1/users/me/onboarding-complete`** — no body. Marks the caller's onboarding flow as
+  completed. Idempotent. Returns `204 No Content`.
 - **PUT `/api/v1/users/{userId}/status`** — query `active` (boolean). An admin cannot deactivate
   themselves (`400`). Returns `UserDTO`.
 - **PUT `/api/v1/users/{userId}/roles`** — Body: JSON array of role strings (non-empty); roles are
@@ -777,17 +790,20 @@ to `true`. On `PUT`, fields sent as `null` keep their current value (`UpdateNoti
 | DELETE | `/api/v1/products/{id}` | admin | Delete a product. |
 
 **GET `/api/v1/products`** — `customer` / `agent` see only their authorized products;
-`admin` and `manager` see all. Returns a JSON array of `ProductDTO`:
+`admin` and `manager` see all. Product/category names are **bilingual**: both `nameTr` and
+`nameEn` variants are returned (at least one is non-null) and the client picks the variant matching
+its UI language, falling back to the other. Returns a JSON array of `ProductDTO`:
 
 ```json
 [
-  { "id": 1, "name": "CRM", "isActive": true, "maxActiveTickets": 5 },
-  { "id": 2, "name": "ERP", "isActive": true, "maxActiveTickets": null }
+  { "id": 1, "nameTr": "Müşteri Yönetimi", "nameEn": "CRM", "isActive": true, "maxActiveTickets": 5 },
+  { "id": 2, "nameTr": null, "nameEn": "ERP", "isActive": true, "maxActiveTickets": null }
 ]
 ```
 
-**POST / PUT `/api/v1/products`** — Body is a `Product` entity, e.g.
-`{ "name": "ERP", "isActive": true }`. Returns `ProductDTO`.
+**POST / PUT `/api/v1/products`** — Body is a `Product` entity with the bilingual name fields, e.g.
+`{ "nameTr": "Kurumsal Kaynak", "nameEn": "ERP", "isActive": true }` (at least one of `nameTr` /
+`nameEn` required). Returns `ProductDTO`.
 
 **PATCH `/api/v1/products/{id}/limit`** — Body `ProductLimitUpdateRequestDTO`:
 `maxActiveTickets` (int, nullable — `null` removes the limit). Returns `ProductDTO`.
@@ -809,16 +825,18 @@ class-level base path; full paths are shown below.)
 | DELETE | `/api/v1/topics/{id}` | lead_agent | Delete a topic. |
 
 **GET `/api/v1/products/{productId}/topics`** — query `includeInactive` (boolean, default
-`false`). Returns a JSON array of `TicketTopicDTO`:
+`false`). Topic names are **bilingual** (`nameTr` / `nameEn`, client picks by UI language with
+fallback). Returns a JSON array of `TicketTopicDTO`:
 
 ```json
 [
-  { "id": 12, "productId": 3, "name": "Password reset", "isActive": true }
+  { "id": 12, "productId": 3, "nameTr": "Şifre sıfırlama", "nameEn": "Password reset", "isActive": true }
 ]
 ```
 
-**POST / PUT body `TicketTopicDTO`:** `name` (string, required, ≤ 255 chars),
-`isActive` (boolean). Returns `TicketTopicDTO`. `DELETE` returns `204 No Content`.
+**POST / PUT body `TicketTopicDTO`:** `nameTr` / `nameEn` (each ≤ 255 chars; at least one
+non-blank required on create — `isActive`-only updates may omit both), `isActive` (boolean).
+Returns `TicketTopicDTO`. `DELETE` returns `204 No Content`.
 
 ---
 
@@ -839,13 +857,18 @@ write operations require `lead_agent` (product content management).
 **GET `/api/v1/products/{productId}/known-issues`** — query `topicId` (long, optional),
 `includeInactive` (boolean, default `false`). Returns a JSON array of `KnownIssueDTO`.
 
+Title and content are **bilingual** (`*Tr` / `*En` variants); the client picks the variant
+matching its UI language with fallback.
+
 **POST / PUT body `KnownIssueDTO`:**
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `topicId` | long | no | Optional topic association. |
-| `title` | string | yes | ≤ 255 chars. |
-| `content` | string | yes | ≤ 10000 chars. |
+| `titleTr` | string | conditional | Turkish title (≤ 255 chars). At least one of `titleTr` / `titleEn` required. |
+| `titleEn` | string | conditional | English title (≤ 255 chars). |
+| `contentTr` | string | conditional | Turkish content (≤ 10000 chars). At least one of `contentTr` / `contentEn` required. |
+| `contentEn` | string | conditional | English content (≤ 10000 chars). |
 | `isActive` | boolean | no | Whether shown to users. |
 
 Response `KnownIssueDTO`:
@@ -855,8 +878,10 @@ Response `KnownIssueDTO`:
   "id": 42,
   "productId": 3,
   "topicId": 12,
-  "title": "VPN connection drops",
-  "content": "Check your network settings and ...",
+  "titleTr": "VPN bağlantısı kopuyor",
+  "titleEn": "VPN connection drops",
+  "contentTr": "Ağ ayarlarınızı kontrol edip ...",
+  "contentEn": "Check your network settings and ...",
   "isActive": true,
   "createdBy": "f9e8d7c6-b5a4-3210-fedc-ba0987654321",
   "createdAt": "2026-05-10T09:00:00+03:00",
@@ -881,7 +906,8 @@ templates). Three visibility values control which comment type the template targ
 
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
-| GET | `/api/v1/canned-responses` | agent, lead_agent, admin | List canned responses visible to the caller. |
+| GET | `/api/v1/canned-responses` | agent, lead_agent, admin | List canned responses visible to the caller (composer picker; non-paged). |
+| GET | `/api/v1/canned-responses/paged` | agent, lead_agent, admin | Paged + filtered list for the management screen. |
 | POST | `/api/v1/canned-responses` | agent, lead_agent, admin | Create a canned response. |
 | PUT | `/api/v1/canned-responses/{id}` | agent, lead_agent, admin | Update a canned response. |
 | DELETE | `/api/v1/canned-responses/{id}` | agent, lead_agent, admin | Delete a canned response. |
@@ -901,6 +927,13 @@ tied to the caller's authorized products). Optional query params:
 | `q` | string | Free-text search over title and shortcut. |
 
 Returns a JSON array of `CannedResponseDTO`.
+
+### GET `/api/v1/canned-responses/paged`
+
+Server-side filtered + paginated variant for the management list. Accepts `productId` (long,
+specific product) or `global` (boolean, productless templates only), `scope`, `visibility`,
+`lang` (`tr`/`en`), `q` (search), plus `page`/`size`. Results are ordered favorites-first then by
+`updatedAt` descending. Returns a [`Page` envelope](#pagination) of `CannedResponseDTO`.
 
 ### POST / PUT body `CannedResponseDTO`
 
@@ -1127,22 +1160,22 @@ Returns `200` with a plain-text body on success; `400` for an unknown `eventType
 
 | Resource | Endpoints |
 |---|---|
-| Authentication (password reset) | 3 |
-| Tickets | 17 |
+| Tickets | 20 |
 | Ticket Comments | 2 |
 | Config | 1 |
+| Admin Mail | 1 |
 | Attachments | 4 |
 | Worklogs | 5 |
 | CSAT | 3 |
-| Users | 20 |
+| Users | 23 |
 | Notifications | 6 |
 | Notification Preferences | 2 |
 | Products | 6 |
 | Ticket Topics | 4 |
 | Known Issues | 5 |
-| Canned Responses | 6 |
+| Canned Responses | 7 |
 | Agent-Product Limits | 3 |
 | Dashboard Metrics | 14 |
 | AI Summaries (llm-service) | 4 |
 | Internal / Workflow | 2 |
-| **Total** | **107** |
+| **Total** | **112** |

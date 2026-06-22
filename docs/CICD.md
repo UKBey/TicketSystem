@@ -2,10 +2,12 @@
 
 This document describes the Continuous Integration and Continuous Deployment
 pipeline for the IT-service ticketing system. The pipeline is implemented with
-**GitHub Actions** and lives in two workflow files:
+**GitHub Actions** and lives in three workflow files:
 
 - `.github/workflows/ci.yml` — **CI**: validates every change.
 - `.github/workflows/cd.yml` — **CD**: builds and ships Docker images after CI passes.
+- `.github/workflows/release.yml` — **Release**: publishes a GitHub Release from
+  an annotated `v*` tag's message (see [Release automation](#release-automation)).
 
 ## Philosophy
 
@@ -361,6 +363,54 @@ and the commit SHA, ready for a (manual or future automated) deploy.
 
 ---
 
+## Release automation
+
+**File:** `.github/workflows/release.yml`
+**Workflow name:** `Release`
+
+This workflow turns an annotated Git tag into a published **GitHub Release**. It
+runs entirely independently of CI/CD: it fires only on tag refs, so it does not
+collide with CD (which builds Docker images on pushes to `main`).
+
+### Trigger
+
+```yaml
+on:
+  push:
+    tags:
+      - 'v*'
+```
+
+It runs when a tag matching `v*` (e.g. `v1.19.0`) is pushed — typically by the
+`make set-version` → commit → tag → push release flow. It does **not** run on
+ordinary commit or branch pushes.
+
+It requests `permissions: contents: write` (needed to create/edit a Release),
+in contrast to CI and CD which only read the repo.
+
+### Job — `Publish GitHub Release` (`github-release`)
+
+| Step | Details |
+|------|---------|
+| Checkout | `actions/checkout@v4` with `fetch-depth: 0` so the full history + tags are available on the runner |
+| Restore annotated tag | `git fetch origin --force "refs/tags/<tag>:refs/tags/<tag>"` — see note below |
+| Create or update release from tag | `gh release create "<tag>" --verify-tag --notes-from-tag --title "<tag>"` falling back to `gh release edit … --notes-from-tag` |
+
+The release **notes are taken verbatim from the annotated tag's message**
+(`--notes-from-tag`) — the "Highlights since …" body that the `tagle` flow writes.
+
+> **Why the "Restore annotated tag" step exists:** `actions/checkout` converts an
+> annotated tag into a lightweight tag (a message-less ref pointing at the
+> commit) on a tag-push event, which would make `--notes-from-tag` fall back to
+> the commit subject. Force-fetching the real annotated tag object from the
+> remote recovers the message.
+
+The create-or-edit fallback makes the job **idempotent**: re-pushing (re-tagging)
+the same tag updates the existing Release's notes instead of failing with an
+"already exists" error.
+
+---
+
 ## Secrets & Configuration
 
 The pipeline relies on GitHub repository secrets, configured under
@@ -428,8 +478,11 @@ is **commit-driven**:
 - `<commit SHA>` — an immutable, per-commit tag (the head SHA validated by CI).
 
 The commit SHA is the unit of versioning: it identifies exactly what is
-deployed and is the handle used for rollback. Human-readable releases can be
-layered on top via Git tags / GitHub Releases without changing the pipeline.
+deployed and is the handle used for rollback. Human-readable releases are
+layered on top via annotated `v*` Git tags: pushing such a tag triggers the
+**Release** workflow, which publishes a GitHub Release whose notes are the tag's
+annotated message (see [Release automation](#release-automation)). This does not
+change the image pipeline — Docker images remain commit-SHA-versioned.
 
 ---
 

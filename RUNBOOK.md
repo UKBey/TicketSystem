@@ -15,10 +15,9 @@ On-call reference for the IT-service ticketing system. Brief, copy-paste oriente
 | keycloak-iam          | 8080            | `/auth/*`         | OIDC IdP, LDAP federation                 | `docker logs keycloak-iam`                   |
 | openldap-server       | 389 (internal)  | (none)            | User directory                            | `docker logs openldap-server`                |
 | it-service-db         | 5432            | `:5432` (dev)     | Postgres — `ticketdb` + `keycloakdb`      | `docker logs it-service-db`                  |
-| jbpm-db               | 5432            | `:5433` (dev)     | KIE Server process state/history Postgres (persistent — survives KIE restart) | `docker logs jbpm-db`                        |
-| kie-server            | 8080            | `:8180` (dev)     | jBPM workflow engine (7.61.0.Final)       | `docker logs kie-server`                     |
+| kie-server            | 8080            | `:8180` (dev)     | jBPM workflow engine (7.61.0.Final) — file-based H2 process state in the `jbpm_data` volume (no separate Postgres) | `docker logs kie-server`                     |
 | redis                 | 6379            | `:6379` (dev)     | Rate-limit Bucket4j + cache               | `docker logs redis`                          |
-| mailpit               | 1025/8025       | `:8025` (dev)     | Dev SMTP sink                             | `docker logs mailpit`                        |
+| mailpit               | 1025/8025       | `:8025` (dev)     | SMTP smart-host — captures all mail (UI) AND relays to real SMTP (`MAIL_RELAY_*`); backend always sends here | `docker logs mailpit`                        |
 | opensearch            | 9200            | `:9200` (dev)     | Log, trace and metric store               | `docker logs opensearch`                     |
 | opensearch-dashboards | 5601            | `:5601` (dev)     | Log/trace/metric UI + dashboards          | `docker logs opensearch-dashboards`          |
 | kafka                 | 9092            | `:9092` (dev)     | Log pipeline buffer (KRaft mode)          | `docker logs kafka-broker`                   |
@@ -125,18 +124,32 @@ curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" \
 ### KIE Server kjar redeploy
 
 The `ticket-workflow` container is registered automatically on every `docker
-compose up` by the **`kjar-deploy`** one-shot service: it waits for the KIE
-Server REST API to become healthy, then `PUT`s the container
-(`com.ticketsystem:ticket-workflow-kjar:1.0.5`). The kjar itself is compiled
-from source (Java 8) and baked into the KIE image via `Dockerfile-kie`, so no
-host `~/.m2` mount is needed. The backend `depends_on` the job's successful
-completion, so it never starts before the workflow container exists.
+compose up` by the **`kjar-deploy`** one-shot service. In **compose** it
+registers through the **Business Central controller**
+(`/business-central/rest/controller/management/servers/ticket-kie-server/containers/<id>`,
+idempotent — re-forces `STARTED` if already present) with a
+`PER_PROCESS_INSTANCE` runtime strategy in the payload, then waits for the KIE
+Server REST API to report the container `STARTED`. In **k8s** the job instead
+`PUT`s directly to the KIE Server REST API
+(`/kie-server/services/rest/server/containers/<id>`). Both resolve
+`com.ticketsystem:ticket-workflow-kjar:1.0.5`. The kjar is compiled from source
+(Java 8) and baked into the KIE image via `Dockerfile-kie`, so no host `~/.m2`
+mount is needed. The backend `depends_on` the job's successful completion, so it
+never starts before the workflow container exists.
+
+KIE Server process/runtime state lives in a **file-based H2 database** persisted
+in the `jbpm_data` volume (the separate `jbpm-db` Postgres was removed) — the
+`niogit` volume holds the controller's registered-container state. The runtime
+strategy is `PER_PROCESS_INSTANCE` (was `SINGLETON`): each instance gets its own
+ksession, so orphaned SLA timers firing at startup no longer contend on a shared
+session and fail container creation. It is set in both the kjar deployment
+descriptor and the `kjar-deploy` controller payload (the latter wins).
 
 Compose — to redeploy after editing the BPMN:
 ```bash
 docker compose build kie-server         # recompiles the kjar into the image
 docker compose up -d --force-recreate kie-server kjar-deploy
-# kjar-deploy re-runs and re-registers the container (idempotent PUT)
+# kjar-deploy re-runs and re-registers the container via the BC controller (idempotent)
 ```
 
 K8s:
@@ -167,7 +180,7 @@ docker compose up -d --force-recreate it-service-backend llm-service kie-server
 kubectl -n ticketsystem create secret generic app-secrets \
   --from-env-file=k8s/overlays/local/secrets.env --dry-run=client -o yaml \
   | kubectl apply -f -
-kubectl -n ticketsystem rollout restart deploy/it-service-backend deploy/llm-service sts/kie-server
+kubectl -n ticketsystem rollout restart deploy/it-service-backend deploy/llm-service deploy/kie-server
 ```
 
 ### DB password rotation
@@ -311,22 +324,44 @@ curl -fsS https://<host>/actuator/metrics/mail_send_total | jq
 # Status=failure breakdown
 curl -fsS 'https://<host>/actuator/metrics/mail_send_total?tag=status:failure' | jq
 
-# Category breakdown — especially security mails (password_reset, twofa_*)
-curl -fsS 'https://<host>/actuator/metrics/mail_send_total?tag=category:password_reset' | jq
+# Category breakdown — security mails are now twofa_device_added / twofa_device_removed
+# (password reset is handled entirely by Keycloak's native flow — see note below)
+curl -fsS 'https://<host>/actuator/metrics/mail_send_total?tag=category:twofa_device_added' | jq
+
+# Admin end-to-end SMTP smoke test (sends a test mail to the caller's address,
+# returns success/failure synchronously — verifies the whole backend→Mailpit path):
+curl -fsS -X POST -H "Authorization: Bearer $TOKEN" https://<host>/api/v1/admin/mail/test | jq
 
 # Dev: open Mailpit
 start http://localhost:8025  # Windows
 # or: xdg-open http://localhost:8025
 
-# Prod: SMTP creds + network egress
-kubectl -n ticketsystem exec deploy/it-service-backend -- \
-  sh -c 'echo "QUIT" | timeout 5 nc -v $MAIL_HOST $MAIL_PORT'
+# Mail topology (post Mailpit-relay): the backend ALWAYS sends to mailpit:1025
+# (internal hop, no auth/TLS). Mailpit both stores the message (UI) and relays it
+# to the real SMTP server via MP_SMTP_RELAY_* (from .env MAIL_RELAY_*). If
+# MAIL_RELAY_HOST is empty, relay is OFF — mail is captured only, never delivered.
 
-# JavaMail debug (temporary):
+# Backend → Mailpit reachability (SMTP timeouts default to 5000ms):
+kubectl -n ticketsystem exec deploy/it-service-backend -- \
+  sh -c 'echo "QUIT" | timeout 5 nc -v $MAIL_HOST $MAIL_PORT'   # MAIL_HOST=mailpit, MAIL_PORT=1025
+
+# Prod: Mailpit runs but its ports are NOT published — port-forward to inspect:
+kubectl -n ticketsystem port-forward deploy/mailpit 8025:8025   # then open http://localhost:8025
+# Real delivery failing? Check the relay config on Mailpit, not the backend:
+kubectl -n ticketsystem logs deploy/mailpit --tail=200 | grep -i relay
+
+# JavaMail debug (temporary, backend→Mailpit hop):
 kubectl -n ticketsystem set env deploy/it-service-backend \
   SPRING_MAIL_PROPERTIES_MAIL_DEBUG=true
 # Bounce, capture a failing send, then unset
 ```
+
+> **Password reset no longer flows through the backend's mailer.** It is handled
+> by Keycloak's native reset-credentials flow (the custom backend endpoints and
+> `password_reset_tokens` table were dropped in V47). Keycloak sends the branded
+> reset mail itself via `realm.smtpServer` (pointed at Mailpit, `from` = `MAIL_FROM`).
+> If reset mail is missing, debug Keycloak's SMTP config, not the backend:
+> `kubectl -n ticketsystem logs sts/keycloak-iam --tail=200 | grep -i smtp`.
 
 ### KIE Server unreachable
 
@@ -346,17 +381,20 @@ curl -fsS -XPOST https://<host>/api/tickets -H "Authorization: Bearer $TOKEN" \
 # Should return 201; process_instance_id will be NULL — reconciled later
 
 # Recovery
-kubectl -n ticketsystem rollout restart sts/kie-server
+kubectl -n ticketsystem rollout restart deploy/kie-server
+# After a restart the registered container may need re-deploying (H2 runtime):
+make k8s-redeploy-kjar                  # k8s   /   docker compose up -d kjar-deploy (compose)
 # Verify kjar registration
 curl -u kieserver:$KIE_PASS http://<host>:8180/kie-server/services/rest/server/containers | jq
 ```
 
-KIE Server process state is persisted to the dedicated **jbpm-db** Postgres
-(datasource `java:jboss/datasources/jbpmDS`, `PostgreSQLDialect` — not the old
-in-memory H2 `ExampleDS`), so in-flight workflows survive a kie-server
-restart/rebuild. If a process instance is nonetheless gone (e.g. jbpm-db was
-wiped), a stale `process_instance_id` is tolerated: a KIE **404** is ignored by
-the circuit breaker and the DB transition is accepted anyway, so ticket status
+KIE Server process state is persisted to a **file-based H2 database** in the
+`jbpm_data` volume (the dedicated `jbpm-db` Postgres was removed in build
+a5cbf11; in k8s the deployment sets `-Dorg.kie.server.persistence.dialect=...H2Dialect`),
+so in-flight workflows survive a kie-server restart/rebuild as long as the volume
+is intact. If a process instance is nonetheless gone (e.g. the volume was wiped),
+a stale `process_instance_id` is tolerated: a KIE **404** is ignored by the
+circuit breaker and the DB transition is accepted anyway, so ticket status
 changes do not block on a missing BPMN instance.
 
 The BPMN is the authoritative state machine for **all** ticket status changes —

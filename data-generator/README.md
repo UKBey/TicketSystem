@@ -146,8 +146,8 @@ Then, from the `products` list in `src/main/resources/setup.json`:
 
 - **12 products** (IBM Business Automation Workflow, IBM FileNet Content Manager,
   IBM App Connect Enterprise, IBM API Connect, IBM MQ, Inviso, FiGO, IBM Instana,
-  IBM Datacap, FintechBox, Automation Anywhere RPA, Finans Portalı) — idempotent by `name`.
-- **3–6 topics** per product (42 total) — idempotent by `(productId, name)`.
+  IBM Datacap, FintechBox, Automation Anywhere RPA, Finans Portali) — idempotent by `nameEn`.
+- **2–6 topics** per product (42 total) — idempotent by `(productId, name)`.
 - ~199 **known-issue** records in total (title + content) — idempotent by title within
   the product.
 
@@ -156,9 +156,9 @@ Then, from the `products` list in `src/main/resources/setup.json`:
 From the `cannedResponses` block in `setup.json`, shared (`SHARED`) canned-response
 templates are created idempotently (by title):
 
-- **10 global** templates (no product) — visible in every product context.
-- **5 per-product** templates × 5 products. The `{product}` token in the title and
-  content is replaced with the product name.
+- **9 global** templates (no product) — visible in every product context.
+- **7 per-product** templates, expanded across **all 12 products**. The `{product}`
+  token in the title and content is replaced with the product name.
 
 ### 4. Product authorization
 
@@ -275,7 +275,7 @@ data-generator/
 ├── users.json                    ← login credentials + seed-user definitions (gitignored)
 ├── users.example.json            ← template (committed, placeholder passwords)
 └── src/main/resources/
-    ├── setup.json                ← 12 products × 3–6 topics × ~199 known-issues + canned responses
+    ├── setup.json                ← 12 products × 2–6 topics × ~199 known-issues + canned responses
     └── tickets/
         ├── ticket-001.json       ← 100 templates; processed CLOSED→RESOLVED→WAITING→IN_PROGRESS→NEW
         ├── ...

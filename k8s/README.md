@@ -10,7 +10,8 @@ k8s/
 ├── kind-config.yaml  # kind cluster config — exposes hostPort 80/443 for ingress
 └── overlays/
     ├── local/        # kind cluster — single replica, small PVs, http://localhost
-    └── prod/         # Managed K8s — HPA, cert-manager, sealed-secrets
+    └── prod/         # Managed K8s — HPA, cert-manager, sealed-secrets,
+                      #   Keycloak prod mode, hardened ingress, OpenSearch NetworkPolicy
 ```
 
 All resources live in the `ticketsystem` namespace and carry the
@@ -149,3 +150,23 @@ the canonical list of keys the `app-secrets` Secret must provide.
 Production uses SealedSecrets committed under `k8s/overlays/prod/`
 (`kustomization.yaml` has the bootstrap instructions) — seal a plain Secret
 built from the same key list.
+
+## Production overlay
+
+`k8s/overlays/prod/` layers production-only hardening on top of `base/`:
+
+- **Keycloak prod mode** (`patches/keycloak-prod.yaml`) — overrides the base
+  `start-dev` args with `start --import-realm`. TLS terminates at the ingress;
+  Keycloak listens on HTTP (`KC_HTTP_ENABLED=true`) and trusts forwarded headers,
+  with `KC_HOSTNAME_STRICT=false` so admin/redirect URLs aren't forced to HTTPS.
+  `--optimized` is intentionally not used (stock image auto-builds on `start`).
+- **Hardened ingress** — the JSON6902 patch in `kustomization.yaml` removes the
+  dev/observability paths (`/swagger-ui`, `/v3/api-docs`, `/mailpit`,
+  `/opensearch`) from the public host that base defines for dev, so they aren't
+  reachable unauthenticated in prod.
+- **OpenSearch isolation** (`patches/networkpolicy-opensearch.yaml`) — since the
+  OpenSearch security plugin is disabled in base, a `NetworkPolicy` restricts
+  `:9200` to known observability clients (otel-collector, data-prepper, logstash,
+  opensearch-dashboards). Requires a NetworkPolicy-aware CNI (Calico/Cilium).
+- **Immutable image tags** — the CD pipeline runs `kustomize edit set image` to
+  pin each image to the git commit SHA, avoiding silent `:latest` downgrades.
