@@ -19,7 +19,7 @@ export default function TeamTickets() {
   const navigate = useNavigate();
   const { user, isLeadAgent, isAdmin } = useAuth();
   const [joiningId, setJoiningId] = useState(null);
-  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
+  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null, excludeAgentIds: [] });
 
   const currentUserId = user?.sub || user?.id;
   // Bilet atama yetkisi — lead agent veya admin.
@@ -60,11 +60,16 @@ export default function TeamTickets() {
   };
 
   const handleOpenAssign = (ticket) => {
-    setAssignModal({ open: true, ticketId: ticket.id, productId: ticket.productId });
+    setAssignModal({
+      open: true,
+      ticketId: ticket.id,
+      productId: ticket.productId,
+      excludeAgentIds: ticket.claimers?.map((c) => c.agentId) ?? [],
+    });
   };
 
   const handleAssignSuccess = () => {
-    setAssignModal({ open: false, ticketId: null, productId: null });
+    setAssignModal({ open: false, ticketId: null, productId: null, excludeAgentIds: [] });
     refetch();
   };
 
@@ -152,10 +157,11 @@ export default function TeamTickets() {
 
       <AgentSelectionModal
         isOpen={assignModal.open}
-        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null })}
+        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null, excludeAgentIds: [] })}
         onSuccess={handleAssignSuccess}
         ticketId={assignModal.ticketId}
         productId={assignModal.productId}
+        excludeAgentIds={assignModal.excludeAgentIds}
       />
     </>
   );

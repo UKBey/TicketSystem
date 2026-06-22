@@ -19,7 +19,7 @@ export default function Pool() {
   // Bilet atama yetkisi — lead agent veya admin.
   const canAssign = isLeadAgent || isAdmin;
 
-  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null });
+  const [assignModal, setAssignModal] = useState({ open: false, ticketId: null, productId: null, excludeAgentIds: [] });
 
   const {
     tickets, totalPages, totalItems, loading, initialLoading, error,
@@ -52,11 +52,16 @@ export default function Pool() {
   };
 
   const handleOpenAssign = (ticket) => {
-    setAssignModal({ open: true, ticketId: ticket.id, productId: ticket.productId });
+    setAssignModal({
+      open: true,
+      ticketId: ticket.id,
+      productId: ticket.productId,
+      excludeAgentIds: ticket.claimers?.map((c) => c.agentId) ?? [],
+    });
   };
 
   const handleAssignSuccess = () => {
-    setAssignModal({ open: false, ticketId: null, productId: null });
+    setAssignModal({ open: false, ticketId: null, productId: null, excludeAgentIds: [] });
     refetch();
   };
 
@@ -108,10 +113,11 @@ export default function Pool() {
 
       <AgentSelectionModal
         isOpen={assignModal.open}
-        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null })}
+        onClose={() => setAssignModal({ open: false, ticketId: null, productId: null, excludeAgentIds: [] })}
         onSuccess={handleAssignSuccess}
         ticketId={assignModal.ticketId}
         productId={assignModal.productId}
+        excludeAgentIds={assignModal.excludeAgentIds}
       />
     </>
   );

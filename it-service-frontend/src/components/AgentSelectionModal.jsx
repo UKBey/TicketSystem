@@ -15,8 +15,10 @@ import Button from './Button';
  *   onSuccess  {function} — Başarılı atama sonrası çağrılır: (updatedTicket) => {}
  *   productId  {number}   — Hangi product için agent listesi çekilecek
  *   ticketId   {number}   — Atanacak bilet ID'si
+ *   excludeAgentIds {string[]} — Listeden gizlenecek agent ID'leri (örn. bileti
+ *                                zaten üstlenmiş ajanlar — tekrar atamak anlamsız)
  */
-export default function AgentSelectionModal({ isOpen, onClose, onSuccess, productId, ticketId }) {
+export default function AgentSelectionModal({ isOpen, onClose, onSuccess, productId, ticketId, excludeAgentIds = [] }) {
   const { t } = useTranslation();
   const [agents, setAgents] = useState([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
@@ -47,6 +49,9 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
 
   // ESC tuşu ile kapatma
   useEscapeToClose(isOpen, onClose);
+
+  // Bileti zaten üstlenmiş ajanları listeden çıkar — onlara tekrar atama anlamsız.
+  const visibleAgents = agents.filter((a) => !excludeAgentIds.includes(a.agentId));
 
   const handleAssign = async (e) => {
     e.preventDefault();
@@ -133,7 +138,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                 <div className="rounded-lg px-3 py-2 text-sm bg-danger-50 text-danger-600 dark:bg-danger-500/10 dark:text-danger-400">
                   {fetchError}
                 </div>
-              ) : agents.length === 0 ? (
+              ) : visibleAgents.length === 0 ? (
                 <div className="rounded-lg px-3 py-3 text-sm text-center" style={{ color: 'var(--text-tertiary)', backgroundColor: 'var(--bg-muted)' }}>
                   {t('ticket.agentModal.noAgents')}
                 </div>
@@ -142,7 +147,7 @@ export default function AgentSelectionModal({ isOpen, onClose, onSuccess, produc
                   className="rounded-lg border divide-y overflow-hidden"
                   style={{ borderColor: 'var(--border-color)', divideColor: 'var(--border-color)' }}
                 >
-                  {agents.map((agent) => {
+                  {visibleAgents.map((agent) => {
                     const isSelected = selectedAgentId === agent.agentId;
                     const isFull = agent.isFull;
                     const hasLimit = agent.maxLimit != null;

@@ -290,6 +290,7 @@ export default function TicketDetail() {
         onSuccess={handleAssignSuccess}
         ticketId={ticket?.id}
         productId={ticket?.productId}
+        excludeAgentIds={ticket?.claimers?.map((c) => c.agentId)}
       />
 
       <ResolveModal
