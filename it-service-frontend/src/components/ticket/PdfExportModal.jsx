@@ -18,7 +18,7 @@ const modalStyles = `
 `;
 
 // Tüm olası bölümler. `staff: true` olanlar (worklog + internal notes) yalnızca onları
-// görme yetkisi olan personele (isAgent) gösterilir — müşteride switch hiç çıkmaz.
+// görme yetkisi olan personele (agent/lead + manager/admin) gösterilir — müşteride çıkmaz.
 const SECTIONS = [
   { key: 'ticketDetail',  staff: false },
   { key: 'conversation',  staff: false },
@@ -27,8 +27,8 @@ const SECTIONS = [
   { key: 'audit',         staff: false },
 ];
 
-const sectionDefaults = (isAgent) =>
-  Object.fromEntries(SECTIONS.filter((s) => !s.staff || isAgent).map((s) => [s.key, true]));
+const sectionDefaults = (canSeeStaffSections) =>
+  Object.fromEntries(SECTIONS.filter((s) => !s.staff || canSeeStaffSections).map((s) => [s.key, true]));
 
 const uiLang = () => (i18n.language?.startsWith('tr') ? 'tr' : 'en');
 
@@ -65,13 +65,13 @@ function printViaIframe(html, fileName) {
   setTimeout(run, 150); // içerik yerleşsin
 }
 
-export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, isAgent, isCustomer }) {
+export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, canSeeStaffSections, isCustomer }) {
   const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
   const toast = useToast();
-  const available = SECTIONS.filter((s) => !s.staff || isAgent);
+  const available = SECTIONS.filter((s) => !s.staff || canSeeStaffSections);
 
-  const [sel, setSel] = useState(() => sectionDefaults(isAgent));
+  const [sel, setSel] = useState(() => sectionDefaults(canSeeStaffSections));
   const [language, setLanguage] = useState(uiLang);
   const [theme, setTheme] = useState(appTheme === 'dark' ? 'dark' : 'light');
   const [generating, setGenerating] = useState(false);
@@ -80,7 +80,7 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
   // arayüz dili + arayüz teması). Sadece kullanıcının yetkisi olan bölümler uygulanır.
   useEffect(() => {
     if (!isOpen) return;
-    setSel(sectionDefaults(isAgent));
+    setSel(sectionDefaults(canSeeStaffSections));
     setLanguage(uiLang());
     setTheme(appTheme === 'dark' ? 'dark' : 'light');
 
@@ -106,7 +106,7 @@ export default function PdfExportModal({ isOpen, onClose, ticket, ticketCode, is
       })
       .catch(() => { /* tercih yoksa/erişilemezse varsayılanlarla devam */ });
     return () => { cancelled = true; };
-  }, [isOpen, isAgent, appTheme]);
+  }, [isOpen, canSeeStaffSections, appTheme]);
 
   if (!isOpen) return null;
 

@@ -31,7 +31,7 @@ export default function TicketDetail() {
   const { t }        = useTranslation();
   const { id }       = useParams();
   const navigate     = useNavigate();
-  const { user, isAgent, isLeadAgent, isAdmin, isManager, isCustomer } = useAuth();
+  const { user, isAgent, isLeadAgent, isAdmin, isManager, isCustomer, isStaff } = useAuth();
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
@@ -57,7 +57,7 @@ export default function TicketDetail() {
     topicModalOpen, setTopicModalOpen, openTopicModal,
     topicsList, topicsLoading,
     openReasonModal, closeReasonModal, handleReasonConfirm,
-  } = useTicketDetail(id, isAgent);
+  } = useTicketDetail(id, isStaff);
 
   if (loading) {
     return (
@@ -269,7 +269,7 @@ export default function TicketDetail() {
         onClose={() => setPdfModalOpen(false)}
         ticket={ticket}
         ticketCode={ticketCode}
-        isAgent={isAgent}
+        canSeeStaffSections={isStaff}
         isCustomer={isCustomer}
       />
 

@@ -20,7 +20,7 @@ import { REASON_CODES } from '../utils/reasonCodes';
 // Asıl değer GET /config/comments ile backend'den (.env: COMMENT_COOLDOWN_SECONDS) çekilir.
 const FALLBACK_COMMENT_COOLDOWN_SECONDS = 3;
 
-export function useTicketDetail(id, isAgent) {
+export function useTicketDetail(id, canSeeInternal) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -129,10 +129,9 @@ export function useTicketDetail(id, isAgent) {
   }, [id, fetchTicket, fetchComments, fetchAttachments]);
 
 
-  // Gercek zamanli guncellemeler: backend ticket mutation'larinda
-  // /topic/tickets/{id} kanalina event yayinlar. Agent/lead ek olarak
-  // /internal alt kanaliyla INTERNAL yorumlari da alir.
-  const canSeeInternal = !!isAgent;
+  // Gerçek zamanlı güncellemeler: backend ticket mutation'larında
+  // /topic/tickets/{id} kanalına event yayınlar. Staff (agent/lead + manager/admin)
+  // ek olarak /internal alt kanalıyla INTERNAL yorumları da canlı alır.
   const handleWsComment = useCallback((comment) => {
     setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
   }, []);
@@ -143,7 +142,7 @@ export function useTicketDetail(id, isAgent) {
     onComment: handleWsComment,
     onAttachment: handleWsAttachment,
     onTicketUpdated: fetchTicket,
-    includeInternal: canSeeInternal,
+    includeInternal: !!canSeeInternal,
   });
 
   useEffect(() => {
