@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { formatMinutes, formatShortDate } from '../../utils/ticketFormatters';
 import Button from '../Button';
 
-export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
+export default function WorklogCard({ ticketId, ticketStatus, canView, canManage }) {
   const { t } = useTranslation();
   const toast = useToast();
 
@@ -26,10 +26,10 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
     }
   }, [ticketId]);
 
-  // Worklog'lar yalnizca ajanlara aciktir (backend GET /worklogs -> AGENT/LEAD/MANAGER).
-  // Bilesen !isAgent durumunda zaten null render eder; customer'da fetch'i hic atesleme,
-  // aksi halde her ticket detayinda 403 (Forbidden) gurultusu olusur.
-  useEffect(() => { if (isAgent) fetchWorklogs(); }, [isAgent, fetchWorklogs]);
+  // Worklog görüntüleme staff'a açıktır (agent/lead + manager/admin → backend
+  // GET /worklogs). Customer'da fetch'i hiç ateşleme, aksi halde her ticket
+  // detayında 403 (Forbidden) gürültüsü oluşur. Ekleme/silme ise yalnız canManage.
+  useEffect(() => { if (canView) fetchWorklogs(); }, [canView, fetchWorklogs]);
 
   const handleAdd = async () => {
     const mins = parseInt(minutes, 10);
@@ -61,7 +61,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
     }
   };
 
-  if (!isAgent) return null;
+  if (!canView) return null;
 
   const total = worklogs.reduce((sum, w) => sum + w.minutes, 0);
 
@@ -109,13 +109,15 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-sm font-bold text-primary-500">{formatMinutes(w.minutes)}</span>
-                  <button
-                    className="rounded p-1 transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
-                    style={{ color: 'var(--text-tertiary)' }}
-                    onClick={() => handleDelete(w.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  {canManage && (
+                    <button
+                      className="rounded p-1 transition-colors cursor-pointer hover:bg-danger-50 hover:text-danger-500"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      onClick={() => handleDelete(w.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
                 {w.description && (
                   <div className="text-xs mt-1 leading-relaxed break-words" style={{ color: 'var(--text-primary)' }}>{w.description}</div>
@@ -130,7 +132,7 @@ export default function WorklogCard({ ticketId, ticketStatus, isAgent }) {
           </div>
         )}
 
-        {ticketStatus !== 'CLOSED' && (
+        {canManage && ticketStatus !== 'CLOSED' && (
           !formOpen ? (
             <button
               className={`w-full rounded-lg border px-3 py-2 text-xs font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${worklogs.length > 0 ? 'mt-3' : ''}`}

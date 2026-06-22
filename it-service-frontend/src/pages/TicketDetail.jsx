@@ -31,7 +31,7 @@ export default function TicketDetail() {
   const { t }        = useTranslation();
   const { id }       = useParams();
   const navigate     = useNavigate();
-  const { user, isAgent, isLeadAgent, isAdmin, isCustomer } = useAuth();
+  const { user, isAgent, isLeadAgent, isAdmin, isManager, isCustomer } = useAuth();
   const { theme }    = useTheme();
   const isDark       = theme === 'dark';
   const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
@@ -192,7 +192,8 @@ export default function TicketDetail() {
         <WorklogCard
           ticketId={id}
           ticketStatus={ticket.status}
-          isAgent={isAgent}
+          canView={isAgent || isManager || isAdmin}
+          canManage={isAgent}
         />
 
         {isCustomer && ticket.status === 'RESOLVED' && (
