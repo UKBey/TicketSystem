@@ -78,6 +78,43 @@ class CommentServiceTest {
     }
 
     @Test
+    void addComment_pureAdminCannotComment() {
+        // Pure ADMIN (config rolü) global mutasyon yetkisine sahip olsa da ticket
+        // içeriğine yorum ekleyemez — operasyonel rol (agent/lead) gerekir.
+        when(ticketService.validateMutationAccess(100L, "admin-1", List.of("ADMIN"))).thenReturn(waitingTicket);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> commentService.addComment(100L, "note", "EXTERNAL", "admin-1", List.of("ADMIN")));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        assertEquals("error.comment.role.forbidden", ex.getReason());
+        verify(commentRepository, never()).save(any(Comment.class));
+    }
+
+    @Test
+    void addComment_adminWithLeadAgentCanComment() {
+        // Admin + lead_agent (super-admin) operasyonel roldür: internal yorum ekleyebilir.
+        Ticket inProgress = Ticket.builder()
+                .id(104L)
+                .status(TicketStatus.IN_PROGRESS)
+                .customerId("customer-1")
+                .build();
+        when(ticketService.validateMutationAccess(104L, "boss-1", List.of("ADMIN", "LEAD_AGENT")))
+                .thenReturn(inProgress);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment c = invocation.getArgument(0);
+            c.setId(9L);
+            return c;
+        });
+
+        Comment saved = commentService.addComment(104L, "internal", "INTERNAL", "boss-1",
+                List.of("ADMIN", "LEAD_AGENT"));
+
+        assertEquals(9L, saved.getId());
+        assertEquals(CommentType.INTERNAL, saved.getType());
+    }
+
+    @Test
     void addComment_customerReplyOnWaitingStatusMovesTicketToInProgress() {
         when(ticketService.validateMutationAccess(100L, "customer-1", List.of("CUSTOMER"))).thenReturn(waitingTicket);
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {

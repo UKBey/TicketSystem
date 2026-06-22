@@ -101,6 +101,17 @@ public class CommentService {
         // Yorum ekleme, mutasyon yetkisi denetiminden gecmeden ilerlemez.
         Ticket ticket = ticketService.validateMutationAccess(ticketId, userId, roles);
 
+        // Yorum operasyonel bir aksiyondur: yalnizca agent/lead (operasyonel rol) veya
+        // biletin sahibi musteri yorum yazabilir. Pure ADMIN (config rolu) global mutasyon
+        // yetkisine sahip olsa da ticket icerigine yorum ekleyemez — operasyonel is icin
+        // ayrica lead_agent rolu tasimalidir (worklog/attachment ile ayni cizgi).
+        boolean canComment = AuthRoles.isAgentLevel(roles)
+                || (roles.contains(AuthRoles.CUSTOMER) && userId.equals(ticket.getCustomerId()));
+        if (!canComment) {
+            log.warn("Yorum reddedildi: Operasyonel olmayan rol. Kullanıcı: {}, Roller: {}", userId, roles);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "error.comment.role.forbidden");
+        }
+
         // Sadece CUSTOMER olan kullanici dahili not birakamaz.
         boolean isOnlyCustomer = roles.contains(AuthRoles.CUSTOMER) && !AuthRoles.isAgentLevel(roles);
         if (isOnlyCustomer && "INTERNAL".equals(type)) {

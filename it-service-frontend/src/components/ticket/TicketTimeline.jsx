@@ -323,7 +323,10 @@ export default function TicketTimeline() {
         <div ref={chatEndRef} />
       </div>
 
-      {ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
+      {/* Yorum/ek operasyonel bir aksiyon: yalnızca agent/lead veya biletin sahibi
+          müşteriye composer gösterilir. Pure admin (config rolü) ve manager (read-only)
+          yorum ekleyemez — backend de error.comment.role.forbidden ile reddeder. */}
+      {(isAgent || isCustomer) && ticket.status !== 'CLOSED' && !(isCustomer && ticket.status === 'RESOLVED') && (
         <div className="border-t px-4 sm:px-5 py-4" style={{ borderColor: 'var(--border-color)' }}>
           {isAgent && (
             <div className="flex flex-wrap items-center gap-2 mb-3">
