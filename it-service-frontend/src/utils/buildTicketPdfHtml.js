@@ -187,10 +187,14 @@ function auditSection(auditLogs, t, theme) {
       : '';
     const detailBits = [reason && esc(reason), e.note && `&ldquo;${esc(e.note)}&rdquo;`]
       .filter(Boolean).join(' — ');
+    // Atamada "kim" sütunu atanan ajanı gösterir; atayan "X tarafından" eklenir.
+    const who = e.actionType === 'ASSIGN' && e.targetName
+      ? `${esc(e.targetName)}${e.actorName ? ` ${esc(t('ticketDetail.auditAssignedBy', { name: e.actorName }))}` : ''}`
+      : esc(e.actorName || '');
     return `
       <tr>
         <td>${esc(formatShortDate(e.createdAt))}</td>
-        <td>${esc(e.actorName || '')}</td>
+        <td>${who}</td>
         <td>${esc(action)}</td>
         <td>${change}${detailBits ? `<div class="detail">${detailBits}</div>` : ''}</td>
       </tr>`;

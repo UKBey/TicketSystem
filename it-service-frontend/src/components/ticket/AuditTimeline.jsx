@@ -126,11 +126,22 @@ export default function AuditTimeline({ auditLogs }) {
                             <Icon className="h-2.5 w-2.5" />
                             {t(`ticketDetail.${cfg.labelKey}`)}
                           </span>
-                          {entry.actorName && (
+                          {entry.actionType === 'ASSIGN' && entry.targetName ? (
+                            // Atamada öne çıkan isim atanan (hedef) ajandır; atayan
+                            // kişi "X tarafından" şeklinde ikincil olarak gösterilir.
+                            <span className="text-xs font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
+                              {entry.targetName}
+                              {entry.actorName && (
+                                <span className="font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                                  {' '}{t('ticketDetail.auditAssignedBy', { name: entry.actorName })}
+                                </span>
+                              )}
+                            </span>
+                          ) : entry.actorName ? (
                             <span className="text-xs font-semibold break-words" style={{ color: 'var(--text-primary)' }}>
                               {entry.actorName}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                         <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
                           {formatDate(entry.createdAt)}

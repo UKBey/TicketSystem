@@ -7,6 +7,7 @@ import com.ticketsystem.it_service_backend.entity.TicketClaim;
 import com.ticketsystem.it_service_backend.entity.TicketStatus;
 import com.ticketsystem.it_service_backend.entity.User;
 import com.ticketsystem.it_service_backend.exception.TicketLimitExceededException;
+import com.ticketsystem.it_service_backend.util.AssignAuditNote;
 import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import com.ticketsystem.it_service_backend.repository.AgentProductLimitRepository;
@@ -264,10 +265,12 @@ public class TicketClaimService {
             log.info("İlk atama — bilet IN_PROGRESS'e alındı. Bilet: {}", ticketId);
         }
 
-        // Note stays free-form/optional: when the admin supplies none we persist null
-        // rather than a hardcoded literal — the audit timeline already renders a
-        // localized "Assigned" label per the viewer's language (i18n-correct).
-        auditHelper.record(ticket, adminId, AuditAction.ASSIGN, note,
+        // The assignee (target agent) is encoded into the note via an [[assignee:<id>]]
+        // marker — ticket_audit_logs has no column for the assignment target. The
+        // assembler strips the marker and resolves the name live for the timeline.
+        // Any admin-supplied note is preserved after the marker.
+        auditHelper.record(ticket, adminId, AuditAction.ASSIGN,
+                AssignAuditNote.encode(targetAgentId, note),
                 previousStatus.name(), ticket.getStatus().name());
 
         try {

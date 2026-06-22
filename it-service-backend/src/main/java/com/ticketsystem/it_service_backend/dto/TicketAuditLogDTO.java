@@ -1,6 +1,7 @@
 package com.ticketsystem.it_service_backend.dto;
 
 import com.ticketsystem.it_service_backend.entity.TicketAuditLog;
+import com.ticketsystem.it_service_backend.util.AssignAuditNote;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +30,9 @@ public class TicketAuditLogDTO {
     @Schema(description = "İşlemi gerçekleştiren ajanın/kullanıcının tam adı")
     private String actorName;
 
+    @Schema(description = "ASSIGN aksiyonunda biletin atandığı (hedef) ajanın tam adı")
+    private String targetName;
+
     @Schema(description = "Aksiyon türü", example = "UNCLAIM",
             allowableValues = {"UNCLAIM", "CLOSE", "CLAIM"})
     private String actionType;
@@ -49,22 +53,19 @@ public class TicketAuditLogDTO {
     private ZonedDateTime createdAt;
 
     public static TicketAuditLogDTO fromEntity(TicketAuditLog auditLog) {
-        if (auditLog == null) {
-            return null;
-        }
-        return TicketAuditLogDTO.builder()
-                .id(auditLog.getId())
-                .actorId(auditLog.getActorId())
-                .actionType(auditLog.getActionType())
-                .reasonCode(auditLog.getReasonCode())
-                .note(auditLog.getNote())
-                .previousState(auditLog.getPreviousState())
-                .newState(auditLog.getNewState())
-                .createdAt(auditLog.getCreatedAt())
-                .build();
+        return fromEntity(auditLog, null, null);
     }
 
     public static TicketAuditLogDTO fromEntity(TicketAuditLog auditLog, String actorName) {
+        return fromEntity(auditLog, actorName, null);
+    }
+
+    /**
+     * Builds the DTO with resolved actor and assignment-target names. The
+     * {@code [[assignee:<id>]]} marker is stripped from the note (see
+     * {@link AssignAuditNote}); {@code targetName} carries the assignee for ASSIGN rows.
+     */
+    public static TicketAuditLogDTO fromEntity(TicketAuditLog auditLog, String actorName, String targetName) {
         if (auditLog == null) {
             return null;
         }
@@ -72,9 +73,10 @@ public class TicketAuditLogDTO {
                 .id(auditLog.getId())
                 .actorId(auditLog.getActorId())
                 .actorName(actorName)
+                .targetName(targetName)
                 .actionType(auditLog.getActionType())
                 .reasonCode(auditLog.getReasonCode())
-                .note(auditLog.getNote())
+                .note(AssignAuditNote.stripMarker(auditLog.getNote()))
                 .previousState(auditLog.getPreviousState())
                 .newState(auditLog.getNewState())
                 .createdAt(auditLog.getCreatedAt())

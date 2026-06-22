@@ -585,6 +585,7 @@
     "auditWaiting": "Müşteri Bekleniyor",
     "auditResumed": "Devam Ediyor",
     "auditAssigned": "Atandı",
+    "auditAssignedBy": "{{name}} tarafından",
     "auditStatusChange": "Durum Değişti",
     "auditPriorityChange": "Öncelik Değişti",
     "auditTopicChange": "Konu Değişti",

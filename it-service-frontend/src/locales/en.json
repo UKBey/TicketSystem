@@ -585,6 +585,7 @@
     "auditWaiting": "Waiting",
     "auditResumed": "Resumed",
     "auditAssigned": "Assigned",
+    "auditAssignedBy": "by {{name}}",
     "auditStatusChange": "Status Changed",
     "auditPriorityChange": "Priority Changed",
     "auditTopicChange": "Topic Changed",

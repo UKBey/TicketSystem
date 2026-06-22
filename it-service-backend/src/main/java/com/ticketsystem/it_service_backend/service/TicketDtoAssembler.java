@@ -11,6 +11,7 @@ import com.ticketsystem.it_service_backend.repository.CsatRepository;
 import com.ticketsystem.it_service_backend.repository.ProductRepository;
 import com.ticketsystem.it_service_backend.repository.TicketAuditLogRepository;
 import com.ticketsystem.it_service_backend.repository.TicketClaimRepository;
+import com.ticketsystem.it_service_backend.util.AssignAuditNote;
 import com.ticketsystem.it_service_backend.util.AuditAction;
 import com.ticketsystem.it_service_backend.util.AuthRoles;
 import lombok.RequiredArgsConstructor;
@@ -123,7 +124,13 @@ public class TicketDtoAssembler {
         Set<String> userIds = new HashSet<>();
         if (ticket.getCustomerId() != null) userIds.add(ticket.getCustomerId());
         claims.forEach(c -> userIds.add(c.getAgentId()));
-        auditEntries.forEach(a -> userIds.add(a.getActorId()));
+        auditEntries.forEach(a -> {
+            userIds.add(a.getActorId());
+            // ASSIGN kayıtlarında hedef ajan ID'si note'a [[assignee:<id>]] olarak gömülü;
+            // adı aynı toplu sorguda çözülür (N+1 yok).
+            String assigneeId = AssignAuditNote.extractAgentId(a.getNote());
+            if (assigneeId != null) userIds.add(assigneeId);
+        });
         Map<String, String> names = userService.getDisplayNames(userIds);
 
         String customerName = ticket.getCustomerId() != null
@@ -145,7 +152,13 @@ public class TicketDtoAssembler {
         // Actor adı bulunamazsa orijinal davranış gereği actorId'ye düşülür (UNKNOWN değil).
         List<TicketAuditLogDTO> auditLogs = auditEntries.stream()
                 .filter(a -> includeCsatAudit || !AuditAction.CSAT_SUBMITTED.equals(a.getActionType()))
-                .map(a -> TicketAuditLogDTO.fromEntity(a, names.getOrDefault(a.getActorId(), a.getActorId())))
+                .map(a -> {
+                    String assigneeId = AssignAuditNote.extractAgentId(a.getNote());
+                    String targetName = assigneeId == null ? null
+                            : names.getOrDefault(assigneeId, assigneeId);
+                    return TicketAuditLogDTO.fromEntity(a,
+                            names.getOrDefault(a.getActorId(), a.getActorId()), targetName);
+                })
                 .toList();
 
         TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket, hasCsat, product, customerName, claimers);
