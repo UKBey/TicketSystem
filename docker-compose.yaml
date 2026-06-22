@@ -614,7 +614,7 @@ services:
               "server-template-key": {"server-id":"'"$$TPL"'","server-name":"'"$$TPL"'"},
               "release-id": {"group-id":"com.ticketsystem","artifact-id":"ticket-workflow-kjar","version":"1.0.5"},
               "configuration": {
-                "PROCESS": {"org.kie.server.controller.api.model.spec.ProcessConfig":{"runtimeStrategy":"SINGLETON","kbase":"","ksession":"","mergeMode":"MERGE_COLLECTIONS"}},
+                "PROCESS": {"org.kie.server.controller.api.model.spec.ProcessConfig":{"runtimeStrategy":"PER_PROCESS_INSTANCE","kbase":"","ksession":"","mergeMode":"MERGE_COLLECTIONS"}},
                 "RULE": {"org.kie.server.controller.api.model.spec.RuleConfig":{"pollInterval":null,"scannerStatus":"STOPPED"}}
               },
               "status": "STARTED"
