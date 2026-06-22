@@ -132,7 +132,7 @@ public class ProductController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün başarıyla oluşturuldu",
                     content = @Content(schema = @Schema(implementation = ProductDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER ürün oluşturabilir")
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN ürün oluşturabilir")
     })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -163,7 +163,7 @@ public class ProductController {
             description = "Belirtilen ürünü sistemden kalıcı olarak kaldırır. **Dikkat:** Ürüne bağlı biletler varsa referans bütünlüğü bozulabilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Ürün başarıyla silindi"),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER ürün silebilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN ürün silebilir"),
             @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
     })
     @DeleteMapping("/{id}")
@@ -192,7 +192,7 @@ public class ProductController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ürün başarıyla güncellendi",
                     content = @Content(schema = @Schema(implementation = ProductDTO.class))),
-            @ApiResponse(responseCode = "403", description = "Yalnızca MANAGER ürün güncelleyebilir"),
+            @ApiResponse(responseCode = "403", description = "Yalnızca ADMIN ürün güncelleyebilir"),
             @ApiResponse(responseCode = "404", description = "Ürün bulunamadı")
     })
     @PutMapping("/{id}")

@@ -85,13 +85,13 @@ public class TicketWorklogController {
      */
     @Operation(summary = "Bilete ait worklogları listele",
             description = "Belirtilen biletin tüm iş kayıtlarını kronolojik sırada getirir. "
-                    + "Agent yalnızca kendine atanmış biletin workloglarını görebilir, Manager tüm biletleri görebilir.")
+                    + "Agent yalnızca kendine atanmış biletin workloglarını görebilir, Manager ve Admin tüm biletleri görebilir.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Worklog listesi başarıyla döndü"),
             @ApiResponse(responseCode = "403", description = "Bu biletin workloglarını görüntüleme yetkiniz yok")
     })
     @GetMapping("/{id}/worklogs")
-    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN')")
     public ResponseEntity<List<WorklogResponseDTO>> getWorklogsByTicket(
             @Parameter(description = "Biletin ID'si", example = "42", required = true)
             @PathVariable Long id,

@@ -107,7 +107,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "401", description = "Geçersiz veya eksik JWT token")
     })
     @GetMapping("/tickets/{ticketId}/attachments")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN')")
     public ResponseEntity<List<AttachmentDTO>> getAttachments(
             @Parameter(description = "Dosyaları listelenecek biletin ID'si", example = "42", required = true)
             @PathVariable Long ticketId,
@@ -141,7 +141,7 @@ public class AttachmentController {
             @ApiResponse(responseCode = "404", description = "Dosya bulunamadı")
     })
     @GetMapping("/attachments/{id}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'LEAD_AGENT', 'MANAGER', 'ADMIN')")
     public ResponseEntity<byte[]> downloadAttachment(
             @Parameter(description = "İndirilecek dosyanın ID'si", example = "55", required = true)
             @PathVariable Long id,
