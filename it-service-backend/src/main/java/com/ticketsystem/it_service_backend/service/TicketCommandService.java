@@ -439,8 +439,13 @@ public class TicketCommandService {
 
     private void handleWorkflowSignals(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus) {
         // Statü geçişi sinyali ve doğrulaması {@link #validateStateTransition} içinde
-        // zaten yapıldı — burada sadece SLA timer'ı için yan etkiler ve close
-        // sürecinin sonlandırması var.
+        // zaten yapıldı — burada sadece SLA timer'ı için yan etkiler var.
+        //
+        // CLOSED için ayrıca ticket_closed sinyali GÖNDERİLMEZ: BPMN'de state-machine
+        // kolu transition_CLOSED ile "Closed" TERMINATE end event'ine ulaşır ve bu,
+        // tüm süreç örneğini (paralel SLA kolu dahil) sonlandırır. transition_CLOSED
+        // zaten validateStateTransition içinde gönderildiği için, sonradan atılan
+        // ticket_closed her zaman yok olmuş bir örneğe gider ve 404 üretirdi.
         try {
             if (SLA_ACTIVE_STATES.contains(oldStatus) && SLA_PAUSED_STATES.contains(newStatus)) {
                 workflowService.pauseSla(ticket);
@@ -449,12 +454,6 @@ public class TicketCommandService {
             if (SLA_PAUSED_STATES.contains(oldStatus) && SLA_ACTIVE_STATES.contains(newStatus)) {
                 workflowService.resumeSla(ticket);
                 ticketRepository.save(ticket);
-            }
-            if (newStatus == TicketStatus.CLOSED) {
-                // Authoritative state branch'in terminate end'i tüm süreci sonlandırır;
-                // legacy SLA branch için ticket_closed sinyali de hâlâ atılır (geriye
-                // uyumlu — paralel kol bağımsız olarak biter).
-                workflowService.closeTicketWorkflow(ticket);
             }
         } catch (Exception e) {
             log.error("Workflow sinyal hatası. TicketId={}, Geçiş={} → {}, Hata={}",

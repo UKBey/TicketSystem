@@ -247,7 +247,16 @@ moving `IN_PROGRESS` → `NEW` keep the BPMN state node and the DB consistent.
 |---|---|
 | `pause_sla` | `WorkflowService.pauseSla()` |
 | `resume_sla` | `WorkflowService.resumeSla()` |
-| `ticket_closed` | `WorkflowService.closeTicketWorkflow()` |
+| `ticket_closed` | (not sent during normal close — see note) |
+
+> **Note on `ticket_closed`:** The state-machine branch reaches CLOSED via
+> `transition_CLOSED`, whose *"Closed"* end event is a **terminate** event that
+> ends the *entire* process instance (the parallel SLA branch token included).
+> Because `transition_CLOSED` is already sent during the transition validation,
+> the close flow no longer sends a separate `ticket_closed` signal — doing so
+> would always hit an already-terminated instance and return HTTP 404. The
+> `Close (SLA Active)/Close (Paused)/Close Post Breach` catch events that listen
+> for `ticket_closed` remain in the BPMN but are unreachable in practice.
 
 ### Flow walk-through
 
@@ -395,7 +404,7 @@ moves `IN_PROGRESS` → `NEW`. Both no-op (with a warning) if the ticket has no
 |---|---|---|
 | `pauseSla(ticket)` | Accumulates elapsed SLA time into `slaElapsedMs`, sets `slaPausedAt`; idempotent if already paused. | `signalProcessInstance(pid, "pause_sla", null)` |
 | `resumeSla(ticket)` | Clears `slaPausedAt`, sets `slaResumedAt`, computes remaining time, writes `slaDuration`. Also projects `slaDeadline` forward to `slaResumedAt + (getSlaDurationMs(priority) - slaElapsedMs)` so the active badge and the SLA breach scheduler count only active time and do not lose time spent paused. | `setProcessVariable(pid, "slaDuration", remaining)` then `signalProcessInstance(pid, "resume_sla", remaining)` |
-| `closeTicketWorkflow(ticket)` | Ends the process on ticket close. | `signalProcessInstance(pid, "ticket_closed", null)`; **fallback** to `abortProcess(pid)` if the signal throws |
+| `closeTicketWorkflow(ticket)` | Sends `ticket_closed` (fallback `abortProcess`). **No longer called by the close lifecycle** — `transition_CLOSED`'s terminate end event already ends the whole instance. Kept for explicit/standalone use; covered by its own unit tests. | `signalProcessInstance(pid, "ticket_closed", null)`; **fallback** to `abortProcess(pid)` if the signal throws |
 | `abortTicketWorkflow(ticket)` | Hard-cancels the process for a deleted/cancelled ticket. | `abortProcess(pid)` |
 
 `getActiveTimerDeadline(pid)` uses `ProcessAdminServicesClient.getTimerInstances`
@@ -487,7 +496,9 @@ State transitions are logged via the circuit breaker's event publisher.
   logged rather than failing the request.
 - `closeTicketWorkflow` has an extra safety net: if the `ticket_closed` signal
   throws, it falls back to `abortProcess` so no orphaned process instance is
-  left running.
+  left running. It is no longer invoked by the normal close flow (the
+  `transition_CLOSED` terminate end event handles full cleanup); it remains for
+  explicit/standalone termination.
 - The startup ping in `KieClientConfig` never aborts boot — the backend starts
   even if KIE Server is down.
 

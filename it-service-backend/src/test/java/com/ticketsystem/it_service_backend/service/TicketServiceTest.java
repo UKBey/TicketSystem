@@ -788,7 +788,7 @@ class TicketServiceTest {
     }
 
     @Test
-    void closeTicket_whenClosed_setsClosedAtAndClosesWorkflow() {
+    void closeTicket_whenClosed_setsClosedAtAndDoesNotSendTicketClosed() {
         Ticket existing = Ticket.builder()
                 .id(607L)
                 .title("Ticket")
@@ -806,7 +806,10 @@ class TicketServiceTest {
 
         assertEquals(TicketStatus.CLOSED, updated.getStatus());
         assertNotNull(updated.getClosedAt());
-        verify(workflowService).closeTicketWorkflow(updated);
+        // transition_CLOSED'in BPMN terminate end event'i tüm süreci sonlandırdığı için
+        // ayrıca ticket_closed sinyali gönderilmez (gönderilseydi yok olmuş örneğe gidip
+        // 404 üretirdi). closeTicketWorkflow artık close akışında çağrılmaz.
+        verify(workflowService, never()).closeTicketWorkflow(any());
     }
 
     @Test
